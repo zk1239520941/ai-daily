@@ -143,7 +143,7 @@ def _parse_llm_json_response(response: str) -> List[Dict]:
         try:
             return json.loads(match.group())
         except json.JSONDecodeError:
-            print("⚠️ 从文本中提取JSON数组失败")
+            print("⚠️ 从文本中提取JSON数组失败:",text)
             pass
 
     raise ValueError(f"无法从响应中解析JSON: {response[:200]}...")

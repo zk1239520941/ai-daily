@@ -7,6 +7,9 @@
         "push_context_days": 5,
         "no_content_marker": "[NO_NEW_CONTENT]"
     },
+    "log": {
+        "retention_days": 7
+    },
     "schedule": {
         "fetch_interval_minutes": 30,
         "fetch_lookback_minutes": 120,
@@ -19,9 +22,9 @@
     },
     "llm": {
         "provider": "openai",
-        "model": "x-ai/grok-4.1-fast",
-        "baseUrl": "https://openrouter.ai/api/v1",
-        "apiKeyName": "OPENROUTER_API_KEY",
+        "model": "deepseek-v4-flash",
+        "baseUrl": "https://api.deepseek.com",
+        "apiKeyName": "DEEPSEEK_API_KEY",
         "max_prompt_chars": 64000,
         "max_concurrent_batches": 3,
         "prompts": {
@@ -52,6 +55,16 @@
                 "title": "Chrome for Developers",
                 "xmlUrl": "https://developer.chrome.com/static/blog/feed.xml",
                 "category": "Chrome"
+            },
+            {
+                "title": "Cloudflare Developers",
+                "xmlUrl": "https://developers.cloudflare.com/changelog/rss/index.xml",
+                "category": "Cloudflare"
+            },
+            {
+                "title": "Infoq",
+                "xmlUrl": "https://feed.infoq.com/",
+                "category": "News"
             }
         ],
         "block": [
@@ -66,6 +79,10 @@
             {
                 "title": "ElevenLabs Blog",
                 "xmlUrl": "https://api.bestblogs.dev/feed/elevenLabsBlog"
+            },
+            {
+                "title": "Infoq(en)",
+                "xmlUrl": "http://www.infoq.com/rss/rss.action"
             }
         ],
         "block_domains": ["*.substack.com", "*.youtube.com"]

@@ -10,6 +10,7 @@
 - [ ] x 新增加用户rss源创建： DAIR.AI
 - [ ] 允许fetch链接中的内容对信息进行扩展
 
+
 长期待办
 
 - [ ] 增加图片/信息图
@@ -19,16 +20,25 @@
 
 | 决策 | 方案 | 原因 |
 |------|------|------|
-| 定时调度 | croniter | 专业、准确、自动跨天处理 |
+| 定时调度 | systemd timer（生产）+ croniter（loop 模式） | 进程崩溃/服务器重启可自愈，配置热更新，比内置 asyncio.gather 更稳健 |
+| 包管理 | uv | 速度快、单工具管理 venv/pip/lockfile，项目独立 `.venv` |
+| LLM 健康检查 | 仅在 `install.sh` / `loop` 启动时校验 | 每次 timer 触发都校验会增加无意义的 LLM API 调用，运行期异常由 `notify_llm_errors` 兜底 |
+| 日志方案 | journald 命名空间 `dnews` + `MaxRetentionSec` | 与系统其他服务隔离，按 `log.retention_days` 自动轮转，无需写文件日志 |
 | 数据格式 | JSON | 结构清晰、易处理、支持嵌套 |
 | 推送文件 | Markdown+YAML | 人工可读、Frontmatter 元数据 |
-| 循环模式 | asyncio.gather | 简单、无锁、Pythonic |
 | LLM 评分 | 批量 JSON | 减少 API 调用次数 |
 | 状态追踪 | 文件时间戳 | 无需外部数据库 |
 | RSS延迟防护 | fetch_lookback_minutes | 防止RSS延迟导致漏读 |
 | LLM异常通知 | 调用方统一上报 | 避免批次级刷屏，同时保留关键异常通知 |
 
 ## 开发进度
+
+**2026-05-14**
+- [x] 外置定时（已切换到 systemd timer）
+- [x] 系统服务一键运行（`scripts/install.sh`）
+- 实用uv进行python项目管理
+- 配置变更：`config.json` 新增 `log.retention_days` 字段
+- 新增 `daily-news` 系统级包装脚本：装在 `/usr/local/bin/daily-news`，提供 `start/stop/restart/status/logs` 等命令，封装 systemctl/journalctl 调用细节
 
 **2026-03-08**
 - 新增 LLM 异常通知：`compose_digest`、`generate_immediate_push` 与 `score_batch` 的错误会通过现有推送渠道发送简单告警

@@ -1,448 +1,234 @@
-# 技术架构
+# tech-spec.md - 技术架构总览
+
+> 本文档面向未来的 AI Agent 与核心开发者，目的是在阅读源码之前快速建立对项目的整体认识：项目定位、运行模式、核心数据流、模块边界、部署形态、关键约束。
+>
+> **本文写什么**：架构层面的"是什么、为什么、边界在哪里"；跨模块的数据流和契约；部署/运行环境约束；不读源码就无法获知的设计决策。
+>
+> **本文不写什么**：源码摘录、函数签名、字段清单、命令行帮助、变更日志、UI/文案。这些信息以源码、`README.md`、`docs/plan.md`、`config.json` 为准。
+>
+> **维护原则**：当架构边界、数据流、运行环境、部署形态或核心设计决策发生变化时同步更新本文；普通实现调整、字段增删、文案修改不在维护范围内。
+>
+> update: 2026-05-15
+
+## 项目定位
+
+AI 驱动的 RSS 新闻聚合与推送系统：周期性抓取 400+ AI 领域信息源，调用 LLM 评分筛选，按调度规则将高分内容汇总推送到 Discord / 飞书；高分热点条目在 fetch 阶段即时推送。
+
+面向单机部署、单租户使用，所有状态以本地文件（JSON / Markdown）持久化，不依赖外部数据库或队列。
+
+## 运行模式
+
+| 模式 | 触发方 | 适用场景 |
+|------|--------|----------|
+| **生产**（推荐） | systemd timer 分别触发 `fetch` 与 `push` 单次任务 | 服务器长期运行，依赖 systemd 提供调度、重启、开机自启 |
+| **开发** | `loop` 子命令在单进程内并发跑 fetch/push 双循环 | 本地调试，无需 systemd |
+
+CLI 子命令分工（详见 `python -m src.main --help`）：
+
+- `check`：**唯一**的 LLM 健康检查入口，仅在部署期由 `install.sh` 调用
+- `fetch` / `push`：单次执行后退出，由 systemd timer 触发；运行期不再做 LLM 健康检查，异常由统一的告警通道兜底
+- `loop`：开发模式，启动时做一次健康检查，然后并发跑 fetch/push 循环
+
+关键约束：`fetch` / `push` 失败时进程退出码非 0，systemd 据此判定 service 失败，下个 timer 周期自动重试。
 
 ## 核心架构
 
-### 双循环设计
+### 调度模型（生产）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Config (config.json)                    │
-├─────────────────────────────────────────────────────────────┤
-│  sources          filter           schedule      llm/push  │
-│  ├── base_opml    ├── min_score    ├── push_cron            │
-│  ├── add[]        ├── context_days ├── fetch_interval       │
-│  ├── block[]      └── hot_threshold                        │
-│  └── block_domains[]                                       │
-└─────────────────────────────────────────────────────────────┘
-                            │
-           ┌────────────────┴────────────────┐
-           ▼                                 ▼
-┌─────────────────────┐           ┌─────────────────────┐
-│   Fetch Loop        │           │   Push Loop         │
-│   (每30分钟)        │           │   (croniter定时)    │
-│                     │           │                     │
-│  • 抓取RSS          │           │  • 收集条目         │
-│  • LLM评分          │           │  • 生成汇总         │
-│  • 保存JSON         │           │  • 推送+存档        │
-│  • 热点即时推送     │           │                     │
-└─────────────────────┘           └─────────────────────┘
-           │                                 │
-           └────────────────┬────────────────┘
-                            ▼
-                 ┌─────────────────────┐
-                 │   news-data/        │
-                 │   ├── fetch-*.json  │
-                 │   └── push-*.md     │
-                 └─────────────────────┘
+│                     config.json                             │
+│  schedule.fetch_interval_minutes  → dnews-fetch.timer       │
+│  schedule.push_cron               → dnews-push.timer        │
+│  log.retention_days               → journald@dnews retention│
+└────────────────────────┬────────────────────────────────────┘
+                         │ scripts/install.sh 渲染并安装
+            ┌────────────┴────────────┐
+            ▼                         ▼
+  ┌───────────────────┐     ┌───────────────────┐
+  │ dnews-fetch.timer │     │ dnews-push.timer  │
+  └─────────┬─────────┘     └─────────┬─────────┘
+            ▼                         ▼
+  ┌───────────────────┐     ┌───────────────────┐
+  │ fetch.service     │     │ push.service      │
+  │  抓取+评分+热点推送│     │ 收集+汇总+推送     │
+  └─────────┬─────────┘     └─────────┬─────────┘
+            └────────────┬────────────┘
+                         ▼
+                ┌─────────────────┐
+                │   news-data/    │
+                │   fetch-*.json  │
+                │   push-*.md     │
+                │   notify-*.md   │
+                └─────────────────┘
 ```
+
+开发模式（`loop`）以 `asyncio.gather(fetch_loop, push_loop)` 并发运行两条循环，`push_loop` 通过 croniter 计算下次触发时间，行为等价于生产模式但共享单进程。
 
 ### 数据流
 
 ```mermaid
 flowchart LR
-    subgraph RSS源 ["📡 RSS Sources"]
-        direction LR
+    subgraph Sources ["📡 RSS Sources"]
         RS1[Twitter/X]
-        RS2[媒体报道]
-        RS3[技术博客]
-        RS4[微信公众号]
+        RS2[博客 / 媒体]
+        RS3[微信公众号]
     end
 
-    subgraph 存储层 ["💾 Storage (news-data/)"]
-        DB[(JSON/MD文件存储)]
+    subgraph Fetch ["🔄 fetch job (周期触发)"]
+        F1[抓取 RSS] --> F2[HTML→Markdown] --> F3[LLM 批量评分]
+        F3 --> HOT{score ≥ hot_threshold?}
+        HOT -->|是| IP[即时推送 + notify-*.md]
     end
 
-    subgraph Fetch循环 ["🔄 Fetch Loop"]
-        FL[定时抓取 RSS] --> MD[HTML转Markdown] --> LLM[LLM智能评分]
-
-        subgraph 即时推送 ["⚡ Instant Push (score >= 90)"]
-            HOT{评分 >= 90?} -->|是| IP[即时推送]
-        end
+    subgraph Push ["📅 push job (cron 触发)"]
+        P1[读取近 N 天 fetch + 历史 push 上下文] --> P2[LLM 汇总去重] --> P3[生成 push-*.md] --> P4[推送 Discord / 飞书]
     end
 
-    subgraph Push循环 ["📅 Push Loop"]
-        CRON{cron定时触发}
-        PROC[读取评分数据]
-        PUSH[生成 push-*.md]
-        PLAT[推送至 Discord/飞书]
+    subgraph Storage ["💾 news-data/"]
+        DB[(JSON / MD)]
     end
 
-    RSS源 --> FL
-
-    LLM --> HOT
-    HOT -->|否| DB
+    Sources --> F1
+    F3 --> DB
     IP --> DB
-
-    DB --> PROC
-
-    CRON --> PROC
-    PROC --> PUSH
-    PUSH --> PLAT
-
-    style RSS源 fill:#e1f5fe
-    style 存储层 fill:#fff8e1
-    style Fetch循环 fill:#e8f5e9
-    style Push循环 fill:#f3e5f5
+    DB --> P1
+    P3 --> DB
 ```
 
-## 关键模块
+**关键数据契约**：
 
-### 1. main.py
+- `fetch-YYYY-MM-DD.json`：当日抓取与评分结果（含 score / summary / tags / content）
+- `push-YYYY-MM-DD.md`：汇总推送内容（YAML frontmatter + Markdown 正文），同时作为下一次 push 的去重上下文
+- `notify-YYYY-MM-DD.md`：即时推送记录，作为 LLM 即时推送时的去重上下文
 
-入口与双循环：
+具体字段以源码 `src/storage.py` 与样例文件为准，README "数据示例" 章节给出了一份示例。
 
-```python
-await check_llm_available(config["llm"])
-await asyncio.gather(
-    fetch_loop(config),    # 定时抓取
-    push_loop(config)      # cron定时推送
-)
+## 关键模块边界
+
+```
+src/                       运行时代码
+├── main.py                CLI 入口；定义 fetch_job / push_job / loop 的编排顺序
+├── config.py              加载 config.json，合并 OPML + add/block，做配置校验
+├── fetcher.py             RSS 抓取；并发控制、UA 伪装、域名通配符屏蔽
+├── processor.py           HTML → Markdown 转换
+├── llm.py                 LLM 客户端;批量评分、即时推送生成、汇总生成、错误聚合
+├── storage.py             news-data 文件读写;按日期分片;过期清理
+└── push/                  推送平台抽象
+    ├── base.py            PushPlatform 基类(validate_config / send)
+    ├── discord.py
+    └── feishu.py
+
+scripts/                   部署脚本(仅生产 systemd 部署使用)
+├── install.sh             一键安装:uv sync → LLM check → 渲染单元 → 装入系统 → 启用
+├── uninstall.sh           卸载 systemd 单元、daily-news 包装脚本和日志 drop-in;不删数据
+├── status.sh              查看 timer/service 状态(daily-news status 包装它)
+├── _gen_units.py          从 config.json 渲染 systemd 单元和 daily-news 包装脚本
+└── daily-news.tmpl        /usr/local/bin/daily-news 的脚本模板,封装 systemctl/journalctl
+
+systemd/                   systemd 单元模板(由 _gen_units.py 渲染并装入 /etc/systemd/system/)
+├── dnews-fetch.service.tmpl    fetch service 单元模板
+├── dnews-fetch.timer.tmpl      fetch 定时器(OnUnitActiveSec 间隔触发)
+├── dnews-push.service.tmpl     push service 单元模板
+├── dnews-push.timer.tmpl       push 定时器(OnCalendar 日历触发)
+└── journald-dnews.conf.tmpl    journald 命名空间 dnews 的日志保留 drop-in
+
+config.json                主配置;运行参数 + 调度 + LLM + 推送渠道;唯一可热改的运行配置
+prompts/                   LLM 提示词文本;score / immediate_push / digest 各自独立文件
+resources/rss.opml         基础 RSS 订阅源(约 420 个),通过 sources.add/block 增量调整
+.env                       敏感凭证(API Key / Webhook URL),通过环境变量注入,不入库
 ```
 
-关键启动流程：
-- 先加载配置
-- 启动前执行一次 LLM 可用性检查
-- 检查失败时直接退出，避免系统带病运行
+模块协作的关键约定：
 
-**collect_entries_for_push()** - 条目收集核心：
+- **fetch 与 push 之间通过文件系统解耦**：双方不直接通信，push 只读 fetch 已写入的 JSON
+- **LLM 调用的错误处理由调用方决定**：`llm.py` 不做 fallback，失败时返回 `(空内容, 错误列表)`；调用方决定是否告警或跳过推送，避免一个批次失败污染整次任务
+- **批量评分按 `link` 字段对齐**：LLM 返回的条目数可能少于输入，按 link 匹配并丢弃无法对齐的结果，错误聚合后由调用方统一上报
+- **推送平台通过基类多态**：新增平台只需实现 `validate_config()` 与 `send()`，并在工厂函数注册，main.py 无需改动
 
-```python
-def collect_entries_for_push(
-    last_push_time: Optional[datetime],
-    context_days: int = 2,
-    min_score: int = 60,
-) -> tuple[List[Dict], List[Dict]]:
-    """
-    返回 (待推送条目, 上下文条目)
+## 数据边界与持久化
 
-    逻辑：
-    1. 获取 context_days 天的所有条目
-    2. 按 min_score 过滤
-    3. push_cutoff = max(last_push_time, now - 24h)
-    4. 晚于 push_cutoff → 待推送
-    5. 早于 push_cutoff → 上下文（用于LLM去重）
-    """
-```
+- 所有持久化数据落在项目根目录的 `news-data/`：按日期分片的 `fetch-*.json` / `push-*.md` / `notify-*.md`
+- 过期文件由 fetch job 在每次执行后清理，保留窗口由 `filter.keep_days` 控制
+- 没有数据库、没有外部缓存、没有跨机器同步；状态完全可由文件系统重建
+- 敏感信息（API Key、Webhook URL）只通过环境变量注入，禁止写入 `config.json` 或代码
 
-### 2. push_loop() - 使用 croniter
+## 配置与约束
 
-```python
-async def push_loop(config: Dict):
-    cron_list = config['schedule']['push_cron']
-    valid_crons = [c for c in cron_list if croniter.is_valid(c)]
+完整配置字段说明见 `README.md` 的"配置详解"章节，本文只列出对架构有影响的约束。
 
-    while True:
-        next_push = min(
-            croniter(cron, now).get_next(datetime)
-            for cron in valid_crons
-        )
-        await asyncio.sleep(wait_seconds)
-        await run_push_job(config)
-        await asyncio.sleep(1)
-```
+### schedule
 
-关键设计:
-- 无状态：每次循环重新计算时间
-- croniter：专业 cron 解析，自动处理跨天
-- 优雅退出：asyncio.sleep 可被 CancelledError 打断
+| 字段 | 约束 |
+|------|------|
+| `fetch_interval_minutes` | systemd 部署下用 `OnUnitActiveSec` 实现，从上次任务**完成**开始计时（非日历对齐） |
+| `fetch_lookback_minutes` | 必须大于 `fetch_interval_minutes`，用作 RSS 延迟的冗余窗口，依赖 link 去重防止重复入库 |
+| `push_cron` | systemd 部署下**只支持 minute/hour 字段**，其他位必须为 `*`；不支持范围、列表、`*/N`。`loop` 模式下走 croniter，支持完整语法 |
+| `timezone_hours` | 整数小时偏移；用于显示和 cron 计算 |
 
-### 3. fetcher.py
+### log
 
-HTTP 请求头（避免 403）:
+`log.retention_days` 仅对 systemd 部署生效，由 `install.sh` 渲染到 journald 命名空间 `dnews` 的 drop-in 配置；修改后必须重跑 `install.sh`。
 
-```python
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-}
-```
+### LLM
 
-域名屏蔽: config.json 中的 `block_domains` 支持通配符 `*.substack.com`
-
-### 4. llm.py
-
-批量评分：
-
-```python
-async def score_batch(entries: List[Dict], config: Dict) -> tuple[List[Dict], List[str]]:
-    """
-    智能分批评分：
-    1. 根据 max_prompt_chars 自动分批
-    2. 多批次并行处理（限制并发数）
-    3. 通过 link 字段关联结果
-    4. 聚合各批次 LLM 错误并返回给调用方统一上报
-    """
-```
-
-LLM 异常处理：
-- `score_batch()` 会仅保留按 `link` 可匹配的评分结果，并返回聚合错误列表
-- `generate_immediate_push()` 失败时不再生成 fallback 内容，而是返回空内容和错误信息，由调用方决定是否告警与跳过推送
-- `compose_digest()` 失败时由调用方捕获，并通过现有推送渠道发送简单异常通知
-
-### 5. storage.py
-
-JSON 格式:
-
-```json
-{
-  "meta": {"date": "2024-01-15"},
-  "entries": [
-    {
-      "title": "...",
-      "link": "...",
-      "published": "...",
-      "fetched_at": "...",
-      "score": 85,
-      "tags": ["AI"],
-      "summary": "...",
-      "content": "..."
-    }
-  ]
-}
-```
-
-## 配置详解
-
-### config.json
-
-```json
-{
-  "sources": {
-    "base_opml": "resources/rss.opml",
-    "add": [{"title": "...", "xmlUrl": "...", "category": "..."}],
-    "block": [{"title": "...", "xmlUrl": "..."}],
-    "block_domains": ["*.substack.com", "*.youtube.com"]
-  },
-  "filter": {
-    "min_score": 60,
-    "hot_threshold": 90,
-    "context_days": 2,
-    "keep_days": 7,
-    "push_context_days": 5,
-    "no_content_marker": "[NO_NEW_CONTENT]"
-  },
-  "schedule": {
-    "fetch_interval_minutes": 30,
-    "fetch_lookback_minutes": 120,
-    "push_cron": ["0 8 * * *", "0 17 * * *"],
-    "timezone_hours": 8
-  },
-  "llm": {
-    "provider": "openai",
-    "model": "x-ai/grok-4.1-fast",
-    "baseUrl": "https://openrouter.ai/api/v1",
-    "apiKeyName": "OPENROUTER_API_KEY",
-    "max_prompt_chars": 128000,
-    "max_concurrent_batches": 3
-  },
-  "push": {
-    "discord": {
-      "enabled": true,
-      "apiKeyName": "DISCORD_WEBHOOK_URL"
-    },
-    "feishu": {
-      "enabled": false,
-      "apiKeyName": "FEISHU_WEBHOOK_URL"
-    }
-  }
-}
-```
-
-**schedule 配置**：
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `fetch_interval_minutes` | int | 30 | fetch 频率（分钟） |
-| `fetch_lookback_minutes` | int | 120 | RSS 冗余缓存时间（分钟），必须大于 `fetch_interval_minutes`，用于防止 RSS 延迟导致漏读 |
-| `push_cron` | list | - | 推送时间 cron 表达式 |
-| `timezone_hours` | int | 8 | 时区偏移（小时） |
+`llm.max_prompt_chars` 决定批次切分粒度，`llm.max_concurrent_batches` 决定批次并发数。这两个值同时影响吞吐和单次推送的成本上限。
 
 ### 环境变量
 
-敏感信息通过环境变量管理：
+敏感凭证名通过 config.json 的 `*.apiKeyName` 字段指定环境变量名，由 `os.environ` 读取；约定通过 `.env` 提供，systemd 部署时 install.sh 会注入到 service 单元的 `EnvironmentFile`。
 
-| 配置项 | 环境变量 | 说明 |
-|--------|----------|------|
-| LLM API Key | `OPENROUTER_API_KEY` | 在 `llm.apiKeyName` 中指定 |
-| Discord Webhook | `DISCORD_WEBHOOK_URL` | 在 `push.discord.apiKeyName` 中指定 |
-| 飞书 Webhook | `FEISHU_WEBHOOK_URL` | 在 `push.feishu.apiKeyName` 中指定 |
+## systemd 部署形态
 
-## 目录结构
+### 文件落点
 
-```
-daily-news/
-├── src/
-│   ├── main.py          # 入口 + 双循环
-│   ├── config.py        # 配置加载 + 源合并
-│   ├── fetcher.py       # RSS 抓取
-│   ├── llm.py           # LLM 评分/汇总
-│   ├── processor.py     # HTML → Markdown
-│   ├── storage.py       # JSON 读写
-│   └── push/            # 推送平台
-│       ├── __init__.py
-│       ├── base.py      # 基类
-│       ├── discord.py
-│       └── feishu.py
-├── tests/
-│   ├── conftest.py         # pytest fixtures
-│   ├── test_config.py      # 配置模块测试
-│   ├── test_push.py        # 推送平台测试
-│   ├── test_push_loop.py   # 推送循环集成测试
-│   ├── fetch_news.py       # RSS抓取脚本
-│   ├── push_news.py        # 推送测试脚本
-│   ├── score_batch.py      # LLM批量评分脚本
-│   ├── run_llm_test.py    # LLM综合测试脚本
-│   ├── news-data/          # 测试数据目录
-│   └── fixtures/           # 测试fixtures
-├── config.json             # 主配置
-├── requirements.txt
-├── news-data/           # 数据目录
-│   ├── fetch-*.json
-│   └── push-*.md
-├── prompts/             # LLM 提示词
-│   ├── score.txt
-│   ├── immediate_push.txt
-│   └── digest.txt
-└── resources/
-    └── rss.opml         # RSS 订阅源
-```
+| 文件 | 位置 | 来源 |
+|------|------|------|
+| `dnews-{fetch,push}.{service,timer}` | `/etc/systemd/system/` | `systemd/*.tmpl` 由 `_gen_units.py` 渲染 |
+| `journald@dnews` retention drop-in | `/etc/systemd/journald@dnews.conf.d/` | `systemd/journald-dnews.conf.tmpl` |
+| `daily-news` 包装脚本 | `/usr/local/bin/` | `scripts/daily-news.tmpl` |
+| 持久化数据 | 项目目录下的 `news-data/` | 运行时生成 |
+
+### cron → OnCalendar 转换
+
+由 `scripts/_gen_units.py` 完成：
+
+- `fetch_interval_minutes` → `OnActiveSec` + `OnUnitActiveSec`（间隔触发，跟随上次完成时间）
+- `push_cron` → `OnCalendar`（日历触发，按指定时刻）
+- 不支持的 cron 语法（范围、列表、`*/N` 在 minute/hour、非 `*` 的 day/month/dow）在 install 阶段直接报错
+
+### 日志
+
+- 所有 stdout/stderr 进入 journald 命名空间 `dnews`，与系统其他服务隔离
+- 查询：`journalctl --namespace=dnews -u dnews-fetch -f`
+- 卸载不会清理历史日志，需要时手动 `journalctl --namespace=dnews --vacuum-time=1s`
+
+## 设计决策（重要的"为什么"）
+
+| 决策 | 原因 |
+|------|------|
+| 调度交给 systemd timer 而非 asyncio 循环 | 进程崩溃和服务器重启可自愈；调度配置即声明式单元，热更新只需重跑 install.sh |
+| LLM 健康检查只在 `check` 子命令做 | 每次 timer 触发都校验会产生无意义的 LLM API 调用；运行期错误由 `notify_llm_errors` 兜底 |
+| LLM 失败时不生成 fallback 内容 | 避免低质量内容污染推送；由调用方决定告警或跳过 |
+| 用 journald 命名空间而非文件日志 | 自动轮转、与系统日志隔离、无需写文件 IO 代码 |
+| 数据全用本地文件而非数据库 | 单机单租户场景下足够；可读、可备份、可手动审阅 |
+| `fetch_lookback_minutes` 冗余窗口 | RSS 源时间戳常有延迟，仅按时间过滤会漏读；冗余抓取后按 link 去重 |
+| Push 上下文带入近 N 天历史 push 文件 | 避免汇总推送在多个时段重复推同一条目 |
 
 ## 扩展指南
 
-### 添加新推送平台
+- **新推送平台**：在 `src/push/` 新建文件，继承 `PushPlatform`，在工厂注册
+- **新评分维度**：编辑 `prompts/score.txt`，调整评分标准
+- **新 RSS 源**：编辑 `config.json` 的 `sources.add` / `sources.block` / `sources.block_domains`，无需修改 OPML
 
-1. 在 `src/push/` 创建新文件
-2. 继承 `PushPlatform` 基类
-3. 实现 `validate_config()` 和 `send()`
-4. 在 `create_platform()` 中注册
+## 测试
 
-### 修改评分逻辑
+测试入口分两类，详细命令参考 `README.md` 与 `tests/` 目录：
 
-编辑 `prompts/score.txt`，调整评分标准。
+- `tests/pytest/`：单元/集成测试，CI 友好，`uv run pytest tests/pytest/` 一键跑
+- `tests/*.py`：交互式实操脚本（`fetch_news.py` / `push_news.py` / `run_llm_test.py` 等），针对真实 RSS 与 LLM 做端到端验证，用于调参和手测
 
-### 添加新源
+## 相关文档
 
-编辑 `config.json` 的 `sources.add` 列表。
-
-
-## 测试指南
-
-### 实用测试脚本
-
-项目提供了一套完整的测试脚本，用于实际数据测试：
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `tests/fetch_news.py` |  RSS抓取测试 | 根据时间抓取过去一定时间内的信息，并存放到 tests/news-data 文件夹内 |
-| `tests/push_news.py` | 推送测试 | 支持 --fake (默认从fetch数据)、--real (从push文件发送) 两种模式 |
-| `tests/test_push_loop.py` |  push循环时间逻辑（约90秒） |测试push循环时间逻辑 应在运行时刻接下来的30s和90s各调用一次push |
-| `tests/run_llm_test.py` |  LLM综合测试 | 依赖fetch_news.py。 根据抓取的信息源，测试llm打分/推送等功能是否正常|
-| `tests/test_fetch_lookback.py` | fetch_lookback_minutes功能测试 | 测试 cutoff 时间计算、阈值逻辑、跨天边界去重 |
-| `tests/test_cleanup_old_files.py` | 旧文件清理测试 | 测试 cleanup_old_files 函数，自动创建/清理不同日期的测试文件 |
-
-#### 1. fetch_news.py - RSS抓取
-
-```bash
-# 获取过去1小时的新闻
-python tests/fetch_news.py
-
-# 获取过去30分钟的新闻
-python tests/fetch_news.py --minutes 30
-
-# 获取过去24小时的新闻
-python tests/fetch_news.py --hours 24
-
-# 指定输出目录
-python tests/fetch_news.py --output-dir my-data
-
-# 限制每域名最大源数量
-python tests/fetch_news.py --max-per-domain 10
-```
-
-#### 2. push_news.py - 推送测试
-
-```bash
-# 默认模式：从 fetch 数据读取发送
-python tests/push_news.py
-
-# 模拟真实推送：从 news-data/push-*.md 最新文件发送
-python tests/push_news.py --real
-```
-
-#### 3. test_push_loop.py - push循环时间逻辑
-
-```bash
-# 测试push循环时间逻辑 应在运行时刻接下来的30s和90s各调用一次push
-python tests/test_push_loop.py
-```
-
-#### 4. run_llm_test.py - LLM综合测试
-
-```bash
-# 测试评分功能
-python tests/run_llm_test.py --score
-
-# 测试即时推送
-python tests/run_llm_test.py --immediate-push --push
-
-# 测试汇总推送
-python tests/run_llm_test.py --digest --push
-
-# 推送到Discord
-python tests/run_llm_test.py --all --push
-
-# 运行所有测试
-python tests/run_llm_test.py --all
-```
-
-#### 5. test_fetch_lookback.py - fetch_lookback_minutes功能测试
-
-```bash
-# 运行测试
-python tests/test_fetch_lookback.py
-```
-
-#### 6. test_cleanup_old_files.py - 旧文件清理测试
-
-```bash
-# 运行测试
-python tests/test_cleanup_old_files.py
-```
-
-## pytest 集成测试
-
-### 运行测试
-
-```bash
-# 激活虚拟环境
-source ../.venv/bin/activate
-
-# 运行所有 pytest 测试
-pytest tests/pytest/ -v
-
-# 运行特定模块测试
-pytest tests/pytest/test_config.py
-pytest tests/pytest/test_llm.py
-
-# 查看详细输出
-pytest tests/pytest/ -v --tb=short
-
-# 测试 push 循环时间逻辑（约90秒）
-python tests/test_push_loop.py
-```
-
-### 测试覆盖
-
-| 模块 | 测试文件 | 测试数 | 测试内容 |
-|------|----------|--------|----------|
-| config.py | `test_config.py` | 18 | 配置加载、OPML解析、源合并(block/add/去重)、域名屏蔽、时区获取 |
-| fetcher.py | `test_fetcher.py` | 10 | RSS抓取、时间解析、超时处理、并发控制 |
-| storage.py | `test_storage.py` | 24 | JSON读写、条目追加去重、文件路径、过期清理 |
-| llm.py | `test_llm.py` | 16 | prompt加载、JSON解析、分批处理、评分合并 |
-| processor.py | `test_processor.py` | 14 | HTML→Markdown、相对链接、xgo.ing移除 |
-| main.py | `test_main.py` | 16 | 时间解析、推送时间计算、条目收集 |
-| push/ | `test_push.py` | 17 | Discord/企业微信配置、消息分割、推送验证 |
-| timezone/ | `test_timezone.py` | 11 | 时区转换、datetime操作 |
-| fixtures | `conftest.py` | - | 共享fixtures |
-| **合计** | | **132** | |
+- 用户文档与配置详解：`README.md`
+- 任务进度与产品决策：`docs/plan.md`

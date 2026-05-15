@@ -1,5 +1,6 @@
 """AI每日资讯推送系统 - 主程序"""
 
+import argparse
 import asyncio
 import os
 import sys
@@ -420,28 +421,87 @@ async def push_loop(config: Dict):
             await asyncio.sleep(60)
 
 
-async def main():
-    print("🚀 AI每日资讯推送系统启动")
+async def cmd_check(config: Dict) -> int:
+    """校验 LLM 接口可达性（部署期使用，运行期不再校验）"""
+    print("🔍 校验 LLM 接口...")
+    try:
+        await check_llm_available(config["llm"])
+    except Exception as e:
+        print(f"❌ LLM 接口不可用: {e}")
+        return 1
+    print("✅ LLM 接口可用")
+    return 0
+
+
+async def cmd_fetch(config: Dict) -> int:
+    """单次抓取（systemd timer 调用）"""
+    try:
+        await run_fetch_job(config)
+        return 0
+    except Exception as e:
+        print(f"❌ Fetch 任务失败: {e}")
+        return 1
+
+
+async def cmd_push(config: Dict) -> int:
+    """单次推送（systemd timer 调用）"""
+    try:
+        await run_push_job(config)
+        return 0
+    except Exception as e:
+        print(f"❌ Push 任务失败: {e}")
+        return 1
+
+
+async def cmd_loop(config: Dict) -> int:
+    """长跑模式（本地开发/调试用）"""
+    print("🔍 检查 LLM 接口可用性...")
+    try:
+        await check_llm_available(config["llm"])
+        print("✅ LLM 接口可用")
+    except Exception as e:
+        print(f"❌ LLM 接口不可用: {e}")
+        return 1
+    await asyncio.gather(fetch_loop(config), push_loop(config))
+    return 0
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="daily-news",
+        description="AI 每日资讯推送系统",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("check", help="校验 LLM 接口可达性")
+    sub.add_parser("fetch", help="单次抓取并退出")
+    sub.add_parser("push", help="单次推送并退出")
+    sub.add_parser("loop", help="长跑模式（开发/调试用）")
+    return parser.parse_args()
+
+
+def main() -> int:
+    print("🚀 AI每日资讯推送系统")
+    args = _parse_args()
+
     try:
         config = load_config()
         print("✅ 配置加载成功")
     except Exception as e:
         print(f"❌ 加载配置失败: {e}")
-        return
+        return 1
 
-    print("🔍 检查LLM接口可用性...")
-    try:
-        await check_llm_available(config["llm"])
-        print("✅ LLM接口可用")
-    except Exception as e:
-        print(f"❌ LLM接口不可用: {e}")
-        return
-
-    await asyncio.gather(fetch_loop(config), push_loop(config))
+    handlers = {
+        "check": cmd_check,
+        "fetch": cmd_fetch,
+        "push": cmd_push,
+        "loop": cmd_loop,
+    }
+    return asyncio.run(handlers[args.command](config))
 
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        sys.exit(main())
     except KeyboardInterrupt:
         print("\n👋 程序已退出")
+        sys.exit(0)
