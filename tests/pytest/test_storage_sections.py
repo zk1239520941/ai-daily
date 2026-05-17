@@ -145,3 +145,28 @@ class TestSavePushFileProfile:
         )
         text = f.read_text(encoding="utf-8")
         assert 'profile: "morning"' in text
+
+
+from storage import cleanup_old_files
+import json as _j
+
+
+class TestCleanupOldFilesTrendingHistory:
+    def test_prunes_trending_history_entries_not_file(self, tmp_path):
+        path = tmp_path / "trending-history.json"
+        old_date = (datetime.now().date() - timedelta(days=30)).isoformat()
+        fresh_date = datetime.now().date().isoformat()
+        path.write_text(
+            '{"repos": {'
+            f'"https://github.com/a/b": "{old_date}", '
+            f'"https://github.com/c/d": "{fresh_date}"'
+            '}, "updated_at": "..."}',
+            encoding="utf-8",
+        )
+        cleanup_old_files(days=7, data_dir=str(tmp_path))
+        # 文件应保留
+        assert path.exists()
+        # 过期条目应被剪枝
+        data = _j.loads(path.read_text(encoding="utf-8"))
+        assert "https://github.com/a/b" not in data["repos"]
+        assert "https://github.com/c/d" in data["repos"]

@@ -490,6 +490,20 @@ def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
             except (ValueError, OSError):
                 continue
 
+    # trending-history.json: 剪枝过期条目,保留文件本身
+    trending_path = data_path / "trending-history.json"
+    if trending_path.exists() and trending_path.stat().st_size > 0:
+        try:
+            history = load_trending_history(str(trending_path))
+            before = len(history.repos)
+            history.cleanup(today=datetime.now().date(), keep_days=days)
+            after = len(history.repos)
+            if after < before:
+                history.save()
+                print(f"   ✂️ trending-history 剪枝: {before} → {after} 条")
+        except Exception as e:
+            print(f"   ⚠️ trending-history 剪枝失败: {e}")
+
     if deleted_count > 0:
         print(f"   ✅ 清理完成: 删除了 {deleted_count} 个旧文件")
 
