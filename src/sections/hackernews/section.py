@@ -28,27 +28,36 @@ async def run_hackernews_section(
     algolia_base = cfg.get("algolia_base", "https://hn.algolia.com/api/v1")
 
     # 1. 抓首页
+    print("📥 HN: 抓取首页...")
     try:
         html = await fetch_frontpage(timeout=timeout)
     except Exception as e:
         return "", f"HN 首页抓取失败: {e}"
 
     front = parse_frontpage_html(html)
+    print(f"📋 HN: 解析 {len(front)} 条 frontpage stories")
     if not front:
         return "", None
 
     # 2. 轻 LLM 初筛
+    print(f"🤖 HN: 轻 LLM 初筛 (k={select_k})...")
     selected_ids, select_err = await select_ai_related_hn(front, k=select_k, config=config["llm"])
     if select_err:
         return "", f"select_ai_related_hn: {select_err}"
     if not selected_ids:
+        print("ℹ️ HN: 初筛未挑出 AI 相关内容,跳过")
         return "", None
 
     selected = [s for s in front if s["id"] in set(selected_ids)]
     if not selected:
         return "", None
+    print(
+        f"🎯 HN: 初筛选出 {len(selected)} 个: "
+        f"{', '.join(s['id'] for s in selected)}"
+    )
 
     # 3. enrich
+    print(f"🌐 HN: enrich {len(selected)} 个 story (Algolia + 外链)...")
     enriched, enrich_errors = await enrich_stories(
         selected,
         top_comments=top_comments,
@@ -59,11 +68,17 @@ async def run_hackernews_section(
     )
     for e in enrich_errors:
         print(f"⚠️ HN enrich: {e}")
+    print(
+        f"✅ HN: enrich 成功 {len(enriched)} / 失败 {len(enrich_errors)} / "
+        f"输入 {len(selected)}"
+    )
     if not enriched:
         return "", None
 
     # 4. LLM 总结
+    print(f"🤖 HN: summarize {len(enriched)} 个 enriched story...")
     md, err = await summarize_hackernews(enriched, config["llm"])
     if err:
         return "", f"summarize_hackernews: {err}"
+    print(f"✅ HN: 板块输出 {len(md or '')} chars")
     return md or "", None
