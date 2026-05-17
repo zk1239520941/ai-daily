@@ -606,3 +606,17 @@ def load_trending_history(path: str) -> TrendingHistory:
     except (json.JSONDecodeError, OSError):
         print(f"⚠️ trending-history 读取失败,使用空索引: {path}")
         return TrendingHistory(path, {})
+
+
+_SECTION_ORDER = ("rss", "github", "hackernews", "insights")
+
+
+def assemble_with_sentinels(sections: Dict[str, str]) -> str:
+    """按固定顺序拼装四段 markdown,每段包 sentinel;空段整段省略。"""
+    parts: List[str] = []
+    for key in _SECTION_ORDER:
+        body = (sections.get(key) or "").strip()
+        if not body:
+            continue
+        parts.append(f"<!-- SECTION:{key} BEGIN -->\n{body}\n<!-- SECTION:{key} END -->")
+    return "\n\n".join(parts)

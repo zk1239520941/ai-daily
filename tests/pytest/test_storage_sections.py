@@ -170,3 +170,27 @@ class TestCleanupOldFilesTrendingHistory:
         data = _j.loads(path.read_text(encoding="utf-8"))
         assert "https://github.com/a/b" not in data["repos"]
         assert "https://github.com/c/d" in data["repos"]
+
+
+from storage import assemble_with_sentinels
+
+
+class TestAssembleWithSentinels:
+    def test_assembles_all_sections_in_order(self):
+        out = assemble_with_sentinels(
+            {"rss": "R", "github": "G", "hackernews": "H", "insights": "I"}
+        )
+        assert out.index("SECTION:rss") < out.index("SECTION:github")
+        assert out.index("SECTION:github") < out.index("SECTION:hackernews")
+        assert out.index("SECTION:hackernews") < out.index("SECTION:insights")
+        assert "<!-- SECTION:rss BEGIN -->\nR\n<!-- SECTION:rss END -->" in out
+
+    def test_omits_empty_sections(self):
+        out = assemble_with_sentinels({"rss": "R", "github": "", "hackernews": "H", "insights": ""})
+        assert "SECTION:github" not in out
+        assert "SECTION:insights" not in out
+        assert "SECTION:rss" in out
+        assert "SECTION:hackernews" in out
+
+    def test_returns_empty_when_all_empty(self):
+        assert assemble_with_sentinels({"rss": "", "github": "", "hackernews": "", "insights": ""}) == ""
