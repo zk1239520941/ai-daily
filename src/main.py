@@ -542,6 +542,46 @@ async def cmd_loop(config: Dict) -> int:
     return 0
 
 
+async def cmd_github(config: Dict) -> int:
+    """单独跑一次 GitHub trending 板块,打印结果不推送"""
+    print("⭐ GitHub Trending 单板块运行")
+    try:
+        md, err = await run_github_section(config, now=now_local(config))
+    except Exception as e:
+        print(f"❌ GitHub 板块失败: {e}")
+        return 1
+    if err:
+        print(f"❌ {err}")
+        return 1
+    if not md:
+        print("ℹ️ 本次无内容")
+        return 0
+    print("\n" + "=" * 60)
+    print(md)
+    print("=" * 60)
+    return 0
+
+
+async def cmd_hackernews(config: Dict) -> int:
+    """单独跑一次 Hacker News 板块,打印结果不推送"""
+    print("🟧 Hacker News 单板块运行")
+    try:
+        md, err = await run_hackernews_section(config, now=now_local(config))
+    except Exception as e:
+        print(f"❌ Hacker News 板块失败: {e}")
+        return 1
+    if err:
+        print(f"❌ {err}")
+        return 1
+    if not md:
+        print("ℹ️ 本次无内容")
+        return 0
+    print("\n" + "=" * 60)
+    print(md)
+    print("=" * 60)
+    return 0
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="daily-news",
@@ -552,6 +592,10 @@ def _parse_args() -> argparse.Namespace:
     sub.add_parser("fetch", help="单次抓取并退出")
     sub.add_parser("push", help="单次推送并退出")
     sub.add_parser("loop", help="长跑模式（开发/调试用）")
+    sub.add_parser("github", help="单独跑一次 GitHub Trending 板块（仅打印,不推送）")
+    sub.add_parser(
+        "hackernews", help="单独跑一次 Hacker News 板块（仅打印,不推送）"
+    )
     return parser.parse_args()
 
 
@@ -571,6 +615,8 @@ def main() -> int:
         "fetch": cmd_fetch,
         "push": cmd_push,
         "loop": cmd_loop,
+        "github": cmd_github,
+        "hackernews": cmd_hackernews,
     }
     return asyncio.run(handlers[args.command](config))
 
