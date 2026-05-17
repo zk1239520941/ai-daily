@@ -420,3 +420,66 @@ async def summarize_github_trending(
         msg = f"summarize_github_trending 失败: {e}"
         print(f"⚠️ {msg}")
         return "", msg
+
+
+async def select_ai_related_hn(
+    candidates: List[Dict], k: int, config: Dict
+) -> Tuple[List[str], Optional[str]]:
+    """轻 LLM:从 HN 首页候选元数据中挑 k 个 AI 相关 id。
+
+    输入候选只含 id/title/site/points/comments 字段(不含正文)。
+    """
+    prompt_path = config.get("prompts", {}).get(
+        "section_hackernews_select", "prompts/section_hackernews_select.md"
+    )
+    slim = [
+        {
+            "id": c.get("id"),
+            "title": c.get("title", ""),
+            "site": c.get("site", ""),
+            "points": c.get("points", 0),
+            "comments": c.get("comments", 0),
+        }
+        for c in candidates
+    ]
+    prompt = load_prompt(
+        prompt_path,
+        k=k,
+        candidates_json=json.dumps(slim, ensure_ascii=False, indent=2),
+    )
+    try:
+        response = await call_llm(prompt, config)
+    except Exception as e:
+        msg = f"select_ai_related_hn 失败: {e}"
+        print(f"⚠️ {msg}")
+        return [], msg
+
+    try:
+        ids = _parse_llm_json_response(response)
+    except ValueError as e:
+        msg = f"select_ai_related_hn 解析失败: {e}"
+        print(f"⚠️ {msg}")
+        return [], msg
+
+    if not isinstance(ids, list):
+        return [], "select_ai_related_hn 返回非数组"
+    return [str(x) for x in ids][:k], None
+
+
+async def summarize_hackernews(
+    enriched_stories: List[Dict], config: Dict
+) -> Tuple[str, Optional[str]]:
+    """对输入的 K 个 enriched stories 行文(K 由 select_k 决定)。不传历史上下文。"""
+    prompt_path = config.get("prompts", {}).get(
+        "section_hackernews", "prompts/section_hackernews.md"
+    )
+    prompt = load_prompt(
+        prompt_path,
+        stories_json=json.dumps(enriched_stories, ensure_ascii=False, indent=2),
+    )
+    try:
+        return await call_llm(prompt, config), None
+    except Exception as e:
+        msg = f"summarize_hackernews 失败: {e}"
+        print(f"⚠️ {msg}")
+        return "", msg
