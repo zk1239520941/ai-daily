@@ -250,7 +250,7 @@ def load_recent_section_titles(section: str, days: int, data_dir="news-data") ->
 | readme | `GET /repos/{owner}/{repo}/readme` | `content` (base64) → decode → 截断到 `readme_max_chars` |
 
 - `archived=true` 的 repo 从候选剔除（trending 偶尔出现僵尸归档项目）
-- README 截断策略：前 `readme_max_chars` 字符（默认 3000），保持原 markdown 不做处理
+- README 截断策略：前 `readme_max_chars` 字符（默认 5000，基于 trending 页 README 长度分布 p50≈25k 选定，详见 §14 决策记录）
 - 鉴权：`config.sections.github_trending.tokenName`（默认 `"GITHUB_TOKEN"`）对应的环境变量存在时走 `Authorization: Bearer {token}`，否则匿名调用并接受 60 req/hr 上限（日 10 个 repo × 2 calls = 20 calls，匿名安全）
 
 **enriched repo 字段（喂给最终 LLM）**：
@@ -287,13 +287,13 @@ def load_recent_section_titles(section: str, days: int, data_dir="news-data") ->
 3. 并发 enrich 选中的 K 个 story
    async for story in selected:
      - 评论:Algolia GET /api/v1/items/{id}
-         → children[].text 取前 top_comments 条(默认 20,按返回顺序即 HN ranking)
-         → 每条 html_to_markdown + 截断到 comment_max_chars(默认 500)
+         → children[].text 取前 top_comments 条(默认 20,数据 avg=12.7,按 HN ranking)
+         → 每条 html_to_markdown + 截断到 comment_max_chars(默认 800,p75=434)
      - 外链正文:
          if story.url 指向 https://news.ycombinator.com/item?id=... (Show HN/Ask HN):
              从 Algolia 同次返回的 root.text 字段取(无外部请求)
          else:
-             GET story.url → html_to_markdown → 截断到 link_content_max_chars(默认 3000)
+             GET story.url → html_to_markdown → 截断到 link_content_max_chars(默认 6000,p50≈10k)
      - 单 story 任一失败 → 字段留空,metadata 仍传给最终 LLM
 
 4. LLM:summarize_hackernews(enriched_stories, config)
@@ -559,7 +559,7 @@ async def _run_morning_push(config):
       "enabled": true,
       "max_items": 3,
       "max_deep_dive": 10,
-      "readme_max_chars": 3000,
+      "readme_max_chars": 5000,
       "history_file": "news-data/trending-history.json",
       "request_timeout": 10,
       "tokenName": "GITHUB_TOKEN"
@@ -568,8 +568,8 @@ async def _run_morning_push(config):
       "enabled": true,
       "select_k": 1,
       "top_comments": 20,
-      "comment_max_chars": 500,
-      "link_content_max_chars": 3000,
+      "comment_max_chars": 800,
+      "link_content_max_chars": 6000,
       "request_timeout": 10,
       "algolia_base": "https://hn.algolia.com/api/v1"
     },
@@ -704,3 +704,6 @@ def is_morning_push(now: datetime, config: Dict) -> bool:
 | 板块 sentinel 用 HTML 注释 | `<!-- SECTION:xxx BEGIN/END -->` | markdown 渲染不显示；机器易解析；老 push 文件零冲突 |
 | 失败降级粒度 | 单板块失败省略本段；RSS 失败整体退出 | RSS 是核心承诺，其他是增强 |
 | 早报判定 | cron + 容差，而非"今天第一次" | 早报失败时晚报不会错误升级为长版本 |
+| 截断参数初始值（2026-05-17 合入） | `readme_max_chars=3000` / `top_comments=20` / `comment_max_chars=500` / `link_content_max_chars=3000` | 凭直觉给出的保守默认；上线后通过真实数据校准 |
+| 截断参数校准（2026-05-17 合入后） | `readme_max_chars: 3000→5000` / `comment_max_chars: 500→800` / `link_content_max_chars: 3000→6000` / `top_comments` 保持 20 | 基于当日 8 个 trending repo + HN top 10 实测:GH README 长度 p50=25k(原 3000 截断 100%);HN 评论 avg=12.7 条 / 文本 p75=434 chars;外链正文 p75=10.6k。新默认仍在 `max_prompt_chars=64000` budget 内,无需放大 LLM 上下文配额。更激进路径（readme=6000/link=8000）需提 `max_prompt_chars` 到 100k,留作运维手动开关 |
+| 单板块 CLI（2026-05-17 合入后） | `python -m src.main github` / `hackernews` | 便于 prompt 调优期反复跑单板块而不消耗全套 LLM 调用 |
