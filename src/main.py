@@ -20,7 +20,6 @@ from src.config import get_timezone, load_config, merge_sources
 from src.fetcher import fetch_all_feeds
 from src.llm import (
     check_llm_available,
-    compose_digest,
     generate_immediate_push,
     parse_immediate_push_with_metadata,
     score_batch,
@@ -35,14 +34,12 @@ from src.storage import (
     append_entries,
     assemble_with_sentinels,
     cleanup_old_files,
-    extract_push_time,
     get_fetch_file,
-    get_last_push_file,
     get_notify_file,
     get_push_file,
     load_existing_links,
-    load_recent_notify_titles,
-    load_recent_push_titles,
+    load_recent_notify_content,
+    load_recent_push_content,
     read_entries,
     save_notify_file,
     save_push_file,
@@ -153,7 +150,7 @@ def collect_entries_for_push(
             all_entries.append(entry)
 
     print(
-        f"📋 收集总条目: {len(all_entries)} 条 , concollect_entries_for_pushtext_days: {context_days}, min_score:{min_score}"
+        f"📋 收集总条目: {len(all_entries)} 条 , context_days: {context_days}, min_score:{min_score}"
     )
 
     # 按 min_score 过滤
@@ -268,13 +265,13 @@ async def run_fetch_job(config: Dict):
     if hot_entries:
         print(f"🔥 发现 {len(hot_entries)} 条热点消息，即时推送...")
 
-        # 加载近期已推送事件清单（仅供 LLM 查重，避免风格趋同）
+        # 加载近期已推送内容（仅供 LLM 查重，避免风格趋同）
         context_days = config["filter"]["context_days"]
-        recent_notify = load_recent_notify_titles(context_days)
-        recent_push = load_recent_push_titles(context_days)
+        recent_notify = load_recent_notify_content(context_days)
+        recent_push = load_recent_push_content(context_days)
         recent_context = (
-            f"=== 近期即时推送事件 ===\n{recent_notify}\n\n"
-            f"=== 近期汇总推送事件 ===\n{recent_push}"
+            f"=== 近期即时推送 ===\n{recent_notify}\n\n"
+            f"=== 近期汇总推送 ===\n{recent_push}"
         )
 
         push_content, immediate_push_error = await generate_immediate_push(
@@ -331,62 +328,48 @@ async def run_push_job(config: Dict):
 
 
 async def _run_default_push(config: Dict):
-    """晚报或非早报时段:沿用原有纯 RSS digest 流程"""
-    last_push_file = get_last_push_file()
-    last_push_time = extract_push_time(last_push_file) if last_push_file else None
-    if last_push_time:
-        print(f"📌 上次推送: {last_push_time.strftime('%Y-%m-%d %H:%M')}")
+    """晚报或非早报时段:沿用原有纯 RSS digest 流程,委托给 run_rss_section"""
+    now = now_local(config)
+    rss_md, metadata, rss_err = await run_rss_section(config, now)
 
-    min_score = config["filter"]["min_score"]
-    context_days = config["filter"]["context_days"]
-    to_push, context = collect_entries_for_push(
-        last_push_time=last_push_time,
-        context_days=context_days,
-        min_score=min_score,
-    )
-    print(f"📋 待推送 {len(to_push)} / 上下文 {len(context)} (≥{min_score} 分)")
-    if not to_push:
-        print("ℹ️ 没有新消息需要推送")
+    if rss_err and not rss_md:
+        await notify_llm_errors("compose_digest", [rss_err], config)
+        raise RuntimeError(f"RSS section failed: {rss_err}")
+
+    if not rss_md:
+        # run_rss_section 在无新消息时已打印 "ℹ️ RSS: 无新消息"
         return
 
-    push_context_days = config["filter"].get("push_context_days", 5)
-    recent = load_recent_push_titles(push_context_days)
-
-    print("🤖 生成推送内容...")
-    try:
-        raw_digest = await compose_digest(
-            to_push, context, config["llm"], recent_push_context=recent
-        )
-    except Exception as e:
-        print(f"生成汇总推送失败: {e}")
-        await notify_llm_errors("compose_digest", [str(e)], config)
-        raise
-
-    # 解析 frontmatter:title / lead / highlights 由 LLM 生成,缺失时回退到默认
-    from src.llm import parse_digest_with_metadata
-
-    now = now_local(config)
-    date_str = now.strftime("%Y-%m-%d")
-    push_content, metadata = parse_digest_with_metadata(raw_digest, date_str)
-    metadata["pushTime"] = now.isoformat()
+    # metadata 缺失兜底:parse_digest_with_metadata 失败 / LLM 输出无 frontmatter 时可能返回 None
+    if not metadata:
+        date_str = now.strftime("%Y-%m-%d")
+        metadata = {
+            "title": f"🌙 AI Daily 晚报 | {date_str}",
+            "lead": "",
+            "highlights": [],
+            "profile": "default",
+            "date": date_str,
+        }
+    metadata.setdefault("pushTime", now.isoformat())
 
     await send_to_platforms(
-        push_content,
+        rss_md,
         config["push"],
         title="📰 AI Daily 每日精选 | " + metadata["title"],
         metadata=metadata,
     )
     push_file = get_push_file()
+    rss_count = rss_md.count("###")
     save_push_file(
         push_file,
-        push_content,
-        len(to_push),
-        len(to_push),
+        rss_md,
+        rss_count,
+        rss_count,
         profile="default",
         metadata=metadata,
     )
     print(f"💾 已保存到 {push_file}")
-    print(f"✅ Push Job 完成 | 推送: {len(to_push)} 条")
+    print(f"✅ Push Job 完成 | 推送条目: {rss_count}")
 
 
 async def _run_morning_push(config: Dict):
@@ -609,6 +592,34 @@ async def cmd_loop(config: Dict) -> int:
     return 0
 
 
+async def cmd_rss(config: Dict) -> int:
+    """单独跑一次 RSS digest 板块,打印结果不推送"""
+    print("📰 RSS Digest 单板块运行")
+    try:
+        md, meta, err = await run_rss_section(config, now=now_local(config))
+    except Exception as e:
+        print(f"❌ RSS 板块失败: {e}")
+        return 1
+    if err:
+        print(f"❌ {err}")
+        return 1
+    if not md:
+        print("ℹ️ 本次无内容")
+        return 0
+    print("\n" + "=" * 60)
+    print("📑 metadata:")
+    if meta:
+        import json as _json
+
+        print(_json.dumps(meta, ensure_ascii=False, indent=2))
+    else:
+        print("(none)")
+    print("=" * 60)
+    print(md)
+    print("=" * 60)
+    return 0
+
+
 async def cmd_github(config: Dict) -> int:
     """单独跑一次 GitHub trending 板块,打印结果不推送"""
     print("⭐ GitHub Trending 单板块运行")
@@ -659,6 +670,7 @@ def _parse_args() -> argparse.Namespace:
     sub.add_parser("fetch", help="单次抓取并退出")
     sub.add_parser("push", help="单次推送并退出")
     sub.add_parser("loop", help="长跑模式（开发/调试用）")
+    sub.add_parser("rss", help="单独跑一次 RSS Digest 板块（仅打印,不推送）")
     sub.add_parser("github", help="单独跑一次 GitHub Trending 板块（仅打印,不推送）")
     sub.add_parser("hackernews", help="单独跑一次 Hacker News 板块（仅打印,不推送）")
     return parser.parse_args()
@@ -680,6 +692,7 @@ def main() -> int:
         "fetch": cmd_fetch,
         "push": cmd_push,
         "loop": cmd_loop,
+        "rss": cmd_rss,
         "github": cmd_github,
         "hackernews": cmd_hackernews,
     }

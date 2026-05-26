@@ -40,40 +40,7 @@ class TestExtractSection:
 
 
 from datetime import date, datetime, timedelta
-from storage import load_recent_section_titles, save_push_file
-
-
-class TestLoadRecentSectionTitles:
-    def test_returns_empty_when_dir_missing(self, tmp_path):
-        assert load_recent_section_titles("rss", 3, str(tmp_path / "missing")) == ""
-
-    def test_returns_empty_when_no_files(self, tmp_path):
-        assert load_recent_section_titles("rss", 3, str(tmp_path)) == ""
-
-    def test_extracts_only_target_section_titles(self, tmp_path):
-        from config import get_timezone
-
-        today = datetime.now(get_timezone()).date()
-        push_file = tmp_path / f"push-{today.isoformat()}-08-00-00.md"
-        push_file.write_text(
-            f'---\npushDate: "{datetime.now(get_timezone()).isoformat()}"\n---\n\n'
-            "<!-- SECTION:rss BEGIN -->\n"
-            "### 1️⃣ RSS Title One\n"
-            "### 2️⃣ RSS Title Two\n"
-            "<!-- SECTION:rss END -->\n\n"
-            "<!-- SECTION:github BEGIN -->\n"
-            "### GH Repo Title\n"
-            "<!-- SECTION:github END -->\n",
-            encoding="utf-8",
-        )
-        rss_titles = load_recent_section_titles("rss", 3, str(tmp_path))
-        assert "RSS Title One" in rss_titles
-        assert "RSS Title Two" in rss_titles
-        assert "GH Repo Title" not in rss_titles
-
-        gh_titles = load_recent_section_titles("github", 3, str(tmp_path))
-        assert "GH Repo Title" in gh_titles
-        assert "RSS Title One" not in gh_titles
+from storage import save_push_file
 
 
 from storage import TrendingHistory, load_trending_history

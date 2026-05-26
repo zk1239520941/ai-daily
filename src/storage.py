@@ -7,30 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.config import get_timezone
-
-
-def _yaml_value(v) -> str:
-    """把单个值序列化为 YAML 合法的 token,借道 JSON 语法。
-
-    依据:JSON 是 YAML 1.2 的真子集,任何 json.dumps 的输出都是合法 YAML 标量/序列/映射。
-    始终带引号的字符串可以避免 PyYAML 的若干怪癖(折行、未引号字符串歧义、unicode 转义)。
-    """
-    if isinstance(v, (dict, list, str)):
-        return json.dumps(v, ensure_ascii=False)
-    if isinstance(v, bool):
-        return "true" if v else "false"
-    if v is None:
-        return ""
-    return str(v)
-
-
-def _dump_frontmatter(meta: Dict) -> str:
-    """把扁平 metadata dict 序列化为 frontmatter 文本。
-
-    保留插入顺序(title 在前,bookkeeping 字段在后)。仅支持扁平结构 —— 当前所有
-    metadata 都是扁平的,无需处理嵌套。
-    """
-    return "".join(f"{k}: {_yaml_value(v)}\n" for k, v in meta.items())
+from src.markdown_utils import dump_frontmatter, parse_frontmatter
 
 
 def get_fetch_file(d: date = None, data_dir: str = "news-data") -> str:
@@ -71,88 +48,12 @@ def save_notify_file(
     else:
         frontmatter_dict = {"pushTime": notify_time}
 
-    frontmatter = _dump_frontmatter(frontmatter_dict)
+    frontmatter = dump_frontmatter(frontmatter_dict)
 
     new_content = f"---\n{frontmatter}---\n\n{content}\n\n------\n"
 
     with open(path, "a", encoding="utf-8") as f:
         f.write(new_content)
-
-
-_LEADING_NOISE_RE = re.compile(r"^[\W\d_]+", flags=re.UNICODE)
-
-
-def _clean_title(raw: str) -> str:
-    """剥离标题前导的 emoji / 数字序号 / 标点，仅保留文字主体"""
-    return _LEADING_NOISE_RE.sub("", raw).strip()
-
-
-def _extract_notify_titles(content: str) -> List[tuple]:
-    """从单个 notify 文件内容解析事件清单
-
-    notify 文件结构：多个推送块用 `------` 分隔，每块含
-        ---
-        pushTime: "..."
-        ---
-        # 🚨 AI Daily 快讯 | YYYY-MM-DD
-        ## 🔥 <标题>
-        ## 🌟 <标题>     # 可能有第二条
-
-    返回 [(time_str, title), ...]，time_str 形如 "MM-DD HH:MM"
-    """
-    results = []
-    for block in content.split("------"):
-        block = block.strip()
-        if not block:
-            continue
-
-        time_str = ""
-        time_match = re.search(r'pushTime:\s*"([^"]+)"', block)
-        if time_match:
-            try:
-                dt = datetime.fromisoformat(time_match.group(1))
-                time_str = dt.strftime("%m-%d %H:%M")
-            except (ValueError, TypeError):
-                time_str = ""
-
-        for title_match in re.finditer(r"^##\s+(.+)$", block, flags=re.MULTILINE):
-            title = _clean_title(title_match.group(1))
-            if title:
-                results.append((time_str, title))
-
-    return results
-
-
-def _extract_push_titles(content: str) -> List[tuple]:
-    """从单个 push 文件内容解析事件清单
-
-    push 文件结构：
-        ---
-        pushDate: "..."
-        ---
-        # 📰 AI Daily 每日精选 | YYYY-MM-DD
-        *引言*
-        ### 1️⃣ <emoji> <标题>
-        ### 2️⃣ <emoji> <标题>
-
-    返回 [(time_str, title), ...]
-    """
-    results = []
-    time_str = ""
-    time_match = re.search(r'pushDate:\s*"([^"]+)"', content)
-    if time_match:
-        try:
-            dt = datetime.fromisoformat(time_match.group(1))
-            time_str = dt.strftime("%m-%d %H:%M")
-        except (ValueError, TypeError):
-            time_str = ""
-
-    for title_match in re.finditer(r"^###\s+(.+)$", content, flags=re.MULTILINE):
-        title = _clean_title(title_match.group(1))
-        if title:
-            results.append((time_str, title))
-
-    return results
 
 
 _SECTION_RE_CACHE: Dict[str, re.Pattern] = {}
@@ -189,12 +90,13 @@ def extract_section(push_md: str, section: str) -> str:
     return ""
 
 
-def load_recent_notify_titles(
+def load_recent_notify_content(
     context_days: int = 3, data_dir: str = "news-data"
 ) -> str:
-    """加载最近 context_days 天 notify 文件的事件标题清单（仅供 LLM 查重）
+    """加载最近 context_days 天 notify 文件正文（去除 frontmatter，仅供 LLM 查重）
 
-    返回紧凑的纯文本清单，每行一条事件，避免把成品推送当成风格范例传回 LLM。
+    notify 文件由多个推送块用 `------` 分隔，每块带各自 frontmatter；这里逐块剥离
+    frontmatter 后用 `------` 重新拼接，保留事件全文。
     """
     data_path = Path(data_dir)
     if not data_path.exists():
@@ -203,7 +105,7 @@ def load_recent_notify_titles(
     tz = get_timezone()
     today = datetime.now(tz).date()
 
-    items = []
+    blocks: List[str] = []
     loaded_files = []
     for i in range(context_days):
         d = today - timedelta(days=i)
@@ -212,21 +114,35 @@ def load_recent_notify_titles(
             continue
         try:
             with open(notify_file, "r", encoding="utf-8") as f:
-                items.extend(_extract_notify_titles(f.read()))
-                loaded_files.append(notify_file.name)
+                content = f.read()
         except Exception:
             continue
+        for block in content.split("------"):
+            if not block.strip():
+                continue
+            _, body = parse_frontmatter(block)
+            if body:
+                blocks.append(body)
+        loaded_files.append(notify_file.name)
 
     if loaded_files:
         print(
-            f"   📂 已加载 {len(loaded_files)} 个 notify 文件 (titles): {', '.join(loaded_files)}"
+            f"   📂 已加载 {len(loaded_files)} 个 notify 文件: {', '.join(loaded_files)}"
         )
 
-    return "\n".join(f"- [{t}] {title}" if t else f"- {title}" for t, title in items)
+    return "\n\n------\n\n".join(blocks)
 
 
-def load_recent_push_titles(context_days: int = 3, data_dir: str = "news-data") -> str:
-    """加载最近 context_days 天 push 文件的事件标题清单（仅供 LLM 查重）"""
+def load_recent_push_content(
+    context_days: int = 3, data_dir: str = "news-data", section: str = "rss"
+) -> str:
+    """加载最近 context_days 天 push 文件中指定 section 的正文(去除 frontmatter,仅供 LLM 查重)。
+
+    Args:
+        section: sentinel 段名,默认 "rss"。老文件(无 sentinel) 且 section == "rss"
+                 时会兜底返回整个 body(由 extract_section 处理),其它 section 在
+                 老文件上返回空。
+    """
     data_path = Path(data_dir)
     if not data_path.exists():
         return ""
@@ -234,7 +150,7 @@ def load_recent_push_titles(context_days: int = 3, data_dir: str = "news-data") 
     tz = get_timezone()
     today = datetime.now(tz).date()
 
-    items = []
+    bodies: List[str] = []
     loaded_files = []
     for i in range(context_days):
         d = today - timedelta(days=i)
@@ -244,17 +160,28 @@ def load_recent_push_titles(context_days: int = 3, data_dir: str = "news-data") 
                 continue
             try:
                 with open(push_file, "r", encoding="utf-8") as f:
-                    items.extend(_extract_push_titles(f.read()))
-                    loaded_files.append(push_file.name)
+                    content = f.read()
             except Exception:
                 continue
+            section_md = extract_section(content, section)
+            if not section_md:
+                continue
+            # 老文件兜底路径会把整篇文件还回来,此时仍需剥离 frontmatter;
+            # 新文件 sentinel 内不含 frontmatter,parse_frontmatter 会原样返回。
+            _, body = parse_frontmatter(section_md)
+            body = body or section_md
+            body = body.strip()
+            if body:
+                bodies.append(body)
+                loaded_files.append(push_file.name)
 
     if loaded_files:
         print(
-            f"   📂 已加载 {len(loaded_files)} 个 push 文件 (titles): {', '.join(loaded_files)}"
+            f"   📂 已加载 {len(loaded_files)} 个 push 文件 (section={section}): "
+            f"{', '.join(loaded_files)}"
         )
 
-    return "\n".join(f"- [{t}] {title}" if t else f"- {title}" for t, title in items)
+    return "\n\n------\n\n".join(bodies)
 
 
 def get_last_push_file(data_dir: str = "news-data") -> Optional[str]:
@@ -452,7 +379,7 @@ def save_push_file(
             "totalEntries": total_entries,
         }
 
-    frontmatter = _dump_frontmatter(frontmatter_dict)
+    frontmatter = dump_frontmatter(frontmatter_dict)
     full_content = f"---\n{frontmatter}---\n\n{content}"
 
     with open(path, "w", encoding="utf-8") as f:
@@ -544,48 +471,6 @@ def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
 
     if deleted_count > 0:
         print(f"   ✅ 清理完成: 删除了 {deleted_count} 个旧文件")
-
-
-def load_recent_section_titles(
-    section: str, days: int, data_dir: str = "news-data"
-) -> str:
-    """加载最近 days 天 push 文件中 section 段的标题清单(供 LLM 查重防风格趋同)。
-
-    返回紧凑纯文本,每行一条事件;遇到老文件(无 sentinel)按 extract_section 的兜底语义处理。
-    """
-    data_path = Path(data_dir)
-    if not data_path.exists():
-        return ""
-
-    tz = get_timezone()
-    today = datetime.now(tz).date()
-
-    items: List[tuple] = []
-    loaded_files: List[str] = []
-    for i in range(days):
-        d = today - timedelta(days=i)
-        pattern = f"push-{d.isoformat()}-*.md"
-        for push_file in sorted(data_path.glob(pattern)):
-            if push_file.stat().st_size == 0:
-                continue
-            try:
-                with open(push_file, "r", encoding="utf-8") as f:
-                    content = f.read()
-            except Exception:
-                continue
-            section_md = extract_section(content, section)
-            if not section_md:
-                continue
-            items.extend(_extract_push_titles(section_md))
-            loaded_files.append(push_file.name)
-
-    if loaded_files:
-        print(
-            f"   📂 已加载 {len(loaded_files)} 个 push 文件 (section={section}): "
-            f"{', '.join(loaded_files)}"
-        )
-
-    return "\n".join(f"- [{t}] {title}" if t else f"- {title}" for t, title in items)
 
 
 class TrendingHistory:

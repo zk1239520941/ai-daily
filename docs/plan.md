@@ -7,18 +7,16 @@
 - [ ] 早报内容格式优化：参考appso / xiaohu / ai gap
   - [ ] 优先级顺序
   - [ ] 美化排版
-- [ ] 添加更多信息源，如 TechCrunch、GitHub Trending
-- [ ] x 新增加用户rss源创建： DAIR.AI
+- [ ] 添加更多信息源，如 TechCrunch、
 - [ ] 允许fetch链接中的内容对信息进行扩展
-- [ ] llm api fallback
-- [ ] 当前只获取title不够消息去重
-- [ ] 更多信息源： https://www.anthropic.com/research/glasswing-initial-update
+- [ ] 更多信息源以及信息获取不全： https://www.anthropic.com/research/glasswing-initial-update / github blog
 
 
 长期待办
 
 - [ ] 增加图片/信息图
 - [ ] 推送到知乎 / 小红书 / 网站
+- [ ] llm api fallback
 
 ## 技术决策记录
 

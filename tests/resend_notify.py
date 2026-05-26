@@ -18,7 +18,7 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import load_config
-from src.llm import _parse_frontmatter
+from src.markdown_utils import parse_frontmatter
 from src.push import send_to_platforms
 
 
@@ -37,7 +37,7 @@ def parse_notify_file(filepath: str):
         if not block:
             continue
 
-        metadata, body = _parse_frontmatter(block)
+        metadata, body = parse_frontmatter(block)
         if not metadata:
             continue
 

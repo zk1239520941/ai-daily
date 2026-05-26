@@ -28,7 +28,7 @@ async def test_returns_markdown_when_entries_present(sample_config, tmp_path):
         "src.sections.rss.section.compose_digest",
         new=AsyncMock(return_value=digest_raw),
     ), patch(
-        "src.sections.rss.section.load_recent_push_titles", return_value=""
+        "src.sections.rss.section.load_recent_push_content", return_value=""
     ), patch(
         "src.sections.rss.section.get_last_push_file", return_value=None
     ):
@@ -65,7 +65,7 @@ async def test_returns_error_on_compose_failure(sample_config):
         "src.sections.rss.section.compose_digest",
         new=AsyncMock(side_effect=RuntimeError("LLM down")),
     ), patch(
-        "src.sections.rss.section.load_recent_push_titles", return_value=""
+        "src.sections.rss.section.load_recent_push_content", return_value=""
     ), patch(
         "src.sections.rss.section.get_last_push_file", return_value=None
     ):

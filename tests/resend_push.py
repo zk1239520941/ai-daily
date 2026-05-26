@@ -17,7 +17,7 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import load_config
-from src.llm import _parse_frontmatter
+from src.markdown_utils import parse_frontmatter
 from src.push import send_to_platforms
 
 
@@ -39,8 +39,8 @@ async def resend_push_file(filepath: str, config: dict):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 解析 frontmatter（复用 src/llm.py 的实现）
-    metadata, body = _parse_frontmatter(content)
+    # 解析 frontmatter（复用 markdown_utils）
+    metadata, body = parse_frontmatter(content)
     if not metadata:
         print("❌ 文件格式错误：无法解析 YAML frontmatter")
         return False

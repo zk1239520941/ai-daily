@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from src.markdown_utils import normalize_str_list, parse_frontmatter
+
 
 def load_prompt(prompt_path: str, **kwargs) -> str:
     """加载提示词模板并填充变量"""
@@ -183,6 +185,7 @@ def _parse_score_response(response: str) -> List[Dict]:
                     continue
 
     if parsed is None:
+        print(f"无法从响应中解析JSON: {response}")
         raise ValueError(f"无法从响应中解析JSON: {response[:200]}...")
 
     if isinstance(parsed, list):
@@ -196,6 +199,7 @@ def _parse_score_response(response: str) -> List[Dict]:
         if len(list_values) == 1:
             return list_values[0]
 
+    print(f"无法从响应中提取评分数组: {response}")
     raise ValueError(f"无法从响应中提取评分数组: {response[:200]}...")
 
 
@@ -565,38 +569,13 @@ async def generate_trend_insights(
         return "", msg
 
 
-def _parse_frontmatter(text: str) -> Tuple[Dict, str]:
-    """从 LLM 输出中分离 YAML frontmatter 与正文。
-
-    返回 (metadata_dict, body)。无 frontmatter 时返回 ({}, 原文)。
-    YAML 解析失败时也返回 ({}, 原文) —— 保证降级路径不丢内容。
-    """
-    import yaml
-
-    match = re.match(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", text.strip(), re.DOTALL)
-    if not match:
-        print("无法匹配 frontmatter 数据段")
-        return {}, text
-
-    try:
-        meta = yaml.safe_load(match.group(1)) or {}
-    except yaml.YAMLError:
-        print("frontmatter 数据段解析失败")
-        return {}, text
-
-    if not isinstance(meta, dict):
-        return {}, text
-
-    return meta, match.group(2).strip()
-
-
 def parse_insights_with_metadata(llm_output: str, date: str) -> Tuple[str, Dict]:
     """解析 insights LLM 输出,返回 (insights_md, metadata)。
 
     metadata 字段:title / excerpt / seotitle / seodescription / lead / highlights /
     profile / date。缺失字段补默认值。
     """
-    meta, body = _parse_frontmatter(llm_output)
+    meta, body = parse_frontmatter(llm_output)
     insights_md = body if meta else llm_output
 
     metadata = {
@@ -605,7 +584,7 @@ def parse_insights_with_metadata(llm_output: str, date: str) -> Tuple[str, Dict]
         "seotitle": meta.get("seotitle", ""),
         "seodescription": meta.get("seodescription", ""),
         "lead": meta.get("lead", ""),
-        "highlights": _normalize_highlights(meta.get("highlights")),
+        "highlights": normalize_str_list(meta.get("highlights")),
         "profile": "morning",
         "date": date,
     }
@@ -618,13 +597,13 @@ def parse_digest_with_metadata(llm_output: str, date: str) -> Tuple[str, Dict]:
     metadata 字段:title / lead / highlights / profile / date。
     无 frontmatter 时回退到 "🌙 AI Daily 晚报 | {date}" 标题。
     """
-    meta, body = _parse_frontmatter(llm_output)
+    meta, body = parse_frontmatter(llm_output)
     digest_md = body if meta else llm_output
 
     metadata = {
         "title": meta.get("title") or f"🌙 AI Daily 晚报 | {date}",
         "lead": meta.get("lead", ""),
-        "highlights": _normalize_highlights(meta.get("highlights")),
+        "highlights": normalize_str_list(meta.get("highlights")),
         "profile": "default",
         "date": date,
     }
@@ -639,7 +618,7 @@ def parse_immediate_push_with_metadata(
     metadata 仅含 title / profile。无 frontmatter 时降级到旧式 `# ` 标题提取,
     再降级到 default_title。
     """
-    meta, body = _parse_frontmatter(llm_output)
+    meta, body = parse_frontmatter(llm_output)
 
     if meta and meta.get("title"):
         return body, {"title": meta["title"], "profile": "hotspot"}
@@ -653,19 +632,3 @@ def parse_immediate_push_with_metadata(
         }
 
     return llm_output, {"title": default_title, "profile": "hotspot"}
-
-
-def _normalize_highlights(value) -> List[str]:
-    """将 LLM 输出的 highlights 规整为字符串列表(过滤空项)。
-
-    LLM 偶发偏差兜底:单字符串/null/列表夹空项 → 统一规整。不做数量截断。
-    """
-    if not value:
-        return []
-    if isinstance(value, str):
-        items = [value]
-    elif isinstance(value, list):
-        items = value
-    else:
-        return []
-    return [str(x).strip() for x in items if str(x).strip()]

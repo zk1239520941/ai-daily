@@ -10,7 +10,7 @@ from src.llm import compose_digest, parse_digest_with_metadata
 from src.storage import (
     extract_push_time,
     get_last_push_file,
-    load_recent_push_titles,
+    load_recent_push_content,
 )
 
 
@@ -46,7 +46,7 @@ async def run_rss_section(
         return "", None, None
 
     push_context_days = config["filter"].get("push_context_days", 5)
-    recent = load_recent_push_titles(push_context_days)
+    recent = load_recent_push_content(push_context_days)
 
     try:
         raw = await compose_digest(
