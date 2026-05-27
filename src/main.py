@@ -237,6 +237,7 @@ async def run_fetch_job(config: Dict):
 
     scored, score_errors = await score_batch(new_entries, config["llm"])
     if score_errors:
+        print(f"⚠️ [score_batch] {len(score_errors)} 个错误: {score_errors[0]}")
         await notify_llm_errors("score_batch", score_errors, config)
 
     is_new_file = not os.path.exists(fetch_file)
@@ -279,6 +280,7 @@ async def run_fetch_job(config: Dict):
         )
 
         if immediate_push_error:
+            print(f"⚠️ [generate_immediate_push] {immediate_push_error}")
             await notify_llm_errors(
                 "generate_immediate_push", [immediate_push_error], config
             )
@@ -333,6 +335,7 @@ async def _run_default_push(config: Dict):
     rss_md, metadata, rss_err = await run_rss_section(config, now)
 
     if rss_err and not rss_md:
+        print(f"⚠️ [compose_digest] {rss_err}")
         await notify_llm_errors("compose_digest", [rss_err], config)
         raise RuntimeError(f"RSS section failed: {rss_err}")
 
@@ -394,11 +397,14 @@ async def _run_morning_push(config: Dict):
     hn_md, hn_err = hn_result
 
     if gh_err:
+        print(f"⚠️ [section_github] {gh_err}")
         await notify_llm_errors("section_github", [gh_err], config)
     if hn_err:
+        print(f"⚠️ [section_hackernews] {hn_err}")
         await notify_llm_errors("section_hackernews", [hn_err], config)
 
     if rss_err and not rss_md:
+        print(f"⚠️ [compose_digest] {rss_err}")
         await notify_llm_errors("compose_digest", [rss_err], config)
         raise RuntimeError(f"RSS section failed: {rss_err}")
 
@@ -406,6 +412,7 @@ async def _run_morning_push(config: Dict):
         rss_md, gh_md, hn_md, config, now
     )
     if insights_err:
+        print(f"⚠️ [insights] {insights_err}")
         await notify_llm_errors("insights", [insights_err], config)
 
     # 如果 insights 失败,优先用 digest metadata 兜底;两者都缺再走默认

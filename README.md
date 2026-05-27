@@ -1,36 +1,108 @@
 
-<h1 align="center">AI Daily 每日资讯推送系统</h1>
+<h1 align="center">AI Daily</h1>
 
-![AI Daily Banner](https://cdn.yeekal.com/yee/blog/2026-03/ai-daily-cover-wide-ultra.webp)
-
-<p align="center">AI 驱动的 RSS 新闻聚合与推送系统 | 支持 400+ 信息源 | LLM 智能评分 | 推送到 Discord/飞书</p>
+<p align="center"><i>筛选值得关注的 AI 信号</i></p>
 
 
 
-## 核心功能
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License: MIT" /></a>
+  <img src="https://img.shields.io/badge/python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/uv-managed-DE5FE9?style=flat-square&logo=uv&logoColor=white" alt="uv managed" />
+  <img src="https://img.shields.io/badge/RSS-400%2B%20sources-FFA500?style=flat-square&logo=rss&logoColor=white" alt="RSS 400+" />
+  <img src="https://img.shields.io/badge/deploy-systemd-orange?style=flat-square&logo=linux&logoColor=white" alt="systemd" />
+</p>
 
-- **400+ RSS 信息源** —— 聚合全球主流 AI 媒体、博客、Twitter 账号（源自 [BestBlogs](https://github.com/ginobefun/BestBlogs)）
-- **GitHub Trending 板块** —— 抓取 GitHub trending，LLM 深读 README / topics / metadata，选出值得关注的开源项目
-- **Hacker News 板块** —— 跟踪 HN 首页 AI 相关讨论，整合外链正文与顶层评论由 LLM 总结
-- **即时推送** —— 热点新闻（≥90分）立即推送到手机
-- **定时汇总** —— 每天早 8 点、晚 5 点自动推送 AI 资讯日报
-- **LLM 智能筛选** —— 自动评分过滤，低质量内容不推送
+[![AI Daily Banner](https://cdn.yeekal.com/yee/visuals/ai-daily-cover.webp)](https://yeekal.com/daily/)
 
-## 两大优势
-
-### 1. 即时推送 —— 避免错过重要信息
-
-当系统检测到评分极高（≥90分）的热点新闻时，会立即推送到指定平台，确保重要信息不过时。
-
-**适用场景：** 重大发布、突破性技术进展、行业重磅新闻
-
-### 2. 每日汇总 —— 把握 AI 全局近况
-
-每天定时（如早8点）推送日报。早报由 **RSS 资讯**、**GitHub Trending**、**Hacker News** 汇总而成，再叠加一段跨板块洞察，分别从媒体观点、开源代码、社区讨论三个维度立体把握 AI 动态。
-
-**适用场景：** 碎片化时间回顾、行业趋势把握
+<p align="center">AI 驱动的资讯聚合与推送系统｜<b>RSS · GitHub Trending · Hacker News</b> 三大板块｜LLM 智能评分｜推送到 Discord / 飞书</p>
 
 ---
+
+## 核心特性
+
+- 🗞️ **三大内容板块** —— RSS 资讯（400+ 源）+ GitHub Trending + Hacker News 热帖，从媒体、开源、社区三个维度立体捕获 AI 动态
+- 🧠 **LLM 智能筛选** —— 评分过滤 + 跨日去重，只留下值得读的
+- ⚡ **即时推送** —— 热点新闻（≥90 分）实时触达，重大发布不错过
+- 📬 **每日汇总** —— 定时早晚报，早报叠加跨板块洞察段
+- 🔌 **多平台推送** —— 飞书、Discord 开箱即用，可扩展自定义平台
+- 🛠️ **零运维部署** —— systemd timer 一键安装，开机自启、故障重启
+
+---
+
+## 三大内容板块
+
+### 📰 RSS 资讯聚合
+
+聚合全球主流 AI 媒体、博客、Twitter 账号，默认 OPML 包含约 420 个优质源（源自 [BestBlogs](https://github.com/ginobefun/BestBlogs)）。LLM 逐条评分，只保留高质量内容。
+
+- 默认 60 分钟轮询，异步并发抓取
+- 评分维度：相关度、信息密度、时效性
+- 跨日上下文去重，同一事件不重复推送
+
+### ⭐ GitHub Trending
+
+抓取 GitHub trending 页面，LLM 深读 README / topics / metadata，从昙花一现的玩具仓库里挑出真正值得关注的项目。
+
+- 从 top 10 候选中精选 3 个（可配置）
+- 输出 deep-dive 摘要，附技术亮点与上手建议
+- 历史去重索引，推过的项目不再出现
+
+### 💬 Hacker News 热帖
+
+跟踪 HN 首页 AI 相关讨论，整合**外链正文 + 顶层评论树**，产出"内容总结 + 社区观点"双段式摘要。
+
+- 轻量 LLM 从首页 30 条中选出最值得读的故事
+- 抓取 L1 顶层评论 + L2 关键回复，字符预算受控
+- 外链通过 Jina Reader 拉取 markdown 正文
+
+## 系统架构
+
+```mermaid
+flowchart TB
+    subgraph Sources["📥 数据源"]
+        RSS["RSS Feeds<br/>400+ sources"]
+        GH["GitHub Trending"]
+        HN["Hacker News<br/>Front Page"]
+    end
+
+    subgraph Fetch["⚙️ Fetch 阶段"]
+        F1["RSS Fetcher<br/>asyncio + feedparser"]
+        F2["GH Scraper<br/>README deep-dive"]
+        F3["HN Crawler<br/>Algolia + Jina Reader"]
+    end
+
+    subgraph LLMStage["🧠 LLM 评分与摘要"]
+        Score["score / score_batch"]
+        Digest["digest / immediate_push"]
+        Insight["跨板块 insights"]
+    end
+
+    subgraph Store["💾 存储"]
+        Files["news-data/<br/>fetch-*.json<br/>push-*.md"]
+    end
+
+    subgraph PushStage["📤 推送渠道"]
+        Discord["Discord Webhook"]
+        Feishu["飞书 Webhook"]
+    end
+
+    RSS --> F1 --> Score
+    GH --> F2 --> Score
+    HN --> F3 --> Score
+    Score --> Digest
+    Score --> Insight
+    Digest --> Files
+    Insight --> Files
+    Files --> Discord
+    Files --> Feishu
+```
+
+**调度说明**
+
+- `dnews-fetch.service`（默认每 60 分钟）：抓取 RSS → 评分 → 命中 ≥90 分立即推送
+- `dnews-push.service`（按 `push_cron`）：生成 digest 推送；当天最早一次额外触发 GitHub / HN / 跨板块洞察
+
 
 ## 快速开始
 
@@ -50,13 +122,6 @@ DEEPSEEK_API_KEY=your_api_key_here
 
 # 飞书 Webhook
 FEISHU_WEBHOOK_URL=your_feishu_webhook_url_here
-
-# GitHub API token (可选，提升 API 限额到 5000 req/hr；不设时匿名调用 60 req/hr)
-GITHUB_TOKEN=your_github_token_here
-
-# Jina Reader API key (可选，用于 Hacker News 板块拉外链 markdown；配置后免费额度更高，不设时按匿名额度调用)
-JINA_API_KEY=your_jina_api_key_here
-
 
 ```
 
@@ -464,6 +529,70 @@ RSS 订阅源初始整理自 [ginobefun/BestBlogs](https://github.com/ginobefun/
     "block_domains": ["*.substack.com", "*.youtube.com"]
 }
 ```
+
+## 常见问题 FAQ
+
+<details>
+<summary><b>LLM 调用费用大概多少？</b></summary>
+
+取决于模型选择和源数量。以 OpenRouter 的 `x-ai/grok-4.1-fast`（便宜模型）为例，日均扫描 2000+ 条 RSS + GitHub + HN，**单日成本约 ¥0.5-2 元**。可通过 `filter.min_score`、`llm.max_concurrent_batches`、`llm.max_prompt_chars` 进一步控制。
+
+</details>
+
+<details>
+<summary><b>如何只跑某一板块进行调试？</b></summary>
+
+```bash
+uv run python -m src.main github       # 只跑 GitHub Trending
+uv run python -m src.main hackernews   # 只跑 Hacker News
+uv run python -m src.main fetch        # 只跑 RSS fetch
+```
+
+打印结果到控制台，不触发实际推送。
+
+</details>
+
+<details>
+<summary><b>抓取频率会不会被 RSS 站点封禁？</b></summary>
+
+默认 30 分钟轮询一次，远低于大多数 RSS 服务的速率限制。`fetch.max_workers` 控制并发（默认 10），对单个站点的压力可忽略。
+
+</details>
+
+<details>
+<summary><b>没配置推送渠道也能用吗？</b></summary>
+
+可以。所有推送 markdown 都会落地到 `news-data/push-*.md`，即使所有推送平台 disabled 也可手动查看。
+
+</details>
+
+<details>
+<summary><b>支持哪些 LLM 提供商？</b></summary>
+
+任何 OpenAI API 兼容接口的服务：OpenAI、DeepSeek、OpenRouter、SiliconFlow、阿里云通义千问、Groq 等。修改 `config.json` 的 `llm.baseUrl` / `llm.model` / `llm.apiKeyName` 即可切换。
+
+</details>
+
+<details>
+<summary><b>GitHub Trending / Hacker News 为什么不出现？</b></summary>
+
+它们**只在当天最早一次 `push_cron` 触发时跑**（即「早报」时段）。若 `push_cron` 只配了一条 cron，则每次推送都视为早报。详见「配置详解 → schedule」一节。
+
+</details>
+
+<details>
+<summary><b>数据存储在哪里？多久清理？</b></summary>
+
+- 抓取数据：`news-data/fetch-YYYY-MM-DD.json`
+- 推送 markdown：`news-data/push-YYYY-MM-DD-HH-MM-SS.md`
+- 通知归档：`news-data/notify-YYYY-MM-DD.md`
+
+超过 `filter.keep_days`（默认 7 天）的文件会自动清理；卸载脚本**不会**删除 `news-data/`。
+
+</details>
+
+---
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
