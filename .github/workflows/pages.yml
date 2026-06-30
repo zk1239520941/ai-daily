@@ -8,6 +8,9 @@ on:
       - "news-data/push-*.html"
       - "static/pages.css"
       - "scripts/build_pages_index.py"
+      - "src/pages/**"
+      - "pyproject.toml"
+      - "requirements.txt"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -30,8 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 安装依赖
+        run: uv sync
+
       - name: 生成索引页
-        run: python scripts/build_pages_index.py
+        run: uv run python scripts/build_pages_index.py
 
       - name: 准备 Pages 站点目录
         run: |
