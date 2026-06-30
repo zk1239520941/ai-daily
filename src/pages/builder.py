@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import html
+import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import markdown
 
@@ -15,10 +16,12 @@ SITE_TITLE = "AI Daily"
 SITE_TAGLINE = "精选 AI 资讯 · 技术委员会内部分享"
 FONT_LINK = (
     "https://fonts.googleapis.com/css2?"
-    "family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&"
-    "family=Instrument+Serif:ital@0;1&"
-    "family=Noto+Serif+SC:wght@400;600&display=swap"
+    "family=IBM+Plex+Mono:wght@400;500&"
+    "family=Noto+Serif+SC:wght@500;600;700&"
+    "family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&"
+    "family=Sora:wght@400;500;600&display=swap"
 )
+_H3_SPLIT_RE = re.compile(r"(?=<h3>)")
 
 
 def push_md_to_html_path(push_file: str) -> str:
@@ -49,18 +52,26 @@ def parse_push_filename(filename: str) -> Dict[str, str]:
             "date": f"{parts[0]}-{parts[1]}-{parts[2]}",
             "time": f"{parts[3]}:{parts[4]}",
             "display": f"{parts[0]}-{parts[1]}-{parts[2]} · {parts[3]}:{parts[4]}",
+            "hour": parts[3],
         }
-    return {"date": stem, "time": "", "display": stem}
+    return {"date": stem, "time": "", "display": stem, "hour": ""}
 
 
-def _profile_label(profile: str) -> str:
-    """将 profile 字段转为中文标签。"""
-    mapping = {
-        "morning": "早报",
-        "default": "晚报",
-        "evening": "晚报",
-    }
-    return mapping.get((profile or "").strip(), "精选")
+def _profile_label(profile: str, filename: str = "") -> str:
+    """将 profile 字段转为中文标签，必要时按推送时间推断早晚报。"""
+    key = (profile or "").strip().lower()
+    if key == "morning":
+        return "早报"
+    if key in ("evening", "晚报"):
+        return "晚报"
+
+    parsed = parse_push_filename(filename) if filename else {}
+    hour_raw = parsed.get("hour", "")
+    if hour_raw.isdigit():
+        return "早报" if int(hour_raw) < 12 else "晚报"
+    if key == "default":
+        return "晚报"
+    return "精选"
 
 
 def _format_article_time(meta: Dict[str, Any], filename: str) -> str:
@@ -88,12 +99,31 @@ def _markdown_to_html(body: str) -> str:
     )
 
 
+def _enhance_article_body(body_html: str) -> str:
+    """将每个 h3 章节包裹为 story-block 卡片。"""
+    text = body_html.strip()
+    if not text:
+        return text
+    parts = _H3_SPLIT_RE.split(text)
+    blocks: List[str] = []
+    for part in parts:
+        chunk = part.strip()
+        if not chunk:
+            continue
+        if chunk.startswith("<h3>"):
+            blocks.append(f'<section class="story-block">{chunk}</section>')
+        else:
+            blocks.append(chunk)
+    return "\n".join(blocks)
+
+
 def _html_head(title: str, css_href: str) -> str:
     """生成页面 head 片段。"""
     safe_title = html.escape(title)
     return f"""<meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="color-scheme" content="dark"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#f6f2ea"/>
   <title>{safe_title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -108,7 +138,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
     title = str(meta.get("title") or SITE_TITLE)
     lead = str(meta.get("lead") or "").strip()
     highlights = normalize_str_list(meta.get("highlights"))
-    profile = _profile_label(str(meta.get("profile") or ""))
+    profile = _profile_label(str(meta.get("profile") or ""), md_path.name)
     article_time = _format_article_time(meta, md_path.name)
     source_count = meta.get("sourceCount")
     total_entries = meta.get("totalEntries")
@@ -126,10 +156,8 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         tags = "".join(f"<span>{html.escape(h)}</span>" for h in highlights[:4])
         highlight_html = f'<div class="highlight-tags">{tags}</div>'
 
-    lead_html = (
-        f'<p class="article-lead">{html.escape(lead)}</p>' if lead else ""
-    )
-    body_html = _markdown_to_html(body)
+    lead_html = f'<p class="article-lead">{html.escape(lead)}</p>' if lead else ""
+    body_html = _enhance_article_body(_markdown_to_html(body))
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -137,6 +165,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
   {_html_head(f"{title} · {SITE_TITLE}", css_href)}
 </head>
 <body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
   <div class="site-shell">
     <nav class="site-nav">
       <div class="site-brand">
@@ -162,6 +191,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
       {html.escape(SITE_TITLE)} · 由 AI Daily 自动生成
     </footer>
   </div>
+  <script src="../static/pages.js" defer></script>
 </body>
 </html>
 """
@@ -176,10 +206,27 @@ def _load_issue_card(md_path: Path) -> Dict[str, str]:
     return {
         "title": str(meta.get("title") or parsed["display"]),
         "lead": str(meta.get("lead") or "").strip(),
-        "profile": _profile_label(str(meta.get("profile") or "")),
+        "profile": _profile_label(str(meta.get("profile") or ""), md_path.name),
         "display": parsed["display"],
         "href": f"news-data/{html_name}",
     }
+
+
+def _render_issue_card(issue: Dict[str, str], index: int, featured: bool = False) -> str:
+    """渲染单张索引卡片。"""
+    excerpt = issue["lead"][:180] + ("…" if len(issue["lead"]) > 180 else "")
+    if not excerpt:
+        excerpt = "点击进入阅读完整日报"
+    card_class = "issue-card issue-card--featured" if featured else "issue-card"
+    return f"""    <article class="{card_class}" style="animation-delay:{0.05 + index * 0.05:.2f}s">
+      <div class="issue-meta">
+        <span class="issue-date">{html.escape(issue["display"])}</span>
+        <span class="issue-badge">{html.escape(issue["profile"])}</span>
+      </div>
+      <h2><a href="{html.escape(issue["href"])}">{html.escape(issue["title"])}</a></h2>
+      <p class="issue-excerpt">{html.escape(excerpt)}</p>
+      <div class="issue-footer">阅读全文 →</div>
+    </article>"""
 
 
 def build_index_html(
@@ -194,29 +241,16 @@ def build_index_html(
     for index, md_path in enumerate(md_files):
         issue = _load_issue_card(md_path)
         html_path = md_path.with_suffix(".html")
-        html_path.write_text(
-            build_article_html(md_path),
-            encoding="utf-8",
-        )
+        html_path.write_text(build_article_html(md_path), encoding="utf-8")
+        cards.append(_render_issue_card(issue, index, featured=(index == 0)))
 
-        excerpt = html.escape(issue["lead"][:180] + ("…" if len(issue["lead"]) > 180 else ""))
-        if not issue["lead"]:
-            excerpt = "点击进入阅读完整日报"
-
-        cards.append(
-            f"""    <article class="issue-card" style="animation-delay:{0.05 + index * 0.05:.2f}s">
-      <div class="issue-meta">
-        <span class="issue-date">{html.escape(issue["display"])}</span>
-        <span class="issue-badge">{html.escape(issue["profile"])}</span>
-      </div>
-      <h2><a href="{html.escape(issue["href"])}">{html.escape(issue["title"])}</a></h2>
-      <p class="issue-excerpt">{excerpt}</p>
-      <div class="issue-footer">阅读全文 →</div>
-    </article>"""
-        )
-
-    grid_body = "\n".join(cards) if cards else '    <div class="empty-state">暂无日报，等待 AI Daily 定时任务生成</div>'
+    grid_body = (
+        "\n".join(cards)
+        if cards
+        else '    <div class="empty-state">暂无日报，等待 AI Daily 定时任务生成</div>'
+    )
     built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    latest_label = _load_issue_card(md_files[0])["display"] if md_files else "—"
 
     content = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -233,9 +267,19 @@ def build_index_html(
     </nav>
 
     <header class="hero">
-      <span class="hero-kicker">Daily Briefing</span>
-      <h1>{html.escape(title)}</h1>
-      <p class="hero-lead">每日 AI 精选摘要，面向技术分享与内部分发。点击卡片阅读排版后的完整日报。</p>
+      <div class="hero-copy">
+        <span class="hero-kicker">Daily Briefing</span>
+        <h1>{html.escape(title)}</h1>
+        <p class="hero-lead">每日 AI 精选摘要，面向技术分享与内部分发。最新一期置顶展示，往期归档于下方。</p>
+      </div>
+      <aside class="hero-panel" aria-label="归档概览">
+        <dl>
+          <dt>已归档</dt>
+          <dd>{len(md_files)} 期</dd>
+          <dt>最新更新</dt>
+          <dd>{html.escape(latest_label)}</dd>
+        </dl>
+      </aside>
     </header>
 
     <section class="issue-grid">

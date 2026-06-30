@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="color-scheme" content="dark"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#f6f2ea"/>
   <title>美团LongCat开源五项技术，信通院发布AI Infra运维基准 · AI Daily</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&amp;family=Instrument+Serif:ital@0;1&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Noto+Serif+SC:wght@500;600;700&amp;family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&amp;family=Sora:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../static/pages.css"/>
 </head>
 <body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
   <div class="site-shell">
     <nav class="site-nav">
       <div class="site-brand">
@@ -29,49 +31,49 @@
     </header>
 
     <div class="article-body">
-      <h3>1. 美团LongCat开源VitaBench 2.0：首个长期动态用户建模智能体评测基准</h3>
+      <section class="story-block"><h3>1. 美团LongCat开源VitaBench 2.0：首个长期动态用户建模智能体评测基准</h3>
 <ul>
 <li><strong>核心发布</strong>：美团LongCat团队推出<strong>VitaBench 2.0</strong>，这是首个针对真实生活场景中长期动态用户建模的智能体评测基准。它不再关注单次任务成败，而是系统评测模型在持续理解动态用户偏好上的能力。</li>
 <li><strong>数据规模</strong>：包含56名真实特征用户、819个复杂任务、超2000个动态偏好及66个可执行工具，每位用户平均交互跨度长达1580天（约4.3年），严格按时间线暴露信息。</li>
 <li><strong>关键洞察</strong>：实验发现，即使最强模型Claude-Opus-4.6在“开卷”模式下平均分刚过0.5；开启“思考模式”在个性化任务上并不总是有帮助；模型普遍缺乏主动提问的“眼力见”；个性化已取代工具使用成为当前Agent最大瓶颈。</li>
 <li><strong>开源地址</strong>：<a href="https://github.com/meituan-longcat/vitabench-2.0">GitHub</a> | <a href="https://huggingface.co/datasets/meituan-longcat/VitaBench-2.0">HuggingFace</a></li>
-</ul>
-<h3>2. 美团LongCat提出WBench：首个交互式视频世界模型评测基准</h3>
+</ul></section>
+<section class="story-block"><h3>2. 美团LongCat提出WBench：首个交互式视频世界模型评测基准</h3>
 <ul>
 <li><strong>核心发布</strong>：美团LongCat团队提出<strong>WBench</strong>，首个面向交互式视频世界模型的系统性多轮评测基准。它将世界模型评测从“被动观看”推向“主动交互”。</li>
 <li><strong>评测范围</strong>：覆盖289个测试案例和1058个交互轮次，支持导航、主体动作、事件编辑、视角切换四种交互类型，并统一输入范式（文本/位姿/键盘）。</li>
 <li><strong>核心发现</strong>：对20个前沿模型（含Kling 3.0、HY-World 1.5、Genie 3）的评测显示，不存在全能模型；导航能力与其他维度（画质）基本无关（相关系数近0）；多轮交互后导航得分平均下降33点，位姿误差逐轮累积是结构性缺陷。</li>
 <li><strong>开源地址</strong>：<a href="https://github.com/meituan-longcat/WBench">GitHub</a> | <a href="https://huggingface.co/datasets/meituan-longcat/WBench">HuggingFace</a></li>
-</ul>
-<h3>3. 美团LongCat发布General 365：将推理评测从学科知识解耦到通用逻辑</h3>
+</ul></section>
+<section class="story-block"><h3>3. 美团LongCat发布General 365：将推理评测从学科知识解耦到通用逻辑</h3>
 <ul>
 <li><strong>核心发布</strong>：美团LongCat团队发布<strong>General 365</strong>，一个聚焦通用逻辑推理的评测基准，将知识范围严格限定在K-12水平，纯粹衡量模型在真实场景下的逻辑推演能力，而非知识检索。</li>
 <li><strong>数据特点</strong>：365道人工原创种子题目+1095个扩展变体，涵盖复杂约束、时空推理、语义干扰等8大维度，题目多样性和逻辑独立性经定量验证远超BBH/BBEH。</li>
 <li><strong>残酷成绩</strong>：26款主流模型中，Gemini 3 Pro以62.8%准确率夺冠，是唯一“及格”模型。模型在“语义干扰”和“最优策略”上表现最差，得分普遍低约10个百分点。</li>
 <li><strong>开源地址</strong>：<a href="https://github.com/meituan-longcat/General365">GitHub</a> | <a href="https://huggingface.co/datasets/meituan-longcat/General365_Public">HuggingFace</a></li>
-</ul>
-<h3>4. 美团LongCat开源LongCat-Video-Avatar 1.5：商业级数字人视频生成</h3>
+</ul></section>
+<section class="story-block"><h3>4. 美团LongCat开源LongCat-Video-Avatar 1.5：商业级数字人视频生成</h3>
 <ul>
 <li><strong>核心发布</strong>：美团正式开源<strong>LongCat-Video-Avatar 1.5</strong>，在唇形同步、物理合理性、长视频稳定性、多人互动和推理效率上全面跃升。</li>
 <li><strong>技术升级</strong>：音频编码器从Wav2Vec2升级为Whisper-large，构建多阶段高质量数据体系（含多人、静默、情绪增强数据），引入逐帧级GRPO偏好对齐进行手部稳定性优化。</li>
 <li><strong>效率提升</strong>：采用DMD蒸馏至8步生成，推理速度提升约15倍，10秒视频生成仅需约1分钟。在偏好评测中，相比HeyGen胜率54.3%，相比Kling Avatar 2.0胜率65.9%。</li>
 <li><strong>开源地址</strong>：<a href="https://github.com/meituan-longcat/LongCat-Video">GitHub</a> | <a href="https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5">HuggingFace</a></li>
-</ul>
-<h3>5. 美团LongCat提出LARYBench：定义隐式动作表征的ImageNet</h3>
+</ul></section>
+<section class="story-block"><h3>5. 美团LongCat提出LARYBench：定义隐式动作表征的ImageNet</h3>
 <ul>
 <li><strong>核心发布</strong>：美团LongCat团队提出<strong>LARYBench</strong>，首个从人类视频学习隐式动作表征的系统性评测基准，旨在解决具身智能领域缺乏独立衡量中间表征质量的标准。</li>
 <li><strong>数据规模</strong>：超100万段标注视频（总时长超1000小时），涵盖151种动作类型、11种机器人形态，覆盖第一/第三人称、真机与仿真环境。</li>
 <li><strong>惊人结论</strong>：通用视觉模型（如DINOv3）在动作泛化和控制精度上全面优于专门为具身设计的动作专家模型（LAPA等），具身动作表征可以从大规模人类视频数据中涌现。</li>
 <li><strong>开源地址</strong>：<a href="https://github.com/meituan-longcat/LARYBench">GitHub</a> | <a href="https://huggingface.co/datasets/meituan-longcat/LARYBench">HuggingFace</a></li>
-</ul>
-<h3>6. 美团LongCat发布LongCat-AudioDiT：零样本语音克隆SOTA</h3>
+</ul></section>
+<section class="story-block"><h3>6. 美团LongCat发布LongCat-AudioDiT：零样本语音克隆SOTA</h3>
 <ul>
 <li><strong>核心发布</strong>：美团LongCat团队开源<strong>LongCat-AudioDiT</strong>（1B/3.5B），彻底抛弃梅尔谱等中间表示，直接在波形潜空间进行扩散TTS，从根源阻断级联误差。</li>
 <li><strong>技术创新</strong>：首次发现并修复流匹配TTS中“训练-推理不匹配”问题；用自适应投影引导（APG）替代传统CFG，缓解过饱和。</li>
 <li><strong>性能表现</strong>：在Seed基准上，3.5B模型中文说话人相似度（SIM）达0.818，难句集达0.797，均超Seed-TTS、CosyVoice3.5、MiniMax-Speech等闭源系统，且未使用人工标注数据。</li>
 <li><strong>开源地址</strong>：<a href="https://github.com/meituan-longcat/LongCat-AudioDiT">GitHub</a> | <a href="https://huggingface.co/meituan-longcat/LongCat-AudioDiT">HuggingFace</a></li>
-</ul>
-<h3>7. 美团技术团队分享实践：用Agent评测思路管理31万行AI Coding重构</h3>
+</ul></section>
+<section class="story-block"><h3>7. 美团技术团队分享实践：用Agent评测思路管理31万行AI Coding重构</h3>
 <ul>
 <li><strong>核心发布</strong>：美团技术团队撰文分享如何在90%以上代码由AI生成、月均16个需求的高压下，不停止业务交付完成31万行复杂系统重构。</li>
 <li><strong>关键经验三则</strong>：<ol>
@@ -82,18 +84,19 @@
 </li>
 <li><strong>工程细节</strong>：引入Pre-PR机制、高阶模型审查低阶模型、不同厂商模型对抗审核，有效解决CR瓶颈。</li>
 <li><strong>原文链接</strong>：<a href="https://tech.meituan.com/2026/05/07/Agent-AI-Coding.html">美团技术博客</a></li>
-</ul>
-<h3>8. 中国信通院发布AI Infra运维领域首个评测基准</h3>
+</ul></section>
+<section class="story-block"><h3>8. 中国信通院发布AI Infra运维领域首个评测基准</h3>
 <ul>
 <li><strong>核心发布</strong>：中国信通院发布AI基础设施运维领域首个评测基准，覆盖5款主流国产芯片。该基准为AI算力集群的运维能力提供标准化度量，对国产芯片生态成熟度具有里程碑意义。</li>
 <li><strong>行业意义</strong>：AI Infra运维是规模化训练和推理的瓶颈之一，该基准填补了该领域缺乏统一评测标准的空白，有望推动国产芯片运维工具链和流程规范的标准化。</li>
 <li><strong>信息来源</strong>：<a href="https://www.qbitai.com/2026/06/440454.html">量子位</a></li>
-</ul>
+</ul></section>
     </div>
 
     <footer class="site-footer">
       AI Daily · 由 AI Daily 自动生成
     </footer>
   </div>
+  <script src="../static/pages.js" defer></script>
 </body>
 </html>

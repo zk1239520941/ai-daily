@@ -66,9 +66,17 @@ totalEntries: 5
     assert "测试标题" in html_out
     assert "测试导语" in html_out
     assert "要点一" in html_out
-    assert "article-body" in html_out
+    assert "story-block" in html_out
+    assert "reading-progress" in html_out
     assert "https://example.com" in html_out
     assert "早报" in html_out
+
+
+def test_profile_label_from_time():
+    from src.pages.builder import _profile_label
+
+    assert _profile_label("default", "push-2026-06-30-08-00-00.md") == "早报"
+    assert _profile_label("default", "push-2026-06-30-18-00-00.md") == "晚报"
 
 
 def test_build_all_pages(tmp_path):
@@ -95,5 +103,5 @@ date: "2026-06-30"
     assert (data_dir / "push-2026-06-30-17-00-00.html").exists()
     index_text = index.read_text(encoding="utf-8")
     assert "归档测试" in index_text
-    assert "issue-card" in index_text
+    assert "issue-card--featured" in index_text
     assert "news-data/push-2026-06-30-17-00-00.html" in index_text
