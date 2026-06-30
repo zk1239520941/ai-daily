@@ -3,7 +3,6 @@
 import os
 import re
 from typing import Any, Dict, List, Optional
-from urllib.parse import quote
 
 import aiohttp
 
@@ -146,11 +145,10 @@ def resolve_pages_base_url(wecom_config: Dict) -> str:
 
 
 def build_push_page_url(pages_base: str, push_file: str) -> str:
-    """根据 Pages 根 URL 与 push 文件相对路径生成全文链接。"""
-    if not pages_base or not push_file:
-        return ""
-    rel = push_file.replace("\\", "/").lstrip("./")
-    return pages_base + quote(rel, safe="/")
+    """根据 Pages 根 URL 与 push 文件相对路径生成 HTML 全文链接。"""
+    from src.pages.builder import push_file_to_html_url
+
+    return push_file_to_html_url(pages_base, push_file)
 
 
 def truncate_description(text: str, max_chars: int = MAX_NEWS_DESC_CHARS) -> str:

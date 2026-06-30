@@ -250,7 +250,7 @@ class TestWeComPlatform:
             "https://user.github.io/ai-daily/",
             "news-data/push-2026-06-30-17-00-30.md",
         )
-        assert url.endswith("news-data/push-2026-06-30-17-00-30.md")
+        assert url.endswith("news-data/push-2026-06-30-17-00-30.html")
 
     def test_truncate_description(self):
         long_text = "中" * 200

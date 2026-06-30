@@ -179,7 +179,8 @@ git push -u origin main
 ## D. GitHub Pages 开启
 
 > **重要**：**Pages workflow（`pages.yml`）只负责部署站点**，不会抓取 RSS、不会生成日报、**不会推送企微**。  
-> 企微消息与 `news-data/push-*.md` 由 **`daily.yml`（AI Daily 定时任务）** 或本地 `python -m src.main fetch && push` 产生；Daily 跑完后会把 `push-*.md` commit 并 push，从而自动触发 Pages 重新部署。
+> 企微消息与 `news-data/push-*.md` 由 **`daily.yml`（AI Daily 定时任务）** 或本地 `python -m src.main daily` 产生。  
+> **digest 企微**在 **Pages 全文 URL 可访问（HTTP 200）之后**才发送，避免「完整版」链接先 404。
 
 1. 仓库 **Settings** → **Pages**
 2. **Build and deployment** → **Source** 选 **GitHub Actions**（不要选 "Deploy from a branch"）
@@ -189,7 +190,7 @@ git push -u origin main
 
 | Workflow | 文件 | 作用 | 企微 | Pages 全文 |
 |----------|------|------|------|------------|
-| **AI Daily 定时任务** | `daily.yml` | fetch → push → **commit/push `push-*.md`** | ✅ | 间接（push 后触发 Pages） |
+| **AI Daily 定时任务** | `daily.yml` | fetch → 生成 push md → publish → **等待 URL** → digest 企微 | ✅（URL 就绪后） | 先 publish 再推链接 |
 | **GitHub Pages 日报全站** | `pages.yml` | 从仓库检出 `news-data/push-*.md` 并部署 | ❌ | ✅ |
 
 **仅手动运行 Pages workflow 而仓库里没有 `push-*.md` 时**，首页会显示「暂无日报」——这是预期行为，不是 Pages 部署失败。
@@ -212,13 +213,13 @@ git push -u origin main
 日报全文 URL 示例：
 
 ```
-https://YOUR_USER.github.io/ai-daily/news-data/push-2026-06-30-17-00-30.md
+https://YOUR_USER.github.io/ai-daily/news-data/push-2026-06-30-17-00-30.html
 ```
 
 首次 push 后若 `news-data/` 为空，请任选其一：
 
-1. **推荐**：Actions → **AI Daily 定时任务** → Run workflow → Job 选 `all`（会 fetch、push 企微、并 commit `push-*.md` 触发 Pages）
-2. 本地生成后推送：`uv run python -m src.main fetch && uv run python -m src.main push`，再 `git add news-data/push-*.md index.html && git commit && git push`
+1. **推荐**：Actions → **AI Daily 定时任务** → Run workflow → Job 选 `all`（fetch → publish → 等待 Pages → digest 企微）
+2. 本地一键：`uv run python -m src.main daily`（同上顺序；需已配置 git push 权限）
 3. 仅重新部署（**不含新日报**）：Actions → **GitHub Pages 日报全站** → Run workflow
 
 ---
@@ -241,11 +242,14 @@ uv run python -m src.main check
 # 抓取（热点 ≥90 分会即时推送到企微）
 uv run python -m src.main fetch
 
-# 推送（--dry-run 不发送 webhook，仅打印计划）
-uv run python -m src.main push --dry-run
+# 一键：fetch → publish → 等待 Pages → digest 企微（推荐）
+uv run python -m src.main daily --dry-run
+uv run python -m src.main daily
 
-# 实际推送
-uv run python -m src.main push
+# 分步（与 CI 一致）
+uv run python -m src.main push --defer-wecom   # 仅生成 push md
+uv run python -m src.main publish              # commit + push，触发 Pages
+uv run python -m src.main wecom                # 轮询 URL 后推 digest
 ```
 
 可选：单板块调试（不推送）
@@ -260,7 +264,7 @@ uv run python -m src.main rss
 
 1. 仓库 **Actions** → **AI Daily 定时任务**（**不是**「GitHub Pages 日报全站」）
 2. **Run workflow** → Job 选 `all`（或 `check` / `fetch` / `push`）
-3. 查看日志无报错；若 Job 为 `all` 或 `push`，日志末尾应有「提交 push 日报并推送」步骤
+3. 查看日志无报错；`all` 任务末尾应有 publish、URL 轮询成功、digest 企微推送步骤
 
 > 只跑 Pages workflow 不会发企微，也不会凭空产生 `push-*.md`。
 
@@ -271,9 +275,9 @@ uv run python -m src.main rss
 
 ### E3. 企微与 Pages 验收
 
-- [ ] 企微群收到 **news 图文**（早晚报目录，最多 8 条）
+- [ ] 企微 news：**有 RSS 封面的条目显示真实缩略图**；无封面条目及「完整版」卡片**不出现蓝色占位图**
 - [ ] 同条或后续 **text 消息** 含「完整版」链接（需已配置 `PAGES_BASE_URL` 或 GHA 自动推断）
-- [ ] 点击链接可打开 `news-data/push-*.md` 全文
+- [ ] 点击「完整版」链接**立即可**打开排版后的 HTML 全文（不应先 404）
 - [ ] 站点首页 `https://YOUR_USER.github.io/ai-daily/` 列出历史日报索引
 
 ---
@@ -285,9 +289,9 @@ RSS / GitHub Trending / Hacker News
         ↓ fetch（定时抓取 + LLM 评分）
    news-data/fetch-*.json
         ↓ push（digest / 即时推送）
-   news-data/push-*.md  →  企业微信 / 飞书 / Discord
-                              ↓
-                    GitHub Pages 托管全文
+   news-data/push-*.md  →  渲染 HTML + index  →  publish（GitHub Pages）
+                              ↓ URL 200
+                    digest 企微（news + 完整版链接）
 ```
 
 - **fetch**：轮询 RSS，LLM 批量打分；≥90 分热点即时推送

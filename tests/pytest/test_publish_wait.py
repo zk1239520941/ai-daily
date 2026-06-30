@@ -21,7 +21,7 @@ class TestResolvePushFullUrl:
                 "news-data/push-2026-06-30-18-00-00.md",
                 {"pages_base_url": "https://example.github.io/ai-daily/"},
             )
-        assert url == "https://example.github.io/ai-daily/news-data/push-2026-06-30-18-00-00.md"
+        assert url == "https://example.github.io/ai-daily/news-data/push-2026-06-30-18-00-00.html"
 
     def test_empty_push_file(self):
         assert resolve_push_full_url("", {"pages_base_url": "https://x/"}) == ""

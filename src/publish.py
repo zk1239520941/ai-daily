@@ -51,6 +51,9 @@ def cleanup_old_push_files(days: int = 30, data_dir: str = "news-data") -> int:
         if file_date < cutoff:
             try:
                 file.unlink()
+                html_file = file.with_suffix(".html")
+                if html_file.exists():
+                    html_file.unlink()
                 deleted += 1
                 print(f"   [del] 删除过期日报: {file.name}")
             except OSError as exc:
@@ -165,11 +168,12 @@ def publish_pages_to_github(
             check=False,
         )
         if result.returncode != 0:
-            print("[err] 生成 index.html 失败")
+            print("[err] 生成 Pages 站点失败")
             latest = get_last_push_file(data_dir) or ""
             return result.returncode, latest, resolve_push_full_url(latest, wecom_config)
 
     push_files = list(Path(data_dir).glob("push-*.md"))
+    push_html_files = list(Path(data_dir).glob("push-*.html"))
     latest_push_file = get_last_push_file(data_dir) or ""
     full_url = resolve_push_full_url(latest_push_file, wecom_config)
 
@@ -184,6 +188,8 @@ def publish_pages_to_github(
     if static_dir.exists():
         subprocess.run(["git", "add", "-f", "static"], cwd=str(root), check=False)
     for f in push_files:
+        subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
+    for f in push_html_files:
         subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
     subprocess.run(["git", "add", "-u", data_dir], cwd=str(root), check=False)
 
