@@ -99,19 +99,49 @@ def _markdown_to_html(body: str) -> str:
     )
 
 
+def _extract_section_titles(body: str) -> List[str]:
+    """从 markdown 正文提取 ### 章节标题。"""
+    titles: List[str] = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("### "):
+            titles.append(stripped[4:].strip())
+    return titles
+
+
+def _build_toc_html(titles: List[str]) -> str:
+    """生成文章目录 HTML。"""
+    if not titles:
+        return ""
+    items = []
+    for index, title in enumerate(titles, 1):
+        safe = html.escape(title)
+        items.append(
+            f'<li><a href="#story-{index}"><span>{index:02d}</span>{safe}</a></li>'
+        )
+    return f"""<aside class="article-toc reveal" aria-label="本日目录">
+      <p class="toc-label">本日目录</p>
+      <ol>{"".join(items)}</ol>
+    </aside>"""
+
+
 def _enhance_article_body(body_html: str) -> str:
-    """将每个 h3 章节包裹为 story-block 卡片。"""
+    """将每个 h3 章节包裹为带锚点的 story-block 卡片。"""
     text = body_html.strip()
     if not text:
         return text
     parts = _H3_SPLIT_RE.split(text)
     blocks: List[str] = []
+    index = 0
     for part in parts:
         chunk = part.strip()
         if not chunk:
             continue
         if chunk.startswith("<h3>"):
-            blocks.append(f'<section class="story-block">{chunk}</section>')
+            index += 1
+            blocks.append(
+                f'<section class="story-block reveal" id="story-{index}">{chunk}</section>'
+            )
         else:
             blocks.append(chunk)
     return "\n".join(blocks)
@@ -149,14 +179,21 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
     if total_entries:
         stats_parts.append(f"{total_entries} 条精选")
     stats_parts.append(profile)
-    stats_html = " · ".join(html.escape(p) for p in stats_parts)
+    stats_html = ""
+    if stats_parts:
+        pills = "".join(f"<span>{html.escape(p)}</span>" for p in stats_parts)
+        stats_html = f'<div class="article-stats">{pills}</div>'
 
     highlight_html = ""
     if highlights:
-        tags = "".join(f"<span>{html.escape(h)}</span>" for h in highlights[:4])
+        tags = "".join(
+            f"<span><i>{i + 1}</i>{html.escape(h)}</span>"
+            for i, h in enumerate(highlights[:4])
+        )
         highlight_html = f'<div class="highlight-tags">{tags}</div>'
 
     lead_html = f'<p class="article-lead">{html.escape(lead)}</p>' if lead else ""
+    toc_html = _build_toc_html(_extract_section_titles(body))
     body_html = _enhance_article_body(_markdown_to_html(body))
 
     return f"""<!DOCTYPE html>
@@ -175,16 +212,22 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
       <a class="back-link" href="../index.html">← 返回归档</a>
     </nav>
 
-    <header class="article-hero">
-      <time datetime="{html.escape(article_time)}">{html.escape(article_time)}</time>
+    <header class="article-hero reveal">
+      <div class="article-hero__top">
+        <time datetime="{html.escape(article_time)}">{html.escape(article_time)}</time>
+        <span class="article-edition">{html.escape(profile)}</span>
+      </div>
       <h1>{html.escape(title)}</h1>
       {lead_html}
       {highlight_html}
-      <div class="article-stats">{stats_html}</div>
+      {stats_html}
     </header>
 
-    <div class="article-body">
-      {body_html}
+    <div class="article-layout">
+      {toc_html}
+      <div class="article-body">
+        {body_html}
+      </div>
     </div>
 
     <footer class="site-footer">
@@ -209,23 +252,50 @@ def _load_issue_card(md_path: Path) -> Dict[str, str]:
         "profile": _profile_label(str(meta.get("profile") or ""), md_path.name),
         "display": parsed["display"],
         "href": f"news-data/{html_name}",
+        "entries": str(meta.get("totalEntries") or ""),
     }
 
 
-def _render_issue_card(issue: Dict[str, str], index: int, featured: bool = False) -> str:
+def _render_issue_card(
+    issue: Dict[str, str], index: int, featured: bool = False, issue_no: int = 0
+) -> str:
     """渲染单张索引卡片。"""
     excerpt = issue["lead"][:180] + ("…" if len(issue["lead"]) > 180 else "")
     if not excerpt:
         excerpt = "点击进入阅读完整日报"
-    card_class = "issue-card issue-card--featured" if featured else "issue-card"
-    return f"""    <article class="{card_class}" style="animation-delay:{0.05 + index * 0.05:.2f}s">
+    card_class = "issue-card issue-card--featured reveal" if featured else "issue-card reveal"
+    entries = issue.get("entries", "")
+    meta_extra = f"{html.escape(entries)} 条精选" if entries else ""
+    footer = f"{meta_extra}{' · ' if meta_extra else ''}阅读全文 →"
+
+    if featured:
+        return f"""    <article class="{card_class}">
+      <div class="issue-card__inner">
+        <div class="issue-card__main">
+          <div class="issue-meta">
+            <span class="issue-no">Latest · No.{issue_no:03d}</span>
+            <span class="issue-date">{html.escape(issue["display"])}</span>
+            <span class="issue-badge">{html.escape(issue["profile"])}</span>
+          </div>
+          <h2><a href="{html.escape(issue["href"])}">{html.escape(issue["title"])}</a></h2>
+          <p class="issue-excerpt">{html.escape(excerpt)}</p>
+        </div>
+        <div class="issue-card__cta">
+          <a class="issue-read-btn" href="{html.escape(issue["href"])}">开始阅读</a>
+          <span class="issue-footer">{html.escape(footer.replace(' · 阅读全文 →', ''))}</span>
+        </div>
+      </div>
+    </article>"""
+
+    return f"""    <article class="{card_class}" style="--i:{index}">
       <div class="issue-meta">
+        <span class="issue-no">No.{issue_no:03d}</span>
         <span class="issue-date">{html.escape(issue["display"])}</span>
         <span class="issue-badge">{html.escape(issue["profile"])}</span>
       </div>
       <h2><a href="{html.escape(issue["href"])}">{html.escape(issue["title"])}</a></h2>
       <p class="issue-excerpt">{html.escape(excerpt)}</p>
-      <div class="issue-footer">阅读全文 →</div>
+      <div class="issue-footer">{html.escape(footer)}</div>
     </article>"""
 
 
@@ -242,7 +312,14 @@ def build_index_html(
         issue = _load_issue_card(md_path)
         html_path = md_path.with_suffix(".html")
         html_path.write_text(build_article_html(md_path), encoding="utf-8")
-        cards.append(_render_issue_card(issue, index, featured=(index == 0)))
+        cards.append(
+            _render_issue_card(
+                issue,
+                index,
+                featured=(index == 0),
+                issue_no=len(md_files) - index,
+            )
+        )
 
     grid_body = (
         "\n".join(cards)
@@ -266,13 +343,13 @@ def build_index_html(
       </div>
     </nav>
 
-    <header class="hero">
+    <header class="hero reveal">
       <div class="hero-copy">
         <span class="hero-kicker">Daily Briefing</span>
         <h1>{html.escape(title)}</h1>
         <p class="hero-lead">每日 AI 精选摘要，面向技术分享与内部分发。最新一期置顶展示，往期归档于下方。</p>
       </div>
-      <aside class="hero-panel" aria-label="归档概览">
+      <aside class="hero-panel reveal" aria-label="归档概览">
         <dl>
           <dt>已归档</dt>
           <dd>{len(md_files)} 期</dd>
@@ -290,6 +367,7 @@ def build_index_html(
       共 {len(md_files)} 篇日报 · 更新于 {html.escape(built_at)}
     </footer>
   </div>
+  <script src="static/pages.js" defer></script>
 </body>
 </html>
 """
