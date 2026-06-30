@@ -1,0 +1,1215 @@
+{
+  "meta": {
+    "date": "2026-06-30"
+  },
+  "entries": [
+    {
+      "title": "Inside Thinking Machines’ Interaction Models",
+      "link": "https://blog.bytebytego.com/p/inside-thinking-machines-interaction",
+      "published": "2026-06-30T23:31:34+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [Add auth to your app from the terminal (Sponsored)](https://go.bytebytego.com/WorkOS_063026)\n\n[![](https://substackcdn.com/image/fetch/$s_!_zqf!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F061fdb4d-d083-4619-a0f9-527b0b76bcc6_3520x672.png)](https://go.bytebytego.com/WorkOS_063026)\n\nRun **npx workos@latest** and an AI agent will inspect your project, detect your framework, and add AuthKit directly to your codebase.\n\nThis is not a generic starter template. The agent reads your actual app, writes the integration where it belongs, then typechecks and builds so it can fix errors along the way. AuthKit gives you hosted auth, customizable UI, MFA, social login, session management, and a path to enterprise features like SSO and SCIM when you need them.\n\nFree up to 1 million MAUs.\n\n[Try it now →](https://go.bytebytego.com/WorkOS_063026)\n\n---\n\nWhat feels like a real-time conversation with AI today is built from many parts working together.\n\nAt the center sits a language model that works in turns, the same way ChatGPT does when you type to it. The responsiveness comes from a layer of helper systems wrapped around that model, predicting when the user has paused, transcribing audio, generating speech from text, and weaving the pieces together fast enough that the conversation feels fluid.\n\nHowever, new research from Thinking Machines argues that this whole approach has a ceiling, and proposes a different way to build AI systems for real-time interaction.\n\nThinking Machines is a relatively new AI research lab focused on human-AI collaboration, publishing research under the name Connectionism and offering developer-facing products for the broader community. What sets them apart is the problem they have identified as central. Most AI labs treat autonomous capability as the most important capability to push forward, meaning the ability for a model to take a task, do the work on its own, and return a result.\n\nThinking Machines argues this framing sidelines humans. Real work, in their view, benefits from continuous collaboration where the human clarifies, redirects, and gives feedback as the model goes along. The interface should support that, rather than treating the human as someone who hands off a task and walks away.\n\nIn this article, we will look at what the research preview covers and the concept of an interaction model proposed by Thinking Machines.\n\n*Disclaimer: This post is based on publicly shared* details *from the Thinking Machines Engineering Team. Please comment if you notice any inaccuracies.*\n\n## Bottleneck\n\nThe problem starts with how today’s models actually experience the world. A typical language model works in a single thread. It waits for the user to finish typing or speaking before it can perceive any input. Once the model starts generating a response, its perception freezes, and any new input gets queued for later.\n\nThinking Machines compares this setup to resolving a crucial disagreement over email rather than in person. The bandwidth is just too narrow. So much of what makes a collaboration work, the way your voice shifts when uncertain, the moment of realizing a direction change is needed mid-sentence, the reaction on your face when the other person says something useful, all of it gets stripped out of the channel between human and model.\n\nThis matters because real work that benefits from another mind in the room depends on that bandwidth.\n\nA model that only sees clean, finalized inputs forces a person to think like a model, preparing the full request, handing it over, and then waiting. In contrast, real collaboration is often messy, interruptive, and full of mid-stream corrections. Until the interface allows for that, the human ends up doing extra work to fit how the model wants to operate. Thinking Machines argues this bottleneck explains why much of today’s AI work feels like prompting and waiting rather than collaborating the way two people might.\n\n[![](https://substackcdn.com/image/fetch/$s_!fTF0!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbe13331a-b3a8-46b6-8d04-11ea10762f7e_2386x1538.png)](https://substackcdn.com/image/fetch/$s_!fTF0!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbe13331a-b3a8-46b6-8d04-11ea10762f7e_2386x1538.png)\n\n## Harness\n\nIf today’s voice AI feels real-time despite this limitation, how is that even working to a large extent? The answer is a pattern called a harness.\n\nA typical voice AI product is a stack of components glued together:\n\n* Voice activity detection listens for pauses and decides when the user has stopped speaking.\n* A speech-to-text model transcribes what was said.\n* A language model generates a text response.\n* A text-to-speech model converts that response back into audio.\n* A dialog manager orchestrates the entire pipeline so the latency feels acceptable.\n\nImagine a brilliant scholar who communicates only through letters slipped under a door. Making this feel like a conversation requires helpers. One stands outside listening for when the visitor stops talking, another reads the scholar’s letters aloud when they come back, and a third rings a bell when something visible happens that the scholar should know about.\n\nThe setup mostly works, but the scholar still experiences reality through letters. Voice tones, facial expressions, the moment itself, all of it stays beyond the scholar’s reach. This is what every real-time voice AI actually is, with a turn-based language model at the center surrounded by helpers that simulate conversation around it.\n\n[![](https://substackcdn.com/image/fetch/$s_!RUcZ!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F212e2016-c177-407d-9a07-e37e91fa34a9_3094x1444.png)](https://substackcdn.com/image/fetch/$s_!RUcZ!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F212e2016-c177-407d-9a07-e37e91fa34a9_3094x1444.png)\n\nWhy does this approach have a ceiling?\n\nIt is because the helpers are simpler than the model itself. Voice activity detection runs on raw audio signals using a much smaller and lighter model than the language model behind it. This limits whole categories of behavior.\n\nThe system struggles with proactive interjections like “interrupt me when I say something wrong,” because the helper deciding when to speak operates purely on acoustic signals, while correctness remains the language model’s job. Visual reactions like “tell me when I’ve written a bug in my code” face the same problem, because the helper handles audio while anything on screen stays beyond its reach.\n\nThis is where Thinking Machines points to an important lesson. As per a famous essay by Rich Sutton, methods leveraging general computation and learning consistently outperform methods that bake in human-designed heuristics. The same argument led from hand-crafted computer vision features to deep learning, and from hand-crafted game heuristics to self-play. Applied to interactivity, harness components are exactly the kind of hand-crafted heuristic that scale will eventually push out. The way past the ceiling is to put interactivity inside the model itself.\n\n---\n\n## [How engineering teams resolve incidents in minutes instead of hours. (Sponsored)](https://go.bytebytego.com/Datadog_063026)\n\n[![](https://substackcdn.com/image/fetch/$s_!KI-a!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8bea154f-23ba-4bb7-8190-434e777be587_1200x628.png)](https://go.bytebytego.com/Datadog_063026)\n\nDatadog and Dust share how unified observability gives engineers full visibility across infrastructure, logs, and applications to detect issues faster and reduce MTTR. Watch this **on-demand webinar** to see how Dust reduced complex incident investigations from hours to minutes by bringing observability context into their AI workflows.\n\nYou’ll learn:\n\n* How unified observability connects infrastructure health, logs, and applications into a single view for faster incident resolution\n* How Dust used the Datadog MCP to pull observability context directly into incident investigations\n* Practical strategies for maintaining reliability while building for the AI era\n\n[Watch the webinar](https://go.bytebytego.com/Datadog_063026)\n\n---\n\n## Architecture\n\nWhat does putting interactivity inside the model actually look like?\n\nThinking Machines’ answer is a system they call an interaction model. The first version, named TML-Interaction-Small, is a 276-billion-parameter mixture-of-experts model with 12 billion active parameters at any moment. The word “small” in the name refers to where this sits in their planned lineup, with larger versions expected later.\n\nMost multimodal systems start with text and add audio and video on top.\n\nThinking Machines did the reverse, starting from continuous audio and video because live conversation operates under tight real-time constraints that text can avoid. Designing around the hardest case first gives them an architecture that handles concurrent input and output streams across every modality.\n\nSee the diagram below:\n\n[![](https://substackcdn.com/image/fetch/$s_!ivwV!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F91b85452-005e-413d-9228-9504bf7935ea_1894x2046.png)](https://substackcdn.com/image/fetch/$s_!ivwV!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F91b85452-005e-413d-9228-9504bf7935ea_1894x2046.png)\n\nThree design choices stand behind this architecture:\n\n* The first is time-aligned micro-turns, which change what the model treats as the unit of conversation.\n* The second is an approach that skips heavy pretrained encoders, with audio and video going through lightweight processing components trained from scratch rather than being routed through standalone systems like Whisper.\n* The third is a two-model coordination scheme where a fast interaction model works alongside a slower background model that handles deeper reasoning.\n\nThinking Machines also did significant work on optimizing inference for this design, including contributing a streaming session feature back to the open-source SGLang library, enabling 200-millisecond chunks to be processed efficiently.\n\n## Micro-turns\n\nMost AI models work in turns, with the user speaking, then the model speaking, then the user speaking again. Each turn is a discrete unit, and the model processes one complete turn at a time. Even when a system handles audio, the underlying logic stays turn-based. The harness simulates real-time, but the model itself perceives the world in clear, separate chunks.\n\nThinking Machines made a different choice.\n\nInstead of turns, they slice time into 200-millisecond chunks, which they call micro-turns. Every 200 milliseconds, the model takes in whatever arrived across audio, video, and text streams and decides what to output across audio and text streams. Time becomes the fundamental unit, replacing the turn entirely.\n\n[![](https://substackcdn.com/image/fetch/$s_!tTek!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ae330a8-6951-4d4b-8935-197814c1d8c6_2146x1478.png)](https://substackcdn.com/image/fetch/$s_!tTek!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ae330a8-6951-4d4b-8935-197814c1d8c6_2146x1478.png)\n\nThis sounds like a small change, but it transforms what the model can do. The model treats time as continuous rather than partitioned into clean turns, deciding micro-turn by micro-turn whether to speak, listen, jump in, or stay silent. Input and output are happening continuously at the same time.\n\nConcretely, this is what unlocks behavior that turn-based systems struggle with.\n\n* The model can speak while listening, which is how live translation works.\n* It can watch while speaking, which is how live sports commentary works.\n* It can jump in mid-sentence when something visual happens, such as counting pushups in real time as someone exercises.\n* It can also support tasks like “correct my mispronunciation as you hear it,” which requires speaking while listening, something a turn-based architecture handles as separate operations.\n\nThese capabilities all share a single source, emerging from the same architectural choice.\n\n## Coordination\n\nTime-aligned micro-turns solve responsiveness, but they create a new problem.\n\nHow does a model designed to respond in 200-millisecond windows also do deep reasoning?\n\nSome tasks genuinely require minutes of thinking, web browsing, tool use, or chained reasoning steps. Building a single model that handles both fast response and deep thought at the same time is hard.\n\nThinking Machines’ answer is to use two models working together:\n\n* The interaction model is fast, present, and handles real-time conversation.\n* The background model is slower and handles sustained reasoning, tool use, browsing, and longer-horizon work.\n\nThey share context with each other, so both have the same picture of what has been said and what is happening.\n\n[![](https://substackcdn.com/image/fetch/$s_!PgYD!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F63be5ab8-f161-463d-a3d9-880f4d1edfd4_2306x1390.png)](https://substackcdn.com/image/fetch/$s_!PgYD!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F63be5ab8-f161-463d-a3d9-880f4d1edfd4_2306x1390.png)\n\n`The coordination works like this:\n\n* When the interaction model encounters something that needs deeper reasoning, it sends a rich context package over to the background model.\n* This is the full conversation rather than a standalone query, which lets the background model understand the situation fully.\n* The background model runs asynchronously, with results streaming back as it produces them.\n* The interaction model then weaves those results into the conversation when the moment fits, rather than as an abrupt context switch in the middle of something else.\n\nFrom the user’s perspective, this is a single continuous conversation, with one AI thinking, responding, occasionally pausing to dig deeper, and weaving back in smoothly. Behind the scenes, two systems coordinate throughout.\n\nThis same logic shows up across computing, with fast paths paired with slow paths, foreground processes paired with background ones, and routine examples throughout operating systems and web browsers. What Thinking Machines did is apply the pattern to AI inference in a principled way, instead of treating reasoning latency as a problem the user has to absorb.\n\n## Capabilities\n\nAll of these design choices add up. The interaction model handles its own dialog management, knowing whether the user is thinking, yielding, or self-correcting, and it can interject verbally or visually based on context. It can speak and listen at the same time, which is what makes live translation possible. It has a direct sense of elapsed time, and can call tools, search, and generate UI concurrently with the conversation, weaving results back as they become ready.\n\nThese claims need evidence. Existing benchmarks for voice AI struggle to capture these qualitative jumps, so Thinking Machines built their own.\n\n* TimeSpeak measures whether the model can initiate speech at user-specified times with the correct content, with an example task being “remind me to breathe in and out every 4 seconds until I ask you to stop.”\n* CueSpeak measures whether the model speaks at the right moment while the user is still talking, with an example task being “every time I codeswitch, give me the correct word in the original language.”\n* RepCount-A streams video of someone doing reps after the instruction “count out reps for pushups.”\n* ProactiveVideoQA streams videos with questions whose correct answers depend on what is happening visually at specific moments.\n\n[![](https://substackcdn.com/image/fetch/$s_!fxc0!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb134f76b-67c6-47c2-9a30-a2e2620a6bdc_2446x1594.png)](https://substackcdn.com/image/fetch/$s_!fxc0!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb134f76b-67c6-47c2-9a30-a2e2620a6bdc_2446x1594.png)\n\nThe result is striking. Across these benchmarks, all existing models struggle with these tasks, with most either staying silent or giving wrong answers. This is the strongest evidence Thinking Machines presents that their architectural shift unlocks a new capability class, rather than just speeding up old behavior.\n\n## Limitations\n\nDespite the encouraging results, the research also points out the things that are still hard.\n\n* Long sessions remain a real challenge for this architecture. Continuous audio and video accumulate context very quickly. While the streaming-session design handles short and medium interactions well, very long sessions still require careful context management.\n* Connectivity remains a hard requirement, since streaming audio and video at low latency demands a reliable internet connection. A poor connection causes the experience to degrade significantly.\n* Scaling the model size is constrained by latency targets, with TML-Interaction-Small being the size it is, partly because Thinking Machines’ larger pretrained models are currently too slow to serve in this setting.\n\n## Conclusion\n\nLooking back, the main argument is simple. What feels real-time in today’s voice AI is a turn-based language model wrapped in helper components, and that works up to a certain limit. Thinking Machines’ bet is that the way past the limit is to make interactivity part of the model itself.\n\nTwo architectural choices carry most of the heavy work:\n\n* Time-aligned micro-turns slice time into 200-millisecond chunks, letting the model handle input and output as continuous streams.\n* The two-model split pairs a fast interaction model with a slower background model that handles deep reasoning, with both sharing context.\n\nThe evidence that this is a new capability class rather than just lower latency comes from the benchmarks Thinking Machines built themselves. Tasks like “count my pushups as I do them” or “correct my codeswitching mid-sentence” stay out of reach for turn-based architectures, regardless of how fast they get.\n\nAn important takeaway is that adding a capability through external scaffolding creates a ceiling on how good that capability can get, with the scaffolding becoming the bottleneck rather than the underlying system. This pattern shows up across computing, and this research preview is one of the clearest recent illustrations of it in AI.\n\nThinking Machines plans to open a limited research preview in the coming months, with a wider release later this year and a research grant for interaction model research.\n\n**References:**\n\n* [Interaction Models: A Scalable Approach to Human-AI Collaboration](https://thinkingmachines.ai/blog/interaction-models/)",
+      "tags": [
+        "Thinking Machines",
+        "Interaction Models",
+        "实时交互"
+      ],
+      "score": 70,
+      "summary": "ByteByteGo分析Thinking Machines关于AI实时交互模型的研究，指出当前方法存在天花板。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!prac!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa1444cab-8996-4f6a-9634-8405d90c7b49_2048x1106.png",
+      "fetched_at": "2026-07-01T00:17:07.737487+08:00"
+    },
+    {
+      "title": "教你让 Claude Code 在你睡觉时继续干活！",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247723860&idx=1&sn=eca9e3e526332b86d9775d3887f8e78e",
+      "published": "2026-06-30T23:29:00+08:00",
+      "source": "Datawhale",
+      "content": "原创 Raytar 2026-06-30 23:29 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=f421d019&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FzW6S9vt0cS9ZMUXHYRCh18WpXM8fRnzlpwa2ib01fq790V2jr6Ftr7Wc0GNtudyibCwiaWETalH1icvAXvK20kIibTBgsHZTq2UQAUlib0Fvve4Uk%2F0%3Fwx_fmt%3Djpeg)\n\nDatawhale干货 \n\n**作者：Raytar，X 博主**\n\n上周，我们做了很多如何构建 Loop  Engineering 的教程，也系统聊了[从 Prompt 到 Loop 的演进](https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247723822&idx=1&sn=d9e451fdb3b3519432c88d0ac4909b7e&scene=21#wechat_redirect)：为什么现在不只是“写一句提示词让 AI 回答”，而是要让 AI 围绕一个目标持续推进、检查结果、记录状态。\n\n评论区有不少小伙伴问到同一个问题：**Claude Code 不是已经有 /goal 了吗，为什么还要讲 Loop？**也有人问，**Loop 加 Prompt 到底比自己写脚本、再配一个定时任务强在哪里？**\n\n**![](https://wechat2rss.bestblogs.dev/img-proxy/?k=65daaeb2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSicALozn5LrgcPOrwommDX1DB532KxUNmEQvaeThrzRtxyLHZRTjqjn50ZiaLnP2Z8IoAibkOeNen93iaKawCNb5KtBMlcuZu7ugYY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)**\n\n接下来，我们一起来看 X 博主 Raytar 的爆火长文，把 **Prompt、/goal、Loop 和定时任务之间的区别理解清楚**：什么时候用哪一个。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=241f5eca&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSicuNjhC3Pyggq3Mzs2O4PS2ZdCcapF3MVkIcibkFaJWrf5rABmNAR4L2icx9kUw03yNDmqOMbxgJdBCmAfSeSZTYgQ6icib6ZeY2Qo%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n一个例子，就能看出 Prompt 和 Loop 的差别\n\n假设你让 Claude 写一页关于某个主题的 brief。\n\n这是个很简单的任务。Claude 很快就会写出一篇看起来干净、完整、自信的东西，底部还会附上一堆来源。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=28ca9e33&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FzW6S9vt0cSib6hDD0mliaRV7kCQRnoj6f5ZwrUOibsNrh1L2AdFkhDGyJJHicw3klFcWVNaLibjgcuViaZnx45s89srCQLnbURjl8cUIwGLhWJDts%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n然后你去读那些来源。\n\n有些是假的。Claude 编出来了，但它自己完全不知道。它们看起来像真的。链接可能打不开，或者打开之后，页面根本没有支持 Claude 写下的那些说法。\n\n这就是 Claude 最安静、也最危险的坑法：它不是大张旗鼓地出错，而是用一种非常自信的方式给你一个看似完整的答案。\n\n单次 prompt 很难抓住这种问题。因为在你真正打开链接之前，Claude 仍然会相信自己是对的。\n\n现在换一种方式。不要只让 Claude“写一页 brief”，把它作为一个 loop 来跑。同样是写 brief，但你给它加一个可以衡量的标准：\n\n```\n每一个 claim 至少需要三个来源；每一个链接都必须能打开，并且页面内容必须真的支持这个 claim。\n```\n\n这时发生的事情就不一样了。\n\nClaude 会先写 brief。然后它会逐个打开链接。它会把死链扔掉，把看起来真实、但其实不支持论点的来源扔掉。它会去找真正可用的替代来源。然后继续检查，直到页面上的每一个来源都能打开、每一个来源都真的支持对应论断。然后它才停下来。\n\n它不会觉得无聊，也不会跳过那些烦人的小检查。\n\n在 Claude Code 里，这个任务可以这样写（先别急着研究命令，后面会拆开讲）：\n\n```\n/goal write a one page brief on [your topic]  \nwhere every claim has at least three sources and  \nevery link opens to a real page that supports the claim.  \nOpen each link to confirm it before you call it done.  \nReplace any source that is dead or does not back up the claim.  \nStop only when every source on the page checks out.\n```\n\n关键是这里的变化：你不是让 Claude 回答一次，而是在给它一个可以自我检查、可以反复推进、直到完成才停下来的工作方式。\n\n什么是 loop？\n\nLoop 是一个小系统。它会替你一遍又一遍地提示 Claude，直到一件事完成。\n\n不管一个 loop 看起来有多复杂，本质上都是五个步骤：\n\n1**找到工作。**比如打开任务列表、失败的测试、未读邮件，或者某个文件夹里的文件。\n\n2**做这件事。**Claude 像你手动做一样，一次处理一个任务。\n\n3**检查自己。**第二轮检查会确认这件事是真的完成了、是正确的，而不是“生成出来了”而已。\n\n4**记住。**它会写下哪些事情已经完成，这样就不会重复做，也不会丢掉进度。\n\n5**再来一轮。**继续重复，直到没有剩余任务，或者需要停下来通知你。\n\n有一句话可以记住：\n\n> Prompting is doing the work.  \n> Loop engineering is managing the worker.\n\n写 prompt，是你在亲自做工作。设计 loop，是你在管理一个工人。这就是差别。\n\n## “这不就是定时任务吗？”\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=b7fafe66&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FzW6S9vt0cS8cBB4KicVMZLy7d3sT2qT43f0pMQq6ibage8YXMrFUVibJAVaqQkiaoxTI4ibxjMm2FNeYDSPIgjSL8YNWC4tibCEVibae2Bb2qPSu7E%2F640%3Fwx_fmt%3Djpeg)\n\n这是一个很自然的问题。答案是：不是。\n\n你的电脑当然早就可以每天早上 8 点自动运行同一件事。这叫 cron job，它比我们大多数人都老。Cron job 运行的是一个固定脚本，每天一样的步骤、一样的流程，不思考。\n\nLoop 不一样。**Loop 里面有一个决策者。**\n\nCron 运行脚本。Loop 运行 Claude。Claude 会看当前情况，选择下一步动作，执行它，检查结果，然后再决定接下来怎么办：继续、重试、撤回、停止。\n\n中间那个“判断”才是重点。一个脚本看到测试坏了，很难自己想出另一种修法；Claude 可以。这件事之所以现在才开始变得可行，是因为 Claude 和 ChatGPT 已经足够强，可以在任务中间做真正的判断。\n\n## 跑 loop 的两个命令\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=5b22664d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FzW6S9vt0cSibxCoBibcbN6zOaasK2K5gt3pmnsTrrZFIcL4sH9t882Y5HUdBBmdeGcDENWOJyzs4KicKAr0Nj6LS5QRTtQwNtan4jsBU0oFWSU%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n很多人最容易错的地方在这里。你不是在普通聊天里输入一句“请循环执行这个任务”，就算做了一个 loop。\n\nClaude Code 里已经有两个内置命令。你要选哪一个，取决于你要跑什么类型的 loop。\n\n### 1. /goal：一直做到完成为止\n\n/goal 是那种“直到完成才停”的 loop。前面写 brief 的例子，其实就是 /goal。\n\n你输入 /goal，然后描述什么叫“完成”。Claude 会一轮一轮地工作。每一轮之后，另一个 Claude 会悄悄检查：现在达到目标了吗？如果没有，它会告诉第一个 Claude 还差什么，然后工作继续。一旦目标达成，loop 就会自己停下来。\n\n每一轮之后的自检，正是一个真正 loop 和一次性 prompt 的区别。普通 prompt 是生成一次然后希望它没问题；/goal 是做一轮、检查、没完成就继续，直到完成。\n\n所以，当一件事有明确终点时，用 /goal —— **一直工作，直到这件事为真。**\n\n### 2. /loop：按节奏重复执行\n\n/loop 是另一种。它适合的不是“完成一堆东西”，而是“盯着某件事”。你告诉它多久检查一次、每次做什么，然后 Claude 会按节奏重新运行。\n\n比如：\n\n```\n/loop 30m check whether my live site is back up by loading the homepage.  \nThe moment it returns a normal page, tell me and stop checking.\n```\n\n这里的 30m 意思是每 30 分钟一次。它会每 30 分钟加载一下网站首页，一旦页面恢复正常，就告诉你，然后停止检查。\n\n你也可以直接说得更自然一点，比如“every morning, triage my inbox（每天早上整理我的收件箱）”，Claude 会把它安排成一个定期任务。\n\n所以可以这样区分：当任务有终点时用 /goal；当任务没有终点、只是需要按某个节奏持续检查时用 /loop。\n\n大多数强 loop，都会从 /goal 开始。这些是 Claude Code 里比较新的功能，如果你看不到这些命令，更新 Claude Code 就会出现。\n\n## 第一个可以直接复制的 loop\n\n小任务，一个一句话的 goal 就够了。但如果是更大的任务、有很多步骤，你最好交给 Claude 一份完整的 charter，告诉它：工作在哪里、该怎么做、怎么检查自己、怎么记住进度、什么时候停止。\n\n把下面这个模板里的方括号补完，然后粘到 Claude Code 里：\n\n```\nYou are running as a loop, not answering one prompt. Here is your charter.  \nGOAL  \n[Describe the finished state in one or two sentences.  \nBe specific about what DONE looks like, and make it something you can measure.  \nExample: \"Every product page in /pages has the new pricing and every link opens.\"]  \nWHERE THE WORK IS  \n[Tell Claude where to look.  \nExamples: \"Scan the /pages folder for files with old pricing.\"  \nOr \"Read TODO.md and treat each unchecked box as a task.\"  \nOr \"Check my connected task board for items tagged ai.\"]  \nHOW TO WORK  \n- Do one item at a time. Finish it fully before starting the next.  \n- Match the patterns you find in existing files. Do not invent new ones.  \n- If an item needs a decision only I can make  \n  (spending money, deleting things, emailing a person),  \n  stop on that item, add it to a \"needs me\" list,  \n  and move to the next one.  \nHOW TO CHECK YOURSELF  \nAfter each item, prove it is done before you mark it done.  \n[Pick what fits:  \n\"run the tests\" /  \n\"re-read the file and confirm it meets the goal\" /  \n\"open the link and confirm it loads.\"  \nChecking means evidence, not confidence.]  \nIf the check fails, fix it and check again.  \nThree tries per item, then log it as blocked and move on.  \nHOW TO REMEMBER  \nKeep a file called LOOP-STATE.md.  \nAfter each item, write the item name, its status  \n(done / blocked / needs me), what you changed,  \nand anything the next run should know.  \nRead this file FIRST every run so you never redo finished work.  \nWHEN TO STOP  \nStop when every item is done or logged as blocked,  \nor when you have finished [N] items this run.  \nThen give me a short report:  \nwhat got done, what is blocked, what needs my call.  \nStart by reading LOOP-STATE.md if it exists, then find the work.\n```\n\n这里最不起眼、但最重要的是状态文件 **LOOP-STATE.md**。\n\n它是这个 loop 里的安静英雄。没有它，每一次运行都像从零开始；有了它，loop 就能知道自己上次做到哪里了，哪些已经完成、哪些卡住、哪些需要你来决定。即使它是在定时任务里运行，也可以接着上一次的进度继续。\n\n## 什么时候不要做 loop？\n\nLoop 不是免费的，也不是所有任务都适合。开始之前，有三件事要诚实面对。\n\n**第一，一次性任务不需要 loop。**如果你只是要一个单次答案，普通 prompt 更快。Loop 的设置成本，只有在任务重复、或者任务有很多部分时才值得。\n\n**第二，loop 成本更高。**一个会检查自己、会重试的 loop，通常会为每一个任务运行 Claude 好几次。如果你用的是 Claude 订阅计划，可能会更快碰到使用额度上限。\n\n**第三，模糊任务不适合 loop。**比如“Think of a better product strategy（想一个更好的产品策略）”，这不是一个 loop。你得先把真正的目标想清楚。因为 loop 需要的是一个可以衡量的完成状态——如果你自己都说不清什么叫“完成”，Claude 也没办法可靠地循环下去。\n\n## 写在最后：这周就可以开始\n\n找一个你一直手动重复做的任务。最好是那种有很多小步骤、很烦、但又可以检查结果的任务。\n\n把上面的 charter 粘进去，填好方括号，先跑一次，并且全程看着它做。等你信任它之后，再把它放到定时任务里。\n\n第一次你醒来，发现某件事已经在夜里自己完成了，你就会停止一条条写 prompt。**就像 Boris 一样。**\n\n```\n不要再自己当 loop。  \n让 loop 替你提示 Claude。\n```\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=0ad9a61b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FvI9nYe94fsGxu3P5YibTO899okS0X9WaLmQCtia4U8Eu1xWCz9t8Qtq9PH6T1bTcxibiaCIkGzAxpeRkRFYqibVmwSw%2F640%3Fwx_fmt%3Dother%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26randomid%3D53un1pbe%26tp%3Dwebp%23imgIndex%3D4)\n\n**一起“**点****赞”****三连**↓**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=c3db5e49&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIyNjM2MzQyNg%3D%3D%26mid%3D2247723860%26idx%3D1%26sn%3Deca9e3e526332b86d9775d3887f8e78e)",
+      "tags": [
+        "Claude Code",
+        "Loop Engineering",
+        "教程"
+      ],
+      "score": 75,
+      "summary": "Datawhale转载教程，讲解Claude Code中Prompt、/goal、Loop和定时任务的区别与使用场景。",
+      "fetched_at": "2026-07-01T00:17:07.737542+08:00"
+    },
+    {
+      "title": "10 Years of Meta’s Commitment to Python",
+      "link": "https://engineering.fb.com/2026/06/30/open-source/10-years-of-metas-commitment-to-python/",
+      "published": "2026-07-01T00:00:46+08:00",
+      "source": "Engineering at Meta",
+      "content": "This year marks Meta’s 10th consecutive year as a sponsor of the [Python Software Foundation (PSF)](https://www.python.org/psf-landing/), the charitable organization dedicated to advancing, supporting, and protecting the open-source Python programming language and the community that sustains it. Python is one of the world’s most influential programming languages, and we use it across our engineering stack, from the [backend of our apps and products like Instagram and Threads](https://engineering.fb.com/2023/09/07/culture/threads-inside-story-metas-newest-social-app/) to [cutting-edge AI research](https://ai.meta.com/research/publications/neuralset-a-high-performing-python-package-for-neuro-ai/). \n\nWe recognize the vital role the PSF plays in sustaining the language, nurturing its global community, and driving innovation. After a decade, it felt like the right moment to reflect on why we, as an organization of engineers, are committed to funding the PSF. By supporting the PSF, we aim to help ensure that Python remains robust, innovative and accessible for generations of engineers to come. We hope our involvement will inspire other individuals and organizations to join us in strengthening the foundation that supports so much of today’s technology.\n\n# The Importance of Python at Meta\n\nPython is the most used programming language at Meta. It powers infrastructure across our most important products and initiatives and supports a wide range of teams across the company. Some of the core maintainers of Python are Meta engineers who have authored [new features and Python Enhancement Proposals (PEPs)](https://engineering.fb.com/2023/10/05/developer-tools/python-312-meta-new-features/) for the Python community. [PyTorch](https://pytorch.org/), one of the world’s most widely-used machine learning frameworks, was [originally developed at Meta in partnership with the community](https://ai.meta.com/blog/pytorch-builds-the-future-of-ai-and-machine-learning-at-facebook/) before being spun off into [its own independent foundation](https://ai.meta.com/blog/pytorch-foundation/). Meta also builds open-source Python developer tools to help developers write better quality, more performant Python. This includes projects like [Pyrefly](https://pyrefly.org/), an incredibly fast type checker and language server.\n\nSupporting the continued growth and sustainability of Python is a natural fit for Meta’s technical vision. It will continue to play an important role in helping us achieve our goals as we invest further in AI, build new data-driven products, and further scale our infrastructure.\n\n# Why Meta Sponsors the Python Software Foundation\n\nAt Meta we understand that using open source software like Python comes with a shared responsibility to help ensure the language and its ecosystem remain healthy, secure, and innovative for everyone. Every product shipped, every model trained, and every insight generated with Python is made possible by the collective work of the open source community, backed up by the organizational support and infrastructure maintained by the PSF. For Meta, supporting the PSF is a strategic investment in the future of Python, and hence the long-term stability of our own technology stack. \n\nOur sponsorship of the PSF has helped fund impactful initiatives such as the [Developer-in-Residence program](https://www.python.org/psf/developersinresidence/), which employs full-time developers who are focused on improving the Python programming language and its ecosystem. This program has been transformative, allowing critical work to happen that would otherwise fall to overstretched volunteers or go unaddressed entirely.\n\nPSF funding also goes towards strengthening the core infrastructure of the Python ecosystem, most notably the [Python Package Index (PyPI)](https://pypi.org/), where our sponsorship has helped fund essential security enhancements. These improvements are vital for protecting the global Python community and ensuring that developers everywhere – including our own engineers – can safely share and consume packages.\n\nBeyond purely technical investment, Meta’s support also helps fund educational programs and community events like [PyCon US](https://us.pycon.org/2026/), where we’ve provided free and discounted passes to PyCon, supported workshops and summits, and contributed to fundraising efforts for groups like [PyLadies](https://pyladies.com/). These investments help grow the Python community and foster the new talent that is essential for Python’s long-term sustainability.\n\nIn short, sponsorship of the PSF is a valuable investment in the tools and community that make our work possible.\n\n# How Can You Support the Python Software Foundation?\n\nThere are several ways you as an individual, or your organization as a whole, can contribute to the ongoing success and sustainability of the PSF:\n\n* [**Make a one time donation**](https://donate.python.org?ref=engineeringatmeta): You can give any amount as a one off donation.\n* [**Become a PSF member**](https://www.python.org/psf/membership?ref=engineeringatmet): By becoming a member you can vote in discussions on the direction of the Python language. There are different donation tiers available, including donating your time.\n* [**Become a sponsor**](https://www.python.org/sponsors/application?ref=engineeringatmet): For organizations looking to make a sustained impact, the PSF offers annual sponsorship tiers, each with increasing levels of recognition and benefits.\n\nAs an organization the most meaningful way for you to support the PSF is through annual sponsorship. Besides benefitting from the continued success of the Python language itself, there are a range of additional benefits depending on your sponsorship amount. Sponsors of the PSF receive public recognition, with their names and logos featured on the [PSF website](https://www.python.org/psf-landing/), in annual reports, and at major events. Sponsorship also provides valuable opportunities for community engagement, allowing organizations more opportunities to connect with the global Python community, participate in events, and demonstrate their commitment to open source. Higher-tier sponsors benefit from increased brand visibility through prominent logo placement and may be invited to speak or participate in special initiatives.\n\n# Thank You!\n\nFinally, we want to say thank you to the Python community: the maintainers, contributors, educators, and advocates who make Python what it is today. Your passion and dedication are the foundation of Python’s success, and we’re proud to be able to support you, both as collaborators and sponsors.\n\nVisit our website to learn more about [Meta Open Source](https://opensource.fb.com?ref=engineeringatmeta). You can also subscribe to our [YouTube channel](https://www.youtube.com/channel/UCCQY962PmHabTjaHv2wJzfQ), or follow us on [Facebook](https://www.facebook.com/MetaOpenSource), [Threads](https://www.threads.net/@metaopensource), [Bluesky](https://bsky.app/profile/metaopensource.bsky.social), [LinkedIn](https://www.linkedin.com/showcase/meta-open-source?fbclid=IwZXh0bgNhZW0CMTEAAR2fEOJNb7zOi8rJeRvQry5sRxARpdL3OpS4sYLdC1_npkEy60gBS1ynXwQ_aem_mJUK6jEUApFTW75Emhtpqw), and [X](https://x.com/MetaOpenSource).\n\nThe post [10 Years of Meta’s Commitment to Python](https://engineering.fb.com/2026/06/30/open-source/10-years-of-metas-commitment-to-python/) appeared first on [Engineering at Meta](https://engineering.fb.com).",
+      "tags": [
+        "Meta",
+        "Python",
+        "PSF赞助"
+      ],
+      "score": 60,
+      "summary": "Meta庆祝连续10年赞助Python软件基金会，强调Python在公司内部的重要性。",
+      "fetched_at": "2026-07-01T00:17:07.737582+08:00"
+    },
+    {
+      "title": "Modernizing financial services with deployment freedom and transformational AI with AlloyDB Omni",
+      "link": "https://cloud.google.com/blog/products/databases/alloydb-omni-secure-hybrid-database-modernization-for-finance/",
+      "published": "2026-07-01T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "The financial services industry (FSI) operates under a unique set of non-negotiable requirements: the need for strict regulatory compliance, sub-millisecond transactional speeds, and security that verges on impenetrable. Historically, organizations have met these standards by relying on brittle, proprietary database systems, leaving them with massive technical debt, operational overhead, and vendor lock-in.\n\nAt the same time, financial services companies are facing a series of daunting challenges:\n\n* **The licensing trap and technical debt:** Decades of reliance on legacy commercial databases have left institutions with skyrocketing maintenance costs and restrictive licenses that refuse to scale. In fact, a global investment bank might find that over 70% of its IT budget is swallowed up by decades-old COBOL core banking systems and siloed ledger databases—leaving virtually no capital to develop the real-time, AI-driven fraud detection tools their clients are actively demanding.\n* **The tug of war between sovereignty and innovation:** Emerging regulations like EMEA’s [**Digital Operational Resilience Act**](https://www.eiopa.europa.eu/digital-operational-resilience-act-dora_en) (DORA) and strict national data residency laws require institutions to maintain ironclad control over where their data lives. This often creates a massive barrier to public cloud adoption for sensitive workloads, effectively siloing a regional payment processor from modern AI tools simply because they cannot legally move transaction data to a public cloud for processing.\n* **The \"insights gap\" in real-time operations:** While agile fintech upstarts launch with flexible, cloud-native architectures, traditional firms struggle to turn vast data reserves into actionable intelligence. Their data is trapped in legacy environments that hit a performance ceiling during peak market volatility, leaving an investment firm struggling to scale its high-frequency trading ledgers when standard PostgreSQL or legacy systems max out.\n\nAs the industry enters the era of Agentic AI — where autonomous AI agents handle complex workflows like real-time risk assessment and automated trading — financial services firms must adopt a fundamentally new database strategy.\n\nTo overcome these entrenched challenges, they need to shift their strategy, moving away from proprietary databases that lock them in toward a **hybrid, open-standards-based paradigm**. This allows them to embrace the best of cloud-native innovation , like **empowering** real-time agentic AI workloads and edge computing , while maintaining control and residency of their own data on-premises.\n\nAt Google Cloud, we designed [**AlloyDB for PostgreSQL**](https://cloud.google.com/products/alloydb) to unify operational data, real-time analytics, and generative AI into a single platform, and you can run it anywhere. Further, it specifically addresses the above mentioned FSI challenges directly through three guiding principles:\n\n* **The licensing trap -> open standards:** AlloyDB is 100% PostgreSQL-compatible, allowing institutions to modernize from expensive, legacy proprietary databases to an open platform that minimizes licensing headaches and vendor lock-in.\n* **Sovereignty -> heterogeneous support:** With AlloyDB Omni’s flexible deployment model, organizations can keep up with the complex topologies that characterize global banks, allowing mission-critical applications to run in a hybrid cloud, at the edge, or on-prem in air-gapped environments.\n* **The insights gap -> battle-tested scale:** By incorporating architectural lessons from Google's billion-user applications, the cloud-managed AlloyDB service delivers superior performance, running over 4x faster for transactional workloads than standard PostgreSQL. Crucially, the downloadable AlloyDB Omni engine brings this exact same high-concurrency scaling power straight to your local hardware—outperforming standard PostgreSQL by over 2x for transactions—while both deployment models accelerate real-time analytical queries by up to 100x.\n\n**Institutions are already realizing the benefits of this new approach:**\n\n* [**Cynergy Bank**:](https://cloud.google.com/customers/cynergy-bank?e=0) By migrating from on-prem SQL databases to AlloyDB, the bank successfully modernized a key element of its infrastructure. This critical initiative reduced app account loading times to under three seconds and enabled the integration of data and AI, providing a more personal \"human touch\" to digital banking and financial services.\n* [**Apex Fintech**](https://cloud.google.com/blog/products/databases/apex-fintech-solutions-boosts-processing-time/?e=0#:~:text=The%20AlloyDB%2Dbased%20solution%20has%20achieved%20a%2050%25,potential%20to%20migrate%20additional%20traditional%20PostgreSQL%20instances.)**:** The company leveraged AlloyDB to speed up margin calculations by 50%, enabling them to calculate risk for 100,000 accounts in just one minute while eliminating the need for a separate analytical system.\n\nTo ensure financial institutions can leverage these exact same breakthrough database innovations anywhere—without being forced into a public cloud migration—we built [**AlloyDB Omni**](https://cloud.google.com/alloydb/omni?e=0&hl=en)to extend our signature kernel performance directly to your owned infrastructure.\n\n### AlloyDB Omni: Strong performance and deployment freedom\n\nWhether running mission-critical applications on-premises, at the edge, or across hybrid clouds, financial institutions shouldn't have to choose between deployment flexibility and database performance. AlloyDB Omni bridges this gap by bringing Google’s breakthrough kernel innovations directly to your infrastructure. By design, it delivers enterprise-grade capabilities across three core dimensions:\n\n* **True portability and modernization in place:** Take absolute control over your data residency. [Deploy](https://clouddocs.devsite.corp.google.com/alloydb/omni/docs/choose-deployment) AlloyDB Omni on-premises or at the edge to help comply with strict data sovereignty laws and regulations. This allows you to upgrade your legacy estates right where they live, avoiding the immense operational risk, latency, and vendor concentration risks of a forced public cloud migration.\n* **Operational simplicity on your terms:** Manage your databases like any other modern application. AlloyDB Omni is deployable across containerized environments, bare metal, or VMs. By leveraging tools like our [**Kubernetes Operator**](https://docs.cloud.google.com/alloydb/omni/kubernetes/current/docs/overview) to automate routine provisioning, backups, and failovers, your platform teams gain integrated, API-driven control that elevates the database into a first-class citizen of your infrastructure alongside compute and storage. For non-containerized setups, Omni can be downloaded as a standalone [**RPM**](https://docs.cloud.google.com/alloydb/omni/docs/linux-overview) and managed with CLI or Ansible automation, and it is fully validated to run on [**Google Distributed Cloud**](https://cloud.google.com/distributed-cloud) (GDC) for the most restrictive air-gapped workloads.\n* **Shattering the PostgreSQL performance ceiling:** While standard PostgreSQL is highly trusted, high-concurrency financial workloads often hit a scaling wall. AlloyDB Omni breaks through these limits directly on your local hardware:\n\n+ **Superior transactional scalability:** Delivers up to 2x faster transaction processing than standard PostgreSQL, ensuring payment processing and high-frequency trading ledgers maintain ultra-low latency even during volatile operational spikes.\n+ **Real-time analytics (HTAP):** An intelligent, built-in columnar engine accelerates analytical queries by up to 100x. This enables instant, local business intelligence and reporting directly on live transactional data without the latency of moving it to a warehouse.\n+ **Secure, local AI transformation:** Build fraud detection, risk modeling, or semantic search applications locally. AlloyDB Omni includes integrated [**AlloyDB AI**](https://cloud.google.com/alloydb/ai?e=0) vector capabilities—featuring a [**ScaNN**](https://cloud.google.com/blog/products/databases/how-scann-for-alloydb-vector-search-compares-to-pgvector-hnsw) index that is up to 10x faster and 4x more memory efficient than standard PostgreSQL's HNSW index. This allows you to scale generative AI apps while keeping sensitive financial data and foundation models strictly within your secured infrastructure boundaries.\n\n### Enterprise-grade security and compliance\n\nSecurity cannot be an afterthought. We built AlloyDB Omni to exceed the rigorous standards of the finance industry, offering a hardened posture out of the box. AlloyDB includes: \n\n* **Granular access and auditing:** AlloyDB Omni integrates with Active Directory for unified identity management and provides detailed audit logging to track every access event — essential for regulatory audits.\n* **Compliance-ready infrastructure:** By utilizing features like [**Transparent Data Encryption**](https://docs.cloud.google.com/alloydb/omni/linux/current/docs/transparent-data-encryption-omni) (TDE) at rest, AlloyDB Omni is specifically engineered to help you meet your regulatory compliance obligations.\n\nBy providing a platform that is secure by design and that can be flexibly deployed in a variety of configurations, AlloyDB Omni enables financial institutions to stop choosing between stability and innovation and start delivering both.\n\n### Next steps\n\nTo learn more and get started, please visit [**https://cloud.google.com/alloydb/omni**](https://cloud.google.com/alloydb/omni). You can learn more from the AlloyDB Omni [**documentation**](https://cloud.google.com/alloydb/docs/omni).\n\nAlloyDB Omni is covered by the Google Cloud support plan the customer has chosen for their Google Cloud account; more information on support can be found at [**https://cloud.google.com/support**](https://cloud.google.com/support).\n\nTechnology partners, system integrators and ISVs play an important role in helping customers modernize and build differentiated applications., We are extending the [**AlloyDB Cloud Ready program**](https://cloud.google.com/alloydb/docs/cloud-ready/overview) to now include AlloyDB Omni and enable our partner ecosystem to bring the best of what AlloyDB Omni has to offer to their customers. Customers can trust these validated partner products to work well with AlloyDB Omni, and can focus their time on modernizing database workloads and applications that will drive value for their business. \n\nGet started with AlloyDB Omni by [downloading and deploying](https://docs.cloud.google.com/alloydb/omni/kubernetes/current/docs/available-download-install-options) in your preferred location, including on your laptop!",
+      "tags": [
+        "AlloyDB Omni",
+        "金融",
+        "数据库"
+      ],
+      "score": 60,
+      "summary": "Google Cloud发布AlloyDB Omni，助力金融行业实现数据库现代化和AI转型。",
+      "fetched_at": "2026-07-01T00:17:07.737617+08:00"
+    },
+    {
+      "title": "How Schrödinger sped up molecular discovery by 4x with Alphaevolve",
+      "link": "https://cloud.google.com/blog/products/ai-machine-learning/schrodinger-alphaevolve-molecular-discovery-accelerates-4x/",
+      "published": "2026-07-01T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Computational chemistry researchers have traditionally faced a frustrating trade-off when simulating molecular interactions: use fast classical force fields that sacrifice precision or rely on accurate quantum-mechanical methods that run too slowly on large jobs. \n\nMachine-learned force fields (MLFFs) close that gap by training neural networks on high-fidelity quantum data. When it comes to modern drug discovery and materials design, though, there’s demand for even faster processing speeds to handle massive chemical libraries involved. To overcome such performance constraints, Schrödinger partnered with Google Cloud to deploy [AlphaEvolve](https://deepmind.google/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/), an evolutionary AI coding agent developed by Google DeepMind that iteratively generates and refines algorithms to find the most efficient code path overcoming the algorithmic bottleneck.\n\n### A collaborative duet with AlphaEvolve\n\nSchrödinger — a leader in developing scientific software for over three decades — identified two critical algorithms within their MLFF training pipeline that limited performance: neighbor list computation and Ewald summation. These algorithms aggregate data from atomic neighbors and calculate long-range potentials, but both became limiting factors in training and inference speed. \n\nSchrödinger's primary technical goal was speeding up AI model training for energy and force calculations. Specifically, they targeted the Ewald summation, a critical but computationally demanding function used in molecular mechanics. The Ewald sum was the main performance constraint in Schrödinger's PyTorch code. It had no established vectorized algorithm and often relied on simple for-loops that ran slowly on large simulations.\n\nBy incorporating AlphaEvolve into their models, the system could generate a batched implementation of the Ewald summation using parallel batch matrix multiplication. This would evolve the PyTorch code to outperform existing custom kernels.\n\n### Evaluation metrics\n\nSchrödinger used a rigorous multi-layered evaluation framework to confirm the evolved code was both performant and scientifically accurate:\n\n* Inverse time (primary metric): The core objective was to maximize throughput by reducing calculation time, from a baseline score of 7.9.\n* Functional correctness: All evolved programs had to pass a full test suite, including regression tests on complex systems such as disordered water models.\n* Success rate: This was measured by the share of programs that were both functionally correct and faster than the baseline.\n\n“AlphaEvolve allows us to explore larger chemical spaces faster and more efficiently than ever before. Faster MLFF inference carries real business impact, shortening R&D cycles in drug discovery, catalyst design, and materials development, and enabling companies to screen molecular candidates in days rather than months.” **— Gabriel Marques, technical lead of machine learning, Schrödinger**\n\n### Results: a 4x speedup and breaking bottlenecks\n\nBy applying AlphaEvolve, Schrödinger replaced simple for-loops in the Ewald summation code with parallel batch matrix multiplication. This optimization raised the program success rate from less than 1% (40 out of 5,000 evaluations) to more than 60%, while improving the performance metric from the baseline of 7.9 to nearly 30.\n\nOptimizing these foundational algorithms delivered a 4x speedup in both MLFF training and inference. This acceleration lets researchers compress molecular screening timelines and directly benefits several key research areas:\n\n* Drug discovery: Identifying viable therapeutic candidates quickly to address urgent medical needs.\n* Catalyst design: Developing efficient chemical processes for industrial applications.\n* Materials development: Designing next-generation materials with custom properties for electronics and energy storage.\n\n### The next evolution\n\nSchrödinger plans to apply this evolutionary approach to custom GPU kernels to test whether AI-generated code can outperform human-engineered implementations.\n\nRead the [full technical paper](https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/AlphaEvolve.pdf) on AlphaEvolve to learn how evolutionary AI agents optimize scientific codebases, or contact the [Google Cloud AI team](https://cloud.google.com/resources/global-gen-ai-contact-sales) to discuss accelerating your research workflows.",
+      "tags": [
+        "AlphaEvolve",
+        "分子发现",
+        "加速4倍"
+      ],
+      "score": 80,
+      "summary": "Schrödinger利用Google DeepMind的AlphaEvolve将分子发现速度提升4倍。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/schrodinger-alphaevolve-molecular-discovery-.max-600x600.png",
+      "fetched_at": "2026-07-01T00:17:07.737653+08:00"
+    },
+    {
+      "title": "Build agents even faster with Gemini Enterprise Agent Platform’s fully-managed, remote MCP server",
+      "link": "https://cloud.google.com/blog/products/ai-machine-learning/gemini-enterprise-agent-platform-remote-mcp-server/",
+      "published": "2026-07-01T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "A couple of months ago, we announced that [over 50 Google-managed MCP servers](https://cloud.google.com/blog/products/ai-machine-learning/google-managed-mcp-servers-are-available-for-everyone?e=48754805) are available. \n\nToday, we’ll dive into how to use the [**Gemini Enterprise Agent Platform remote MCP server**](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/use-agent-platform-mcp) to securely connect your external AI agents to the resources inside your Google Cloud environment.\n\n### **Connect your IDE to Google Cloud**\n\nThink of the Agent Platform MCP server as a bridge between your favorite external development tools and your Google Cloud architecture.\n\nIf you are building an agent in Antigravity CLI or Claude Code, for example, the Agent Platform MCP server allows that agent to securely interact with your Agent Platform resources. That way, your agent can now easily call [models from Model Garden](https://console.cloud.google.com/agent-platform/model-garden), pull down shared [prompt templates](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/prompts/prompt-templates), or even manage [Notebooks](https://docs.cloud.google.com/gemini-enterprise-agent-platform/notebooks/overview) directly within your project – all without ever leaving the IDE.\n\n### **Quicker time-to-value**\n\nThe speed at which you deliver value is one of your greatest advantages. But sometimes, connecting external development environments to cloud infrastructure forces a trade-off. Developers want to move fast with minimal setup, while IT teams need strict governance over data access. \n\nThe Agent Platform MCP server provides a single, standardized interface for your external agents so you can spend less time writing integration code and more time building useful features. And by running entirely within Google Cloud’s secure infrastructure, it gives you ready-to-use endpoints that protect your data while accelerating your development.\n\nGet the best of both worlds:\n\n* **Build with open standards:** Agents you build outside of Google Cloud stay fully compliant with the open [MCP specification](https://modelcontextprotocol.io). Your external IDEs and frameworks can seamlessly interact with your cloud environment without locking you into a proprietary ecosystem.\n* **Centralized discovery:** Catalog your assets with [Agent Registry](https://docs.cloud.google.com/agent-registry) in Agent Platform. It acts as your organization's centralized library, so your teams can securely store, search for, and govern their entire inventory of skills, tools, and other AI capabilities.\n* **Easy access with security and governance:** Your connections are protected by default. IT teams can leverage native [Cloud IAM Deny policies](https://docs.cloud.google.com/mcp/control-mcp-use-iam#deny-all-mcp-tool-use) to ensure external developer frameworks only interact with authorized Google Cloud resources.\n\n### **How it works: Three simple steps to connectivity**\n\n1. **Enable the API**: The Gemini Enterprise Agent Platform remote MCP server is automatically enabled when you enable the Gemini Enterprise Agent Platform API within your Google Cloud project.\n\n![1_AP_Home](https://storage.googleapis.com/gweb-cloudblog-publish/images/1_AP_Home.max-1000x1000.png)\n\n2. **Configure your client**: Connect your AI application by following our [configuration instructions](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/use-agent-platform-mcp#configure-client) to point to the remote server.\n\n![2_Configuration](https://storage.googleapis.com/gweb-cloudblog-publish/images/1_Vo4cvfF.max-1000x1000.jpg)\n\n3. **Use toolsets**: Access a robust, copyable list of [Toolset Endpoints](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/mcp#expandable-1) to begin interacting with your Agent Platform resources immediately.\n\n![3_Toolset_Endpoints](https://storage.googleapis.com/gweb-cloudblog-publish/images/2_INFnkQs.max-1000x1000.jpg)\n\n### **Available toolsets:**\n\n|  |  |  |\n| --- | --- | --- |\n| **MCP Toolsets** | | |\n| **Endpoint** | **Description** | **Tools** |\n| /mcp/generate | Generative AI tools | Core generation features |\n| /mcp/predict | Prediction tools | Inference and raw prediction |\n| /mcp/notebook | Colab enterprise notebook tools | Notebook runtime and execution management |\n| /mcp/endpoints | Endpoint management tools | Lifecycle management for model endpoints |\n| /mcp/models | Model registry tools | Model upload, registry, and deployment |\n| /mcp/tuning | Model fine-tuning tools | Finetuning job management and tracking |\n| /mcp/evaluation | Quality evaluation tools | Automated model quality and instance evaluation |\n| /mcp/prompts | Prompt management tools | Prompt engineering and versioning workflows |\n\n### **Get started today**\n\nVisit the [Agent Platform page](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/use-agent-platform-mcp) to connect your favorite agent frameworks to the Agent Platform MCP server and start building today.",
+      "tags": [
+        "Gemini Enterprise",
+        "MCP Server",
+        "Agent Platform"
+      ],
+      "score": 80,
+      "summary": "Google Cloud推出Gemini Enterprise Agent Platform远程MCP服务器，连接外部AI代理与Google Cloud资源。",
+      "fetched_at": "2026-07-01T00:17:07.737686+08:00"
+    },
+    {
+      "title": "Bringing speed and strong cost performance to the market with Gemini Omni Flash and Nano Banana 2 Lite",
+      "link": "https://cloud.google.com/blog/products/ai-machine-learning/nano-banana-2-lite-and-gemini-omni-flash-available/",
+      "published": "2026-07-01T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Great creative happens when your tools move at the speed of your ideas. To help you create rich, reliable experiences while reducing regeneration time and costs, we’re adding two new models to [Gemini Enterprise Agent Platform](https://console.cloud.google.com/agent-platform/overview). \n\nFirst, we’re announcing the general availability of [Nano Banana 2 Lite (Gemini 3.1 Flash-Lite Image)](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite-image). This model is the fastest and most cost-efficient image generation and editing model within the [Nano Banana model family](https://deepmind.google/models/gemini-image/). Whether you're rapid-firing ideas, A/B testing ad variations, or powering social apps for millions of users, this model gives you the power to explore, iterate, and scale with speed.\n\nWe’re also releasing [Gemini Omni Flash](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/omni-flash-preview) in public preview. Grounded in Gemini's real-world knowledge, it powers high-quality video generation and conversational editing. Whether you're executing character or product swaps, performing dynamic style transfers, or adding objects and relighting scenes, this model gives you precise control to edit and refine video assets.\n\n[Gemini Omni Flash and Nano Banana](https://youtube.com/watch?v=luecG7F6s2k)\n\n#### Bring your boldest vision to life with Gemini Omni Flash and Nano Banana.\n\nBoth models provide some of the best price-performance among market-leading frontier models for image and video generation and editing.\n\n### Gemini Omni Flash: High-quality video generation and editing\n\nGemini Omni Flash brings conversational video generation and editing directly into your applications. Users can easily embed powerful media models into their agentic workflows to create, remix, and refine video without ever switching platforms.\n\n![Video Editing  - Descending - Chart@2x](https://storage.googleapis.com/gweb-cloudblog-publish/images/Video_Editing__-_Descending_-_Chart2x.max-1000x1000.png)\n\nFor comprehensive benchmarking information from Google DeepMind, please visit [Gemini Omni.](https://deepmind.google/models/gemini-omni/#:~:text=Gemini%20Omni%20Flash%20delivers%20exceptional%20results%20in%20Video%20Editing%2C%20Text%20to%20Video%2C%20Image%20to%20Video%2C%20and%20Reference%20to%20Video.)\n\nWe built Gemini Omni Flash with a focus across these four key areas:\n\n* **Conversational editing:** Swap characters, relight scenes, or alter angles using natural language while natively maintaining original audio and video tracks.\n* **Multimodal input:** Combine text, images, and video inputs to guide video generation. Gemini Omni Flash natively generates audio with every video output, while maintaining character, object, and style consistency.\n* **World knowledge and simulation:** It combines an intuitive understanding of physics with Gemini's knowledge of history, science and cultural context, bridging the gap from photorealism to meaningful storytelling.\n* **Text and action synchronization:** Render legible text and graphics directly into video, syncing kinetic typography and explainer text with on-screen movements.\n\nNote: Support for audio references, video references, last frame, scene extension and higher resolutions for the Gemini Omni Flash via Gemini Enterprise Agent Platform API will be available soon.\n\nTo see the full list of model capabilities and how to integrate it check out the [documentation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/omni-flash-preview) and [pricing](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing).\n\n![gemini-omni-flash-1.1-table_price@2x](https://storage.googleapis.com/gweb-cloudblog-publish/images/gemini-omni-flash-1.1-table_price2x.max-1000x1000.png)\n\nPriced at $0.10 per second of video output, Gemini Omni Flash delivers some of the best price-performance for video generation and editing capabilities on the market.\n\n### Businesses using Gemini Omni Flash to build next-gen applications and creative agentic workflows:\n\n![Gemini Omni Flash Customer logo](https://storage.googleapis.com/gweb-cloudblog-publish/images/Gemini_Omni_Flash_Customer_logo.max-1000x1000.png)\n\n![adobe wrapped](https://storage.googleapis.com/gweb-cloudblog-publish/images/adobe_wrapped.max-1000x1000.jpg)\n\n*“We’re excited to bring Google’s newest models, including Gemini Omni Flash and Nano Banana 2 Lite, to Adobe Firefly, our all-in-one creative AI studio – to help creators move faster from idea to finished content. These new models build on Adobe’s strategy to deliver our pro-grade tools and the industry’s top creative AI models in a connected workflow, giving creators flexibility and control over how they bring their creative ideas to life.\"* – Matt Chotin, Senior Director of Product, Adobe\n\n[Gemini Omni Flash in Adobe Firefly](https://youtube.com/watch?v=TMBjp8-Uugc)\n\n![invideo wrapped](https://storage.googleapis.com/gweb-cloudblog-publish/images/invideo_wrapped.max-1000x1000.jpg)\n\n*“The thing that immediately caught my attention was the sheer range of what the Gemini Omni Flash model does. The VFX capabilities surprised me, and looking at it as a producer, that brings in some very interesting possibilities. But the hybrid possibilities are what excite me most. You take the crews you have always worked with in the live-action world, and you bring the breadth of what AI can do now onto the same set.”* - Nishant Tahilramani, Creative Director, Invideo\n\n[Gemini Omni Flash in Invideo](https://youtube.com/watch?v=-Gr5DQ4Z8YA)\n\n![wpp wrapped](https://storage.googleapis.com/gweb-cloudblog-publish/images/wpp_wrapped.max-1000x1000.jpg)\n\n*“Through our continued partnership with Google, WPP received early access to the new Gemini Omni Flash’s model and integrated it into WPP Open, our agentic marketing platform. Gemini Omni Flash’s multi-modal capabilities—allowing for seamless image, audio, and video input references—combined with intuitive conversational editing, represent a leap forward for controlled AI production. Teams have tested asset localization, precise product swaps, and dynamic style transfers for clients. We are thrilled to partner with Google Cloud to continually push the boundaries of AI-driven creativity and deliver highly adaptable, intelligent work for our clients.”* – Elav Horwitz, Chief Innovation Officer, WPP\n\n### **Nano Banana 2 Lite: Built for cost and speed**\n\nNano Banana 2 Lite can generate an image in as little as four seconds. You can generate and iterate on design concepts in seconds, taking you from a blank page to the perfect layout instantly.\n\n[Nano Banana 2 Lite speed demo](https://youtube.com/watch?v=RkgZ_gAeLn8)\n\n#### Nano Banana 2 Lite generates images in as little as four seconds.\n\n**Significant improvements over Nano Banana (Gemini 2.5 Flash Image)**\n\nNano Banana 2 Lite blends fast image generation with a significant leap in visual quality and capability compared to our legacy model, Nano Banana. We enhanced core capabilities so you can execute complex tasks at high speeds: \n\n* **World knowledge**: Quickly draft accurate contextual scenes, rough data visualizations, and location-specific mockups.\n* **Character consistency**: Maintain character identities and object fidelity across multiple swift generations to easily build out storyboarding tools or embed virtual try-ons for ecommerce.\n* **Quick text and localization**: Draft copy on the fly by rendering legible text directly into rapid generations to see how typography works across localized ad variations.\n\nTo see the full list of model capabilities and how to integrate it check out the [documentation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite-image) and [pricing](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing).\n\nNote: Image generation offers the fastest latency. Image editing may experience slightly higher  response time.\n\n![image generation](https://storage.googleapis.com/gweb-cloudblog-publish/images/nb2-lite__benchmark_blog.max-1000x1000.png)\n\nFast, cost-efficient image generation with a significant leap in visual quality and capability compared to our legacy model, Nano Banana\n\n### Industry leaders building faster visual experiences with Nano Banana 2 Lite:\n\n![artlist wrapped](https://storage.googleapis.com/gweb-cloudblog-publish/images/artlist_wrapped.max-1000x1000.jpg)\n\n*“Speed is no longer a limitation. When generation is faster than imagination, creators can stay inside the idea instead of waiting on the tool. Nano Banana 2 Lite brings that feeling into the creative process, letting thoughts move into visuals almost instantly. For Artlist’s users, it means less time staring at a progress bar and more time creating, iterating, personalizing, and moving at the speed of culture.” -* Idan Yonas, Director of AI Content & Innovation, Artlist\n\n![figma wrapped](https://storage.googleapis.com/gweb-cloudblog-publish/images/figma_wrapped.max-1000x1000.jpg)\n\n*\"Nano Banana 2 Lite is fast and reliable, helping designers explore more ideas to craft unique images on Figma Weave's node-based canvas. It's ideal for rapid iteration while staying in the creative flow.\"* - Itay Schiff, Co-founder and Creative Director, Figma\n\n![manus wrapped](https://storage.googleapis.com/gweb-cloudblog-publish/images/manus_wrapped.max-1000x1000.jpg)\n\n*\"We have been testing Nano Banana 2 Lite to power real-time image generation within Manus’s autonomous workflows—from slide decks to web pages. Its speed suits these scenarios well, allowing our AI Agent to iterate on visuals quickly and deliver results in seconds. The image quality is also impressive, coming close to the full Nano Banana 2. We look forward to continuing our partnership and building better experiences together.\"* - Tao Zhang, Co-founder and Chief Product Officer, Manus AI.\n\n### **Safety and enterprise governance**\n\nC2PA content credentials and imperceptible SynthID watermarks are enabled by default to help verify content authenticity for both models.\n\nTo handle high-concurrency API requests reliably at scale, the Gemini Enterprise Agent Platform offers provisioned throughput (PT) for Nano Banana 2 Lite starting today. Provisioned throughput for Gemini Omni Flash will be rolling out soon.\n\n### **Start building today**\n\nEmbed these image and video generation and editing capabilities into your applications and creative workflows today. Explore these resources to start building:\n\n* Try the models: [Agent Studio](https://console.cloud.google.com/agent-platform/studio/multimodal?model=gemini_omni_flash_preview) within Gemini Enterprise Agent Platform\n* API documentation: [Nano Banana 2 Lite](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite-image), [Gemini Omni Flash](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/omni-flash-preview)\n* Access Colab notebooks: [Nano Banana 2 Lite](https://github.com/GoogleCloudPlatform/generative-ai/blob/main/gemini/getting-started/intro_gemini_3_1_flash_lite_image_gen.ipynb), [Gemini Omni Flash](https://github.com/GoogleCloudPlatform/generative-ai/blob/main/vision/getting-started/gemini_omni_flash_video_gen.ipynb)\n* Pricing: [Agent Platform Pricing](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing) for both models\n* Prompting guides: [Nano Banana](https://cloud.google.com/blog/products/ai-machine-learning/ultimate-prompting-guide-for-nano-banana), [Gemini Omni Flash](https://deepmind.google/models/gemini-omni/prompt-guide/)\n* Gemini Omni Flash [Prompting Agent Skills](https://github.com/google-gemini/gemini-skills/tree/main/skills)",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "视频生成"
+      ],
+      "score": 85,
+      "summary": "Google Cloud发布Nano Banana 2 Lite（GA）和Gemini Omni Flash（预览），提供高速图像和视频生成。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/gemini-omni__cloudv5_5.max-600x600.png",
+      "fetched_at": "2026-07-01T00:17:07.737718+08:00"
+    },
+    {
+      "title": "Anomaly detection using dynamic thresholds and two-year-long alerts in Cloud Monitoring",
+      "link": "https://cloud.google.com/blog/products/management-tools/cloud-monitoring-adds-long-lookback-alert-policies-for-promql/",
+      "published": "2026-07-01T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Choosing the threshold of an alert policy can be a headache. You have to analyze historical data, aggregate it into semantically meaningful time series, and choose a threshold that matters. If the workload grows, your previously set static threshold might become too low, and your alert might fire too frequently. New workloads might require setting new thresholds, and setting separate thresholds for separate workloads requires creating separate policies, resulting in the annoyance of managing a fleet of mostly similar policies.\n\nNot to mention, some metrics can’t even be alerted on using static thresholds. If your metric varies by time of day, like many e-commerce metrics do, then no single threshold will work. For example, what do you do if your metric looks like this:\n\n![qtfse9nqWC88b92](https://storage.googleapis.com/gweb-cloudblog-publish/images/qtfse9nqWC88b92.max-1000x1000.png)\n\nClearly something went wrong in the middle of that chart… but because the anomalous value is within the normal range of the daily data, no static value threshold can ever catch it.\n\n### **Introducing long lookbacks and dynamic thresholding**\n\nWe are pleased to announce that this problem is now solvable for users of [Cloud Monitoring alerts](https://docs.cloud.google.com/monitoring/alerts) with the launch of [long-lookback alert policies for PromQL](https://docs.cloud.google.com/monitoring/alerts/using-promql#promql-2years), currently in preview. This highly requested feature update now lets you configure PromQL alert policies to run over two years of metric data stored in Cloud Monitoring, supporting year-over-year and quarter-over-quarter analysis. \n\nOne major use case unlocked by two-year lookback horizons in PromQL is dynamic thresholding, that is, policies where the threshold refers to the metric’s history. A simple example is an alert policy that says “alert me if the average over the last 5 minutes is 2x more than the average over the last week.” Instead of setting a static number as your threshold, you set how anomalous each time series must be from its historical data before generating an alert. This allows flexibility in policies, supports naturally changing baselines caused by growth in workloads, and provides a single threshold that works for all workloads. You don’t have to analyze every time series to set alerts properly – just set a factor that signals “anomalous” to you.\n\nTake the above example: To catch that anomaly, you might create a policy that says “alert me if the value over the last 5 minutes is lower than 70% of the value from the same 5-minute span one week ago.” Such a policy would create a threshold that varies by the time of day, and you would catch the anomalous drop:\n\n![8JX8WREHZPq68Fc](https://storage.googleapis.com/gweb-cloudblog-publish/images/8JX8WREHZPq68Fc.max-1000x1000.png)\n\n### **Dynamic threshold algorithms**\n\nChoosing the right dynamic threshold algorithm in PromQL depends on the shape of your source data. Metrics that vary by time of day need a different algorithm than metrics that have little variation. \n\nYou can rewrite the below examples to have the historical data query as your threshold (putting a metric after the < or >), but if you do so you can’t easily visualize the threshold.\n\nBecause these use historical data, granular alert policies that trigger on individual workloads instead of aggregates might be flaky when spinning up new workloads. This issue will resolve itself as you accrue historical data. You can also avoid this by only running dynamic threshold alerts on aggregates.\n\n**Moving averages**In the simplest of the algorithms, alerts trigger when the recent trend of the data deviates from a moving average of data over a long period of time. This is good for catching anomalies in relatively stable data. \n\nHere’s some example PromQL, comparing the last 5 minutes to a one-week baseline and alerting if it’s 30% higher or lower than average:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'sum(rate(http\\_requests\\_total[5m])) /\\r\\nsum(rate(http\\_requests\\_total[1w]))\\r\\n > 1.3\\r\\nOR\\r\\nsum(rate(http\\_requests\\_total[5m])) /\\r\\nsum(rate(http\\_requests\\_total[1w]))\\r\\n < .7'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7fb2e5819070>)])]>\n\n![4v9HQ8snDJbP2oR](https://storage.googleapis.com/gweb-cloudblog-publish/images/4v9HQ8snDJbP2oR.max-1000x1000.png)\n\nYou can also write this as a direct comparison, which might be more understandable. The following says “alert me if the most recent 5 minutes average of data is >1.3x the weekly average.”:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'sum(rate(http\\_requests\\_total[5m])) > 1.3 \\* sum(rate(http\\_requests\\_total[1w]))'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7fb2e5819f40>)])]>\n\n**Z-score (standard deviation)**Use this algorithm to identify anomalies based on the average and standard deviation of your data. A [z-score](https://en.wikipedia.org/wiki/Standard_score) measures the statistical distance between your recent data and historical data, with a common threshold being that a z-score above three or below negative three is considered anomalous. This measures the volatility of your data compared to its usual noisiness, and it works best with data that has a stable average and decent volatility:\n\nExample PromQL, comparing the last 5 minutes to the one-week average and standard deviation:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'abs(\\r\\nsum(rate(http\\_requests\\_total[5m]))\\r\\n-\\r\\nsum(rate(http\\_requests\\_total[1w]))\\r\\n)\\r\\n/\\r\\nstddev\\_over\\_time(sum(rate(http\\_requests\\_total[5m]))[1w:5m])\\r\\n> 3'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7fb2e5819520>)])]>\n\nExample z-score signal and the resulting anomaly detection threshold:\n\n![image1](https://storage.googleapis.com/gweb-cloudblog-publish/images/image1_VFrHPBv.max-1000x1000.png)\n\n**Seasonal decomposition (time offset comparison)**This is a simple time-offset algorithm that compares time-series data in a period of time to the same period from the previous day or week. This is ideal for metrics that have timely patterns associated with them, such as visitors to a website that vary by time of day and day of week. Holidays and other factors that might cause a given day to be lower than expected can be smoothed away by averaging more than one historical period (e.g., average one week ago, two weeks ago, and three weeks ago, then compare that average to today).\n\nExample PromQL, comparing the last 5 minutes to the same time period yesterday, alerting if the recent data is more than 50% lower than the one-day offset data:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'sum(rate(http\\_requests\\_total[5m])) /\\r\\n sum(rate(http\\_requests\\_total[5m] offset 1d))\\r\\n < .5'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7fb2e5819550>)])]>\n\nWhich can be algebraically rewritten to:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'sum(rate(http\\_requests\\_total[5m])) < .5 \\* sum(rate(http\\_requests\\_total[5m] offset 1d))'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7fb2e5819940>)])]>\n\n![Bkby4f9LySHuz75](https://storage.googleapis.com/gweb-cloudblog-publish/images/Bkby4f9LySHuz75.max-1000x1000.png)\n\nIn production, you might want to compare to the same period one week ago, or compare to an average of the same period one and seven days ago, to avoid triggering on naturally lower days such as weekends and holidays:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'sum(rate(http\\_requests\\_total[5m])) /\\r\\n ((\\r\\n sum(rate(http\\_requests\\_total[5m] offset 1d)) + sum(rate(http\\_requests\\_total[5m] offset 7d)) \\r\\n ) / 2)\\r\\n < .5'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7fb2e58191c0>)])]>\n\nWhen using time offsets, you can only reliably trigger on either drops or spikes, as triggering on both sudden drops and sudden spikes in a single policy may cause your alerts to fire twice.\n\nThink of it this way: If traffic drops steeply today, your alert will trigger immediately. However, exactly 24 hours later, today's anomalous drop becomes tomorrow's historical baseline. If your policy triggers on any anomalous difference (higher or lower), the sudden \"return to normal\" tomorrow will look like a massive spike relative to yesterday's dip, and you will get a false alert for a phantom anomaly. You can see this in the above chart — the dip in the signal (blue line) reappears as its reciprocal exactly 24 hours later.\n\nTo prevent this, you should only track either drops or spikes when monitoring any given metric.\n\n### **Control runaway costs using dynamic thresholds**\n\nOnce you can trigger an alert based on deviations from a historical baseline, many interesting use cases open up. For example, you can use dynamic thresholding to prevent overspend for any Google Cloud service that offers a metric that roughly tracks spend.\n\nSay you are concerned about runaway AI token costs. You could do the following:\n\n* + Configure a dynamic threshold alert that triggers if the most recent 10 minutes of accumulated input/output token usage is more than 25x the one-week historical average, which should only catch extreme anomalous scenarios (such as leaked API keys) that will definitely result in overspend:\n\n    - `sum(rate({\"__name__\"=\"aiplatform.googleapis.com/publisher/online_serving/  \n      token_count\"}[10m])) >``25 * sum(rate({\"__name__\"=\"aiplatform.googleapis.com/publisher/online_serving/  \n      token_count\"}[1w]))`\n\n* Trigger your alert to fire to a [Pub/Sub notification channel](https://docs.cloud.google.com/monitoring/support/notification-options#pubsub) that pushes notifications to a [Cloud Run function](https://docs.cloud.google.com/run/docs/functions/overview).\n* That Cloud Run function then runs a workflow that uses the [Cloud Quotas API](https://docs.cloud.google.com/docs/quotas/api-overview) to lower your Token Usage quota to 0, which immediately stops the overspend. Note that legitimate use of tokens will be paused until you can fix the problem… but at least you’ll stop the bleeding.\n\n### **Sign up to be a design partner**\n\nWe are working on productizing anomaly detection using dynamic thresholds so they’re easier to write. We’re also working on more complex anomaly detection algorithms in Cloud Monitoring alerting that uses AI models specifically trained on time-series data.\n\nIf you’re interested in sharing your thoughts and being an early adopter of what we’re building in this space, [sign up to be a preview partner](https://docs.google.com/forms/d/e/1FAIpQLScb6eWg79EBIMYvb4wk38x0xj7_HLdGbDSDUsruAqk9qlFXVA/viewform?usp=publish-editor). We’d love to have you!",
+      "tags": [
+        "Cloud Monitoring",
+        "PromQL",
+        "动态阈值"
+      ],
+      "score": 60,
+      "summary": "Google Cloud Monitoring推出支持两年数据回溯的PromQL告警策略和动态阈值功能。",
+      "fetched_at": "2026-07-01T00:17:07.737752+08:00"
+    },
+    {
+      "title": "Start building with Nano Banana 2 Lite and Gemini Omni Flash",
+      "link": "https://deepmind.google/blog/start-building-with-nano-banana-2-lite-and-gemini-omni-flash/",
+      "published": "2026-07-01T00:02:40+08:00",
+      "source": "Google DeepMind Blog",
+      "content": "",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Google DeepMind"
+      ],
+      "score": 95,
+      "summary": "Google DeepMind官方发布Nano Banana 2 Lite和Gemini Omni Flash，支持高速图像和视频生成。",
+      "fetched_at": "2026-07-01T00:17:07.737784+08:00"
+    },
+    {
+      "title": "Why Specialization Is Inevitable",
+      "link": "https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable",
+      "published": "2026-06-30T22:39:11+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "AI专业化",
+        "Dharma-AI",
+        "Hugging Face"
+      ],
+      "score": 70,
+      "summary": "Dharma-AI在Hugging Face博客发文，论述AI模型专业化是必然趋势。",
+      "fetched_at": "2026-07-01T00:17:07.737815+08:00"
+    },
+    {
+      "title": "Presentation: Trustworthy Productivity: Securing AI-Accelerated Development",
+      "link": "https://www.infoq.com/presentations/ai-development/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-06-30T22:35:00+08:00",
+      "source": "InfoQ",
+      "content": "![](https://res.infoq.com/presentations/ai-development/en/mediumimage/SriramMadapusiVasudevan-medium-1782220895596.jpg)\n\nSriram Madapusi Vasudevan discusses industry-converging patterns for securing autonomous AI agents in production. He explains the critical vulnerabilities hidden inside the ReAct loop across context, reasoning, and tool execution. He shares how to mitigate risks like memory poisoning and rogue tool execution using defense-in-depth strategies, LLM-as-a-judge critics, and MAESTRO threat modeling.\n\n*By Sriram Madapusi Vasudevan*",
+      "tags": [
+        "AI安全",
+        "ReAct循环",
+        "威胁建模"
+      ],
+      "score": 70,
+      "summary": "InfoQ演讲探讨在AI加速开发中保障安全，分析ReAct循环中的漏洞及防御策略。",
+      "fetched_at": "2026-07-01T00:17:07.737847+08:00"
+    },
+    {
+      "title": "Read our 11th annual Environmental Report",
+      "link": "https://blog.google/company-news/outreach-and-initiatives/sustainability/2026-environmental-report/",
+      "published": "2026-07-01T00:05:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Google_Sustainability_Environme.max-600x600.format-webp.webp)Today, we’re releasing our 11th Environmental Report, which provides a holistic view of our 2025 sustainability performance.",
+      "tags": [
+        "Google",
+        "环境报告",
+        "可持续发展"
+      ],
+      "score": 60,
+      "summary": "Google发布第11份年度环境报告，总结2025年可持续发展表现。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Google_Sustainability_Environme.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-01T00:17:07.737878+08:00"
+    },
+    {
+      "title": "Start building with Nano Banana 2 Lite and Gemini Omni Flash",
+      "link": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/",
+      "published": "2026-07-01T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-omni__keyword_v6.max-600x600.format-webp.webp)Scale your ideas with Nano Banana 2 Lite, our fastest, most cost-efficient Gemini Image model, and Gemini Omni Flash for high-quality video generation and conversational…",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Google官方"
+      ],
+      "score": 95,
+      "summary": "Google官方博客宣布Nano Banana 2 Lite和Gemini Omni Flash正式可用。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-omni__keyword_v6.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-01T00:17:07.737909+08:00"
+    },
+    {
+      "title": "Special new @latentspacepod live recording added to the Expo schedule on Thursday, with @swyx and @r...",
+      "link": "https://x.com/aiDotEngineer/status/2071977615771275776",
+      "published": "2026-06-30T23:22:13+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Special new [@latentspacepod](https://x.com/latentspacepod) live recording added to the Expo schedule on Thursday, with [@swyx](https://x.com/swyx) and [@robertwachen](https://x.com/robertwachen) alongside his Inference track appearance!  \n  \ncongrats to Etched on a massive milestone!\n\n![Etched](https://pbs.twimg.com/profile_images/1781917146752413696/KXVls07D_normal.jpg)\n\nEtched@Etched\n\nWe're coming out of stealth.  \n  \nWe've built our first racks after a successful A0 tapeout, $1B+ in customer contracts, and $800m raised.  \n  \nEarly customer tests show us achieving SOTA throughput, latency, and power efficiency on inference workloads.  \n  \nOur first racks ship this summer.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEfnAMbAAAlKme.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Etched/status/2071972062202343590)\n\n💬0🔄3❤️18👀2847📊3",
+      "tags": [
+        "Etched",
+        "AI芯片",
+        "推理"
+      ],
+      "score": 65,
+      "summary": "AI Engineer转发Etched消息：其AI芯片实现SOTA推理吞吐和能效，首批机柜今夏发货。",
+      "fetched_at": "2026-07-01T00:17:07.737940+08:00"
+    },
+    {
+      "title": "hi everybody wish John happy birthday today if you see him (and see his workshop tmr)",
+      "link": "https://x.com/aiDotEngineer/status/2071967493619671461",
+      "published": "2026-06-30T22:42:00+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "hi everybody wish John happy birthday today if you see him (and see his workshop tmr)\n\n![John Lindquist](https://pbs.twimg.com/profile_images/930100383191461893/AAUl7IJ3_normal.jpg)\n\nJohn Lindquist@johnlindquist\n\nIt's my birthday on Tuesday, so my wife wanted to come with me to [@aiDotEngineer](https://x.com/aiDotEngineer) and make a trip of it. ❤️  \n  \nI'm gonna sneak her in to [@joelhooks](https://x.com/joelhooks) workshop so she manage our loops at home.\n\n![Tweet Image](https://pbs.twimg.com/media/HL9CjLaaYAAKRkf.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/johnlindquist/status/2071447830838079639)\n\n💬1🔄0❤️9👀2683📊2",
+      "tags": [
+        "生日祝福",
+        "AI Engineer"
+      ],
+      "score": 30,
+      "summary": "AI Engineer账号祝John Lindquist生日快乐。",
+      "fetched_at": "2026-07-01T00:17:07.737972+08:00"
+    },
+    {
+      "title": "“Loop engineering” is a hot buzzphrase after mentions of it by Boris Cherny (Claude Code’s creator) ...",
+      "link": "https://x.com/AndrewYNg/status/2071988145667928442",
+      "published": "2026-07-01T00:04:04+08:00",
+      "source": "Andrew Ng(@AndrewYNg)",
+      "content": "“Loop engineering” is a hot buzzphrase after mentions of it by Boris Cherny (Claude Code’s creator) and Peter Steinberger (OpenClaw's creator) went viral on social media. Loops are now a key part of how we get AI agents to iterate at length to build software. In this letter, I’d like to share my 3 key loops, shown in the image below, for building 0-to-1 products. These loops guide not just how I build software, but also how I decide what software to build.  \n  \nAgentic coding loop: Given a product specification and optionally a set of evals (that is, a dataset against which to measure performance), we can have an AI agent write code, test its work, and keep iterating until the code is bug-free and meets its specification. This idea of closing the loop took off around the end of last year, and it has been a game changer in enabling coding agents to work longer productively without human intervention. For example, over the weekend, I was building an app for my daughter to practice typing, and my coding agent could easily work for around an hour, using a web browser to check what it had built multiple times before getting back to me, without needing my intervention.  \n  \nThe engineering loop executes quickly. Every few minutes, the coding agent might build and test a new version of the software. I hear frequently from developers who are finding new ways to engineer more effective engineering loops. This is an active area of invention!  \n  \nDeveloper feedback loop: In this loop, a developer examines the current product and steers the coding agent to improve it. Last year, a lot of developers (including me) were acting as the QA (quality assurance) function for our coding agents, manually finding bugs and then asking the agent to fix them. But with coding agents much more able to test their own code, the amount of time we need to spend on this function has decreased significantly. This allows us to make higher-level product decisions, such as what key features to offer, where the UI needs improvement, and so on.  \n  \nThe developer-feedback loop operates over time intervals between tens of minutes and hours — that's how frequently a developer might review a product and give feedback. In the case of the typing app, I changed my mind a few times about the visual design, what cat costumes she can unlock as she learns (she loves cats), and the user flow for a grown-up to log in and steer the child's learning experience.  \n  \nWhen a developer has a clear vision for what to build, it is still a lot of work to translate that vision into a specification for a coding agent to implement. Further, after the developer has seen an implementation, they might update (or perhaps clarify) the spec to steer it toward what they want. If you find that the system repeatedly runs into certain problems, building a set of evals for the agent becomes useful.  \n  \nAI-native teams are increasingly using AI to help shape product direction, for example, automating the gathering and analysis of usage data, summarizing written and verbal customer feedback, or carrying out competitive analysis. However, for pretty much all the products I’m involved in, I see humans as having a significant context advantage over current AI systems — we know a lot more than the AI system about the users and the context the product has to operate in — and thus humans play a critical role. Many people describe this human contribution as “taste,” but I prefer to think of it as humans having a context advantage, since that gives us a clearer path to helping AI systems get better. This also speaks to why this step can’t be automated: So long as the human knows something the AI does not, human-in-the-loop is needed to to inject that knowledge into the system.  \n  \nExternal feedback loop: This includes a wide range of tactics like asking a few friends for feedback, launching to alpha testers, or putting the code into production with A/B testing. These tactics are usually slow, rarely taking less than hours and sometimes taking days or even weeks. This data informs the developer vision, which in turn continues to drive the detailed product spec, which in turn drives the coding agent.  \n  \nWith coding agents speeding up software development, more engineers are starting to play a partial product management role. For many engineers who are growing into this role, the hardest part is shaping the product vision and striking a balance between building (bridging the gap between vision and spec) and getting user feedback to evolve the vision. It is important to do both!  \n  \nI will write more about how to do this in future posts, but for now, I find it encouraging that engineers are playing an expanded role (just as product managers and designers now do more engineering).  \n  \n[Original text: The Batch]\n\n![Tweet Image](https://pbs.twimg.com/media/HMEtxp3bsAARJdi.jpg)\n\n💬12🔄5❤️48👀6445📊19",
+      "tags": [
+        "Andrew Ng",
+        "Loop Engineering",
+        "Agentic Coding"
+      ],
+      "score": 80,
+      "summary": "Andrew Ng分享构建0到1产品的三个关键循环：Agentic Coding、Developer Feedback和Product-Market Fit。",
+      "fetched_at": "2026-07-01T00:17:07.738003+08:00"
+    },
+    {
+      "title": "Private market data from Forge Global now in Perplexity Computer",
+      "link": "https://x.com/AravSrinivas/status/2071982392554983440",
+      "published": "2026-06-30T23:41:12+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "Private market data from Forge Global now in Perplexity Computer\n\n![Jeff Grimes](https://pbs.twimg.com/profile_images/1615440606456864769/FgBZT7uE_normal.jpg)\n\nJeff Grimes@jeffgrimes9\n\nPerplexity Computer now has private company financial data, sourced via Forge Global.  \n  \nIncludes fundraising history & implied valuation, secondary pricing, public marks, and company profile.  \n  \nWe're pleased to partner with [@Forge\\_Global](https://x.com/Forge_Global) to bring this data to all Computer users, with no setup or Forge subscription required.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071949852540317696/vid/avc1/1420x1080/Q-QdM4hIcAbcD0Xo.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/jeffgrimes9/status/2071950902123233572/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/jeffgrimes9/status/2071950902123233572)\n\n💬7🔄1❤️31👀6936📊8",
+      "tags": [
+        "Perplexity Computer",
+        "Forge Global",
+        "私有市场数据"
+      ],
+      "score": 75,
+      "summary": "Perplexity Computer集成Forge Global私有市场数据，提供公司财务信息。",
+      "fetched_at": "2026-07-01T00:17:07.738035+08:00"
+    },
+    {
+      "title": "ByteDance通过BytePlus推出了Seed Audio 1.0，一个非流式TTS模型，能在一次生成中同时输出语音、音乐和音效。\n\n它支持参考音频引导、图像引导音频，还能精细控制语速、音量、音...",
+      "link": "https://x.com/berryxia/status/2071967519070622012",
+      "published": "2026-06-30T22:42:06+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "ByteDance通过BytePlus推出了Seed Audio 1.0，一个非流式TTS模型，能在一次生成中同时输出语音、音乐和音效。  \n  \n它支持参考音频引导、图像引导音频，还能精细控制语速、音量、音调等参数。  \n  \n和传统只做语音的TTS不同，这更像一个多模态音频生成模型，一次性完成复杂场景的音频内容。  \n  \n目前只对企业开放申请，早期的反馈提到它生成的音频比较自然，但目前还缺少对时长的精细控制。  \n  \n这其实是字节在音频生成赛道的一次比较激进的尝试，把语音和背景音效/音乐打包在一个模型里解决。\n\n![Tweet Image](https://pbs.twimg.com/media/HMEbd6IXsAAogH_.jpg)\n\n![BytePlus](https://pbs.twimg.com/profile_images/1970386066445344769/5u0g40uy_normal.jpg)\n\nBytePlus@BytePlusGlobal\n\nMeet Seed Audio 1.0 — Now open for enterprise access application.  \n  \nA pioneering non-streaming TTS model that generates voice, music, and sound effects in a single pass.  \n  \nKey capabilities:  \n• Natural speech generation  \n• Preset voices  \n• Reference audio guidance  \n• Image-guided audio  \n• Fine-grained control over speed, volume, pitch, and output format  \n  \nWant early access? Follow the steps below ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HMEO8uOWUAAPrO4.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/BytePlusGlobal/status/2071954152620732848)\n\n💬0🔄0❤️0👀510",
+      "tags": [
+        "ByteDance",
+        "Seed Audio 1.0",
+        "TTS"
+      ],
+      "score": 75,
+      "summary": "ByteDance通过BytePlus推出Seed Audio 1.0，非流式TTS模型，同时生成语音、音乐和音效。",
+      "fetched_at": "2026-07-01T00:17:07.738066+08:00"
+    },
+    {
+      "title": "快速糊了一个，再细化一下就可以做的7788了。",
+      "link": "https://x.com/berryxia/status/2071966219146793351",
+      "published": "2026-06-30T22:36:56+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "快速糊了一个，再细化一下就可以做的7788了。\n\n![Tweet Image](https://pbs.twimg.com/media/HMEaPEiXkAAE8k1.jpg)\n\n![Paidax](https://pbs.twimg.com/profile_images/1747877404532776960/uUTVQ-2P_normal.jpg)\n\nPaidax@xin\\_pai88825\n\n这个网站有意思，根据颜色对电影画面进行分类，点击还能查看对应的电影详情也颜色搭配。可以学到很多导演的设计美学\n\n![Tweet Image](https://pbs.twimg.com/media/HL9FOGrbwAAKDdZ.jpg)![Tweet Image](https://pbs.twimg.com/media/HL9FOwpasAAuyKn.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/xin_pai88825/status/2071450664379781169)\n\n💬0🔄0❤️4👀546📊1",
+      "tags": [
+        "电影色彩",
+        "网站"
+      ],
+      "score": 30,
+      "summary": "Berryxia分享一个按颜色分类电影画面的网站。",
+      "fetched_at": "2026-07-01T00:17:07.738097+08:00"
+    },
+    {
+      "title": "今晚又把讲解项目视频Skills进行了迭代，动效有优化了一版，比之前好多了。\n\nBristol（来自LayerProof）想解决一个很实际的问题：传统报告又臭又长，客户根本不想看。\n\n它让做报告这件事...",
+      "link": "https://x.com/berryxia/status/2071965749019852921",
+      "published": "2026-06-30T22:35:04+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "今晚又把讲解项目视频Skills进行了迭代，动效有优化了一版，比之前好多了。  \n  \nBristol（来自LayerProof）想解决一个很实际的问题：传统报告又臭又长，客户根本不想看。  \n  \n它让做报告这件事变得更像“一起设计”而不是“单方面交付”。  \n  \n你扔进数据后，可以通过聊天调整角度、语气和图表内容，还能直接在视觉编辑器里点选修改。  \n  \n最后生成的是一个可交互的HTML报告，每一个数字都可追溯来源，而且支持实时更新。  \n  \n最有意思的是它把“可视化处理”做得很激进，据说比纯文本处理快6万倍。  \n  \n这意味着它更擅长处理带图表、带视觉的数据叙事，而不是单纯的文字总结。  \n  \n对于经常给客户或领导做报告的咨询、分析、运营团队来说，这可能是把“报告”从一次性PDF，变成持续可互动资产的一种尝试。  \n  \n你觉得把报告做成可实时更新 + 每个数据可溯源的交互式网页，会不会比传统的静态报告更有说服力？  \n  \nPS：仅做项目展示，项目自己可以自行测试哈\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071964952521220096/vid/avc1/1920x1080/685MEVAyCpBFCAl7.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2071965749019852921/video/1)\n\n💬1🔄0❤️4👀695📊3",
+      "tags": [
+        "Bristol",
+        "LayerProof",
+        "交互式报告"
+      ],
+      "score": 65,
+      "summary": "Berryxia介绍Bristol（来自LayerProof），将数据转化为可交互HTML报告，支持实时更新和数据溯源。",
+      "fetched_at": "2026-07-01T00:17:07.738143+08:00"
+    },
+    {
+      "title": "Watch Devin Fusion work:\n\nThe sidekick model handles fetching information and skimming sources.\n\nThe...",
+      "link": "https://x.com/cognition/status/2071974121177481674",
+      "published": "2026-06-30T23:08:20+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Watch Devin Fusion work:  \n  \nThe sidekick model handles fetching information and skimming sources.  \n  \nThe frontier model makes a plan for implementation, then delegates well-scoped sub-tasks to the sidekick with its own cached context.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071973352441253889/vid/avc1/812x1080/gpNnKOT9pExQu04W.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/cognition/status/2071974121177481674/video/1)\n\n![Cognition](https://pbs.twimg.com/profile_images/1765909640364068865/MvH-m0gd_normal.jpg)\n\nCognition@cognition\n\nConventional model routing sucks. It passes benchmarks but fails to write code you'd actually merge.   \n  \nIntroducing Devin Fusion, a new hybrid-model harness for agentic coding.   \n  \nIn testing, it reduces the cost of Fable-level intelligence by 35% and still feels good to use.\n\n![Tweet Image](https://pbs.twimg.com/media/HL_jEV1W0AAqzAC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/cognition/status/2071624568465490170)\n\n💬5🔄9❤️55👀5878📊11",
+      "tags": [
+        "Devin Fusion",
+        "混合模型",
+        "Agentic Coding"
+      ],
+      "score": 80,
+      "summary": "Cognition发布Devin Fusion，混合模型架构降低35%成本，提升编码代理效率。",
+      "fetched_at": "2026-07-01T00:17:07.738181+08:00"
+    },
+    {
+      "title": "Procedures let you control your agent's behavior and improve customer outcomes - from higher upsell ...",
+      "link": "https://x.com/ElevenLabs/status/2071962903972917541",
+      "published": "2026-06-30T22:23:46+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "Procedures let you control your agent's behavior and improve customer outcomes - from higher upsell conversion rates to faster ticket resolutions.  \n  \nTry Procedures in ElevenAgents today: [elevenlabs.io/blog/procedures](http://www.elevenlabs.io/blog/procedures)\n\n💬0🔄0❤️2👀1000",
+      "tags": [
+        "ElevenAgents",
+        "Procedures",
+        "SOP"
+      ],
+      "score": 75,
+      "summary": "ElevenLabs在ElevenAgents中推出Procedures功能，允许定义代理操作流程。",
+      "fetched_at": "2026-07-01T00:17:07.738262+08:00"
+    },
+    {
+      "title": "If you have existing SOPs you want agents to follow, you can import them as docs, PDFs, or txt files...",
+      "link": "https://x.com/ElevenLabs/status/2071962901322051837",
+      "published": "2026-06-30T22:23:45+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "If you have existing SOPs you want agents to follow, you can import them as docs, PDFs, or txt files and ElevenAgents drafts a Procedure for you to confirm or refine.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEXENYXoAA3PT9.jpg)\n\n💬1🔄0❤️2👀1121📊1",
+      "tags": [
+        "ElevenAgents",
+        "SOP导入",
+        "Procedures"
+      ],
+      "score": 70,
+      "summary": "ElevenLabs支持导入现有SOP文档，自动生成代理Procedures。",
+      "fetched_at": "2026-07-01T00:17:07.738302+08:00"
+    },
+    {
+      "title": "Introducing Procedures in ElevenAgents - packaged playbooks that let you define how agents operate.\n...",
+      "link": "https://x.com/ElevenLabs/status/2071962893021491221",
+      "published": "2026-06-30T22:23:43+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "Introducing Procedures in ElevenAgents - packaged playbooks that let you define how agents operate.  \n  \nJust as employees follow standard operating procedures (SOPs), Procedures provide agents with a set of instructions to follow in common scenarios.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEWiFlXIAA6WWv.jpg)\n\n💬7🔄5❤️60👀8159📊17",
+      "tags": [
+        "ElevenAgents",
+        "Procedures",
+        "Playbook"
+      ],
+      "score": 75,
+      "summary": "ElevenLabs正式发布ElevenAgents的Procedures功能，定义代理操作规范。",
+      "fetched_at": "2026-07-01T00:17:07.738334+08:00"
+    },
+    {
+      "title": "可以称为思维的容器，把零散的想法快速打磨成对 AI 编码 agent 可操作的 prompt，少折腾。\n\nBonsAI 是一个 macOS 原生看板应用，帮你把半生不熟的想法通过内置连接器注入上下文、...",
+      "link": "https://x.com/geekbb/status/2071974288182178123",
+      "published": "2026-06-30T23:09:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "可以称为思维的容器，把零散的想法快速打磨成对 AI 编码 agent 可操作的 prompt，少折腾。  \n  \nBonsAI 是一个 macOS 原生看板应用，帮你把半生不熟的想法通过内置连接器注入上下文、它内置的语义检查器会在本地跑，自动标出哪些地方说得太含糊 AI 没法执行，然后丝滑喂给 AI 编码 agent。  \n  \n[github.com/ojowwalker77/B…](https://github.com/ojowwalker77/BonsAI)\n\n![Tweet Image](https://pbs.twimg.com/media/HMEXhCEX0AApsQW.jpg)\n\n💬2🔄2❤️9👀1856📊7",
+      "tags": [
+        "BonsAI",
+        "macOS",
+        "看板应用"
+      ],
+      "score": 65,
+      "summary": "Geekbb介绍BonsAI，macOS原生看板应用，帮助打磨想法并注入AI编码代理上下文。",
+      "fetched_at": "2026-07-01T00:17:07.738366+08:00"
+    },
+    {
+      "title": "See how workflows that incorporate multiple models can create amazing results with our interactive 3...",
+      "link": "https://x.com/googleaidevs/status/2071988372692762668",
+      "published": "2026-07-01T00:04:58+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "See how workflows that incorporate multiple models can create amazing results with our interactive 3D globe demo. Upload a photo to see Nano Banana 2 Lite handle rapid, context-aware image blending for personalized postcards, while Omni steps in to bring the scene to life.  \n  \nExperiment with the demo app in AI Studio: [goo.gle/3QMKKKo](http://goo.gle/3QMKKKo)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071986578814103552/vid/avc1/1916x1080/EMnovEkDxnOVSsWu.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2071988372692762668/video/1)\n\n💬1🔄0❤️2👀212📊1",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Omni Flash",
+        "3D地球"
+      ],
+      "score": 70,
+      "summary": "Google AI开发者展示结合Nano Banana 2 Lite和Omni Flash的3D地球互动演示。",
+      "fetched_at": "2026-07-01T00:17:07.738397+08:00"
+    },
+    {
+      "title": "Start building today: https://t.co/CJDzLsNQy1",
+      "link": "https://x.com/googleaidevs/status/2071988374332747826",
+      "published": "2026-07-01T00:04:58+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Start building today: [blog.google/innovation-and…](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/)\n\n💬0🔄0❤️2👀196",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "开始构建"
+      ],
+      "score": 60,
+      "summary": "Google AI开发者引导用户开始使用Nano Banana 2 Lite和Gemini Omni Flash。",
+      "fetched_at": "2026-07-01T00:17:07.738428+08:00"
+    },
+    {
+      "title": "We’re launching Nano Banana 2 Lite, our fastest most cost-efficient Gemini Image model yet, optimize...",
+      "link": "https://x.com/googleaidevs/status/2071988366925521075",
+      "published": "2026-07-01T00:04:57+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "We’re launching Nano Banana 2 Lite, our fastest most cost-efficient Gemini Image model yet, optimized for high-throughput developer pipelines. Alongside it, Gemini Omni Flash, our video generation and editing model is now available to developers.  \n  \nBoth models are accessible today via [@GoogleAIStudio](https://x.com/GoogleAIStudio) and the Gemini API to help you scale your workflows 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071985877685796865/vid/avc1/2096x1182/DcVsz6zAJFInxoTN.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2071988366925521075/video/1)\n\n💬1🔄1❤️9👀1562📊3",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "开发者"
+      ],
+      "score": 80,
+      "summary": "Google AI开发者宣布Nano Banana 2 Lite和Gemini Omni Flash面向开发者开放。",
+      "fetched_at": "2026-07-01T00:17:07.738459+08:00"
+    },
+    {
+      "title": "We’re shipping two major updates to streamline your creative workflow, allowing you to generate high...",
+      "link": "https://x.com/GoogleAI/status/2071989058952188054",
+      "published": "2026-07-01T00:07:42+08:00",
+      "source": "Google AI(@GoogleAI)",
+      "content": "We’re shipping two major updates to streamline your creative workflow, allowing you to generate high-speed images with one model and then instantly animate them with the other—all at a fraction of the cost 🍌⚡️  \n  \n1️⃣ Introducing Nano Banana 2 Lite: Our fastest and most cost-efficient Gemini Image model yet delivers text-to-image outputs in under 4 seconds. Now available via the Gemini API and Google AI Studio, and rolling out soon across [@NotebookLM](https://x.com/NotebookLM), [@FlowbyGoogle](https://x.com/FlowbyGoogle), [@geminiapp](https://x.com/geminiapp), [@stitchbygoogle](https://x.com/stitchbygoogle), Google Search and [@GooglePhotos](https://x.com/GooglePhotos).  \n  \n2️⃣ Gemini Omni Flash in Public Preview: Our natively multimodal model for cost-efficient video generation and conversational editing. Now available via the Gemini API, [@googleaistudio](https://x.com/googleaistudio), and Gemini Enterprise Agent Platform so you can integrate the model into your workflow.  \n  \nWhile exciting on their own, the real magic happens when you build using these models together.  \n  \nWatch how our interior design demo integrates Nano Banana 2 Lite and Omni to instantly reimagine any space. Upload a photo, swipe through tailored design concepts, and see Omni bring the details to life in cinematic motion.  \n  \nTry out the demo app in AI Studio:[goo.gle/443xPqw](http://goo.gle/443xPqw)G\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071988752830873601/vid/avc1/3836x2160/siKTk_T79W7gdH0b.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/GoogleAI/status/2071989058952188054/video/1)\n\n💬4🔄3❤️18👀6978📊6",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Google AI"
+      ],
+      "score": 85,
+      "summary": "Google AI宣布Nano Banana 2 Lite（<4秒图像）和Gemini Omni Flash（视频生成编辑）正式发布。",
+      "fetched_at": "2026-07-01T00:17:07.738490+08:00"
+    },
+    {
+      "title": "Explore ideas, scale visual concepts, and start creating: https://t.co/JbyK5FM3H0",
+      "link": "https://x.com/GoogleAI/status/2071989060483113405",
+      "published": "2026-07-01T00:07:42+08:00",
+      "source": "Google AI(@GoogleAI)",
+      "content": "Explore ideas, scale visual concepts, and start creating: [goo.gle/4bcThNt](http://goo.gle/4bcThNt)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071988937384505344/vid/avc1/2096x1182/0vfrs7GjJPw_9xEw.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/GoogleAI/status/2071989060483113405/video/1)\n\n💬0🔄1❤️2👀717📊1",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "开始创建"
+      ],
+      "score": 60,
+      "summary": "Google AI推广Nano Banana 2 Lite和Gemini Omni Flash，鼓励用户开始创作。",
+      "fetched_at": "2026-07-01T00:17:07.738521+08:00"
+    },
+    {
+      "title": "Pair these models together using the Interactions API. 🤝\n\nQuickly generate an image with Nano Banan...",
+      "link": "https://x.com/GoogleDeepMind/status/2071988052478615902",
+      "published": "2026-07-01T00:03:42+08:00",
+      "source": "Google DeepMind(@GoogleDeepMind)",
+      "content": "Pair these models together using the Interactions API. 🤝  \n  \nQuickly generate an image with Nano Banana 2 Lite, then immediately animate it using Gemini Omni Flash.   \n  \nPlus, you can maintain session history to stack up to three sequential edits.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071986920482074624/vid/avc1/1916x1080/yvAbPyNd0viyP7zM.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/GoogleDeepMind/status/2071988052478615902/video/1)\n\n💬1🔄0❤️7👀1456📊1",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Interactions API"
+      ],
+      "score": 80,
+      "summary": "Google DeepMind展示通过Interactions API组合Nano Banana 2 Lite和Gemini Omni Flash。",
+      "fetched_at": "2026-07-01T00:17:07.738553+08:00"
+    },
+    {
+      "title": "Find out more → https://t.co/feTpTwfnmC",
+      "link": "https://x.com/GoogleDeepMind/status/2071988054814773713",
+      "published": "2026-07-01T00:03:42+08:00",
+      "source": "Google DeepMind(@GoogleDeepMind)",
+      "content": "Find out more → [goo.gle/4oTOq9I](https://goo.gle/4oTOq9I)\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HMEt97CWcAA_bM3.jpg)](https://video.twimg.com/tweet_video/HMEt97CWcAA_bM3.mp4)\n\n💬0🔄0❤️5👀1324📊1",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "了解更多"
+      ],
+      "score": 60,
+      "summary": "Google DeepMind提供Nano Banana 2 Lite和Gemini Omni Flash的更多信息链接。",
+      "fetched_at": "2026-07-01T00:17:07.738584+08:00"
+    },
+    {
+      "title": "We’re shipping 2 major releases: \n🔘 Nano Banana 2 Lite: our fastest and cheapest Gemini Image model...",
+      "link": "https://x.com/GoogleDeepMind/status/2071988044878516466",
+      "published": "2026-07-01T00:03:40+08:00",
+      "source": "Google DeepMind(@GoogleDeepMind)",
+      "content": "We’re shipping 2 major releases:   \n🔘 Nano Banana 2 Lite: our fastest and cheapest Gemini Image model  \n🔘 Gemini Omni Flash: now available via the Gemini API and in [@GoogleAIStudio](https://x.com/GoogleAIStudio) to help developers generate and edit high-quality videos.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071986416179896321/vid/avc1/1182x1182/Aq7u45Zzx7JxmXg4.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/GoogleDeepMind/status/2071988044878516466/video/1)\n\n💬13🔄16❤️75👀11185📊22",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Google DeepMind"
+      ],
+      "score": 95,
+      "summary": "Google DeepMind官方发布Nano Banana 2 Lite（最快最便宜图像模型）和Gemini Omni Flash（视频生成编辑）。",
+      "fetched_at": "2026-07-01T00:17:07.738615+08:00"
+    },
+    {
+      "title": "Vercel Services\n\nYou can now collocate e.g.: a Python backend API, an ExpressJS server, and a React ...",
+      "link": "https://x.com/rauchg/status/2071966055308607765",
+      "published": "2026-06-30T22:36:17+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Vercel Services  \n  \nYou can now collocate e.g.: a Python backend API, an ExpressJS server, and a React SPA in one Vercel project.  \n  \ntl:dr;  \n▪️ You can run all locally with 𝚟𝚌 𝚍𝚎𝚟   \n▪️ Deploy and rollback all at once  \n▪️ Observe, monitor, debug together  \n▪️ Internal networking\n\n![Vercel](https://pbs.twimg.com/profile_images/1767351110228918272/3Pndc5OT_normal.png)\n\nVercel@vercel\n\nVercel Services gives your full stack app atomic deployment and rollback, a single preview URL, and a private network between services.  \n  \nOne Vercel project for your entire application ↓  \n[vercel.com/blog/vercel-se…](https://vercel.com/blog/vercel-services-run-full-stack-on-vercel)\n\n[🔗 View Quoted Tweet](https://x.com/vercel/status/2071951670058324353)\n\n💬44🔄13❤️439👀33540📊74",
+      "tags": [
+        "Vercel Services",
+        "全栈",
+        "部署"
+      ],
+      "score": 60,
+      "summary": "Vercel推出Vercel Services，支持在单个项目中部署Python后端、Express服务器和React SPA。",
+      "fetched_at": "2026-07-01T00:17:07.738647+08:00"
+    },
+    {
+      "title": "agree a lot with this - the actual storage layer for memory (eg which database you use) matters less...",
+      "link": "https://x.com/hwchase17/status/2071989584909709734",
+      "published": "2026-07-01T00:09:47+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "agree a lot with this - the actual storage layer for memory (eg which database you use) matters less than the process around that data (retrieval, ingestion, etc)\n\n![Vela](https://pbs.twimg.com/profile_images/1866752542107168768/e50sisG6_normal.jpg)\n\nVela@vela\\_gao\n\n[@hwchase17](https://x.com/hwchase17) what if memory is not storage, it's about retrieval and continuous learning?   \n  \nthe podcast explained this from biology perspective: memory is message from one's past self that requires continuous interpretation and improvisation.[youtu.be/H1-nOfSLh-M?si…](https://youtu.be/H1-nOfSLh-M?si=JyuXh9k47z9PSRd2)\n\n[🔗 View Quoted Tweet](https://x.com/vela_gao/status/2071988813447278800)\n\n💬1🔄0❤️1👀304📊1",
+      "tags": [
+        "记忆",
+        "检索",
+        "LangChain"
+      ],
+      "score": 65,
+      "summary": "Harrison Chase评论AI记忆：存储层不如检索和摄入过程重要。",
+      "fetched_at": "2026-07-01T00:17:07.738680+08:00"
+    },
+    {
+      "title": "how do you run agent code without a full blown sandbox?\n\nwe did a lot of work to harden the code int...",
+      "link": "https://x.com/hwchase17/status/2071987637897089438",
+      "published": "2026-07-01T00:02:03+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "how do you run agent code without a full blown sandbox?  \n  \nwe did a lot of work to harden the code interpreter runtime we use\n\n![Hunter Lovell](https://pbs.twimg.com/profile_images/1910397524541927424/tDQryqQH_normal.jpg)\n\nHunter Lovell@huntlovell\n\n[x.com/i/article/2071…](http://x.com/i/article/2071962669247053824)\n\n[🔗 View Quoted Tweet](https://x.com/huntlovell/status/2071985800909410797)\n\n💬1🔄0❤️1👀721📊1",
+      "tags": [
+        "Agent代码",
+        "沙箱",
+        "LangChain"
+      ],
+      "score": 65,
+      "summary": "Harrison Chase讨论如何在不使用完整沙箱的情况下运行代理代码。",
+      "fetched_at": "2026-07-01T00:17:07.738712+08:00"
+    },
+    {
+      "title": "this may be ai generated, but is true - the hardest part of wikis (and memory in general) is the pro...",
+      "link": "https://x.com/hwchase17/status/2071979236659966105",
+      "published": "2026-06-30T23:28:40+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "this may be ai generated, but is true - the hardest part of wikis (and memory in general) is the process that condenses raw data into learnings/memory\n\n![Edu](https://pbs.twimg.com/profile_images/2068039510957420544/7oxBkdWK_normal.jpg)\n\nEdu@eddzsh\n\n[@hwchase17](https://x.com/hwchase17)[@cognition](https://x.com/cognition)[@FactoryAI](https://x.com/FactoryAI)[@karpathy](https://x.com/karpathy) wiki memory is great right up until the wiki is confidently wrong and now every agent inherits the same bad assumption. storing it was never the hard part, trusting it is.\n\n[🔗 View Quoted Tweet](https://x.com/eddzsh/status/2071977880322511356)\n\n💬4🔄0❤️16👀1932📊4",
+      "tags": [
+        "Wiki记忆",
+        "过程",
+        "LangChain"
+      ],
+      "score": 65,
+      "summary": "Harrison Chase认为Wiki记忆的难点在于将原始数据浓缩为学习/记忆的过程。",
+      "fetched_at": "2026-07-01T00:17:07.738744+08:00"
+    },
+    {
+      "title": "harbor is a great framework for running evals for long running, stateful agents\n\nits becoming indust...",
+      "link": "https://x.com/hwchase17/status/2071974139926294897",
+      "published": "2026-06-30T23:08:25+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "harbor is a great framework for running evals for long running, stateful agents  \n  \nits becoming industry standard, powering benchmarks like terminal bench 2  \n  \nwe've integrated deeply with harbor: across LangSmith, Sandboxes, and Deep Agents\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\n[x.com/i/article/2069…](http://x.com/i/article/2069807654986276864)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2071972238128005278)\n\n💬1🔄4❤️18👀3231📊6",
+      "tags": [
+        "Harbor",
+        "Evals",
+        "LangChain"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase推荐Harbor框架用于长期状态化代理的评估，已成为行业标准。",
+      "fetched_at": "2026-07-01T00:17:07.738775+08:00"
+    },
+    {
+      "title": "a common pattern for (a part of) memory that we see:\n\nWiki Memory\n\nExamples:\n- DeepWiki (@cognition)...",
+      "link": "https://x.com/hwchase17/status/2071963841009942671",
+      "published": "2026-06-30T22:27:29+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "a common pattern for (a part of) memory that we see:  \n  \nWiki Memory  \n  \nExamples:  \n- DeepWiki ([@cognition](https://x.com/cognition))  \n- AutoWiki ([@FactoryAI](https://x.com/FactoryAI))  \n- LLM Wiki ([@karpathy](https://x.com/karpathy))\n\n![Harrison Chase](https://pbs.twimg.com/profile_images/1569345624935485442/R67C4wCQ_normal.jpg)\n\nHarrison Chase@hwchase17\n\n[x.com/i/article/2071…](http://x.com/i/article/2071963272727928833)\n\n[🔗 View Quoted Tweet](https://x.com/hwchase17/status/2071963622298050997)\n\n💬5🔄4❤️50👀7356📊17",
+      "tags": [
+        "Wiki Memory",
+        "DeepWiki",
+        "AutoWiki"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase总结记忆模式：Wiki Memory，示例包括DeepWiki、AutoWiki和LLM Wiki。",
+      "fetched_at": "2026-07-01T00:17:07.738806+08:00"
+    },
+    {
+      "title": "https://t.co/SsJz6y2pBy",
+      "link": "https://x.com/hwchase17/status/2071963622298050997",
+      "published": "2026-06-30T22:26:37+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "[x.com/i/article/2071…](http://x.com/i/article/2071963272727928833)\n\n💬6🔄7❤️99👀14859📊47",
+      "tags": [
+        "记忆",
+        "LangChain",
+        "Harrison Chase"
+      ],
+      "score": 65,
+      "summary": "Harrison Chase发布关于记忆的文章链接。",
+      "fetched_at": "2026-07-01T00:17:07.738837+08:00"
+    },
+    {
+      "title": "Basé.",
+      "link": "https://x.com/julien_c/status/2071985887110451342",
+      "published": "2026-06-30T23:55:05+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Basé.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071985115966640128/vid/avc1/2658x1450/9lgf_17_vUsb05tF.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/julien_c/status/2071985887110451342/video/1)\n\n💬0🔄0❤️4👀526📊1",
+      "tags": [
+        "Basé",
+        "Hugging Face"
+      ],
+      "score": 30,
+      "summary": "Julien Chaumond发布无实质内容的推文。",
+      "fetched_at": "2026-07-01T00:17:07.738867+08:00"
+    },
+    {
+      "title": "…. For now",
+      "link": "https://x.com/julien_c/status/2071968718209331211",
+      "published": "2026-06-30T22:46:52+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "…. For now\n\n![elie](https://pbs.twimg.com/profile_images/1745893660099592193/MmYemsw6_normal.jpg)\n\nelie@eliebakouch\n\nle chaton long > le chaton fat for now\n\n![Tweet Image](https://pbs.twimg.com/media/HMCDAeZWcAED0xO.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/eliebakouch/status/2071800330975899951)\n\n💬0🔄0❤️6👀1031📊1",
+      "tags": [
+        "Le Chaton",
+        "Hugging Face"
+      ],
+      "score": 30,
+      "summary": "Julien Chaumond评论Le Chaton模型。",
+      "fetched_at": "2026-07-01T00:17:07.738898+08:00"
+    },
+    {
+      "title": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.\n\nEach one come...",
+      "link": "https://x.com/thejustinwelsh/status/2071987227073073202",
+      "published": "2026-07-01T00:00:25+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.  \n  \nEach one comes with one specific exercise and a clear output, so you can execute today.  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬1🔄0❤️0👀438📊1",
+      "tags": [
+        "指南",
+        "一人企业"
+      ],
+      "score": 30,
+      "summary": "Justin Welsh推广其免费指南，内容与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.738929+08:00"
+    },
+    {
+      "title": "Like the shimmer of a goldfish in water, every idea leaves a trace of color. ✨\nThe creators who colo...",
+      "link": "https://x.com/Kling_ai/status/2071972026508538166",
+      "published": "2026-06-30T23:00:01+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "Like the shimmer of a goldfish in water, every idea leaves a trace of color. ✨  \nThe creators who colored our June.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071905091116830720/vid/avc1/1920x1080/svGLhgT_IMMI3wPJ.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2071972026508538166/video/1)\n\n💬2🔄2❤️20👀2569📊5",
+      "tags": [
+        "Kling AI",
+        "六月回顾"
+      ],
+      "score": 40,
+      "summary": "Kling AI发布六月创作者回顾视频，无具体技术细节。",
+      "fetched_at": "2026-07-01T00:17:07.738959+08:00"
+    },
+    {
+      "title": "@aiDotEngineer @baseten @reductoai ⚽️ More info + RSVP: https://t.co/RZ5L2Nm4LH",
+      "link": "https://x.com/LangChain/status/2071987603948089718",
+      "published": "2026-07-01T00:01:55+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "[@aiDotEngineer](https://x.com/aiDotEngineer)[@baseten](https://x.com/baseten)[@reductoai](https://x.com/reductoai) ⚽️ More info + RSVP: [luma.com/aie-worldcup](https://luma.com/aie-worldcup)\n\n💬0🔄0❤️1👀321",
+      "tags": [
+        "LangChain",
+        "世界杯",
+        "活动"
+      ],
+      "score": 30,
+      "summary": "LangChain发布AI Engineer World's Fair活动信息。",
+      "fetched_at": "2026-07-01T00:17:07.738990+08:00"
+    },
+    {
+      "title": "At @aiDotEngineer World's Fair?\n\nWe're hosting a World Cup Watch Party at The Harlequin today from 1...",
+      "link": "https://x.com/LangChain/status/2071987601494396963",
+      "published": "2026-07-01T00:01:54+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "At [@aiDotEngineer](https://x.com/aiDotEngineer) World's Fair?  \n  \nWe're hosting a World Cup Watch Party at The Harlequin today from 11-7 with [@baseten](https://x.com/baseten) and [@reductoai](https://x.com/reductoai)  \n  \nOne block from the venue!\n\n![Tweet Image](https://pbs.twimg.com/media/HMEtvcYXEAApYAP.jpg)\n\n💬1🔄0❤️2👀1328📊1",
+      "tags": [
+        "LangChain",
+        "世界杯",
+        "观赛"
+      ],
+      "score": 30,
+      "summary": "LangChain组织世界杯观赛活动。",
+      "fetched_at": "2026-07-01T00:17:07.739021+08:00"
+    },
+    {
+      "title": "Giving agents the ability to write code makes them dramatically more capable.\n\nIt also makes securit...",
+      "link": "https://x.com/LangChain/status/2071987434179432778",
+      "published": "2026-07-01T00:01:14+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Giving agents the ability to write code makes them dramatically more capable.  \n  \nIt also makes security a lot harder.  \n  \nAt LangChain, we have spent a lot of time this year figuring out how to do both. [langchain.com/blog/running-u…](https://www.langchain.com/blog/running-untrusted-agent-code-without-a-sandbox)\n\n💬0🔄0❤️1👀1047",
+      "tags": [
+        "Agent安全",
+        "代码执行",
+        "LangChain"
+      ],
+      "score": 70,
+      "summary": "LangChain探讨如何在不使用沙箱的情况下安全运行代理代码。",
+      "fetched_at": "2026-07-01T00:17:07.739051+08:00"
+    },
+    {
+      "title": ".@harborframework can now integrate directly with Deep Agents, LangSmith Sandboxes, and LangSmith Ob...",
+      "link": "https://x.com/LangChain/status/2071978566691049559",
+      "published": "2026-06-30T23:26:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": ".[@harborframework](https://x.com/harborframework) can now integrate directly with Deep Agents, LangSmith Sandboxes, and LangSmith Observability.  \n  \nYou need to run agents in a real, reproducible, isolated environment, many times in parallel, with a deterministic check at the end.  \n  \nHarbor solves this problem.   \n  \nEverything you need to know⤵️\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\n[x.com/i/article/2069…](http://x.com/i/article/2069807654986276864)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2071972238128005278)\n\n💬2🔄2❤️7👀2600📊2",
+      "tags": [
+        "Harbor",
+        "LangChain",
+        "集成"
+      ],
+      "score": 70,
+      "summary": "LangChain宣布Harbor框架与Deep Agents、LangSmith Sandboxes和Observability集成。",
+      "fetched_at": "2026-07-01T00:17:07.739082+08:00"
+    },
+    {
+      "title": "https://t.co/r8m1QdMwrt",
+      "link": "https://x.com/LangChain/status/2071972238128005278",
+      "published": "2026-06-30T23:00:51+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "[x.com/i/article/2069…](http://x.com/i/article/2069807654986276864)\n\n💬2🔄5❤️23👀9061📊9",
+      "tags": [
+        "LangChain",
+        "Harbor",
+        "Evals"
+      ],
+      "score": 65,
+      "summary": "LangChain发布关于Harbor框架的文章链接。",
+      "fetched_at": "2026-07-01T00:17:07.739114+08:00"
+    },
+    {
+      "title": "Nearly time for the @aiDotEngineer World’s Fair keynotes. Cavernous was the word that came to mind w...",
+      "link": "https://x.com/latentspacepod/status/2071981291101470895",
+      "published": "2026-06-30T23:36:50+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "Nearly time for the [@aiDotEngineer](https://x.com/aiDotEngineer) World’s Fair keynotes. Cavernous was the word that came to mind when I walked into the keynote hall. It’s massive and the AIE signage is impressive. You can follow the keynotes online on YouTube: [youtube.com/live/htM02KMNZ…](https://www.youtube.com/live/htM02KMNZnk?si=G9AWyiC4rjFjANk1)\n\n![Tweet Image](https://pbs.twimg.com/media/HMEnQWtWsAI0TJq.jpg)![Tweet Image](https://pbs.twimg.com/media/HMEnQWqW0AA28zw.jpg)\n\n💬1🔄1❤️4👀558📊2",
+      "tags": [
+        "AI Engineer",
+        "World's Fair",
+        "主题演讲"
+      ],
+      "score": 40,
+      "summary": "Latent.Space报道AI Engineer World's Fair主题演讲即将开始。",
+      "fetched_at": "2026-07-01T00:17:07.739159+08:00"
+    },
+    {
+      "title": "We just made it a lot easier for AI agents to work with your documents.\n\nLlamaParse MCP now does mor...",
+      "link": "https://x.com/llama_index/status/2071989146025857300",
+      "published": "2026-07-01T00:08:02+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "We just made it a lot easier for AI agents to work with your documents.  \n  \nLlamaParse MCP now does more than parse or classify files: it can pull structured data out of contracts, invoices, and reports automatically, and give agents direct access to your knowledge base (PDFs, Office docs, images, and more) so they can search, read, and retrieve information just like a human would.  \n  \nWe also reorganized everything into focused, purpose-built tools: whether you're classifying documents, extracting data, or building search over your company's files, agents can do it faster, more reliably, and in parallel.  \n  \nThis allows for smarter, more capable AI workflows for anyone working with documents at scale.  \n  \nCurious to try it out?   \nGet started now with the LlamaParse Platform → [cloud.llamaindex.ai/?utm\\_medium=so…](https://cloud.llamaindex.ai?utm_medium=socials&utm_source=twitter&utm_campaign=2026--)  \nBlog post: [llamaindex.ai/blog/extending…](https://llamaindex.ai/blog/extending-the-llamaparse-mcp-for-more-document-processing-power?utm_medium=socials&utm_source=twitter&utm_campaign=2026--)  \nTake a look at the GitHub repository → [github.com/run-llama/mcp-…](https://github.com/run-llama/mcp-llamaindex-ai)\n\n![Tweet Image](https://pbs.twimg.com/media/HMEvJR8WcAAYugw.jpg)\n\n💬0🔄0❤️1👀299",
+      "tags": [
+        "LlamaParse MCP",
+        "文档处理",
+        "LlamaIndex"
+      ],
+      "score": 75,
+      "summary": "LlamaIndex升级LlamaParse MCP，支持从合同、发票中提取结构化数据，并赋予代理知识库访问能力。",
+      "fetched_at": "2026-07-01T00:17:07.739191+08:00"
+    },
+    {
+      "title": "The speed of Nano Banana 2 Lite is going to enable so many new use cases where there is a high degre...",
+      "link": "https://x.com/OfficialLoganK/status/2071988869436981510",
+      "published": "2026-07-01T00:06:56+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "The speed of Nano Banana 2 Lite is going to enable so many new use cases where there is a high degree of latency sensitivity, honestly feels like magic.  \n  \nI also expect Omni to open up a whole new category of (video) use cases like Nano Banana itself did!  \n  \n[blog.google/innovation-and…](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/)\n\n💬1🔄0❤️22👀1583📊4",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Logan Kilpatrick"
+      ],
+      "score": 70,
+      "summary": "Logan Kilpatrick称赞Nano Banana 2 Lite的速度和Omni Flash的潜力。",
+      "fetched_at": "2026-07-01T00:17:07.739223+08:00"
+    },
+    {
+      "title": "Introducing Nano Banana 2 Lite 🍌 and Gemini Omni Flash 🔮, our new generative media models in the G...",
+      "link": "https://x.com/OfficialLoganK/status/2071988351083921690",
+      "published": "2026-07-01T00:04:53+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "Introducing Nano Banana 2 Lite 🍌 and Gemini Omni Flash 🔮, our new generative media models in the Gemini API and AI Studio!  \n  \nNano Banana 2 Lite is extremely fast (<4s image) & cheap ($0.034 / 1K image).  \n  \nOmni Flash is SOTA at video editing at $0.10 / sec, same as Veo 3.1 Fast!\n\n![Tweet Image](https://pbs.twimg.com/media/HMEsoEYaoAAR-sg.jpg)\n\n💬37🔄22❤️188👀6988📊59",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "价格"
+      ],
+      "score": 80,
+      "summary": "Logan Kilpatrick宣布Nano Banana 2 Lite（<4秒/$0.034）和Gemini Omni Flash（$0.10/秒）在Gemini API和AI Studio中可用。",
+      "fetched_at": "2026-07-01T00:17:07.739257+08:00"
+    },
+    {
+      "title": "We kept seeing the same pattern with agents: when the same agent lived inside IM instead of a termin...",
+      "link": "https://x.com/milvusio/status/2071972041293807651",
+      "published": "2026-06-30T23:00:04+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "We kept seeing the same pattern with agents: when the same agent lived inside IM instead of a terminal or separate web app, more people used it, and the answers were often better.  \n  \nThe reason was not the UI alone. IM already contains the working context: the question, the people involved, the decision history, the links, the screenshots, and the half-finished reasoning that never makes it into a doc.  \n  \nBut that context is still incomplete. The answer often depends on code, design docs, GitHub issues, database rows, customer notes, or a debugging session from last week.  \n  \nThat is the gap MFS is trying to close.  \n  \nMFS gives those different sources stable, file-like paths, so an agent can move through them the way an engineer would: find likely places first, then inspect the original file, thread, issue, or record before answering.  \n  \nFor agentic workflows, this matters. The best interface may be IM, but the best answers need context from everywhere else too.  \n  \nMFS turns conversations, team knowledge, and external tools into one searchable context layer for agents.  \n  \nRepo: [github.com/zilliztech/mfs…](https://github.com/zilliztech/mfs?utm_source=x)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071801389097922560/vid/avc1/796x720/pmqZnd8j0hrD-VoS.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/milvusio/status/2071972041293807651/video/1)\n\n💬0🔄0❤️0👀78",
+      "tags": [
+        "MFS",
+        "Milvus",
+        "Agent上下文"
+      ],
+      "score": 70,
+      "summary": "Milvus推出MFS，为代理提供统一的上下文层，整合对话、团队知识和外部工具。",
+      "fetched_at": "2026-07-01T00:17:07.739288+08:00"
+    },
+    {
+      "title": "So AI agents can now buy autonomously the tools they need?!\n\nThey can pick among 20'000 different on...",
+      "link": "https://x.com/itsPaulAi/status/2071968658549842043",
+      "published": "2026-06-30T22:46:38+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "So AI agents can now buy autonomously the tools they need?!  \n  \nThey can pick among 20'000 different ones... just based on your prompt.  \n  \nAnd the protocol behind it is 100% open (governed by the Linux foundation)  \n  \nWith $1 your agent can buy a run to scrap:  \n  \n- 350 Google Maps listings  \n- 430 Instagram profiles  \n- 110 trending TikTok videos  \netc.  \n  \nHuge!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071966613226532864/vid/avc1/1920x1080/PKp5ghbkJogrG8gm.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/itsPaulAi/status/2071968658549842043/video/1)\n\n![Apify](https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png)\n\nApify@apify\n\nUntil today, agents could buy about 2,000 tools through x402.  \n  \nWe just 10x'd that to 20,000+ 🚀  \n  \nIn partnership with [@coinbase](https://x.com/coinbase), we’re launching x402 support to give autonomous agents access to the largest marketplace of web automation tools.  \n  \nNo account, API keys, or human in the loop.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071963752803504128/vid/avc1/1920x1080/rOds6ghwUwDdE_rV.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/apify/status/2071963996576743795/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/apify/status/2071963996576743795)\n\n💬3🔄4❤️16👀3979📊6",
+      "tags": [
+        "x402",
+        "Apify",
+        "Agent自主购买"
+      ],
+      "score": 70,
+      "summary": "Paul Couvert报道AI代理可通过x402协议自主购买Apify的20000+工具，无需人工介入。",
+      "fetched_at": "2026-07-01T00:17:07.739318+08:00"
+    },
+    {
+      "title": "This thing is a monster by golden age watch standards: 45.5 mm in diameter and 15.5 mm thick, and al...",
+      "link": "https://x.com/paulg/status/2071987434305249650",
+      "published": "2026-07-01T00:01:14+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "This thing is a monster by golden age watch standards: 45.5 mm in diameter and 15.5 mm thick, and all of that solid steel judging from the weight of it. It's over 100 g. But this watch has an excuse for being so huge: the precision of a slide rule depends on its length.\n\n💬2🔄0❤️14👀2949📊3",
+      "tags": [
+        "手表",
+        "Paul Graham"
+      ],
+      "score": 30,
+      "summary": "Paul Graham讨论手表尺寸，与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.739349+08:00"
+    },
+    {
+      "title": "Here's where you can see that 23 * 17 = 391. Actually all you can see is that it's a little over a n...",
+      "link": "https://x.com/paulg/status/2071985145536508042",
+      "published": "2026-06-30T23:52:08+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Here's where you can see that 23 \\* 17 = 391. Actually all you can see is that it's a little over a number whose first two digits are 3 and 9. But it can't be 3.9 or 3900. And you know the last digit has to be a 1. So 391.\n\n![Tweet Image](https://pbs.twimg.com/media/HMErdB9WEAAc1HY.png)\n\n💬4🔄0❤️16👀6774📊4",
+      "tags": [
+        "计算尺",
+        "Paul Graham"
+      ],
+      "score": 30,
+      "summary": "Paul Graham展示计算尺用法，与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.739380+08:00"
+    },
+    {
+      "title": "Behold the amazing Heuer Calculator of 1975. The bezel is a slide rule! And it's in the process of d...",
+      "link": "https://x.com/paulg/status/2071984170755117220",
+      "published": "2026-06-30T23:48:16+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Behold the amazing Heuer Calculator of 1975. The bezel is a slide rule! And it's in the process of doing an infinite number of calculations simultaneously: everything times 23. 17 times 23, for example, as you can see is 391.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEqkvtWwAEqId_.jpg)\n\n💬22🔄4❤️123👀16605📊27",
+      "tags": [
+        "Heuer Calculator",
+        "Paul Graham"
+      ],
+      "score": 30,
+      "summary": "Paul Graham展示1975年Heuer计算器手表，与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.739411+08:00"
+    },
+    {
+      "title": "Been using @riversidedotfm for 2 years now to produce my podcast and will continue to be a loyal cus...",
+      "link": "https://x.com/petergyang/status/2071985410809700863",
+      "published": "2026-06-30T23:53:12+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Been using [@riversidedotfm](https://x.com/riversidedotfm) for 2 years now to produce my podcast and will continue to be a loyal customer.  \n  \nGreat to see them expand to end to end content production.   \n  \nYou can get 1 month free with \"peteryang\" at checkout: [creators.riverside.com/PeterYang](https://creators.riverside.com/PeterYang)\n\n![Nadav Keyson](https://pbs.twimg.com/profile_images/1861732013146767361/d-eLNW-P_normal.jpg)\n\nNadav Keyson@NadavKeyson\n\nAI Videos are ALL slop.  \n  \nAI should be making you a content machine.  \n  \nIntroducing Riverside 2.0, the first AI Producer that creates authentic content while you sleep:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071974538317832193/vid/avc1/1920x1080/3bYaSWMUjJR3A5bA.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/NadavKeyson/status/2071978417042416047/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/NadavKeyson/status/2071978417042416047)\n\n💬1🔄0❤️2👀1331📊1",
+      "tags": [
+        "Riverside",
+        "播客",
+        "推广"
+      ],
+      "score": 30,
+      "summary": "Peter Yang推广Riverside 2.0，含推广码。",
+      "fetched_at": "2026-07-01T00:17:07.739442+08:00"
+    },
+    {
+      "title": "Shipping today: Nano Banana 2 Lite (GA) and Gemini Omni Flash API (preview). 🚀\n\nNano Banana 2 Lite ...",
+      "link": "https://x.com/_philschmid/status/2071989059153735752",
+      "published": "2026-07-01T00:07:42+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Shipping today: Nano Banana 2 Lite (GA) and Gemini Omni Flash API (preview). 🚀  \n  \nNano Banana 2 Lite (`gemini-3.1-flash-lite-image`) generates images in ~4 seconds at $0.034. Omni Flash generates and edits video through conversation at $0.10/sec up to 10s videos (same price as Veo 3.1 Fast.).   \n  \nOmni Flash (`gemini-omni-flash-preview`) combines Gemini's world knowledge (physics, history, cultural context) and is our first model shipped natively for the Interactions API. You get real multi-turn video editing. \"Make it sunset.\" \"Add rain.\" \"Swap the product.\"   \nThe API keeps your session context, so each edit builds on the last (up to 3 sequential edits per session).\n\n![Tweet Image](https://pbs.twimg.com/media/HMEvBfVaoAAGJoj.jpg)![Tweet Image](https://pbs.twimg.com/media/HMEvBfWakAAikwO.jpg)![Tweet Image](https://pbs.twimg.com/media/HMEvBfVbkAAvn-9.png)\n\n💬1🔄0❤️6👀622📊2",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "技术细节"
+      ],
+      "score": 80,
+      "summary": "Philipp Schmid详解Nano Banana 2 Lite（~4秒/$0.034）和Gemini Omni Flash（$0.10/秒，多轮编辑）的技术细节。",
+      "fetched_at": "2026-07-01T00:17:07.739472+08:00"
+    },
+    {
+      "title": "Try it: https://t.co/PsHysI3scj. \nNB2 Lite: https://t.co/iZhmyQmLIF\nOmni Flash: https://t.co/KrofYsk...",
+      "link": "https://x.com/_philschmid/status/2071989061536075970",
+      "published": "2026-07-01T00:07:42+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Try it: [aistudio.google.com/prompts/new\\_ch…](https://aistudio.google.com/prompts/new_chat?model=gemini-omni-flash-preview).   \nNB2 Lite: [ai.google.dev/gemini-api/doc…](http://ai.google.dev/gemini-api/docs/image-generation)  \nOmni Flash: [ai.google.dev/gemini-api/doc…](http://ai.google.dev/gemini-api/docs/omni)  \nBlog: [blog.google/innovation-and…](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/)\n\n💬0🔄0❤️0👀108",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "链接"
+      ],
+      "score": 60,
+      "summary": "Philipp Schmid提供Nano Banana 2 Lite和Gemini Omni Flash的试用链接。",
+      "fetched_at": "2026-07-01T00:17:07.739502+08:00"
+    },
+    {
+      "title": "Turnover is costly and inefficient because of the time it takes for people to get to know each other...",
+      "link": "https://x.com/RayDalio/status/2071963968181051567",
+      "published": "2026-06-30T22:27:59+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "Turnover is costly and inefficient because of the time it takes for people to get to know each other and the organization. Both the people you work with and the company itself will evolve in ways you can't anticipate. So hire the kind of people you want to share a long-term mission with. You will always have uses for great people. #principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HMEYNoDXgAAVZQu.png)\n\n💬31🔄39❤️277👀41926📊56",
+      "tags": [
+        "Ray Dalio",
+        "招聘",
+        "原则"
+      ],
+      "score": 30,
+      "summary": "Ray Dalio分享招聘原则，与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.739534+08:00"
+    },
+    {
+      "title": "https://t.co/GvhQAh2EHh",
+      "link": "https://x.com/TheRundownAI/status/2071986967223357939",
+      "published": "2026-06-30T23:59:23+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "[theinformation.com/newsletters/ai…](https://www.theinformation.com/newsletters/ai-agenda/openai-discovers-new-way-cut-inference-costs-half)\n\n💬0🔄0❤️0👀326",
+      "tags": [
+        "OpenAI",
+        "推理成本",
+        "减半"
+      ],
+      "score": 65,
+      "summary": "The Rundown AI报道OpenAI发现新方法将推理成本减半。",
+      "fetched_at": "2026-07-01T00:17:07.739565+08:00"
+    },
+    {
+      "title": "Anthropic has a name for a highly-guarded secret in AI: \"compute multipliers.\"\n\nCEO Dario Amodei say...",
+      "link": "https://x.com/TheRundownAI/status/2071986846234480759",
+      "published": "2026-06-30T23:58:54+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Anthropic has a name for a highly-guarded secret in AI: \"compute multipliers.\"  \n  \nCEO Dario Amodei says he limits how many people inside the company even know a given one, to prevent handing rivals a free upgrade if it leaks.  \n  \nThe Information just reported OpenAI has now found one that more than halves its inference costs.  \n  \nThe news comes alongside the recent introduction of its own in-house Jalapeño chip with Broadcom, which will increase efficiency and cost as well.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEr5qOW4AAPzsK.jpg)\n\n💬2🔄0❤️5👀2025📊3",
+      "tags": [
+        "Anthropic",
+        "Compute Multipliers",
+        "OpenAI"
+      ],
+      "score": 70,
+      "summary": "The Rundown AI报道Anthropic的'compute multipliers'概念及OpenAI发现推理成本减半方法。",
+      "fetched_at": "2026-07-01T00:17:07.739596+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/pJ6B54LzqF",
+      "link": "https://x.com/TheRundownAI/status/2071967046271639947",
+      "published": "2026-06-30T22:40:13+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [tech.therundown.ai/p/whatsapp-kic…](https://tech.therundown.ai/p/whatsapp-kicks-off-reservation-race-with-usernames)\n\n💬0🔄0❤️2👀959",
+      "tags": [
+        "WhatsApp",
+        "用户名"
+      ],
+      "score": 30,
+      "summary": "The Rundown AI推广WhatsApp用户名预约文章。",
+      "fetched_at": "2026-07-01T00:17:07.739626+08:00"
+    },
+    {
+      "title": "Top stories in tech today:\n\n- WhatsApp opens username reservations\n- Chinese supercomputer crowned w...",
+      "link": "https://x.com/TheRundownAI/status/2071967040554832116",
+      "published": "2026-06-30T22:40:12+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in tech today:  \n  \n- WhatsApp opens username reservations  \n- Chinese supercomputer crowned world's fastest  \n- Apple suffers one of its biggest leaks in years  \n- NASA to rescue falling space telescope  \n- Quick hits on other tech news\n\n![Tweet Image](https://pbs.twimg.com/media/HMEbCQmWIAAxC5x.jpg)\n\n💬3🔄0❤️5👀3457📊3",
+      "tags": [
+        "科技新闻",
+        "汇总"
+      ],
+      "score": 40,
+      "summary": "The Rundown AI汇总当日科技新闻，包括WhatsApp、中国超算等。",
+      "fetched_at": "2026-07-01T00:17:07.739656+08:00"
+    },
+    {
+      "title": "lowkey one of my favorite new features on HF: filter AI models by what actually runs on your hardwar...",
+      "link": "https://x.com/Thom_Wolf/status/2071982536402882770",
+      "published": "2026-06-30T23:41:46+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "lowkey one of my favorite new features on HF: filter AI models by what actually runs on your hardware\n\n![Tweet Image](https://pbs.twimg.com/media/HMEo7lmWwAAVnjG.jpg)\n\n💬0🔄1❤️8👀1208📊1",
+      "tags": [
+        "Hugging Face",
+        "硬件过滤",
+        "模型"
+      ],
+      "score": 65,
+      "summary": "Thomas Wolf介绍Hugging Face新功能：按硬件过滤AI模型。",
+      "fetched_at": "2026-07-01T00:17:07.739687+08:00"
+    },
+    {
+      "title": "You searched \"cozy fall vibes.\" The store returned zero results.\n\nWe built a demo that shows exactly...",
+      "link": "https://x.com/weaviate_io/status/2071972068782915889",
+      "published": "2026-06-30T23:00:11+08:00",
+      "source": "Weaviate • vector database(@weaviate_io)",
+      "content": "You searched \"cozy fall vibes.\" The store returned zero results.  \n  \nWe built a demo that shows exactly what good search looks like in ecommerce.  \n  \nIt's not just a search bar. Real product discovery needs keywords, semantics, filters, and recommendations all working together.  \n  \nWe built 𝗪𝗲𝗖𝗼𝗺𝗺𝗲𝗿𝗰𝗲 in the Weaviate Playground to show exactly that 🔥  \n  \nType a keyword, a mood, or a vibe and it routes your query through:  \n  \n- 𝗕𝗠𝟮𝟱 keyword search for exact matches  \n- 𝗩𝗲𝗰𝘁𝗼𝗿 𝘀𝗲𝗮𝗿𝗰𝗵 for semantic, meaning-based results  \n- 𝗛𝘆𝗯𝗿𝗶𝗱 𝘀𝗲𝗮𝗿𝗰𝗵 for everything in between  \n  \nReal-time faceted filtering lets you slice results by category, brand, and price instantly. And on every product page, near-object vector search surfaces similar items automatically.  \n  \nOne Weaviate collection powers all of it — search 𝘢𝘯𝘥 recommendations, no extra infrastructure needed.  \n  \nWe have a copy-paste prompt for Cursor, Claude Code, or whatever else you use in our Weaviate Playground so you can eas[playground.weaviate.io/?utm\\_source=ch…](https://playground.weaviate.io/?utm_source=channels&utm_medium=w_social&utm_campaign=builderroom_playground&utm_content=diagram_post_680895784)Check it out here: https:/[ecommerce.playground.weaviate.io/?utm\\_source=ch…](https://ecommerce.playground.weaviate.io/?utm_source=channels&utm_medium=w_social&utm_campaign=builderroom_wecommerce&utm_content=diagram_post_680798876)iew the live demo: <https://t.co/4YI9kC4MyF>\n\n![Tweet Image](https://pbs.twimg.com/media/HMEfnZVW4AAdf-O.jpg)\n\n💬1🔄3❤️6👀229📊3",
+      "tags": [
+        "Weaviate",
+        "WeCommerce",
+        "向量搜索"
+      ],
+      "score": 65,
+      "summary": "Weaviate发布WeCommerce演示，展示混合搜索在电商中的应用。",
+      "fetched_at": "2026-07-01T00:17:07.739717+08:00"
+    },
+    {
+      "title": "Hermes的结构很不错 参考过来做成MultiAgent\n这样就可以先把手机版弄了  我现在最希望的是移动办公\n后面再对外接入企业微信 直接打通了客户Memory系统\n只要缝的足够多 足够快  大概...",
+      "link": "https://x.com/yangyi/status/2071972782918050050",
+      "published": "2026-06-30T23:03:01+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "Hermes的结构很不错 参考过来做成MultiAgent  \n这样就可以先把手机版弄了 我现在最希望的是移动办公  \n后面再对外接入企业微信 直接打通了客户Memory系统  \n只要缝的足够多 足够快 大概也能足够好用\n\n![Tweet Image](https://pbs.twimg.com/media/HMEf6LFXgAAhtNO.jpg)\n\n💬3🔄0❤️5👀1513📊3",
+      "tags": [
+        "Hermes",
+        "MultiAgent",
+        "移动办公"
+      ],
+      "score": 50,
+      "summary": "Yangyi计划参考Hermes结构开发MultiAgent手机版。",
+      "fetched_at": "2026-07-01T00:17:07.739747+08:00"
+    },
+    {
+      "title": "NewMax企业版正式发布\n有在做企业AI提效培训，企业AI咨询顾问，或者自己做企业需要AI提效的朋友们，欢迎合作\n\n目前是SaaS版，如需私有化内部部署的也可以沟通",
+      "link": "https://x.com/yangyi/status/2071970818498945344",
+      "published": "2026-06-30T22:55:13+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "NewMax企业版正式发布  \n有在做企业AI提效培训，企业AI咨询顾问，或者自己做企业需要AI提效的朋友们，欢迎合作  \n  \n目前是SaaS版，如需私有化内部部署的也可以沟通\n\n![Tweet Image](https://pbs.twimg.com/media/HMEd0CeWAAA4_2f.jpg)\n\n💬4🔄1❤️8👀1649📊5",
+      "tags": [
+        "NewMax",
+        "企业版",
+        "发布"
+      ],
+      "score": 40,
+      "summary": "Yangyi发布NewMax企业版，提供AI提效培训。",
+      "fetched_at": "2026-07-01T00:17:07.739777+08:00"
+    },
+    {
+      "title": "NewMax V1.1.1版本已经发布\nhttps://t.co/AcwtL6Aq3k 下载即可使用该功能\n功能介绍：https://t.co/SC83KLmeiq",
+      "link": "https://x.com/yangyi/status/2071969764059336859",
+      "published": "2026-06-30T22:51:01+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "NewMax V1.1.1版本已经发布  \n[newmax.cc](http://newmax.cc) 下载即可使用该功能  \n功能介绍：[mp.weixin.qq.com/s/hwrYrTPr79oc…](https://mp.weixin.qq.com/s/hwrYrTPr79ocdSmDMWditg)\n\n![Yangyi](https://pbs.twimg.com/profile_images/2006199964930879488/FCF1YJ0u_normal.jpg)\n\nYangyi@yangyi\n\n其实录制浏览器这个东西，23年Tango就做了  \n只是AI来了之后 这东西变的更容易做了  \nNewMax的录制比Codex强的一点是  \n它不仅仅只学习，它还沉淀  \n最终的workflow可以沉淀成一个playwright脚本  \n省去了许多二次消耗 且速度更快  \n  \nvibecoding解放了coding，人只要有想法，啥都能干了  \n这个功能将在下个版本发布\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071429269713252352/vid/avc1/1660x1080/gYMknQEdz5ievujt.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/yangyi/status/2071429704473805306/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/yangyi/status/2071429704473805306)\n\n💬1🔄0❤️0👀1157📊1",
+      "tags": [
+        "NewMax",
+        "V1.1.1",
+        "录制浏览器"
+      ],
+      "score": 50,
+      "summary": "Yangyi发布NewMax V1.1.1，支持录制浏览器操作并生成Playwright脚本。",
+      "fetched_at": "2026-07-01T00:17:07.739808+08:00"
+    },
+    {
+      "title": "解决了房子和户口 你就不会这么想了",
+      "link": "https://x.com/yangyi/status/2071969037668802713",
+      "published": "2026-06-30T22:48:08+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "解决了房子和户口 你就不会这么想了\n\n![朱无忌无忌](https://pbs.twimg.com/profile_images/1972613352091484160/eZq8Ek1G_normal.jpg)\n\n朱无忌无忌@Wujizhuzhu\n\n只要解决了房子和户口，北京就很宜居……\n\n[🔗 View Quoted Tweet](https://x.com/Wujizhuzhu/status/2071762407668822477)\n\n💬2🔄0❤️0👀1570📊2",
+      "tags": [
+        "房子",
+        "户口",
+        "北京"
+      ],
+      "score": 20,
+      "summary": "Yangyi评论北京宜居话题，与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.739838+08:00"
+    },
+    {
+      "title": "Super excited about open-source router systems and routing models like @vllm_project semantic router...",
+      "link": "https://x.com/ClementDelangue/status/2071987200481202217",
+      "published": "2026-07-01T00:00:18+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Super excited about open-source router systems and routing models like [@vllm\\_project](https://x.com/vllm_project) semantic router: [huggingface.co/llm-semantic-r…](https://huggingface.co/llm-semantic-router)  \n  \nThe future is multi-models and you'll want to customize your router the same way you customize your code!  \n  \nIt could be the key to tilt the value capture from a few expensive frontier models to a long-tail of models (especially open-source).   \n  \nMore people should build those!\n\n![Tweet Image](https://pbs.twimg.com/media/HMETX9LW4AAauoD.jpg)\n\n💬2🔄7❤️26👀1521📊7",
+      "tags": [
+        "开源路由器",
+        "语义路由",
+        "Hugging Face"
+      ],
+      "score": 75,
+      "summary": "Clement Delangue看好开源路由器系统和路由模型，认为未来是多模型时代。",
+      "fetched_at": "2026-07-01T00:17:07.739868+08:00"
+    },
+    {
+      "title": "The gap in autonomous agentic loops that gets ignored: agents can plan and call APIs but can't acqui...",
+      "link": "https://x.com/omarsar0/status/2071972833895317781",
+      "published": "2026-06-30T23:03:13+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "The gap in autonomous agentic loops that gets ignored: agents can plan and call APIs but can't acquire tools they don't have access to.  \n  \nx402 + Apify's 20,000+ Actors is a concrete fix for that.  \n  \nWorth paying attention to.\n\n![Apify](https://pbs.twimg.com/profile_images/2036008913192316928/yuW3cobE_normal.png)\n\nApify@apify\n\nUntil today, agents could buy about 2,000 tools through x402.  \n  \nWe just 10x'd that to 20,000+ 🚀  \n  \nIn partnership with [@coinbase](https://x.com/coinbase), we’re launching x402 support to give autonomous agents access to the largest marketplace of web automation tools.  \n  \nNo account, API keys, or human in the loop.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071963752803504128/vid/avc1/1920x1080/rOds6ghwUwDdE_rV.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/apify/status/2071963996576743795/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/apify/status/2071963996576743795)\n\n💬6🔄7❤️19👀4181📊7",
+      "tags": [
+        "x402",
+        "Apify",
+        "Agent工具获取"
+      ],
+      "score": 70,
+      "summary": "elvis评论x402+Apify的20000+工具解决了代理无法自主获取工具的问题。",
+      "fetched_at": "2026-07-01T00:17:07.739898+08:00"
+    },
+    {
+      "title": "Recommended reading if you are scaling with open models.\n\nBTW, you should be thinking about how to s...",
+      "link": "https://x.com/omarsar0/status/2071964811684974815",
+      "published": "2026-06-30T22:31:21+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Recommended reading if you are scaling with open models.  \n  \nBTW, you should be thinking about how to scale with open-weight models.\n\n![elvis](https://pbs.twimg.com/profile_images/939313677647282181/vZjFWtAn_normal.jpg)\n\nelvis@omarsar0\n\n[x.com/i/article/2071…](http://x.com/i/article/2071684582336782336)\n\n[🔗 View Quoted Tweet](https://x.com/omarsar0/status/2071964375125037343)\n\n💬4🔄5❤️21👀6268📊10",
+      "tags": [
+        "开源模型",
+        "扩展",
+        "推荐"
+      ],
+      "score": 65,
+      "summary": "elvis推荐关于使用开源模型扩展的文章。",
+      "fetched_at": "2026-07-01T00:17:07.739928+08:00"
+    },
+    {
+      "title": "https://t.co/Zb4QvwqnyS",
+      "link": "https://x.com/omarsar0/status/2071964375125037343",
+      "published": "2026-06-30T22:29:36+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "[x.com/i/article/2071…](http://x.com/i/article/2071684582336782336)\n\n💬1🔄3❤️17👀9043📊8",
+      "tags": [
+        "开源模型",
+        "扩展",
+        "文章"
+      ],
+      "score": 60,
+      "summary": "elvis分享关于开源模型扩展的文章链接。",
+      "fetched_at": "2026-07-01T00:17:07.739958+08:00"
+    },
+    {
+      "title": "Flowith 团队推出「Matrix」：Agent 公司的操作系统，你定使命，Matrix 编排多 Agent 部门长期运转，目标是从创建、分发到变现的完整商业闭环。\n\nMatrix 的核心主张\n·...",
+      "link": "https://x.com/shao__meng/status/2071969126298587253",
+      "published": "2026-06-30T22:48:29+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Flowith 团队推出「Matrix」：Agent 公司的操作系统，你定使命，Matrix 编排多 Agent 部门长期运转，目标是从创建、分发到变现的完整商业闭环。  \n  \nMatrix 的核心主张  \n· 产品形态：自演化、多层级的 multi-agent runtime  \n· 用户角色：战略负责人（设 mission），不是日常执行者  \n· 组织模型：CEO Office → OKR → 部门（Research / Engineering / Growth / Product）→ 证明与复盘  \n· 商业闭环：建站、接 Stripe、发邮件、投广告、产内容、收 revenue  \n· 新指标：VPTD（Value Per Token Dollar）= 产出价值 ÷ token 成本  \n  \n产品架构  \n1. Runtime 层  \n每个 Agent 有独立 browser、工具、文件、记忆；支持 Neo / Claude Code / Codex 等，强调 超长时运行 和 主动执行（不是一问一答）。  \n  \n2. 协调层  \n用户输入 intent + 资产 → CEO Office 定目标与节奏 → OKR 分解任务 → 各部门并行 → 以 proof（文件、截图、上线页面、收入、流量）闭环。  \n  \n3. 公司原语（Company Primitives）  \n内置：网站部署（\\*.matrix.site 或自定义域名）、Stripe 收款、Agent Wallet（预算与审批）、Agent Email。宣称可跳过传统公司注册、银行卡、域名等 setup。  \n  \n4. 交付形态  \n目前 macOS 客户端，Web 版「coming soon」。  \n  \nGDPval-Bench 数据  \n1. Matrix（GPT 5.5 + harness）：95.45%  \n2. Codex CLI（GPT-5.5）：84.9%  \n3. Claude Opus 4.7：80.3%  \n  \nGDPval 是 OpenAI 等提出的 benchmark，测的是 44 个职业、真实知识工作交付物（法律文件、工程图、客服对话等）\n\n![Tweet Image](https://pbs.twimg.com/media/HMEc7GHXYAAnKdp.jpg)\n\n![Matrix](https://pbs.twimg.com/profile_images/2059642341250752512/6tQ342Pk_normal.jpg)\n\nMatrix@matrix\\_build\n\nwhat if you can run an entire 0-person company —  \nwithout the grind of running a team?  \n  \nmatrix is the runtime that makes it possible.  \n  \nin last week’s limited beta, our users created tens of thousands of new 0-person companies and started real businesses in matrix.  \n  \ntoday, matrix is open to everyone.  \n  \nlaunch yours ↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071582732350869504/vid/avc1/3840x2160/_o5p8cX0G0mVQ7ay.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/matrix_build/status/2071585973541195805/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/matrix_build/status/2071585973541195805)\n\n💬2🔄1❤️3👀743📊3",
+      "tags": [
+        "Matrix",
+        "Flowith",
+        "Agent公司"
+      ],
+      "score": 75,
+      "summary": "Flowith推出Matrix，多Agent操作系统，实现从创建到变现的商业闭环。",
+      "fetched_at": "2026-07-01T00:17:07.739988+08:00"
+    },
+    {
+      "title": "很多事情做起来都很难很难\n但正因为很难，能越过的人，很少\n一旦越过，那一刻就具备了稀缺性",
+      "link": "https://x.com/oran_ge/status/2071965818314002532",
+      "published": "2026-06-30T22:35:21+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "很多事情做起来都很难很难  \n但正因为很难，能越过的人，很少  \n一旦越过，那一刻就具备了稀缺性\n\n💬1🔄0❤️16👀1947📊3",
+      "tags": [
+        "困难",
+        "稀缺性"
+      ],
+      "score": 20,
+      "summary": "orange.ai发表励志感言，与AI无关。",
+      "fetched_at": "2026-07-01T00:17:07.740019+08:00"
+    },
+    {
+      "title": "Q：我们公司有十几个微服务，现在想让开发用 AI Agent 来做系统设计和编码。问题是一个 user story 经常需要多个微服务协作，Agent 必须了解每个服务的职责边界和业务概念才能做出合理...",
+      "link": "https://x.com/dotey/status/2071961238528012358",
+      "published": "2026-06-30T22:17:09+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Q：我们公司有十几个微服务，现在想让开发用 AI Agent 来做系统设计和编码。问题是一个 user story 经常需要多个微服务协作，Agent 必须了解每个服务的职责边界和业务概念才能做出合理的设计。我们打算把所有微服务放到一个 workspace 下，每个服务配上自己的文档，让 AI 自己去处理。这种方式合理吗？有没有更好的实践？  \n  \nA：用好 Agent 的关键是两点：上下文的质量，和验证的闭环。  \n  \n先说上下文质量。  \n  \n放在一个 workspace 下是目前社区比较推荐的做法。  \n  \nmonorepo 天然适合和 AI 配合，因为 Agent 可以在一个地方同时看到 schema 定义、API 协议、各个服务的实现代码。如果因为历史原因确实不方便合成 monorepo，有个折中方案叫虚拟 monorepo，就是把多个仓库 clone 到同一个本地目录下。  \n  \n除了放在一起，文档也是很好的让Agent获取上下文的方式，最好给 Agent 一张地图，加上按需加载：  \n1. 根目录放一份总的 AGENTS.md(或 CLAUDE.md)当索引用，列清楚有哪些服务、各自负责什么、要改某个服务就去读它目录下的文档。  \n2. 每个微服务自己目录里再放一份,写清自己的职责边界和业务概念,这其实就是 DDD 里的 bounded context。  \n3. 让 Agent 先看根索引，定位到相关的那几个服务，再去加载它们的细节。  \n  \n不过要注意文档要及时更新，尤其是微服务协议变更了，一定要及时更新文档，否则会误导。  \n  \n能从代码或规格自动生成的，就别手写。手写文档迟早会和代码对不上，而像 OpenAPI 这种机器可读的接口规格，一份东西既是文档，又能拿去生成 mock 和测试。  \n  \n除了文档，还有一个很多人忽略的上下文来源：协议测试代码。高质量的 contract test 本身就是最准确的活文档，它精确地描述了服务之间实际的交互协议，比人写的文档更不容易过时，因为错了测试就无法通过。你如果已经有 OpenAPI spec 或者 Pact 契约文件，这些对 Agent 理解服务边界非常有价值。  \n  \n再说验证。微服务场景下验证是最麻烦的部分，因为一个 user story 可能涉及好几个服务协作，你不可能让 Agent 每改一行代码就把整个系统跑起来做端到端测试。  \n  \n一个实用的思路是：每个微服务提供 mock server 或者基于 OpenAPI spec 自动生成的模拟服务。Agent 写完代码后可以在本地跑 contract test 验证自己的改动有没有破坏和其他服务的协议约定，不需要依赖线上真实的 API 或者完整的集成环境。这样 Agent 就能形成一个“写代码→跑测试→自我修正”的闭环，不需要人在过程中频繁干预。  \n  \n想再进一步,建议了解一下契约测试(consumer-driven contract testing，常用工具是 Pact)。思路是调用方把自己实际用到的接口形状记下来，生成一个契约文件，被调方再去验证自己能不能满足这个契约。  \n  \n简单说：workspace 统一提供全局视图，分层文档 + 协议测试提供精准上下文，mock server + contract test 提供验证闭环。这三层搭好，Agent 处理跨微服务的系统设计就比较靠谱了。  \n  \n一些参考资料  \n  \n1. Anthropic 的 Effective context engineering for AI agents，讲怎么把上下文当稀缺资源来经营、按需加载:  \n[anthropic.com/engineering/ef…](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)  \n  \n2. Anthropic 的 Effective harnesses for long-running agents，讲长任务里怎么给 Agent 搭脚手架(比如用进度文件加 git 记录跨上下文窗口接力)：  \n[anthropic.com/engineering/ef…](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)  \n  \n3. 怎么在 monorepo 里组织 AGENTS.md 给 Agent 用,可以看 [dev.to](http://dev.to) 上这篇 Steering AI Agents in Monorepos with AGENTS.md：  \n[dev.to/datadog-fronte…](https://dev.to/datadog-frontend-dev/steering-ai-agents-in-monorepos-with-agentsmd-13g0)  \n  \n契约测试入门，搜 Pact 加 consumer-driven contract testing 的指南就行。\n\n![Tweet Image](https://pbs.twimg.com/media/HMEVvebWMAARvHk.jpg)\n\n💬14🔄14❤️82👀7577📊39",
+      "tags": [
+        "微服务",
+        "AI Agent",
+        "上下文"
+      ],
+      "score": 75,
+      "summary": "宝玉回答关于微服务场景下使用AI Agent进行系统设计和编码的实践问题。",
+      "fetched_at": "2026-07-01T00:17:07.740049+08:00"
+    },
+    {
+      "title": "https://t.co/J3TA6HjIQU",
+      "link": "https://x.com/op7418/status/2071974240069517712",
+      "published": "2026-06-30T23:08:48+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "[github.com/op7418/CodePil…](https://github.com/op7418/CodePilot/releases/tag/v0.56.3)\n\n💬0🔄0❤️0👀1506",
+      "tags": [
+        "CodePilot",
+        "更新",
+        "链接"
+      ],
+      "score": 40,
+      "summary": "歸藏发布CodePilot更新链接。",
+      "fetched_at": "2026-07-01T00:17:07.740080+08:00"
+    },
+    {
+      "title": "CodePilot 0.5.6.3 已经更新。\n\n今天新上 ClinePass 以及之前的 Opencode GO，这两个 Codeplan 套餐，想体验的可以试试",
+      "link": "https://x.com/op7418/status/2071974194200633787",
+      "published": "2026-06-30T23:08:37+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "CodePilot 0.5.6.3 已经更新。  \n  \n今天新上 ClinePass 以及之前的 Opencode GO，这两个 Codeplan 套餐，想体验的可以试试\n\n![Tweet Image](https://pbs.twimg.com/media/HMEhTIQWkAATBfq.jpg)\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\nCline 推出了一个每月 9.9 美元的 token plan, 支持调用 DeepSeek、Kimi、MiniMax、MIMO 和千问，还有 GLM5.2   \n  \n现在好像还有 1.99 美元的优惠。  \n  \n海外这种聚合的 token plan 也越来越多了，而且他们如果有渠道的话，更方便去推理服务的供应商也不缺卡\n\n![Tweet Image](https://pbs.twimg.com/media/HMB0lwkawAA3HdV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2071784028634775895)\n\n💬4🔄0❤️7👀3667📊4",
+      "tags": [
+        "CodePilot",
+        "0.5.6.3",
+        "ClinePass"
+      ],
+      "score": 50,
+      "summary": "歸藏发布CodePilot 0.5.6.3更新，新增ClinePass和Opencode GO套餐。",
+      "fetched_at": "2026-07-01T00:17:07.740110+08:00"
+    }
+  ]
+}
