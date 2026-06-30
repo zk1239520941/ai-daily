@@ -252,24 +252,26 @@ class TestCollectEntriesForPush:
 class TestMainStartup:
     """测试主程序启动流程"""
 
-    @pytest.mark.asyncio
-    async def test_main_checks_llm_before_starting_loops(self, sample_config):
-        with patch("main.load_config", return_value=sample_config), patch(
+    def test_main_checks_llm_before_starting_loops(self, sample_config):
+        with patch("sys.argv", ["daily-news", "loop"]), patch(
+            "main.load_config", return_value=sample_config
+        ), patch(
             "main.check_llm_available", new_callable=AsyncMock
         ) as mock_check, patch(
             "main.fetch_loop", new_callable=AsyncMock
         ) as mock_fetch_loop, patch(
             "main.push_loop", new_callable=AsyncMock
         ) as mock_push_loop:
-            await run_main()
+            run_main()
 
         mock_check.assert_awaited_once_with(sample_config["llm"])
         mock_fetch_loop.assert_awaited_once_with(sample_config)
         mock_push_loop.assert_awaited_once_with(sample_config)
 
-    @pytest.mark.asyncio
-    async def test_main_exits_when_llm_health_check_fails(self, sample_config):
-        with patch("main.load_config", return_value=sample_config), patch(
+    def test_main_exits_when_llm_health_check_fails(self, sample_config):
+        with patch("sys.argv", ["daily-news", "loop"]), patch(
+            "main.load_config", return_value=sample_config
+        ), patch(
             "main.check_llm_available", new_callable=AsyncMock
         ) as mock_check, patch(
             "main.fetch_loop", new_callable=AsyncMock
@@ -278,8 +280,9 @@ class TestMainStartup:
         ) as mock_push_loop:
             mock_check.side_effect = RuntimeError("health failed")
 
-            await run_main()
+            code = run_main()
 
         mock_check.assert_awaited_once_with(sample_config["llm"])
         mock_fetch_loop.assert_not_called()
         mock_push_loop.assert_not_called()
+        assert code == 1

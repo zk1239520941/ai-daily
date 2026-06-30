@@ -80,7 +80,7 @@ class TestParseOpml:
     </body>
 </opml>"""
         opml_file = temp_dir / "test.opml"
-        opml_file.write_text(opml_content)
+        opml_file.write_text(opml_content, encoding="utf-8")
 
         feeds = parse_opml(str(opml_file))
         assert len(feeds) == 1
@@ -100,7 +100,7 @@ class TestParseOpml:
     </body>
 </opml>"""
         opml_file = temp_dir / "test.opml"
-        opml_file.write_text(opml_content)
+        opml_file.write_text(opml_content, encoding="utf-8")
 
         feeds = parse_opml(str(opml_file))
         assert len(feeds) == 2
@@ -114,7 +114,7 @@ class TestParseOpml:
     </body>
 </opml>"""
         opml_file = temp_dir / "test.opml"
-        opml_file.write_text(opml_content)
+        opml_file.write_text(opml_content, encoding="utf-8")
 
         feeds = parse_opml(str(opml_file))
         assert feeds == []
@@ -170,7 +170,7 @@ class TestMergeSources:
     </body>
 </opml>"""
         opml_file = temp_dir / "test.opml"
-        opml_file.write_text(opml_content)
+        opml_file.write_text(opml_content, encoding="utf-8")
 
         config = {
             "base_opml": str(opml_file),
@@ -191,7 +191,7 @@ class TestMergeSources:
     </body>
 </opml>"""
         opml_file = temp_dir / "test.opml"
-        opml_file.write_text(opml_content)
+        opml_file.write_text(opml_content, encoding="utf-8")
 
         config = {
             "base_opml": str(opml_file),
@@ -213,7 +213,7 @@ class TestMergeSources:
     </body>
 </opml>"""
         opml_file = temp_dir / "test.opml"
-        opml_file.write_text(opml_content)
+        opml_file.write_text(opml_content, encoding="utf-8")
 
         config = {
             "base_opml": str(opml_file),

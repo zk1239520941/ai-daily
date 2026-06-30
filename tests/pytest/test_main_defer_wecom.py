@@ -13,15 +13,13 @@ from src.main import cmd_daily, cmd_wecom, run_push_job, send_digest_wecom
 
 @pytest.mark.asyncio
 async def test_run_push_job_generate_only_skips_send(sample_config):
-    sample_config["schedule"]["push_cron"] = ["0 8 * * *", "0 17 * * *"]
-
-    with patch("src.main.is_morning_push", return_value=False), patch(
-        "src.main._run_default_push", new=AsyncMock(return_value="news-data/push-test.md")
-    ) as default_push, patch("src.main.send_to_platforms", new=AsyncMock()) as send_mock:
+    with patch(
+        "src.main._run_daily_push", new=AsyncMock(return_value="news-data/push-test.md")
+    ) as daily_push, patch("src.main.send_to_platforms", new=AsyncMock()) as send_mock:
         result = await run_push_job(sample_config, generate_only=True)
 
     assert result == "news-data/push-test.md"
-    default_push.assert_awaited_once_with(sample_config, generate_only=True)
+    daily_push.assert_awaited_once_with(sample_config, generate_only=True)
     send_mock.assert_not_awaited()
 
 
@@ -47,20 +45,20 @@ async def test_send_digest_wecom_loads_push_file(tmp_path, sample_config):
 
 
 @pytest.mark.asyncio
-async def test_cmd_wecom_skips_when_wait_fails(sample_config):
+async def test_cmd_wecom_degrades_when_wait_fails(sample_config):
     with patch("src.main.get_last_push_file", return_value="news-data/push-x.md"), patch(
         "src.publish.resolve_push_full_url",
         return_value="https://pages.example/full.md",
     ), patch("src.publish.wait_for_url", new=AsyncMock(return_value=False)), patch(
-        "src.main.notify_digest_url_unavailable", new=AsyncMock()
-    ) as alert_mock, patch(
-        "src.main.send_digest_wecom", new=AsyncMock()
-    ) as send_mock:
+        "src.main.send_digest_wecom", new=AsyncMock(return_value=True)
+    ) as send_mock, patch(
+        "src.main.send_pages_delay_notice", new=AsyncMock()
+    ) as notice_mock:
         code = await cmd_wecom(sample_config)
 
-    assert code == 1
-    alert_mock.assert_awaited_once()
-    send_mock.assert_not_awaited()
+    assert code == 0
+    send_mock.assert_awaited_once()
+    notice_mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio

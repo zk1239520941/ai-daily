@@ -5,10 +5,10 @@ permissions:
 
 on:
   schedule:
-    # 北京时间 08:00 = UTC 00:00（早报：含 GitHub / HN / 洞察）
-    - cron: "0 0 * * *"
-    # 北京时间 17:00 = UTC 09:00（晚报：RSS digest）
-    - cron: "0 9 * * *"
+    # hourly fetch（UTC 每小时整点）
+    - cron: "0 * * * *"
+    # 每日 push：UTC 00:05 ≈ 北京 08:05
+    - cron: "5 0 * * *"
   workflow_dispatch:
     inputs:
       job:
@@ -20,13 +20,40 @@ on:
           - all
           - fetch
           - push
+          - daily
           - check
 
-jobs:
-  daily:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+concurrency:
+  group: ai-daily-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.slot.outputs.mode }}
+    steps:
+      - id: slot
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.job }}" >> "$GITHUB_OUTPUT"
+          else
+            M=$(date -u +%M)
+            H=$(date -u +%H)
+            if [ "$H" = "00" ] && [ "$M" = "05" ]; then
+              echo "mode=daily" >> "$GITHUB_OUTPUT"
+            else
+              echo "mode=fetch" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+  fetch:
+    needs: detect
+    if: |
+      needs.detect.outputs.mode == 'fetch' ||
+      needs.detect.outputs.mode == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +61,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: news-data
-          key: ai-daily-news-data-v1
+          key: ai-daily-news-data-v2
           restore-keys: |
             ai-daily-news-data-
 
@@ -42,22 +69,49 @@ jobs:
         with:
           enable-cache: true
 
-      - name: 安装依赖
-        run: uv sync
+      - run: uv sync
 
-      - name: 准备配置文件
-        run: cp config.user.json.example config.json
+      - run: cp config.user.json.example config.json
 
-      - name: 校验 LLM 连通性
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'check'
+      - name: 抓取 RSS 并评分（含即时热点）
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-        run: uv run python -m src.main check
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+        run: uv run python -m src.main fetch
 
-      - name: 抓取 RSS 并评分
-        if: |
-          github.event_name == 'schedule' ||
-          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'fetch'))
+      - name: 提交 fetch 数据
+        run: uv run python -m src.main commit-fetch
+
+  daily-push:
+    needs: detect
+    if: |
+      needs.detect.outputs.mode == 'daily' ||
+      needs.detect.outputs.mode == 'push' ||
+      needs.detect.outputs.mode == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 恢复 news-data 缓存
+        uses: actions/cache@v4
+        with:
+          path: news-data
+          key: ai-daily-news-data-v2
+          restore-keys: |
+            ai-daily-news-data-
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - run: cp config.user.json.example config.json
+
+      - name: 推送前补抓
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
@@ -66,9 +120,7 @@ jobs:
         run: uv run python -m src.main fetch
 
       - name: 生成日报（不推 digest 企微）
-        if: |
-          github.event_name == 'schedule' ||
-          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        id: push
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
@@ -78,17 +130,13 @@ jobs:
         run: uv run python -m src.main push --defer-wecom
 
       - name: 提交 push 日报并推送（触发 GitHub Pages）
-        if: |
-          github.event_name == 'schedule' ||
-          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        if: hashFiles('news-data/push-*.md') != ''
         env:
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main publish
 
       - name: 等待 Pages 并推送 digest 企微
-        if: |
-          github.event_name == 'schedule' ||
-          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        if: hashFiles('news-data/push-*.md') != ''
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
@@ -96,3 +144,17 @@ jobs:
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main wecom
+
+  check:
+    needs: detect
+    if: needs.detect.outputs.mode == 'check'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: cp config.user.json.example config.json
+      - name: 校验 LLM 连通性
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: uv run python -m src.main check

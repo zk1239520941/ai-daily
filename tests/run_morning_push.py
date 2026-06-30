@@ -11,7 +11,7 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config import load_config
-from src.main import _run_morning_push
+from src.main import _run_daily_push
 
 
 async def main():
@@ -23,7 +23,7 @@ async def main():
         print(content)
 
     with patch("src.main.send_to_platforms", new=AsyncMock(side_effect=fake_send)):
-        await _run_morning_push(config)
+        await _run_daily_push(config)
 
 
 if __name__ == "__main__":

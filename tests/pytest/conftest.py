@@ -31,10 +31,16 @@ def sample_config():
             "hot_threshold": 90,
             "context_days": 2,
             "keep_days": 7,
+            "push_window_hours": 24,
+            "digest_min_items": 0,
+            "skip_empty_digest": True,
+            "exclude_notified_links_from_digest": True,
+            "no_content_marker": "[NO_NEW_CONTENT]",
         },
         "schedule": {
-            "fetch_interval_minutes": 30,
-            "push_cron": ["0 8 * * *", "0 17 * * *"],
+            "fetch_interval_minutes": 60,
+            "fetch_lookback_minutes": 120,
+            "push_cron": ["0 8 * * *"],
             "timezone_hours": 8,
         },
         "llm": {

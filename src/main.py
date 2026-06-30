@@ -49,6 +49,7 @@ from src.storage import (
     get_notify_file,
     get_push_file,
     load_existing_links,
+    load_notified_links,
     load_recent_notify_content,
     load_recent_push_content,
     read_entries,
@@ -132,11 +133,57 @@ def is_morning_push(now: datetime, config: Dict) -> bool:
     return closest == min(today_fires)
 
 
+def _fallback_push_cutoff(now: datetime, config: Dict) -> datetime:
+    """无上次 push 时：取本地昨日 push_cron 时刻作为收录边界。"""
+    tz = get_timezone(config)
+    local_now = now.astimezone(tz)
+    hour, minute = 8, 0
+    cron_list = config.get("schedule", {}).get("push_cron", ["0 8 * * *"])
+    if cron_list:
+        try:
+            minute_s, hour_s, _, _, _ = cron_list[0].split()
+            hour, minute = int(hour_s), int(minute_s)
+        except ValueError:
+            pass
+    today_push = local_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if local_now >= today_push:
+        return today_push - timedelta(days=1)
+    return today_push - timedelta(days=2)
+
+
+def _should_skip_digest(
+    config: Dict,
+    final_md: str,
+    rss_md: str,
+    gh_md: str,
+    hn_md: str,
+    insights_md: str,
+) -> bool:
+    """四段全空或配置关闭时跳过 digest 落盘与推送。"""
+    if not config.get("filter", {}).get("skip_empty_digest", True):
+        return False
+    if not (final_md or "").strip():
+        return True
+    rss_count = (rss_md or "").count("###")
+    has_other = any(
+        s.strip() for s in (gh_md or "", hn_md or "", insights_md or "")
+    )
+    if rss_count == 0 and not has_other:
+        return True
+    min_items = config.get("filter", {}).get("digest_min_items", 0)
+    if min_items > 0 and rss_count < min_items and not has_other:
+        return True
+    return False
+
+
 def collect_entries_for_push(
     last_push_time: Optional[datetime],
     context_days: int = 2,
     min_score: int = 60,
     data_dir: str = "news-data",
+    push_window_hours: int = 24,
+    exclude_links: Optional[set] = None,
+    config: Optional[Dict] = None,
 ) -> tuple[List[Dict], List[Dict]]:
     """
     收集推送所需的条目，返回 (待推送条目, 上下文条目)
@@ -144,14 +191,13 @@ def collect_entries_for_push(
     逻辑：
     1. 获取 context_days 天内的所有条目
     2. 按 min_score 过滤
-    3. push_time = max(last_push_time, now - 24h)
-    4. 晚于 push_time 的 → 待推送条目
-    5. 早于 push_time 的 → 上下文条目（用于LLM去重参考）
+    3. push_cutoff = max(last_push_time, now - push_window_hours)；无 last_push 时用昨日 push_cron
+    4. 晚于 push_cutoff 的 → 待推送条目
+    5. 早于 push_cutoff 的 → 上下文条目（用于LLM去重参考）
     """
-    tz = get_timezone()
+    tz = get_timezone(config)
     now = datetime.now(tz)
 
-    # 获取 context_days 天的所有条目
     all_entries = []
     today = now.date()
     for i in range(context_days):
@@ -164,32 +210,35 @@ def collect_entries_for_push(
         f"📋 收集总条目: {len(all_entries)} 条 , context_days: {context_days}, min_score:{min_score}"
     )
 
-    # 按 min_score 过滤
     qualified_entries = [e for e in all_entries if (e.get("score") or 0) >= min_score]
     print(f"📋 过滤后条目: {len(qualified_entries)} 条 ")
 
-    # 计算推送时间边界：max(last_push_time, now - 24h)
-    past_24h = now - timedelta(hours=24)
-    push_cutoff = (
-        last_push_time if last_push_time and last_push_time > past_24h else past_24h
-    )
+    past_window = now - timedelta(hours=push_window_hours)
+    if last_push_time:
+        push_cutoff = max(last_push_time, past_window)
+    else:
+        push_cutoff = _fallback_push_cutoff(now, config or {})
 
     print(f"推送时间边界: {push_cutoff.strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # 分割条目
     to_push = []
     context = []
-    # context 只供 LLM 做去重/历史参考,不需要 content/link/fetched_at 等大字段
     CONTEXT_FIELDS = ("title", "source", "score", "summary", "tags", "published")
 
     for entry in qualified_entries:
-        entry_time = parse_time_to_local(entry.get("fetched_at", ""))
+        entry_time = parse_time_to_local(entry.get("fetched_at", ""), config)
         if entry_time and entry_time > push_cutoff:
             to_push.append(entry)
         else:
             context.append({k: entry.get(k) for k in CONTEXT_FIELDS})
 
-    # 上下文按分数排序，取前50
+    if exclude_links:
+        before = len(to_push)
+        to_push = [e for e in to_push if e.get("link") not in exclude_links]
+        excluded = before - len(to_push)
+        if excluded:
+            print(f"📋 排除已即时推送链接: {excluded} 条")
+
     context = sorted(context, key=lambda x: x.get("score", 0), reverse=True)[:50]
 
     return to_push, context
@@ -372,71 +421,16 @@ async def run_push_job(config: Dict, generate_only: bool = False) -> Optional[st
         print("ℹ️ generate_only 模式：仅生成 push md，不推 digest 企微")
     print(f"{'=' * 50}")
 
-    if is_morning_push(now_local(config), config):
-        return await _run_morning_push(config, generate_only=generate_only)
-    return await _run_default_push(config, generate_only=generate_only)
+    return await _run_daily_push(config, generate_only=generate_only)
 
 
-async def _run_default_push(config: Dict, generate_only: bool = False) -> Optional[str]:
-    """晚报或非早报时段:沿用原有纯 RSS digest 流程,委托给 run_rss_section"""
-    now = now_local(config)
-    rss_md, metadata, rss_err = await run_rss_section(config, now)
-
-    if rss_err and not rss_md:
-        print(f"⚠️ [compose_digest] {rss_err}")
-        await notify_llm_errors("compose_digest", [rss_err], config)
-        raise RuntimeError(f"RSS section failed: {rss_err}")
-
-    if not rss_md:
-        # run_rss_section 在无新消息时已打印 "ℹ️ RSS: 无新消息"
-        return None
-
-    # metadata 缺失兜底:parse_digest_with_metadata 失败 / LLM 输出无 frontmatter 时可能返回 None
-    if not metadata:
-        date_str = now.strftime("%Y-%m-%d")
-        metadata = {
-            "title": f"🌙 AI Daily 晚报 | {date_str}",
-            "lead": "",
-            "highlights": [],
-            "profile": "default",
-            "date": date_str,
-        }
-    metadata.setdefault("pushTime", now.isoformat())
-
-    push_file = get_push_file()
-    metadata["push_file"] = push_file
-
-    enrich_image_metadata(metadata, rss_md)
-    rss_count = rss_md.count("###")
-    save_push_file(
-        push_file,
-        rss_md,
-        rss_count,
-        rss_count,
-        profile="default",
-        metadata=metadata,
-    )
-    print(f"💾 已保存到 {push_file}")
-
-    if not generate_only:
-        await send_to_platforms(
-            rss_md,
-            config["push"],
-            title="📰 AI Daily 每日精选 | " + metadata["title"],
-            metadata=metadata,
-        )
-        print(f"✅ Push Job 完成 | 推送条目: {rss_count}")
-    else:
-        print(f"✅ Push Job 完成（仅生成）| 条目: {rss_count}")
-    return push_file
-
-
-async def _run_morning_push(config: Dict, generate_only: bool = False) -> Optional[str]:
-    """早报四模块编排:RSS/GH/HN 并发 → insights 串行 → sentinel 拼装 → 推送 → 落盘。
+async def _run_daily_push(config: Dict, generate_only: bool = False) -> Optional[str]:
+    """每日 push 编排:RSS/GH/HN 并发 → insights 串行 → sentinel 拼装 → 落盘。
 
     失败语义:
-    - RSS 失败 → 整体抛 RuntimeError (核心承诺不变)
+    - RSS 真故障 → 整体抛 RuntimeError
     - GH/HN/insights 失败 → 该段省略 + 告警,其他段照推
+    - 四段全空 → 静默跳过
     """
     now = now_local(config)
 
@@ -504,8 +498,8 @@ async def _run_morning_push(config: Dict, generate_only: bool = False) -> Option
         }
     )
 
-    if not final.strip():
-        print("ℹ️ 早报无任何段输出,跳过推送")
+    if _should_skip_digest(config, final, rss_md or "", gh_md or "", hn_md or "", insights_md or ""):
+        print("ℹ️ 今日无值得推送的内容，跳过 digest")
         return None
 
     push_file = get_push_file()
@@ -525,25 +519,25 @@ async def _run_morning_push(config: Dict, generate_only: bool = False) -> Option
     save_push_file(
         push_file, final, rss_count, rss_count, profile="morning", metadata=metadata
     )
-    print(f"💾 已保存早报到 {push_file}")
+    print(f"💾 已保存日报到 {push_file}")
 
     if not generate_only:
         await send_to_platforms(
             final,
             config["push"],
-            title="📰 AI Daily 每日精选 | " + metadata["title"],
+            title="📰 AI Daily 早报 | " + metadata["title"],
             metadata=metadata,
         )
-        print(f"✅ 早报 Push Job 完成 | 推送条目: {rss_count}")
+        print(f"✅ 日报 Push Job 完成 | RSS 条目: {rss_count}")
     else:
-        print(f"✅ 早报 Push Job 完成（仅生成）| 条目: {rss_count}")
+        print(f"✅ 日报 Push Job 完成（仅生成）| RSS 条目: {rss_count}")
     return push_file
 
 
 async def send_digest_wecom(
     config: Dict,
     push_file: str,
-    full_url: str,
+    full_url: str = "",
 ) -> bool:
     """在完整版 URL 可访问后发送 digest 企微（news + 全文链接）。"""
     path = Path(push_file)
@@ -563,11 +557,35 @@ async def send_digest_wecom(
     await send_to_platforms(
         body,
         config["push"],
-        title="📰 AI Daily 每日精选 | " + digest_title,
+        title="📰 AI Daily 早报 | " + digest_title,
         metadata=metadata,
     )
-    print(f"✅ digest 企微已推送 | full_url={full_url}")
+    if full_url:
+        print(f"✅ digest 企微已推送 | full_url={full_url}")
+    else:
+        print("✅ digest 企微已推送（无完整版链接，Pages 部署中）")
     return True
+
+
+async def send_pages_delay_notice(config: Dict) -> None:
+    """Pages 未就绪时追加说明 text。"""
+    now = now_local(config).strftime("%Y-%m-%d %H:%M")
+    text = (
+        f"完整版阅读页正在部署，请稍后刷新站点。\n"
+        f"时间：{now}"
+    )
+    wecom_conf = config.get("push", {}).get("wecom", {})
+    if not wecom_conf.get("enabled"):
+        return
+    try:
+        from src.push import create_platform
+
+        platform = create_platform("wecom", wecom_conf)
+        if platform is None:
+            return
+        await platform.send_text(text)
+    except Exception as exc:
+        print(f"⚠️ Pages 延迟说明发送失败: {exc}")
 
 
 async def notify_digest_url_unavailable(config: Dict, full_url: str) -> None:
@@ -702,6 +720,14 @@ async def cmd_publish(config: Dict) -> tuple[int, str, str]:
         return 1, "", ""
 
 
+def cmd_commit_fetch(config: Dict) -> int:
+    """提交 fetch/notify/trending 数据到 git（GHA hourly fetch 真源）。"""
+    from src.publish import commit_fetch_to_github
+
+    data_dir = config.get("data_dir", "news-data")
+    return commit_fetch_to_github(data_dir=data_dir)
+
+
 async def cmd_wecom(
     config: Dict,
     push_file: Optional[str] = None,
@@ -730,14 +756,20 @@ async def cmd_wecom(
         await notify_digest_url_unavailable(config, full_url)
         return 1
 
-    if not skip_wait:
+    if not skip_wait and full_url:
         ok = await wait_for_url(full_url, timeout=wait_timeout, interval=wait_interval)
         if not ok:
-            await notify_digest_url_unavailable(config, full_url)
-            return 1
+            print("⚠️ Pages URL 不可用，降级推送 digest（无完整版链接）")
+            try:
+                await send_digest_wecom(config, push_file, "")
+                await send_pages_delay_notice(config)
+                return 0
+            except Exception as e:
+                print(f"❌ digest 降级推送失败: {e}")
+                return 1
 
     try:
-        await send_digest_wecom(config, push_file, full_url)
+        await send_digest_wecom(config, push_file, full_url or "")
         return 0
     except Exception as e:
         print(f"❌ digest 企微推送失败: {e}")
@@ -793,8 +825,14 @@ async def cmd_daily(
 
     ok = await wait_for_url(full_url)
     if not ok:
-        await notify_digest_url_unavailable(config, full_url)
-        return 1
+        print("⚠️ Pages URL 不可用，降级推送 digest（无完整版链接）")
+        try:
+            await send_digest_wecom(config, push_file, "")
+            await send_pages_delay_notice(config)
+            return 0
+        except Exception as e:
+            print(f"❌ digest 降级推送失败: {e}")
+            return 1
 
     try:
         await send_digest_wecom(config, push_file, full_url)
@@ -965,6 +1003,7 @@ def _parse_args() -> argparse.Namespace:
         help="不发送 webhook、不 git push",
     )
     sub.add_parser("publish", help="清理旧 push 并 push 到 GitHub（触发 Pages）")
+    sub.add_parser("commit-fetch", help="提交 fetch/notify/trending 数据到 git")
     wecom_parser = sub.add_parser(
         "wecom",
         help="等待完整版 URL 可访问后发送 digest 企微",
@@ -1037,6 +1076,9 @@ def main() -> int:
         if full_url:
             print(f"[info] full_url: {full_url}")
         return code
+
+    if args.command == "commit-fetch":
+        return cmd_commit_fetch(config)
 
     if args.command == "wecom":
         return asyncio.run(

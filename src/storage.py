@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.config import get_timezone
-from src.markdown_utils import dump_frontmatter, parse_frontmatter
+from src.markdown_utils import dump_frontmatter, extract_first_url, parse_frontmatter
 
 
 def get_fetch_file(d: date = None, data_dir: str = "news-data") -> str:
@@ -387,41 +387,61 @@ def save_push_file(
 
 
 def load_existing_links(filepath: str, threshold: int = 150) -> set:
-    """加载文件中已有的链接（用于去重）
+    """加载已有 link 集合（用于 fetch 去重）。
 
-    如果当天时间已超过 threshold 分钟，则只需加载当天文件；
-    否则需要同时加载当天和昨天的文件（用于处理跨天边界情况）。
-
-    Args:
-        filepath: 当天的 fetch 文件路径
-        threshold: 阈值（分钟），超过此时间只加载当天文件
+    hourly fetch 下始终合并当天与昨天 fetch 文件，避免跨日重复入库。
+    threshold 参数保留以兼容旧调用，不再用于切换读文件策略。
     """
+    del threshold
     tz = get_timezone()
     now = datetime.now(tz)
-    current_minutes = now.hour * 60 + now.minute
+    all_links: set = set()
 
-    need_yesterday = current_minutes < threshold
-
-    if not need_yesterday:
-        if not filepath or not Path(filepath).exists():
-            return set()
-        entries = read_entries(filepath)
-        return {e.get("link") for e in entries if e.get("link")}
-
-    all_links = set()
     if filepath and Path(filepath).exists():
         all_links.update(
             {e.get("link") for e in read_entries(filepath) if e.get("link")}
         )
 
-    yesterday = (now - timedelta(days=1)).date()
-    yesterday_file = get_fetch_file(yesterday)
+    yesterday_file = get_fetch_file(now.date() - timedelta(days=1))
     if Path(yesterday_file).exists():
         all_links.update(
             {e.get("link") for e in read_entries(yesterday_file) if e.get("link")}
         )
 
     return all_links
+
+
+def load_notified_links(context_days: int = 3, data_dir: str = "news-data") -> set:
+    """从近 N 天 notify 文件提取已即时推送的 URL。"""
+    data_path = Path(data_dir)
+    if not data_path.exists():
+        return set()
+
+    tz = get_timezone()
+    today = datetime.now(tz).date()
+    urls: set = set()
+
+    for i in range(max(context_days, 1)):
+        notify_file = data_path / f"notify-{(today - timedelta(days=i)).isoformat()}.md"
+        if not notify_file.exists():
+            continue
+        try:
+            content = notify_file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for block in content.split("------"):
+            block = block.strip()
+            if not block:
+                continue
+            meta, body = parse_frontmatter(block)
+            items = meta.get("wecom_items") or []
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict) and item.get("url"):
+                        urls.add(item["url"])
+            urls.add(extract_first_url(body))
+
+    return {u for u in urls if u}
 
 
 def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
@@ -433,7 +453,7 @@ def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
     cutoff = datetime.now() - timedelta(days=days)
     deleted_count = 0
 
-    for pattern in ["fetch-*.json", "fetch-*.md", "notify-*.md"]:
+    for pattern in ["fetch-*.json", "fetch-*.md", "notify-*.md", "push-*.md"]:
         for file in data_path.glob(pattern):
             try:
                 date_str = (

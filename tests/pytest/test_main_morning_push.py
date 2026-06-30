@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.main import _run_morning_push
+from src.main import _run_daily_push
 
 
 def _insights_meta() -> dict:
@@ -62,7 +62,7 @@ async def test_assembles_all_four_sections(sample_config):
     ), patch(
         "src.main.save_push_file", side_effect=fake_save
     ):
-        await _run_morning_push(sample_config)
+        await _run_daily_push(sample_config)
 
     assert "SECTION:rss" in sent["content"]
     assert "SECTION:github" in sent["content"]
@@ -88,7 +88,7 @@ async def test_rss_failure_raises_to_caller(sample_config):
         "src.main.notify_llm_errors", new=AsyncMock()
     ):
         with pytest.raises(RuntimeError):
-            await _run_morning_push(sample_config)
+            await _run_daily_push(sample_config)
 
 
 @pytest.mark.asyncio
@@ -116,8 +116,33 @@ async def test_section_failure_degrades_to_omission(sample_config):
     ), patch(
         "src.main.save_push_file"
     ):
-        await _run_morning_push(sample_config)
+        await _run_daily_push(sample_config)
 
     assert "SECTION:rss" in sent["content"]
     assert "SECTION:github" not in sent["content"]
     assert "SECTION:hackernews" in sent["content"]
+
+
+@pytest.mark.asyncio
+async def test_skip_when_all_sections_empty(sample_config):
+    sample_config["filter"]["skip_empty_digest"] = True
+
+    with patch(
+        "src.main.run_rss_section", new=AsyncMock(return_value=("", None, None))
+    ), patch(
+        "src.main.run_github_section", new=AsyncMock(return_value=("", None))
+    ), patch(
+        "src.main.run_hackernews_section", new=AsyncMock(return_value=("", None))
+    ), patch(
+        "src.main.run_insights_section",
+        new=AsyncMock(return_value=("", None, None)),
+    ), patch(
+        "src.main.save_push_file"
+    ) as save_mock, patch(
+        "src.main.send_to_platforms", new=AsyncMock()
+    ) as send_mock:
+        result = await _run_daily_push(sample_config)
+
+    assert result is None
+    save_mock.assert_not_called()
+    send_mock.assert_not_awaited()

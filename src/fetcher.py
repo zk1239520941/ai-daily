@@ -157,9 +157,9 @@ def _parse_feed_entries(content, feed_info: Dict, cutoff_time: datetime) -> List
     for entry in feed.entries:
         pub_date = parse_entry_time(entry)
 
-        # RSS 通常按时间倒序排列，一旦发现过期直接跳出
+        # 跳过过期条目；不 early-break，避免乱序 feed 漏抓
         if pub_date and pub_date < cutoff_time:
-            break
+            continue
 
         item = {
             "title": _truncate_title(entry.get("title", "无标题")),

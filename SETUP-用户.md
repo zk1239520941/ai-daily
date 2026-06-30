@@ -43,7 +43,7 @@ copy config.user.json.example config.json
 | 变量 | 必填 | 说明 |
 |------|------|------|
 | `DEEPSEEK_API_KEY` | ✅ | DeepSeek API Key，用于 RSS 评分、日报生成、洞察等 LLM 调用 |
-| `WECOM_WEBHOOK_URL` | ✅ | 企业微信群机器人 Webhook，用于即时热点与早晚报推送 |
+| `WECOM_WEBHOOK_URL` | ✅ | 企业微信群机器人 Webhook，用于即时热点与每日早报推送 |
 | `GITHUB_TOKEN` | 可选 | GitHub Personal Access Token，提高 GitHub Trending 板块 API 限额（匿名仅 60 次/小时） |
 | `JINA_API_KEY` | 可选 | Jina Reader API Key，用于 Hacker News 外链正文抓取 |
 | `PAGES_BASE_URL` | 可选 | GitHub Pages 站点根 URL，用于企微早晚报中的「完整版」链接 |
@@ -190,7 +190,7 @@ git push -u origin main
 
 | Workflow | 文件 | 作用 | 企微 | Pages 全文 |
 |----------|------|------|------|------------|
-| **AI Daily 定时任务** | `daily.yml` | fetch → 生成 push md → publish → **等待 URL** → digest 企微 | ✅（URL 就绪后） | 先 publish 再推链接 |
+| **AI Daily 定时任务** | `daily.yml` | hourly fetch + commit；每日 08:05 生成 push → publish → **等待 URL** → digest 企微 | ✅（URL 就绪后） | 先 publish 再推链接 |
 | **GitHub Pages 日报全站** | `pages.yml` | 从仓库检出 `news-data/push-*.md` 并部署 | ❌ | ✅ |
 
 **仅手动运行 Pages workflow 而仓库里没有 `push-*.md` 时**，首页会显示「暂无日报」——这是预期行为，不是 Pages 部署失败。
@@ -270,8 +270,8 @@ uv run python -m src.main rss
 
 定时规则（`.github/workflows/daily.yml`，UTC）：
 
-- `0 0 * * *` → 北京时间 **08:00** 早报（含 GitHub / HN / 洞察）
-- `0 9 * * *` → 北京时间 **17:00** 晚报（RSS digest）
+- `0 * * * *` → **每小时** fetch + commit fetch 数据
+- `5 0 * * *` → 北京时间约 **08:05** 每日 digest（含 GitHub / HN / 洞察；无内容则静默）
 
 ### E3. 企微与 Pages 验收
 
@@ -294,14 +294,14 @@ RSS / GitHub Trending / Hacker News
                     digest 企微（news + 完整版链接）
 ```
 
-- **fetch**：轮询 RSS，LLM 批量打分；≥90 分热点即时推送
-- **push**：按 `push_cron` 生成中文日报；当天最早一次为「早报」（含 GitHub、HN、洞察三段）
+- **fetch**：每小时轮询 RSS，LLM 批量打分；≥90 分热点即时推送；fetch 数据 commit 到 git
+- **push**：每天 08:00 生成 digest（0–N 条均可）；含 GitHub、HN、洞察；四段全空则静默
 - **配置**：`config.json`（调度、源、LLM、推送）+ `.env`（密钥）
 - **Prompt**：已内置中文模板（`prompts/*.md`）
 
 ## 已做的本地适配
 
-1. **企业微信 B+C 推送**：即时热点短消息 + 早晚报 news 图文 + text 完整版链接
+1. **企业微信 B+C 推送**：即时热点短消息 + 每日早报 news 图文 + text 完整版链接
 2. **DeepSeek LLM**：`config.user.json.example` 已指向 `deepseek-chat`
 3. **中文日报**：时区 `timezone_hours: 8`
 4. **GitHub Actions**：`daily.yml`（抓取、企微推送、commit push 文件）+ `pages.yml`（仅部署 Pages）
@@ -312,7 +312,7 @@ RSS / GitHub Trending / Hacker News
 | 维度 | ai-digest | ai-daily |
 |------|-----------|----------|
 | RSS 源 | `config/sources.yaml` 少量源 | OPML 400+ 源，可 block/add |
-| 推送节奏 | 每日一次 | fetch 轮询 + 热点即时推 + 早晚报 |
+| 推送节奏 | 每日一次 | hourly fetch + 热点即时推 + 每日早报（08:00） |
 | 扩展板块 | 无 | GitHub Trending、HN 评论树、跨板块洞察 |
 | 配置格式 | YAML + .env | JSON + .env |
 | 部署 | 自带 GHA workflow | 本目录 GHA + 上游 systemd |

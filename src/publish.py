@@ -215,3 +215,37 @@ def publish_pages_to_github(
     if full_url:
         print(f"[info] 完整版 URL: {full_url}")
     return 0, latest_push_file, full_url
+
+
+def commit_fetch_to_github(
+    data_dir: str = "news-data",
+    commit_message: str = "chore(data): 更新 fetch 数据",
+) -> int:
+    """提交 fetch/notify/trending 数据到 git（GHA hourly fetch 真源）。"""
+    root = Path(__file__).resolve().parent.parent
+    _ensure_git_identity()
+    data_path = Path(data_dir)
+
+    for pattern in ("fetch-*.json", "trending-history.json", "notify-*.md"):
+        for f in data_path.glob(pattern):
+            subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
+
+    staged = subprocess.run(
+        ["git", "diff", "--staged", "--quiet"],
+        cwd=str(root),
+    )
+    if staged.returncode == 0:
+        print("[info] fetch 数据无变更，跳过 commit")
+        return 0
+
+    subprocess.run(
+        ["git", "commit", "-m", commit_message],
+        cwd=str(root),
+        check=True,
+    )
+    push_result = subprocess.run(["git", "push"], cwd=str(root), check=False)
+    if push_result.returncode != 0:
+        print("[err] fetch 数据 git push 失败")
+        return push_result.returncode
+    print("[ok] fetch 数据已 push 到 GitHub")
+    return 0

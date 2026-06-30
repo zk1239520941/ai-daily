@@ -39,7 +39,7 @@ async def test_returns_markdown_when_entries_present(sample_config, tmp_path):
     assert meta["title"] == "🌙 AI Daily 晚报 | 测试"
     assert meta["lead"] == "今日测试导读"
     assert meta["highlights"] == ["重点1"]
-    assert meta["profile"] == "default"
+    assert meta["profile"] == "morning"
 
 
 @pytest.mark.asyncio

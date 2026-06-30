@@ -241,7 +241,9 @@ class TestWeComPlatform:
 
     def test_resolve_pages_base_url_from_github_repo(self):
         cfg = {}
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "owner/ai-daily"}, clear=False):
+        env = {k: v for k, v in os.environ.items() if k != "PAGES_BASE_URL"}
+        env["GITHUB_REPOSITORY"] = "owner/ai-daily"
+        with patch.dict(os.environ, env, clear=True):
             url = resolve_pages_base_url(cfg)
             assert url == "https://owner.github.io/ai-daily/"
 

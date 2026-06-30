@@ -591,20 +591,30 @@ def parse_insights_with_metadata(llm_output: str, date: str) -> Tuple[str, Dict]
     return insights_md, metadata
 
 
-def parse_digest_with_metadata(llm_output: str, date: str) -> Tuple[str, Dict]:
+def parse_digest_with_metadata(llm_output: str, date: str) -> Tuple[str, Optional[Dict]]:
     """解析 digest LLM 输出,返回 (digest_md, metadata)。
 
     metadata 字段:title / lead / highlights / profile / date。
-    无 frontmatter 时回退到 "🌙 AI Daily 晚报 | {date}" 标题。
+    无有效内容时返回 ("", None)。
     """
-    meta, body = parse_frontmatter(llm_output)
-    digest_md = body if meta else llm_output
+    text = (llm_output or "").strip()
+    marker = "[NO_NEW_CONTENT]"
+    if not text or text == marker:
+        return "", None
+    if marker in text and not text.startswith("---"):
+        return "", None
+
+    meta, body = parse_frontmatter(text)
+    digest_md = body if meta else text
+
+    if not digest_md.strip() or digest_md.count("###") == 0:
+        return "", None
 
     metadata = {
-        "title": meta.get("title") or f"🌙 AI Daily 晚报 | {date}",
+        "title": meta.get("title") or f"📰 AI Daily 早报 | {date}",
         "lead": meta.get("lead", ""),
         "highlights": normalize_str_list(meta.get("highlights")),
-        "profile": "default",
+        "profile": "morning",
         "date": date,
     }
     return digest_md, metadata
