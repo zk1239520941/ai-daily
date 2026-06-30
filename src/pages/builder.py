@@ -230,6 +230,94 @@ def _section_body_html(section_md: str, entry_images: Dict[str, str]) -> str:
     return _inject_entry_figures(wrapped, entry_images)
 
 
+def _format_sections_summary(meta: Dict[str, Any], compact: bool = False) -> str:
+    """从 frontmatter sections 生成栏目摘要。"""
+    sections_raw = meta.get("sections") or []
+    if not isinstance(sections_raw, list):
+        return ""
+
+    short_labels = {
+        "RSS 精选": "RSS",
+        "GitHub 趋势": "GH",
+        "Hacker News": "HN",
+        "今日洞察": "洞察",
+    }
+    parts: List[str] = []
+    for item in sections_raw:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or "").strip()
+        if not label:
+            continue
+        display = short_labels.get(label, label) if compact else label
+        count = item.get("entry_count", 0)
+        if isinstance(count, int) and count > 0:
+            parts.append(f"{display}·{count}" if compact else f"{display} {count}")
+        else:
+            parts.append(display)
+    return " · ".join(parts)
+
+
+def _build_section_toc(body: str) -> str:
+    """早报四段导航（sticky 锚点）。"""
+    if not has_sentinels(body):
+        return ""
+
+    sections = split_sentinel_sections(body)
+    if len(sections) < 2:
+        return ""
+
+    links: List[str] = []
+    for key, section_md in sections:
+        label = SECTION_LABELS.get(key, key)
+        count = section_md.count("###") if key == "rss" or "###" in section_md else 0
+        count_html = (
+            f'<span class="article-toc__count">{count}</span>' if count else ""
+        )
+        links.append(
+            f'<a class="article-toc__link" href="#board-{html.escape(key)}">'
+            f"{html.escape(label)}{count_html}</a>"
+        )
+
+    inner = "".join(links)
+    return (
+        f'<nav class="article-toc reveal" aria-label="栏目导航">{inner}</nav>'
+    )
+
+
+def _collapse_hn_discussions(section_html: str) -> str:
+    """HN 段：将「讨论总结」之后的内容折叠为 details。"""
+    if not section_html:
+        return section_html
+
+    marker_re = re.compile(
+        r"<p>\s*<strong>💬\s*讨论总结</strong>\s*</p>",
+        re.IGNORECASE,
+    )
+
+    def _fold_block(match: re.Match[str]) -> str:
+        opening, block_body, closing = match.group(1), match.group(2), match.group(3)
+        hit = marker_re.search(block_body)
+        if not hit:
+            return match.group(0)
+        before = block_body[: hit.start()]
+        after = marker_re.sub("", block_body[hit.start() :], count=1)
+        return (
+            f"{opening}{before}"
+            f'<details class="discussion-fold">'
+            f"<summary>💬 讨论总结</summary>"
+            f'<div class="discussion-fold__body">{after}</div>'
+            f"</details>{closing}"
+        )
+
+    return re.sub(
+        r'(<section class="story-block[^"]*"[^>]*>)(.*?)(</section>)',
+        _fold_block,
+        section_html,
+        flags=re.DOTALL,
+    )
+
+
 def _render_article_body(body: str, entry_images: Dict[str, str]) -> str:
     """渲染正文：晚报 flat；早报按 sentinel 分栏。"""
     images = entry_images or {}
@@ -244,8 +332,11 @@ def _render_article_body(body: str, entry_images: Dict[str, str]) -> str:
             inner_html = _section_body_html(inner_md, images)
         else:
             inner_html = _markdown_to_html(inner_md)
+        if key == "hackernews":
+            inner_html = _collapse_hn_discussions(inner_html)
         parts.append(
-            f'<section class="board-section board-{html.escape(key)} reveal">'
+            f'<section class="board-section board-{html.escape(key)} reveal" '
+            f'id="board-{html.escape(key)}">'
             f'<header class="board-section__head">'
             f'<h2 class="board-section__title">{html.escape(label)}</h2>'
             f"</header>"
@@ -279,6 +370,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
     raw = md_path.read_text(encoding="utf-8")
     meta, body = parse_frontmatter(raw)
     title = str(meta.get("title") or SITE_TITLE)
+    head_title = str(meta.get("seotitle") or title).strip() or title
     lead = str(meta.get("lead") or "").strip()
     highlights = normalize_str_list(meta.get("highlights"))
     profile = _profile_label(str(meta.get("profile") or ""), md_path.name)
@@ -295,6 +387,12 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
     if stats_parts:
         pills = "".join(f"<span>{html.escape(p)}</span>" for p in stats_parts)
         stats_html = f'<div class="article-stats">{pills}</div>'
+
+    section_summary = _format_sections_summary(meta)
+    if section_summary:
+        stats_html += (
+            f'<div class="article-sections">{html.escape(section_summary)}</div>'
+        )
 
     highlight_html = ""
     if highlights:
@@ -317,11 +415,12 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
             f"</figure>"
         )
     body_html = _render_article_body(body, entry_images)
+    section_toc = _build_section_toc(body)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  {_html_head(f"{title} · {SITE_TITLE}", css_href, cover_image=cover_image)}
+  {_html_head(f"{head_title} · {SITE_TITLE}", css_href, cover_image=cover_image)}
 </head>
 <body class="article-page">
   <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
@@ -345,6 +444,8 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         {highlight_html}
         {stats_html}
       </header>
+
+      {section_toc}
 
       <div class="article-body">
         {body_html}
@@ -375,6 +476,7 @@ def _load_issue_card(md_path: Path) -> Dict[str, str]:
         "href": f"news-data/{html_name}",
         "entries": str(meta.get("totalEntries") or ""),
         "cover_image": str(meta.get("cover_image") or "").strip(),
+        "section_summary": _format_sections_summary(meta, compact=True),
     }
 
 
@@ -387,7 +489,13 @@ def _render_issue_card(
         excerpt = "点击阅读全文"
     card_class = "issue-card issue-card--featured reveal" if featured else "issue-card reveal"
     entries = issue.get("entries", "")
-    meta_extra = f"{html.escape(entries)} 条精选" if entries else ""
+    section_summary = issue.get("section_summary", "")
+    meta_bits: List[str] = []
+    if entries:
+        meta_bits.append(f"{html.escape(entries)} 条精选")
+    if section_summary:
+        meta_bits.append(html.escape(section_summary))
+    meta_extra = " · ".join(meta_bits)
     footer = f"{meta_extra}{' · ' if meta_extra else ''}阅读全文 →"
     cover = issue.get("cover_image", "")
     cover_block = ""

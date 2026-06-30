@@ -108,9 +108,61 @@ cover_image: "https://img.example/rss.jpg"
     assert "board-section" in html_out
     assert "RSS 精选" in html_out
     assert "GitHub 趋势" in html_out
+    assert "article-toc" in html_out
+    assert 'id="board-rss"' in html_out
     assert "entry-figure" in html_out
     assert "article-cover" in html_out
     assert "<!-- SECTION:" not in html_out
+
+
+def test_build_article_html_seotitle_and_sections(tmp_path):
+    md = tmp_path / "push-seo.md"
+    md.write_text(
+        """---
+title: "很长很长很长的新闻标题用于页面展示"
+seotitle: "短标题"
+sections:
+  - id: rss
+    label: RSS 精选
+    entry_count: 4
+  - id: github
+    label: GitHub 趋势
+    entry_count: 3
+---
+
+<!-- SECTION:rss BEGIN -->
+### 一条
+* 内容
+<!-- SECTION:rss END -->
+
+<!-- SECTION:github BEGIN -->
+## GH
+### 项目
+* 描述
+<!-- SECTION:github END -->
+""",
+        encoding="utf-8",
+    )
+    html_out = build_article_html(md, css_href="../static/pages.css")
+    assert "<title>短标题 · AI Daily</title>" in html_out
+    assert "很长很长很长的新闻标题" in html_out
+    assert "RSS 精选 4" in html_out
+
+
+def test_collapse_hn_discussions():
+    from src.pages.builder import _collapse_hn_discussions
+
+    raw = (
+        '<section class="story-block" id="story-1">'
+        "<h3>标题</h3><ul><li>摘要</li></ul>"
+        "<p><strong>💬 讨论总结</strong></p>"
+        "<ul><li>观点一</li></ul>"
+        "</section>"
+    )
+    folded = _collapse_hn_discussions(raw)
+    assert "discussion-fold" in folded
+    assert "观点一" in folded
+    assert "<p><strong>💬 讨论总结</strong></p>" not in folded
 
 
 def test_latest_update_label_uses_beijing_time(tmp_path):
