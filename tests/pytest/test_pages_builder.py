@@ -42,6 +42,13 @@ def test_parse_push_filename():
     assert "17:00" in parsed["display"]
 
 
+def test_clean_section_title():
+    from src.pages.builder import _clean_section_title
+
+    assert _clean_section_title("1️⃣ Anthropic 洽谈") == "Anthropic 洽谈"
+    assert _clean_section_title("1. AWS 发布") == "AWS 发布"
+
+
 def test_build_article_html(tmp_path):
     md = tmp_path / "push-2026-06-30-18-00-00.md"
     md.write_text(

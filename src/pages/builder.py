@@ -28,6 +28,8 @@ FONT_LINK = (
     "family=Sora:wght@400;500;600&display=swap"
 )
 _H3_SPLIT_RE = re.compile(r"(?=<h3>)")
+_EMOJI_NUM_RE = re.compile(r"^[1-9]️⃣\s*")
+_LEADING_NUM_RE = re.compile(r"^\d+[\.、]\s*")
 
 
 def push_md_to_html_path(push_file: str) -> str:
@@ -122,6 +124,24 @@ def _latest_update_label(md_files: List[Path]) -> str:
     return parsed.get("date", "—")
 
 
+def _clean_section_title(title: str) -> str:
+    """去掉标题前的 emoji 序号或数字编号。"""
+    text = title.strip()
+    text = _EMOJI_NUM_RE.sub("", text)
+    text = _LEADING_NUM_RE.sub("", text)
+    return text.strip()
+
+
+def _normalize_h3_titles(body_html: str) -> str:
+    """清理 h3 标题中的重复序号。"""
+
+    def _repl(match: re.Match[str]) -> str:
+        raw = re.sub(r"<[^>]+>", "", match.group(1))
+        return f"<h3>{html.escape(_clean_section_title(raw))}</h3>"
+
+    return re.sub(r"<h3>(.*?)</h3>", _repl, body_html, flags=re.DOTALL)
+
+
 def _markdown_to_html(body: str) -> str:
     """Markdown 正文转 HTML。"""
     return markdown.markdown(
@@ -137,7 +157,7 @@ def _extract_section_titles(body: str) -> List[str]:
     for line in body.splitlines():
         stripped = line.strip()
         if stripped.startswith("### "):
-            titles.append(stripped[4:].strip())
+            titles.append(_clean_section_title(stripped[4:].strip()))
     return titles
 
 
@@ -148,13 +168,14 @@ def _build_toc_html(titles: List[str]) -> str:
     items = []
     for index, title in enumerate(titles, 1):
         safe = html.escape(title)
+        short = safe if len(title) <= 28 else html.escape(title[:28] + "…")
         items.append(
-            f'<li><a href="#story-{index}"><span>{index:02d}</span>{safe}</a></li>'
+            f'<li><a href="#story-{index}"><span>{index:02d}</span>{short}</a></li>'
         )
-    return f"""<aside class="article-toc reveal" aria-label="本日目录">
-      <p class="toc-label">本日目录</p>
+    return f"""<nav class="article-toc reveal" aria-label="本篇目录">
+      <span class="toc-label">目录</span>
       <ol>{"".join(items)}</ol>
-    </aside>"""
+    </nav>"""
 
 
 def _enhance_article_body(body_html: str) -> str:
@@ -210,7 +231,6 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         stats_parts.append(f"{source_count} 个来源")
     if total_entries:
         stats_parts.append(f"{total_entries} 条精选")
-    stats_parts.append(profile)
     stats_html = ""
     if stats_parts:
         pills = "".join(f"<span>{html.escape(p)}</span>" for p in stats_parts)
@@ -226,7 +246,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
 
     lead_html = f'<p class="article-lead">{html.escape(lead)}</p>' if lead else ""
     toc_html = _build_toc_html(_extract_section_titles(body))
-    body_html = _enhance_article_body(_markdown_to_html(body))
+    body_html = _enhance_article_body(_normalize_h3_titles(_markdown_to_html(body)))
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -236,30 +256,31 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
 <body class="article-page">
   <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
   <div class="site-shell">
-    <nav class="site-nav">
+    <nav class="site-nav site-nav--compact">
       <div class="site-brand">
         <a href="../index.html">{html.escape(SITE_TITLE)}</a>
       </div>
       <a class="back-link" href="../index.html">{SITE_BACK_LINK}</a>
     </nav>
 
-    <header class="article-hero reveal">
-      <div class="article-hero__top">
-        <time datetime="{html.escape(article_time)}">{html.escape(article_time)}</time>
-        <span class="article-edition">{html.escape(profile)}</span>
-      </div>
-      <h1>{html.escape(title)}</h1>
-      {lead_html}
-      {highlight_html}
-      {stats_html}
-    </header>
+    <article class="article-main">
+      <header class="article-hero reveal">
+        <div class="article-hero__top">
+          <time datetime="{html.escape(article_time)}">{html.escape(article_time)}</time>
+          <span class="article-edition">{html.escape(profile)}</span>
+        </div>
+        <h1>{html.escape(title)}</h1>
+        {lead_html}
+        {highlight_html}
+        {stats_html}
+      </header>
 
-    <div class="article-layout">
       {toc_html}
+
       <div class="article-body">
         {body_html}
       </div>
-    </div>
+    </article>
 
     <footer class="site-footer">
       {html.escape(SITE_FOOTER)}
