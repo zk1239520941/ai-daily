@@ -2579,6 +2579,202 @@
       "score": 30,
       "summary": "马东锡 NLP 转发一条推文。",
       "fetched_at": "2026-07-01T04:52:25.778955+08:00"
+    },
+    {
+      "title": "What's new in Claude Sonnet 5",
+      "link": "https://simonwillison.net/2026/Jun/30/claude-sonnet-5/#atom-everything",
+      "published": "2026-07-01T05:23:02+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[What's new in Claude Sonnet 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5)**\n\nClaude Sonnet 5 came out [this morning](https://www.anthropic.com/news/claude-sonnet-5). I always head straight for the \"what's new\" developer docs because they tend to have more actionable information than the official announcement post.\n\nAnthropic say of Sonnet 5 that \"its performance is close to that of Opus 4.8, but at lower prices\". The [system card](https://www-cdn.anthropic.com/9e6a1044980d8c4ed85669faf9c2a8342e2e9f1e/Claude%20Sonnet%205%20System%20Card.pdf) helps explain how they were able to release the model without being blocked by the US government:\n\n> Sonnet 5 is significantly less capable at cyber tasks than Mythos 5: its safeguards are thus similar to those we apply to Opus 4.7 and Opus 4.8 (models that are more capable than Sonnet 5 but much less capable than Mythos 5).\n\nOf note from the \"what's new\" API changes:\n\n* Sampling parameters `temperature`, `top_p`, `top_k` are no longer supported.\n* It has a 1 million token context window and 128,000 maximum output tokens.\n* It features \"the same set of tools and platform features as Claude Sonnet 4.6\"\n* Adaptive thinking is on by default, unless you specify `\"thinking\": {type: \"disabled\"}`.\n* The pricing is the same as Sonnet 4.6: $3/million input, $15/million input, with an introductory discount to $2/$10 until 31st August. But...\n* The model has a new tokenizer, where \"The same input text produces approximately 30% more tokens than on Claude Sonnet 4.6.\" - effectively a 30% price increase.\n\nI used my [Claude Token Counter](https://tools.simonwillison.net/claude-token-counter) tool to try out the new tokenizer. Here are my results for several larger documents:\n\n| Document | Sonnet 4.6 | Opus 4.7 | Sonnet 5 |\n| --- | --- | --- | --- |\n| [Universal Declaration of Human Rights (English)](https://github.com/simonw/udhr-markdown/blob/main/declarations/eng.md) | **2,356** | **3,347** 1.42x | **3,341** 1.42x |\n| [Universal Declaration of Human Rights (Spanish)](https://github.com/simonw/udhr-markdown/blob/main/declarations/spa.md) | **3,572** | **4,753** 1.33x | **4,747** 1.33x |\n| [Universal Declaration of Human Rights (Chinese, Mandarin Simplified)](https://github.com/simonw/udhr-markdown/blob/main/declarations/cmn_hans.md) | **3,334** | **3,366** 1.01x | **3,360** 1.01x |\n| [sqlite\\_utils/db.py](https://github.com/simonw/sqlite-utils/blob/79117b9d110d72f46dab5fe2cda412ff4789ab55/sqlite_utils/db.py) (4,279 lines of Python) | **44,014** | **56,118** 1.28x | **56,113** 1.27x |\n\nSo the new token is roughly 1.4x times more expensive for English, 1.33x for Spanish, 1.28x for Python code and effectively the same cost for Simplified Mandarin.\n\nHere's [the pelican](https://gist.github.com/simonw/a89e756b621a31e8ffc210e3428efa77). It's nothing to write home about. Sonnet 5 thinks it looks like a goose.\n\n![Illustration of a white goose riding a bicycle, with one wing extended forward to grip the handlebar, set against a plain white background with a brown ground line.](https://static.simonwillison.net/static/2026/sonnet-5-pelican.png)\n\nVia [Hacker News](https://news.ycombinator.com/item?id=48736605)\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [anthropic](https://simonwillison.net/tags/anthropic), [claude](https://simonwillison.net/tags/claude), [llm-pricing](https://simonwillison.net/tags/llm-pricing), [pelican-riding-a-bicycle](https://simonwillison.net/tags/pelican-riding-a-bicycle), [llm-release](https://simonwillison.net/tags/llm-release)",
+      "tags": [
+        "Claude Sonnet 5",
+        "新tokenizer",
+        "定价"
+      ],
+      "score": 89,
+      "summary": "Anthropic发布Claude Sonnet 5，性能接近Opus 4.8，新tokenizer使相同文本token数增加30%。",
+      "fetched_at": "2026-07-01T06:09:32.325450+08:00"
+    },
+    {
+      "title": "Gemini Spark updates: macOS launch, connected apps and more",
+      "link": "https://blog.google/innovation-and-ai/products/gemini-app/gemini-spark-updates-june-2026/",
+      "published": "2026-07-01T05:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Spark.max-600x600.format-webp.webp)The latest Gemini Spark updates brings Spark to the macOS app, connects with your favorite apps and tracks topics in real time.",
+      "tags": [
+        "Gemini Spark",
+        "macOS",
+        "连接应用"
+      ],
+      "score": 82,
+      "summary": "Google发布Gemini Spark更新，包括macOS应用、连接应用和实时话题追踪。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Spark.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-01T06:09:32.325529+08:00"
+    },
+    {
+      "title": "Ways to use Motion in Figma, with @kellaywho and Priscilla Choi\n\n0:00 Intro\n0:25 Adding Motion with ...",
+      "link": "https://x.com/figma/status/2072058024106336473",
+      "published": "2026-07-01T04:41:44+08:00",
+      "source": "Figma(@figma)",
+      "content": "Ways to use Motion in Figma, with [@kellaywho](https://x.com/kellaywho) and Priscilla Choi  \n  \n0:00 Intro  \n0:25 Adding Motion with Figma agent  \n2:56 Adding Motion with keyframes  \n4:44 Creating variable types  \n5:55 Commenting and multiplayer  \n6:28 Adding 3D transform effects (coming soon)  \n8:33 Animating a 3D transformed asset (coming soon)  \n9:09 Exporting  \n10:01 Outro\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072043141268697088/vid/avc1/1920x1080/f7CkMdBg1mRsaCgX.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/figma/status/2072058024106336473/video/1)\n\n💬1🔄2❤️30👀4004📊10",
+      "tags": [
+        "Figma Motion",
+        "Figma agent",
+        "3D变换"
+      ],
+      "score": 65,
+      "summary": "Figma发布Motion功能教程，涵盖Figma agent、关键帧、3D变换等。",
+      "fetched_at": "2026-07-01T06:09:32.325593+08:00"
+    },
+    {
+      "title": "So, we are back to 2016 after all",
+      "link": "https://x.com/julien_c/status/2072061514752680364",
+      "published": "2026-07-01T04:55:36+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "So, we are back to 2016 after all\n\n![Soumith Chintala](https://pbs.twimg.com/profile_images/959995586689691648/DAFep10r_normal.jpg)\n\nSoumith Chintala@soumithchintala\n\nBridgewater, one of the worlds largest hedge funds, a Tinker customer talks through how they've carefully fine-tuned a model focused on what makes interesting financial news.  \nTheir fine-tuned model is more effective and cheaper than any frontier model.\n\n![Tweet Image](https://pbs.twimg.com/media/HMFcQtFXIAA-LJ1.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/soumithchintala/status/2072052228605509933)\n\n💬1🔄1❤️12👀825📊3",
+      "tags": [
+        "Bridgewater",
+        "微调模型",
+        "金融新闻"
+      ],
+      "score": 60,
+      "summary": "Hugging Face CEO转述Bridgewater使用微调模型分析金融新闻，效果优于前沿模型。",
+      "fetched_at": "2026-07-01T06:09:32.325653+08:00"
+    },
+    {
+      "title": "For years, the PM job drifted toward coordinating and aligning people and their work. That version o...",
+      "link": "https://x.com/lennysan/status/2072056417692058022",
+      "published": "2026-07-01T04:35:21+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "For years, the PM job drifted toward coordinating and aligning people and their work. That version of the role is fading.   \n  \nToday, the best PMs at the best companies are prototyping with real code, querying data conversationally with MCP, confidently running coding AI agents, and finding countless ways to increase their leverage with AI.  \n  \nIn today's highly tactical guest post, Colin Matthews (my new Head of Education!) shares a forward-looking framework on how the most AI-native PMs are operating in mid-2026, and how you can create much more leverage for yourself with AI.  \n  \nDon't miss this one: [lennysnewsletter.com/p/how-top-pms-…](https://www.lennysnewsletter.com/p/how-top-pms-increase-their-leverage)\n\n![Tweet Image](https://pbs.twimg.com/media/HMFrhuqaoAAxZm9.jpg)\n\n💬3🔄5❤️60👀4733📊17",
+      "tags": [
+        "AI-native PM",
+        "MCP",
+        "原型"
+      ],
+      "score": 65,
+      "summary": "Lenny Rachitsky分享AI原生PM如何利用MCP和AI代理提升杠杆。",
+      "fetched_at": "2026-07-01T06:09:32.325755+08:00"
+    },
+    {
+      "title": "npx skills add google-gemini/gemini-skills --skill gemini-omni-flash-api",
+      "link": "https://x.com/_philschmid/status/2072058527364092366",
+      "published": "2026-07-01T04:43:44+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "npx skills add google-gemini/gemini-skills --skill gemini-omni-flash-api\n\n![Tweet Image](https://pbs.twimg.com/media/HMFuPdQaoAAyjMM.png)\n\n![Philipp Schmid](https://pbs.twimg.com/profile_images/2066207048648323072/u-UPEKOH_normal.jpg)\n\nPhilipp Schmid@\\_philschmid\n\nWe published a skill for Omni Flash so you can bootstrap video editing into your agent:  \n  \n```  \nnpx skills add google-gemini/gemini-skills --skill gemini-omni-flash-api  \n```  \n  \nThe skill covers the core workflows:  \n- Text to video  \n- Image references to video  \n- First frame to video  \n- Conversational video editing\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072057433804161024/vid/avc1/1280x1440/rtJm3Nh8iMrsWKin.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_philschmid/status/2072057651677257803/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/_philschmid/status/2072057651677257803)\n\n💬3🔄0❤️6👀972📊3",
+      "tags": [
+        "Gemini Omni Flash",
+        "视频编辑",
+        "skill"
+      ],
+      "score": 75,
+      "summary": "Philipp Schmid发布Gemini Omni Flash API skill，支持文本/图像转视频和对话式编辑。",
+      "fetched_at": "2026-07-01T06:09:32.325843+08:00"
+    },
+    {
+      "title": "I'm excited to see what y'all build now it's in the API. The editing capabilities were made for crea...",
+      "link": "https://x.com/_philschmid/status/2072057652952404114",
+      "published": "2026-07-01T04:40:16+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "I'm excited to see what y'all build now it's in the API. The editing capabilities were made for creative pipelines. [github.com/google-gemini/…](http://github.com/google-gemini/gemini-skills)\n\n💬0🔄1❤️9👀438📊2",
+      "tags": [
+        "Gemini Omni Flash",
+        "API",
+        "创意管线"
+      ],
+      "score": 60,
+      "summary": "Philipp Schmid对Gemini Omni Flash API发布表示兴奋，强调编辑能力适用于创意管线。",
+      "fetched_at": "2026-07-01T06:09:32.325906+08:00"
+    },
+    {
+      "title": "We published a skill for Omni Flash so you can bootstrap video editing into your agent:\n\n```\nnpx ski...",
+      "link": "https://x.com/_philschmid/status/2072057651677257803",
+      "published": "2026-07-01T04:40:15+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "We published a skill for Omni Flash so you can bootstrap video editing into your agent:  \n  \n```  \nnpx skills add google-gemini/gemini-skills --skill gemini-omni-flash-api  \n```  \n  \nThe skill covers the core workflows:  \n- Text to video  \n- Image references to video  \n- First frame to video  \n- Conversational video editing\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072057433804161024/vid/avc1/1280x1440/rtJm3Nh8iMrsWKin.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_philschmid/status/2072057651677257803/video/1)\n\n💬3🔄3❤️24👀2340📊12",
+      "tags": [
+        "Gemini Omni Flash",
+        "视频编辑",
+        "skill"
+      ],
+      "score": 75,
+      "summary": "Philipp Schmid发布Gemini Omni Flash skill，支持文本/图像/首帧转视频及对话式编辑。",
+      "fetched_at": "2026-07-01T06:09:32.325963+08:00"
+    },
+    {
+      "title": "It seems to me that most people are hooked on news items that last about a day or two and are then f...",
+      "link": "https://x.com/RayDalio/status/2072057516415172787",
+      "published": "2026-07-01T04:39:43+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "It seems to me that most people are hooked on news items that last about a day or two and are then forgotten about, as other news items replace them, while failing to see how things are evolving and why. That’s not good for anyone.  \n  \nThere are big cycles unfolding almost exactly how they have repeatedly unfolded in the past, and they are being missed. If you’re interested in seeing these big cycles presented in an entertaining way, I am offering an overview of them here in my 5-minute animated video, Principles for Dealing with The Changing World Order. And if you'd like to see a more complete picture, you can watch the full 45-minute version here: [youtube.com/watch?v=xguam0…](https://www.youtube.com/watch?v=xguam0TKMw8&t=751s)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072057423448137728/vid/avc1/1080x1920/H3_-mxfxsD-nVnUt.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/RayDalio/status/2072057516415172787/video/1)\n\n💬15🔄23❤️132👀28965📊37",
+      "tags": [
+        "Ray Dalio",
+        "周期",
+        "视频"
+      ],
+      "score": 30,
+      "summary": "Ray Dalio推广其关于世界秩序变化的动画视频，非AI相关。",
+      "fetched_at": "2026-07-01T06:09:32.326018+08:00"
+    },
+    {
+      "title": "TryNearby's @FaZeApex went from making YouTube videos at 14 to co-building FaZe Clan, and now he's c...",
+      "link": "https://x.com/Replit/status/2072054883784491481",
+      "published": "2026-07-01T04:29:15+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "TryNearby's [@FaZeApex](https://x.com/FaZeApex) went from making YouTube videos at 14 to co-building FaZe Clan, and now he's chasing his next big idea. Watch the full interview on YouTube to hear how his creator roots are shaping what he builds next.  \n  \n[youtu.be/0dDMmST3rQY](https://youtu.be/0dDMmST3rQY)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072054297500557313/vid/avc1/1080x1920/dcNWOQDPj8qHftZn.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2072054883784491481/video/1)\n\n💬1🔄2❤️17👀4160📊4",
+      "tags": [
+        "Replit",
+        "FaZeApex",
+        "访谈"
+      ],
+      "score": 40,
+      "summary": "Replit发布FaZeApex访谈视频，非AI相关。",
+      "fetched_at": "2026-07-01T06:09:32.326072+08:00"
+    },
+    {
+      "title": "注塑的tolerance有多难调？当然，3D打印的tolerance也是个谜。这0 tolerance, 原本准备橡皮锤子敲进去，居然如此顺滑。",
+      "link": "https://x.com/feltanimalworld/status/2072068575020351528",
+      "published": "2026-07-01T05:23:40+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "注塑的tolerance有多难调？当然，3D打印的tolerance也是个谜。这0 tolerance, 原本准备橡皮锤子敲进去，居然如此顺滑。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072068547501588480/vid/avc1/720x1280/p9UD4vxncFiieOUi.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/feltanimalworld/status/2072068575020351528/video/1)\n\n💬0🔄0❤️0👀90",
+      "tags": [
+        "注塑",
+        "3D打印",
+        "公差"
+      ],
+      "score": 10,
+      "summary": "用户分享注塑和3D打印公差体验，非AI相关。",
+      "fetched_at": "2026-07-01T06:09:32.326126+08:00"
+    },
+    {
+      "title": "people are sleeping on the mega-release happening every week in AI x Science on Hugging Face\n\nthis o...",
+      "link": "https://x.com/Thom_Wolf/status/2072057144996921398",
+      "published": "2026-07-01T04:38:14+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "people are sleeping on the mega-release happening every week in AI x Science on Hugging Face  \n  \nthis one is 80TB of astrophysics data - 80TB seriously  \n  \n=> <https://t.co/e4TGUeg61o>\n\n![Tweet Image](https://pbs.twimg.com/media/HMEziIUaUAM8YWm.jpg)\n\n![Georgia Channing](https://pbs.twimg.com/profile_images/1963570598145138688/ncCX7vvX_normal.jpg)\n\nGeorgia Channing@cgeorgiaw\n\nSeems like no one's noticed the 80TB of astrophysics data from 30+ sources that just dropped on [@huggingface](https://x.com/huggingface).  \n  \n...and you only need ~4GB of RAM to load it.   \n  \nWe're talking over 80TB of galaxy imagery taken across the spectrum, spectra of galaxies and stars, time series of variable stars, and a whole zoo of assorted measurements and physical data.   \n  \nAnd all of it can now be wrangled on your laptop, thanks to Multimodal Universe's just released cross-matching. SDSS x Gaia means you can match 800k objects against 122M objects, and it never climbs above ~4GB of RAM.  \n  \nHuge congrats to [@smith42mike](https://x.com/smith42mike) for leading this and making the world of astro accessible to probably 10,000x more people. Let's discover some shit\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071974560602185728/vid/avc1/472x582/KClLBu1oXWOuA171.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/cgeorgiaw/status/2071975400549351783/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/cgeorgiaw/status/2071975400549351783)\n\n💬0🔄1❤️6👀1772📊1",
+      "tags": [
+        "Hugging Face",
+        "天体物理",
+        "80TB"
+      ],
+      "score": 75,
+      "summary": "Hugging Face发布80TB天体物理数据集，支持低内存加载。",
+      "fetched_at": "2026-07-01T06:09:32.326179+08:00"
+    },
+    {
+      "title": "Incredible use of AI and FOIA. Congrats @rmcentush \n\n(Shar pei pug, Aphrodite)",
+      "link": "https://x.com/andrewchen/status/2072055293274685835",
+      "published": "2026-07-01T04:30:53+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "Incredible use of AI and FOIA. Congrats [@rmcentush](https://x.com/rmcentush)   \n  \n(Shar pei pug, Aphrodite)\n\n![Ryan McEntush](https://pbs.twimg.com/profile_images/1872019742434979841/POJCZbND_normal.jpg)\n\nRyan McEntush@rmcentush\n\nWe FOIA’d every San Francisco dog license from the last decade:   \n  \n82,070 license events, 51,379 dogs, 13,525 names, 412 breeds, 26 neighborhoods.  \n  \nThen we turned it into a data story: The Dogs of San Francisco.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEdQlGWgAEmwOM.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rmcentush/status/2071972075217301989)\n\n💬1🔄0❤️4👀2486📊1",
+      "tags": [
+        "AI",
+        "FOIA",
+        "狗许可证"
+      ],
+      "score": 65,
+      "summary": "利用AI和FOIA分析旧金山狗许可证数据，生成数据故事。",
+      "fetched_at": "2026-07-01T06:09:32.326231+08:00"
     }
   ]
 }
