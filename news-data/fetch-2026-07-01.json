@@ -1210,6 +1210,916 @@
       "score": 50,
       "summary": "歸藏发布CodePilot 0.5.6.3更新，新增ClinePass和Opencode GO套餐。",
       "fetched_at": "2026-07-01T00:17:07.740110+08:00"
+    },
+    {
+      "title": "Build generative UI for AI agents on Amazon Bedrock AgentCore with the AG-UI protocol",
+      "link": "https://aws.amazon.com/blogs/machine-learning/build-generative-ui-for-ai-agents-on-amazon-bedrock-agentcore-with-the-ag-ui-protocol/",
+      "published": "2026-07-01T00:46:17+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "AI agents can do more than chat. With the right protocol, an agent can render an interactive chart inline in your conversation, update a shared canvas in real time, or pause mid-execution to ask for your approval before proceeding. These interactions (generative UI, shared state, and human-in-the-loop) need a standard way for agent backends to communicate dynamic events to frontends.\n\n[AG-UI](https://docs.ag-ui.com/introduction) (Agent-User Interaction Protocol) is an open protocol that defines this standard. It works with multiple agent frameworks (Strands Agents, LangGraph, CrewAI) and frontend libraries (React, Angular, Vue). With AG-UI, your agent code and your frontend code stay decoupled. You pick the best framework for your backend and the best library for your frontend, and AG-UI connects them.\n\n[Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/) is part of the [Amazon Bedrock](https://aws.amazon.com/bedrock/) family of services for generative AI. AgentCore is an agentic platform for building, deploying, and operating AI agents securely at scale, using any framework and any model.\n\nThis post walks through how AG-UI integrates into the [Fullstack AgentCore Solution Template (FAST)](https://github.com/awslabs/fullstack-solution-template-for-agentcore) to build interactive agent frontends on Amazon Bedrock AgentCore. We then show how [CopilotKit](https://copilotkit.ai/) extends this with generative UI, shared state, and human-in-the-loop interactions, all deployed on Amazon Bedrock AgentCore.\n\n## Overview of solution\n\nAmazon Bedrock AgentCore Runtime provides a secure, serverless, and purpose-built hosting environment for deploying and running AI agents or tools. AgentCore Runtime supports several agent protocols. Model Context Protocol (MCP) connects agents to tools, Agent2Agent (A2A) connects agents to other agents, and AG-UI connects agents to users. When you deploy an agent container with the AG-UI protocol flag, AgentCore acts as a transparent proxy. It handles authentication (Signature Version 4 [SigV4] or OAuth 2.0 through Amazon Cognito), session isolation, scaling, and observability. Your container exposes `POST /invocations` for AG-UI requests and `GET /ping` for health checks on port 8080. AgentCore passes requests through unchanged. For more details, see [Deploy AGUI servers in AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-agui.html).\n\nFAST is a ready-to-deploy starter project. It connects AgentCore Runtime, Gateway, Identity, Memory, and Code Interpreter with a React frontend and Amazon Cognito authentication, all defined with AWS Cloud Development Kit (AWS CDK). It ships with agent patterns for Strands Agents, LangGraph, and the Claude Agent SDK. FAST v0.4.1 added two AG-UI patterns (`agui-strands-agent` and `agui-langgraph-agent`) that share a single frontend parser. For a full walkthrough of FAST’s architecture and deployment, see [Accelerate agentic application development with a full-stack starter template for Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/machine-learning/accelerate-agentic-application-development-with-a-full-stack-starter-template-for-amazon-bedrock-agentcore/).\n\nThe solution has two layers. **AG-UI in FAST** provides two new agent patterns and a single frontend parser that handles both, so the frontend doesn’t need to know which agent framework is running. **CopilotKit + FAST** is a standalone sample that replaces FAST’s built-in chat UI with CopilotKit. It adds generative UI (inline charts and components), bidirectional shared state (a todo canvas), and human-in-the-loop interactions (a meeting scheduler that pauses the agent and waits for your input). Both layers deploy on AgentCore Runtime with Cognito authentication, AgentCore Gateway for MCP tool connectivity, and AgentCore Memory for persistent conversations.\n\n![Architecture overview. The frontend communicates with AgentCore Runtime through AG-UI events. AgentCore handles auth, scaling, and session isolation. The agent runtime translates framework-specific events into the AG-UI protocol.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/25/ml-20863-img1.png)\n\nArchitecture overview. The frontend communicates with AgentCore Runtime through AG-UI events. AgentCore handles auth, scaling, and session isolation. The agent runtime translates framework-specific events into the AG-UI protocol.\n\n## Walkthrough\n\nThis walkthrough has two parts. First, we show how the AG-UI patterns work in FAST and how a single frontend parser handles both Strands and LangGraph backends. Second, we deploy the CopilotKit sample to demonstrate generative UI, shared state, and human-in-the-loop on AgentCore.\n\nSource code:\n\n* [FAST repository (with AG-UI patterns)](https://github.com/awslabs/fullstack-solution-template-for-agentcore).\n* [CopilotKit + FAST sample](https://github.com/aws-samples/sample-FAST-applications/tree/main/samples/copilotkit-generative-ui).\n\n### Prerequisites\n\nFor this walkthrough, you should have the following prerequisites:\n\n* An [AWS account](https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fportal.aws.amazon.com%2Fbilling%2Fsignup%2Fresume&client_id=signup) with permissions for AWS CloudFormation, Amazon Elastic Container Registry (Amazon ECR), Amazon Bedrock AgentCore, Amazon Cognito, and AWS Amplify.\n* [AWS Command Line Interface (AWS CLI) v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) installed and configured.\n* [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting-started.html) installed.\n* [Node.js 18 or later](https://nodejs.org/) and Python 3.11 or later.\n* Docker running, for container builds.\n* Model access enabled in the Amazon Bedrock console for the model the agent uses.\n\n### AG-UI in FAST: One parser, two frameworks\n\nThe `agui-strands-agent` pattern wraps a Strands Agent in `StrandsAgent` from the `ag-ui-strands` library. The wrapper translates Strands streaming events into AG-UI Server-Sent Events automatically.\n\nEach request creates a fresh agent with Gateway MCP tools. AgentCore Memory is attached per thread through a session-manager provider, so conversation history persists across AgentCore Runtime scaling. Memory is opt-in: the provider returns `None` when `MEMORY_ID` is unset:\n\n```\n# patterns/agui-strands-agent/agent.py\nfrom ag_ui_strands import StrandsAgent, StrandsAgentConfig\nfrom bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext\nfrom strands import Agent\n\napp = BedrockAgentCoreApp()\n\n# Build the model and Code Interpreter once at module load\nMODEL = BedrockModel(model_id=\"us.anthropic.claude-sonnet-4-5-20250929-v1:0\")\nCODE_INTERPRETER = StrandsCodeInterpreterTools(REGION).execute_python_securely\n\n@app.entrypoint\nasync def invocations(payload: dict, context: RequestContext):\n    input_data = RunAgentInput.model_validate(payload)\n    actor_id = extract_user_id_from_context(context)\n    # Fresh agent per request --- picks up the caller's identity and tools\n    agent = Agent(\n        model=MODEL,\n        system_prompt=SYSTEM_PROMPT,\n        tools=[create_gateway_mcp_client(actor_id), CODE_INTERPRETER],\n        session_manager=get_memory_session_manager(actor_id, session_id),\n    )\n    agui_agent = StrandsAgent(\n        agent=agent,\n        name=\"agui_strands_agent\",\n        config=StrandsAgentConfig(\n            session_manager_provider=make_memory_provider(actor_id),\n            replay_history_into_strands=False,\n        ),\n    )\n    async for event in agui_agent.run(input_data):\n        yield event.model_dump(mode=\"json\", by_alias=True, exclude_none=True)\n```\n\n`BedrockAgentCoreApp` reads the AgentCore Runtime headers (`WorkloadAccessToken`, `Authorization`, `Session-Id`) and populates context variables, so Gateway authentication and Memory work the same way as the HTTP patterns.\n\nThe `agui-langgraph-agent` pattern uses `LangGraphAGUIAgent` from the `copilotkit` library. It builds the compiled graph fresh on every request, so each invocation gets MCP tools scoped to the caller. AgentCore Memory is opt-in here too: the helper returns `None` when `MEMORY_ID` is unset, so you can run the pattern without provisioning Memory:\n\n```\n# patterns/agui-langgraph-agent/agent.py\nfrom copilotkit import CopilotKitMiddleware, LangGraphAGUIAgent\n\nasync def build_graph(actor_id: str):\n    \"\"\"Build a fresh LangGraph compiled graph with Gateway tools.\"\"\"\n    mcp_client = await create_gateway_mcp_client(actor_id)\n    tools = await mcp_client.get_tools()\n    tools.append(CODE_INTERPRETER)\n    return create_agent(\n        model=MODEL,\n        tools=tools,\n        checkpointer=get_memory_saver(),  # None when MEMORY_ID is unset\n        middleware=[CopilotKitMiddleware()],\n        system_prompt=SYSTEM_PROMPT,\n    )\n\n@app.entrypoint\nasync def invocations(payload: dict, context: RequestContext):\n    input_data = RunAgentInput.model_validate(payload)\n    actor_id = extract_user_id_from_context(context)\n    graph = await build_graph(actor_id)\n    agui_agent = LangGraphAGUIAgent(\n        name=\"agui_langgraph_agent\",\n        graph=graph,\n        config={\"configurable\": {\"actor_id\": actor_id}},\n    )\n    async for event in agui_agent.run(input_data):\n        yield event.model_dump(mode=\"json\", by_alias=True, exclude_none=True)\n```\n\nBoth patterns produce the same AG-UI events. The protocol defines a typed event stream over Server-Sent Events. For example, a single tool call produces this sequence:\n\n```\ndata: {\"type\": \"RUN_STARTED\", \"threadId\": \"t1\", \"runId\": \"r1\"}\ndata: {\"type\": \"TEXT_MESSAGE_START\", \"messageId\": \"m1\", \"role\": \"assistant\"}\ndata: {\"type\": \"TEXT_MESSAGE_CONTENT\", \"messageId\": \"m1\", \"delta\": \"Let me check \"}\ndata: {\"type\": \"TEXT_MESSAGE_CONTENT\", \"messageId\": \"m1\", \"delta\": \"that for you.\"}\ndata: {\"type\": \"TEXT_MESSAGE_END\", \"messageId\": \"m1\"}\ndata: {\"type\": \"TOOL_CALL_START\", \"toolCallId\": \"tc1\", \"toolCallName\": \"get_weather\"}\ndata: {\"type\": \"TOOL_CALL_ARGS\", \"toolCallId\": \"tc1\", \"delta\": \"{\\\"location\\\": \\\"Seattle\\\"}\"}\ndata: {\"type\": \"TOOL_CALL_END\", \"toolCallId\": \"tc1\"}\ndata: {\"type\": \"TOOL_CALL_RESULT\", \"toolCallId\": \"tc1\", \"content\": \"{\\\"temp\\\": 55}\"}\ndata: {\"type\": \"RUN_FINISHED\", \"threadId\": \"t1\", \"runId\": \"r1\"}\n```\n\nThe frontend parser maps each event to a frontend action:\n\n```\n// frontend/src/lib/agentcore-client/parsers/agui.ts\nexport const parseAguiChunk: ChunkParser = (line, callback) => {\n  if (!line.startsWith(\"data: \")) return;\n  const json = JSON.parse(line.substring(6).trim());\n  switch (json.type) {\n    case \"TEXT_MESSAGE_CONTENT\":\n      callback({ type: \"text\", content: json.delta ?? \"\" });\n      break;\n    case \"TOOL_CALL_START\":\n      callback({ type: \"tool_use_start\", toolUseId: json.toolCallId, name: json.toolCallName });\n      break;\n    case \"TOOL_CALL_RESULT\":\n      callback({ type: \"tool_result\", toolUseId: json.toolCallId, result: json.content ?? \"\" });\n      break;\n    case \"RUN_FINISHED\":\n      callback({ type: \"result\", stopReason: \"end_turn\" });\n  }\n};\n```\n\nCompare this to the HTTP patterns, where Strands, LangGraph, and Claude-agent-sdk each need a separate parser to handle their different streaming formats. With AG-UI, the backend framework is abstracted away. You can swap `agui-strands-agent` for `agui-langgraph-agent` in your configuration and the frontend doesn’t change.\n\nTo deploy, set the pattern in `infra-cdk/config.yaml` and run CDK:\n\n```\nbackend:\n  pattern: agui-strands-agent  # or agui-langgraph-agent\n  deployment_type: docker\n```\n\n```\ncd infra-cdk\ncdk deploy --require-approval never\npython3 ../scripts/deploy-frontend.py\n```\n\n### CopilotKit + FAST: Generative UI, shared state, and human-in-the-loop\n\nThe base FAST frontend provides a functional chat interface, but AG-UI supports much richer interactions: agents rendering custom UI components, syncing state with the frontend, and pausing for user input mid-execution. CopilotKit is a React library built specifically for these patterns. The CopilotKit team built a [sample application](https://github.com/aws-samples/sample-FAST-applications/tree/main/samples/copilotkit-generative-ui) on top of FAST that demonstrates these capabilities on AgentCore. It includes both LangGraph and Strands agent patterns, and you pick one at deploy time.\n\nGenerative UI spans a spectrum from high frontend control to high agent freedom. This sample sits at the controlled end: the frontend owns prebuilt React components, and the agent chooses which to render and supplies the data over AG-UI events. Further along the spectrum, agents return declarative UI descriptions that the frontend renders, or full UI surfaces that the frontend embeds. AG-UI carries all three, because it standardizes the event and state stream rather than the UI itself. The more freedom you hand the agent, the more you take on: open-ended surfaces need sandboxing and input validation.\n\n![The CopilotKit sample architecture. The CopilotKit Runtime Lambda acts as a server-side bridge between the browser and AgentCore Runtime, handling AG-UI event parsing, generative UI routing, and authentication forwarding.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/25/ml-20863-img2-2.png)\n\nThe CopilotKit sample architecture. The CopilotKit Runtime Lambda acts as a server-side bridge between the browser and AgentCore Runtime, handling AG-UI event parsing, generative UI routing, and authentication forwarding.\n\n#### Generative UI: Agents render React components\n\nWith CopilotKit, the agent renders custom React components inline in the chat, not only text. The frontend registers components that the agent can invoke through AG-UI tool call events:\n\n```\n// Register a pie chart the agent can render\nuseComponent({\n  name: \"pieChart\",\n  description: \"Displays data as a pie chart.\",\n  parameters: PieChartPropsSchema,\n  render: PieChart,\n});\n```\n\nWhen the agent calls the `pieChart` tool, CopilotKit intercepts the `TOOL_CALL_START` and `TOOL_CALL_ARGS` events and renders the `PieChart` component directly in the conversation. The agent first calls a `query_data` tool to fetch data from a sample comma-separated values (CSV) file, then passes the results to the chart component.\n\n#### Shared state: A todo canvas synced with the agent\n\nThe sample includes a todo canvas that stays in sync between the agent and the UI bidirectionally. When you tell the agent “Add three tasks: design the API, write tests, and deploy to staging,” the agent calls `manage_todos` and the canvas updates in real time through AG-UI `STATE_SNAPSHOT` events. You can also edit todos directly in the UI. The agent sees the updated state on its next turn because the Strands pattern injects the current todos into the system prompt:\n\n```\ndef state_context_builder(state: dict) -> str:\n    todos = state.get(\"todos\", [])\n    if todos:\n        return f\"\\nCurrent todos:\\n{json.dumps(todos, indent=2)}\"\n    return \"\"\n```\n\n#### Human-in-the-loop: The agent pauses and waits\n\nThe sample demonstrates a meeting scheduler where the agent pauses mid-execution and renders a time picker. The user selects a time, and the agent continues with that selection:\n\n```\nuseHumanInTheLoop({\n  name: \"scheduleTime\",\n  description: \"Schedule a meeting with the user.\",\n  parameters: z.object({\n    reasonForScheduling: z.string(),\n    meetingDuration: z.number(),\n  }),\n  render: ({ respond, status, args }) => (\n    <MeetingTimePicker status={status} respond={respond} {...args} />\n  ),\n});\n```\n\nThis works through AG-UI’s tool call flow: the agent emits `TOOL_CALL_START` for `scheduleTime`, CopilotKit renders the picker instead of executing a backend tool, and the user’s response flows back as a `TOOL_CALL_RESULT`.\n\n[\n\n](https://d2908q01vomqb2.cloudfront.net/artifacts/DBSBlogs/ML-20863/output_progressive.mp4?_=1)\n\n#### Deploying the CopilotKit sample\n\nClone the FAST Samples repository and deploy:\n\n```\ngit clone https://github.com/aws-samples/sample-FAST-applications.git\ncd sample-FAST-applications/samples/copilotkit-generative-ui\ncp config.yaml.example config.yaml\n# Edit config.yaml --- set stack_name_base and admin_user_email\n./deploy-langgraph.sh  # or ./deploy-strands.sh\n```\n\nThe deploy script provisions the full stack: Amazon Cognito user pool, Amazon ECR repository, AgentCore Runtime, AgentCore Gateway, AgentCore Memory, the CopilotKit Runtime Lambda with Amazon API Gateway, and AWS Amplify hosting. When it finishes, open the Amplify URL printed at the end and log in. You’ll land on the CopilotKit chat interface, where a few quick checks confirm the deployment works:\n\n1. Ask the agent for a pie chart from the sample data. It renders inline in the conversation.\n2. Ask to add three tasks to the todo canvas. The canvas updates in real time.\n3. Ask to schedule a meeting. The agent pauses and shows a time picker.\n\n### Cleaning up\n\nThe walkthrough deploys two separate stacks. Tear down whichever you deployed so they stop incurring charges.\n\nTo remove the FAST deployment:\n\n```\ncd infra-cdk\nnpx cdk destroy --all\n```\n\nTo remove the CopilotKit sample:\n\n```\ncd sample-FAST-applications/samples/copilotkit-generative-ui\nnpx cdk destroy --all\n```\n\nIf an Amazon ECR repository still holds container images, delete it by hand, since some CDK configurations keep repositories in place.\n\n## Conclusion\n\nThis post showed how to build interactive agent frontends on Amazon Bedrock AgentCore using the AG-UI protocol. The AG-UI integration in FAST lets you swap between Strands and LangGraph agent backends without changing your frontend code. The CopilotKit sample extends this with generative UI, shared state, and human-in-the-loop interactions, all running on AgentCore with managed auth, scaling, and memory.\n\nTo learn more, explore the following resources:\n\n* [FAST repository](https://github.com/awslabs/fullstack-solution-template-for-agentcore): clone and deploy an AG-UI pattern with `pattern: agui-strands-agent` or `pattern: agui-langgraph-agent`.\n* [CopilotKit Generative UI sample](https://github.com/aws-samples/sample-FAST-applications/tree/main/samples/copilotkit-generative-ui): try generative UI, shared state, and human-in-the-loop on AgentCore.\n* [AgentCore AG-UI documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-agui.html): full protocol contract and deployment details.\n* [AG-UI protocol specification](https://docs.ag-ui.com/concepts/overview): core event types and protocol design.\n* [CopilotKit documentation](https://docs.copilotkit.ai/): frontend integration guide for generative UI.\n\nIf you have questions or feedback, open an issue in the [FAST repository](https://github.com/awslabs/fullstack-solution-template-for-agentcore/issues) or the [FAST Samples repository](https://github.com/aws-samples/sample-FAST-applications/issues).\n\n---\n\n## About the authors\n\n![Ryan Razkenari](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20863-4.png)\n\n### Ryan Razkenari\n\n[Ryan](https://www.linkedin.com/in/mrazkenari/) is a Machine Learning Engineer at the AWS Generative AI Innovation Center, where he designs and builds AI solutions for enterprise customers. He specializes in applying generative AI to solve complex business challenges, with a focus on translating cutting-edge research into production-ready systems.\n\n![Isaac Privitera](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20863-5.png)\n\n### Isaac Privitera\n\n[Isaac](https://www.linkedin.com/in/isaac-privitera-b8183a78/) is a Principal Data Scientist with the AWS Generative AI Innovation Center, where he develops bespoke agentic AI-based solutions to address customers’ business problems. His primary focus lies in building responsible AI systems, using techniques such as RAG, multi-agent systems, and model fine-tuning. When not immersed in the world of AI, Isaac can be found on the golf course, enjoying a football game, or hiking trails with his loyal canine companion, Barry.\n\n![David Kaleko](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20863-6.png)\n\n### David Kaleko\n\n[David](https://www.linkedin.com/in/david-kaleko/) is a Senior Applied Scientist at the AWS Generative AI Innovation Center, where he leads applied research efforts into cutting-edge generative AI implementation strategies for AWS customers. He holds a PhD in particle physics from Columbia University.\n\n![Tyler Slaton](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20863-7.png)\n\n### Tyler Slaton\n\n[Tyler](https://www.linkedin.com/in/michael-t-slaton/) is the Head of Open-source at CopilotKit where they work with their team to maintain the AG-UI and CopilotKit projects. They focus on the UI and UX of agents as well as building in the open. Outside of work they enjoy playing video games and hiking.\n\n![Ran Shemtov](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20863-8.png)\n\n### Ran Shemtov\n\n[Ran](https://www.linkedin.com/in/ran-shem-tov/) is a Founding Engineer at CopilotKit, where he is one of the core makers and maintainers of AG-UI and the LangGraph integration, as well as partnerships like with Amazon Web Services.",
+      "tags": [
+        "AG-UI",
+        "Amazon Bedrock",
+        "AgentCore"
+      ],
+      "score": 79,
+      "summary": "AWS发布AG-UI协议，用于在Bedrock AgentCore上构建生成式UI代理。",
+      "fetched_at": "2026-07-01T02:30:17.052357+08:00"
+    },
+    {
+      "title": "Simplify multi-account access to Amazon Bedrock models with managed entitlements",
+      "link": "https://aws.amazon.com/blogs/machine-learning/simplify-multi-account-access-to-amazon-bedrock-models-with-managed-entitlements/",
+      "published": "2026-07-01T00:42:49+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Managing AI model access across dozens or hundreds of AWS accounts creates a dilemma. Either you grant [AWS Marketplace](https://docs.aws.amazon.com/marketplace/) permissions broadly, risking governance issues, or you manually enable subscriptions in each account. For organizations using third-party models like Anthropic Claude or Cohere, this operational overhead slows AI adoption.\n\nIn this post, we show you how to use managed entitlements for [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) to subscribe once from a central account and distribute model access across your organization. This approach removes the need for AWS Marketplace permissions in workload accounts. Managed entitlements complement other Amazon Bedrock capabilities like model evaluation and guardrails by making sure your teams can access the models they need while maintaining centralized governance.\n\nIn this post, we explain when managed entitlements are the right solution for your organization, walk through the four-step workflow, demonstrate real-world scenarios, and cover important considerations for private offers and regional behavior.\n\nUnderstanding how different models are distributed is key to knowing when you need managed entitlements. The following table shows three categories:\n\n|  |  |  |\n| --- | --- | --- |\n| **Model category** | **Examples** | **Access method** |\n| Amazon models | Amazon Nova | Available immediately with Amazon Bedrock permissions |\n| Amazon sold models | Meta, Mistral, DeepSeek | Available immediately with Amazon Bedrock permissions |\n| AWS Marketplace models | Anthropic Claude, Cohere, Stability AI | Require AWS Marketplace subscription |\n\nFor both Amazon models and those sold by Amazon, recently introduced [simplified access](https://aws.amazon.com/blogs/security/simplified-amazon-bedrock-model-access/) means you can start invoking them immediately with no additional setup required. Third-party models distributed through AWS Marketplace work differently. Each account needs a subscription before invoking these models, which means each account needs AWS Marketplace permissions. For organizations managing many accounts, this creates operational overhead. Either you grant AWS Marketplace permissions broadly, or you have someone manually enable models in each account.\n\n*Managed entitlements* for Amazon Bedrock closes this gap. Subscribe once from a central account, then distribute access across your organization using [AWS License Manager](https://docs.aws.amazon.com/license-manager/). No AWS Marketplace permissions are needed in member accounts.\n\n## When do you need managed entitlements?\n\nManaged entitlements are designed for organizations that run workloads across multiple AWS accounts, want to avoid granting AWS Marketplace permissions to workload accounts, have negotiated private offer pricing and want consistent rates across accounts, or need centralized visibility into model access across their organization. It applies only when using third-party AWS Marketplace models such as Anthropic Claude, AI21 Labs, Cohere, and Stability AI.\n\nYou might not need managed entitlements if you only use Amazon and partner models (such as Amazon Titan, Llama, Mistral, or DeepSeek), operate in a single AWS account, or each account team already manages their own AWS Marketplace subscriptions independently.\n\n## Prerequisites\n\nBefore implementing managed entitlements, verify you have the following in place:\n\n* **AWS Organizations with all features enabled:** Managed entitlements requires [AWS Organizations](https://docs.aws.amazon.com/organizations/) configured with all features enabled.\n* **Management account access:** You need access to your management account with permissions for both AWS Marketplace and AWS License Manager.\n* **Member accounts:** The accounts where you want to distribute model access.\n* **Service-linked roles (SLRs):** Predefined AWS Identity and Access Management (IAM) roles that are linked directly to AWS services. For Managed Entitlements, you must create SLRs for both AWS License Manager and AWS Marketplace. These roles include all permissions that the services require to call other AWS services on your behalf.\n\n## How it works\n\nThink of a license as your organization’s entitlement to use a model, and grants as the mechanism to share that entitlement with specific accounts. One license can have multiple grants, so you can distribute access to many accounts from a single subscription.\n\nThe managed entitlements workflow consists of four main steps, as shown in the following diagram:\n\n![Managed entitlements workflow showing four steps: subscribe, verify license, create grants, and activate](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/18/ML-20435-1.png)\n\n**To implement managed entitlements:**\n\n1. **Subscribe to a model:** From your management account, you subscribe to a third-party Amazon Bedrock model through AWS Marketplace. This happens when you subscribe to the model through AWS Marketplace. You can subscribe through the AWS Marketplace console or by accepting a private offer. After you subscribe, AWS License Manager automatically creates a license.\n2. **Verify license creation:** AWS License Manager automatically creates a license for your subscription. This license represents your entitlement to use the model and serves as the basis for distribution to other accounts.\n3. **Create grants:** Using AWS License Manager, you create grants to share the license with specific member accounts in your [AWS Organizations](https://docs.aws.amazon.com/organizations/). You control exactly which accounts receive access to each model.\n4. **Activate and use:** Member accounts receive notification of their grants. After they activate the grant, they can immediately begin invoking the model. No AWS Marketplace permissions or additional subscriptions are needed.\n\nA member account can still invoke a model without subscribing to a private offer or an activated grant but they will be billed at public pricing.\n\n## Real-world scenarios\n\n### Scenario 1: Enabling a model across your organization\n\n**Situation:** Your teams need access to a new Anthropic Claude model across 50 workload accounts. You don’t want to grant `aws-marketplace:Subscribe` permissions to each account, and you don’t want to manually enable models one account at a time.\n\n**Solution:** From your management account (which has AWS Marketplace permissions), subscribe to the AWS Marketplace private offer. AWS License Manager automatically creates a license. Create grants for your 50 workload accounts and distribute them to individual accounts, an organization, or an organizational unit (OU). Each account can activate their grant individually, or grants can be activated at the organization level. Then teams can invoke the model without AWS Marketplace permissions in their accounts.\n\n**Result:** Central subscription, distributed access, no AWS Marketplace permissions in workload accounts.\n\n### Scenario 2: Phased model rollout\n\n**Situation:** You want to pilot a new model with select teams before organization-wide availability. You need visibility into who’s using what and the ability to expand access incrementally.\n\n**Solution:** Subscribe from your management account, then create grants only for pilot accounts. As the pilot succeeds, extend grants to additional accounts. AWS License Manager provides visibility into grant status across your organization.\n\n**Result:** Controlled rollout with a clear audit trail of which accounts have access and when they activated it.\n\n### Scenario 3: Private offer distribution\n\n**Situation:** You’ve negotiated custom pricing with a model provider through AWS Marketplace. You need each account to use this pricing rather than create their own subscriptions.\n\n**Solution:** Ask the provider to extend the private offer to the management account. Accept the private offer from your management account. The license created reflects your negotiated terms. Distribute access via grants to verify that usage across member accounts flows through your agreement.\n\n**Result:** Consistent pricing across your organization with simplified cost allocation.\n\n### Scenario 4: Rapid org-wide deployment\n\n**Situation:** Your organization has standardized on a model for AI workloads. You want every account in your AWS Organizations to have access immediately.\n\n**Solution:** Subscribe from your management account, then distribute to your entire organization in one step by distributing the grant to the entire AWS Organizations (rather than select accounts) as a target.\n\nThat’s it. Member accounts automatically receive the grant. For organizations with all features enabled, the organization automatically accepts grants, but they appear in a *Disabled* state until the account administrator explicitly activates them. This provides a final control point before model usage begins.\n\n**Result:** Every account in your organization gets model access with a single grant. New accounts added to the organization automatically inherit access with no additional grant creation needed.\n\n## Considerations\n\nBefore implementing managed entitlements, keep the following in mind to make sure your deployment goes smoothly.\n\n### Cost allocation\n\nModel usage costs are billed to the management account that holds the subscription. Use AWS Cost Allocation Tags to track usage by member account or team.\n\n### Private offers\n\nWhen working with private offers negotiated through AWS Marketplace, the managed entitlements workflow remains the same. Accept the private offer from your management account, and the license is created automatically. You can then distribute access to member accounts through grants.\n\nPrivate offers often include custom pricing, payment terms, or additional support agreements. These terms apply to your organization’s usage of the model, regardless of which member accounts invoke it. Review the offer terms carefully before accepting and distributing access.\n\n### Existing subscriptions\n\nWhen member accounts have active Amazon Bedrock models and their payer account distributes them a subscription to the same model, the entitlements to the first subscription is disabled and they now have entitlements on the new distributed grant.\n\n### Regional behavior\n\nWhile you can invoke models in supported AWS Regions, AWS License Manager creates licenses in us-east-1. Grant creation and activation also occur through the us-east-1 endpoint for AWS License Manager, even if your workloads run in other Regions.\n\n## Clean up resources\n\nIf you no longer need a model subscription:\n\n1. Delete grants from member accounts in AWS License Manager.\n2. Cancel the AWS Marketplace subscription from your management account.\n3. Verify that member accounts are no longer billed at private rates.\n\nNote: Canceling a subscription doesn’t automatically remove grants. You must delete grants separately to revoke private pricing.\n\n## Conclusion\n\nIn this post, we showed you how to use managed entitlements for Amazon Bedrock to centralize third-party model subscriptions and distribute access across your organization without granting AWS Marketplace permissions to workload accounts.\n\nManaged entitlements for Amazon Bedrock represent a significant improvement in how organizations manage third-party model access at scale. Your existing subscriptions continue to function without disruption, and you can immediately begin using the centralized distribution workflow for new subscriptions while maintaining your organization’s governance controls.\n\nBy centralizing subscription management and avoiding the need for per-account AWS Marketplace permissions, you can focus on building AI applications rather than managing access infrastructure.\n\n### Next steps\n\nReady to implement managed entitlements? Start by:\n\n1. Identifying which third-party models your organization uses.\n2. Reviewing your current subscription approach across accounts.\n3. Implementing managed entitlements for one model as a pilot.\n4. Expanding to additional models and accounts based on your results.\n\nYou can also explore combining managed entitlements with AWS Service Catalog to create self-service model access workflows for your teams.\n\nIf you have questions or want to share how you’re managing model access across your AWS accounts, leave a comment.\n\n## Resources\n\n* [Managed entitlements in Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/managed-entitlements.html).\n* [Amazon Bedrock model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).\n* [Simplified Amazon Bedrock model access](https://aws.amazon.com/blogs/security/simplified-amazon-bedrock-model-access/) (AWS Security Blog).\n\n---\n\n## About the authors\n\n![Archana Chenchu](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/18/ML-20435-2.png)\n\n### Archana Chenchu\n\nArchana Chenchu is a Senior Technical Product Manager for AWS License Manager based in Austin, TX. She works with customers to develop products and features that make it easier for them to manage software licenses across AWS and on-premise environments.\n\n![Vadim Omeltchenko](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/18/ML-20435-3.png)\n\n### Vadim Omeltchenko\n\nVadim is a Senior AI/ML Solutions Architect who is passionate about helping AWS customers innovate in the cloud. His prior IT experience was predominantly on the ground.",
+      "tags": [
+        "Amazon Bedrock",
+        "Managed Entitlements",
+        "多账户访问"
+      ],
+      "score": 79,
+      "summary": "AWS推出托管授权功能，简化多账户访问Bedrock模型。",
+      "fetched_at": "2026-07-01T02:30:17.052438+08:00"
+    },
+    {
+      "title": "Implementing resilience patterns with Amazon Bedrock and LLM gateway",
+      "link": "https://aws.amazon.com/blogs/machine-learning/implementing-resilience-patterns-with-amazon-bedrock-and-llm-gateway/",
+      "published": "2026-07-01T00:40:47+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Implementing resilience patterns for [large language model (LLM)](https://aws.amazon.com/what-is/large-language-model/) inference is critical as generative AI workloads move from experimentation to production at scale. With LLM powered apps now in production, organizations need ways to keep LLM inference highly available, responsive, and cost-effective at scale. Existing resilience best practices like static stability and implementing backoffs and retries still apply. However, generative AI introduces new considerations including model availability, rapidly changing quotas, token limits across multiple providers, and maintaining consistency with newly released models. [Amazon Bedrock](https://aws.amazon.com/bedrock/) provides fully managed foundation models with built-in resilience features like cross-Region inference.\n\nWhen designing inference for production, four dimensions typically guide architectural decisions: **availability**, **response time**, **cost**, and **throughput**. Availability refers to sustaining inference during model, Region, or provider disruptions. Response time covers how quickly the user receives output, often measured as Time to First Token (TTFT) and Time to Last Token (TTLT). Cost captures per-token and per-request spend and how routing decisions affect it. Throughput reflects how many concurrent requests and tokens per second the system can sustain under load.\n\nThese dimensions are interconnected. For example, cross-Region routing improves availability and throughput but may increase response time. The patterns in this post focus primarily on **availability**: keeping inference operational through failover, geographic distribution, and quota isolation. Future posts will explore response time optimization and cost-aware routing in depth.\n\nIn this post, you will learn five practical patterns for building resilient generative AI applications on AWS, progressing from native Amazon Bedrock features to multi-model orchestration using an LLM gateway. These patterns address real-world challenges such as quota exhaustion during unexpected traffic surges, maximizing availability through geographic distribution of inference, and helping prevent noisy neighbor problems in multi-tenant environments. They also support cost optimization through intelligent request routing and give you the flexibility to use multiple models and providers based on your specific requirements.\n\nThis crawl, walk, run approach lets you adopt the patterns incrementally based on your application’s maturity and requirements. The accompanying [GitHub repository](https://github.com/aws-samples/sample-resilient-llm-inference) provides code samples demonstrating each pattern.\n\n## An incremental approach to inference resilience patterns\n\nYou can test out each of the following patterns in your own environment by using the code samples and instructions from this [section of the GitHub repository](https://github.com/aws-samples/sample-resilient-llm-inference?tab=readme-ov-file#testing-all-resilience-patterns).\n\n### Prerequisites\n\nBefore starting with the demo, verify that you have the appropriate software installed and your AWS account configured correctly by completing the [prerequisites](https://github.com/aws-samples/sample-resilient-llm-inference?tab=readme-ov-file#prerequisites).\n\nNote: Following the patterns in this post will create and use AWS resources that incur charges, including Amazon Bedrock inference requests and Amazon CloudWatch logs. See the Cleanup section to avoid ongoing charges after testing.\n\n### Pattern 1: Using Amazon Bedrock cross-Region inference\n\nAmazon Bedrock cross-Region inference (CRIS) is a native feature that provides the foundation for resilient inference by default. You can use [cross-Region inference profiles](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html) to improve throughput, reduce the likelihood of being throttled within an AWS Region, and distribute model traffic. CRIS removes the manual effort of managing traffic distribution and improves the availability of your application. It automatically routes requests from your source Region to the optimal destination Region based on real-time factors including availability, latency, and current demand. This accounts for unexpected bursts in traffic during peak usage times and reduces the likelihood of service quotas impacting inference.\n\nCRIS profiles are typically tied to commercial Regions within a specific geography like the US or EU, providing the right balance of performance and latency for inference requests. This approach increases aggregate throughput beyond single-Region quotas while maintaining data residency within geographic boundaries.\n\n![Architecture diagram showing Amazon Bedrock cross-Region inference. A request flows from a source Region through an API endpoint to a CRIS Inference Router, which routes to either Destination Region 1 (active, with API endpoint and model) or Destination Region 2 (standby, with API endpoint and model).](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-1.png)\n\nAmazon Bedrock cross-Region inference\n\nFor certain use cases that can handle higher latency in inference requests, there is the option to use [Global Cross-Region Inference profiles](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html#:~:text=Global%20Claude%20Sonnet%204). With a Global profile, requests can be routed across multiple commercial Regions where the model is available for global inference, providing an even greater throughput than with standard cross-Region inference profiles.\n\nFor example, in our demo when sending 10 requests to Amazon Bedrock using a cross-Region inference profile, the command output shows how CRIS automatically distributed the model inference across 3 AWS Regions:\n\n|  |  |  |\n| --- | --- | --- |\n| **Region** | **Invocations** | **Percentage** |\n| us-east-1 | 1 | 10% |\n| us-east-2 | 7 | 70% |\n| us-west-2 | 2 | 20% |\n\n*Amazon Bedrock cross-Region inference distributes 10 requests across three AWS Regions*\n\n### Pattern 2: Using multiple AWS accounts\n\nWhile CRIS multiplies throughput within an AWS account, you can benefit from additional scale and isolation strategies. AWS account sharding distributes requests across multiple AWS accounts, each with independent quotas and CRIS profiles.\n\nAccount sharding creates natural [fault isolation boundaries](https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/use-fault-isolation-to-protect-your-workload.html) where issues in one account do not affect others, making it particularly valuable for multi-team and multi-tenant architectures requiring strict isolation between workloads.\n\n![Architecture diagram showing AWS account sharding with Amazon Bedrock cross-Region inference. LLM Consumer Ecosystem (users, agents, apps) connects to three separate AWS accounts (A, B, and C), each containing Region A with Amazon Bedrock CRIS.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-2.png)\n\nAWS account sharding with Amazon Bedrock cross-Region inference\n\nWhen running the account sharding demo, we send 10 requests to each of the two configured AWS accounts using cross-Region inference profiles. The output shows how each account independently distributes inference across AWS Regions:\n\n|  |  |  |\n| --- | --- | --- |\n| **Account 1** | | |\n| **Region** | **Invocations** | **Percentage** |\n| us-east-2 | 7 | 70% |\n| us-west-2 | 3 | 30% |\n\n|  |  |  |\n| --- | --- | --- |\n| **Account 2** | | |\n| **Region** | **Invocations** | **Percentage** |\n| us-east-1 | 2 | 20% |\n| us-east-2 | 3 | 30% |\n| us-west-2 | 5 | 50% |\n\n*Two AWS accounts independently distributing requests across Regions via CRIS*\n\n### Using an LLM gateway\n\nFor complex production scenarios, an LLM gateway provides routing, failover, and governance capabilities beyond what is possible with direct API calls. A gateway acts as an intelligent proxy between your applications and LLM providers, offering a unified abstraction layer, so you can access multiple models across various vendors through a single API interface. This standardization simplifies integration while embedding capabilities such as responsible AI safeguards, audit logging, automatic retry and fallback logic, and quota management, among many other features, helping your applications remain resilient even when individual models become unavailable.\n\n![Architecture diagram showing LLM gateway orchestrating requests across AWS accounts and external providers. LLM Consumer Ecosystem connects to an LLM Gateway containing Lite LLM and Amazon Bedrock in Account A Region A, which routes to multiple AWS accounts (B, C, D) and external LLM providers (Anthropic, OpenAI, Cohere, Vertex AI).](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-3.png)\n\nLLM gateway orchestrating requests across AWS accounts and external providers\n\nThe gateway supports intelligent request routing and load balancing across multiple models and accounts, maximizing throughput while implementing rate limiting and quota management with per-consumer isolation. This helps prevent noisy neighbor problems in multi-tenant environments while providing comprehensive cost tracking and optimization through usage analytics. Centralized observability and monitoring give you full visibility into your LLM usage patterns with granular per-application insights, helping identify optimization opportunities and troubleshoot issues quickly.\n\nMany open source and commercial LLM gateways are available today. For our demos, we use [LiteLLM](https://www.litellm.ai/) as a lightweight, open source option running locally to demonstrate these patterns. When deploying at scale, the [AWS Solution for Multi-Provider Generative AI Gateway](https://aws.amazon.com/solutions/guidance/multi-provider-generative-ai-gateway-on-aws/) provides a reference implementation and architecture that also uses LiteLLM but adds enterprise capabilities including containerized deployment on [Amazon Elastic Container Service](https://aws.amazon.com/pm/ecs/) (Amazon ECS) or [Amazon Elastic Kubernetes Service](https://aws.amazon.com/pm/eks/) (Amazon EKS), automatic scaling, [AWS WAF](https://aws.amazon.com/waf/) protection, secrets management, and full observability through [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/).\n\n### Pattern 3: Model fallback\n\nAutomatic failover between models supports higher availability even when primary models hit rate limits or experience service disruptions. This pattern is designed to automatically route requests between customer-defined primary and secondary models. If your fallback strategy focuses on optimizing quality and cost rather than quota exhaustion, [Amazon Bedrock Intelligent Prompt Routing](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-routing.html) provides a native option. It dynamically selects the most appropriate model for each request without requiring an external gateway. If calls to the primary models fail, the gateway automatically retries requests using secondary models, supporting high availability even during unexpected spikes in traffic. The fallback strategy also incorporates cost optimization and performance considerations, for example, throttling higher-cost models and falling back to more cost-effective alternatives when appropriate.\n\n![Architecture diagram showing fallback demonstration with rate-limited primary and higher-capacity fallback models. A client sends 10 requests to Lite LLM, which routes 3 requests to the Primary Model (with 3 RPM limit) and 7 requests to the Fallback Model (with 25 RPM capacity) in Amazon Bedrock](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-4.png)\n\nFallback demonstration with rate-limited primary and higher-capacity fallback models\n\nIn our demonstration, the LiteLLM configuration defines a primary model with a restrictive rate limit of 3 requests per minute (RPM) and a fallback model with a higher capacity of 25 RPM. When the client sends 10 concurrent requests through the gateway, the first three requests route to the primary model in Amazon Bedrock. As the primary model reaches its rate limit, LiteLLM automatically diverts the remaining seven requests to the fallback model. The 10 requests complete successfully without manual intervention or application-level retry logic.\n\nThe demo output confirms the effectiveness of this pattern, showing high reliability with the 10 requests completing successfully despite the primary model’s rate limit. The distribution reveals that exactly 3 requests were handled by the primary model before reaching its quota. The remaining 7 requests failed over to the fallback model, demonstrating the gateway’s ability to maintain service availability through intelligent routing.\n\n![Screenshot of fallback demonstration results showing: Total Requests: 10, Successful: 10, Failed: 0, Primary Model Used: 3, Fallback Triggered: 7. Model Usage Distribution shows FALLBACK model handled 7 requests (70.0%) and PRIMARY model handled 3 requests (30.0%)](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-5.png)\n\nFallback demo output showing model distribution\n\n### Pattern 4: Load balancing across models\n\nThe load balancing pattern distributes requests across multiple model instances to optimize resource utilization and helps prevent bottlenecks. This approach not only maximizes utilization but also allows you to quickly scale by adding or removing model instances as needed. For example, when evaluating new models before full deployment, you can implement weighted routing or A/B testing strategies to direct only a small percentage of requests to the new model while the majority continue to use proven models.\n\n![Architecture diagram showing load balancing across primary models with fallback overflow. A client sends 10 requests to Lite LLM, which distributes 3 requests each to Primary Model 1 and Primary Model 2 (each with 3 RPM limits), and 4 overflow requests to the Fallback Model (with 25 RPM capacity) in Amazon Bedrock.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-6.png)\n\nLoad balancing across primary models with fallback overflow\n\nIn our load balancing demo, the gateway successfully distributes 10 concurrent requests across two models using a shuffle strategy. The load balancer initially routes 3 requests to each of the two configured primary models, and when it reaches its rate limit, the remaining 4 requests are automatically redirected to the fallback model. The result is a 100% success rate, demonstrating how load balancing works together with the fallback strategy.\n\n![Screenshot of load balancing results showing: Total Requests: 10, Successful: 10, Failed: 0. Model Distribution shows three models each handling requests: claude-3-5-sonnet (4 requests, 40.0%), claude-3-7-sonnet (3 requests, 30.0%), and claude-sonnet-4 (3 requests, 30.0%).](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-7.png)\n\nLoad balancing demo output\n\n### Pattern 5: Multi-tenant quota isolation\n\nThe multi-tenant quota isolation pattern creates logically isolated environments equipped with their own quotas and rate limits to manage requests in multi-tenant environments. By implementing independent rate limiting buckets for each consumer, this pattern helps prevent “noisy neighbor” challenges where requests from one consumer negatively impact other consumers’ performance. Each tenant receives a dedicated quota regardless of other tenants’ usage patterns, supporting fair resource allocation and maintaining consistent service quality across consumers.\n\n![Architecture diagram showing multi-tenant quota isolation with independent rate limits per consumer. Three consumers (A with 3 RPM, B with 10 RPM, C with 10 RPM) each send 5 requests to Lite LLM, which enforces individual quotas before routing to Amazon Bedrock Model. Consumer A shows 3 successful and 2 rejected requests.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-8.png)\n\nMulti-tenant quota isolation with independent rate limits per consumer\n\nThe pattern is ideal for environments where multiple applications share model resources while requiring predictable performance and isolation confidence.\n\nIn our demo, three consumers with different rate limits attempt to access the same model simultaneously. Consumer A is configured with only 3 requests per minute (RPM) allowed, while Consumers B and C have 10 RPM each. When the three consumers each send 5 concurrent requests, the gateway enforces individual quotas. Consumer A experiences rate limiting with only 3 requests succeeding and 2 being rejected. Consumer B and Consumer C achieve 100% success rates with all 5 requests processed.\n\n|  |  |  |  |  |  |  |\n| --- | --- | --- | --- | --- | --- | --- |\n| **Quota Isolation Analysis** | | | | | | |\n| **Consumer** | **Type** | **Success Rate** | **Total** | **Success** | **Failed** | **Rate Limited** |\n| A | Noisy | 60% | 5 | 3 | 2 | 2 |\n| B | Normal | 100% | 5 | 5 | 0 | 0 |\n| C | Normal | 100% | 5 | 5 | 0 | 0 |\n\n*Multi-tenant isolation demo output*\n\n### Cleanup\n\nWarning: The following cleanup steps will permanently delete CloudWatch logs. If you need to retain logs for audit or analysis purposes, export them before proceeding with cleanup.\n\nTo avoid ongoing charges in your account, [complete these steps](https://github.com/aws-samples/sample-resilient-llm-inference?tab=readme-ov-file#cleanup) to stop the gateway and delete the CloudWatch logs.\n\n### Important considerations\n\nThe preceding guidance makes certain assumptions about workload requirements, data security and compliance obligations, and performance needs. As with most things, the answer to “When should I use these patterns?” is “It depends!”. The following are a few use cases where applying these patterns makes sense.\n\n#### Applicable scenarios and use cases\n\n**High availability requirements**: When your application cannot tolerate downtime, multiple models provide automatic failover. If your primary model hits rate limits or experiences outages, requests route to backup models, maintaining 100% availability.\n\n**Scaling beyond single model quotas**: Individual models have throughput limits. Using multiple models (even the same model type across different accounts/Regions) multiplies your total available capacity. This is essential for high-volume applications where request volume can exceed single model quotas.\n\n**Multi-tenant isolation**: In software as a service (SaaS) applications, different customers can use different models or model instances, helping prevent one customer’s usage from impacting others.\n\n**Development vs production**: Separate model configurations for testing (cheaper, faster models) and production (higher quality models) without code changes.\n\n## Conclusion\n\nThis post covered multiple patterns for resilient LLM inference, starting with Amazon Bedrock native cross-Region inference and ending with more complex patterns that required implementing an LLM gateway. Using these strategies, you can improve the resilience of your generative AI powered workloads and gain granular control over model availability and failover strategies, including dedicated control for specific consumers and applications.\n\nWe invite you to experiment with these patterns in detail using the [accompanying GitHub repository](https://github.com/aws-samples/sample-resilient-llm-inference), which provides code samples and step-by-step instructions for testing each pattern. For a comprehensive reference implementation of a production-ready generative LLM gateway, explore the [AWS Solution for Multi-Provider Generative AI Gateway](https://aws.amazon.com/solutions/guidance/multi-provider-generative-ai-gateway-on-aws/).\n\nFor more generative AI architectural patterns and best practices, visit the [AWS Artificial Intelligence Blog](https://aws.amazon.com/blogs/machine-learning/).\n\nIf you have any comments or questions, leave them in the comments section.\n\nTAGS: Generative AI, Amazon Bedrock, Resilience, Architecture\n\n---\n\n## About the authors\n\n![Marcos Ortiz](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-9.jpeg)\n\n### Marcos Ortiz\n\nMarcos is a Principal Solutions Architect at AWS, working with enterprise customers to design and implement scalable solutions that accelerate their digital transformation journey and maximize business value.\n\n![Khubyar Behramsha](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-10.jpeg)\n\n### Khubyar Behramsha\n\nKhubyar is a Sr. Enterprise Account Manager at AWS supporting customers in the semiconductor industry. He is passionate about helping customers connect their business goals to the right cloud strategies — from large-scale migrations to applying the latest Generative AI tools and technologies. With a Solutions Architecture background, Khubyar brings deep technical fluency to customer conversations and specializes in translating complex cloud capabilities into measurable business outcomes.\n\n![Sushovan Basak](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-19331-11.png)\n\n### Sushovan Basak\n\nSushovan is a Senior Technical Account Manager at AWS, passionate about helping enterprise customers accelerate their generative AI journey from experimentation to production at scale. He thrives at the intersection of cloud architecture and applied machine learning, and evangelizes building resilient, self-healing AI systems. He loves combining his analytical, AI, cloud, coding, and automation skills to solve complex challenges with intelligent solutions. Outside of work, he enjoys watching sci-fi movies, playing video games, and jamming with friends.",
+      "tags": [
+        "Amazon Bedrock",
+        "LLM Gateway",
+        "弹性模式"
+      ],
+      "score": 79,
+      "summary": "AWS介绍使用Bedrock和LLM网关实现弹性推理模式。",
+      "fetched_at": "2026-07-01T02:30:17.052505+08:00"
+    },
+    {
+      "title": "How Outpost VFX Uses AWS to Accelerate AI Model Training for Visual Effects",
+      "link": "https://aws.amazon.com/blogs/machine-learning/how-outpost-vfx-uses-aws-to-accelerate-ai-model-training-for-visual-effects/",
+      "published": "2026-07-01T00:37:09+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "*This post was co-written with Tim Chauncey and Dheeraj Bhadani of Outpost VFX.*\n\nAI model training for visual effects (VFX) can take weeks, creating bottlenecks in production timelines. For Outpost VFX, which operates studios across the UK, Canada, and India delivering high-end film and episodic content, every day of delay impacts client deliverables and project schedules.\n\nIn this post, we explore how Outpost VFX achieved 8x faster training speeds using AWS infrastructure to transform their face replacement workflow, the technical architecture they implemented to overcome single-GPU limitations, and the measurable results achieved through AWS multi-GPU training.\n\n## The challenge: Single-GPU bottlenecks in AI training\n\nTraditional face replacement workflows in visual effects production require over 5 days of compositing or specialist beauty and de-aging support to create initial versions for director approval. While effective, these methods create bottlenecks early in the iterative approval process, the phase that is most critical to production timelines. For VFX professionals, slow AI training translates directly to missed deadlines, increased costs, and delayed client feedback cycles.\n\nOutpost VFX had developed an AI model capable of training on on-set footage to accelerate face replacement processes. However, efficiency was constrained by single-GPU compute limitations. The existing face swap tool could only utilize one GPU at a time, limiting video random access memory (VRAM) access and processing capacity for model training operations. This prevented the team from realizing the full potential of their AI-assisted approach.\n\n## Design considerations\n\nOutpost VFX identified three critical technical requirements for optimizing their AI workflow:\n\n* **Compute scalability** – The team needed to parallelize face replacement model training across multiple GPUs to achieve meaningful efficiency improvements. Single-GPU training was creating week-long delays in model iteration cycles.\n* **Infrastructure security** – As an AWS customer since 2022 with a fully virtualized technology stack, Outpost VFX needed the solution to adhere to its exacting security requirements for processing highly sensitive production data.\n* **Performance optimization** – Beyond raw speed improvements, the architecture needed to support larger datasets and higher-resolution images to improve output quality.\n\nTo address these requirements, Outpost VFX collaborated with AWS Generative AI Innovation Center developers who worked as an extension of their technology department to modernize their AI learning algorithms. The AWS Generative AI Innovation Center is a team of strategists, data scientists, engineers, and solutions architects that works step-by-step with customers to build bespoke solutions that harness the power of generative AI. Learn more about how to engage with the team on the [Generative AI Innovation Center](https://aws.amazon.com/ai/generative-ai/innovation-center/) webpage.\n\n## Architecture implementation\n\nThe solution involved adapting the Outpost VFX existing face swap model codebase to support distributed GPU training across multiple GPUs. The implementation used AWS multi-GPU Amazon Elastic Compute Cloud (Amazon EC2) P5 instances within a segregated, secure cloud environment that aligned with the Outpost VFX existing infrastructure requirements.\n\nOriginally, Outpost VFX trained their face swap models on GPU-accelerated workstations. This involved collecting small datasets of actors and their stunt doubles and fine-tuning a base model on RTX 3090 GPUs. While this method worked, the Outpost team found that training time was slow, at around 1–2 weeks per fine-tune. Scaling up would have been difficult because of the management overhead of those cloud workstations. At this point, they looked at training on P5 instances.\n\nP5 instances feature NVIDIA H100 GPUs, which are purpose-built for distributed training workloads. Unlike G-series instances that use PCIe communication between GPUs, P5 instances provide NV Link interconnects offering significantly higher bandwidth for gradient synchronization, which is a critical factor when training across multiple GPUs. The H100’s 14,592 CUDA cores and 80GB of high-bandwidth HBM3 memory also represented a substantial upgrade over their local RTX 3090 setup.\n\nOutpost VFX worked with the Generative AI Innovation Center to help them get their model running on the P5 instances. Over a 6-week advisory period, AWS scientists converted the model code to use PyTorch Distributed Data Parallel (DDP) training strategy. DDP is a parallelization technique that copies model weights to each GPU, allowing the system to process more images in each training batch. This approach increases the number of images that can be fitted into each batch, directly accelerating the training process.\n\nThe technical implementation included multi-GPU parallelization of face replacement model training, enhanced security architecture for sensitive production data, and integration with Outpost VFX existing AWS-based technology stack. As Outpost VFX continues to evolve their AI pipeline, the team sees potential in services like Amazon SageMaker AI with managed training, model versioning and hosted inference to further streamline how they develop and deploy models across their global studios.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/26/image-ML-20295-1.png)\n\n## Measuring performance improvements\n\nTo test the speed improvement of the multi-GPU training, Outpost VFX collected an image dataset for training, fixed model hyperparameters, and measured the time for the training to reach a specific loss threshold. They set the baseline as one GPU on a G5 instance compared to running the models on the P5 instances.\n\nThe combined development effort between Outpost VFX and AWS achieved up to 8x improvement in face replacement model learning speeds. This performance increase directly translated to faster iteration cycles, enabling more rapid director approval processes for early versions. The ability to train models on higher-resolution images and larger datasets improved output quality. Most significantly, v001 delivery to clients for initial review now takes 2 days, compared to the previous 1–2 week timeline.\n\n> *“We are now able to iterate much faster thanks to our parallelized workflow and the ability to harness multiple top-end GPUs at once,”* explains Tim Chauncey, CTO of Outpost VFX. *“Speed of iteration is critical to VFX work, and this architecture provides more robust and scalable capabilities for future development.”*\n\nA future improvement could include increasing the quality of image outputs. Outpost could increase the image resolutions passed to the model and use newer generations of Amazon EC2 P5 instances with more VRAM to process these larger images and larger datasets.\n\n## Conclusion\n\nThe AWS-optimized architecture enables Outpost VFX to offer enhanced AI-assisted face replacement capabilities to clients while maintaining the security and scalability requirements of high-end visual effects production. The parallelized workflow architecture including a migration from local consumer NVIDIA GPUs to enterprise NVIDIA GPUs provides a foundation for future AI tool development and scaling across Outpost VFX global studio operations.\n\n> *“What excites me most is that these models are no longer research experiments; they are becoming an integral part of the modern VFX pipeline,”* says Dheeraj Bhadani, Lead Software Architect at Outpost VFX. *“Multi-GPU acceleration is the foundation on which next-generation creative tools will be built.”*\n\n## Next steps\n\nIf you’re looking to accelerate your own AI training workflows, consider these steps:\n\n* Evaluate your current GPU utilization: Identify whether single-GPU constraints are limiting your training performance\n* Explore multi-GPU architectures: Amazon EC2 P5 instances provide scalable compute for distributed training workloads\n* Engage with AWS Generative AI Innovation Center: the same team that helped Outpost VFX parallelize their training workflow\n\nYou can achieve similar results by implementing distributed training strategies tailored to your specific use case and infrastructure requirements.\n\n### Acknowledgments\n\nThe authors would like to thank the following contributors for their support on this project Josh Chappatte, Laksh Puri and Ruchi Bhatia.\n\n---\n\n## About the authors\n\n![Alex Newton](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/26/image-ML-20295-2.jpeg)\n\n### Alex Newton\n\nAlex is a Data Scientist at the AWS Generative AI Innovation Center, helping customers solve complex problems with generative AI and machine learning. He enjoys applying state of the art ML solutions to solve real world challenges.\n\n![Hanno Bever](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/26/image-ML-20295-3.jpeg)\n\n### Hanno Bever\n\nHanno is a Senior Machine Learning Engineer in the AWS Generative AI Innovation Center based in London. In his 6 years at Amazon, he has helped customers across all industries run machine learning workloads on AWS. He specializes in scaling distributed model training and optimizing inference on AWS Trainium and GPU instances.\n\n![Stephen Smith](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/26/image-ML-20295-4.jpeg)\n\n### Stephen Smith\n\nStephen is a Senior Solutions Architect at AWS, based in the UK. He works with enterprise customers to design modern, scalable, cost-effective cloud architectures across a range of industries. With over 7 years at AWS, Stephen is passionate about helping customers adopt modern data and AI solutions to solve real business challenges.\n\n![Tim Chauncey](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/26/image-ML-20295-8.png)\n\n### Tim Chauncey\n\nTim has been Chief Technology Officer at UK-headquartered Outpost VFX since 2022. His tenure has seen a revolution in how the studio delivers high-end film and episodic productions, including a successful migration from traditional on-prem solutions to a unified cloud infrastructure running globally on AWS. He is now leading a team integrating bleeding-edge ML production tools and agentic systems into Outpost’s production workflows.\n\n![Dheeraj Bhadani](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/26/image-ML-20295-9.jpeg)\n\n### Dheeraj Bhadani\n\nDheeraj is a Lead Software Architect at Outpost VFX with more than two decades of experience in the VFX and animation industry. An innovative and seasoned architect, he has played key roles in technological advancements recognized by the Academy Sci-Tech Awards. Dheeraj is passionate about designing and building highly distributed, scalable, and resilient systems from inception through implementation. In recent years, he has focused on architecting and developing strategic, production-grade AI and machine learning tools, integrated into Digital Content Creation applications, and deployed as standalone solutions.",
+      "tags": [
+        "Outpost VFX",
+        "AWS",
+        "AI训练加速"
+      ],
+      "score": 79,
+      "summary": "Outpost VFX使用AWS实现8倍AI训练加速，用于视觉特效。",
+      "fetched_at": "2026-07-01T02:30:17.052622+08:00"
+    },
+    {
+      "title": "Building bilingual NER for cargo logistics with Amazon Bedrock",
+      "link": "https://aws.amazon.com/blogs/machine-learning/building-bilingual-ner-for-cargo-logistics-with-amazon-bedrock/",
+      "published": "2026-07-01T00:33:46+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "[IBS Software](https://www.ibsplc.com/)’s Cargo system processes thousands of bilingual cargo logistics email messages daily. The system extracts critical information such as air waybill (AWB) numbers, flight details, weights, and delivery instructions in both English and Japanese. This added to the complexity of building a robust Named Entity Recognition (NER) solution. Challenges included manual intervention that slowed operations and a trade-off between accuracy and cost. IBS Software needed an AI solution that could accurately identify 23 different entity types across two languages while remaining cost-effective at scale.\n\nAfter exploring multiple approaches, IBS Software used managed distillation capabilities of Amazon Bedrock to create a production-ready solution. By distilling knowledge from Amazon Nova Pro into the more efficient [Amazon Nova Lite](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-lite.html) model, IBS Software achieved 95.085 percent F1-Score accuracy while reducing operational costs by 14x. This case study details their journey from facing complex open-source implementations to a successful deployment on AWS that now processes cargo email messages in real time.\n\nIn this post, we share the technical approach using token-based distillation, lessons learned, and deployment architecture. If you face similar bilingual NER challenges, you can benefit from IBS Software’s experience with the [Amazon Bedrock](https://aws.amazon.com/bedrock/model-distillation/) knowledge distillation capabilities.\n\n## Overview of solution\n\nThe goal was to build a bilingual NER system capable of extracting 23 entity types from cargo logistics email messages written in English and Japanese. The key entities include:\n\n* AWB (Air Waybill) numbers.\n* Flight numbers and routes.\n* Weights (gross, chargeable, dimensional).\n* Dimensions and volume.\n* Commodity descriptions.\n* Shipper and consignee information.\n* Special handling codes.\n* Delivery instructions.\n\nThe primary risks included maintaining high accuracy across both languages, managing inference costs at scale, and achieving low latency for real-time processing. With the model distillation capabilities of Amazon Bedrock, you can use smaller, faster, and more cost-effective models. These models deliver accuracy for your use case that is comparable to the most advanced models in Amazon Bedrock.\n\nThe following diagram shows the end-to-end bilingual NER workflow on Amazon Bedrock.\n\n![End-to-end bilingual NER workflow on Amazon Bedrock](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/25/ML-20433-1.png)\n\n*Figure 1: End-to-end bilingual NER workflow on Amazon Bedrock*\n\n## Solution\n\nIBS’s team of nine researchers and engineers spent approximately 4 months developing and deploying this solution. The project timeline included:\n\n* **Month 1:** Dataset preparation and annotation of 500 bilingual email messages.\n* **Month 2:** Challenges with open-source frameworks (PyTorch, TextBrewer).\n* **Month 3:** Successful distillation using Amazon Bedrock (Nova Pro → Nova Lite).\n* **Month 4:** Production deployment and optimization.\n\nKey tasks completed:\n\n* Annotated 500 cargo email messages (350 English, 150 Japanese) with 23 entity types.\n* Configured Amazon Bedrock distillation with custom hyperparameters.\n* Trained student model for 4 epochs over 70 steps.\n* Achieved loss reduction from 0.05 to 0.008.\n* Deployed inference endpoint with .eml file processing pipeline.\n* Validated 95.085 percent F1-Score on test set.\n\nIBS Software deployed all infrastructure using Amazon Bedrock managed services, which bypassed the need for custom model hosting infrastructure.\n\n### Challenges with open-source approaches\n\nInitially, the team attempted knowledge distillation using open-source frameworks including PyTorch-based implementations and the TextBrewer library. These approaches failed because of:\n\n* Complexity in configuring distillation pipelines for bilingual data.\n* Lack of managed infrastructure for training and deployment.\n* Difficulty tuning hyperparameters for token-level distillation.\n* Incompatibility with our production email processing workflow.\n\nFor more details on knowledge distillation fundamentals, see [AWS Machine Learning Best Practices](https://docs.aws.amazon.com/machine-learning/).\n\n### Amazon Bedrock distillation approach\n\nWe pivoted to Amazon Bedrock Model Distillation, using Amazon Nova Pro as the teacher model and Nova Lite as the student model. The key advantages included:\n\n* Managed training infrastructure with automatic hyperparameter optimization.\n* Native support for token-level distillation.\n* Ease of integration with our email processing pipeline.\n* Built-in monitoring and evaluation metrics.\n\n**Training configuration:**\n\n```\ndistillation_config = {\n    \"teacher_model\": \"amazon.nova-pro-v1:0\",\n    \"student_model\": \"amazon.nova-lite-v1:0\",\n    \"max_sequence_length\": 2048,\n    \"epochs\": 4,\n    \"training_steps\": 70,\n    \"loss_function\": \"token_level_kl_divergence\"\n}\n```\n\nThe training process reduced loss from 0.05 to 0.008 over 70 steps, indicating strong knowledge transfer from teacher to student.\n\nFor Amazon Bedrock distillation documentation, see [Customize a model with distillation in Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/model-distillation.html).\n\n### Dataset preparation\n\nOur dataset consisted of 500 real-world cargo logistics email messages:\n\n* **350 English email messages:** Standard cargo documentation with AWB numbers, flight details, weights, and handling instructions.\n* **150 Japanese email messages:** Similar content with Japanese-specific formatting and terminology.\n\nEach email message was manually annotated for 23 entity types by domain experts familiar with cargo logistics terminology. The annotation process took approximately 3 weeks and supplied high-quality training data for both languages.\n\n### Model evaluation\n\nWe evaluated both teacher and student models using F1-Score, the harmonic mean of precision and recall:\n\n**Results:**\n\nAlthough the base Nova Lite model offered approximately 84 percent overall F1-Score, the teacher model and the customized Nova Lite model achieved an approximately 10 percent uplift in accuracy. The following table shows the F1-Score results.\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| **Model** | **Overall F1-Score** | **English F1-Score** | **Japanese F1-Score** |\n| Nova Pro (Teacher) | 97.0% | 97.8% | 96.2% |\n| Nova Lite (Student) | 95.085% | 96.535% | 93.635% |\n\nThe distilled Nova Lite model retained 98 percent of the teacher’s performance while providing 14x cost reduction in production inference.\n\n### Error analysis and challenges\n\nWe observed that the student model showed a 2.565 percent lower F1-Score on Japanese text than on English text. This gap came primarily from complex kanji character combinations in commodity descriptions, ambiguous entity boundaries in Japanese text without spaces, and the smaller volume of Japanese training data (150 compared to 350 email messages). Multi-line delivery instructions with embedded entities also occasionally caused boundary detection errors.\n\nTo overcome these challenges, we augmented Japanese training data with synthetic examples. We also applied post-processing rules for known entity patterns (AWB format, flight number regex) and implemented confidence thresholding to flag low-confidence predictions for human review.\n\n### Deployment workflow\n\n**Note:** The following deployment creates AWS resources that incur charges. Amazon Simple Storage Service (Amazon S3) storage, AWS Lambda invocations, Amazon Bedrock model inference, and Amazon DynamoDB storage all have associated costs. Delete these resources when you no longer need them to avoid ongoing charges.\n\nOur production deployment processes .eml files through the following workflow:\n\n1. **Email ingestion:** Cargo email messages arrive as .eml files in Amazon S3.\n2. **Preprocessing:** AWS Lambda extracts email body and metadata.\n3. **Inference:** Amazon Bedrock endpoint processes text with distilled Nova Lite model.\n4. **Entity extraction:** Model returns 23 entity types with confidence scores.\n5. **Post-processing:** Validation rules and confidence filtering applied.\n6. **Output:** Structured JSON with extracted entities stored in Amazon DynamoDB.\n\n```\nimport boto3\nimport json\n\nbedrock_runtime = boto3.client('bedrock-runtime')\n\ndef extract_entities(email_text):\n    response = bedrock_runtime.invoke_model(\n        modelId='<custom model arn>',\n        body=json.dumps({\n            \"inputText\": email_text,\n            \"taskType\": \"NER\",\n            \"entityTypes\": [\n                \"AWB_NUMBER\", \"FLIGHT_NUMBER\", \"WEIGHT_GROSS\",\n                \"WEIGHT_CHARGEABLE\", \"DIMENSIONS\", \"COMMODITY\",\n                \"SHIPPER\", \"CONSIGNEE\", \"HANDLING_CODE\",\n                # ... 14 more entity types\n            ]\n        })\n    )\n\n    result = json.loads(response['body'].read())\n    return result['entities']\n```\n\nFor Lambda integration patterns, see [AWS Lambda with Amazon Bedrock](https://docs.aws.amazon.com/lambda/latest/dg/services-bedrock.html).\n\nThe entire pipeline processes email messages in under 2 seconds with 95.085 percent accuracy, meeting our real-time processing requirements.\n\n## Conclusion\n\nIn this post, we showed how IBS Software used Amazon Bedrock managed distillation capabilities to build a cost-effective bilingual NER system for cargo logistics. The system achieves 95.085 percent F1-Score while reducing operational costs by 14x. The distilled Nova Lite model retains 98 percent of the teacher model’s performance, making it ideal for high-volume production workloads.\n\nOur key takeaway was that Amazon Bedrock managed distillation capabilities alleviated the complexity of open-source frameworks. The token-level knowledge distillation preserved accuracy across both English and Japanese, and the 2048-token sequence length accommodated typical cargo email lengths. Production deployment with AWS Lambda and Amazon S3 integration required minimal custom infrastructure.\n\n**Next steps:**\n\nIf you’re facing similar bilingual NER challenges, consider:\n\n1. Start with Amazon Bedrock on-demand foundation models for rapid prototyping.\n2. Invest in high-quality bilingual training data annotation.\n3. Explore model distillation with the training dataset. One limitation of model distillation is that the teacher model and the student model must be within the same model family.\n\nFor more information about the topics discussed in this post, see the following resources:\n\n* [A guide to Amazon Bedrock Model Distillation](https://aws.amazon.com/blogs/machine-learning/a-guide-to-amazon-bedrock-model-distillation-preview/)\n* [Accelerating custom entity recognition with Claude tool use in Amazon Bedrock](https://aws.amazon.com/blogs/machine-learning/accelerating-custom-entity-recognition-with-claude-tool-use-in-amazon-bedrock/)\n* [Build an AI-powered document processing platform with open-source NER model and LLM on Amazon SageMaker AI](https://aws.amazon.com/blogs/machine-learning/build-an-ai-powered-document-processing-platform-with-open-source-ner-model-and-llm-on-amazon-sagemaker/)\n\nIf you’re working on bilingual NER or knowledge distillation for your own use case, we’d love to hear about your experience. Share your questions or feedback in the comments.\n\n---\n\n## About the authors\n\n### Manu Raj L S\n\nManu is a Principal Consultant, Data Science at IBS Software.\n\n### Joshwin Lal Tennyson J S\n\nJoshwin is a Lead AI Engineer at IBS Software.\n\n### Basil K\n\nBasil is a Lead Product Architect at IBS Software.\n\n### Madhukiran J\n\nMadhukiran is a Sr.Technical Account Manager at AWS Enterprise Support. He supports enterprise customers leverage AWS services like Bedrock, AgentCore, and SageMaker to build innovative solutions. His expertise spans Machine learning, GenAI and Containers (Amazon EKS, Amazon ECS)",
+      "tags": [
+        "Amazon Bedrock",
+        "NER",
+        "双语物流"
+      ],
+      "score": 79,
+      "summary": "IBS Software使用Bedrock构建双语NER系统，F1达95%，成本降低14倍。",
+      "fetched_at": "2026-07-01T02:30:17.052699+08:00"
+    },
+    {
+      "title": "SkillOpt: Agent skills as trainable parameters",
+      "link": "https://www.microsoft.com/en-us/research/blog/skillopt-agent-skills-as-trainable-parameters/",
+      "published": "2026-07-01T00:50:02+08:00",
+      "source": "Microsoft Research Blog",
+      "content": "![SkillOpt blog | three white line icons on an abstract green background | shield icon, gear icon, circle with checkmark icon](https://www.microsoft.com/en-us/research/wp-content/uploads/2026/06/SkillOpt-BlogHeroFeature-1400x788-1-scaled.jpg)\n\n## At a glance\n\n* AI agents often fail because their instructions, or skills, are manually modified with no guarantee of improvement. SkillOpt turns skill editing into a training process, making agent behavior more reliable without changing model weights.\n* SkillOpt treats an agent skill file as a trainable parameter outside a frozen target model, turning skill writing from one-shot prompting into a controlled optimization process.\n* Across six benchmarks, seven target models, and three execution modes, SkillOpt is the best or tied-best method in all 52 evaluation cells, improving performance without updating model weights.\n* SkillOpt keeps skills compact and auditable through bounded text edits, validation gating, rejected-edit feedback, and slow/meta updates, avoiding uncontrolled prompt drift.\n* The optimized skills transfer across model scales, agent harnesses, and related tasks, suggesting that they capture reusable workflow knowledge rather than benchmark-specific instructions.\n\nLarge language models (LLMs) are increasingly deployed as agents that gather evidence, call tools, and execute multi-step tasks. For these agents, the hard problem is no longer whether they can call a tool, but whether they can complete tasks reliably and consistently. Today, agent skills typically come from three sources: experts write them by hand, a frontier model generates them one-shot, or the agent loosely revises them after execution. None of these approaches behaves like a deep-learning optimizer. They lack step-size control, held-out validation, and any memory of revisions that failed. As a result, skills tend to grow longer and drift with each rewrite, and a revision that seems perfectly reasonable can quietly degrade real task performance. This uncontrolled skill evolution has become a major obstacle on the path from agent prototype to dependable, production-grade deployment.\n\nIn our recent paper, [SkillOpt: Executive Strategy for Self-Evolving Agent Skills](https://www.microsoft.com/en-us/research/publication/skillopt-executive-strategy-for-self-evolving-agent-skills/), we reframe the question from “how do we write a better prompt?” to “how do we train the skill?” SkillOpt treats the skill file as a trainable parameter living outside a frozen target model, bringing a training-style optimization loop, consistent gains across 52 evaluation cells, and a compact skill file that stays readable, auditable, and transferable.\n\n![Figure 1. A frozen target model executes tasks while a separate optimizer model trains the skill layer from trajectory feedback, exporting the reusable skill file best_ skill.md through validation gating.](https://www.microsoft.com/en-us/research/wp-content/uploads/2026/06/SkillOpt_EXT_FA_Figure-1.png)\n\nFigure 1. A frozen target model executes tasks while a separate optimizer model trains the skill layer from trajectory feedback, exporting the reusable skill file best\\_ skill.md through validation gating.\n\n## How SkillOpt works\n\n[![](https://www.microsoft.com/en-us/research/wp-content/uploads/2026/06/skillopt.jpg)](https://www.microsoft.com/en-us/research/wp-content/uploads/2026/06/skillopt_teaser-1.mp4)\n\nVideo 1. SkillOpt’s optimization loop, from trajectory collection to the exported skill file.\n\nSkillOpt organizes skill editing as a forward–backward–update cycle in text space. In the forward pass, the frozen target model executes a batch of training tasks with the current skill; the rollout batch size controls how much evidence each update receives. In the backward pass, a separate optimizer model reads the resulting trajectories in reflection minibatches, distilling patterns to preserve from successful trajectories and patterns to correct from failures.\n\nIn the update step, the optimizer proposes small add, delete, and replace edits; candidate edits are merged, deduplicated, ranked, and clipped by a textual learning rate—a per-step edit budget. Every candidate skill must then pass a strict validation gate: it is adopted only if it scores strictly higher than the current skill on the held-out validation split. Rejected edits are not discarded; they enter a rejected-edit buffer that serves as negative feedback for later optimizer calls in the same epoch. On a slower cadence, an epoch-wise slow/meta update consolidates longer-horizon lessons that single batches cannot reveal (Figure 2). Together, bounded edits, validation gating, and best-version selection keep skill optimization controllable and auditable, so the skill converges instead of drifting.\n\n![Figure 2. The SkillOpt pipeline: trajectory collection, minibatch reflection, bounded text updates, validation gating, and epoch-wise slow/meta updates jointly constrain skill training.](https://www.microsoft.com/en-us/research/wp-content/uploads/2026/06/SkillOpt_EXT_FA_Figure-2.png)\n\nFigure 2. The SkillOpt pipeline: trajectory collection, minibatch reflection, bounded text updates, validation gating, and epoch-wise slow/meta updates jointly constrain skill training.\n\n## Consistent gains across benchmarks, models, and execution modes\n\nWe evaluated SkillOpt across six benchmarks (SearchQA, SpreadsheetBench, OfficeQA, DocVQA, LiveMathematicianBench, and ALFWorld), seven target models from frontier-scale GPT-5.5 to the small open-weight Qwen3.5-4B, and three execution modes (direct chat, Codex, and Claude Code). Counting each combination as one evaluation cell, When measured against human-written skills, one-shot LLM skills, Trace2Skill, TextGrad, GEPA, and EvoSkill, SkillOpt delivered the best or tied for -best results on all 52 cells. These performance improvements are unusually large for a method that updates no model weights. With GPT-5.5 in direct chat, SkillOpt raises the six-benchmark average from 58.8 to 82.3, a +23.5-point absolute improvement—and +5.4 points above an oracle that picks the single best competing method per cell. The largest gains appear on procedural benchmarks: SpreadsheetBench rises from 41.8 to 80.7, OfficeQA from 33.1 to 72.1, and LiveMathematicianBench from 37.6 to 66.9. The same interface carries over to agentic loops, lifting GPT-5.5 by +24.8 points inside Codex and +19.1 inside Claude Code over no skill.\n\nSpotlight: Microsoft research newsletter\n\n[![](https://www.microsoft.com/en-us/research/wp-content/uploads/2019/09/Newsletter_Banner_08_2019_v1_1920x1080.png)](https://info.microsoft.com/ww-landing-microsoft-research-newsletter.html)\n\n## Microsoft Research Newsletter\n\nStay connected to the research community at Microsoft.\n\n[Subscribe today](https://info.microsoft.com/ww-landing-microsoft-research-newsletter.html)\n\nOpens in a new tab\n\n## A small model plus a skill file\n\nApproaching the next model tier SkillOpt also narrows the gap between small or open-weight models and frontier models—without changing any weights or adding any extra model calls at inference. After optimization, GPT-5.4-mini’s six-benchmark average (64.3) exceeds the no-skill baseline of the larger GPT-5.4 (59.7), and GPT-5.4-nano (57.4) exceeds the no-skill baseline of GPT-5.2 (51.3). Qwen3.5-4B, a 4-billion-parameter open-weight model, surpasses GPT-5.2’s no-skill baseline as well. Gains that once required a larger model can now be approximated by one optimized skill file.\n\n## Skills that transfer: train once, reuse everywhere\n\nThe optimized skill file captures reusable task-solving procedures rather than instructions overfit to a single model, benchmark, or execution environment. This is why the same skill can still improve performance when transferred across model scales, agent harnesses, and related tasks. In our transfer experiments, skills continued to deliver gains when moved across model scales, across execution harnesses, and to a nearby math benchmark. The clearest example is cross-harness transfer: a spreadsheet skill trained inside Codex, dropped into Claude Code with no further optimization, lifts the no-skill baseline from 22.1 to 81.8 (+59.7)—slightly above the 80.4 achieved by training directly inside Claude Code. Because the two harnesses expose different tool surfaces, this suggests SkillOpt learns general workflow logic, not just harness-specific recipes.\n\n## Compact, readable, and built from very few accepted edits\n\nThe deployed artifact, best\\_ skill.md , is neither an opaque parameter blob nor an ever-growing log. Across six case studies, the median final skill length is roughly 920 tokens, and because the validation gate rejects most proposals, only one to four edits are accepted into the final file. OfficeQA’s +39.0-point gain comes from a single accepted edit. The learned rules read like a seasoned practitioner’s advice. Component ablations confirm that the controls do the work: removing the rejected-edit buffer lowers scores on all three ablation benchmarks, and removing both the meta skill and the slow update drops SpreadsheetBench from 77.5 to 55.0. A new adaptation layer for the agent era SkillOpt points to a lighter-weight path for domain-adapting agents: instead of fine-tuning weights, hard-coding task logic, or hand-tuning prompts, teams can train a small, versionable, auditable natural-language skill layer—wherever automatic evaluation or a reliable verifier exists.\n\nBy bringing learning rates, schedules, validation splits, rejected samples, and slow updates to agent skills, SkillOpt suggests that training need not be limited to model weights. Procedural knowledge outside the model can also be optimized.\n\nWhen that process is controlled, validated, and recorded, a natural-language skill becomes a stable, transferable, and reversible adapter between frontier-model capability and real-world workloads. Read the full paper, visit the project page at [aka.ms/skillopt (opens in new tab)](https://aka.ms/skillopt), or explore the SkillOpt GitHub repository at [github.com/microsoft/SkillOpt (opens in new tab)](https://github.com/microsoft/SkillOpt). Teams building agentic workflows can use SkillOpt as a foundation for training reusable skills against their own tasks and verifiers. See also our companion project, SkillLens.\n\n[Paper](https://www.microsoft.com/en-us/research/publication/skillopt-executive-strategy-for-self-evolving-agent-skills/)\n\n[GitHub](https://github.com/microsoft/SkillOpt)\n\n[SkillLens Project Page](https://microsoft.github.io/SkillLens/)\n\nOpens in a new tab\n\nThe post [SkillOpt: Agent skills as trainable parameters](https://www.microsoft.com/en-us/research/blog/skillopt-agent-skills-as-trainable-parameters/) appeared first on [Microsoft Research](https://www.microsoft.com/en-us/research).",
+      "tags": [
+        "SkillOpt",
+        "微软研究",
+        "Agent技能优化"
+      ],
+      "score": 89,
+      "summary": "微软发布SkillOpt，将Agent技能编辑转化为训练过程，提升可靠性。",
+      "fetched_at": "2026-07-01T02:30:17.052761+08:00"
+    },
+    {
+      "title": "The AI Compass",
+      "link": "https://simonwillison.net/2026/Jun/30/the-ai-compass/#atom-everything",
+      "published": "2026-07-01T01:39:23+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[The AI Compass](https://bambamramfan.github.io/ai-compass/)**\n\nThis political compass style quiz [by bambamramfan](https://bambamramfan.tumblr.com/post/820505178072580096/the-ai-compass) is pretty neat - answer 29 questions about AI and AI ethics to see which of the 30 archetypes you best fit.\n\nI'm impressed that my answers on my first time through the quiz categorized me as \"The Garage Tinkerer\", patron saint myself!\n\n![Screenshot of a quiz result screen on a dark background. The top half shows a square scatter-plot quadrant chart with axes labeled GOOD (top), BAD (bottom), OVERHYPED (left of center) and TRANSFORMATIVE (right of center), filled with colored regions and scattered dots; a glowing white-ringed teal dot marks the user's position in the upper-right (good/transformative) area. Below, a card reads: \"YOU ARE...\" / \"The Garage Tinkerer\" / \"patron saint: Simon Willison\" / \"You're running local models, building little tools, and having a genuinely great time. You don't care about the discourse — you care about making the thing do cool stuff. The technology is interesting and everyone arguing about it would be happier if they just opened a terminal.\"](https://static.simonwillison.net/static/2026/garage-tinkerer.jpg)\n\nIt's implemented as a single page React app using the `<script type=\"text/babel\">` trick to avoid the necessary build step. [Here's the code](https://github.com/bambamramfan/ai-compass/blob/main/index.html).\n\nVia [@erisianrite.com](https://bsky.app/profile/erisianrite.com/post/3mphwpqgd4c2y)\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [ai-ethics](https://simonwillison.net/tags/ai-ethics)",
+      "tags": [
+        "AI Compass",
+        "政治倾向测试"
+      ],
+      "score": 65,
+      "summary": "Simon Willison介绍AI政治倾向测试AI Compass。",
+      "fetched_at": "2026-07-01T02:30:17.052819+08:00"
+    },
+    {
+      "title": "Have your agent record video demos of its work with shot-scraper video",
+      "link": "https://simonwillison.net/2026/Jun/30/shot-scraper-video/#atom-everything",
+      "published": "2026-07-01T00:54:26+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "[shot-scraper video](https://shot-scraper.datasette.io/en/stable/video.html) is a new command introduced in today's [shot-scraper 1.10](https://github.com/simonw/shot-scraper/releases/tag/1.10) release which accepts a `storyboard.yml` file defining a routine to run against a web application and uses Playwright to record a video of that routine. I've written before about the importance of [having coding agents produce demos](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/#proving-code-actually-works) of their work; this is my latest attempt at enabling them to do that.\n\nHere's an example video created using `shot-scraper video`, exercising a [still in development](https://github.com/simonw/datasette/pull/2813) feature adding the ability to create new tables in Datasette from pasted CSV, TSV or JSON data:\n\n[![\n\n](https://static.simonwillison.net/static/2026/datasette-bulk-insert-demo.jpg)](https://static.simonwillison.net/static/2026/datasette-bulk-insert-demo.mp4)\n\nThat video was created by running this command:\n\n```\nshot-scraper video datasette-bulk-insert-storyboard.yml \\\n  --auth datasette-demo-auth.json --mp4\n```\n\n(That `--auth` JSON file [contains a cookie](https://gist.github.com/simonw/287b26aff53fcb72942b19f5b69d7e5c), as [described here](https://shot-scraper.datasette.io/en/stable/authentication.html) in the documentation.)\n\nHere's the `datasette-bulk-insert-storyboard.yml` file:\n\n```\noutput: /tmp/datasette-bulk-insert-demo.webm\nserver:\n  - uv\n  - --directory\n  - /Users/simon/Dropbox/dev/datasette\n  - run\n  - datasette\n  - -p\n  - 6419\n  - --root\n  - --secret\n  - \"1\"\n  - /tmp/demo.db\nurl: http://127.0.0.1:6419/demo/tasks\nviewport:\n  width: 1280\n  height: 720\ncursor: true\nwait_for: 'button[data-table-action=\"insert-row\"]'\njavascript: |\n  (() => {\n    let clipboardText = \"\";\n    Object.defineProperty(navigator, \"clipboard\", {\n      configurable: true,\n      get: () => ({\n        writeText: async (text) => {\n          clipboardText = String(text);\n        },\n        readText: async () => clipboardText,\n      }),\n    });\n  })();\nscenes:\n  - name: Bulk insert existing table rows\n    do:\n      - pause: 0.8\n      - click: 'button[data-table-action=\"insert-row\"]'\n      - wait_for: \"#row-edit-dialog[open]\"\n      - pause: 0.5\n      - click: \".row-edit-bulk-insert\"\n      - wait_for: \".row-edit-bulk-textarea\"\n      - pause: 0.5\n      - click: \".row-edit-copy-template\"\n      - wait_for: \"text=Copied\"\n      - pause: 0.8\n      - fill:\n          into: \".row-edit-bulk-textarea\"\n          text: |\n            title,owner,status,priority,notes\n            Prepare release video,Ana,doing,1,Recorded with shot-scraper\n            Check pasted CSV import,Ben,review,3,Previewed before inserting\n            Share the branch demo,Chen,queued,2,Bulk insert creates three rows\n      - pause: 0.8\n      - click: \".row-edit-save\"\n      - wait_for: \"text=Previewing 3 rows.\"\n      - pause: 1.2\n      - click: \".row-edit-save\"\n      - wait_for: \"text=3 rows inserted.\"\n      - pause: 1.0\n      - click: \".row-edit-cancel\"\n      - wait_for: \"text=Prepare release video\"\n      - pause: 1.0\n  - name: Create a table from pasted CSV\n    open: http://127.0.0.1:6419/demo\n    wait_for: 'details.actions-menu-links summary'\n    do:\n      - pause: 0.8\n      - click: 'details.actions-menu-links summary'\n      - click: 'button[data-database-action=\"create-table\"]'\n      - wait_for: \"#table-create-dialog[open]\"\n      - pause: 0.5\n      - fill:\n          into: \".table-create-table-name\"\n          text: \"launch_metrics\"\n      - click: \".table-create-from-data\"\n      - wait_for: \".table-create-data-textarea\"\n      - pause: 0.5\n      - fill:\n          into: \".table-create-data-textarea\"\n          text: |\n            metric_id,name,score,recorded_on\n            m001,Activation rate,87.5,2026-06-29\n            m002,Retention check,72.25,2026-06-30\n            m003,CSV import health,95,2026-07-01\n      - pause: 0.8\n      - click: \".table-create-save\"\n      - wait_for: \"text=Previewing 3 rows.\"\n      - pause: 1.2\n      - click: \".table-create-save\"\n      - wait_for_url: \"**/demo/launch_metrics\"\n      - wait_for: \"text=Activation rate\"\n      - pause: 1.2\n```\n\nThe [video command documentation](https://shot-scraper.datasette.io/en/stable/video.html) includes simpler examples, but for the purpose of this post I thought I'd go with something more comprehensive.\n\nThat demo YAML storyboard was constructed entirely by GPT-5.5 xhigh running in Codex Desktop, using the following prompt run inside my `~/dev/datasette` checkout of [this branch](https://github.com/simonw/datasette/commits/b759ea548606bc9bf9a4bf0e33e2d57ead7e0ab8/):\n\n> `Review the changes on this branch.`\n>\n> `cd to ~/dev/shot-scraper and run the command \"uv run shot-scraper video --help\"`\n>\n> `Now use that new video command to record a video demo of the new features from this branch, including running a \"uv run datasette -p 6419 --root --secret 1 /tmp/demo.db\" development server so you can record the video against a demo DB that you first create.`\n\nNow that I've released the feature the prompt could say \"`run uvx shot-scraper video --help`\" instead and it should achieve the same result.\n\nI really like this pattern where the `--help` output for a command provides enough detail that a coding agent can use it - it works kind of like bundling a `SKILL.md` file directly inside the tool. I used the same pattern for [showboat and rodney](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/).\n\n#### How I built this\n\n`shot-scraper video` started as an experimental prototype. `shot-scraper` is built on top of [Playwright](https://playwright.dev/), and the key feature it needed was for Playwright to be able to record video of browser sessions with enough control to create the desired demo.\n\nI first tried this a few years ago and found that the Playwright-produced videos included additional chrome that was useful for debugging a test failure but unwanted for a product demo.\n\nThey fixed that a while ago, but there were still some minor blockers. In particular I was getting [a few white frames at the start of the videos](https://github.com/simonw/shot-scraper/pull/194/changes/c2f3b3a52ba84f2adcf3ad6da4d39c2570328584#issuecomment-4724459369), since the recording mechanism kicked in before the first URL was loaded by the browser.\n\nPlaywright 1.59 added a new [screencast mechanism](https://playwright.dev/python/docs/api/class-screencast) providing much more finely grained control over video recording. This was very nearly what I needed, but the resulting videos were fixed at 800px wide.\n\nI found a [landed PR fixing that](https://github.com/microsoft/playwright/pull/41183) but it wasn't yet in a release. Then yesterday they shipped it in [playwright-python 1.61.0](https://github.com/microsoft/playwright-python/releases/tag/v1.61.0) and I was finally unblocked to finish implementing the feature!\n\nThe code itself was all written by GPT-5.5 xhigh in Codex Desktop. I had it write the documentation as well which gave me a very useful frame for reviewing the design - much of the iteration on the feature came from reviewing that documentation, spotting things that were redundant, inconsistent or confusing, and requesting (or dictating) a better design.\n\nThe YAML format itself was mostly defined by the coding agent. I had it [use Pydantic](https://github.com/simonw/shot-scraper/blob/1.10/shot_scraper/video.py#L24) to both define and validate the format, partly to make the design easier to review.\n\nThis is a great example of the kind of feature that I almost certainly wouldn't have taken on without coding agent support. I filed the [original issue](https://github.com/simonw/shot-scraper/issues/142) in February 2024, and had difficulty finding the necessary time to solve this in amongst all of my other projects.\n\nTags: [projects](https://simonwillison.net/tags/projects), [python](https://simonwillison.net/tags/python), [yaml](https://simonwillison.net/tags/yaml), [ai](https://simonwillison.net/tags/ai), [datasette](https://simonwillison.net/tags/datasette), [playwright](https://simonwillison.net/tags/playwright), [shot-scraper](https://simonwillison.net/tags/shot-scraper), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [pydantic](https://simonwillison.net/tags/pydantic), [coding-agents](https://simonwillison.net/tags/coding-agents), [agentic-engineering](https://simonwillison.net/tags/agentic-engineering)",
+      "tags": [
+        "shot-scraper",
+        "视频录制",
+        "Agent演示"
+      ],
+      "score": 70,
+      "summary": "Simon Willison发布shot-scraper视频录制功能，支持Agent自动录制演示。",
+      "fetched_at": "2026-07-01T02:30:17.052875+08:00"
+    },
+    {
+      "title": "How GitHub maintains compliance for open source dependencies",
+      "link": "https://github.blog/enterprise-software/governance-and-compliance/how-github-maintains-compliance-for-open-source-dependencies/",
+      "published": "2026-07-01T01:28:16+08:00",
+      "source": "The GitHub Blog",
+      "content": "Every day, GitHub engineers introduce new dependencies into the GitHub platform, internal applications, and open source projects. GitHub is not just the home of open source; it is powered by open source! And an important part of using open source responsibly is respecting the licenses that govern the projects you depend on.\n\nAt GitHub, we are committed to upholding our obligations to the open source community and to the dependencies we use. Here’s how our Open Source Program Office (OSPO) uses the new GitHub License Compliance feature to manage thousands of dependencies.\n\n## Managing the open source license compliance process\n\nNearly all software carries some kind of license agreement. The license gives you permission to use a project, provided you comply with its obligations. Those obligations may be as simple as giving credit to the original author in your documentation, or they may require you to distribute all your source code when shipping your program. In some cases, licenses may also restrict certain activities or categories of use.\n\nYour organization likely has its own policies about acceptable licenses based on your business model, software ecosystem, and distribution strategy. For example, suppose your organization sells a commercial, closed source binary application. You may want to prevent dependencies that would require you to open source your proprietary code.\n\nOr, you may have a project that you plan to release as an open source package. In this case, you may want to avoid including dependencies governed by commercial or incompatible open source licenses.\n\nIf you can’t comply with the obligations required in either scenario, you should avoid the dependency to prevent legal or operational risks. It may require engineering effort to remove these licenses after the fact. For enterprise software, the business risk of noncompliance is huge because it can lead to costly litigation and reputational damage.\n\nTraditionally, license reviews have been performed manually or with third-party software. But now, GitHub has introduced a license compliance feature for GitHub Advanced Security customers, enabling you to review new dependencies directly on pull requests. This review helps ensure that the licenses for those dependencies’ comply with your policy, while also giving you the flexibility to expand your policy to allow new licenses or individual projects.\n\nTwo months ago, GitHub’s OSPO migrated from internal-only tools that we’d built to manage compliance onto the new feature. As early adopters, we gave the development team quick feedback and helped ensure the feature would clear the bar for large, fast-moving enterprises with complex compliance requirements.\n\n## Setting up for policy success\n\nBecause GitHub had built internal license compliance tools prior to the introduction of the product, we had an existing list of acceptable licenses to use as our initial policy. You’ll likely find that many dependencies use common permissive licenses such as MIT, Apache 2.0, and BSD-3-Clause, which are a good starting list to seed your policy. We initially rolled the feature out using the “Evaluate” mode on an organization-wide ruleset, which generated annotations in pull requests without blocking merges, so we were able to get developers accustomed to the new workflow without impeding their productivity. Running the old and new tools in parallel also let us see if their behavior diverged. After about a month of this mode of operation, we got to a state where the alerts were mainly on packages with unusual, missing, or explicitly disallowed licenses.\n\n![The enterprise license policy screen has a paginated list of SPDX licenses, with the ability to add more via manual input or a selection dialog.](https://github.blog/wp-content/uploads/2026/06/613757407-388b97bc-ca84-416a-aac5-72e4924e5dc8.png?resize=936%2C504)\n\n## How GitHub license compliance works\n\nUnder the hood, license compliance checks are enabled via rulesets. We target repositories via a custom property, where the value of the property determines whether license checks are enabled in “Active” or “Evaluate” mode. In repositories that are targeted by a ruleset, pull requests that modify a project’s dependencies trigger a scan that looks up the licenses used by each of the new dependencies. If the new dependencies’ licenses are already permitted, or there are package-specific exceptions, the checks pass. If there are failures, either in the direct or transitive dependencies, the tool comments on the pull request with alerts for each problematic package.\n\n![A license alert page, with the name of the package and the noncompliant license identifier and a timeline showing communications between the developer and approver. ](https://github.blog/wp-content/uploads/2026/06/613757492-a055f40b-3546-4726-8ff8-fa28f2729d44.png?resize=936%2C598)\n\nThe developer then reviews the alerts. If they decide the dependency is unacceptable, they can update their code or close the pull request to remove it. If they believe the license or package should be allowed, they can raise an exception request which will notify a specific team in the organization who can decide whether and how to amend the policy.\n\n## A day in the life of the license policy team\n\nGitHub’s license policy team consists of OSPO members and engineers with expertise in license reviews and supply chain analysis. Since we are a worldwide company, our policy review team has members across time zones to review alerts in a timely manner. We are in the process of formalizing an SLA for reviewing license requests, but in practice it’s rarely more than a couple of hours before we can triage an incoming request.\n\nTeam members receive email notifications of new review requests and can also access a dashboard to see the backlog of pending requests.\n\n![An email notification sent to the license reviewer team, with the name of the user who raised the alert, the repository where the alert was generated, and a comment from the developer requesting the package be permitted because it is a private, internal package.](https://github.blog/wp-content/uploads/2026/06/613757588-b5723bcc-5867-419b-983b-6c997ee8a31e.png?resize=936%2C1024)\n\nWhen approving a request, we have two decision points: first, whether to permit the license or the package. Then, decide what scope – enterprise or repository – to use. If it’s a safe license that simply hasn’t shown up before, we’ll add it at the enterprise level and thus allow dependencies with that license anywhere at GitHub. Some packages carry a commercial license which can’t be permitted everywhere but should be allowed in the repository owned by a team which has paid for the software, so those policy amendments get added at the repository level. Package exceptions are useful for internal software which usually doesn’t have license data associated with it. Helpfully, the tool supports wildcard matches for package exceptions. For example, we’ve permitted everything in the `@github-ui/*` React namespace, so we don’t need to approve those packages one by one.\n\n## Making it easy for developers\n\nTo support this process, we’ve established procedures about contacting the GitHub OSPO, and how to use an emergency “break glass” override. These situations should be rare, but a clear emergency override process is essential for critically time-sensitive pull requests. As we mentioned above, the license policy enforcement happens via ruleset, and the ruleset condition keys off a custom property. So toggling the value of the property can temporarily turn off enforcement if there’s a critical fix that’s blocked by a license alert. So far, we’ve only needed to use this once, but it was very helpful to have the option.\n\nWe’ve also provided internal documentation and training to help developers understand the importance of license compliance. Ultimately, it’s everyone’s job to help ensure compliance and manage risk and it’s our job to make that as easy as possible.\n\n## Wrapping up\n\nLicense compliance is a critical part of managing our software supply chain. By helping developers make informed dependency choices aligned with GitHub’s license policy we prevent costly rewrites and potential legal problems. We’ve been enthusiastically using and providing feedback on the new GitHub License Compliance feature for several months. Now that it’s in public preview, we are excited to see more companies adopt it and hope our experience provides some guidance if you’re just getting started.\n\nGitHub Enterprise Cloud customers can use the License Compliance feature across repositories which have an active GHAS Code Security license. For more information, see [About open source license compliance](https://docs.github.com/enterprise-cloud@latest/code-security/concepts/supply-chain-security/open-source-license-compliance).\n\nThe post [How GitHub maintains compliance for open source dependencies](https://github.blog/enterprise-software/governance-and-compliance/how-github-maintains-compliance-for-open-source-dependencies/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub",
+        "开源合规",
+        "License Compliance"
+      ],
+      "score": 60,
+      "summary": "GitHub介绍如何使用License Compliance功能管理开源依赖合规。",
+      "fetched_at": "2026-07-01T02:30:17.052940+08:00"
+    },
+    {
+      "title": "OSWorld2.0\n\nBenchmarking Computer Use Agents on Long-Horizon Real-World Tasks",
+      "link": "https://x.com/_akhaliq/status/2071994664673071196",
+      "published": "2026-07-01T00:29:58+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "OSWorld2.0  \n  \nBenchmarking Computer Use Agents on Long-Horizon Real-World Tasks\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071994601309663232/vid/avc1/1920x1080/5dHk9GXZo9G5gmbf.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_akhaliq/status/2071994664673071196/video/1)\n\n💬1🔄5❤️35👀6096📊8",
+      "tags": [
+        "OSWorld2.0",
+        "Computer Use Agent",
+        "基准测试"
+      ],
+      "score": 80,
+      "summary": "AK介绍OSWorld2.0基准测试，用于评估长时计算机使用Agent。",
+      "fetched_at": "2026-07-01T02:30:17.052997+08:00"
+    },
+    {
+      "title": "paper: https://t.co/DxFLissPi9",
+      "link": "https://x.com/_akhaliq/status/2071994666380038491",
+      "published": "2026-07-01T00:29:58+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "paper: [huggingface.co/papers/2606.29…](https://huggingface.co/papers/2606.29537)\n\n💬0🔄0❤️2👀1774📊1",
+      "tags": [
+        "OSWorld2.0",
+        "论文链接"
+      ],
+      "score": 65,
+      "summary": "AK分享OSWorld2.0论文链接。",
+      "fetched_at": "2026-07-01T02:30:17.053053+08:00"
+    },
+    {
+      "title": "Claude is your research partner for rigorous science.",
+      "link": "https://x.com/adocomplete/status/2072003075058094186",
+      "published": "2026-07-01T01:03:23+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Claude is your research partner for rigorous science.\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nIntroducing Claude Science, a new app designed with every stage of research in mind.   \n  \nArtifacts traced to their code, environments managed on demand, and 60+ optional scientific databases that you can connect.  \n  \nAvailable now in beta.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072000855969275904/vid/avc1/1920x1080/DFP9dS3dqhMdc3qs.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072002740830842899/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072002740830842899)\n\n💬3🔄0❤️19👀2193📊5",
+      "tags": [
+        "Claude Science",
+        "研究助手"
+      ],
+      "score": 65,
+      "summary": "Ado转发Claude Science发布消息。",
+      "fetched_at": "2026-07-01T02:30:17.053105+08:00"
+    },
+    {
+      "title": "You asked, we listened. Claude Desktop on Linux is here!\n\nDownload link: https://t.co/gjgHZvbKyi",
+      "link": "https://x.com/bcherny/status/2072000214634742243",
+      "published": "2026-07-01T00:52:01+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "You asked, we listened. Claude Desktop on Linux is here!  \n  \nDownload link: [code.claude.com/docs/en/deskto…](https://code.claude.com/docs/en/desktop-linux)\n\n![ClaudeDevs](https://pbs.twimg.com/profile_images/2044472418815893504/xf14RxM8_normal.png)\n\nClaudeDevs@ClaudeDevs\n\nClaude Desktop is now available on Linux (Ubuntu and Debian) in beta.  \n  \nAlongside the browser and terminal, you now get a first-class desktop experience with Claude Code, Claude Cowork, and chat on all paid plans.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEuXrJbEAAiTYm.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ClaudeDevs/status/2071988881717871065)\n\n💬160🔄60❤️1203👀93504📊207",
+      "tags": [
+        "Claude Desktop",
+        "Linux",
+        "发布"
+      ],
+      "score": 80,
+      "summary": "Claude Desktop正式支持Linux（Ubuntu/Debian）beta版。",
+      "fetched_at": "2026-07-01T02:30:17.053159+08:00"
+    },
+    {
+      "title": "Early access partners found Sonnet 5 finishes complex tasks where previous Sonnets stopped short, ch...",
+      "link": "https://x.com/claudeai/status/2072017455833100494",
+      "published": "2026-07-01T02:00:32+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Early access partners found Sonnet 5 finishes complex tasks where previous Sonnets stopped short, checks its own output without being asked, and does all its agentic work at an attractive price point.\n\n💬9🔄12❤️330👀20613📊33",
+      "tags": [
+        "Claude Sonnet 5",
+        "Agentic",
+        "性能"
+      ],
+      "score": 85,
+      "summary": "Claude官方称Sonnet 5能完成复杂任务，检查输出，价格有吸引力。",
+      "fetched_at": "2026-07-01T02:30:17.053211+08:00"
+    },
+    {
+      "title": "Sonnet 5 is now the default on Free and Pro, and available to Max, Team, and Enterprise users.\n\nIt's...",
+      "link": "https://x.com/claudeai/status/2072017457057853480",
+      "published": "2026-07-01T02:00:32+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Sonnet 5 is now the default on Free and Pro, and available to Max, Team, and Enterprise users.  \n  \nIt's live across all Claude apps and the Claude Platform today, with introductory pricing through August 31: [anthropic.com/news/claude-so…](https://www.anthropic.com/news/claude-sonnet-5)\n\n💬18🔄9❤️224👀14918📊32",
+      "tags": [
+        "Claude Sonnet 5",
+        "默认模型",
+        "发布"
+      ],
+      "score": 85,
+      "summary": "Claude Sonnet 5成为Free/Pro默认模型，Max/Team/Enterprise可用。",
+      "fetched_at": "2026-07-01T02:30:17.053263+08:00"
+    },
+    {
+      "title": "Introducing Claude Sonnet 5, our most agentic Sonnet yet.\n\nIt makes plans, uses tools like browsers ...",
+      "link": "https://x.com/claudeai/status/2072017450611142835",
+      "published": "2026-07-01T02:00:31+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Introducing Claude Sonnet 5, our most agentic Sonnet yet.  \n  \nIt makes plans, uses tools like browsers and terminals, and runs autonomously at a level that just a few months ago required larger and more expensive models.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072014980103176192/vid/avc1/1728x2160/zHnxI04ExEMPKIbE.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072017450611142835/video/1)\n\n💬328🔄451❤️3054👀103102📊655",
+      "tags": [
+        "Claude Sonnet 5",
+        "发布",
+        "Agentic"
+      ],
+      "score": 95,
+      "summary": "Anthropic发布Claude Sonnet 5，最Agentic的Sonnet模型。",
+      "fetched_at": "2026-07-01T02:30:17.053315+08:00"
+    },
+    {
+      "title": "More on Claude Science: https://t.co/65weJA2wRv",
+      "link": "https://x.com/claudeai/status/2072011953309167788",
+      "published": "2026-07-01T01:38:40+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "More on Claude Science: [anthropic.com/news/claude-sc…](https://www.anthropic.com/news/claude-science-ai-workbench)\n\n💬10🔄5❤️144👀34701📊24",
+      "tags": [
+        "Claude Science",
+        "发布"
+      ],
+      "score": 85,
+      "summary": "Claude官方发布Claude Science详情页链接。",
+      "fetched_at": "2026-07-01T02:30:17.053366+08:00"
+    },
+    {
+      "title": "Introducing Claude Science, a new app designed with every stage of research in mind. \n\nArtifacts tra...",
+      "link": "https://x.com/claudeai/status/2072002740830842899",
+      "published": "2026-07-01T01:02:04+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Introducing Claude Science, a new app designed with every stage of research in mind.   \n  \nArtifacts traced to their code, environments managed on demand, and 60+ optional scientific databases that you can connect.  \n  \nAvailable now in beta.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072000855969275904/vid/avc1/1920x1080/DFP9dS3dqhMdc3qs.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072002740830842899/video/1)\n\n💬520🔄704❤️8493👀512536📊1571",
+      "tags": [
+        "Claude Science",
+        "发布",
+        "研究应用"
+      ],
+      "score": 95,
+      "summary": "Anthropic发布Claude Science，面向科研的AI工作台。",
+      "fetched_at": "2026-07-01T02:30:17.053417+08:00"
+    },
+    {
+      "title": "Learn more: https://t.co/F72VnQ2vhA",
+      "link": "https://x.com/claudeai/status/2072002742051287124",
+      "published": "2026-07-01T01:02:04+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Learn more: [claude.com/science](http://claude.com/science)\n\n💬21🔄9❤️293👀68672📊50",
+      "tags": [
+        "Claude Science",
+        "链接"
+      ],
+      "score": 85,
+      "summary": "Claude官方提供Claude Science学习链接。",
+      "fetched_at": "2026-07-01T02:30:17.053468+08:00"
+    },
+    {
+      "title": "🔥🔥🔥",
+      "link": "https://x.com/firecrawl/status/2072003214879191541",
+      "published": "2026-07-01T01:03:57+08:00",
+      "source": "Firecrawl(@firecrawl_dev)",
+      "content": "🔥🔥🔥\n\n![Nous Research](https://pbs.twimg.com/profile_images/1816254738234761216/TX7TW-Mp_normal.jpg)\n\nNous Research@NousResearch\n\nHermes Agent now reads the web up to 60x faster and 49x cheaper.  \n  \nScraping backends pass clean content straight to the agent without redundant processing steps; large pages are saved locally and paged on demand so you get the same quality at a fraction of the time and cost.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071968947465789440/vid/avc1/2160x2160/KuWyMVeHnYat6T-i.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/NousResearch/status/2071974594961977727/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/NousResearch/status/2071974594961977727)\n\n💬0🔄1❤️24👀2827📊4",
+      "tags": [
+        "Hermes Agent",
+        "网页读取",
+        "加速"
+      ],
+      "score": 65,
+      "summary": "Firecrawl转发Hermes Agent网页读取速度提升60倍。",
+      "fetched_at": "2026-07-01T02:30:17.053518+08:00"
+    },
+    {
+      "title": "human in the loop is very nice for these wiki memory systems",
+      "link": "https://x.com/hwchase17/status/2072019041418682699",
+      "published": "2026-07-01T02:06:50+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "human in the loop is very nice for these wiki memory systems\n\n![Mitchell](https://pbs.twimg.com/profile_images/1895256717312626688/CKpaSI3Y_normal.jpg)\n\nMitchell@mitchellbosley\n\n[@hwchase17](https://x.com/hwchase17) My rule is that nothing gets added to the knowledge system without me reviewing it first, which has served me well so far, along with daily and weekly standups/reviews where I resolve and stale state\n\n[🔗 View Quoted Tweet](https://x.com/mitchellbosley/status/2072016975367115165)\n\n💬1🔄0❤️1👀492📊1",
+      "tags": [
+        "Human-in-the-loop",
+        "Wiki Memory"
+      ],
+      "score": 60,
+      "summary": "Harrison Chase评论人机协同在wiki记忆系统中的应用。",
+      "fetched_at": "2026-07-01T02:30:17.053599+08:00"
+    },
+    {
+      "title": "Tutorial on using Gemini live to build a voice agent\n\nUses deepagents as a tool: offload complex wor...",
+      "link": "https://x.com/hwchase17/status/2072003684415000802",
+      "published": "2026-07-01T01:05:48+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Tutorial on using Gemini live to build a voice agent  \n  \nUses deepagents as a tool: offload complex work to this subagent, use Gemini live for the naturalness/latency\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\nBuilding voice agents can come with tradeoffs.  \n  \n💬 Better convos w/ speech to speech models  \nVs  \n🥪 More reliable harnesses w/ sandwich architecture  \n  \nHow to build a voice research agent with both:  \n✅ Gemini Live: low-latency, natural-sounding convos  \n✅ Deep Agents: long-running research tasks  \n✅ LangSmith: full tracing & observability\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071998305207255040/vid/avc1/1920x1080/auQADcnMa-syQue1.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2072001573408968736/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2072001573408968736)\n\n💬1🔄0❤️3👀1569📊2",
+      "tags": [
+        "Gemini Live",
+        "Voice Agent",
+        "教程"
+      ],
+      "score": 70,
+      "summary": "LangChain发布使用Gemini Live构建语音Agent教程。",
+      "fetched_at": "2026-07-01T02:30:17.053657+08:00"
+    },
+    {
+      "title": "good description of how someone has done wiki memory in the wild",
+      "link": "https://x.com/hwchase17/status/2071997993138762072",
+      "published": "2026-07-01T00:43:12+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "good description of how someone has done wiki memory in the wild\n\n![Miller](https://pbs.twimg.com/profile_images/2071411404876443648/r9-JHgxk_normal.jpg)\n\nMiller@millerbath\n\n[@hwchase17](https://x.com/hwchase17)[@cognition](https://x.com/cognition)[@FactoryAI](https://x.com/FactoryAI)[@karpathy](https://x.com/karpathy) We implemented wiki idea by hosting the \"files\" as doc db objects, added an API for db querying, and a CLI for agents to use.  \n  \nSystem prompt was updated to inform agents to store, update, and fetch things via the CLI. Interaction is great - just need to focus on information.\n\n[🔗 View Quoted Tweet](https://x.com/millerbath/status/2071990288491430400)\n\n💬2🔄1❤️11👀3457📊4",
+      "tags": [
+        "Wiki Memory",
+        "实践"
+      ],
+      "score": 60,
+      "summary": "Harrison Chase转发wiki记忆系统实践描述。",
+      "fetched_at": "2026-07-01T02:30:17.053711+08:00"
+    },
+    {
+      "title": "10x our previous maximum. Available now across Avatar III, IV, and V on both the API and Web: https:...",
+      "link": "https://x.com/HeyGen/status/2071998059966517414",
+      "published": "2026-07-01T00:43:28+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "10x our previous maximum. Available now across Avatar III, IV, and V on both the API and Web: [heygen.com/research/avata…](https://www.heygen.com/research/avatar-inference-at-scale)\n\n💬0🔄14❤️14👀38076📊6",
+      "tags": [
+        "HeyGen",
+        "30分钟视频",
+        "AI生成"
+      ],
+      "score": 80,
+      "summary": "HeyGen发布30分钟单次AI视频生成，10倍于此前最大长度。",
+      "fetched_at": "2026-07-01T02:30:17.053762+08:00"
+    },
+    {
+      "title": "How HeyGen Models generate a 30-minute video, the longest single-pass AI generation ever. 6× the ind...",
+      "link": "https://x.com/HeyGen/status/2071998058402042231",
+      "published": "2026-07-01T00:43:27+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "How HeyGen Models generate a 30-minute video, the longest single-pass AI generation ever. 6× the industry ceiling  \n  \nThe hard part was never length, it was consistency. Most systems drift; the face stops looking like you. HeyGen Models stay locked in  \n  \nFull technical report below ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HME3Ob3bsAAWv1d.jpg)\n\n💬141🔄156❤️335👀318812📊221",
+      "tags": [
+        "HeyGen",
+        "30分钟视频",
+        "一致性"
+      ],
+      "score": 80,
+      "summary": "HeyGen介绍30分钟视频生成技术，强调面部一致性。",
+      "fetched_at": "2026-07-01T02:30:17.053813+08:00"
+    },
+    {
+      "title": "Project gallery and whitepaper: https://t.co/99bZhCeszA\n\nASPIRE is a great collaboration between NVI...",
+      "link": "https://x.com/DrJimFan/status/2072004192294830583",
+      "published": "2026-07-01T01:07:50+08:00",
+      "source": "Jim Fan(@DrJimFan)",
+      "content": "Project gallery and whitepaper: [research.nvidia.com/labs/gear/aspi…](https://research.nvidia.com/labs/gear/aspire/)  \n  \nASPIRE is a great collaboration between NVIDIA GEAR lab, UMich, Berkeley, and CMU. Kudos to all the coauthors who pour their hearts into the project!  \n  \nCheck out the deep dive thread from Guanzhi:   \n[x.com/guanzhi\\_wang/s…](https://x.com/guanzhi_wang/status/2072001345960222743?s=20)\n\n![Guanzhi Wang](https://pbs.twimg.com/profile_images/1536265762498719745/2743brx5_normal.jpg)\n\nGuanzhi Wang@guanzhi\\_wang\n\nIntroducing ASPIRE, the first automated /𝚜𝚔𝚒𝚕𝚕 discovery system for robotics. Rather than solving tasks one by one, ASPIRE continuously discovers and accumulates reusable skills. These persistent skills become the building blocks of robot intelligence, enabling multi-task transfer, sim-to-real transfer, and cross-embodiment transfer[research.nvidia.com/labs/gear/aspi…](https://research.nvidia.com/labs/gear/aspire/)o2izmq  \n  \nFrom [@NVIDIA](https://x.com/NVIDIA), [@UMichCSE](https://x.com/UMichCSE), [@ECEILLINOIS](https://x.com/ECEILLINOIS), [@Berkeley\\_AI](https://x.com/Berkeley_AI), [@CMU\\_Robotics](https://x.com/CMU_Robotics).  \n  \nCheck out how it works in 🧵:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071982209582424064/vid/avc1/1920x1080/1F931FziW-3WgWak.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/guanzhi_wang/status/2072001345960222743/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/guanzhi_wang/status/2072001345960222743)\n\n💬0🔄0❤️18👀3950📊2",
+      "tags": [
+        "ASPIRE",
+        "NVIDIA",
+        "机器人技能"
+      ],
+      "score": 80,
+      "summary": "Jim Fan介绍ASPIRE机器人技能自动发现系统。",
+      "fetched_at": "2026-07-01T02:30:17.053862+08:00"
+    },
+    {
+      "title": "Today, we give robots a /skills library that self-evolves and compounds indefinitely! Introducing AS...",
+      "link": "https://x.com/DrJimFan/status/2072004190856212902",
+      "published": "2026-07-01T01:07:49+08:00",
+      "source": "Jim Fan(@DrJimFan)",
+      "content": "Today, we give robots a /skills library that self-evolves and compounds indefinitely! Introducing ASPIRE: a robot solving its 100th task is no longer as clueless as solving its first. Coding agents observe multimodal sensory traces from simulation and real robots, launch an evolutionary search over control programs, and distill the best know-how into an ever-expanding library.   \n  \nASPIRE is a new type of continual learning: \"training\" is skill refinement instead of gradient descent.   \n\"Trained model\" is a repo of sensorimotor skills instead of floating weights.   \n“Distributed training” is a panel of agents each practicing a different skill instead of sharded minibatches.  \n  \nHere's the beauty: ASPIRE gives the tired terms \"sim2real transfer\" and \"cross-embodiment transfer\" a whole new meaning. Bridging the sim-to-real gap is notoriously brutal. An end-to-end policy has to swallow both the visual shift (sim looks toyish next to a real camera) and the subtle contact physics it never quite gets right. ASPIRE sidesteps the mess, because it doesn't ship pixels or weights across the gap, but ships the know-how. The robot still has to practice in the real world, not zero-shot, but it gets there way faster because it isn't rediscovering the strategy from scratch. Same for going single-arm to bimanual hardware, which usually requires new data and retraining from zero. ASPIRE achieves up to ~10x cut in \"transfer learning” tokens (yes, tokens are the new unit of \\*training\\* compute ;)  \n  \nCheck out our gallery of 150+ tasks and 90+ skills the robots taught themselves, all on the website! Kind of wild that we can ship the \"learned weights\" as an HTML page rather than a GGUF. We'll open-source the full stack so your own robot library starts compounding from ours!   \n  \nDeep dive in thread:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072001551988920320/vid/avc1/1920x1080/HGwCmr_X0Ka-WLlG.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/DrJimFan/status/2072004190856212902/video/1)\n\n💬17🔄26❤️162👀12547📊46",
+      "tags": [
+        "ASPIRE",
+        "机器人",
+        "技能库"
+      ],
+      "score": 85,
+      "summary": "Jim Fan发布ASPIRE，机器人技能库自我进化系统。",
+      "fetched_at": "2026-07-01T02:30:17.053912+08:00"
+    },
+    {
+      "title": "just dropped \n\nhttps://t.co/sTPbkaWxfo",
+      "link": "https://x.com/julien_c/status/2072001714249465886",
+      "published": "2026-07-01T00:57:59+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "just dropped   \n  \n[huggingface.co/nvidia/Qwen3.6…](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)\n\n💬3🔄8❤️51👀4599📊16",
+      "tags": [
+        "Qwen3.6-27B",
+        "NVFP4",
+        "Hugging Face"
+      ],
+      "score": 70,
+      "summary": "Julien Chaumond发布NVIDIA Qwen3.6-27B-NVFP4模型。",
+      "fetched_at": "2026-07-01T02:30:17.053963+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/venturetwins/status/2072010078929158389",
+      "published": "2026-07-01T01:31:13+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HMFCL5UaQAAx3lA.jpg)\n\n💬2🔄2❤️31👀1723📊5",
+      "tags": [
+        "AI投资",
+        "数据"
+      ],
+      "score": 60,
+      "summary": "Justine Moore分享AI投资相关图片。",
+      "fetched_at": "2026-07-01T02:30:17.054014+08:00"
+    },
+    {
+      "title": "Watch the full video on YouTube: https://t.co/dAmYnhXJML",
+      "link": "https://x.com/LangChain/status/2072008701578232243",
+      "published": "2026-07-01T01:25:45+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Watch the full video on YouTube: [youtube.com/watch?v=aV0ctb…](https://www.youtube.com/watch?v=aV0ctbnDUCM)\n\n💬2🔄0❤️0👀1167📊2",
+      "tags": [
+        "LangChain",
+        "YouTube"
+      ],
+      "score": 60,
+      "summary": "LangChain提供完整视频链接。",
+      "fetched_at": "2026-07-01T02:30:17.054065+08:00"
+    },
+    {
+      "title": "Building voice agents can come with tradeoffs.\n\n💬 Better convos w/ speech to speech models\nVs\n🥪 Mo...",
+      "link": "https://x.com/LangChain/status/2072001573408968736",
+      "published": "2026-07-01T00:57:25+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Building voice agents can come with tradeoffs.  \n  \n💬 Better convos w/ speech to speech models  \nVs  \n🥪 More reliable harnesses w/ sandwich architecture  \n  \nHow to build a voice research agent with both:  \n✅ Gemini Live: low-latency, natural-sounding convos  \n✅ Deep Agents: long-running research tasks  \n✅ LangSmith: full tracing & observability\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071998305207255040/vid/avc1/1920x1080/auQADcnMa-syQue1.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2072001573408968736/video/1)\n\n💬6🔄5❤️17👀4557📊10",
+      "tags": [
+        "Voice Agent",
+        "Gemini Live",
+        "LangChain"
+      ],
+      "score": 70,
+      "summary": "LangChain发布构建语音Agent教程，结合Gemini Live和Deep Agents。",
+      "fetched_at": "2026-07-01T02:30:17.054114+08:00"
+    },
+    {
+      "title": "Word of the day so far at AIEWF is Loop. @swyx talked about “loopcraft” in his opening address, and ...",
+      "link": "https://x.com/latentspacepod/status/2072003484120203362",
+      "published": "2026-07-01T01:05:01+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "Word of the day so far at AIEWF is Loop. [@swyx](https://x.com/swyx) talked about “loopcraft” in his opening address, and the word was used constantly by the following speakers from Microsoft and OpenAI, and then “the clawfather” Peter Steinberger.\n\n![Tweet Image](https://pbs.twimg.com/media/HME8AxUaMAAfqBW.jpg)![Tweet Image](https://pbs.twimg.com/media/HME8AxTbEAAeWvV.jpg)\n\n💬1🔄2❤️9👀861📊3",
+      "tags": [
+        "AIEWF",
+        "Loopcraft"
+      ],
+      "score": 60,
+      "summary": "Latent.Space报道AIEWF会议关键词'Loop'。",
+      "fetched_at": "2026-07-01T02:30:17.054163+08:00"
+    },
+    {
+      "title": "Lovable now supports Claude Sonnet 5.\n\nOur benchmarks show it gets more done for less and excels at ...",
+      "link": "https://x.com/Lovable/status/2072017612423225492",
+      "published": "2026-07-01T02:01:09+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "Lovable now supports Claude Sonnet 5.  \n  \nOur benchmarks show it gets more done for less and excels at catching risky requests, with improved security capabilities compared to the previous Sonnet model.\n\n![Tweet Image](https://pbs.twimg.com/media/HMFJCQFXQAErspc.jpg)\n\n💬2🔄4❤️26👀2030📊5",
+      "tags": [
+        "Lovable",
+        "Claude Sonnet 5",
+        "支持"
+      ],
+      "score": 70,
+      "summary": "Lovable宣布支持Claude Sonnet 5，基准测试显示性能提升。",
+      "fetched_at": "2026-07-01T02:30:17.054213+08:00"
+    },
+    {
+      "title": "Self recommending.",
+      "link": "https://x.com/pmarca/status/2072019456923230645",
+      "published": "2026-07-01T02:08:29+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Self recommending.\n\n![Sebastian Raschka](https://pbs.twimg.com/profile_images/1661187442043486209/a3E4t1eV_normal.jpg)\n\nSebastian Raschka@rasbt\n\nAfter 18 months of writing, coding, and experimenting, Build a Reasoning Model (From Scratch) is   \nfinally out!  \n  \nMy first copies just arrived! 📚  \n  \n440 full-color pages. Inference scaling, reinforcement learning, and distillation from scratch.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEHrKQXUAEE7Kg.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rasbt/status/2071945864088535126)\n\n💬4🔄2❤️25👀9824📊6",
+      "tags": [
+        "Build a Reasoning Model",
+        "书籍"
+      ],
+      "score": 60,
+      "summary": "Marc Andreessen推荐Sebastian Raschka新书《Build a Reasoning Model》。",
+      "fetched_at": "2026-07-01T02:30:17.054263+08:00"
+    },
+    {
+      "title": "Concerning.",
+      "link": "https://x.com/pmarca/status/2072019208951709947",
+      "published": "2026-07-01T02:07:30+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Concerning.\n\n![Wesley Yang](https://pbs.twimg.com/profile_images/2066976158537633793/gFh-AizY_normal.jpg)\n\nWesley Yang@wesyang\n\n2 things happened:  \n  \n-- the push to equalize outcomes by dumbing down the curriculum for everyone disrupted the acquisition of basic skills by the lower tiers   \n  \n-- this forced parents who cared about educating their kids to compensate with online and other private tutoring, which is widely and cheaply available and very effective, making the failure of public schools to teach irrelevant to those whose needs used to be met tolerably by the public schools  \n  \nThus, the drive to equity produced the very opposite of their ostensible outcome: the top did better, the bottom did worse, greater inequality was the result.   \n  \nBut widening inequality, of course, creates the predicate for further striving after equity, thus creating more opportunities for sinecures and consultancies for further educational gimmicks and nostrums that will in turn exacerbate the problems they purport to address.   \n  \nRinse and repeat until the district spends $30K per student while basic literacy and numeracy tanks, in turn driving privatization schemes.\n\n[🔗 View Quoted Tweet](https://x.com/wesyang/status/2071665521380978719)\n\n💬3🔄0❤️19👀8723📊3",
+      "tags": [
+        "教育",
+        "不平等"
+      ],
+      "score": 50,
+      "summary": "Marc Andreessen评论教育平等化导致不平等加剧。",
+      "fetched_at": "2026-07-01T02:30:17.054312+08:00"
+    },
+    {
+      "title": "Wow.",
+      "link": "https://x.com/pmarca/status/2072019020250001720",
+      "published": "2026-07-01T02:06:45+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Wow.\n\n![Omri Weinstein](https://pbs.twimg.com/profile_images/1473895631525756929/OfL5OKI5_normal.jpg)\n\nOmri Weinstein@WeinsteinOmri\n\nEven [@OpenAI](https://x.com/OpenAI)'s recent Erdős breakthrough didn't convince me that LLMs can do general math research. This changed my mind..   \n  \nUsing a clever 'prover-verifier' LLM loop, this harness solved 9 substantial open problems in Theoretical CS, including one that kept me up at night for 2 years.   \n  \nIncredible work by my former Columbia collaborator [@binghuip](https://x.com/binghuip), [@runzhou\\_tao](https://x.com/runzhou_tao), Steven Wang & [@HantaoYu\\_Theory](https://x.com/HantaoYu_Theory).   \n  \nThe plan is to expand this to ALL fields of science. Stay tuned.\n\n[🔗 View Quoted Tweet](https://x.com/WeinsteinOmri/status/2071940117875282030)\n\n💬2🔄1❤️11👀6290📊2",
+      "tags": [
+        "LLM",
+        "数学研究",
+        "开放问题"
+      ],
+      "score": 80,
+      "summary": "Marc Andreessen转发LLM解决9个理论计算机科学开放问题。",
+      "fetched_at": "2026-07-01T02:30:17.054362+08:00"
+    },
+    {
+      "title": "Wow.",
+      "link": "https://x.com/pmarca/status/2072018963236855913",
+      "published": "2026-07-01T02:06:31+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Wow.\n\n![Binghui Peng](https://pbs.twimg.com/profile_images/1677362178549063694/yROvFCwG_normal.png)\n\nBinghui Peng@binghuip\n\n[1/n] Recent OpenAI research has demonstrated the ability of LLMs to solve frontier problems in mathematics. We design a simple pipeline (using GPT 5.5 Pro and Claude Opus 4.8) that resolves 9 challenging open problems, including open problems from prominent theoretical computer science venues—4 from COLT open problem list and 1 from FOCS —as well as 4 problems from the commutative algebra.   \n  \nProject link: [github.com/Pengbinghui/pi…](https://github.com/Pengbinghui/pipeline-math), joint work with [@runzhou\\_tao](https://x.com/runzhou_tao), Steven Wang & [@HantaoYu\\_Theory](https://x.com/HantaoYu_Theory)\n\n[🔗 View Quoted Tweet](https://x.com/binghuip/status/2070756087998152855)\n\n💬1🔄0❤️8👀7299📊2",
+      "tags": [
+        "GPT-5.5",
+        "Claude Opus 4.8",
+        "数学问题"
+      ],
+      "score": 80,
+      "summary": "Marc Andreessen转发使用GPT-5.5和Claude Opus 4.8解决9个开放数学问题。",
+      "fetched_at": "2026-07-01T02:30:17.054411+08:00"
+    },
+    {
+      "title": "Many people are saying.",
+      "link": "https://x.com/pmarca/status/2072016277712109781",
+      "published": "2026-07-01T01:55:51+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Many people are saying.\n\n![Ara Kharazian](https://pbs.twimg.com/profile_images/1771552439344177152/KfuAN2Mb_normal.jpg)\n\nAra Kharazian@arakharazian\n\nWe can finally say AI isn't killing jobs.  \n  \nA new paper from me, [@tryramp](https://x.com/tryramp), and [@RevelioLabs](https://x.com/RevelioLabs) uses firm-level spend and workforce data across 21K U.S. businesses to measure AI's impact on jobs.  \n  \nFirms that adopt AI heavily grow headcount 10% over two years following adoption. Low adopters see no statistically significant change.\n\n![Tweet Image](https://pbs.twimg.com/media/HMD-xviXcAArYSd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arakharazian/status/2071942212925936053)\n\n💬18🔄1❤️63👀19059📊15",
+      "tags": [
+        "AI",
+        "就业",
+        "研究"
+      ],
+      "score": 70,
+      "summary": "Marc Andreessen转发研究：AI采用企业两年内员工增长10%。",
+      "fetched_at": "2026-07-01T02:30:17.054461+08:00"
+    },
+    {
+      "title": "AI agents often fail because their instructions, or skills, are manually modified with no guarantee ...",
+      "link": "https://x.com/MSFTResearch/status/2072001556463886840",
+      "published": "2026-07-01T00:57:21+08:00",
+      "source": "Microsoft Research(@MSFTResearch)",
+      "content": "AI agents often fail because their instructions, or skills, are manually modified with no guarantee of improvement. Learn how SkillOpt turns skill editing into a training process, making agent behavior more reliable without changing model weights: [msft.it/6012vsvEs](https://msft.it/6012vsvEs)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072001522985054208/vid/avc1/1280x664/coRuJ97qNFoxcmnC.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/MSFTResearch/status/2072001556463886840/video/1)\n\n💬1🔄3❤️9👀2206📊4",
+      "tags": [
+        "SkillOpt",
+        "微软",
+        "Agent技能"
+      ],
+      "score": 80,
+      "summary": "微软研究发布SkillOpt，将Agent技能编辑转化为训练过程。",
+      "fetched_at": "2026-07-01T02:30:17.054511+08:00"
+    },
+    {
+      "title": "What 5,000 Kagglers Taught Us About Improving AI Reasoning | Nemotron Labs https://t.co/HqNkkt9RTO",
+      "link": "https://x.com/NVIDIAAI/status/2072017268138197304",
+      "published": "2026-07-01T01:59:47+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "What 5,000 Kagglers Taught Us About Improving AI Reasoning | Nemotron Labs [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1oJMvvjzwYlxQ)\n\n💬0🔄2❤️7👀1638📊2",
+      "tags": [
+        "Nemotron Labs",
+        "AI推理",
+        "Kaggle"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI举办Nemotron Labs直播，讨论Kaggle经验提升AI推理。",
+      "fetched_at": "2026-07-01T02:30:17.054584+08:00"
+    },
+    {
+      "title": "What if your model handled its own tuning? ⚙️\n\nWith NVIDIA TAO 7, just prompt your coding agent what...",
+      "link": "https://x.com/NVIDIAAI/status/2072001364666847719",
+      "published": "2026-07-01T00:56:35+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "What if your model handled its own tuning? ⚙️  \n  \nWith NVIDIA TAO 7, just prompt your coding agent what you want in plain language and let it do the rest.  \n  \n• Agent skills plug into your coding agent and improve accuracy.  \n• AutoML removes the guesswork from hyperparameters. LLM-guided tuning finds strong configs up to 2x faster.  \n• Fine-tune any [@huggingface](https://x.com/huggingface) CV or VLM model on local NVIDIA GPUs.  \n• Data enhanced fine-tuning helps your agent identify why the model fails, then fix it.  \n  \nTry TAO skills ➡️ [nvda.ws/4bknjPs](https://nvda.ws/4bknjPs)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072001334304292864/vid/avc1/1280x720/kSRS8yyLTu9-NLQX.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/NVIDIAAI/status/2072001364666847719/video/1)\n\n💬6🔄11❤️76👀5646📊19",
+      "tags": [
+        "NVIDIA TAO 7",
+        "AutoML",
+        "微调"
+      ],
+      "score": 79,
+      "summary": "NVIDIA发布TAO 7，支持自然语言提示微调模型。",
+      "fetched_at": "2026-07-01T02:30:17.054641+08:00"
+    },
+    {
+      "title": "The AI Transformation Model",
+      "link": "https://x.com/NotionHQ/status/2072011664963305851",
+      "published": "2026-07-01T01:37:31+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "The AI Transformation Model\n\n![Tweet Image](https://pbs.twimg.com/media/HMFDk0_b0AAyxKF.jpg)\n\n💬0🔄1❤️8👀1084📊2",
+      "tags": [
+        "Notion",
+        "AI转型"
+      ],
+      "score": 60,
+      "summary": "Notion发布AI转型模型图片。",
+      "fetched_at": "2026-07-01T02:30:17.054693+08:00"
+    },
+    {
+      "title": "Here are some of our top findings...",
+      "link": "https://x.com/NotionHQ/status/2072011390345494739",
+      "published": "2026-07-01T01:36:26+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Here are some of our top findings...\n\n![Tweet Image](https://pbs.twimg.com/media/HMFCkxgbsAA6_Fb.png)\n\n![Notion](https://pbs.twimg.com/profile_images/1903224093476077568/OCclsw4c_normal.jpg)\n\nNotion@NotionHQ\n\nAI is moving fast. Most companies aren't.  \n  \nThe loudest stories come from the edges - autonomous agents, massive job losses, whole industries about to flip. Read enough of these stories and it feels like you’re behind and everyone else is way ahead.  \n  \nThis didn’t feel quite right to us. So we surveyed 6,000 professionals across 10 markets to map where AI at work actually is. Here's what we found 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HLmdhGaWEAEm7hU.png)![Tweet Image](https://pbs.twimg.com/media/HLmdhFGWYAAr2Fn.png)\n\n[🔗 View Quoted Tweet](https://x.com/NotionHQ/status/2069859946028539941)\n\n💬4🔄4❤️23👀5148📊9",
+      "tags": [
+        "Notion",
+        "AI调查",
+        "职场"
+      ],
+      "score": 65,
+      "summary": "Notion分享AI职场调查结果。",
+      "fetched_at": "2026-07-01T02:30:17.054743+08:00"
+    },
+    {
+      "title": "Just shipped: Your personal agent can now use Outlook.\n\n→ View, manage, and schedule events in calen...",
+      "link": "https://x.com/NotionHQ/status/2071997157742366873",
+      "published": "2026-07-01T00:39:52+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Just shipped: Your personal agent can now use Outlook.  \n  \n→ View, manage, and schedule events in calendar  \n→ Search, triage, and respond to emails in mail  \n  \nTwo more places your agent can help 🫡\n\n![Tweet Image](https://pbs.twimg.com/media/HMEtinub0AA8RcZ.jpg)\n\n💬5🔄11❤️72👀8318📊16",
+      "tags": [
+        "Notion",
+        "Outlook",
+        "个人Agent"
+      ],
+      "score": 70,
+      "summary": "Notion个人Agent新增Outlook集成，可管理日历和邮件。",
+      "fetched_at": "2026-07-01T02:30:17.054792+08:00"
+    },
+    {
+      "title": "⚙️ We debugged a year’s worth of crashes in our data infrastructure and found one issue in the hardw...",
+      "link": "https://x.com/OpenAIDevs/status/2071995642436800916",
+      "published": "2026-07-01T00:33:51+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "⚙️ We debugged a year’s worth of crashes in our data infrastructure and found one issue in the hardware and another that has been unnoticed in open-source code for 18 years.  \n  \nHere’s how we tracked them down:  \n[openai.com/index/core-dum…](http://openai.com/index/core-dump-epidemiology-data-infrastructure-bug/)\n\n💬34🔄33❤️571👀38078📊113",
+      "tags": [
+        "OpenAI",
+        "数据基础设施",
+        "Bug调试"
+      ],
+      "score": 80,
+      "summary": "OpenAI开发者分享调试一年崩溃问题，发现硬件和18年开源bug。",
+      "fetched_at": "2026-07-01T02:30:17.054841+08:00"
+    },
+    {
+      "title": "We’re introducing GeneBench-Pro, a research-level benchmark for a harder kind of AI progress: how we...",
+      "link": "https://x.com/OpenAI/status/2072004836674167294",
+      "published": "2026-07-01T01:10:23+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We’re introducing GeneBench-Pro, a research-level benchmark for a harder kind of AI progress: how well agents can navigate messy biological data, choose the right analysis path, and make judgment calls that real computational research depends on.  \n[openai.com/index/introduc…](https://openai.com/index/introducing-genebench-pro/)\n\n💬141🔄115❤️1485👀127163📊271",
+      "tags": [
+        "GeneBench-Pro",
+        "OpenAI",
+        "生物数据"
+      ],
+      "score": 85,
+      "summary": "OpenAI发布GeneBench-Pro基准，评估Agent处理生物数据能力。",
+      "fetched_at": "2026-07-01T02:30:17.054892+08:00"
+    },
+    {
+      "title": "Read more from @AnthropicAI https://t.co/yvNWET0S1R",
+      "link": "https://x.com/OpenRouter/status/2072020198652346571",
+      "published": "2026-07-01T02:11:26+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Read more from [@AnthropicAI](https://x.com/AnthropicAI)[x.com/claudeai/statu…](https://x.com/claudeai/status/2072017450611142835?s=20)\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nIntroducing Claude Sonnet 5, our most agentic Sonnet yet.  \n  \nIt makes plans, uses tools like browsers and terminals, and runs autonomously at a level that just a few months ago required larger and more expensive models.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072014980103176192/vid/avc1/1728x2160/zHnxI04ExEMPKIbE.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072017450611142835/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072017450611142835)\n\n💬0🔄0❤️0👀154",
+      "tags": [
+        "Claude Sonnet 5",
+        "OpenRouter"
+      ],
+      "score": 60,
+      "summary": "OpenRouter转发Claude Sonnet 5发布。",
+      "fetched_at": "2026-07-01T02:30:17.054941+08:00"
+    },
+    {
+      "title": "Try it: https://t.co/WxKkwssTJY",
+      "link": "https://x.com/OpenRouter/status/2072020186790867146",
+      "published": "2026-07-01T02:11:23+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Try it: [openrouter.ai/anthropic/clau…](https://openrouter.ai/anthropic/claude-sonnet-5)\n\n💬1🔄0❤️0👀152📊1",
+      "tags": [
+        "Claude Sonnet 5",
+        "OpenRouter"
+      ],
+      "score": 60,
+      "summary": "OpenRouter提供Claude Sonnet 5试用链接。",
+      "fetched_at": "2026-07-01T02:30:17.054994+08:00"
+    },
+    {
+      "title": "Claude Sonnet 5 is rolling out on OpenRouter with a promo price: $2/M in and $10/M out!\n\nIt boosts a...",
+      "link": "https://x.com/OpenRouter/status/2072020173872325088",
+      "published": "2026-07-01T02:11:20+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Claude Sonnet 5 is rolling out on OpenRouter with a promo price: $2/M in and $10/M out!  \n  \nIt boosts agentic coding and pro workflows w/ flagship intelligence at Sonnet pricing. In early tests, agents were more reliable, faster, and easier to trust with larger tasks than 4.6.\n\n![Tweet Image](https://pbs.twimg.com/media/HMFLXfHaMAAoJKi.jpg)\n\n💬1🔄2❤️6👀859📊2",
+      "tags": [
+        "Claude Sonnet 5",
+        "OpenRouter",
+        "定价"
+      ],
+      "score": 70,
+      "summary": "OpenRouter上线Claude Sonnet 5，促销价$2/M输入$10/M输出。",
+      "fetched_at": "2026-07-01T02:30:17.055044+08:00"
+    },
+    {
+      "title": "GLM's new harness - should it be just called Z Codex",
+      "link": "https://x.com/petergyang/status/2072004576442802487",
+      "published": "2026-07-01T01:09:21+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "GLM's new harness - should it be just called Z Codex\n\n![Tweet Image](https://pbs.twimg.com/media/HME9FWGaQAA8gbU.jpg)\n\n💬12🔄3❤️46👀3782📊17",
+      "tags": [
+        "GLM",
+        "Z Codex"
+      ],
+      "score": 60,
+      "summary": "Peter Yang评论GLM新框架。",
+      "fetched_at": "2026-07-01T02:30:17.055094+08:00"
+    },
+    {
+      "title": "Anastasis Germanidis\nCo-founder and co-CEO, Runway",
+      "link": "https://x.com/runwayml/status/2072018494598610989",
+      "published": "2026-07-01T02:04:40+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Anastasis Germanidis  \nCo-founder and co-CEO, Runway\n\n![Tweet Image](https://pbs.twimg.com/media/HMFImFhWgAAE8Sr.jpg)\n\n💬2🔄0❤️1👀349📊2",
+      "tags": [
+        "Runway",
+        "AI Summit"
+      ],
+      "score": 60,
+      "summary": "Runway公布AI Summit演讲者。",
+      "fetched_at": "2026-07-01T02:30:17.055143+08:00"
+    },
+    {
+      "title": "Register now: https://t.co/xZ3A6BmBdD",
+      "link": "https://x.com/runwayml/status/2072018496389591390",
+      "published": "2026-07-01T02:04:40+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Register now: [summit.runwayml.com](https://summit.runwayml.com/)\n\n![Tweet Image](https://pbs.twimg.com/media/HMFJyTxWcAAd3H2.jpg)\n\n💬0🔄0❤️1👀313",
+      "tags": [
+        "Runway",
+        "AI Summit"
+      ],
+      "score": 60,
+      "summary": "Runway提供AI Summit注册链接。",
+      "fetched_at": "2026-07-01T02:30:17.055193+08:00"
+    },
+    {
+      "title": "This September, the Runway AI Summit is coming to San Francisco. A daylong gathering bringing togeth...",
+      "link": "https://x.com/runwayml/status/2072018481856548913",
+      "published": "2026-07-01T02:04:36+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "This September, the Runway AI Summit is coming to San Francisco. A daylong gathering bringing together industry leaders across robotics, autonomous vehicles, life sciences, infrastructure and more to explore how AI is reshaping the way intelligence interacts with the world.  \n  \nOur inaugural speakers are listed below, with more to be announced soon.  \n  \nLearn more and register at the link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072015023958794240/vid/avc1/1920x1080/awFBlXrj6hQ-rbP2.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2072018481856548913/video/1)\n\n💬2🔄0❤️11👀2372📊3",
+      "tags": [
+        "Runway",
+        "AI Summit",
+        "旧金山"
+      ],
+      "score": 70,
+      "summary": "Runway宣布9月旧金山AI Summit，聚焦机器人、自动驾驶等。",
+      "fetched_at": "2026-07-01T02:30:17.055242+08:00"
+    },
+    {
+      "title": "Here's an example, recorded by \"shot-scraper video\" using a YAML storyboard constructed by Codex Des...",
+      "link": "https://x.com/simonw/status/2072001653176426911",
+      "published": "2026-07-01T00:57:44+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Here's an example, recorded by \"shot-scraper video\" using a YAML storyboard constructed by Codex Desktop and GPT-5.5 xhigh\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072001595584491520/vid/avc1/1280x720/PsJWiIpdRGXySKqi.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/simonw/status/2072001653176426911/video/1)\n\n💬0🔄0❤️11👀2655📊2",
+      "tags": [
+        "shot-scraper",
+        "视频",
+        "Codex Desktop"
+      ],
+      "score": 65,
+      "summary": "Simon Willison展示shot-scraper视频录制示例。",
+      "fetched_at": "2026-07-01T02:30:17.055292+08:00"
+    },
+    {
+      "title": "I've added video support to my \"shot-scraper\" browser automation tool - you (or your coding agent) c...",
+      "link": "https://x.com/simonw/status/2072001270978855074",
+      "published": "2026-07-01T00:56:13+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I've added video support to my \"shot-scraper\" browser automation tool - you (or your coding agent) can now create a storyboard YAML file and use that to record a video demo of new web application features [simonwillison.net/2026/Jun/30/sh…](https://simonwillison.net/2026/Jun/30/shot-scraper-video/)\n\n💬8🔄3❤️28👀4715📊13",
+      "tags": [
+        "shot-scraper",
+        "视频",
+        "Agent"
+      ],
+      "score": 70,
+      "summary": "Simon Willison发布shot-scraper视频支持，Agent可录制演示。",
+      "fetched_at": "2026-07-01T02:30:17.055342+08:00"
+    },
+    {
+      "title": "Two new models from Google today: Nano Banana 2 Lite for images, Gemini Omni Flash for video.\n\nWhat ...",
+      "link": "https://x.com/TheRundownAI/status/2071998859128000782",
+      "published": "2026-07-01T00:46:38+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Two new models from Google today: Nano Banana 2 Lite for images, Gemini Omni Flash for video.  \n  \nWhat they're for: Lite generates an image in just 4 seconds at $0.034 / 1K image, for cost-effective, high-volume jobs.  \n  \nOmni Flash ranks No. 1 on LMArena's text-to-video board and top-two for image-to-video and video editing (behind just Seedance 2.0) at $0.10 / sec.   \n  \nOpenAI's gpt-image-2 still sits strongly at the top spot across the image leaderboards.\n\n![Tweet Image](https://pbs.twimg.com/media/HME3f-wXEAAPnW7.png)![Tweet Image](https://pbs.twimg.com/media/HME3lhxXAAAhIIE.jpg)![Tweet Image](https://pbs.twimg.com/media/HME3p2yWUAAPnQS.jpg)\n\n💬5🔄1❤️13👀3715📊6",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini Omni Flash",
+        "Google"
+      ],
+      "score": 70,
+      "summary": "The Rundown AI报道Google发布Nano Banana 2 Lite和Gemini Omni Flash。",
+      "fetched_at": "2026-07-01T02:30:17.055392+08:00"
+    },
+    {
+      "title": "Love how Google continues to drive down the cost of building with their models. \n\n&lt;4s image and $...",
+      "link": "https://x.com/omarsar0/status/2071994868650393692",
+      "published": "2026-07-01T00:30:47+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Love how Google continues to drive down the cost of building with their models.   \n  \n<4s image and $0.034 / 1K image. Wow!  \n  \nWe have a bunch of stuff (education & research) we're building [@dair\\_ai](https://x.com/dair_ai) using Nano Banana and Gemini.   \n  \nTesting out Nano Banana 2 Lite and sharing more soon.\n\n![Logan Kilpatrick](https://pbs.twimg.com/profile_images/1943787288955084800/QOl7OJMc_normal.jpg)\n\nLogan Kilpatrick@OfficialLoganK\n\nIntroducing Nano Banana 2 Lite 🍌 and Gemini Omni Flash 🔮, our new generative media models in the Gemini API and AI Studio!  \n  \nNano Banana 2 Lite is extremely fast (<4s image) & cheap ($0.034 / 1K image).  \n  \nOmni Flash is SOTA at video editing at $0.10 / sec, same as Veo 3.1 Fast!\n\n![Tweet Image](https://pbs.twimg.com/media/HMEsoEYaoAAR-sg.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/OfficialLoganK/status/2071988351083921690)\n\n💬6🔄3❤️31👀5489📊8",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "成本",
+        "速度"
+      ],
+      "score": 65,
+      "summary": "Elvis评论Google Nano Banana 2 Lite速度快成本低。",
+      "fetched_at": "2026-07-01T02:30:17.055441+08:00"
+    },
+    {
+      "title": "Head over to https://t.co/7NVNbVi1Po to dig into the score details.",
+      "link": "https://x.com/arena/status/2072011937387630832",
+      "published": "2026-07-01T01:38:36+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Head over to [arena.ai/leaderboard/te…](http://arena.ai/leaderboard/text-to-image) to dig into the score details.\n\n💬0🔄0❤️3👀763",
+      "tags": [
+        "lmarena",
+        "排行榜"
+      ],
+      "score": 60,
+      "summary": "lmarena提供排行榜详情链接。",
+      "fetched_at": "2026-07-01T02:30:17.055491+08:00"
+    },
+    {
+      "title": "Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image) ranks #5 overall for Text-to-Image. It has also lan...",
+      "link": "https://x.com/arena/status/2072011934476771709",
+      "published": "2026-07-01T01:38:35+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image) ranks #5 overall for Text-to-Image. It has also landed in the Image Edit Arena as:  \n- #9 Multi-Image Edit  \n- #15 Single-Image Edit\n\n![Tweet Image](https://pbs.twimg.com/media/HMFDj2yacAA4_hy.jpg)\n\n💬1🔄0❤️4👀1221📊2",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "lmarena",
+        "排名"
+      ],
+      "score": 70,
+      "summary": "lmarena显示Nano Banana 2 Lite文本到图像排名第5。",
+      "fetched_at": "2026-07-01T02:30:17.055540+08:00"
+    },
+    {
+      "title": "Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite) has entered the Text-to-Image Arena. It ranks #5 ov...",
+      "link": "https://x.com/arena/status/2072011929485463635",
+      "published": "2026-07-01T01:38:34+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite) has entered the Text-to-Image Arena. It ranks #5 overall.  \n  \nGoogle's latest Gemini-3.1-Flash-Lite-Image lands on the Pareto frontier: scoring 1251 at just $0.034/image. This is near flagship quality at a fraction of the price.  \n  \nThe cost-to-quality curve just got a lot more interesting.  \n  \nCongrats to [@GoogleDeepMind](https://x.com/GoogleDeepMind) on the release!\n\n![Tweet Image](https://pbs.twimg.com/media/HMFDahpb0AApSww.png)\n\n![Google DeepMind](https://pbs.twimg.com/profile_images/1695024885070737408/-M-HSH5P_normal.jpg)\n\nGoogle DeepMind@GoogleDeepMind\n\nWe’re shipping 2 major releases:   \n🔘 Nano Banana 2 Lite: our fastest and cheapest Gemini Image model  \n🔘 Gemini Omni Flash: now available via the Gemini API and in [@GoogleAIStudio](https://x.com/GoogleAIStudio) to help developers generate and edit high-quality videos.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071986416179896321/vid/avc1/1182x1182/Aq7u45Zzx7JxmXg4.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/GoogleDeepMind/status/2071988044878516466/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleDeepMind/status/2071988044878516466)\n\n💬4🔄4❤️41👀6310📊8",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "lmarena",
+        "性价比"
+      ],
+      "score": 75,
+      "summary": "lmarena报道Nano Banana 2 Lite进入文本到图像竞技场，性价比突出。",
+      "fetched_at": "2026-07-01T02:30:17.055620+08:00"
+    },
+    {
+      "title": "帮转招人信息，Kimi Code 招人",
+      "link": "https://x.com/dotey/status/2072000613580239234",
+      "published": "2026-07-01T00:53:36+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "帮转招人信息，Kimi Code 招人\n\n![Kai](https://pbs.twimg.com/profile_images/2045812881338560512/td46aZSz_normal.jpg)\n\nKai@real\\_kai42\n\n🤠   \nKimi Code也在招人，感兴趣直接发我邮箱 me[@kaiyi](https://x.com/kaiyi).cool  \n  \n感谢大佬们帮忙扩散 捧场\n\n![Tweet Image](https://pbs.twimg.com/media/HMDx-v4XwAASpol.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/real_kai42/status/2071921902034288862)\n\n💬2🔄0❤️4👀4598📊2",
+      "tags": [
+        "Kimi Code",
+        "招聘"
+      ],
+      "score": 50,
+      "summary": "宝玉转发Kimi Code招聘信息。",
+      "fetched_at": "2026-07-01T02:30:17.055672+08:00"
+    },
+    {
+      "title": "Claude Code 被指在系统提示词里偷偷给中国代理用户“打水印”\n\n一份 Reddit 帖子和一份 GitHub 上的独立验证报告指控：Anthropic 的编程工具 Claude Code 会...",
+      "link": "https://x.com/dotey/status/2071995057247297924",
+      "published": "2026-07-01T00:31:32+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Claude Code 被指在系统提示词里偷偷给中国代理用户“打水印”  \n  \n一份 Reddit 帖子和一份 GitHub 上的独立验证报告指控：Anthropic 的编程工具 Claude Code 会悄悄检查用户是否通过中国相关的代理服务器访问，如果是，就在发给 Anthropic 的系统提示词里用几乎肉眼不可见的 Unicode 字符差异来“标记”这些用户。  \n  \n具体怎么做的？安全研究员 Adnane Khan 在 GitHub 上发布了针对 Claude Code v2.1.193 到 v2.1.196 的逆向分析报告。他从二进制文件中提取出了完整的 JavaScript 代码，还原了整个机制。  \n  \nClaude Code 在每次请求时都会在系统提示词中写入一行“Today's date is 2026-06-30.”之类的日期信息。报告称，当用户设置了 ANTHROPIC\\_BASE\\_URL 环境变量（用来把请求转发到非 Anthropic 官方的代理服务器时），Claude Code 会执行以下检查：  \n  \n第一，看你的代理服务器域名是否在一个包含 147 个条目的列表里。这个列表用 XOR-91 编码做了简单混淆，解码后包含百度、阿里巴巴、蚂蚁集团、字节跳动、Moonshot AI、MiniMax、阶跃星辰等中国大厂和 AI 实验室的域名，以及大量中国开发者社区熟知的 Claude API 中转站域名。  \n  \n第二，看你的系统时区是不是 Asia/Shanghai 或 Asia/Urumqi。  \n  \n然后，它用两种方式把检测结果“编码”进系统提示词。一是日期分隔符：如果命中中国时区，日期格式从 2026-06-30 变成 2026/06/30。二是“Today's”里那个撇号，用四种视觉上几乎一模一样的 Unicode 字符来区分四种状态：普通 ASCII 撇号表示“啥也没命中”，U+2019（右单引号）表示“域名在列表里”，U+02BC（修饰字母撇号）表示“域名包含 AI 实验室关键词”，U+02B9（修饰字母 prime）表示“两者都命中”。  \n  \nAdnane Khan 的报告用了一个精确的词来描述这个机制：隐蔽信道（covert channel）。  \n  \n这些字符差异，正常用户几乎不可能注意到。它们不会以单独的遥测数据包发出，而是搭便车藏在每次请求都会发送的系统提示词里。  \n  \n验证报告的作者在结论部分做了一个关键区分：这个机制是代理触发的（proxy-gated），只有在用户主动设置了非 Anthropic 官方 API 端点时才会激活。正常通过 api.anthropic. com 使用 Claude Code 的绝大多数用户不受影响。它也不是数据外泄，没有额外的网络请求或文件访问，只是在已有的系统提示词里做了字符替换。  \n  \n但报告也指出了两个问题。  \n  \n第一，它是未公开的。如果 Anthropic 在文档里写明“当你使用第三方代理时，我们会在系统提示词中嵌入路由元数据以检测滥用”，这就是一个开发者可以评估、接受或拒绝的遥测策略。但把信号藏在肉眼不可见的 Unicode 字符里，用 XOR 混淆域名列表，这让人没法审计。  \n  \n第二，它误伤范围太广。很多用户使用 ANTHROPIC\\_BASE\\_URL 是为了完全合法的目的，比如通过企业网关路由、混用不同模型、或者在网络受限环境下工作。这些用户会被一视同仁地打上标记。而真正的专业转售商，看到这种机制后绕过它只需要几秒钟。报告原文的说法是：作为反滥用手段它很弱，作为隐私问题它标记了不该标记的人群。  \n  \nClaude Code 不是一个普通的聊天窗口。它能读你的代码仓库、运行终端命令、修改文件。Anthropic 自己的工程文档里都举过 Claude Code 误操作的例子：删除远程 git 分支、上传 GitHub token、对生产数据库执行迁移。对于这样一个需要深度信任才能使用的工具，用户有权知道它在背后做了什么。  \n  \n截至发稿时，Anthropic 尚未对这一指控做出公开回应。这个故事今天（6 月 30 日）刚刚曝出，相关指控来自 Reddit 帖子和一份独立安全研究员的逆向工程报告，还需要更多独立验证。代码已经被提取并公开，任何有能力的开发者都可以自行检查 Claude Code 的二进制文件来确认或否认这些发现。\n\n![International Cyber Digest](https://pbs.twimg.com/profile_images/1831435438562615296/imkSFey2_normal.jpg)\n\nInternational Cyber Digest@IntCyberDigest\n\n‼️ BREAKING: Anthropic has embedded hidden spyware-like code in Claude Code that covertly targets Chinese users. It then sends information regarding every user by injecting it into their prompt message.  \n  \nClaude Code is sending info like timezone, proxy and possible AI Lab connections into the system prompt in ways Chinese users can't notice.  \n  \nA coding agent with repo and command permissions should not silently hide routing metadata inside prompts. This is a serious breach of user trust.\n\n![Tweet Image](https://pbs.twimg.com/media/HMEbdQGWoAERtu7.png)![Tweet Image](https://pbs.twimg.com/media/HMEcEY9WUAA-VtP.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/IntCyberDigest/status/2071971609183678544)\n\n💬17🔄10❤️85👀20928📊27",
+      "tags": [
+        "Claude Code",
+        "水印",
+        "中国代理"
+      ],
+      "score": 80,
+      "summary": "宝玉报道Claude Code被指通过Unicode字符给中国代理用户打水印。",
+      "fetched_at": "2026-07-01T02:30:17.055723+08:00"
     }
   ]
 }
