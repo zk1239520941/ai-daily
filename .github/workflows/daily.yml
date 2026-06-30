@@ -81,20 +81,4 @@ jobs:
         if: |
           github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
-        run: |
-          shopt -s nullglob
-          files=(news-data/push-*.md)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "无 push-*.md，跳过提交"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          python scripts/build_pages_index.py
-          git add news-data/push-*.md index.html static/
-          if git diff --staged --quiet; then
-            echo "无变更，跳过 commit"
-          else
-            git commit -m "chore(data): 更新日报 push 文件"
-            git push
-          fi
+        run: uv run python -m src.main publish

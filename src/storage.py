@@ -433,7 +433,7 @@ def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
     cutoff = datetime.now() - timedelta(days=days)
     deleted_count = 0
 
-    for pattern in ["fetch-*.json", "fetch-*.md", "push-*.md", "notify-*.md"]:
+    for pattern in ["fetch-*.json", "fetch-*.md", "notify-*.md"]:
         for file in data_path.glob(pattern):
             try:
                 date_str = (

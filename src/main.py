@@ -9,6 +9,7 @@ configure_stdio_utf8()
 
 import argparse
 import asyncio
+import subprocess
 from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
@@ -571,6 +572,37 @@ async def push_loop(config: Dict):
             await asyncio.sleep(60)
 
 
+async def cmd_publish(config: Dict) -> int:
+    """清理旧 push、生成索引并 push 到 GitHub（触发 Pages）。"""
+    from src.publish import publish_pages_to_github
+
+    push_keep_days = config.get("filter", {}).get("push_keep_days", 30)
+    try:
+        return publish_pages_to_github(push_keep_days=push_keep_days)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ 发布失败: {e}")
+        return 1
+
+
+async def cmd_daily(
+    config: Dict,
+    skip_fetch: bool = False,
+    skip_publish: bool = False,
+    dry_run: bool = False,
+) -> int:
+    """一键：fetch → push 企微 → publish GitHub Pages。"""
+    if not skip_fetch:
+        code = await cmd_fetch(config)
+        if code != 0:
+            return code
+    code = await cmd_push(config, dry_run=dry_run)
+    if code != 0 or dry_run:
+        return code
+    if skip_publish:
+        return 0
+    return await cmd_publish(config)
+
+
 async def cmd_check(config: Dict) -> int:
     """校验 LLM 接口可达性（部署期使用，运行期不再校验）"""
     print("🔍 校验 LLM 接口...")
@@ -703,6 +735,26 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="仅生成内容并打印推送计划，不实际发送 webhook",
     )
+    daily_parser = sub.add_parser(
+        "daily",
+        help="一键：fetch + push 企微 + 发布 Pages（本地手动跑用这个）",
+    )
+    daily_parser.add_argument(
+        "--skip-fetch",
+        action="store_true",
+        help="跳过 fetch，仅 push + publish",
+    )
+    daily_parser.add_argument(
+        "--skip-publish",
+        action="store_true",
+        help="跳过 git push（仅 fetch + 推企微）",
+    )
+    daily_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="不发送 webhook、不 git push",
+    )
+    sub.add_parser("publish", help="清理旧 push 并 push 到 GitHub（触发 Pages）")
     sub.add_parser("loop", help="长跑模式（开发/调试用）")
     sub.add_parser("rss", help="单独跑一次 RSS Digest 板块（仅打印,不推送）")
     sub.add_parser("github", help="单独跑一次 GitHub Trending 板块（仅打印,不推送）")
@@ -732,6 +784,19 @@ def main() -> int:
 
     if args.command == "push":
         return asyncio.run(cmd_push(config, dry_run=getattr(args, "dry_run", False)))
+
+    if args.command == "daily":
+        return asyncio.run(
+            cmd_daily(
+                config,
+                skip_fetch=getattr(args, "skip_fetch", False),
+                skip_publish=getattr(args, "skip_publish", False),
+                dry_run=getattr(args, "dry_run", False),
+            )
+        )
+
+    if args.command == "publish":
+        return asyncio.run(cmd_publish(config))
 
     return asyncio.run(handlers[args.command](config))
 
