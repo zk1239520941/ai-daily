@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#f6f2ea"/>
+  <title>AWS发布Lambda MicroVMs,Meta脑机接口解码突破,美团开源VitaBench 2.0 · AI Daily</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Noto+Serif+SC:wght@500;600;700&amp;family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&amp;family=Sora:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../static/pages.css"/>
+</head>
+<body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+  <div class="site-shell">
+    <nav class="site-nav site-nav--compact">
+      <div class="site-brand">
+        <a href="../index.html">AI Daily</a>
+      </div>
+      <a class="back-link" href="../index.html">← 返回首页</a>
+    </nav>
+
+    <article class="article-main">
+      <header class="article-hero reveal">
+        <div class="article-hero__top">
+          <time datetime="2026年06月30日 · 19:16">2026年06月30日 · 19:16</time>
+          <span class="article-edition">晚报</span>
+        </div>
+        
+        <h1>AWS发布Lambda MicroVMs,Meta脑机接口解码突破,美团开源VitaBench 2.0</h1>
+        <p class="article-lead">AWS发布Lambda MicroVMs,为AI Agent提供硬件级隔离运行环境,最小成本约3美元/天。Meta推出Brain2Qwerty v2,非侵入式脑机接口解码准确率提升至61%,代码已开源。美团LongCat开源VitaBench 2.0,首个面向长期动态用户建模的Agent评测基准。Anthropic透露正与SpaceX洽谈,并探讨基于结果的新定价模式。</p>
+        <div class="highlight-tags"><span><i>1</i>AWS Lambda MicroVMs,每Agent独立VM,硬件隔离</span><span><i>2</i>Meta脑机接口,非侵入式解码准确率61%</span><span><i>3</i>美团VitaBench 2.0,长期用户建模Agent评测</span></div>
+        <div class="article-stats"><span>6 个来源</span><span>6 条精选</span></div>
+      </header>
+
+      <div class="article-body">
+        <section class="story-block reveal" id="story-1"><h3>AWS发布Lambda MicroVMs：为AI Agent提供硬件级隔离运行环境</h3>
+<ul>
+<li><strong>核心亮点</strong>：AWS推出Lambda MicroVMs，每个AI Agent或用户会话运行在独立的Firecracker虚拟机中，实现硬件级隔离和快速快照启动。</li>
+<li><strong>详细解读</strong>：新服务将每个用户会话或AI Agent运行在独立的Firecracker VM中，提供硬件级隔离、快照式快速启动，且状态可保存长达8小时。</li>
+<li><strong>成本分析</strong>：Reddit社区分析显示，最低配置成本约为3.03美元/天，大约是Fargate spot价格的9倍，针对安全性和隔离性需求较高的场景进行了价格调整。</li>
+<li><strong>行业意义</strong>：这是首款专为隔离AI Agent工作负载设计的无服务器计算原语，解决了Agent化应用中会话隔离和状态持久化的核心痛点。<br>
+🔗 <a href="https://www.infoq.com/news/2026/06/aws-lambda-microvms/?utm_campaign=infoq_content&amp;utm_source=infoq&amp;utm_medium=feed&amp;utm_term=global">InfoQ报道</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-2"><h3>Meta发布Brain2Qwerty v2：非侵入式脑机接口解码准确率大幅跃升至61%</h3>
+<ul>
+<li><strong>核心亮点</strong>：Meta推出Brain2Qwerty v2，基于脑磁图（MEG）的非侵入式记录，实现实时句子级解码，准确率从早期方法的8%飙升至61%。</li>
+<li><strong>技术路径</strong>：直接采用端到端深度学习，对LLM进行神经数据微调，利用语义上下文从嘈杂的脑部记录中还原连贯语句。</li>
+<li><strong>性能表现</strong>：在表现最佳的参与者上单词准确率达78%，超过一半的句子解码后仅一个词错误或完全正确。</li>
+<li><strong>开源与目标</strong>：Meta已开源v1和v2的完整训练代码，合作方BCBL同步公开了数据集，目标是帮助全球因脑损伤而无法正常交流的患者。准确率随数据量增加呈对数线性增长，有望继续缩小与侵入式方案的差距。<br>
+🔗 <a href="https://github.com/facebookresearch/brain2qwerty">GitHub仓库</a> | <a href="https://mp.weixin.qq.com/s?__biz=Mzg3MTkxMjYzOA==&amp;mid=2247516021&amp;idx=1&amp;sn=41b1595340c96e0dd1d1e34958854b39">AI寒武纪报道</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-3"><h3>[持续跟踪] 美团开源VitaBench 2.0：首个面向长期动态用户建模的Agent评测基准</h3>
+<ul>
+<li><strong>前情提要</strong>：美团LongCat团队去年10月发布VitaBench 1.0，定义了生活场景下智能体任务复杂度。</li>
+<li><strong>最新突破</strong>：今日开源VitaBench 2.0，首次系统性评测大模型在长期、真实、动态用户互动中的个性化与主动性能力。</li>
+<li><strong>核心设计</strong>：包含56名拟真用户、819个复杂任务、超2000个动态偏好及66个可执行工具，每个用户平均交互周期达4.3年。</li>
+<li><strong>关键洞察</strong>：最强模型Claude-Opus-4.6平均分刚过0.5；开启思考模式在个性化任务上并不总是有帮助；模型普遍缺乏主动沟通的意愿；个性化已是当前Agent的最大瓶颈。<br>
+🔗 <a href="https://vitabench2.github.io/">项目主页</a> | <a href="https://arxiv.org/abs/2605.27141">论文</a> | <a href="https://github.com/meituan-longcat/vitabench-2.0">GitHub</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-4"><h3>美团13篇论文被ICML 2026收录：聚焦智能体长程推理与复杂环境泛化</h3>
+<ul>
+<li><strong>核心亮点</strong>：美团技术团队13篇论文被ICML 2026接收，覆盖智能体推理、强化学习、视频生成等多个前沿方向。</li>
+<li><strong>重点方向</strong>：论文涉及长程推理记忆（MemOCR）、环境合成（ScaleEnv）、通用价值模型（V0）、交互式世界模型（Infinite-World）、超高分辨率视频生成（LUVE）等。</li>
+<li><strong>基准贡献</strong>：提出了AgentNoiseBench、AJ-Bench、TRIP-Bench等多个针对智能体鲁棒性、环境感知和长程交互的评测基准。</li>
+<li><strong>行业意义</strong>：展示了工业界在Agent系统化训练框架和评测方法论上的系统性投入，特别是在tool-use Agent的长上下文和噪声鲁棒性方面。<br>
+🔗 <a href="https://tech.meituan.com/2026/06/29/ICML-2026.html">美团技术团队</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-5"><h3>Anthropic Labs负责人透露正与SpaceX洽谈，提出“结果定价”新范式</h3>
+<ul>
+<li><strong>核心亮点</strong>：Anthropic Labs负责人Mike Krieger在科技峰会上透露公司正与SpaceX洽谈空间相关事宜，并探讨“基于结果的定价”模式。</li>
+<li><strong>结果定价</strong>：Anthropic已在Claude Managed Agents产品中尝试“基于结果”模式，用户定义好结果标准和评估细则，Claude据此执行，未来可能不再按Token计费。</li>
+<li><strong>发展判断</strong>：Krieger认为AI发展仅完成了约10%的路径，当前重点在于给Claude更多“自主权”和“环境感知”的运行环境，并弥合能力与应用之间的鸿沟。</li>
+<li><strong>行业影响</strong>：从Token定价转向结果定价，若落地将彻底改变AI服务的商业模式和产业链格局。<br>
+🔗 <a href="https://mp.weixin.qq.com/s?__biz=MjM5ODI5Njc2MA==&amp;mid=2655941419&amp;idx=1&amp;sn=bd353296ce2b6ba37dcf1e47a8efa5ab">51CTO技术栈</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-6"><h3>Google开源design.md：为AI生成UI建立标准化设计规范</h3>
+<ul>
+<li><strong>核心亮点</strong>：Google开源design.md项目，定义了一套标准化设计系统规范文件，让AI Agent能稳定输出风格一致的UI，GitHub获2万Star。</li>
+<li><strong>设计理念</strong>：DESIGN.md文件包含YAML front matter（机器可读的精确设计token）和Markdown正文（人可读的设计意图），AI可执行精确数值同时理解设计逻辑。</li>
+<li><strong>配套工具</strong>：提供零配置CLI工具<code>@google/design.md</code>，支持lint校验、diff对比、export导出Tailwind主题等命令。</li>
+<li><strong>生态系统</strong>：已有VoltAgent的Awesome Design.md范例库（70+品牌样本）和designkit.sh、getdesign.md等第三方聚合站，生态初步成型。<br>
+🔗 <a href="https://github.com/google-labs-code/design.md">GitHub</a> | <a href="https://mp.weixin.qq.com/s?__biz=MzUxNjg4NDEzNA==&amp;mid=2247534970&amp;idx=1&amp;sn=99c4cfd8efb54884104642e3d7ce3d8b">逛逛GitHub</a></li>
+</ul></section>
+      </div>
+    </article>
+
+    <footer class="site-footer">
+      AI Daily
+    </footer>
+  </div>
+  <script src="../static/pages.js" defer></script>
+</body>
+</html>
