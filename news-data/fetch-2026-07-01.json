@@ -2775,6 +2775,241 @@
       "score": 65,
       "summary": "利用AI和FOIA分析旧金山狗许可证数据，生成数据故事。",
       "fetched_at": "2026-07-01T06:09:32.326231+08:00"
+    },
+    {
+      "title": "Ahmad Osman on why local AI is catching up",
+      "link": "https://www.latent.space/p/ahmad-osman-local-ai",
+      "published": "2026-07-01T07:39:29+08:00",
+      "source": "Latent Space",
+      "content": "[![Ahmad Osman at AIEWF](https://substackcdn.com/image/fetch/$s_!9BC6!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9842112b-570d-48b7-92f3-7cbb05681776_1280x720.jpeg \"Ahmad Osman at AIEWF\")](https://substackcdn.com/image/fetch/$s_!9BC6!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9842112b-570d-48b7-92f3-7cbb05681776_1280x720.jpeg)\n\nAhmad Osman at the AI Engineer World’s Fair today.\n\n[Ahmad Osman](https://www.ahmadosman.com/about/) has been advocating for local AI — running models on your own computer, workstation or dedicated hardware — long before it became a major theme at this year’s [AI Engineer World’s Fair](https://www.ai.engineer/worldsfair/2026). He is also the founder of [Osmantic](https://osmantic.com/), a company building open source software for deploying and operating local AI systems.\n\nOne of the themes emerging from AIEWF is that open source LLMs are becoming increasingly credible alternatives to large, proprietary frontier models. Since most local AI systems depend on open models, that shift strengthens the case Osman has been making. As he told Latent Space, “the gap between open-source models and closed-frontier models keeps shrinking.”\n\nOsman makes the argument even more explicitly on a website called [Open Source AI Must Win](https://opensourceaimustwin.com/), where he writes that “the ability to study, build, repair, deploy, audit, adapt, teach, preserve, and run intelligence systems without asking permission is of existential importance.”\n\nAt AIEWF, Osman ran a two-part workshop on local LLMs and workstation agents. The sessions showed how quickly the field is moving — from models running on phones and laptops, to dedicated GPU workstations and enterprise infrastructure.\n\nThe interest in Osman’s workshops was not limited to hardware hobbyists, either. Attendees ranged from students considering their first AI-capable machine to enterprise executives thinking about model routing, private infrastructure and control over company data.\n\nIn the following Q&A, Osman explains why local AI is attracting more attention, how the model and hardware landscape has changed, and why he expects more developers and enterprises to begin treating local AI as serious infrastructure.\n\n## Making local AI tangible\n\n**Latent Space:** Can you summarize what the workshops were about and what attendees were looking for?\n\n**Ahmad Osman:** It was a two-part workshop, and there was more demand than we had space for. Some people unfortunately had to be turned away.\n\nI came in with a website we had prepared to demonstrate local AI. It was essentially a hardware arena where people could compare systems such as the DGX Spark, AMD Strix Halo machines and other devices. You could run them against one another, or compare them with a frontier cloud model, and see the performance, output quality, speed and latency for yourself.\n\nThe main idea was to make local AI feel real. There is still a perception of it that dates back to 2022, when the models were much less capable. But everything has improved substantially since then.\n\nThere is still a lag behind frontier models — perhaps four to eight months — but local and open models are catching up. We wanted people to interact with these systems rather than just hear a theoretical argument about them.\n\nThe software behind the demo is open source and available on GitHub. The second workshop went further into setting it up and showing the full system in action.\n\n## A model is only one part of the system\n\n**Latent Space:** What is missing when people think of local AI as simply running a model on their own machine?\n\n**Osman:** There is a big misconception about products such as ChatGPT or Claude Code. They come with a complete infrastructure around the model and around the agent. It is not just one thing.\n\nA friend of mine bought an RTX 5090 to run Qwen 3.5 locally. He connected Claude Code to the model and asked it to change the RGB lighting on the GPU, but it failed. He then used the hosted Claude Code service, and it worked.\n\nI asked whether he had given the local model internet search access. He had not. The model’s training data had a cutoff date, while the software and documentation he needed had since changed.\n\nOnce we gave the local system access to a search endpoint, it was able to complete the task.\n\nThat is the point: when you use a hosted agent, you are not only using a model. You are using search, tools, infrastructure and other services around it.\n\nWith our open source deployment system, we are trying to provide the complete experience — from a chat interface and document ingestion to agents, harnesses and search tools. That end-to-end layer has been lacking in the local AI ecosystem.\n\n## Interest spans students, enthusiasts and enterprises\n\n**Latent Space:** Who came to the workshop? Were they mainly hardware enthusiasts, or people trying to build privacy-based applications?\n\n**Osman:** It was a very wide audience.\n\nAt the end of the second workshop, a student asked me what hardware she should buy before going to college. An executive from Intel asked how we could get the software running on Windows in a particular way to improve the user experience.\n\nSome people were enthusiasts. Others had very enterprise-focused questions. The common thread was interest in running something they can control, whether that means a model on a MacBook, a GPU at home or a dedicated cluster of high-end enterprise hardware.\n\nPeople asked about enterprise model routing, data collection, traces, agent sandboxing and latency. Others asked how many GPUs I have at home. The answer is 22 RTX 3090s.\n\nThe breadth of interest surprised me. This was my first AI workshop, and I was lucky enough to do two of them back to back.\n\n## You may not need to buy a GPU\n\n**Latent Space:** Do developers need to go out and buy GPUs to experiment with local AI?\n\n**Osman:** It depends on the size of the model you want to use.\n\nYou can run a four-bit Qwen model on a MacBook. At the other extreme, a very large frontier-class open model might require several RTX Pro 6000 GPUs.\n\nBut the broader trend is that models are becoming much more efficient. On a modern phone, you can now run a model that outperforms systems people were using in the cloud only a couple of years ago, without using all of the device’s memory.\n\nThat shows how far model efficiency has come in a relatively short time.\n\n## Models and hardware are improving together\n\n**Latent Space:** Is the progress mainly coming from better software and models, or from hardware as well?\n\n**Osman:** The models have improved dramatically.\n\nArchitectures are becoming more efficient, and many small improvements compound. Once a frontier lab demonstrates that a capability is possible, the open source ecosystem can work backwards from that and find ways to reproduce it more efficiently.\n\nWe are seeing models with tens of billions of parameters deliver performance that would previously have required much larger systems. Some of those models can run on an RTX 3090 released in 2020. Two years ago, that level of capability on that hardware would not have been realistic.\n\nThis is still a very new field, and we do not know the end state. But we know the systems will continue to improve.\n\n## The rise of hybrid and sovereign AI\n\n**Latent Space:** Do you expect more applications to combine local and cloud AI?\n\n**Osman:** Yes. Edge models are going to become more popular, and this is not only about consumers.\n\nEnterprises are increasingly aware that the models they depend on may not always remain available to them in the same form. Providers can change quality, pricing, access or policies.\n\nThat creates an incentive to move toward dedicated hardware and secure compute. It does not necessarily have to sit on premises. A company can use dedicated, colocated hardware that it controls.\n\nThe benefit is that the quality of the model does not unexpectedly change, access cannot simply be removed, and the company retains control over its intellectual property, data, privacy and compliance obligations.\n\nOpen source models are also continuing to close the gap with frontier proprietary systems. We have seen a rapid progression through Llama, Mistral, Qwen, DeepSeek, GLM and Kimi models. Each generation narrows the gap.\n\n## Specialized models may be the real opportunity\n\n**Latent Space:** Where do you think this leads for businesses?\n\n**Osman:** I have believed for some time that smaller, specialized models are the future for many business use cases.\n\nAn enterprise may begin with a general model and collect traces, messages and feedback from how employees use it. Over time, that data can support a more specialized model tuned to the company’s particular work.\n\nThat can improve performance, reduce costs and make the system more useful for the business.\n\nI also think open source model companies may increasingly monetize through licensing for fine-tuning, reinforcement learning or specialized commercial deployments.\n\nAs more companies move away from relying entirely on cloud APIs and secure their own compute, these labs will have an incentive to keep releasing strong open models while capturing value when businesses adapt them for proprietary use cases.\n\nThe broader direction is toward greater sovereignty: companies and individuals controlling their models, compute and data, while still benefiting from the rapid progress of the open source ecosystem.",
+      "tags": [
+        "Ahmad Osman",
+        "本地AI",
+        "开源模型"
+      ],
+      "score": 82,
+      "summary": "Latent Space采访Ahmad Osman，讨论本地AI和开源模型追赶闭源前沿模型。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!9BC6!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9842112b-570d-48b7-92f3-7cbb05681776_1280x720.jpeg",
+      "fetched_at": "2026-07-01T07:59:08.023339+08:00"
+    },
+    {
+      "title": "Nano Banana 2 Lite",
+      "link": "https://simonwillison.net/2026/Jun/30/nano-banana-2-lite/#atom-everything",
+      "published": "2026-07-01T06:15:35+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Nano Banana 2 Lite](https://deepmind.google/models/gemini-image/flash-lite/)**\n\nAlso known as Gemini 3.1 Flash Lite Image (`gemini-3.1-flash-lite-image` [in their API](https://ai.google.dev/gemini-api/docs/image-generation)), this is the \"fastest and cheapest Gemini image model, engineered for velocity and scale\".\n\nI [used AI studio](https://aistudio.google.com/app/prompts/new_chat?model=gemini-3.1-flash-lite-image) to run this prompt:\n\n> `Do a where's Waldo style image but it's where is the raccoon holding a ham radio`\n\n![Densely illustrated \"Where's Waldo\"-style cartoon of a woodland festival filled with anthropomorphic animals (bears, foxes, badgers, rabbits, squirrels, owls) under a banner reading \"FOREE'S FESTIVAL\" and another reading \"FOREST FIVAL,\" with bunting flags strung between trees, a Ferris wheel on the right, market stalls including one labeled \"ACORN FAIR,\" signs reading \"BANDSTAND,\" \"HAM RADIO MEET\" (appearing twice), and a stage where a bear plays guitar, a raccoon uses a ham radio, a badger plays drums, an owl looks on, and a fox plays trumpet, with crowds of animals wandering forest paths between trees and mountains in the background.](https://static.simonwillison.net/static/2026/nano-banana-2-lite-raccoon.jpg)\n\nI like that one better than [the results I got from the other Nano Banana models](https://simonwillison.net/2026/Apr/21/gpt-image-2/#nano-banana-2-and-pro) when I tried this back in April. It spelled Forest Festival wrong in two different ways though.\n\nVia [Hacker News](https://news.ycombinator.com/item?id=48735444)\n\nTags: [google](https://simonwillison.net/tags/google), [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [gemini](https://simonwillison.net/tags/gemini), [text-to-image](https://simonwillison.net/tags/text-to-image), [llm-release](https://simonwillison.net/tags/llm-release), [nano-banana](https://simonwillison.net/tags/nano-banana)",
+      "tags": [
+        "Nano Banana 2 Lite",
+        "Gemini 3.1 Flash Lite"
+      ],
+      "score": 75,
+      "summary": "Simon Willison评测Google的Nano Banana 2 Lite图像模型，速度快且成本低。",
+      "fetched_at": "2026-07-01T07:59:08.023417+08:00"
+    },
+    {
+      "title": "Happy end of Q2 to those that observe and celebrate.",
+      "link": "https://x.com/adocomplete/status/2072090083684135142",
+      "published": "2026-07-01T06:49:08+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Happy end of Q2 to those that observe and celebrate.\n\n💬1🔄0❤️11👀862📊3",
+      "tags": [],
+      "score": 10,
+      "summary": "Ado发布Q2结束的节日祝福，无实质内容。",
+      "fetched_at": "2026-07-01T07:59:08.023483+08:00"
+    },
+    {
+      "title": "Remember that recent llama.cpp builds can dispatch GEMMs directly to the Blackwell FP4 Tensor Cores.",
+      "link": "https://x.com/julien_c/status/2072083673776574847",
+      "published": "2026-07-01T06:23:39+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Remember that recent llama.cpp builds can dispatch GEMMs directly to the Blackwell FP4 Tensor Cores.\n\n![Lotto](https://pbs.twimg.com/profile_images/1993065437094129664/O11XoYdQ_normal.jpg)\n\nLotto@LottoLabs\n\nOhhh we need some Blackwell bros to run this!  \n  \nNvidia coming through with the goat quants  \n  \n[huggingface.co/nvidia/Qwen3.6…](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)\n\n[🔗 View Quoted Tweet](https://x.com/LottoLabs/status/2071995305470345711)\n\n💬1🔄0❤️15👀2743📊2",
+      "tags": [
+        "llama.cpp",
+        "Blackwell FP4",
+        "GEMM"
+      ],
+      "score": 80,
+      "summary": "Julien Chaumond指出llama.cpp新版本可直接在Blackwell FP4 Tensor Cores上执行GEMM。",
+      "fetched_at": "2026-07-01T07:59:08.023543+08:00"
+    },
+    {
+      "title": "Throwback Tuesday",
+      "link": "https://x.com/julien_c/status/2072081457724412042",
+      "published": "2026-07-01T06:14:51+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Throwback Tuesday\n\n![Hugging Models](https://pbs.twimg.com/profile_images/2058883195702247424/P16UlZ-4_normal.jpg)\n\nHugging Models@HuggingModels\n\nRoBERTa is here, and it's not just BERT's cooler sibling. It's a fill mask model that predicts missing words with next level accuracy. Perfect for text completion, search, and creative writing. 11 million downloads can't be wrong.\n\n![Tweet Image](https://pbs.twimg.com/media/HMFQGpIaUAARs4l.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/HuggingModels/status/2072025381344010691)\n\n💬2🔄1❤️7👀1881📊3",
+      "tags": [],
+      "score": 10,
+      "summary": "Julien Chaumond转发RoBERTa模型介绍，非首发且价值低。",
+      "fetched_at": "2026-07-01T07:59:08.023601+08:00"
+    },
+    {
+      "title": "❤️❤️",
+      "link": "https://x.com/julien_c/status/2072079830779150518",
+      "published": "2026-07-01T06:08:23+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "❤️❤️\n\n![matheus.](https://pbs.twimg.com/profile_images/2071631680977399809/pVkzK0Cf_normal.jpg)\n\nmatheus.@matheusbuild\n\npeut on imaginer une vie sans hugging face 🤗   \nIl n’y a plus de retour en arrière\n\n[🔗 View Quoted Tweet](https://x.com/matheusbuild/status/2072075147335594169)\n\n💬0🔄0❤️7👀1201📊1",
+      "tags": [],
+      "score": 5,
+      "summary": "Julien Chaumond转发法语评论，无实质信息。",
+      "fetched_at": "2026-07-01T07:59:08.023656+08:00"
+    },
+    {
+      "title": "Here's the links for my conversation with Anthony Kaldellis:\n\nYouTube: https://t.co/oocbXgymNA\n\nSpot...",
+      "link": "https://x.com/lexfridman/status/2072080363107533010",
+      "published": "2026-07-01T06:10:30+08:00",
+      "source": "Lex Fridman(@lexfridman)",
+      "content": "Here's the links for my conversation with Anthony Kaldellis:  \n  \nYouTube: [youtube.com/watch?v=pv1TUJ…](https://youtube.com/watch?v=pv1TUJSEM2k)  \n  \nSpotify: [open.spotify.com/show/2MAi0BvDc…](https://open.spotify.com/show/2MAi0BvDc6GTFvKFPXnkCL)  \n  \nPodcast: [lexfridman.com/podcast](https://lexfridman.com/podcast)\n\n![Tweet Image](https://pbs.twimg.com/media/HMF-9U-XAAA1ucW.jpg)\n\n💬2🔄2❤️31👀16539📊6",
+      "tags": [],
+      "score": 10,
+      "summary": "Lex Fridman发布与Anthony Kaldellis的播客链接，内容非AI相关。",
+      "fetched_at": "2026-07-01T07:59:08.023719+08:00"
+    },
+    {
+      "title": "Here's my conversation with Anthony Kaldellis about the deep history of the Roman Empire in the west...",
+      "link": "https://x.com/lexfridman/status/2072080358397423808",
+      "published": "2026-07-01T06:10:29+08:00",
+      "source": "Lex Fridman(@lexfridman)",
+      "content": "Here's my conversation with Anthony Kaldellis about the deep history of the Roman Empire in the west and the east (the Byzantine Empire). This was a truly fascinating conversation with a lot of wisdom for the modern world and for the future of human civilization. The Roman state lasted over 2,200 years. If we want to understand human nature, the modern world, and how humanity can flourish, it is valuable to study history, especially the history of why societies survive and why they collapse.  \n  \nIt's here on X in full and is up everywhere else (see comment).  \n  \nTimestamps:  \n0:00 - Episode highlight  \n1:24 - Introduction  \n1:51 - The Roman Empire and the Byzantine Empire  \n5:49 - 2,200 Years of Roman History  \n26:12 - Power, violence, and civil war  \n47:27 - Edict of Caracalla  \n1:00:23 - Crisis of the Third Century  \n1:14:52 - Constantine and the new Roman Empire  \n1:26:53 - Christianity in the Roman Empire  \n1:52:21 - Fall of the Western Roman Empire  \n2:05:17 - Eunuchs, Taxes, and Power  \n2:30:24 - Emperor Justinian and wars of conquest  \n2:47:26 - The Arab conquests  \n3:07:01 - Why the Roman empire survived so long  \n3:33:08 - Lessons from history\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072076659444871169/vid/avc1/1920x1080/Pj6rzrcpovqkE9yW.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/lexfridman/status/2072080358397423808/video/1)\n\n💬47🔄37❤️268👀45128📊81",
+      "tags": [],
+      "score": 10,
+      "summary": "Lex Fridman发布罗马帝国历史播客，非AI主题。",
+      "fetched_at": "2026-07-01T07:59:08.023775+08:00"
+    },
+    {
+      "title": "Doors are open at Agent Open, right next door to AI Engineer \nTwo courts, blue sky, no fog (a San Fr...",
+      "link": "https://x.com/llama_index/status/2072086675941966331",
+      "published": "2026-07-01T06:35:35+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "Doors are open at Agent Open, right next door to AI Engineer   \nTwo courts, blue sky, no fog (a San Francisco miracle) 🌤️  \n  \nThis is the perfect walk-over window, we are just 3 minutes from Moscone.  \n  \nDon't miss the State of AI panel at 5PM, tournament + party til 10PM.  \n  \nRSVP:[luma.com/the-agent-open…](https://luma.com/the-agent-open?utm_medium=socials&utm_source=twitter_li&utm_campaign=2026-06)c\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072086648444100609/pu/vid/avc1/1280x720/XIzg_jJgQv-wMdMq.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/llama_index/status/2072086675941966331/video/1)\n\n💬1🔄1❤️4👀1030📊2",
+      "tags": [],
+      "score": 10,
+      "summary": "LlamaIndex宣传Agent Open活动，无实质信息。",
+      "fetched_at": "2026-07-01T07:59:08.023831+08:00"
+    },
+    {
+      "title": "Explained to 14 yo how you can multiply numbers by adding their logarithms (and divide by subtractin...",
+      "link": "https://x.com/paulg/status/2072081223174815881",
+      "published": "2026-07-01T06:13:55+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Explained to 14 yo how you can multiply numbers by adding their logarithms (and divide by subtracting them), and how before calculators this was a critical hack for doing calculations.\n\n💬29🔄6❤️331👀37395📊64",
+      "tags": [],
+      "score": 10,
+      "summary": "Paul Graham解释对数乘法，非AI相关。",
+      "fetched_at": "2026-07-01T07:59:08.023885+08:00"
+    },
+    {
+      "title": "Sonnet 5 and Nano Banana 2 Lite are live on Poe.\n\nSonnet 5 is @AnthropicAI's most agentic model yet ...",
+      "link": "https://x.com/poe_platform/status/2072084559525449994",
+      "published": "2026-07-01T06:27:11+08:00",
+      "source": "Poe(@poe_platform)",
+      "content": "Sonnet 5 and Nano Banana 2 Lite are live on Poe.  \n  \nSonnet 5 is [@AnthropicAI](https://x.com/AnthropicAI)'s most agentic model yet — Opus-level coding and reasoning at a fraction of the cost.  \n  \nNano Banana 2 Lite is [@Google](https://x.com/Google)'s fastest, most cost-effective image model — sharp, consistent images in ~4 seconds.  \n  \nTry them today:  \n[poe.com/Claude-Sonnet-5](https://poe.com/Claude-Sonnet-5)[poe.com/Nano-Banana-2-…](https://poe.com/Nano-Banana-2-Lite)\n\n![Tweet Image](https://pbs.twimg.com/media/HMGFtocWsAAVLGB.jpg)\n\n💬0🔄3❤️7👀972📊2",
+      "tags": [
+        "Sonnet 5",
+        "Nano Banana 2 Lite",
+        "Poe"
+      ],
+      "score": 75,
+      "summary": "Poe平台上线Anthropic的Sonnet 5和Google的Nano Banana 2 Lite模型。",
+      "fetched_at": "2026-07-01T07:59:08.023980+08:00"
+    },
+    {
+      "title": "Some very cool people in the DMs. Thank you - will get to you soon. Caught a cold.",
+      "link": "https://x.com/Suhail/status/2072079270361661503",
+      "published": "2026-07-01T06:06:10+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Some very cool people in the DMs. Thank you - will get to you soon. Caught a cold.\n\n💬1🔄0❤️0👀1129📊1",
+      "tags": [],
+      "score": 5,
+      "summary": "Suhail回复私信并称感冒，无实质内容。",
+      "fetched_at": "2026-07-01T07:59:08.024038+08:00"
+    },
+    {
+      "title": "More smoke on Anthropic’s Fable being unshackled, potentially as soon as tonight!",
+      "link": "https://x.com/TheRundownAI/status/2072087168105812113",
+      "published": "2026-07-01T06:37:33+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "More smoke on Anthropic’s Fable being unshackled, potentially as soon as tonight!\n\n![Sophia Cai](https://pbs.twimg.com/profile_images/2067981317426343936/sV4n0g4E_normal.jpg)\n\nSophia Cai@SophiaCai99\n\n🚨 NEWS: Commerce is expected to lift export controls on Fable tonight, a senior White House official tells me.\n\n[🔗 View Quoted Tweet](https://x.com/SophiaCai99/status/2072082423949525348)\n\n💬5🔄3❤️17👀3397📊5",
+      "tags": [
+        "Anthropic Fable",
+        "出口管制"
+      ],
+      "score": 65,
+      "summary": "The Rundown AI转述消息称美国商务部可能今晚解除对Anthropic Fable的出口管制。",
+      "fetched_at": "2026-07-01T07:59:08.024091+08:00"
+    },
+    {
+      "title": "不懂编程的，比懂编程的程序员在AI时代更具优势\n\n之所以这么说，是因为不懂编程的，它没有边界限制\n\n比如一个项目，懂编程的程序员会评估影响面，会考量各种边界情况，会思考改造带来的巨大影响，因为过往的经...",
+      "link": "https://x.com/yangyi/status/2072091267614556495",
+      "published": "2026-07-01T06:53:50+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "不懂编程的，比懂编程的程序员在AI时代更具优势  \n  \n之所以这么说，是因为不懂编程的，它没有边界限制  \n  \n比如一个项目，懂编程的程序员会评估影响面，会考量各种边界情况，会思考改造带来的巨大影响，因为过往的经验而束手束脚  \n  \n但对于不懂编程的，啥也不知道，就口喷，只要脑子里有一个关键成功路径，就挨个问AI，指不定就糊了个垃圾东西先能用了，哪怕有性能问题  \n  \n然后你就发现这个垃圾玩具work了，有人关注了，可能有很多人喷这个东西很垃圾，但没关系  \n  \n这东西曝光了，被人知道了，有人投资了，有资源了，就有了继续扩展的机会，就能招牛B程序员擦屁股清屎山  \n  \n而懂编程的程序员，却被束缚在了约束条件之内\n\n💬1🔄0❤️1👀360📊1",
+      "tags": [],
+      "score": 10,
+      "summary": "Yangyi发表非编程者在AI时代更具优势的观点，无事实依据。",
+      "fetched_at": "2026-07-01T07:59:08.024144+08:00"
+    },
+    {
+      "title": "与其谈功能差异化\n不如直接从人群定位上入手\n功能说不清楚\n说给谁做的  立马明白",
+      "link": "https://x.com/yangyi/status/2072083657926602807",
+      "published": "2026-07-01T06:23:36+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "与其谈功能差异化  \n不如直接从人群定位上入手  \n功能说不清楚  \n说给谁做的 立马明白\n\n💬1🔄0❤️0👀395📊1",
+      "tags": [],
+      "score": 5,
+      "summary": "Yangyi讨论产品定位，无实质信息。",
+      "fetched_at": "2026-07-01T07:59:08.024195+08:00"
+    },
+    {
+      "title": "让我们换个模式生活\n对创造的耐受度下调 \n不需要足够好 只要看着能用\n然后开始不断吹牛B 直到配得上牛B二字",
+      "link": "https://x.com/yangyi/status/2072080064024662183",
+      "published": "2026-07-01T06:09:19+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "让我们换个模式生活  \n对创造的耐受度下调   \n不需要足够好 只要看着能用  \n然后开始不断吹牛B 直到配得上牛B二字\n\n💬2🔄0❤️0👀439📊2",
+      "tags": [],
+      "score": 5,
+      "summary": "Yangyi发表关于创造和吹牛的感悟，无实质内容。",
+      "fetched_at": "2026-07-01T07:59:08.024245+08:00"
+    },
+    {
+      "title": "很多流量大的帖子，只是以讹传讹，甚至有严重误导性。\n\n尤其在刺激焦虑、引发恐慌的“封号贴”方面。\n\n封号贴已经成了流量密码了，但实际上信息质量可能很低，很多是这类错误信息。",
+      "link": "https://x.com/howie_serious/status/2072095162420130173",
+      "published": "2026-07-01T07:09:19+08:00",
+      "source": "howie.serious(@howie_serious)",
+      "content": "很多流量大的帖子，只是以讹传讹，甚至有严重误导性。  \n  \n尤其在刺激焦虑、引发恐慌的“封号贴”方面。  \n  \n封号贴已经成了流量密码了，但实际上信息质量可能很低，很多是这类错误信息。\n\n![Jason Ng 阿禅](https://pbs.twimg.com/profile_images/1585151482554331137/5IPyS8gY_normal.jpg)\n\nJason Ng 阿禅@jason5ng32\n\n邮件里有小图片来跟踪是否已读，是营销和通知类的邮件的常规操作啊，咋就被解读成是 Claude 的一种风控手段呢…\n\n[🔗 View Quoted Tweet](https://x.com/jason5ng32/status/2071979859228958777)\n\n💬0🔄0❤️0👀322",
+      "tags": [],
+      "score": 10,
+      "summary": "howie.serious批评流量贴以讹传讹，无具体信息。",
+      "fetched_at": "2026-07-01T07:59:08.024297+08:00"
+    },
+    {
+      "title": "Claude Sonnet 系列最强模型 Sonnet 5 发布!\n\n定语有点多，不过它确实不是最强，也不是 Claude 最强，那两位都关着呢 😂\n\nSonnet 4.6 &lt; Sonnet ...",
+      "link": "https://x.com/shao__meng/status/2072095639341809709",
+      "published": "2026-07-01T07:11:12+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Claude Sonnet 系列最强模型 Sonnet 5 发布!  \n  \n定语有点多，不过它确实不是最强，也不是 Claude 最强，那两位都关着呢 😂  \n  \nSonnet 4.6 < Sonnet 5 < Opus 4.8 < Fable 5 < GPT-5.6 Sol\n\n![Tweet Image](https://pbs.twimg.com/media/HMGQADfaoAAxrLl.jpg)\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nIntroducing Claude Sonnet 5, our most agentic Sonnet yet.  \n  \nIt makes plans, uses tools like browsers and terminals, and runs autonomously at a level that just a few months ago required larger and more expensive models.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072014980103176192/vid/avc1/1728x2160/zHnxI04ExEMPKIbE.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072017450611142835/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072017450611142835)\n\n💬1🔄0❤️0👀185📊1",
+      "tags": [
+        "Claude Sonnet 5",
+        "Anthropic"
+      ],
+      "score": 75,
+      "summary": "meng shao转述Claude Sonnet 5发布，并给出模型性能排序。",
+      "fetched_at": "2026-07-01T07:59:08.024346+08:00"
+    },
+    {
+      "title": "Anthropic 今天发布了 Claude Science，一个面向科学研究者的 AI 工作台。它的定位很明确：做科学研究领域的 Claude Code。\n\n去年 Claude Code 改变了程序...",
+      "link": "https://x.com/dotey/status/2072086962190884947",
+      "published": "2026-07-01T06:36:43+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Anthropic 今天发布了 Claude Science，一个面向科学研究者的 AI 工作台。它的定位很明确：做科学研究领域的 Claude Code。  \n  \n去年 Claude Code 改变了程序员的工作方式，Anthropic CEO Dario Amodei 认为 Claude Science 能在生命科学领域复制同样的事。考虑到 Anthropic 目前年化收入已达 420 亿美元、估值 9650 亿美元，这个野心至少有财力支撑。  \n  \nClaude Science 不是新模型。它用的还是现有的 Claude 模型（包括 Opus 4.8），没有专门训练过生物学能力。它做的事情是把科研工作流程整合到了一个环境里。  \n  \n【1】解决什么问题  \n  \n做过计算生物学的人都知道，日常工作是在一堆工具之间反复横跳：查文献用 PubMed，写代码用 Jupyter，跑分析用 R，提交计算任务要登录集群终端，看蛋白结构又得换个软件。每个数据库还有自己的格式和查询方式。  \n  \nClaude Science 把这些东西塞进了同一个界面。一个主 AI Agent 充当“项目经理”，连接了 60 多个科学数据库，涵盖基因组学、单细胞分析、蛋白质组学、结构生物学、化学信息学等领域。用自然语言提问，它就会调用相应的专业 Agent 去不同数据库查询和汇总。  \n  \n它还能往下分派任务，生成子 Agent 来处理具体工作，或者把任务交给用户自己创建的专家 Agent。另外有一个专门的审查 Agent，负责检查引用和计算结果是否正确。  \n  \n【2】两个比较实际的特性  \n  \n第一个是可复现性。Claude Science 生成的每张图表都附带生成它的完整代码、运行环境、创建过程的自然语言描述，以及完整对话记录。几个月后回头看，还能还原当时的整个分析过程。想调整图表也简单，用自然语言说“把 Y 轴改成对数刻度”或者“去掉网格线”，Agent会自动修改对应代码。  \n  \n第二个是本地运算。它可以装在 macOS 或 Linux 上，也可以通过 SSH 连接到实验室的高性能计算集群。数据不用全部传到云端，敏感数据可以留在本地基础设施上，只有分析每一步需要的上下文信息才会发送给 Claude。如果计算量大，它还能调用 Modal 账户按需扩展到上百个 GPU。  \n  \n【3】早期用户怎么说  \n  \nGladstone 研究所的 Sean Whalen 用它几天之内从零搭了一个基因组浏览器。UCSF 的 Stephen Francis 说，Claude Science 在他们的 RNA-seq 数据里发现了一个实验室病毒污染物，他们团队在这个问题上卡了将近一年。Allen 研究所的 Jérôme Lecoq 用它搭了一套多 Agent 文献综述系统，让多个子 Agent 读几千篇论文、提取核心发现，然后按叙事结构生成综述，以前他的团队写这样一篇综述要两年。  \n  \nMIT 的 Iain Cheeseman 的评价可能最直观，他说这个工具让他作为一个非计算生物学背景的人能做以前根本做不了的分析，他发现自己会把积攒多年的研究问题拿去用 Claude Science 试。  \n  \n【4】竞争格局  \n  \nAnthropic 并不是唯一盯上这个方向的公司。OpenAI 在今年 4 月推出了 GPT-Rosalind，一个专门针对生命科学的推理模型，6 月初又做了一轮能力升级。两者的思路不太一样：GPT-Rosalind 是专门训练的领域模型，侧重生物推理能力本身；Claude Science 不改模型，改的是工作流程，把现有模型包装成一个集成了数据库、计算资源和协作 Agent 的科研平台。  \n  \nGPT-Rosalind 目前只对签了企业协议的美国客户开放研究预览。Claude Science 的门槛低一些，Pro（20 美元/月）以上的付费用户就能用。  \n  \n这反映了 Anthropic 的策略转变，从单纯卖模型能力，转向拥有特定行业的操作层，就像 Claude Code 成了软件开发的操作层一样。  \n  \n【5】怎么用  \n  \nClaude Science 今天开始公测，macOS 和 Linux 可用，需要 Pro、Max、Team 或 Enterprise 订阅。Team 和 Enterprise 用户需要管理员开启权限。学术机构和非营利研究组织的活跃实验室可以申请 Team 计划的折扣席位。  \n  \nAnthropic 还会资助最多 50 个 Claude Science 研究项目，每个项目最高 3 万美元额度，Modal 另外提供最多 2000 美元的计算资源。申请截止 7 月 15 日，结果 7 月 31 日前通知，项目运行时间为 9 月 1 日到 12 月 1 日。\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nIntroducing Claude Science, a new app designed with every stage of research in mind.   \n  \nArtifacts traced to their code, environments managed on demand, and 60+ optional scientific databases that you can connect.  \n  \nAvailable now in beta.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072000855969275904/vid/avc1/1920x1080/DFP9dS3dqhMdc3qs.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072002740830842899/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072002740830842899)\n\n💬3🔄3❤️16👀3911📊6",
+      "tags": [
+        "Claude Science",
+        "Anthropic",
+        "科研工作台"
+      ],
+      "score": 85,
+      "summary": "宝玉详细解读Anthropic发布的Claude Science科研工作台，整合60+数据库和Agent。",
+      "fetched_at": "2026-07-01T07:59:08.024398+08:00"
     }
   ]
 }
