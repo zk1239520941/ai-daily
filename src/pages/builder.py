@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -13,7 +13,6 @@ import markdown
 from src.markdown_utils import normalize_str_list, parse_frontmatter
 
 SITE_TITLE = "AI Daily"
-SITE_TAGLINE = "精选 AI 资讯 · 技术委员会内部分享"
 FONT_LINK = (
     "https://fonts.googleapis.com/css2?"
     "family=IBM+Plex+Mono:wght@400;500&"
@@ -88,6 +87,32 @@ def _format_article_time(meta: Dict[str, Any], filename: str) -> str:
                 return str(raw)
     parsed = parse_push_filename(filename)
     return parsed["display"]
+
+
+def _beijing_tz() -> timezone:
+    """北京时间（与 daily 定时任务一致）。"""
+    return timezone(timedelta(hours=8))
+
+
+def _latest_update_label(md_files: List[Path]) -> str:
+    """取最新一期 push 的发布时间（北京时间）。"""
+    if not md_files:
+        return "—"
+    latest = md_files[0]
+    meta, _ = parse_frontmatter(latest.read_text(encoding="utf-8"))
+    for key in ("pushDate", "pushTime"):
+        raw = meta.get(key)
+        if not raw:
+            continue
+        try:
+            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            return dt.astimezone(_beijing_tz()).strftime("%Y-%m-%d %H:%M 北京时间")
+        except ValueError:
+            continue
+    parsed = parse_push_filename(latest.name)
+    if parsed.get("time"):
+        return f"{parsed['date']} {parsed['time']} 北京时间"
+    return parsed.get("date", "—")
 
 
 def _markdown_to_html(body: str) -> str:
@@ -207,7 +232,6 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
     <nav class="site-nav">
       <div class="site-brand">
         <a href="../index.html">{html.escape(SITE_TITLE)}</a>
-        <span>{html.escape(SITE_TAGLINE)}</span>
       </div>
       <a class="back-link" href="../index.html">← 返回归档</a>
     </nav>
@@ -326,7 +350,7 @@ def build_index_html(
         if cards
         else '    <div class="empty-state">暂无日报，等待 AI Daily 定时任务生成</div>'
     )
-    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    updated_at = _latest_update_label(md_files)
     latest_label = _load_issue_card(md_files[0])["display"] if md_files else "—"
 
     content = f"""<!DOCTYPE html>
@@ -339,7 +363,6 @@ def build_index_html(
     <nav class="site-nav">
       <div class="site-brand">
         <a href="index.html">{html.escape(SITE_TITLE)}</a>
-        <span>{html.escape(SITE_TAGLINE)}</span>
       </div>
     </nav>
 
@@ -347,7 +370,7 @@ def build_index_html(
       <div class="hero-copy">
         <span class="hero-kicker">Daily Briefing</span>
         <h1>{html.escape(title)}</h1>
-        <p class="hero-lead">每日 AI 精选摘要，面向技术分享与内部分发。最新一期置顶展示，往期归档于下方。</p>
+        <p class="hero-lead">每日 AI 精选摘要。最新一期置顶展示，往期归档于下方。</p>
       </div>
       <aside class="hero-panel reveal" aria-label="归档概览">
         <dl>
@@ -364,7 +387,7 @@ def build_index_html(
     </section>
 
     <footer class="site-footer">
-      共 {len(md_files)} 篇日报 · 更新于 {html.escape(built_at)}
+      共 {len(md_files)} 篇日报 · 最新一期 {html.escape(updated_at)}
     </footer>
   </div>
   <script src="static/pages.js" defer></script>

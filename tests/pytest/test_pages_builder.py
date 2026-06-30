@@ -73,7 +73,23 @@ totalEntries: 5
     assert "早报" in html_out
 
 
-def test_profile_label_from_time():
+def test_latest_update_label_uses_beijing_time(tmp_path):
+    from src.pages.builder import _latest_update_label
+
+    md = tmp_path / "push-2026-06-30-18-18-19.md"
+    md.write_text(
+        """---
+pushDate: "2026-06-30T18:18:19.579841+08:00"
+---
+body
+""",
+        encoding="utf-8",
+    )
+    label = _latest_update_label([md])
+    assert "北京时间" in label
+    assert "18:18" in label
+    assert "UTC" not in label
+
     from src.pages.builder import _profile_label
 
     assert _profile_label("default", "push-2026-06-30-08-00-00.md") == "早报"
