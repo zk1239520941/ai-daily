@@ -139,7 +139,8 @@ git push -u origin main
 
 - `.env`（密钥）
 - `config.json`（本地配置）
-- `news-data/`（运行时数据，Actions 用 cache 持久化）
+- `news-data/*`（fetch、notify 等运行时数据，**不提交**）
+- `!news-data/push-*.md`（**例外**：日报全文需提交，供 GitHub Pages 托管）
 
 推送前务必执行 `git status`，确认 **没有** `.env` 出现在待提交列表中。
 
@@ -177,9 +178,21 @@ git push -u origin main
 
 ## D. GitHub Pages 开启
 
+> **重要**：**Pages workflow（`pages.yml`）只负责部署站点**，不会抓取 RSS、不会生成日报、**不会推送企微**。  
+> 企微消息与 `news-data/push-*.md` 由 **`daily.yml`（AI Daily 定时任务）** 或本地 `python -m src.main fetch && push` 产生；Daily 跑完后会把 `push-*.md` commit 并 push，从而自动触发 Pages 重新部署。
+
 1. 仓库 **Settings** → **Pages**
 2. **Build and deployment** → **Source** 选 **GitHub Actions**（不要选 "Deploy from a branch"）
 3. 保存后无需手动上传文件
+
+### 两个 Workflow 的分工
+
+| Workflow | 文件 | 作用 | 企微 | Pages 全文 |
+|----------|------|------|------|------------|
+| **AI Daily 定时任务** | `daily.yml` | fetch → push → **commit/push `push-*.md`** | ✅ | 间接（push 后触发 Pages） |
+| **GitHub Pages 日报全站** | `pages.yml` | 从仓库检出 `news-data/push-*.md` 并部署 | ❌ | ✅ |
+
+**仅手动运行 Pages workflow 而仓库里没有 `push-*.md` 时**，首页会显示「暂无日报」——这是预期行为，不是 Pages 部署失败。
 
 ### `pages.yml` 工作流说明
 
@@ -202,7 +215,11 @@ git push -u origin main
 https://YOUR_USER.github.io/ai-daily/news-data/push-2026-06-30-17-00-30.md
 ```
 
-首次 push 后若 `news-data/` 为空，可等 Actions 跑完 `push` 任务生成 `push-*.md` 后再触发 Pages，或本地 `git add news-data/push-*.md` 推送触发。
+首次 push 后若 `news-data/` 为空，请任选其一：
+
+1. **推荐**：Actions → **AI Daily 定时任务** → Run workflow → Job 选 `all`（会 fetch、push 企微、并 commit `push-*.md` 触发 Pages）
+2. 本地生成后推送：`uv run python -m src.main fetch && uv run python -m src.main push`，再 `git add news-data/push-*.md index.html && git commit && git push`
+3. 仅重新部署（**不含新日报**）：Actions → **GitHub Pages 日报全站** → Run workflow
 
 ---
 
@@ -241,9 +258,11 @@ uv run python -m src.main rss
 
 ### E2. GitHub Actions 手动触发
 
-1. 仓库 **Actions** → **AI Daily 定时任务**
+1. 仓库 **Actions** → **AI Daily 定时任务**（**不是**「GitHub Pages 日报全站」）
 2. **Run workflow** → Job 选 `all`（或 `check` / `fetch` / `push`）
-3. 查看日志无报错
+3. 查看日志无报错；若 Job 为 `all` 或 `push`，日志末尾应有「提交 push 日报并推送」步骤
+
+> 只跑 Pages workflow 不会发企微，也不会凭空产生 `push-*.md`。
 
 定时规则（`.github/workflows/daily.yml`，UTC）：
 
@@ -281,7 +300,7 @@ RSS / GitHub Trending / Hacker News
 1. **企业微信 B+C 推送**：即时热点短消息 + 早晚报 news 图文 + text 完整版链接
 2. **DeepSeek LLM**：`config.user.json.example` 已指向 `deepseek-chat`
 3. **中文日报**：时区 `timezone_hours: 8`
-4. **GitHub Actions**：`daily.yml`（抓取推送）+ `pages.yml`（全文 Pages）
+4. **GitHub Actions**：`daily.yml`（抓取、企微推送、commit push 文件）+ `pages.yml`（仅部署 Pages）
 5. **Windows 终端**：入口自动配置 stdout/stderr UTF-8，避免 GBK 下 emoji 报错
 
 ## 与 ai-digest 的主要差异
@@ -336,7 +355,18 @@ Pages 地址：https://zk1239520941.github.io/ai-daily/
 ### Settings → Pages
 
 1. Build and deployment → Source 选择 GitHub Actions（不要选 Deploy from a branch）。
-2. 首次推送 news-data/push-*.md 或手动运行 workflow「GitHub Pages 日报全站」后，站点才会出现在上述 Pages URL。
+2. 首次有内容需先跑 **AI Daily 定时任务**（或本地 push 后 `git push news-data/push-*.md`），再等待 **GitHub Pages 日报全站** 自动或手动部署。
+
+### 推荐操作顺序（上线后）
+
+1. 在仓库 **Secrets** 配置 `DEEPSEEK_API_KEY`、`WECOM_WEBHOOK_URL`（及可选 `GITHUB_TOKEN`、`JINA_API_KEY`、`PAGES_BASE_URL`）
+2. **Settings → Pages** → Source 选 **GitHub Actions**
+3. **Actions → AI Daily 定时任务 → Run workflow → `all`**
+4. 确认日志中 fetch、push、企微发送、**提交 push 日报** 均成功
+5. 等待 **GitHub Pages 日报全站** 被 push 触发并完成（约 1～2 分钟）
+6. 打开 https://zk1239520941.github.io/ai-daily/ 应能看到日报链接；企微群应收到消息
+
+若第 3 步未跑 Daily 而只跑了 Pages，站点会显示「暂无日报」且企微无消息。
 
 ### 推送失败（认证）
 

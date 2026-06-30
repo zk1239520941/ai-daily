@@ -1,5 +1,8 @@
 name: AI Daily 定时任务
 
+permissions:
+  contents: write
+
 on:
   schedule:
     # 北京时间 08:00 = UTC 00:00（早报：含 GitHub / HN / 洞察）
@@ -71,4 +74,27 @@ jobs:
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main push
+
+      - name: 提交 push 日报并推送（触发 GitHub Pages）
+        if: |
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        run: |
+          shopt -s nullglob
+          files=(news-data/push-*.md)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "无 push-*.md，跳过提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python scripts/build_pages_index.py
+          git add news-data/push-*.md index.html
+          if git diff --staged --quiet; then
+            echo "无变更，跳过 commit"
+          else
+            git commit -m "chore(data): 更新日报 push 文件"
+            git push
+          fi

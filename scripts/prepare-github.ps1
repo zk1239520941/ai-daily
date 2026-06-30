@@ -35,6 +35,18 @@ if (-not (Test-Path ".git")) {
         Write-Host "OK  .env not tracked" -ForegroundColor Green
     }
 
+    $pushFiles = Get-ChildItem -Path "news-data/push-*.md" -ErrorAction SilentlyContinue
+    if ($pushFiles) {
+        $untracked = git status --porcelain -- news-data/push-*.md 2>$null
+        if ($untracked) {
+            Write-Host "WARN  news-data/push-*.md 未提交  ->  git add news-data/push-*.md index.html && git commit" -ForegroundColor Yellow
+        } else {
+            Write-Host "OK  news-data/push-*.md tracked or committed" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "INFO  no news-data/push-*.md yet  ->  run: python -m src.main fetch && push" -ForegroundColor DarkGray
+    }
+
     $remote = git remote get-url origin 2>$null
     if ($LASTEXITCODE -eq 0 -and $remote) {
         Write-Host "OK  remote origin = $remote" -ForegroundColor Green
