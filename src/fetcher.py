@@ -75,6 +75,80 @@ def _truncate_title(title: str) -> str:
     return title[:TITLE_MAX_CHARS].rstrip() + "…"
 
 
+def _is_image_mime(mime: str) -> bool:
+    """判断 MIME 是否为图片类型。"""
+    return bool(mime) and mime.lower().startswith("image/")
+
+
+def _looks_like_image_url(url: str) -> bool:
+    """根据 URL 后缀粗略判断是否为图片链接。"""
+    if not url:
+        return False
+    path = url.lower().split("?")[0].split("#")[0]
+    return path.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".avif"))
+
+
+def _url_from_media_item(item: Dict) -> str:
+    """从 media / enclosure 条目中取 URL。"""
+    mime = (item.get("type") or item.get("medium") or "").strip()
+    url = (item.get("url") or item.get("href") or "").strip()
+    if not url:
+        return ""
+    if _is_image_mime(mime) or _looks_like_image_url(url):
+        return url
+    return ""
+
+
+def _first_image_url_from_media_list(items) -> str:
+    """从 media_thumbnail / media_content / enclosures 列表中取首个图片 URL。"""
+    if not items:
+        return ""
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        url = _url_from_media_item(item)
+        if url:
+            return url
+    return ""
+
+
+def extract_image_url(entry) -> str:
+    """从 RSS entry 提取封面图 URL（media:thumbnail、media:content、enclosure 等）。"""
+    thumb = getattr(entry, "media_thumbnail", None)
+    url = _first_image_url_from_media_list(thumb)
+    if url:
+        return url
+
+    media = getattr(entry, "media_content", None)
+    url = _first_image_url_from_media_list(media)
+    if url:
+        return url
+
+    enclosures = getattr(entry, "enclosures", None)
+    url = _first_image_url_from_media_list(enclosures)
+    if url:
+        return url
+
+    for link in getattr(entry, "links", None) or []:
+        if not isinstance(link, dict):
+            continue
+        rel = (link.get("rel") or "").lower()
+        href = (link.get("href") or "").strip()
+        mime = (link.get("type") or "").strip()
+        if rel == "enclosure" and href and (_is_image_mime(mime) or _looks_like_image_url(href)):
+            return href
+
+    itunes_image = getattr(entry, "itunes_image", None)
+    if isinstance(itunes_image, dict):
+        href = (itunes_image.get("href") or "").strip()
+        if href:
+            return href
+    if isinstance(itunes_image, str) and itunes_image.strip():
+        return itunes_image.strip()
+
+    return ""
+
+
 def _parse_feed_entries(content, feed_info: Dict, cutoff_time: datetime) -> List[Dict]:
     """把 feed 字节/字符串解析为条目列表，按 cutoff 时间过滤"""
     feed = feedparser.parse(content)
@@ -87,18 +161,20 @@ def _parse_feed_entries(content, feed_info: Dict, cutoff_time: datetime) -> List
         if pub_date and pub_date < cutoff_time:
             break
 
-        entries.append(
-            {
-                "title": _truncate_title(entry.get("title", "无标题")),
-                "link": entry.get("link", ""),
-                "published": pub_date,
-                "source": feed_info["title"],
-                "content": _extract_body(entry),
-                "tags": [],
-                "score": 0,
-                "summary": "",
-            }
-        )
+        item = {
+            "title": _truncate_title(entry.get("title", "无标题")),
+            "link": entry.get("link", ""),
+            "published": pub_date,
+            "source": feed_info["title"],
+            "content": _extract_body(entry),
+            "tags": [],
+            "score": 0,
+            "summary": "",
+        }
+        image_url = extract_image_url(entry)
+        if image_url:
+            item["image_url"] = image_url
+        entries.append(item)
 
     return entries
 

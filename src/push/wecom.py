@@ -25,9 +25,6 @@ class WeComPlatform(PushPlatform):
         self.webhook_url = os.environ.get(self.api_key_name, "")
         self.mode = config.get("mode", "news")  # news | text
         self.pages_base_url = resolve_pages_base_url(config)
-        self.default_picurl = config.get("default_picurl") or (
-            (self.pages_base_url + "static/cover.png") if self.pages_base_url else ""
-        )
 
     def validate_config(self, config: Dict) -> bool:
         """检查企业微信配置是否有效。"""
@@ -62,9 +59,7 @@ class WeComPlatform(PushPlatform):
         """发送 news 类型消息，articles 最多 8 条。"""
         if not articles:
             return
-        trimmed = [
-            _normalize_article(a, self.default_picurl) for a in articles[:MAX_NEWS_ARTICLES]
-        ]
+        trimmed = [_normalize_article(a) for a in articles[:MAX_NEWS_ARTICLES]]
         payload = {"msgtype": "news", "news": {"articles": trimmed}}
         await self._post_payload(payload)
 
@@ -86,7 +81,12 @@ class WeComPlatform(PushPlatform):
         full_url = metadata.get("full_url") or build_push_page_url(
             self.pages_base_url, metadata.get("push_file", "")
         )
-        articles = build_digest_news_articles(content, metadata, full_url)
+        articles = build_digest_news_articles(
+            content,
+            metadata,
+            full_url,
+            entry_images=metadata.get("entry_images"),
+        )
 
         if self.mode == "text":
             lines = [title or metadata.get("title", "AI Daily")]
@@ -162,14 +162,19 @@ def truncate_description(text: str, max_chars: int = MAX_NEWS_DESC_CHARS) -> str
 
 
 def build_digest_news_articles(
-    content: str, metadata: Dict, full_url: str
+    content: str,
+    metadata: Dict,
+    full_url: str,
+    entry_images: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, str]]:
     """从 digest 正文与 metadata 构建 news articles（最多 8 条）。"""
     articles: List[Dict[str, str]] = []
     digest_title = metadata.get("title") or "AI Daily 每日精选"
     lead = metadata.get("lead") or ""
+    url_images = entry_images or {}
 
     if full_url:
+        # 完整版 lead 卡片不配封面
         articles.append(
             {
                 "title": digest_title,
@@ -182,13 +187,16 @@ def build_digest_news_articles(
     for sec in sections:
         if len(articles) >= MAX_NEWS_ARTICLES:
             break
-        articles.append(
-            {
-                "title": sec["title"],
-                "description": truncate_description(sec.get("description", "")),
-                "url": sec.get("url") or full_url or "https://github.com",
-            }
-        )
+        sec_url = sec.get("url") or full_url or "https://github.com"
+        article: Dict[str, str] = {
+            "title": sec["title"],
+            "description": truncate_description(sec.get("description", "")),
+            "url": sec_url,
+        }
+        picurl = url_images.get(sec_url, "")
+        if picurl:
+            article["picurl"] = picurl
+        articles.append(article)
 
     if not articles:
         highlights = metadata.get("highlights") or []
@@ -241,9 +249,9 @@ def _extract_first_url(text: str) -> str:
     return bare.group(1) if bare else ""
 
 
-def _normalize_article(article: Dict[str, Any], default_picurl: str = "") -> Dict[str, str]:
-    """规范化 news article 字段（企微 news 必须带 picurl，否则客户端显示裂图）。"""
-    picurl = (article.get("picurl") or default_picurl or "").strip()
+def _normalize_article(article: Dict[str, Any]) -> Dict[str, str]:
+    """规范化 news article 字段；picurl 为可选，仅在有有效封面 URL 时写入。"""
+    picurl = (article.get("picurl") or "").strip()
     normalized: Dict[str, str] = {
         "title": (article.get("title") or "AI Daily")[:128],
         "description": truncate_description(article.get("description", "")),

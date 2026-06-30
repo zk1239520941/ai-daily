@@ -193,6 +193,23 @@ def collect_entries_for_push(
     return to_push, context
 
 
+def _enrich_wecom_items_with_entry_images(
+    items: Optional[List[Dict]], entries: List[Dict]
+) -> None:
+    """为即时热点 wecom_items 补充 picurl（按原文 link 匹配 RSS image_url）。"""
+    if not items:
+        return
+    url_to_image = {
+        e["link"]: e["image_url"]
+        for e in entries
+        if e.get("link") and e.get("image_url")
+    }
+    for item in items:
+        picurl = url_to_image.get(item.get("url", ""), "")
+        if picurl:
+            item["picurl"] = picurl
+
+
 async def run_fetch_job(config: Dict):
     print(f"\n{'=' * 50}")
     print(f"🔄 Fetch Job | {now_local().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -310,6 +327,9 @@ async def run_fetch_job(config: Dict):
             timestamp = now.strftime("%Y-%m-%d %H:%M")
             content_without_title, metadata = parse_immediate_push_with_metadata(
                 push_content, f"🚨 AI Daily 快讯 | {timestamp}"
+            )
+            _enrich_wecom_items_with_entry_images(
+                metadata.get("wecom_items"), hot_entries
             )
             metadata["pushTime"] = now.isoformat()
             push_title = "🚨 AI Daily 快讯 | " + metadata["title"]
@@ -468,6 +488,9 @@ async def _run_morning_push(config: Dict, generate_only: bool = False) -> Option
         }
     else:
         metadata.setdefault("pushTime", now.isoformat())
+
+    if digest_meta and digest_meta.get("entry_images"):
+        metadata["entry_images"] = digest_meta["entry_images"]
 
     final = assemble_with_sentinels(
         {

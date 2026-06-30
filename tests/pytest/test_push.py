@@ -16,6 +16,7 @@ from push.wecom import (
     build_push_page_url,
     resolve_pages_base_url,
     truncate_description,
+    _normalize_article,
 )
 from push import create_platform
 
@@ -279,6 +280,38 @@ class TestWeComPlatform:
         assert articles[1]["title"] == "标题一"
         assert len(articles[1]["description"]) <= 128
 
+    def test_build_digest_news_articles_with_entry_images(self):
+        content = """### 1. 标题一
+
+* **核心**：第一条要点说明
+🔗 [链接](https://example.com/a)
+
+### 2. 标题二
+
+* 第二条要点
+🔗 [链接](https://example.com/b)
+"""
+        metadata = {"title": "测试日报", "lead": "今日导语", "highlights": []}
+        entry_images = {"https://example.com/a": "https://img.example/a.jpg"}
+        articles = build_digest_news_articles(
+            content,
+            metadata,
+            "https://pages.example/full.md",
+            entry_images=entry_images,
+        )
+        assert "picurl" not in articles[0]
+        assert articles[1].get("picurl") == "https://img.example/a.jpg"
+        assert "picurl" not in articles[2]
+
+    def test_normalize_article_no_default_picurl(self):
+        article = {"title": "T", "description": "D", "url": "https://x.com"}
+        normalized = _normalize_article(article)
+        assert "picurl" not in normalized
+
+        with_pic = {**article, "picurl": "https://img.example/c.jpg"}
+        normalized_with = _normalize_article(with_pic)
+        assert normalized_with["picurl"] == "https://img.example/c.jpg"
+
     @pytest.mark.asyncio
     async def test_send_immediate_news(self):
         config = {"apiKeyName": "WECOM_WEBHOOK_URL", "mode": "news"}
@@ -305,6 +338,7 @@ class TestWeComPlatform:
                                 "title": "T1",
                                 "description": "D1",
                                 "url": "https://a.com",
+                                "picurl": "https://img.example/a.jpg",
                             },
                             {
                                 "title": "T2",

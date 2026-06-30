@@ -12,6 +12,7 @@ from fetcher import (
     parse_entry_time,
     fetch_single_feed_async,
     fetch_all_feeds,
+    extract_image_url,
     DEFAULT_FEED_TIMEOUT,
 )
 
@@ -48,6 +49,74 @@ class TestParseEntryTime:
 
         result = parse_entry_time(entry)
         assert result is None
+
+
+class TestExtractImageUrl:
+    """测试 RSS 封面 URL 提取"""
+
+    def test_media_thumbnail(self):
+        import feedparser
+
+        rss = """<?xml version="1.0"?>
+<rss xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel><title>T</title>
+    <item>
+      <title>A</title>
+      <link>https://example.com/a</link>
+      <media:thumbnail url="https://cdn.example.com/thumb.jpg"/>
+    </item>
+  </channel>
+</rss>"""
+        entry = feedparser.parse(rss).entries[0]
+        assert extract_image_url(entry) == "https://cdn.example.com/thumb.jpg"
+
+    def test_media_content(self):
+        import feedparser
+
+        rss = """<?xml version="1.0"?>
+<rss xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel><title>T</title>
+    <item>
+      <title>A</title>
+      <link>https://example.com/a</link>
+      <media:content url="https://cdn.example.com/hero.png" type="image/png"/>
+    </item>
+  </channel>
+</rss>"""
+        entry = feedparser.parse(rss).entries[0]
+        assert extract_image_url(entry) == "https://cdn.example.com/hero.png"
+
+    def test_enclosure(self):
+        import feedparser
+
+        rss = """<?xml version="1.0"?>
+<rss version="2.0">
+  <channel><title>T</title>
+    <item>
+      <title>A</title>
+      <link>https://example.com/a</link>
+      <enclosure url="https://cdn.example.com/cover.webp" type="image/webp"/>
+    </item>
+  </channel>
+</rss>"""
+        entry = feedparser.parse(rss).entries[0]
+        assert extract_image_url(entry) == "https://cdn.example.com/cover.webp"
+
+    def test_no_image_returns_empty(self):
+        import feedparser
+
+        rss = """<?xml version="1.0"?>
+<rss version="2.0">
+  <channel><title>T</title>
+    <item>
+      <title>A</title>
+      <link>https://example.com/a</link>
+      <description>plain text</description>
+    </item>
+  </channel>
+</rss>"""
+        entry = feedparser.parse(rss).entries[0]
+        assert extract_image_url(entry) == ""
 
 
 class TestFetchSingleFeedAsync:
@@ -94,6 +163,47 @@ class TestFetchSingleFeedAsync:
         assert entries[0]["title"] == "Article 1"
         assert entries[0]["link"] == "https://example.com/1"
         assert entries[0]["source"] == "Test Feed"
+        assert "image_url" not in entries[0]
+
+    @pytest.mark.asyncio
+    async def test_fetch_with_media_thumbnail(self):
+        rss_content = """<?xml version="1.0"?>
+<rss xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+    <channel>
+        <title>Test Feed</title>
+        <item>
+            <title>Article 1</title>
+            <link>https://example.com/1</link>
+            <pubDate>Mon, 15 Jan 2024 10:00:00 GMT</pubDate>
+            <media:thumbnail url="https://example.com/thumb.jpg"/>
+        </item>
+    </channel>
+</rss>"""
+
+        feed_info = {"title": "Test Feed", "xmlUrl": "http://test.com/rss"}
+        cutoff = datetime(2024, 1, 1, tzinfo=timezone.utc)
+
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value=rss_content)
+
+        mock_session = MagicMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_response),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            entries = await fetch_single_feed_async(
+                feed_info, cutoff, session=mock_session
+            )
+
+        assert len(entries) == 1
+        assert entries[0]["image_url"] == "https://example.com/thumb.jpg"
 
     @pytest.mark.asyncio
     async def test_fetch_http_error(self):

@@ -59,4 +59,13 @@ async def run_rss_section(
 
     date_str = (now or datetime.now()).strftime("%Y-%m-%d")
     body, metadata = parse_digest_with_metadata(raw or "", date_str)
+
+    entry_images = {
+        e["link"]: e["image_url"]
+        for e in to_push
+        if e.get("link") and e.get("image_url")
+    }
+    if entry_images:
+        metadata["entry_images"] = entry_images
+
     return body, metadata, None
