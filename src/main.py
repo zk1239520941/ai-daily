@@ -559,11 +559,9 @@ async def send_digest_wecom(
 
 async def notify_digest_url_unavailable(config: Dict, full_url: str) -> None:
     """完整版 URL 超时不可访问时发送告警 text（不含全文链接 digest）。"""
-    now = now_local(config).strftime("%Y-%m-%d %H:%M:%S")
+    now = now_local(config).strftime("%Y-%m-%d %H:%M")
     text = (
-        f"⚠️ AI Daily digest 企微未发送\n"
-        f"原因：完整版 URL 在 5 分钟内不可访问\n"
-        f"URL：{full_url or '(未配置)'}\n"
+        f"今日精选推送稍有延迟，阅读页暂时无法打开，请稍后再试。\n"
         f"时间：{now}"
     )
     wecom_conf = config.get("push", {}).get("wecom", {})

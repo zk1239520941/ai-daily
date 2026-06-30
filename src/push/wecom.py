@@ -94,7 +94,7 @@ class WeComPlatform(PushPlatform):
                 if art.get("description"):
                     lines.append(f"   {art['description']}")
             if full_url:
-                lines.append(f"\n📖 完整版：{full_url}")
+                lines.append(f"\n📖 阅读全文：{full_url}")
             await self.send_text("\n".join(lines))
             return
 
@@ -102,7 +102,7 @@ class WeComPlatform(PushPlatform):
 
         if full_url:
             digest_title = metadata.get("title") or (title or "AI Daily")
-            link_text = f"📖 {digest_title}\n完整版阅读：{full_url}"
+            link_text = f"📖 {digest_title}\n阅读全文：{full_url}"
             await self.send_text(link_text)
 
     async def _send_markdown_fallback(self, content: str, title: str = None):
@@ -176,7 +176,7 @@ def build_digest_news_articles(
         articles.append(
             {
                 "title": digest_title,
-                "description": truncate_description(lead or "点击查看完整日报"),
+                "description": truncate_description(lead or "点击阅读全文"),
                 "url": full_url,
             }
         )

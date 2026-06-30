@@ -13,6 +13,13 @@ import markdown
 from src.markdown_utils import normalize_str_list, parse_frontmatter
 
 SITE_TITLE = "AI Daily"
+SITE_INDEX_TITLE = "AI Daily · 每日精选"
+SITE_HERO_HEADING = "AI 每日精选"
+SITE_HERO_KICKER = "每日精选"
+SITE_HERO_LEAD = "精选 AI 领域要闻。最新一期置顶，更多内容见下方。"
+SITE_BACK_LINK = "← 返回首页"
+SITE_EMPTY_STATE = "暂无内容，敬请期待。"
+SITE_FOOTER = "AI Daily"
 FONT_LINK = (
     "https://fonts.googleapis.com/css2?"
     "family=IBM+Plex+Mono:wght@400;500&"
@@ -233,7 +240,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
       <div class="site-brand">
         <a href="../index.html">{html.escape(SITE_TITLE)}</a>
       </div>
-      <a class="back-link" href="../index.html">← 返回归档</a>
+      <a class="back-link" href="../index.html">{SITE_BACK_LINK}</a>
     </nav>
 
     <header class="article-hero reveal">
@@ -255,7 +262,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
     </div>
 
     <footer class="site-footer">
-      {html.escape(SITE_TITLE)} · 由 AI Daily 自动生成
+      {html.escape(SITE_FOOTER)}
     </footer>
   </div>
   <script src="../static/pages.js" defer></script>
@@ -286,7 +293,7 @@ def _render_issue_card(
     """渲染单张索引卡片。"""
     excerpt = issue["lead"][:180] + ("…" if len(issue["lead"]) > 180 else "")
     if not excerpt:
-        excerpt = "点击进入阅读完整日报"
+        excerpt = "点击阅读全文"
     card_class = "issue-card issue-card--featured reveal" if featured else "issue-card reveal"
     entries = issue.get("entries", "")
     meta_extra = f"{html.escape(entries)} 条精选" if entries else ""
@@ -297,7 +304,7 @@ def _render_issue_card(
       <div class="issue-card__inner">
         <div class="issue-card__main">
           <div class="issue-meta">
-            <span class="issue-no">Latest · No.{issue_no:03d}</span>
+            <span class="issue-no">最新 · 第 {issue_no:03d} 期</span>
             <span class="issue-date">{html.escape(issue["display"])}</span>
             <span class="issue-badge">{html.escape(issue["profile"])}</span>
           </div>
@@ -313,7 +320,7 @@ def _render_issue_card(
 
     return f"""    <article class="{card_class}" style="--i:{index}">
       <div class="issue-meta">
-        <span class="issue-no">No.{issue_no:03d}</span>
+        <span class="issue-no">第 {issue_no:03d} 期</span>
         <span class="issue-date">{html.escape(issue["display"])}</span>
         <span class="issue-badge">{html.escape(issue["profile"])}</span>
       </div>
@@ -326,7 +333,7 @@ def _render_issue_card(
 def build_index_html(
     data_dir: Path,
     output: Path,
-    title: str = f"{SITE_TITLE} 日报归档",
+    title: str = SITE_INDEX_TITLE,
 ) -> int:
     """扫描 push-*.md 生成 index.html 与对应文章 HTML。"""
     md_files = sorted(data_dir.glob("push-*.md"), reverse=True)
@@ -348,7 +355,7 @@ def build_index_html(
     grid_body = (
         "\n".join(cards)
         if cards
-        else '    <div class="empty-state">暂无日报，等待 AI Daily 定时任务生成</div>'
+        else f'    <div class="empty-state">{html.escape(SITE_EMPTY_STATE)}</div>'
     )
     updated_at = _latest_update_label(md_files)
     latest_label = _load_issue_card(md_files[0])["display"] if md_files else "—"
@@ -368,15 +375,15 @@ def build_index_html(
 
     <header class="hero reveal">
       <div class="hero-copy">
-        <span class="hero-kicker">Daily Briefing</span>
-        <h1>{html.escape(title)}</h1>
-        <p class="hero-lead">每日 AI 精选摘要。最新一期置顶展示，往期归档于下方。</p>
+        <span class="hero-kicker">{SITE_HERO_KICKER}</span>
+        <h1>{html.escape(SITE_HERO_HEADING)}</h1>
+        <p class="hero-lead">{html.escape(SITE_HERO_LEAD)}</p>
       </div>
-      <aside class="hero-panel reveal" aria-label="归档概览">
+      <aside class="hero-panel reveal" aria-label="站点概览">
         <dl>
-          <dt>已归档</dt>
+          <dt>已发布</dt>
           <dd>{len(md_files)} 期</dd>
-          <dt>最新更新</dt>
+          <dt>最近更新</dt>
           <dd>{html.escape(latest_label)}</dd>
         </dl>
       </aside>
@@ -387,7 +394,7 @@ def build_index_html(
     </section>
 
     <footer class="site-footer">
-      共 {len(md_files)} 篇日报 · 最新一期 {html.escape(updated_at)}
+      共 {len(md_files)} 篇精选 · 最近更新 {html.escape(updated_at)}
     </footer>
   </div>
   <script src="static/pages.js" defer></script>
@@ -402,7 +409,7 @@ def build_index_html(
 def build_all_pages(
     data_dir: Path | str = "news-data",
     index_output: Path | str = "index.html",
-    title: str = f"{SITE_TITLE} 日报归档",
+    title: str = SITE_INDEX_TITLE,
 ) -> int:
     """生成 index.html 与全部 push-*.html。"""
     data_path = Path(data_dir)
