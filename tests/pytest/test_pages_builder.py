@@ -73,8 +73,8 @@ totalEntries: 5
     assert "测试标题" in html_out
     assert "测试导语" in html_out
     assert "要点一" in html_out
-    assert "article-toc" in html_out
     assert "story-block" in html_out
+    assert "article-toc" not in html_out
     assert "reading-progress" in html_out
     assert "https://example.com" in html_out
     assert "早报" in html_out

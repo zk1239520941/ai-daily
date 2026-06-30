@@ -151,33 +151,6 @@ def _markdown_to_html(body: str) -> str:
     )
 
 
-def _extract_section_titles(body: str) -> List[str]:
-    """从 markdown 正文提取 ### 章节标题。"""
-    titles: List[str] = []
-    for line in body.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("### "):
-            titles.append(_clean_section_title(stripped[4:].strip()))
-    return titles
-
-
-def _build_toc_html(titles: List[str]) -> str:
-    """生成文章目录 HTML。"""
-    if not titles:
-        return ""
-    items = []
-    for index, title in enumerate(titles, 1):
-        safe = html.escape(title)
-        short = safe if len(title) <= 28 else html.escape(title[:28] + "…")
-        items.append(
-            f'<li><a href="#story-{index}"><span>{index:02d}</span>{short}</a></li>'
-        )
-    return f"""<nav class="article-toc reveal" aria-label="本篇目录">
-      <span class="toc-label">目录</span>
-      <ol>{"".join(items)}</ol>
-    </nav>"""
-
-
 def _enhance_article_body(body_html: str) -> str:
     """将每个 h3 章节包裹为带锚点的 story-block 卡片。"""
     text = body_html.strip()
@@ -245,7 +218,6 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         highlight_html = f'<div class="highlight-tags">{tags}</div>'
 
     lead_html = f'<p class="article-lead">{html.escape(lead)}</p>' if lead else ""
-    toc_html = _build_toc_html(_extract_section_titles(body))
     body_html = _enhance_article_body(_normalize_h3_titles(_markdown_to_html(body)))
 
     return f"""<!DOCTYPE html>
@@ -274,8 +246,6 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         {highlight_html}
         {stats_html}
       </header>
-
-      {toc_html}
 
       <div class="article-body">
         {body_html}
