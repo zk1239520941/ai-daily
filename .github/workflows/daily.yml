@@ -65,7 +65,7 @@ jobs:
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
         run: uv run python -m src.main fetch
 
-      - name: 生成日报并推送
+      - name: 生成日报（不推 digest 企微）
         if: |
           github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
@@ -75,10 +75,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
-        run: uv run python -m src.main push
+        run: uv run python -m src.main push --defer-wecom
 
       - name: 提交 push 日报并推送（触发 GitHub Pages）
         if: |
           github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        env:
+          PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main publish
+
+      - name: 等待 Pages 并推送 digest 企微
+        if: |
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
+        run: uv run python -m src.main wecom

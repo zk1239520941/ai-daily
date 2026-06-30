@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import subprocess
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Dict, List, Optional
 
 # 加载 .env 文件
@@ -36,11 +37,13 @@ from src.sections.github.section import run_github_section
 from src.sections.hackernews.section import run_hackernews_section
 from src.sections.insights.section import run_insights_section
 from src.sections.rss.section import run_rss_section
+from src.markdown_utils import parse_frontmatter
 from src.storage import (
     append_entries,
     assemble_with_sentinels,
     cleanup_old_files,
     get_fetch_file,
+    get_last_push_file,
     get_notify_file,
     get_push_file,
     load_existing_links,
@@ -332,18 +335,27 @@ async def run_fetch_job(config: Dict):
     print(f"✅ Fetch Job 完成 | 新消息: {len(scored)} 条 | 热点: {len(hot_entries)} 条")
 
 
-async def run_push_job(config: Dict):
+async def run_push_job(config: Dict, generate_only: bool = False) -> Optional[str]:
+    """生成 digest 并可选推送企微。
+
+    Args:
+        generate_only: True 时仅生成 push md 落盘，不发送 digest 企微（由后续 wecom 步骤发送）
+
+    Returns:
+        成功生成 push 文件时返回路径，无内容或失败时返回 None
+    """
     print(f"\n{'=' * 50}")
     print(f"📤 Push Job | {now_local().strftime('%Y-%m-%d %H:%M:%S')}")
+    if generate_only:
+        print("ℹ️ generate_only 模式：仅生成 push md，不推 digest 企微")
     print(f"{'=' * 50}")
 
     if is_morning_push(now_local(config), config):
-        await _run_morning_push(config)
-    else:
-        await _run_default_push(config)
+        return await _run_morning_push(config, generate_only=generate_only)
+    return await _run_default_push(config, generate_only=generate_only)
 
 
-async def _run_default_push(config: Dict):
+async def _run_default_push(config: Dict, generate_only: bool = False) -> Optional[str]:
     """晚报或非早报时段:沿用原有纯 RSS digest 流程,委托给 run_rss_section"""
     now = now_local(config)
     rss_md, metadata, rss_err = await run_rss_section(config, now)
@@ -355,7 +367,7 @@ async def _run_default_push(config: Dict):
 
     if not rss_md:
         # run_rss_section 在无新消息时已打印 "ℹ️ RSS: 无新消息"
-        return
+        return None
 
     # metadata 缺失兜底:parse_digest_with_metadata 失败 / LLM 输出无 frontmatter 时可能返回 None
     if not metadata:
@@ -372,12 +384,6 @@ async def _run_default_push(config: Dict):
     push_file = get_push_file()
     metadata["push_file"] = push_file
 
-    await send_to_platforms(
-        rss_md,
-        config["push"],
-        title="📰 AI Daily 每日精选 | " + metadata["title"],
-        metadata=metadata,
-    )
     rss_count = rss_md.count("###")
     save_push_file(
         push_file,
@@ -388,10 +394,21 @@ async def _run_default_push(config: Dict):
         metadata=metadata,
     )
     print(f"💾 已保存到 {push_file}")
-    print(f"✅ Push Job 完成 | 推送条目: {rss_count}")
+
+    if not generate_only:
+        await send_to_platforms(
+            rss_md,
+            config["push"],
+            title="📰 AI Daily 每日精选 | " + metadata["title"],
+            metadata=metadata,
+        )
+        print(f"✅ Push Job 完成 | 推送条目: {rss_count}")
+    else:
+        print(f"✅ Push Job 完成（仅生成）| 条目: {rss_count}")
+    return push_file
 
 
-async def _run_morning_push(config: Dict):
+async def _run_morning_push(config: Dict, generate_only: bool = False) -> Optional[str]:
     """早报四模块编排:RSS/GH/HN 并发 → insights 串行 → sentinel 拼装 → 推送 → 落盘。
 
     失败语义:
@@ -463,22 +480,85 @@ async def _run_morning_push(config: Dict):
 
     if not final.strip():
         print("ℹ️ 早报无任何段输出,跳过推送")
-        return
+        return None
 
     push_file = get_push_file()
     metadata["push_file"] = push_file
 
-    await send_to_platforms(
-        final,
-        config["push"],
-        title="📰 AI Daily 每日精选 | " + metadata["title"],
-        metadata=metadata,
-    )
     rss_count = rss_md.count("###") if rss_md else 0
     save_push_file(
         push_file, final, rss_count, rss_count, profile="morning", metadata=metadata
     )
     print(f"💾 已保存早报到 {push_file}")
+
+    if not generate_only:
+        await send_to_platforms(
+            final,
+            config["push"],
+            title="📰 AI Daily 每日精选 | " + metadata["title"],
+            metadata=metadata,
+        )
+        print(f"✅ 早报 Push Job 完成 | 推送条目: {rss_count}")
+    else:
+        print(f"✅ 早报 Push Job 完成（仅生成）| 条目: {rss_count}")
+    return push_file
+
+
+async def send_digest_wecom(
+    config: Dict,
+    push_file: str,
+    full_url: str,
+) -> bool:
+    """在完整版 URL 可访问后发送 digest 企微（news + 全文链接）。"""
+    path = Path(push_file)
+    if not path.exists():
+        print(f"❌ push 文件不存在: {push_file}")
+        return False
+
+    with open(path, encoding="utf-8") as f:
+        raw = f.read()
+    metadata, body = parse_frontmatter(raw)
+    if not metadata:
+        metadata = {}
+    metadata["push_file"] = push_file
+    metadata["full_url"] = full_url
+
+    digest_title = metadata.get("title", "AI Daily")
+    await send_to_platforms(
+        body,
+        config["push"],
+        title="📰 AI Daily 每日精选 | " + digest_title,
+        metadata=metadata,
+    )
+    print(f"✅ digest 企微已推送 | full_url={full_url}")
+    return True
+
+
+async def notify_digest_url_unavailable(config: Dict, full_url: str) -> None:
+    """完整版 URL 超时不可访问时发送告警 text（不含全文链接 digest）。"""
+    now = now_local(config).strftime("%Y-%m-%d %H:%M:%S")
+    text = (
+        f"⚠️ AI Daily digest 企微未发送\n"
+        f"原因：完整版 URL 在 5 分钟内不可访问\n"
+        f"URL：{full_url or '(未配置)'}\n"
+        f"时间：{now}"
+    )
+    wecom_conf = config.get("push", {}).get("wecom", {})
+    if not wecom_conf.get("enabled"):
+        print(text)
+        return
+    try:
+        from src.push import create_platform
+
+        platform = create_platform("wecom", wecom_conf)
+        if platform is None:
+            print(text)
+            return
+        await platform.send_text(text)
+        print("⚠️ 已发送 digest URL 不可用告警到企微")
+    except Exception as exc:
+        print(f"⚠️ digest URL 不可用告警发送失败: {exc}")
+        print(text)
 
 
 async def fetch_loop(config: Dict):
@@ -572,15 +652,61 @@ async def push_loop(config: Dict):
             await asyncio.sleep(60)
 
 
-async def cmd_publish(config: Dict) -> int:
+async def cmd_publish(config: Dict) -> tuple[int, str, str]:
     """清理旧 push、生成索引并 push 到 GitHub（触发 Pages）。"""
     from src.publish import publish_pages_to_github
 
     push_keep_days = config.get("filter", {}).get("push_keep_days", 30)
+    wecom_config = config.get("push", {}).get("wecom", {})
     try:
-        return publish_pages_to_github(push_keep_days=push_keep_days)
+        return publish_pages_to_github(
+            push_keep_days=push_keep_days,
+            wecom_config=wecom_config,
+        )
     except subprocess.CalledProcessError as e:
         print(f"❌ 发布失败: {e}")
+        return 1, "", ""
+
+
+async def cmd_wecom(
+    config: Dict,
+    push_file: Optional[str] = None,
+    skip_wait: bool = False,
+    dry_run: bool = False,
+    wait_timeout: int = 300,
+    wait_interval: int = 10,
+) -> int:
+    """等待完整版 URL 可访问后发送 digest 企微。"""
+    from src.publish import resolve_push_full_url, wait_for_url
+    from src.push import set_dry_run
+
+    if dry_run:
+        set_dry_run(True)
+        print("🔍 dry-run 模式：不实际发送 webhook")
+
+    push_file = push_file or get_last_push_file()
+    if not push_file:
+        print("ℹ️ 无 push 文件，跳过 digest 企微")
+        return 0
+
+    wecom_config = config.get("push", {}).get("wecom", {})
+    full_url = resolve_push_full_url(push_file, wecom_config)
+    if not full_url:
+        print("❌ 未配置 PAGES_BASE_URL / pages_base_url，无法生成完整版链接，跳过 digest 企微")
+        await notify_digest_url_unavailable(config, full_url)
+        return 1
+
+    if not skip_wait:
+        ok = await wait_for_url(full_url, timeout=wait_timeout, interval=wait_interval)
+        if not ok:
+            await notify_digest_url_unavailable(config, full_url)
+            return 1
+
+    try:
+        await send_digest_wecom(config, push_file, full_url)
+        return 0
+    except Exception as e:
+        print(f"❌ digest 企微推送失败: {e}")
         return 1
 
 
@@ -590,17 +716,58 @@ async def cmd_daily(
     skip_publish: bool = False,
     dry_run: bool = False,
 ) -> int:
-    """一键：fetch → push 企微 → publish GitHub Pages。"""
+    """一键：fetch → 生成 push md → publish → 等待 URL → 推 digest 企微。"""
     if not skip_fetch:
         code = await cmd_fetch(config)
         if code != 0:
             return code
-    code = await cmd_push(config, dry_run=dry_run)
-    if code != 0 or dry_run:
-        return code
-    if skip_publish:
+
+    from src.push import set_dry_run
+
+    if dry_run:
+        set_dry_run(True)
+        print("🔍 dry-run 模式：不实际发送 webhook、不 git push")
+
+    push_file = None
+    try:
+        push_file = await run_push_job(config, generate_only=True)
+    except Exception as e:
+        print(f"❌ Push 任务失败: {e}")
+        return 1
+
+    if not push_file:
+        print("ℹ️ 无 digest 内容，跳过后续 publish / 企微")
         return 0
-    return await cmd_publish(config)
+
+    if dry_run:
+        print(f"🔍 [dry-run] 将 publish 并等待 URL 后推送 digest: {push_file}")
+        return 0
+
+    if skip_publish:
+        return await cmd_wecom(config, push_file=push_file)
+
+    code, _, full_url = await cmd_publish(config)
+    if code != 0:
+        return code
+
+    if not full_url:
+        print("❌ publish 后无完整版 URL，跳过 digest 企微")
+        await notify_digest_url_unavailable(config, full_url)
+        return 1
+
+    from src.publish import wait_for_url
+
+    ok = await wait_for_url(full_url)
+    if not ok:
+        await notify_digest_url_unavailable(config, full_url)
+        return 1
+
+    try:
+        await send_digest_wecom(config, push_file, full_url)
+        return 0
+    except Exception as e:
+        print(f"❌ digest 企微推送失败: {e}")
+        return 1
 
 
 async def cmd_check(config: Dict) -> int:
@@ -625,15 +792,19 @@ async def cmd_fetch(config: Dict) -> int:
         return 1
 
 
-async def cmd_push(config: Dict, dry_run: bool = False) -> int:
-    """单次推送（systemd timer 调用）"""
+async def cmd_push(
+    config: Dict,
+    dry_run: bool = False,
+    defer_wecom: bool = False,
+) -> int:
+    """单次推送（systemd timer 调用）。"""
     from src.push import set_dry_run
 
     if dry_run:
         set_dry_run(True)
         print("🔍 dry-run 模式：不实际发送 webhook")
     try:
-        await run_push_job(config)
+        await run_push_job(config, generate_only=defer_wecom)
         return 0
     except Exception as e:
         print(f"❌ Push 任务失败: {e}")
@@ -735,19 +906,24 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="仅生成内容并打印推送计划，不实际发送 webhook",
     )
+    push_parser.add_argument(
+        "--defer-wecom",
+        action="store_true",
+        help="仅生成 push md，不发送 digest 企微（配合 publish + wecom 使用）",
+    )
     daily_parser = sub.add_parser(
         "daily",
-        help="一键：fetch + push 企微 + 发布 Pages（本地手动跑用这个）",
+        help="一键：fetch + 生成 push + 发布 Pages + 等待 URL + 推 digest 企微",
     )
     daily_parser.add_argument(
         "--skip-fetch",
         action="store_true",
-        help="跳过 fetch，仅 push + publish",
+        help="跳过 fetch，仅 push + publish + 企微",
     )
     daily_parser.add_argument(
         "--skip-publish",
         action="store_true",
-        help="跳过 git push（仅 fetch + 推企微）",
+        help="跳过 git push（仅 fetch + 生成 push + 企微，需 URL 已可访问）",
     )
     daily_parser.add_argument(
         "--dry-run",
@@ -755,6 +931,25 @@ def _parse_args() -> argparse.Namespace:
         help="不发送 webhook、不 git push",
     )
     sub.add_parser("publish", help="清理旧 push 并 push 到 GitHub（触发 Pages）")
+    wecom_parser = sub.add_parser(
+        "wecom",
+        help="等待完整版 URL 可访问后发送 digest 企微",
+    )
+    wecom_parser.add_argument(
+        "--push-file",
+        default="",
+        help="指定 push md 路径，默认取 news-data 下最新文件",
+    )
+    wecom_parser.add_argument(
+        "--skip-wait",
+        action="store_true",
+        help="跳过 URL 轮询（本地调试或 URL 已确认可访问）",
+    )
+    wecom_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="不实际发送 webhook",
+    )
     sub.add_parser("loop", help="长跑模式（开发/调试用）")
     sub.add_parser("rss", help="单独跑一次 RSS Digest 板块（仅打印,不推送）")
     sub.add_parser("github", help="单独跑一次 GitHub Trending 板块（仅打印,不推送）")
@@ -783,7 +978,13 @@ def main() -> int:
     }
 
     if args.command == "push":
-        return asyncio.run(cmd_push(config, dry_run=getattr(args, "dry_run", False)))
+        return asyncio.run(
+            cmd_push(
+                config,
+                dry_run=getattr(args, "dry_run", False),
+                defer_wecom=getattr(args, "defer_wecom", False),
+            )
+        )
 
     if args.command == "daily":
         return asyncio.run(
@@ -796,7 +997,22 @@ def main() -> int:
         )
 
     if args.command == "publish":
-        return asyncio.run(cmd_publish(config))
+        code, push_file, full_url = asyncio.run(cmd_publish(config))
+        if push_file:
+            print(f"[info] push_file: {push_file}")
+        if full_url:
+            print(f"[info] full_url: {full_url}")
+        return code
+
+    if args.command == "wecom":
+        return asyncio.run(
+            cmd_wecom(
+                config,
+                push_file=getattr(args, "push_file", "") or None,
+                skip_wait=getattr(args, "skip_wait", False),
+                dry_run=getattr(args, "dry_run", False),
+            )
+        )
 
     return asyncio.run(handlers[args.command](config))
 
