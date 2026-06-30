@@ -10,6 +10,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from push.discord import DiscordPlatform
 from push.feishu import FeishuPlatform
+from push.wecom import (
+    WeComPlatform,
+    build_digest_news_articles,
+    build_push_page_url,
+    resolve_pages_base_url,
+    truncate_description,
+)
 from push import create_platform
 
 
@@ -207,3 +214,152 @@ class TestPushFactory:
             platform = create_platform("discord", config)
             assert platform is not None
             assert isinstance(platform, DiscordPlatform)
+
+
+class TestWeComPlatform:
+    """测试企业微信推送"""
+
+    WECOM_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=testkey"
+
+    def test_validate_config_valid(self):
+        config = {"enabled": True, "apiKeyName": "WECOM_WEBHOOK_URL"}
+        with patch.dict(os.environ, {"WECOM_WEBHOOK_URL": self.WECOM_URL}):
+            platform = WeComPlatform(config)
+            assert platform.validate_config(config) is True
+
+    def test_validate_config_disabled(self):
+        config = {"enabled": False, "apiKeyName": "WECOM_WEBHOOK_URL"}
+        with patch.dict(os.environ, {"WECOM_WEBHOOK_URL": self.WECOM_URL}):
+            platform = WeComPlatform(config)
+            assert platform.validate_config(config) is False
+
+    def test_resolve_pages_base_url_from_env(self):
+        cfg = {}
+        with patch.dict(os.environ, {"PAGES_BASE_URL": "https://user.github.io/repo/"}):
+            assert resolve_pages_base_url(cfg) == "https://user.github.io/repo/"
+
+    def test_resolve_pages_base_url_from_github_repo(self):
+        cfg = {}
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "owner/ai-daily"}, clear=False):
+            url = resolve_pages_base_url(cfg)
+            assert url == "https://owner.github.io/ai-daily/"
+
+    def test_build_push_page_url(self):
+        url = build_push_page_url(
+            "https://user.github.io/ai-daily/",
+            "news-data/push-2026-06-30-17-00-30.md",
+        )
+        assert url.endswith("news-data/push-2026-06-30-17-00-30.md")
+
+    def test_truncate_description(self):
+        long_text = "中" * 200
+        assert len(truncate_description(long_text)) <= 128
+        assert truncate_description("短摘要") == "短摘要"
+
+    def test_build_digest_news_articles(self):
+        content = """### 1. 标题一
+
+* **核心**：第一条要点说明
+🔗 [链接](https://example.com/a)
+
+### 2. 标题二
+
+* 第二条要点
+"""
+        metadata = {
+            "title": "测试日报",
+            "lead": "今日导语",
+            "highlights": [],
+        }
+        articles = build_digest_news_articles(
+            content, metadata, "https://pages.example/full.md"
+        )
+        assert len(articles) >= 2
+        assert articles[0]["url"] == "https://pages.example/full.md"
+        assert articles[1]["title"] == "标题一"
+        assert len(articles[1]["description"]) <= 128
+
+    @pytest.mark.asyncio
+    async def test_send_immediate_news(self):
+        config = {"apiKeyName": "WECOM_WEBHOOK_URL", "mode": "news"}
+        with patch.dict(os.environ, {"WECOM_WEBHOOK_URL": self.WECOM_URL}):
+            platform = WeComPlatform(config)
+            mock_resp = MagicMock()
+            mock_resp.json = AsyncMock(return_value={"errcode": 0, "errmsg": "ok"})
+            mock_post = MagicMock()
+            mock_post.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_post.__aexit__ = AsyncMock(return_value=None)
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_post)
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                await platform.send(
+                    "",
+                    title="快讯",
+                    metadata={
+                        "profile": "hotspot",
+                        "wecom_items": [
+                            {
+                                "title": "T1",
+                                "description": "D1",
+                                "url": "https://a.com",
+                            },
+                            {
+                                "title": "T2",
+                                "description": "D2",
+                                "url": "https://b.com",
+                            },
+                        ],
+                    },
+                )
+            assert mock_session.post.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_send_digest_news_and_link(self):
+        config = {"apiKeyName": "WECOM_WEBHOOK_URL", "mode": "news", "pages_base_url": ""}
+        with patch.dict(os.environ, {"WECOM_WEBHOOK_URL": self.WECOM_URL}):
+            platform = WeComPlatform(config)
+            mock_resp = MagicMock()
+            mock_resp.json = AsyncMock(return_value={"errcode": 0, "errmsg": "ok"})
+            mock_post = MagicMock()
+            mock_post.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_post.__aexit__ = AsyncMock(return_value=None)
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_post)
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                await platform.send(
+                    "### 1. 新闻\n\n* 要点\n",
+                    title="日报",
+                    metadata={
+                        "profile": "default",
+                        "title": "测试",
+                        "lead": "导语",
+                        "full_url": "https://pages.example/full.md",
+                    },
+                )
+            # news + 全文链接 text = 2 次
+            assert mock_session.post.call_count == 2
+
+    def test_create_wecom_platform(self):
+        config = {"enabled": True, "apiKeyName": "WECOM_WEBHOOK_URL"}
+        with patch.dict(os.environ, {"WECOM_WEBHOOK_URL": self.WECOM_URL}):
+            platform = create_platform("wecom", config)
+            assert platform is not None
+            assert isinstance(platform, WeComPlatform)
+
+
+class TestImmediatePushParse:
+    """测试即时推 JSON 解析"""
+
+    def test_parse_immediate_push_items(self):
+        from llm import parse_immediate_push_items
+
+        raw = '[{"title":"A","description":"摘要","url":"https://x.com"}]'
+        items = parse_immediate_push_items(raw)
+        assert len(items) == 1
+        assert items[0]["title"] == "A"

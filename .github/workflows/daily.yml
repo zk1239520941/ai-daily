@@ -1,0 +1,74 @@
+name: AI Daily 定时任务
+
+on:
+  schedule:
+    # 北京时间 08:00 = UTC 00:00（早报：含 GitHub / HN / 洞察）
+    - cron: "0 0 * * *"
+    # 北京时间 17:00 = UTC 09:00（晚报：RSS digest）
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "运行任务"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - fetch
+          - push
+          - check
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 恢复 news-data 缓存
+        uses: actions/cache@v4
+        with:
+          path: news-data
+          key: ai-daily-news-data-v1
+          restore-keys: |
+            ai-daily-news-data-
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 安装依赖
+        run: uv sync
+
+      - name: 准备配置文件
+        run: cp config.user.json.example config.json
+
+      - name: 校验 LLM 连通性
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'check'
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: uv run python -m src.main check
+
+      - name: 抓取 RSS 并评分
+        if: |
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'fetch'))
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+        run: uv run python -m src.main fetch
+
+      - name: 生成日报并推送
+        if: |
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'push'))
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+        run: uv run python -m src.main push

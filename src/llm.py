@@ -610,14 +610,52 @@ def parse_digest_with_metadata(llm_output: str, date: str) -> Tuple[str, Dict]:
     return digest_md, metadata
 
 
+def parse_immediate_push_items(llm_output: str) -> List[Dict]:
+    """解析即时推送 JSON 数组，返回 wecom news/text 条目列表。"""
+    text = llm_output.strip()
+    if not text or text == "[NO_NEW_CONTENT]":
+        return []
+
+    try:
+        items = _parse_llm_json_response(text)
+    except ValueError:
+        return []
+
+    if not isinstance(items, list):
+        return []
+
+    result = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        title = (item.get("title") or "").strip()
+        if not title:
+            continue
+        result.append(
+            {
+                "title": title,
+                "description": (item.get("description") or item.get("summary") or "").strip(),
+                "url": (item.get("url") or item.get("link") or "").strip(),
+            }
+        )
+    return result
+
+
 def parse_immediate_push_with_metadata(
     llm_output: str, default_title: str
 ) -> Tuple[str, Dict]:
     """解析即时推送 LLM 输出,返回 (body, metadata)。
 
-    metadata 仅含 title / profile。无 frontmatter 时降级到旧式 `# ` 标题提取,
-    再降级到 default_title。
+    新格式:JSON 数组 → metadata.wecom_items；旧格式:frontmatter / `#` 标题兼容。
     """
+    wecom_items = parse_immediate_push_items(llm_output)
+    if wecom_items:
+        return "", {
+            "title": wecom_items[0]["title"],
+            "profile": "hotspot",
+            "wecom_items": wecom_items,
+        }
+
     meta, body = parse_frontmatter(llm_output)
 
     if meta and meta.get("title"):

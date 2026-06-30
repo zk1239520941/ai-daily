@@ -1,9 +1,14 @@
 """AI每日资讯推送系统 - 主程序"""
 
-import argparse
-import asyncio
 import os
 import sys
+
+from src.console import configure_stdio_utf8
+
+configure_stdio_utf8()
+
+import argparse
+import asyncio
 from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
@@ -303,16 +308,24 @@ async def run_fetch_job(config: Dict):
                 push_content, f"🚨 AI Daily 快讯 | {timestamp}"
             )
             metadata["pushTime"] = now.isoformat()
+            push_title = "🚨 AI Daily 快讯 | " + metadata["title"]
 
             await send_to_platforms(
                 content_without_title,
                 config["push"],
-                "🚨 AI Daily 快讯 | " + metadata["title"],
+                push_title,
                 metadata=metadata,
             )
-            # 保存即时推送内容到notify文件
+            # 保存即时推送内容到 notify 文件（JSON 格式也保留可读摘要）
+            notify_body = content_without_title
+            if metadata.get("wecom_items"):
+                lines = [
+                    f"## {it['title']}\n{it.get('description', '')}\n{it.get('url', '')}"
+                    for it in metadata["wecom_items"]
+                ]
+                notify_body = "\n\n".join(lines)
             notify_file = get_notify_file()
-            save_notify_file(notify_file, content_without_title, metadata)
+            save_notify_file(notify_file, notify_body, metadata)
             print(f"💾 已保存即时推送到 {notify_file}")
 
     print(f"✅ Fetch Job 完成 | 新消息: {len(scored)} 条 | 热点: {len(hot_entries)} 条")
@@ -355,13 +368,15 @@ async def _run_default_push(config: Dict):
         }
     metadata.setdefault("pushTime", now.isoformat())
 
+    push_file = get_push_file()
+    metadata["push_file"] = push_file
+
     await send_to_platforms(
         rss_md,
         config["push"],
         title="📰 AI Daily 每日精选 | " + metadata["title"],
         metadata=metadata,
     )
-    push_file = get_push_file()
     rss_count = rss_md.count("###")
     save_push_file(
         push_file,
@@ -449,13 +464,15 @@ async def _run_morning_push(config: Dict):
         print("ℹ️ 早报无任何段输出,跳过推送")
         return
 
+    push_file = get_push_file()
+    metadata["push_file"] = push_file
+
     await send_to_platforms(
         final,
         config["push"],
         title="📰 AI Daily 每日精选 | " + metadata["title"],
         metadata=metadata,
     )
-    push_file = get_push_file()
     rss_count = rss_md.count("###") if rss_md else 0
     save_push_file(
         push_file, final, rss_count, rss_count, profile="morning", metadata=metadata
@@ -576,8 +593,13 @@ async def cmd_fetch(config: Dict) -> int:
         return 1
 
 
-async def cmd_push(config: Dict) -> int:
+async def cmd_push(config: Dict, dry_run: bool = False) -> int:
     """单次推送（systemd timer 调用）"""
+    from src.push import set_dry_run
+
+    if dry_run:
+        set_dry_run(True)
+        print("🔍 dry-run 模式：不实际发送 webhook")
     try:
         await run_push_job(config)
         return 0
@@ -675,7 +697,12 @@ def _parse_args() -> argparse.Namespace:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("check", help="校验 LLM 接口可达性")
     sub.add_parser("fetch", help="单次抓取并退出")
-    sub.add_parser("push", help="单次推送并退出")
+    push_parser = sub.add_parser("push", help="单次推送并退出")
+    push_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="仅生成内容并打印推送计划，不实际发送 webhook",
+    )
     sub.add_parser("loop", help="长跑模式（开发/调试用）")
     sub.add_parser("rss", help="单独跑一次 RSS Digest 板块（仅打印,不推送）")
     sub.add_parser("github", help="单独跑一次 GitHub Trending 板块（仅打印,不推送）")
@@ -697,12 +724,15 @@ def main() -> int:
     handlers = {
         "check": cmd_check,
         "fetch": cmd_fetch,
-        "push": cmd_push,
         "loop": cmd_loop,
         "rss": cmd_rss,
         "github": cmd_github,
         "hackernews": cmd_hackernews,
     }
+
+    if args.command == "push":
+        return asyncio.run(cmd_push(config, dry_run=getattr(args, "dry_run", False)))
+
     return asyncio.run(handlers[args.command](config))
 
 

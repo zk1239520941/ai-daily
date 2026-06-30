@@ -1,0 +1,50 @@
+name: GitHub Pages 日报全文
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "news-data/push-*.md"
+      - "scripts/build_pages_index.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成索引页
+        run: python scripts/build_pages_index.py
+
+      - name: 准备 Pages 站点目录
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r news-data _site/
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传 artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

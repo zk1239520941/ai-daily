@@ -2,7 +2,7 @@
     "filter": {
         "min_score": 60,
         "hot_threshold": 90,
-        "context_days": 2,
+        "context_days": 3,
         "keep_days": 7,
         "push_context_days": 5,
         "no_content_marker": "[NO_NEW_CONTENT]"
@@ -51,7 +51,7 @@
         "model": "deepseek-chat",
         "baseUrl": "https://api.deepseek.com/v1",
         "apiKeyName": "DEEPSEEK_API_KEY",
-        "max_prompt_chars": 150000,
+        "max_prompt_chars": 128000,
         "max_concurrent_batches": 3,
         "prompts": {
             "score_batch": "prompts/score_batch.md",
@@ -66,44 +66,23 @@
     },
     "push": {
         "wecom": {
-            "enabled": false,
+            "enabled": true,
             "apiKeyName": "WECOM_WEBHOOK_URL",
             "mode": "news",
             "pages_base_url": ""
         },
+        "feishu": {
+            "enabled": false,
+            "apiKeyName": "FEISHU_WEBHOOK_URL"
+        },
         "discord": {
             "enabled": false,
             "apiKeyName": "DISCORD_WEBHOOK_URL"
-        },
-        "feishu": {
-            "enabled": true,
-            "apiKeyName": "FEISHU_WEBHOOK_URL"
         }
     },
     "sources": {
         "base_opml": "resources/rss.opml",
-        "add": [
-            {
-                "title": "OpenAI News",
-                "xmlUrl": "https://openai.com/news/rss.xml",
-                "category": "AI"
-            },
-            {
-                "title": "Chrome for Developers",
-                "xmlUrl": "https://developer.chrome.com/static/blog/feed.xml",
-                "category": "Chrome"
-            },
-            {
-                "title": "Cloudflare Developers",
-                "xmlUrl": "https://developers.cloudflare.com/changelog/rss/index.xml",
-                "category": "Cloudflare"
-            },
-            {
-                "title": "Infoq",
-                "xmlUrl": "https://feed.infoq.com/",
-                "category": "News"
-            }
-        ],
+        "add": [],
         "block": [
             {
                 "title": "Google Developers Blog",
@@ -112,14 +91,6 @@
             {
                 "title": "Microsoft for Developers",
                 "xmlUrl": "https://devblogs.microsoft.com/landing"
-            },
-            {
-                "title": "ElevenLabs Blog",
-                "xmlUrl": "https://api.bestblogs.dev/feed/elevenLabsBlog"
-            },
-            {
-                "title": "Infoq(en)",
-                "xmlUrl": "http://www.infoq.com/rss/rss.action"
             }
         ],
         "block_domains": ["*.substack.com", "*.youtube.com"]
