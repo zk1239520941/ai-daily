@@ -25,6 +25,9 @@ class WeComPlatform(PushPlatform):
         self.webhook_url = os.environ.get(self.api_key_name, "")
         self.mode = config.get("mode", "news")  # news | text
         self.pages_base_url = resolve_pages_base_url(config)
+        self.default_picurl = config.get("default_picurl") or (
+            (self.pages_base_url + "static/cover.png") if self.pages_base_url else ""
+        )
 
     def validate_config(self, config: Dict) -> bool:
         """检查企业微信配置是否有效。"""
@@ -59,7 +62,9 @@ class WeComPlatform(PushPlatform):
         """发送 news 类型消息，articles 最多 8 条。"""
         if not articles:
             return
-        trimmed = [_normalize_article(a) for a in articles[:MAX_NEWS_ARTICLES]]
+        trimmed = [
+            _normalize_article(a, self.default_picurl) for a in articles[:MAX_NEWS_ARTICLES]
+        ]
         payload = {"msgtype": "news", "news": {"articles": trimmed}}
         await self._post_payload(payload)
 
@@ -236,13 +241,17 @@ def _extract_first_url(text: str) -> str:
     return bare.group(1) if bare else ""
 
 
-def _normalize_article(article: Dict[str, Any]) -> Dict[str, str]:
-    """规范化 news article 字段。"""
-    return {
+def _normalize_article(article: Dict[str, Any], default_picurl: str = "") -> Dict[str, str]:
+    """规范化 news article 字段（企微 news 必须带 picurl，否则客户端显示裂图）。"""
+    picurl = (article.get("picurl") or default_picurl or "").strip()
+    normalized: Dict[str, str] = {
         "title": (article.get("title") or "AI Daily")[:128],
         "description": truncate_description(article.get("description", "")),
         "url": article.get("url") or "https://github.com",
     }
+    if picurl:
+        normalized["picurl"] = picurl
+    return normalized
 
 
 def _fallback_immediate_items(content: str, title: str) -> List[Dict[str, str]]:

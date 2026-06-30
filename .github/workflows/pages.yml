@@ -36,6 +36,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/
           cp -r news-data _site/
+          if [ -d static ]; then cp -r static _site/; fi
 
       - name: 配置 Pages
         uses: actions/configure-pages@v5
