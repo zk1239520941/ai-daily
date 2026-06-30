@@ -10,7 +10,18 @@ from typing import Any, Dict, List
 
 import markdown
 
-from src.markdown_utils import normalize_str_list, parse_frontmatter
+from src.markdown_utils import (
+    extract_first_url,
+    lookup_entry_image,
+    normalize_str_list,
+    parse_frontmatter,
+)
+from src.pages.parser import (
+    SECTION_LABELS,
+    has_sentinels,
+    split_sentinel_sections,
+    strip_leading_h2,
+)
 
 SITE_TITLE = "AI Daily"
 SITE_INDEX_TITLE = "AI Daily · 每日精选"
@@ -173,14 +184,90 @@ def _enhance_article_body(body_html: str) -> str:
     return "\n".join(blocks)
 
 
-def _html_head(title: str, css_href: str) -> str:
+def _render_figure(image_url: str) -> str:
+    """渲染条目配图 figure。"""
+    safe_src = html.escape(image_url)
+    return (
+        f'<figure class="entry-figure">'
+        f'<img src="{safe_src}" alt="" loading="lazy" '
+        f'referrerpolicy="no-referrer" decoding="async"/>'
+        f"</figure>"
+    )
+
+
+def _inject_entry_figures(body_html: str, entry_images: Dict[str, str]) -> str:
+    """在 story-block 内首个链接命中 entry_images 时注入 figure。"""
+    if not body_html or not entry_images:
+        return body_html
+
+    def _inject_block(match: re.Match[str]) -> str:
+        opening = match.group(1)
+        block_html = match.group(2)
+        closing = match.group(3)
+        url = extract_first_url(block_html)
+        image = lookup_entry_image(entry_images, url)
+        if not image:
+            return match.group(0)
+        figure = _render_figure(image)
+        if "<h3>" in block_html:
+            block_html = block_html.replace("</h3>", f"</h3>{figure}", 1)
+        else:
+            block_html = figure + block_html
+        return f"{opening}{block_html}{closing}"
+
+    return re.sub(
+        r'(<section class="story-block[^"]*"[^>]*>)(.*?)(</section>)',
+        _inject_block,
+        body_html,
+        flags=re.DOTALL,
+    )
+
+
+def _section_body_html(section_md: str, entry_images: Dict[str, str]) -> str:
+    """将 markdown 段转为 story-block HTML，并注入配图。"""
+    rendered = _markdown_to_html(section_md)
+    wrapped = _enhance_article_body(_normalize_h3_titles(rendered))
+    return _inject_entry_figures(wrapped, entry_images)
+
+
+def _render_article_body(body: str, entry_images: Dict[str, str]) -> str:
+    """渲染正文：晚报 flat；早报按 sentinel 分栏。"""
+    images = entry_images or {}
+    if not has_sentinels(body):
+        return _section_body_html(body, images)
+
+    parts: List[str] = []
+    for key, section_md in split_sentinel_sections(body):
+        label = SECTION_LABELS.get(key, key)
+        inner_md = section_md if key == "rss" else strip_leading_h2(section_md)
+        if key == "rss" or "###" in inner_md:
+            inner_html = _section_body_html(inner_md, images)
+        else:
+            inner_html = _markdown_to_html(inner_md)
+        parts.append(
+            f'<section class="board-section board-{html.escape(key)} reveal">'
+            f'<header class="board-section__head">'
+            f'<h2 class="board-section__title">{html.escape(label)}</h2>'
+            f"</header>"
+            f'<div class="board-section__body">{inner_html}</div>'
+            f"</section>"
+        )
+    return "\n".join(parts)
+
+
+def _html_head(title: str, css_href: str, cover_image: str = "") -> str:
     """生成页面 head 片段。"""
     safe_title = html.escape(title)
+    og_image = ""
+    if cover_image:
+        og_image = (
+            f'\n  <meta property="og:image" content="{html.escape(cover_image)}"/>'
+        )
     return f"""<meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light"/>
   <meta name="theme-color" content="#f6f2ea"/>
-  <title>{safe_title}</title>
+  <title>{safe_title}</title>{og_image}
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="{html.escape(FONT_LINK)}" rel="stylesheet"/>
@@ -218,12 +305,23 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         highlight_html = f'<div class="highlight-tags">{tags}</div>'
 
     lead_html = f'<p class="article-lead">{html.escape(lead)}</p>' if lead else ""
-    body_html = _enhance_article_body(_normalize_h3_titles(_markdown_to_html(body)))
+    entry_images_raw = meta.get("entry_images") or {}
+    entry_images = entry_images_raw if isinstance(entry_images_raw, dict) else {}
+    cover_image = str(meta.get("cover_image") or "").strip()
+    cover_html = ""
+    if cover_image:
+        cover_html = (
+            f'<figure class="article-cover">'
+            f'<img src="{html.escape(cover_image)}" alt="" loading="eager" '
+            f'referrerpolicy="no-referrer" decoding="async"/>'
+            f"</figure>"
+        )
+    body_html = _render_article_body(body, entry_images)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  {_html_head(f"{title} · {SITE_TITLE}", css_href)}
+  {_html_head(f"{title} · {SITE_TITLE}", css_href, cover_image=cover_image)}
 </head>
 <body class="article-page">
   <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
@@ -241,6 +339,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
           <time datetime="{html.escape(article_time)}">{html.escape(article_time)}</time>
           <span class="article-edition">{html.escape(profile)}</span>
         </div>
+        {cover_html}
         <h1>{html.escape(title)}</h1>
         {lead_html}
         {highlight_html}
@@ -275,6 +374,7 @@ def _load_issue_card(md_path: Path) -> Dict[str, str]:
         "display": parsed["display"],
         "href": f"news-data/{html_name}",
         "entries": str(meta.get("totalEntries") or ""),
+        "cover_image": str(meta.get("cover_image") or "").strip(),
     }
 
 
@@ -289,9 +389,19 @@ def _render_issue_card(
     entries = issue.get("entries", "")
     meta_extra = f"{html.escape(entries)} 条精选" if entries else ""
     footer = f"{meta_extra}{' · ' if meta_extra else ''}阅读全文 →"
+    cover = issue.get("cover_image", "")
+    cover_block = ""
+    if cover:
+        cover_block = (
+            f'<div class="issue-card__cover">'
+            f'<img src="{html.escape(cover)}" alt="" loading="lazy" '
+            f'referrerpolicy="no-referrer" decoding="async"/>'
+            f"</div>"
+        )
 
     if featured:
         return f"""    <article class="{card_class}">
+      {cover_block}
       <div class="issue-card__inner">
         <div class="issue-card__main">
           <div class="issue-meta">
@@ -310,6 +420,7 @@ def _render_issue_card(
     </article>"""
 
     return f"""    <article class="{card_class}" style="--i:{index}">
+      {cover_block}
       <div class="issue-meta">
         <span class="issue-no">第 {issue_no:03d} 期</span>
         <span class="issue-date">{html.escape(issue["display"])}</span>

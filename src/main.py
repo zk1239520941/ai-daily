@@ -38,6 +38,8 @@ from src.sections.hackernews.section import run_hackernews_section
 from src.sections.insights.section import run_insights_section
 from src.sections.rss.section import run_rss_section
 from src.markdown_utils import parse_frontmatter
+from src.pages.cover import enrich_image_metadata
+from src.pages.parser import build_sections_manifest
 from src.storage import (
     append_entries,
     assemble_with_sentinels,
@@ -404,6 +406,7 @@ async def _run_default_push(config: Dict, generate_only: bool = False) -> Option
     push_file = get_push_file()
     metadata["push_file"] = push_file
 
+    enrich_image_metadata(metadata, rss_md)
     rss_count = rss_md.count("###")
     save_push_file(
         push_file,
@@ -507,6 +510,16 @@ async def _run_morning_push(config: Dict, generate_only: bool = False) -> Option
 
     push_file = get_push_file()
     metadata["push_file"] = push_file
+
+    enrich_image_metadata(metadata, rss_md or final)
+    metadata["sections"] = build_sections_manifest(
+        {
+            "rss": rss_md,
+            "github": gh_md,
+            "hackernews": hn_md,
+            "insights": insights_md,
+        }
+    )
 
     rss_count = rss_md.count("###") if rss_md else 0
     save_push_file(

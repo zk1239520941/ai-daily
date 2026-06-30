@@ -303,6 +303,29 @@ class TestWeComPlatform:
         assert articles[1].get("picurl") == "https://img.example/a.jpg"
         assert "picurl" not in articles[2]
 
+    def test_build_digest_news_articles_morning_sentinel(self):
+        content = """<!-- SECTION:rss BEGIN -->
+### RSS 标题
+
+* **核心**：RSS 要点
+🔗 [链接](https://example.com/rss)
+
+<!-- SECTION:rss END -->
+
+<!-- SECTION:insights BEGIN -->
+## 💡 今日洞察
+
+这是一段不应进入 news 目录的洞察正文。
+<!-- SECTION:insights END -->
+"""
+        metadata = {"title": "早报", "lead": "导语", "highlights": []}
+        articles = build_digest_news_articles(
+            content, metadata, "https://pages.example/full.html"
+        )
+        assert len(articles) == 2
+        assert articles[1]["title"] == "RSS 标题"
+        assert "洞察" not in articles[1]["title"]
+
     def test_normalize_article_no_default_picurl(self):
         article = {"title": "T", "description": "D", "url": "https://x.com"}
         normalized = _normalize_article(article)

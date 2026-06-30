@@ -6,6 +6,9 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.markdown_utils import extract_first_url, lookup_entry_image
+from src.storage import extract_section
+
 from .base import PushPlatform
 
 # 企微 news 单条 description 建议上限（字符）
@@ -159,6 +162,18 @@ def truncate_description(text: str, max_chars: int = MAX_NEWS_DESC_CHARS) -> str
     return text[: max_chars - 1] + "…"
 
 
+def _content_for_news_sections(content: str) -> str:
+    """早报 sentinel 正文：抽取 RSS/GH/HN 段供 news 目录解析（跳过 insights）。"""
+    if "<!-- SECTION:" not in (content or ""):
+        return content or ""
+    parts: List[str] = []
+    for key in ("rss", "github", "hackernews"):
+        section_md = extract_section(content, key).strip()
+        if section_md:
+            parts.append(section_md)
+    return "\n\n".join(parts)
+
+
 def build_digest_news_articles(
     content: str,
     metadata: Dict,
@@ -181,7 +196,7 @@ def build_digest_news_articles(
             }
         )
 
-    sections = _parse_digest_sections(content)
+    sections = _parse_digest_sections(_content_for_news_sections(content))
     for sec in sections:
         if len(articles) >= MAX_NEWS_ARTICLES:
             break
@@ -191,7 +206,7 @@ def build_digest_news_articles(
             "description": truncate_description(sec.get("description", "")),
             "url": sec_url,
         }
-        picurl = url_images.get(sec_url, "")
+        picurl = lookup_entry_image(url_images, sec_url)
         if picurl:
             article["picurl"] = picurl
         articles.append(article)
@@ -232,19 +247,15 @@ def _parse_digest_sections(content: str) -> List[Dict[str, str]]:
                 desc = re.sub(r"\*\*([^*]+)\*\*", r"\1", desc)
                 break
 
-        url = _extract_first_url(body)
+        url = extract_first_url(body)
         sections.append({"title": title, "description": desc, "url": url})
 
     return sections
 
 
 def _extract_first_url(text: str) -> str:
-    """提取 markdown 链接或裸 URL。"""
-    md = re.search(r"\]\((https?://[^)]+)\)", text)
-    if md:
-        return md.group(1)
-    bare = re.search(r"(https?://[^\s\])>]+)", text)
-    return bare.group(1) if bare else ""
+    """兼容旧调用，委托 markdown_utils。"""
+    return extract_first_url(text)
 
 
 def _normalize_article(article: Dict[str, Any]) -> Dict[str, str]:

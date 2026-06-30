@@ -80,6 +80,39 @@ totalEntries: 5
     assert "早报" in html_out
 
 
+def test_build_article_html_with_images_and_sentinel(tmp_path):
+    md = tmp_path / "push-morning.md"
+    md.write_text(
+        """---
+title: "早报测试"
+lead: "导语"
+profile: "morning"
+entry_images:
+  "https://example.com/rss": "https://img.example/rss.jpg"
+cover_image: "https://img.example/rss.jpg"
+---
+
+<!-- SECTION:rss BEGIN -->
+### RSS条
+* 🔗 [链](https://example.com/rss)
+<!-- SECTION:rss END -->
+
+<!-- SECTION:github BEGIN -->
+## ⭐ GitHub 趋势
+- **foo/bar** — desc
+<!-- SECTION:github END -->
+""",
+        encoding="utf-8",
+    )
+    html_out = build_article_html(md, css_href="../static/pages.css")
+    assert "board-section" in html_out
+    assert "RSS 精选" in html_out
+    assert "GitHub 趋势" in html_out
+    assert "entry-figure" in html_out
+    assert "article-cover" in html_out
+    assert "<!-- SECTION:" not in html_out
+
+
 def test_latest_update_label_uses_beijing_time(tmp_path):
     from src.pages.builder import _latest_update_label
 
@@ -112,11 +145,14 @@ title: "归档测试"
 lead: "导语"
 profile: "default"
 date: "2026-06-30"
+cover_image: "https://img.example/cover.jpg"
+entry_images:
+  "https://example.com/x": "https://img.example/x.jpg"
 ---
 
 ### 章节
 
-* 内容
+* 🔗 [链](https://example.com/x)
 """,
         encoding="utf-8",
     )
@@ -129,3 +165,4 @@ date: "2026-06-30"
     assert "归档测试" in index_text
     assert "issue-card--featured" in index_text
     assert "news-data/push-2026-06-30-17-00-00.html" in index_text
+    assert "issue-card__cover" in index_text

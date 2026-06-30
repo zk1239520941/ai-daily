@@ -14,7 +14,14 @@ __all__ = [
     "dump_frontmatter",
     "parse_frontmatter",
     "normalize_str_list",
+    "extract_first_url",
+    "normalize_url",
+    "lookup_entry_image",
 ]
+
+_MD_LINK_RE = re.compile(r"\]\((https?://[^)]+)\)")
+_HREF_RE = re.compile(r'href="(https?://[^"]+)"')
+_BARE_URL_RE = re.compile(r"(https?://[^\s\])>]+)")
 
 
 def yaml_value(v: Any) -> str:
@@ -81,3 +88,38 @@ def normalize_str_list(value: Any) -> List[str]:
     else:
         return []
     return [str(x).strip() for x in items if str(x).strip()]
+
+
+def extract_first_url(text: str) -> str:
+    """提取 markdown 链接、HTML href 或裸 URL。"""
+    md_match = _MD_LINK_RE.search(text or "")
+    if md_match:
+        return md_match.group(1)
+    href_match = _HREF_RE.search(text or "")
+    if href_match:
+        return href_match.group(1)
+    bare_match = _BARE_URL_RE.search(text or "")
+    return bare_match.group(1) if bare_match else ""
+
+
+def normalize_url(url: str) -> str:
+    """规范化 URL 以便 entry_images 匹配。"""
+    normalized = (url or "").strip()
+    if not normalized:
+        return ""
+    if "#" in normalized:
+        normalized = normalized.split("#", 1)[0]
+    if normalized.endswith("/") and len(normalized) > len("https://a/"):
+        normalized = normalized.rstrip("/")
+    return normalized
+
+
+def lookup_entry_image(entry_images: Dict[str, str], url: str) -> str:
+    """按规范化 URL 查找配图。"""
+    if not entry_images or not url:
+        return ""
+    target = normalize_url(url)
+    for key, image in entry_images.items():
+        if normalize_url(key) == target:
+            return image or ""
+    return entry_images.get(url, "") or ""

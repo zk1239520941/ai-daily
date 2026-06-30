@@ -37,4 +37,16 @@
   revealItems.forEach(function (el) {
     observer.observe(el);
   });
+
+  document.querySelectorAll(".entry-figure img, .article-cover img, .issue-card__cover img").forEach(
+    function (img) {
+      img.addEventListener("error", function () {
+        var figure = img.closest("figure") || img.closest(".issue-card__cover");
+        if (figure) {
+          figure.classList.add("is-hidden");
+          figure.style.display = "none";
+        }
+      });
+    }
+  );
 })();
