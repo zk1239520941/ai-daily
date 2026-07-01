@@ -194,6 +194,16 @@ def get_last_push_file(data_dir: str = "news-data") -> Optional[str]:
     return str(push_files[-1]) if push_files else None
 
 
+def find_push_for_local_date(d: date, data_dir: str = "news-data") -> Optional[str]:
+    """按配置时区日期查找当日 push 文件（幂等 digest 用）。"""
+    data_path = Path(data_dir)
+    if not data_path.exists():
+        return None
+    prefix = f"push-{d.isoformat()}-"
+    matches = sorted(data_path.glob(f"{prefix}*.md"))
+    return str(matches[-1]) if matches else None
+
+
 def extract_push_time(filepath: str) -> Optional[datetime]:
     """从push文件名提取时间"""
     try:
@@ -444,13 +454,17 @@ def load_notified_links(context_days: int = 3, data_dir: str = "news-data") -> s
     return {u for u in urls if u}
 
 
-def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
+def cleanup_old_files(
+    days: int = 7, data_dir: str = "news-data", config: Dict = None
+):
     """清理超过days天的旧文件"""
     data_path = Path(data_dir)
     if not data_path.exists():
         return
 
-    cutoff = datetime.now() - timedelta(days=days)
+    tz = get_timezone(config)
+    now_local = datetime.now(tz)
+    cutoff = now_local - timedelta(days=days)
     deleted_count = 0
 
     for pattern in ["fetch-*.json", "fetch-*.md", "notify-*.md", "push-*.md"]:
@@ -481,7 +495,7 @@ def cleanup_old_files(days: int = 7, data_dir: str = "news-data"):
         try:
             history = load_trending_history(str(trending_path))
             before = len(history.repos)
-            history.cleanup(today=datetime.now().date(), keep_days=days)
+            history.cleanup(today=now_local.date(), keep_days=days)
             after = len(history.repos)
             if after < before:
                 history.save()

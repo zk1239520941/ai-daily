@@ -35,6 +35,20 @@ def _ensure_git_identity() -> None:
         )
 
 
+def _git_pull_rebase(root: Path) -> bool:
+    """push 前拉取远端，降低并发 commit 冲突概率。"""
+    result = subprocess.run(
+        ["git", "pull", "--rebase", "--autostash"],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"[warn] git pull --rebase 失败: {result.stderr.strip()}")
+        return False
+    return True
+
+
 def cleanup_old_push_files(days: int = 30, data_dir: str = "news-data") -> int:
     """删除超过 days 天的 push-*.md，返回删除数量。"""
     data_path = Path(data_dir)
@@ -158,6 +172,7 @@ def publish_pages_to_github(
     """
     root = Path(__file__).resolve().parent.parent
     _ensure_git_identity()
+    _git_pull_rebase(root)
     cleanup_old_push_files(days=push_keep_days, data_dir=data_dir)
 
     build_script = root / "scripts" / "build_pages_index.py"
@@ -191,6 +206,9 @@ def publish_pages_to_github(
         subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
     for f in push_html_files:
         subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
+    for pattern in ("run-state.json", "push-skip-*.json"):
+        for f in Path(data_dir).glob(pattern):
+            subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
     subprocess.run(["git", "add", "-u", data_dir], cwd=str(root), check=False)
 
     staged = subprocess.run(
@@ -224,9 +242,16 @@ def commit_fetch_to_github(
     """提交 fetch/notify/trending 数据到 git（GHA hourly fetch 真源）。"""
     root = Path(__file__).resolve().parent.parent
     _ensure_git_identity()
+    _git_pull_rebase(root)
     data_path = Path(data_dir)
 
-    for pattern in ("fetch-*.json", "trending-history.json", "notify-*.md"):
+    for pattern in (
+        "fetch-*.json",
+        "trending-history.json",
+        "notify-*.md",
+        "run-state.json",
+        "push-skip-*.json",
+    ):
         for f in data_path.glob(pattern):
             subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
 

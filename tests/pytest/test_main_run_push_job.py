@@ -18,7 +18,9 @@ async def test_run_push_job_delegates_to_daily_push(sample_config):
     ) as daily_path:
         result = await run_push_job(sample_config)
 
-    daily_path.assert_awaited_once_with(sample_config, generate_only=False)
+    daily_path.assert_awaited_once_with(
+        sample_config, generate_only=False, force=False
+    )
     assert result == "news-data/push-x.md"
 
 
@@ -29,5 +31,7 @@ async def test_run_push_job_generate_only(sample_config):
     ) as daily_path:
         result = await run_push_job(sample_config, generate_only=True)
 
-    daily_path.assert_awaited_once_with(sample_config, generate_only=True)
+    daily_path.assert_awaited_once_with(
+        sample_config, generate_only=True, force=False
+    )
     assert result == "news-data/push-y.md"

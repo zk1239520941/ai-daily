@@ -44,6 +44,7 @@ from src.storage import (
     append_entries,
     assemble_with_sentinels,
     cleanup_old_files,
+    find_push_for_local_date,
     get_fetch_file,
     get_last_push_file,
     get_notify_file,
@@ -56,6 +57,20 @@ from src.storage import (
     save_notify_file,
     save_push_file,
 )
+from src.run_state import (
+    evaluate_daily_health,
+    has_digest_skip_for_date,
+    read_push_result,
+    record_digest_error,
+    record_digest_skip,
+    record_digest_success,
+    record_fetch_error,
+    record_fetch_success,
+    write_push_result,
+)
+
+# push 命令：四段全空跳过时的 exit code（GHA 仍视为 success，但会读 result 文件）
+EXIT_DIGEST_SKIPPED = 2
 
 
 async def notify_llm_errors(stage: str, errors: List[str], config: Dict):
@@ -109,28 +124,6 @@ def calculate_push_times(
         except ValueError:
             continue
     return sorted(times)
-
-
-def is_morning_push(now: datetime, config: Dict) -> bool:
-    """判定当前 push 是否为「早报」(触发 GH/HN/insights 三段)。
-
-    规则:在 `schedule.push_cron` 列表里,now 离哪条 cron 最近,就归为那条;
-    最近的那条若是当天最早的 cron,则视为早报。
-
-    特例:
-    - `push_cron` 为空 → 不视为早报
-    - `push_cron` 只有一条 → 该条即"最早"也即"最近",任何触发都视为早报
-    """
-    cron_list = config.get("schedule", {}).get("push_cron", [])
-    if not cron_list:
-        return False
-    if len(cron_list) == 1:
-        return True
-
-    base = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_fires = [croniter(c, base).get_next(datetime) for c in cron_list]
-    closest = min(today_fires, key=lambda f: abs(now - f))
-    return closest == min(today_fires)
 
 
 def _fallback_push_cutoff(now: datetime, config: Dict) -> datetime:
@@ -319,20 +312,18 @@ async def run_fetch_job(config: Dict):
 
     is_new_file = not os.path.exists(fetch_file)
     if is_new_file:
-        cleanup_old_files(days=config["filter"]["keep_days"])
+        cleanup_old_files(days=config["filter"]["keep_days"], config=config)
 
     # 添加 fetched_at 时间戳
     for entry in scored:
-        entry["fetched_at"] = now_local().isoformat()
+        entry["fetched_at"] = now_local(config).isoformat()
         if isinstance(entry.get("published"), datetime):
             entry["published"] = (
                 entry["published"].astimezone(get_timezone(config)).isoformat()
             )
 
-    # 批量保存到 JSON 文件
-    from datetime import date
-
-    meta = {"date": date.today().isoformat()}
+    # 批量保存到 JSON 文件（meta.date 使用配置时区）
+    meta = {"date": now_local(config).date().isoformat()}
     append_entries(fetch_file, scored, meta)
 
     print(f"💾 已保存到 {fetch_file}")
@@ -406,7 +397,11 @@ async def run_fetch_job(config: Dict):
     print(f"✅ Fetch Job 完成 | 新消息: {len(scored)} 条 | 热点: {len(hot_entries)} 条")
 
 
-async def run_push_job(config: Dict, generate_only: bool = False) -> Optional[str]:
+async def run_push_job(
+    config: Dict,
+    generate_only: bool = False,
+    force: bool = False,
+) -> Optional[str]:
     """生成 digest 并可选推送企微。
 
     Args:
@@ -421,18 +416,35 @@ async def run_push_job(config: Dict, generate_only: bool = False) -> Optional[st
         print("ℹ️ generate_only 模式：仅生成 push md，不推 digest 企微")
     print(f"{'=' * 50}")
 
-    return await _run_daily_push(config, generate_only=generate_only)
+    return await _run_daily_push(
+        config, generate_only=generate_only, force=force
+    )
 
 
-async def _run_daily_push(config: Dict, generate_only: bool = False) -> Optional[str]:
+async def _run_daily_push(
+    config: Dict, generate_only: bool = False, force: bool = False
+) -> Optional[str]:
     """每日 push 编排:RSS/GH/HN 并发 → insights 串行 → sentinel 拼装 → 落盘。
 
     失败语义:
     - RSS 真故障 → 整体抛 RuntimeError
     - GH/HN/insights 失败 → 该段省略 + 告警,其他段照推
-    - 四段全空 → 静默跳过
+    - 四段全空 → 静默跳过（可配置企微通知）
     """
     now = now_local(config)
+    today = now.date()
+
+    if not force:
+        existing = find_push_for_local_date(today)
+        if existing:
+            print(f"ℹ️ 今日 digest 已存在: {existing}，跳过重复生成")
+            write_push_result("idempotent", existing, "already generated today", config)
+            record_digest_success(existing, config)
+            return existing
+        if has_digest_skip_for_date(today):
+            print(f"ℹ️ 今日 digest 已标记为跳过，跳过重复生成")
+            write_push_result("skipped", "", "already skipped today", config)
+            return None
 
     rss_result, gh_result, hn_result = await asyncio.gather(
         run_rss_section(config, now),
@@ -499,7 +511,13 @@ async def _run_daily_push(config: Dict, generate_only: bool = False) -> Optional
     )
 
     if _should_skip_digest(config, final, rss_md or "", gh_md or "", hn_md or "", insights_md or ""):
-        print("ℹ️ 今日无值得推送的内容，跳过 digest")
+        reason = "四段全空或低于 digest_min_items"
+        print(f"ℹ️ 今日无值得推送的内容，跳过 digest（{reason}）")
+        record_digest_skip(reason, config)
+        write_push_result("skipped", "", reason, config)
+        filt = config.get("filter", {})
+        if filt.get("notify_on_empty_digest", True):
+            await notify_digest_skipped(config, reason)
         return None
 
     push_file = get_push_file()
@@ -520,6 +538,8 @@ async def _run_daily_push(config: Dict, generate_only: bool = False) -> Optional
         push_file, final, rss_count, rss_count, profile="morning", metadata=metadata
     )
     print(f"💾 已保存日报到 {push_file}")
+    record_digest_success(push_file, config)
+    write_push_result("generated", push_file, "", config)
 
     if not generate_only:
         await send_to_platforms(
@@ -586,6 +606,28 @@ async def send_pages_delay_notice(config: Dict) -> None:
         await platform.send_text(text)
     except Exception as exc:
         print(f"⚠️ Pages 延迟说明发送失败: {exc}")
+
+
+async def notify_digest_skipped(config: Dict, reason: str) -> None:
+    """digest 静默跳过时发送可感知 text 通知。"""
+    now = now_local(config).strftime("%Y-%m-%d %H:%M")
+    text = f"📭 AI Daily 今日无 digest\n原因：{reason}\n时间：{now}"
+    wecom_conf = config.get("push", {}).get("wecom", {})
+    if not wecom_conf.get("enabled"):
+        print(text)
+        return
+    try:
+        from src.push import create_platform
+
+        platform = create_platform("wecom", wecom_conf)
+        if platform is None:
+            print(text)
+            return
+        await platform.send_text(text)
+        print("ℹ️ 已发送 digest 跳过通知到企微")
+    except Exception as exc:
+        print(f"⚠️ digest 跳过通知发送失败: {exc}")
+        print(text)
 
 
 async def notify_digest_url_unavailable(config: Dict, full_url: str) -> None:
@@ -858,9 +900,11 @@ async def cmd_fetch(config: Dict) -> int:
     """单次抓取（systemd timer 调用）"""
     try:
         await run_fetch_job(config)
+        record_fetch_success(config)
         return 0
     except Exception as e:
         print(f"❌ Fetch 任务失败: {e}")
+        record_fetch_error(str(e), config)
         return 1
 
 
@@ -868,6 +912,7 @@ async def cmd_push(
     config: Dict,
     dry_run: bool = False,
     defer_wecom: bool = False,
+    force: bool = False,
 ) -> int:
     """单次推送（systemd timer 调用）。"""
     from src.push import set_dry_run
@@ -876,11 +921,52 @@ async def cmd_push(
         set_dry_run(True)
         print("🔍 dry-run 模式：不实际发送 webhook")
     try:
-        await run_push_job(config, generate_only=defer_wecom)
+        push_file = await run_push_job(
+            config, generate_only=defer_wecom, force=force
+        )
+        result = read_push_result()
+        status = result.get("status", "generated" if push_file else "skipped")
+        if status == "skipped":
+            return EXIT_DIGEST_SKIPPED
         return 0
     except Exception as e:
         print(f"❌ Push 任务失败: {e}")
+        record_digest_error(str(e), config)
+        write_push_result("error", "", str(e), config)
         return 1
+
+
+async def cmd_health_check(config: Dict) -> int:
+    """检查今日 digest 是否已执行；失败时企微告警。"""
+    ok, message = evaluate_daily_health(config)
+    print(message)
+    if ok:
+        return 0
+    wecom_conf = config.get("push", {}).get("wecom", {})
+    alert_text = f"⚠️ AI Daily 健康检查失败\n{message}"
+    if wecom_conf.get("enabled"):
+        try:
+            from src.push import create_platform
+
+            platform = create_platform("wecom", wecom_conf)
+            if platform:
+                await platform.send_text(alert_text)
+        except Exception as exc:
+            print(f"⚠️ 健康检查告警发送失败: {exc}")
+    else:
+        print(alert_text)
+    return 1
+
+
+async def cmd_notify_skip(config: Dict) -> int:
+    """根据 .last-push-result 发送 digest 跳过通知（GHA 专用）。"""
+    result = read_push_result()
+    if result.get("status") != "skipped":
+        print("ℹ️ 最近一次 push 非 skipped，跳过 notify-skip")
+        return 0
+    reason = result.get("reason") or "无内容"
+    await notify_digest_skipped(config, reason)
+    return 0
 
 
 async def cmd_loop(config: Dict) -> int:
@@ -983,6 +1069,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="仅生成 push md，不发送 digest 企微（配合 publish + wecom 使用）",
     )
+    push_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="忽略今日已有 digest/skip，强制重新生成",
+    )
     daily_parser = sub.add_parser(
         "daily",
         help="一键：fetch + 生成 push + 发布 Pages + 等待 URL + 推 digest 企微",
@@ -1004,6 +1095,11 @@ def _parse_args() -> argparse.Namespace:
     )
     sub.add_parser("publish", help="清理旧 push 并 push 到 GitHub（触发 Pages）")
     sub.add_parser("commit-fetch", help="提交 fetch/notify/trending 数据到 git")
+    sub.add_parser("health-check", help="检查今日 digest 是否已执行")
+    sub.add_parser(
+        "notify-skip",
+        help="发送 digest 跳过通知（读取 .last-push-result.json）",
+    )
     wecom_parser = sub.add_parser(
         "wecom",
         help="等待完整版 URL 可访问后发送 digest 企微",
@@ -1056,6 +1152,7 @@ def main() -> int:
                 config,
                 dry_run=getattr(args, "dry_run", False),
                 defer_wecom=getattr(args, "defer_wecom", False),
+                force=getattr(args, "force", False),
             )
         )
 
@@ -1079,6 +1176,12 @@ def main() -> int:
 
     if args.command == "commit-fetch":
         return cmd_commit_fetch(config)
+
+    if args.command == "health-check":
+        return asyncio.run(cmd_health_check(config))
+
+    if args.command == "notify-skip":
+        return asyncio.run(cmd_notify_skip(config))
 
     if args.command == "wecom":
         return asyncio.run(

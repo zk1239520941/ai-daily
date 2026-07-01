@@ -1,0 +1,27 @@
+name: AI Daily 健康检查
+
+on:
+  schedule:
+    # UTC 01:00 ≈ 北京 09:00，digest 应已跑完
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - run: cp config.user.json config.json
+
+      - name: 检查今日 digest 是否已执行
+        env:
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+        run: uv run python -m src.main health-check

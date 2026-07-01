@@ -19,7 +19,9 @@ async def test_run_push_job_generate_only_skips_send(sample_config):
         result = await run_push_job(sample_config, generate_only=True)
 
     assert result == "news-data/push-test.md"
-    daily_push.assert_awaited_once_with(sample_config, generate_only=True)
+    daily_push.assert_awaited_once_with(
+        sample_config, generate_only=True, force=False
+    )
     send_mock.assert_not_awaited()
 
 

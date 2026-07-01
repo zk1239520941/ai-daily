@@ -62,7 +62,7 @@ async def test_assembles_all_four_sections(sample_config):
     ), patch(
         "src.main.save_push_file", side_effect=fake_save
     ):
-        await _run_daily_push(sample_config)
+        await _run_daily_push(sample_config, force=True)
 
     assert "SECTION:rss" in sent["content"]
     assert "SECTION:github" in sent["content"]
@@ -88,7 +88,7 @@ async def test_rss_failure_raises_to_caller(sample_config):
         "src.main.notify_llm_errors", new=AsyncMock()
     ):
         with pytest.raises(RuntimeError):
-            await _run_daily_push(sample_config)
+            await _run_daily_push(sample_config, force=True)
 
 
 @pytest.mark.asyncio
@@ -116,7 +116,7 @@ async def test_section_failure_degrades_to_omission(sample_config):
     ), patch(
         "src.main.save_push_file"
     ):
-        await _run_daily_push(sample_config)
+        await _run_daily_push(sample_config, force=True)
 
     assert "SECTION:rss" in sent["content"]
     assert "SECTION:github" not in sent["content"]
@@ -141,7 +141,7 @@ async def test_skip_when_all_sections_empty(sample_config):
     ) as save_mock, patch(
         "src.main.send_to_platforms", new=AsyncMock()
     ) as send_mock:
-        result = await _run_daily_push(sample_config)
+        result = await _run_daily_push(sample_config, force=True)
 
     assert result is None
     save_mock.assert_not_called()

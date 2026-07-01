@@ -1,0 +1,50 @@
+name: AI Daily 抓取
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ai-daily-fetch-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 恢复 news-data 缓存
+        uses: actions/cache@v4
+        with:
+          path: news-data
+          key: ai-daily-news-data-v3
+          restore-keys: |
+            ai-daily-news-data-v3
+            ai-daily-news-data-v2
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - run: cp config.user.json config.json
+
+      - name: 抓取 RSS 并评分（含即时热点）
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+        run: uv run python -m src.main fetch
+
+      - name: 提交 fetch 数据
+        run: uv run python -m src.main commit-fetch
