@@ -83,7 +83,7 @@ jobs:
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main publish
 
-      - name: 等待 Pages 并推送 digest 企微
+      - name: 等待 Pages 部署完成并推送 digest 企微
         if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -91,6 +91,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
+          PAGES_WORKFLOW_WAIT: "900"
+          WECOM_URL_WAIT: "180"
         run: uv run python -m src.main wecom
 
       - name: 提交 skip 状态到 git

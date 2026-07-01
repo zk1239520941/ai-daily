@@ -80,9 +80,12 @@ class WeComPlatform(PushPlatform):
 
     async def _send_digest(self, content: str, title: str, metadata: Dict):
         """早晚报：1 条 news（最多 8 条目录）+ 可选全文链接 text。"""
-        full_url = metadata.get("full_url") or build_push_page_url(
-            self.pages_base_url, metadata.get("push_file", "")
-        )
+        if "full_url" in metadata:
+            full_url = metadata.get("full_url") or ""
+        else:
+            full_url = build_push_page_url(
+                self.pages_base_url, metadata.get("push_file", "")
+            )
         articles = build_digest_news_articles(
             content,
             metadata,

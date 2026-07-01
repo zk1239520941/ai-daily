@@ -778,13 +778,20 @@ async def cmd_wecom(
     wait_timeout: int = 300,
     wait_interval: int = 10,
 ) -> int:
-    """等待完整版 URL 可访问后发送 digest 企微。"""
-    from src.publish import resolve_push_full_url, wait_for_url
+    """等待 Pages 部署完成且 URL 可访问后，再发送 digest 企微。"""
+    from src.publish import (
+        resolve_push_full_url,
+        wait_for_pages_workflow,
+        wait_for_url,
+    )
     from src.push import set_dry_run
 
     if dry_run:
         set_dry_run(True)
         print("🔍 dry-run 模式：不实际发送 webhook")
+
+    pages_wf_timeout = int(os.environ.get("PAGES_WORKFLOW_WAIT", "900"))
+    url_wait_timeout = int(os.environ.get("WECOM_URL_WAIT", str(wait_timeout)))
 
     push_file = push_file or get_last_push_file()
     if not push_file:
@@ -794,24 +801,26 @@ async def cmd_wecom(
     wecom_config = config.get("push", {}).get("wecom", {})
     full_url = resolve_push_full_url(push_file, wecom_config)
     if not full_url:
-        print("❌ 未配置 PAGES_BASE_URL / pages_base_url，无法生成完整版链接，跳过 digest 企微")
+        print("❌ 未配置 PAGES_BASE_URL / pages_base_url，无法生成完整版链接")
         await notify_digest_url_unavailable(config, full_url)
         return 1
 
-    if not skip_wait and full_url:
-        ok = await wait_for_url(full_url, timeout=wait_timeout, interval=wait_interval)
+    if not skip_wait:
+        if not wait_for_pages_workflow(timeout=pages_wf_timeout):
+            print("❌ Pages workflow 未成功完成，不推送 digest 企微")
+            await notify_digest_url_unavailable(config, full_url)
+            return 1
+
+        ok = await wait_for_url(
+            full_url, timeout=url_wait_timeout, interval=wait_interval
+        )
         if not ok:
-            print("⚠️ Pages URL 不可用，降级推送 digest（无完整版链接）")
-            try:
-                await send_digest_wecom(config, push_file, "")
-                await send_pages_delay_notice(config)
-                return 0
-            except Exception as e:
-                print(f"❌ digest 降级推送失败: {e}")
-                return 1
+            print("❌ 完整版 URL 仍不可访问，不推送 digest 企微")
+            await notify_digest_url_unavailable(config, full_url)
+            return 1
 
     try:
-        await send_digest_wecom(config, push_file, full_url or "")
+        await send_digest_wecom(config, push_file, full_url)
         return 0
     except Exception as e:
         print(f"❌ digest 企微推送失败: {e}")
@@ -863,25 +872,7 @@ async def cmd_daily(
         await notify_digest_url_unavailable(config, full_url)
         return 1
 
-    from src.publish import wait_for_url
-
-    ok = await wait_for_url(full_url)
-    if not ok:
-        print("⚠️ Pages URL 不可用，降级推送 digest（无完整版链接）")
-        try:
-            await send_digest_wecom(config, push_file, "")
-            await send_pages_delay_notice(config)
-            return 0
-        except Exception as e:
-            print(f"❌ digest 降级推送失败: {e}")
-            return 1
-
-    try:
-        await send_digest_wecom(config, push_file, full_url)
-        return 0
-    except Exception as e:
-        print(f"❌ digest 企微推送失败: {e}")
-        return 1
+    return await cmd_wecom(config, push_file=push_file)
 
 
 async def cmd_check(config: Dict) -> int:

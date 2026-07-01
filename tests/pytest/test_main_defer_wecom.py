@@ -47,20 +47,21 @@ async def test_send_digest_wecom_loads_push_file(tmp_path, sample_config):
 
 
 @pytest.mark.asyncio
-async def test_cmd_wecom_degrades_when_wait_fails(sample_config):
+async def test_cmd_wecom_aborts_when_url_not_ready(sample_config):
+    """URL 未就绪时不推送 digest，仅告警。"""
     with patch("src.main.get_last_push_file", return_value="news-data/push-x.md"), patch(
         "src.publish.resolve_push_full_url",
-        return_value="https://pages.example/full.md",
-    ), patch("src.publish.wait_for_url", new=AsyncMock(return_value=False)), patch(
-        "src.main.send_digest_wecom", new=AsyncMock(return_value=True)
-    ) as send_mock, patch(
-        "src.main.send_pages_delay_notice", new=AsyncMock()
-    ) as notice_mock:
+        return_value="https://pages.example/full.html",
+    ), patch("src.publish.wait_for_pages_workflow", return_value=True), patch(
+        "src.publish.wait_for_url", new=AsyncMock(return_value=False)
+    ), patch("src.main.send_digest_wecom", new=AsyncMock(return_value=True)) as send_mock, patch(
+        "src.main.notify_digest_url_unavailable", new=AsyncMock()
+    ) as alert_mock:
         code = await cmd_wecom(sample_config)
 
-    assert code == 0
-    send_mock.assert_awaited_once()
-    notice_mock.assert_awaited_once()
+    assert code == 1
+    send_mock.assert_not_awaited()
+    alert_mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -70,11 +71,13 @@ async def test_cmd_daily_pipeline_order(sample_config):
     ) as push_job, patch(
         "src.main.cmd_publish", new=AsyncMock(return_value=(0, "news-data/push-y.md", "https://u.md"))
     ) as publish, patch(
+        "src.publish.wait_for_pages_workflow", return_value=True
+    ), patch(
         "src.publish.wait_for_url", new=AsyncMock(return_value=True)
-    ), patch("src.main.send_digest_wecom", new=AsyncMock()) as send_mock:
+    ), patch("src.main.cmd_wecom", new=AsyncMock(return_value=0)) as wecom_cmd:
         code = await cmd_daily(sample_config)
 
     assert code == 0
     push_job.assert_awaited_once_with(sample_config, generate_only=True)
     publish.assert_awaited_once()
-    send_mock.assert_awaited_once()
+    wecom_cmd.assert_awaited_once()

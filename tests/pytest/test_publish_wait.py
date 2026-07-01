@@ -29,7 +29,7 @@ class TestResolvePushFullUrl:
 
 @pytest.mark.asyncio
 async def test_wait_for_url_success_on_second_attempt():
-    """第二次 HEAD 返回 200 时应成功"""
+    """第二次 GET 返回 200 时应成功"""
     resp_fail = MagicMock()
     resp_fail.status = 404
     resp_fail.__aenter__ = AsyncMock(return_value=resp_fail)
@@ -41,17 +41,17 @@ async def test_wait_for_url_success_on_second_attempt():
     resp_ok.__aexit__ = AsyncMock(return_value=None)
 
     mock_session = MagicMock()
-    mock_session.head = MagicMock(side_effect=[resp_fail, resp_ok])
+    mock_session.get = MagicMock(side_effect=[resp_fail, resp_ok])
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
     with patch("aiohttp.ClientSession", return_value=mock_session), patch(
         "src.publish.asyncio.sleep", new=AsyncMock()
     ):
-        ok = await wait_for_url("https://example.com/page.md", timeout=60, interval=1)
+        ok = await wait_for_url("https://example.com/page.html", timeout=60, interval=1)
 
     assert ok is True
-    assert mock_session.head.call_count == 2
+    assert mock_session.get.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -63,7 +63,7 @@ async def test_wait_for_url_timeout():
     resp.__aexit__ = AsyncMock(return_value=None)
 
     mock_session = MagicMock()
-    mock_session.head = MagicMock(return_value=resp)
+    mock_session.get = MagicMock(return_value=resp)
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 

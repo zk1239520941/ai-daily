@@ -7,7 +7,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -103,12 +103,86 @@ def resolve_push_full_url(
     return build_push_page_url(pages_base, push_file)
 
 
+def wait_for_pages_workflow(
+    timeout: int = 900,
+    interval: int = 15,
+) -> bool:
+    """等待 pages.yml workflow 完成（publish git push 触发的 Pages 部署）。
+
+    仅在 GHA 环境且配置了 GITHUB_TOKEN 时生效；本地跳过返回 True。
+    """
+    token = os.environ.get("GITHUB_TOKEN", "")
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if not os.environ.get("GITHUB_ACTIONS") or not token or not repo:
+        print("[info] 非 GHA 或未配置 token，跳过 pages workflow 等待")
+        return True
+
+    import json
+    import urllib.error
+    import urllib.request
+
+    deadline = time.monotonic() + timeout
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=45)
+    api_url = f"https://api.github.com/repos/{repo}/actions/workflows/pages.yml/runs?per_page=5"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+    print(f"[wait] 等待 pages.yml 部署完成（最长 {timeout}s）")
+    time.sleep(8)
+
+    while time.monotonic() < deadline:
+        try:
+            req = urllib.request.Request(api_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            print(f"[wait] 查询 pages workflow 失败: {exc}")
+            time.sleep(interval)
+            continue
+
+        recent_runs = []
+        for run in payload.get("workflow_runs", []):
+            created_raw = run.get("created_at", "")
+            try:
+                created = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if created >= cutoff:
+                recent_runs.append(run)
+
+        if not recent_runs:
+            print("[wait] 尚未发现近期 pages workflow run，继续轮询...")
+            time.sleep(interval)
+            continue
+
+        latest = recent_runs[0]
+        run_id = latest.get("id")
+        status = latest.get("status")
+        conclusion = latest.get("conclusion")
+        print(f"[wait] pages run #{run_id} status={status} conclusion={conclusion}")
+
+        if status == "completed":
+            if conclusion == "success":
+                print("[ok] pages.yml 部署成功")
+                return True
+            print(f"[err] pages.yml 部署失败: {conclusion}")
+            return False
+
+        time.sleep(interval)
+
+    print(f"[err] pages.yml 在 {timeout}s 内未完成")
+    return False
+
+
 async def wait_for_url(
     url: str,
     timeout: int = 300,
     interval: int = 10,
 ) -> bool:
-    """轮询 URL 直到 HTTP 200 或超时。
+    """轮询 URL 直到 HTTP 200 或超时（使用 GET，兼容 GitHub Pages）。
 
     Args:
         url: 待检测的完整版日报 URL
@@ -134,9 +208,7 @@ async def wait_for_url(
         while time.monotonic() < deadline:
             attempt += 1
             try:
-                async with session.head(
-                    url, allow_redirects=True
-                ) as resp:
+                async with session.get(url, allow_redirects=True) as resp:
                     if resp.status == 200:
                         print(f"[ok] 完整版 URL 已可访问 (HTTP 200, 第 {attempt} 次)")
                         return True
@@ -155,7 +227,7 @@ async def wait_for_url(
                 break
             await asyncio.sleep(min(interval, remaining))
 
-    print(f"[err] 完整版 URL 在 {timeout}s 内不可访问，放弃 digest 企微推送")
+    print(f"[err] 完整版 URL 在 {timeout}s 内不可访问")
     return False
 
 
