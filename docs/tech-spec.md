@@ -10,9 +10,11 @@
 >
 > update: 2026-05-17
 
+> **本 fork 生产部署**：GitHub Actions（`fetch.yml` / `daily.yml` / `health-check.yml`），`config.user.json` + Secrets，企微 + Pages 内联部署。下文 systemd 章节为 **upstream 服务器路径**。
+
 ## 项目定位
 
-AI 驱动的 RSS 新闻聚合与推送系统：周期性抓取 400+ AI 领域信息源，调用 LLM 评分筛选，按调度规则将高分内容汇总推送到 Discord / 飞书；高分热点条目在 fetch 阶段即时推送。
+AI 驱动的 RSS 新闻聚合与推送系统：周期性抓取 400+ AI 领域信息源，调用 LLM 评分筛选，按调度规则将高分内容汇总推送（本实例：**企业微信** + GitHub Pages 全文）；高分热点条目在 fetch 阶段即时推送。
 
 面向单机部署、单租户使用，所有状态以本地文件（JSON / Markdown）持久化，不依赖外部数据库或队列。
 

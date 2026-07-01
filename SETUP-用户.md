@@ -1,8 +1,10 @@
 # AI Daily 上线前准备清单
 
-本目录为 [YeeKal/ai-daily](https://github.com/YeeKal/ai-daily) 的独立部署副本，与同级目录 `ai-digest` **并行存在、互不影响**。
+本目录为 [YeeKal/ai-daily](https://github.com/YeeKal/ai-daily) 的独立部署副本（当前实例：[zk1239520941/ai-daily](https://github.com/zk1239520941/ai-daily)），与同级目录 `ai-digest` **并行存在、互不影响**。
 
-按下列顺序完成配置，即可在本地验证后推送到 GitHub，由 Actions 定时抓取、推送，并通过 GitHub Pages 托管日报全文。
+按下列顺序完成配置，推送到 GitHub 后由 **GitHub Actions 全自动** 抓取、生成 digest、部署 Pages、推送企微。
+
+> 项目概览见 [README.md](./README.md)。
 
 ---
 
@@ -11,9 +13,9 @@
 | 项目 | 路径 | 定位 |
 |------|------|------|
 | **ai-digest** | `../ai-digest` | 自研轻量漏斗：YAML 配置、单次日报、结构简单 |
-| **ai-daily**（本项目） | `./` | 上游成熟方案：400+ RSS、即时热点推送、GitHub/HN 早报段、跨板块洞察 |
+| **ai-daily**（本项目） | `./` | 400+ RSS、即时热点、GitHub/HN/洞察早报、企微 + Pages |
 
-**建议**：日常推送以 **ai-daily** 为主；`ai-digest` 保留作对照或备用，无需改动。
+**建议**：日常推送以 **ai-daily** 为主；`ai-digest` 保留作对照或备用。
 
 ---
 
@@ -22,7 +24,7 @@
 ### A1. 安装依赖
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/)（推荐）
+- [uv](https://docs.astral.sh/uv/)
 
 ```powershell
 cd D:\Code\技术委员会\ai-daily
@@ -33,345 +35,238 @@ uv sync
 
 ```powershell
 copy .env.example .env
-copy config.user.json.example config.json
+copy config.user.json.example config.json   # 本地调试用；线上用 config.user.json
 ```
 
 ### A3. 填写 `.env`
 
-编辑 `.env`（**切勿提交到 Git**，已在 `.gitignore` 中忽略）：
+编辑 `.env`（**切勿提交**，已在 `.gitignore` 中）：
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `DEEPSEEK_API_KEY` | ✅ | DeepSeek API Key，用于 RSS 评分、日报生成、洞察等 LLM 调用 |
-| `WECOM_WEBHOOK_URL` | ✅ | 企业微信群机器人 Webhook，用于即时热点与每日早报推送 |
-| `GITHUB_TOKEN` | 可选 | GitHub Personal Access Token，提高 GitHub Trending 板块 API 限额（匿名仅 60 次/小时） |
-| `JINA_API_KEY` | 可选 | Jina Reader API Key，用于 Hacker News 外链正文抓取 |
-| `PAGES_BASE_URL` | 可选 | GitHub Pages 站点根 URL，用于企微早晚报中的「完整版」链接 |
+| `DEEPSEEK_API_KEY` | ✅ | LLM 评分与 digest |
+| `WECOM_WEBHOOK_URL` | ✅ | 企微群机器人 Webhook |
+| `PAGES_BASE_URL` | 推荐 | 如 `https://<user>.github.io/ai-daily/` |
+| `GITHUB_TOKEN` | 可选 | 提高 GitHub Trending API 限额 |
+| `JINA_API_KEY` | 可选 | HN 外链正文（Jina Reader） |
 
 #### `DEEPSEEK_API_KEY`
 
-1. 登录 [DeepSeek 开放平台](https://platform.deepseek.com/)
-2. 创建 API Key，写入 `.env`
-3. `config.json` 中 `llm.baseUrl` 应为 `https://api.deepseek.com/v1`，`llm.model` 推荐 `deepseek-chat`
+1. [DeepSeek 开放平台](https://platform.deepseek.com/) 创建 Key
+2. `config.user.json` 中 `llm.baseUrl` 为 `https://api.deepseek.com/v1`，`model` 推荐 `deepseek-chat`
 
 #### `WECOM_WEBHOOK_URL`
 
-1. 企业微信群 → 群设置 → 群机器人 → 添加
-2. 复制 Webhook 地址，形如：`https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...`
-3. 写入 `.env` 的 `WECOM_WEBHOOK_URL`
+企业微信群 → 群机器人 → 添加 → 复制 Webhook URL。
 
-#### `GITHUB_TOKEN`（免费创建）
+#### `GITHUB_TOKEN`（可选 PAT）
 
-1. 登录 GitHub → 右上角头像 → **Settings**
-2. 左侧最底部 **Developer settings** → **Personal access tokens** → **Tokens (classic)** 或 **Fine-grained tokens**
-3. 点击 **Generate new token**
-4. 权限勾选：
-   - **Classic token**：勾选 `public_repo`（公开仓库）或 `repo`（私有仓库）；若仅读公开 API，勾选 `read:packages` 以外的只读 repo 权限即可
-   - **Fine-grained token**：Repository access 选目标仓库，Permissions → Repository → Contents: Read-only
-5. 生成后复制 token（形如 `ghp_...` 或 `github_pat_...`），写入 `.env` 的 `GITHUB_TOKEN`
+Developer settings → Personal access tokens → Classic 勾选 `public_repo`（公开库）或 `repo`（私有库）。  
+用于 GitHub Trending 板块；Actions 内置 token **不能**替代此用途。
 
-**用途**：早报中的 GitHub Trending 板块需调用 GitHub REST API 获取仓库详情；无 token 时匿名限额 60 req/hr，易触发限流。
-
-#### `JINA_API_KEY`（免费额度）
-
-1. 打开 [jina.ai](https://jina.ai/) 注册账号
-2. 在控制台创建 API Key（免费档有每日调用额度）
-3. 写入 `.env` 的 `JINA_API_KEY`
-
-**用途**：Hacker News 板块通过 [Jina Reader](https://jina.ai/reader/) 抓取外链正文；未配置时使用匿名调用，额度受限。
-
-#### `PAGES_BASE_URL`（推送后填写）
-
-完成 **D. GitHub Pages 开启** 并首次部署成功后填写，格式：
+#### `PAGES_BASE_URL`
 
 ```
-https://<你的GitHub用户名>.github.io/<仓库名>/
+https://<GitHub用户名>.github.io/<仓库名>/
 ```
 
-示例：用户 `zhangsan`、仓库 `ai-daily` 时：
-
-```
-PAGES_BASE_URL=https://zhangsan.github.io/ai-daily/
-```
-
-**注意**：
-
-- 末尾建议保留 `/`
-- 也可在 `config.json` 的 `push.wecom.pages_base_url` 填写（`.env` 优先）
-- GitHub Actions 中若未设置，workflow 会尝试从 `GITHUB_REPOSITORY` 自动推断
+示例：`https://zk1239520941.github.io/ai-daily/`（末尾建议保留 `/`）。  
+Secrets 或 `.env` 均可；未设时程序尝试从 `GITHUB_REPOSITORY` 推断。
 
 ---
 
 ## B. 创建 GitHub 仓库并首次 push
 
-### B1. 在 GitHub 创建空仓库
+### B1. 创建空仓库
 
-1. 打开 [github.com/new](https://github.com/new)
-2. **Repository name**：例如 `ai-daily`
-3. 选 **Public** 或 **Private**（Pages 均可用；私有仓库 Pages 需 GitHub Pro 或组织计划）
-4. **不要**勾选 "Add a README" / ".gitignore" / "license"（本地已有代码）
-5. 点击 **Create repository**
+[github.com/new](https://github.com/new) → 仓库名 `ai-daily` → **Public**（推荐，Actions 分钟数宽裕）→ 不要勾选 README。
 
-### B2. 本地初始化并推送
-
-在项目目录执行（将 `YOUR_USER` 和 `ai-daily` 替换为你的用户名与仓库名）：
+### B2. 推送代码
 
 ```powershell
-cd D:\Code\技术委员会\ai-daily
-
-# 若尚未 init（已有 .git 可跳过）
-git init
-git branch -M main
-
-# 确认 .env 不会被提交
-git status
-# 若看到 .env，切勿 git add；应已被 .gitignore 忽略
-
-git add .
-git commit -m "chore: 初始化 ai-daily 部署"
 git remote add origin https://github.com/YOUR_USER/ai-daily.git
 git push -u origin main
 ```
 
-### B3. 确认 `.gitignore` 已保护敏感文件
+推送前 `git status` 确认 **无 `.env`**、**无 `config.json`**。
 
-`.gitignore` 已包含：
+### B3. `.gitignore` 要点
 
-- `.env`（密钥）
-- `config.json`（本地配置）
-- `news-data/*`（fetch、notify 等运行时数据，**不提交**）
-- `!news-data/push-*.md`（**例外**：日报全文需提交，供 GitHub Pages 托管）
-
-推送前务必执行 `git status`，确认 **没有** `.env` 出现在待提交列表中。
-
-### B4. 可选：上线前检查脚本
-
-```powershell
-.\scripts\prepare-github.ps1
-```
+| 忽略 | 例外（会提交） |
+|------|----------------|
+| `.env`、`config.json` | `config.user.json` |
+| `news-data/*` | `fetch-*.json`、`notify-*.md`、`push-*.md/html`、`run-state.json`、`push-skip-*.json` |
 
 ---
 
-## C. GitHub Repository Secrets（Actions 用）
+## C. GitHub Repository Secrets
 
-仓库 → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+**Settings → Secrets and variables → Actions**
 
 | Secret | 必填 | 说明 |
 |--------|------|------|
-| `DEEPSEEK_API_KEY` | ✅ | 同 `.env`，供 LLM 调用 |
-| `WECOM_WEBHOOK_URL` | ✅ | 同 `.env`，供企微推送 |
-| `WECOM_WEBHOOK_URL` 相关 | — | 飞书 / Discord 若启用，可另设 `FEISHU_WEBHOOK_URL`、`DISCORD_WEBHOOK_URL`（见 `.env.example`） |
-| `GITHUB_TOKEN` | 可选 | 见下方说明 |
-| `JINA_API_KEY` | 可选 | 同 `.env`，HN 外链抓取 |
-| `PAGES_BASE_URL` | 可选 | 同 `.env`；未设时 workflow 尝试自动推断 |
+| `DEEPSEEK_API_KEY` | ✅ | 同 `.env` |
+| `WECOM_WEBHOOK_URL` | ✅ | 同 `.env` |
+| `PAGES_BASE_URL` | 推荐 | 同 `.env` |
+| `GITHUB_TOKEN` | 可选 | 用户 PAT，非 Actions 内置 token |
+| `JINA_API_KEY` | 可选 | 同 `.env` |
 
-#### Actions 自带 `GITHUB_TOKEN` 与用户 PAT 的区别
-
-| 类型 | 来源 | 说明 |
-|------|------|------|
-| **`github.token`（内置）** | Actions 自动注入 | 权限限于当前仓库，用于 checkout、Pages 部署等；**不能**用于调用 GitHub REST API 查 Trending |
-| **用户 PAT（Secrets 中的 `GITHUB_TOKEN`）** | 你在 Developer settings 创建的 token | workflow 中 `env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}` 会覆盖内置 token 名称；用于 **GitHub Trending API** 提高限额 |
-
-若早报 GitHub 板块频繁 403/限流，请在 Secrets 中添加名为 `GITHUB_TOKEN` 的用户 PAT（Classic 勾选 `public_repo` 即可）。
+**线上配置真源**：仓库内 [`config.user.json`](./config.user.json)（workflow 执行 `cp config.user.json config.json`）。
 
 ---
 
 ## D. GitHub Pages 开启
 
-> **重要**：**Pages workflow（`pages.yml`）只负责部署站点**，不会抓取 RSS、不会生成日报、**不会推送企微**。  
-> 企微消息与 `news-data/push-*.md` 由 **`daily.yml`（AI Daily 定时任务）** 或本地 `python -m src.main daily` 产生。  
-> **digest 企微**在 **Pages 全文 URL 可访问（HTTP 200）之后**才发送，避免「完整版」链接先 404。
+1. **Settings → Pages → Source：GitHub Actions**
+2. 不要选 "Deploy from a branch"
 
-1. 仓库 **Settings** → **Pages**
-2. **Build and deployment** → **Source** 选 **GitHub Actions**（不要选 "Deploy from a branch"）
-3. 保存后无需手动上传文件
+### Workflow 分工（当前架构）
 
-### 两个 Workflow 的分工
+| Workflow | 文件 | 触发 | 作用 |
+|----------|------|------|------|
+| **AI Daily 抓取** | `fetch.yml` | 每小时 | RSS 抓取 + 评分 + 热点企微 + commit-fetch |
+| **AI Daily 早报** | `daily.yml` | 每天 ~08:05 北京 | 补抓 → digest → git publish → **同 job 内 deploy Pages** → URL 200 后企微 |
+| **AI Daily 健康检查** | `health-check.yml` | 每天 ~09:00 北京 | 检查当日 digest/skip，异常企微告警 |
+| **AI Daily LLM 校验** | `check.yml` | 手动 | `main check` |
+| **GitHub Pages 日报全文** | `pages.yml` | push 触发 / 手动 | **备用**全站部署（主路径已在 `daily.yml` 内联完成） |
 
-| Workflow | 文件 | 作用 | 企微 | Pages 全文 |
-|----------|------|------|------|------------|
-| **AI Daily 定时任务** | `daily.yml` | hourly fetch + commit；每日 08:05 生成 push → publish → **等待 URL** → digest 企微 | ✅（URL 就绪后） | 先 publish 再推链接 |
-| **GitHub Pages 日报全站** | `pages.yml` | 从仓库检出 `news-data/push-*.md` 并部署 | ❌ | ✅ |
+> **digest 企微仅在 Pages 全文 URL 返回 HTTP 200 后发送**，不会先发链接再让你刷新。
 
-**仅手动运行 Pages workflow 而仓库里没有 `push-*.md` 时**，首页会显示「暂无日报」——这是预期行为，不是 Pages 部署失败。
+### `daily.yml` 手动 Run workflow 参数
 
-### `pages.yml` 工作流说明
+| 参数 | 说明 |
+|------|------|
+| `skip_fetch` | 跳过补抓，直接生成 digest |
+| `force` | 忽略当日已有 digest/skip，强制重新生成 |
+| `wecom_only` | Pages 已就绪时，仅重发企微（不跑 fetch/publish） |
 
-文件：`.github/workflows/pages.yml`
-
-**触发条件**：
-
-- `main`/`master` 分支 push 且变更了 `news-data/push-*.md`、`scripts/build_pages_index.py` 或 workflow 本身
-- 手动 **Run workflow**
-
-**执行步骤**：
-
-1. 运行 `scripts/build_pages_index.py` 生成 `index.html` 索引页
-2. 将 `index.html` + `news-data/` 打包为 Pages 站点
-3. 部署到 `https://<user>.github.io/<repo>/`
-
-日报全文 URL 示例：
+### 日报全文 URL 格式
 
 ```
-https://YOUR_USER.github.io/ai-daily/news-data/push-2026-06-30-17-00-30.html
+https://YOUR_USER.github.io/ai-daily/news-data/push-2026-07-01-08-00-00.html
 ```
-
-首次 push 后若 `news-data/` 为空，请任选其一：
-
-1. **推荐**：Actions → **AI Daily 定时任务** → Run workflow → Job 选 `all`（fetch → publish → 等待 Pages → digest 企微）
-2. 本地一键：`uv run python -m src.main daily`（同上顺序；需已配置 git push 权限）
-3. 仅重新部署（**不含新日报**）：Actions → **GitHub Pages 日报全站** → Run workflow
 
 ---
 
 ## E. 验证清单
 
-按顺序逐项确认：
-
 ### E1. 本地验证
 
 ```powershell
-cd D:\Code\技术委员会\ai-daily
-
-# 子命令帮助（Windows GBK 终端亦应正常显示）
-uv run python -m src.main --help
-
-# LLM 连通性
 uv run python -m src.main check
-
-# 抓取（热点 ≥90 分会即时推送到企微）
 uv run python -m src.main fetch
-
-# 一键：fetch → publish → 等待 Pages → digest 企微（推荐）
 uv run python -m src.main daily --dry-run
 uv run python -m src.main daily
 
-# 分步（与 CI 一致）
-uv run python -m src.main push --defer-wecom   # 仅生成 push md
-uv run python -m src.main publish              # commit + push，触发 Pages
-uv run python -m src.main wecom                # 轮询 URL 后推 digest
-```
-
-可选：单板块调试（不推送）
-
-```powershell
-uv run python -m src.main github
-uv run python -m src.main hackernews
-uv run python -m src.main rss
+# 与 CI 一致的分步
+uv run python -m src.main push --defer-wecom
+uv run python -m src.main publish
+uv run python -m src.main wecom
 ```
 
 ### E2. GitHub Actions 手动触发
 
-1. 仓库 **Actions** → **AI Daily 定时任务**（**不是**「GitHub Pages 日报全站」）
-2. **Run workflow** → Job 选 `all`（或 `check` / `fetch` / `push`）
-3. 查看日志无报错；`all` 任务末尾应有 publish、URL 轮询成功、digest 企微推送步骤
+1. **Actions → AI Daily 早报 → Run workflow**（首次全链路）
+2. 或 **AI Daily 抓取 → Run workflow**（仅测 fetch）
+3. 查看日志：`deploy-pages` 成功 → `wecom` 步骤成功
 
-> 只跑 Pages workflow 不会发企微，也不会凭空产生 `push-*.md`。
+**定时规则（UTC）**：
 
-定时规则（`.github/workflows/daily.yml`，UTC）：
-
-- `0 * * * *` → **每小时** fetch + commit fetch 数据
-- `5 0 * * *` → 北京时间约 **08:05** 每日 digest（含 GitHub / HN / 洞察；无内容则静默）
+| Cron | Workflow | 约北京时间 |
+|------|----------|------------|
+| `0 * * * *` | `fetch.yml` | 每小时整点 |
+| `5 0 * * *` | `daily.yml` | ~08:05 |
+| `0 1 * * *` | `health-check.yml` | ~09:00 |
 
 ### E3. 企微与 Pages 验收
 
-- [ ] 企微 news：**有 RSS 封面的条目显示真实缩略图**；无封面条目及「完整版」卡片**不出现蓝色占位图**
-- [ ] 同条或后续 **text 消息** 含「完整版」链接（需已配置 `PAGES_BASE_URL` 或 GHA 自动推断）
-- [ ] 点击「完整版」链接**立即可**打开排版后的 HTML 全文（不应先 404）
-- [ ] 站点首页 `https://YOUR_USER.github.io/ai-daily/` 列出历史日报索引
+- [ ] 热点即时推送正常（≥90 分）
+- [ ] 早报企微含 news 卡片 + 完整版 text 链接
+- [ ] 点击完整版链接 **立即可打开** HTML（非 404）
+- [ ] 首页 https://zk1239520941.github.io/ai-daily/ 有索引
+- [ ] Actions 中 `health-check` 为绿色（或有当日 skip 记录）
 
 ---
 
-## 核心架构（简述）
+## 核心架构
 
 ```
 RSS / GitHub Trending / Hacker News
-        ↓ fetch（定时抓取 + LLM 评分）
-   news-data/fetch-*.json
-        ↓ push（digest / 即时推送）
-   news-data/push-*.md  →  渲染 HTML + index  →  publish（GitHub Pages）
-                              ↓ URL 200
-                    digest 企微（news + 完整版链接）
+        ↓ fetch.yml（每小时）
+   news-data/fetch-*.json  +  热点 notify
+        ↓ daily.yml（每日）
+   push-*.md → git commit → deploy Pages（同 job）
+        ↓ URL HTTP 200
+   digest 企微
+        ↓ health-check.yml（兜底）
+   无 digest 则告警
 ```
 
-- **fetch**：每小时轮询 RSS，LLM 批量打分；≥90 分热点即时推送；fetch 数据 commit 到 git
-- **push**：每天 08:00 生成 digest（0–N 条均可）；含 GitHub、HN、洞察；四段全空则静默
-- **配置**：`config.json`（调度、源、LLM、推送）+ `.env`（密钥）
-- **Prompt**：已内置中文模板（`prompts/*.md`）
-
-## 已做的本地适配
-
-1. **企业微信 B+C 推送**：即时热点短消息 + 每日早报 news 图文 + text 完整版链接
-2. **DeepSeek LLM**：`config.user.json.example` 已指向 `deepseek-chat`
-3. **中文日报**：时区 `timezone_hours: 8`
-4. **GitHub Actions**：`daily.yml`（抓取、企微推送、commit push 文件）+ `pages.yml`（仅部署 Pages）
-5. **Windows 终端**：入口自动配置 stdout/stderr UTF-8，避免 GBK 下 emoji 报错
-
-## 与 ai-digest 的主要差异
-
-| 维度 | ai-digest | ai-daily |
-|------|-----------|----------|
-| RSS 源 | `config/sources.yaml` 少量源 | OPML 400+ 源，可 block/add |
-| 推送节奏 | 每日一次 | hourly fetch + 热点即时推 + 每日早报（08:00） |
-| 扩展板块 | 无 | GitHub Trending、HN 评论树、跨板块洞察 |
-| 配置格式 | YAML + .env | JSON + .env |
-| 部署 | 自带 GHA workflow | 本目录 GHA + 上游 systemd |
-
-## 常见问题
-
-**Q：能否只用企业微信、不用飞书？**  
-A：可以。`config.user.json.example` 已 `wecom.enabled: true`，飞书/Discord 为 `false`。
-
-**Q：LLM 费用？**  
-A：DeepSeek 按 token 计费；可通过 `filter.min_score`、`llm.max_concurrent_batches` 控制调用量。
-
-**Q：修改推送时间？**  
-A：编辑 `config.json` 的 `schedule.push_cron`（cron 表达式；GHA 使用 UTC，workflow 已换算）。
-
-**Q：Windows 终端乱码？**  
-A：程序已自动 UTF-8 输出；若仍乱码可在 PowerShell 执行 `chcp 65001`，或使用 Windows Terminal。
+- **配置**：`config.user.json`（线上）+ Secrets + 本地 `config.json`（调试）
+- **状态**：`news-data/run-state.json`、`push-skip-*.json` 记录运行与静默日
 
 ---
 
-上游文档详见 [README.md](./README.md)。排查顺序：`uv run python -m src.main check` → 检查 `WECOM_WEBHOOK_URL` → 查看 Actions 日志。
+## 已做的本地适配
 
+1. **企微推送**：即时热点 + digest news + 完整版链接
+2. **DeepSeek**：`config.user.json` 使用 `deepseek-chat`
+3. **时区**：`timezone_hours: 8`
+4. **GitHub Actions 多 workflow**：fetch / daily / health-check，daily **内联 Pages 部署**
+5. **调度修复**：移除脆弱的 `date -u` detect；独立 concurrency
+6. **Windows UTF-8**：`src/console.py` 避免 GBK emoji 报错
 
-## GitHub 仓库上线（网页需手动完成）
+---
 
-仓库地址：https://github.com/zk1239520941/ai-daily  
-Pages 地址：https://zk1239520941.github.io/ai-daily/
+## 与 ai-digest 的主要差异
 
-本地已配置 push.wecom.pages_base_url / PAGES_BASE_URL 指向上述 Pages 根路径；.env 与 config.json 不会提交到 Git，请在仓库与本地分别维护。
+| 维度 | ai-digest | ai-daily（本实例） |
+|------|-----------|-------------------|
+| RSS 源 | YAML 少量源 | OPML 400+ |
+| 推送 | 每日一次 | hourly 热点 + 每日 digest |
+| 渠道 | 自建 | **企业微信** |
+| 全文 | 无 / 自建 | **GitHub Pages** |
+| 部署 | 自建 GHA | **fetch + daily + health-check** |
+| 配置 | YAML | `config.user.json` + Secrets |
 
-### Settings → Secrets and variables → Actions
+---
 
-在 Repository secrets 中新增（名称须与 workflow 一致）：
+## 常见问题
 
-| Secret 名称 | 说明 |
-|-------------|------|
-| DEEPSEEK_API_KEY | DeepSeek API 密钥 |
-| WECOM_WEBHOOK_URL | 企业微信群机器人 Webhook 完整 URL |
-| GITHUB_TOKEN | 可选；GitHub Trending 等扩展源 |
-| JINA_API_KEY | 可选；Jina 阅读/抓取相关能力 |
+**Q：只用企微、不用飞书/Discord？**  
+A：可以。`config.user.json` 已 `wecom.enabled: true`，其余为 `false`。
 
-勿在 Issue、PR 或日志中粘贴上述值。
+**Q：LLM 费用？**  
+A：DeepSeek 按 token；主要成本来源，与 GitHub Actions 无关。
 
-### Settings → Pages
+**Q：公开库 Actions 会超 2000 分钟吗？**  
+A：**公开仓库**标准 runner 基本不限分钟；**私有库** Free 约 2000 分钟/月，hourly fetch 易触顶。
 
-1. Build and deployment → Source 选择 GitHub Actions（不要选 Deploy from a branch）。
-2. 首次有内容需先跑 **AI Daily 定时任务**（或本地 push 后 `git push news-data/push-*.md`），再等待 **GitHub Pages 日报全站** 自动或手动部署。
+**Q：收到企微但链接 404？**  
+A：不应再出现（已改为 Pages deploy 完成 + URL 200 后才推）。若复现，查 `daily.yml` 的 `deploy-pages` 与 `wecom` 步骤日志。
 
-### 推荐操作顺序（上线后）
+**Q：修改推送时间？**  
+A：改 `.github/workflows/daily.yml` 的 cron（UTC）；`config.json` 的 `push_cron` 主要影响收录窗口语义。
 
-1. 在仓库 **Secrets** 配置 `DEEPSEEK_API_KEY`、`WECOM_WEBHOOK_URL`（及可选 `GITHUB_TOKEN`、`JINA_API_KEY`、`PAGES_BASE_URL`）
-2. **Settings → Pages** → Source 选 **GitHub Actions**
-3. **Actions → AI Daily 定时任务 → Run workflow → `all`**
-4. 确认日志中 fetch、push、企微发送、**提交 push 日报** 均成功
-5. 等待 **GitHub Pages 日报全站** 被 push 触发并完成（约 1～2 分钟）
-6. 打开 https://zk1239520941.github.io/ai-daily/ 应能看到日报链接；企微群应收到消息
+---
 
-若第 3 步未跑 Daily 而只跑了 Pages，站点会显示「暂无日报」且企微无消息。
+## 本仓库上线信息
 
-### 推送失败（认证）
+| 项 | 值 |
+|----|-----|
+| 仓库 | https://github.com/zk1239520941/ai-daily |
+| Pages | https://zk1239520941.github.io/ai-daily/ |
+| 配置真源 | `config.user.json` + Actions Secrets |
+| 本地密钥 | `.env` / `config.json`（不提交） |
 
-Windows 下可任选其一：执行 gh auth login 后 git push -u origin main；或使用 PAT（Classic，勾选 repo）配合 git config credential.helper manager 再 push。勿把 PAT 写入仓库文件。
+### 推荐操作顺序（新环境）
+
+1. 配置 Secrets：`DEEPSEEK_API_KEY`、`WECOM_WEBHOOK_URL`、`PAGES_BASE_URL`
+2. **Settings → Pages → GitHub Actions**
+3. **Actions → AI Daily 早报 → Run workflow**
+4. 确认日志：`deploy-pages` ✅ → `wecom` ✅
+5. 打开 Pages 首页 + 检查企微
+
+补发企微（Pages 已好、只想重发）：**AI Daily 早报 → Run workflow → 勾选 `wecom_only`**。
+
+排查顺序：`main check` → Secrets → Actions 日志 → `news-data/run-state.json`。
