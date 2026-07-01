@@ -34,9 +34,8 @@ SITE_FOOTER = "AI Daily"
 FONT_LINK = (
     "https://fonts.googleapis.com/css2?"
     "family=IBM+Plex+Mono:wght@400;500&"
-    "family=Noto+Serif+SC:wght@500;600;700&"
-    "family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&"
-    "family=Sora:wght@400;500;600&display=swap"
+    "family=Inter:wght@400;500;600;700&"
+    "family=Noto+Serif+SC:wght@500;600;700&display=swap"
 )
 _H3_SPLIT_RE = re.compile(r"(?=<h3>)")
 _EMOJI_NUM_RE = re.compile(r"^[1-9]️⃣\s*")
@@ -185,10 +184,10 @@ def _enhance_article_body(body_html: str) -> str:
 
 
 def _render_figure(image_url: str) -> str:
-    """渲染条目配图 figure。"""
+    """渲染条目配图 figure（pretext 混排用）。"""
     safe_src = html.escape(image_url)
     return (
-        f'<figure class="entry-figure">'
+        f'<figure class="entry-figure pretext-figure">'
         f'<img src="{safe_src}" alt="" loading="lazy" '
         f'referrerpolicy="no-referrer" decoding="async"/>'
         f"</figure>"
@@ -196,11 +195,15 @@ def _render_figure(image_url: str) -> str:
 
 
 def _inject_entry_figures(body_html: str, entry_images: Dict[str, str]) -> str:
-    """在 story-block 内首个链接命中 entry_images 时注入 figure。"""
+    """在 story-block 内首个链接命中 entry_images 时注入 figure 并 pretext 混排。"""
     if not body_html or not entry_images:
         return body_html
 
+    block_index = 0
+
     def _inject_block(match: re.Match[str]) -> str:
+        nonlocal block_index
+        block_index += 1
         opening = match.group(1)
         block_html = match.group(2)
         closing = match.group(3)
@@ -208,11 +211,26 @@ def _inject_entry_figures(body_html: str, entry_images: Dict[str, str]) -> str:
         image = lookup_entry_image(entry_images, url)
         if not image:
             return match.group(0)
+        side = "right" if block_index % 2 == 1 else "left"
         figure = _render_figure(image)
         if "<h3>" in block_html:
-            block_html = block_html.replace("</h3>", f"</h3>{figure}", 1)
+            h3_end = block_html.find("</h3>") + len("</h3>")
+            h3_part = block_html[:h3_end]
+            body_part = block_html[h3_end:].strip()
+            block_html = (
+                f"{h3_part}"
+                f'<div class="pretext-block pretext-{side}">'
+                f"{figure}"
+                f'<div class="story-prose">{body_part}</div>'
+                f"</div>"
+            )
         else:
-            block_html = figure + block_html
+            block_html = (
+                f'<div class="pretext-block pretext-{side}">'
+                f"{figure}"
+                f'<div class="story-prose">{block_html}</div>'
+                f"</div>"
+            )
         return f"{opening}{block_html}{closing}"
 
     return re.sub(
@@ -357,7 +375,7 @@ def _html_head(title: str, css_href: str, cover_image: str = "") -> str:
     return f"""<meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light"/>
-  <meta name="theme-color" content="#f6f2ea"/>
+  <meta name="theme-color" content="#F5F5F2"/>
   <title>{safe_title}</title>{og_image}
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
