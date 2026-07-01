@@ -806,7 +806,12 @@ async def cmd_wecom(
         return 1
 
     if not skip_wait:
-        if not wait_for_pages_workflow(timeout=pages_wf_timeout):
+        skip_wf = os.environ.get("SKIP_PAGES_WORKFLOW_WAIT", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        if not skip_wf and not wait_for_pages_workflow(timeout=pages_wf_timeout):
             print("❌ Pages workflow 未成功完成，不推送 digest 企微")
             await notify_digest_url_unavailable(config, full_url)
             return 1

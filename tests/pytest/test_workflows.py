@@ -28,6 +28,8 @@ def test_daily_workflow_uses_push_result_status():
     assert "steps.push.outputs.status" in daily
     assert ".last-push-result.json" in daily
     assert "config.user.json" in daily
+    assert "deploy-pages@v4" in daily
+    assert "wecom_only" in daily
 
 
 def test_fetch_and_daily_separate_concurrency():

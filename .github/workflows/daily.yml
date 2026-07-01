@@ -2,6 +2,8 @@ name: AI Daily 早报
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 on:
   schedule:
@@ -19,6 +21,11 @@ on:
         required: false
         default: false
         type: boolean
+      wecom_only:
+        description: "仅重发企微（跳过 fetch/push/publish，Pages 已就绪时用）"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ai-daily-daily-${{ github.ref }}
@@ -28,6 +35,9 @@ jobs:
   daily:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,11 +51,24 @@ jobs:
 
       - run: cp config.user.json config.json
 
+      - name: 仅重发 digest 企微
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.wecom_only == true }}
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
+          SKIP_PAGES_WORKFLOW_WAIT: "true"
+          WECOM_URL_WAIT: "60"
+        run: uv run python -m src.main wecom
+
       - name: 同步远端 news-data（git 为唯一真源）
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.wecom_only != true }}
         run: git pull --rebase origin ${{ github.ref_name }} || true
 
       - name: 推送前补抓
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_fetch != true }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.skip_fetch != true) && (github.event_name != 'workflow_dispatch' || inputs.wecom_only != true) }}
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
@@ -55,6 +78,7 @@ jobs:
 
       - name: 生成日报（不推 digest 企微）
         id: push
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.wecom_only != true }}
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
@@ -77,13 +101,37 @@ jobs:
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
           echo "push_status=$STATUS"
 
-      - name: 提交 push 日报并推送（触发 GitHub Pages）
+      - name: 提交 push 日报到 git
         if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
         env:
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main publish
 
-      - name: 等待 Pages 部署完成并推送 digest 企微
+      - name: 准备 Pages 站点
+        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        run: |
+          uv run python scripts/build_pages_index.py
+          mkdir -p _site
+          cp index.html _site/
+          cp -r news-data _site/
+          if [ -d static ]; then cp -r static _site/; fi
+
+      - name: 配置 Pages
+        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        uses: actions/configure-pages@v5
+
+      - name: 上传 Pages artifact
+        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: 部署 GitHub Pages
+        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: URL 可访问后推送 digest 企微
         if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -91,7 +139,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
-          PAGES_WORKFLOW_WAIT: "900"
+          SKIP_PAGES_WORKFLOW_WAIT: "true"
           WECOM_URL_WAIT: "180"
         run: uv run python -m src.main wecom
 
