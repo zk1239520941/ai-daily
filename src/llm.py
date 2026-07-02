@@ -37,16 +37,38 @@ def load_prompt(prompt_path: str, **kwargs) -> str:
     return template
 
 
+_LLM_API_KEY_ALIASES = frozenset({"LLM_API_KEY", "DEEPSEEK_API_KEY"})
+
+
+def _resolve_llm_api_key(api_key_name: str) -> Optional[str]:
+    """解析 LLM API Key；LLM_API_KEY 与 DEEPSEEK_API_KEY 互为 fallback。"""
+    key = os.environ.get(api_key_name)
+    if key:
+        return key
+
+    if api_key_name in _LLM_API_KEY_ALIASES:
+        for alt in ("LLM_API_KEY", "DEEPSEEK_API_KEY"):
+            if alt != api_key_name:
+                alt_key = os.environ.get(alt)
+                if alt_key:
+                    return alt_key
+    return None
+
+
 async def call_llm(
     prompt: str, config: Dict, response_format: Optional[Dict] = None
 ) -> str:
     """调用LLM API - 统一使用OpenAI兼容接口"""
     model = config.get("model", "gpt-4o-mini")
     base_url = config.get("baseUrl", "https://api.openai.com/v1")
-    api_key_name = config.get("apiKeyName", "OPENAI_API_KEY")
+    api_key_name = config.get("apiKeyName", "LLM_API_KEY")
 
-    api_key = os.environ.get(api_key_name)
+    api_key = _resolve_llm_api_key(api_key_name)
     if not api_key:
+        if api_key_name in _LLM_API_KEY_ALIASES:
+            raise ValueError(
+                f"未设置 LLM API Key 环境变量（{api_key_name} / LLM_API_KEY / DEEPSEEK_API_KEY）"
+            )
         raise ValueError(f"未设置{api_key_name}环境变量")
 
     import aiohttp

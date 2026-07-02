@@ -44,6 +44,7 @@ jobs:
 
       - name: 抓取 RSS 并评分（含即时热点）
         env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

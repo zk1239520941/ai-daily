@@ -19,7 +19,7 @@ async def test_summarize_github_trending_happy_path(tmp_path):
     config = {
         "model": "x",
         "baseUrl": "http://x",
-        "apiKeyName": "DEEPSEEK_API_KEY",
+        "apiKeyName": "LLM_API_KEY",
         "prompts": {"section_github": str(prompt_path)},
         "sections": {"github_trending": {"max_items": 3}},
     }
@@ -39,7 +39,7 @@ async def test_summarize_github_trending_llm_failure_returns_error(tmp_path):
     config = {
         "model": "x",
         "baseUrl": "http://x",
-        "apiKeyName": "DEEPSEEK_API_KEY",
+        "apiKeyName": "LLM_API_KEY",
         "prompts": {"section_github": str(prompt_path)},
         "sections": {"github_trending": {"max_items": 3}},
     }
@@ -56,7 +56,7 @@ async def test_select_ai_related_hn_parses_id_array(tmp_path):
     config = {
         "model": "x",
         "baseUrl": "http://x",
-        "apiKeyName": "DEEPSEEK_API_KEY",
+        "apiKeyName": "LLM_API_KEY",
         "prompts": {"section_hackernews_select": str(prompt_path)},
     }
     with patch("llm.call_llm", new=AsyncMock(return_value='["111", "222"]')):
@@ -74,7 +74,7 @@ async def test_select_ai_related_hn_empty_array(tmp_path):
     config = {
         "model": "x",
         "baseUrl": "http://x",
-        "apiKeyName": "DEEPSEEK_API_KEY",
+        "apiKeyName": "LLM_API_KEY",
         "prompts": {"section_hackernews_select": str(prompt_path)},
     }
     with patch("llm.call_llm", new=AsyncMock(return_value="[]")):
@@ -90,7 +90,7 @@ async def test_summarize_hackernews_happy(tmp_path):
     config = {
         "model": "x",
         "baseUrl": "http://x",
-        "apiKeyName": "DEEPSEEK_API_KEY",
+        "apiKeyName": "LLM_API_KEY",
         "prompts": {"section_hackernews": str(prompt_path)},
     }
     with patch("llm.call_llm", new=AsyncMock(return_value="## HN summary")):

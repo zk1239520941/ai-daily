@@ -33,9 +33,9 @@
 | 维度 | 说明 |
 |------|------|
 | **零服务器** | 不需要 VPS、Docker、常开电脑或 systemd。定时任务、静态站点、数据归档全部跑在 **GitHub Actions + Pages** 上，公开仓库基本免费。 |
-| **极简上手** | Fork 或 Clone 到自己账号 → 配置 **DeepSeek API Key**（必配）与 **企微 Webhook**（接收推送）→ 开启 Pages → 即可每天自动收早报。业务参数写在 `config.user.json`，不含密钥，可随仓库提交。 |
+| **极简上手** | Fork 或 Clone 到自己账号 → 配置 **LLM API Key**（必配）与 **企微 Webhook**（接收推送）→ 开启 Pages → 即可每天自动收早报。业务参数写在 `config.user.json`，不含密钥，可随仓库提交。 |
 | **日常零运维** | 没有机器要维护、没有服务要重启。Actions 按 cron 自动跑；偶发 schedule 延迟时，hourly fetch 会 **补触发** digest，健康检查仅告警不重复推。 |
-| **成本可控** | 主要开销是 LLM token（DeepSeek 按量计费），日常 hourly 抓取 + 每日 digest 通常 **每天几毛钱量级**；Actions、Pages、企微 Webhook 对个人公开仓几乎无额外费用。 |
+| **成本可控** | 主要开销是 LLM token（按量计费），日常 hourly 抓取 + 每日 digest 通常 **每天几毛钱量级**（如 DeepSeek 等低成本模型）；Actions、Pages、企微 Webhook 对个人公开仓几乎无额外费用。 |
 
 > 一句话：**把仓库克隆到自己账号、填两个 Secret、开 Pages**，就能在手机上收 AI 资讯推送，在网页上读全文与历史归档——无需再为服务器和运维操心。
 
@@ -125,7 +125,7 @@ copy config.user.json.example config.json   # 本地调试用
 
 | 变量 | 说明 |
 |------|------|
-| `DEEPSEEK_API_KEY` | LLM 评分与 digest |
+| `LLM_API_KEY` | LLM 评分与 digest（兼容旧名 `DEEPSEEK_API_KEY`） |
 | `WECOM_WEBHOOK_URL` | 企微群机器人 Webhook |
 | `PAGES_BASE_URL` | 如 `https://<user>.github.io/ai-daily/` |
 | `GITHUB_TOKEN` | 可选，提高 GitHub API 限额 |
@@ -189,7 +189,7 @@ uv run python -m src.main loop       # 长跑（开发用）
 |------|------------------|------|
 | GitHub Actions | **基本免费** | 定时抓取与 deploy，无需自购算力 |
 | GitHub Pages | **免费** | 静态站点托管全文与归档 |
-| DeepSeek API | 按 token 计费 | **主要可变成本**；日常约几毛 / 天 |
+| LLM API | 按 token 计费 | **主要可变成本**；日常约几毛 / 天（DeepSeek 等为低成本选项之一） |
 | 企微 Webhook | 免费 | 推送到群，无需自建消息服务 |
 
 **没有** 服务器月租、域名（可用 `*.github.io`）、数据库、运维人力等隐性成本。若改为 **Private** 仓库，Actions 有每月 2000 分钟限额，hourly fetch 可能较快触顶，需减频或升级计划。

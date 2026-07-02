@@ -19,5 +19,6 @@ jobs:
 
       - name: 校验 LLM 连通性
         env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: uv run python -m src.main check

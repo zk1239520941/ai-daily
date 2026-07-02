@@ -54,6 +54,7 @@ jobs:
       - name: 仅重发 digest 企微
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.wecom_only == true }}
         env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,6 +75,7 @@ jobs:
       - name: 推送前补抓
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.skip_fetch != true) && (github.event_name != 'workflow_dispatch' || inputs.wecom_only != true) }}
         env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,6 +86,7 @@ jobs:
         id: push
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.wecom_only != true }}
         env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -144,6 +147,7 @@ jobs:
       - name: URL 可访问后推送 digest 企微
         if: steps.push.outputs.status == 'generated'
         env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

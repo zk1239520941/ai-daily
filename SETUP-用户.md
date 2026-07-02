@@ -44,16 +44,24 @@ copy config.user.json.example config.json   # 本地调试用；线上用 config
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `DEEPSEEK_API_KEY` | ✅ | LLM 评分与 digest |
+| `LLM_API_KEY` | ✅ | LLM 评分与 digest（兼容旧名 `DEEPSEEK_API_KEY`） |
 | `WECOM_WEBHOOK_URL` | ✅ | 企微群机器人 Webhook |
 | `PAGES_BASE_URL` | 推荐 | 如 `https://<user>.github.io/ai-daily/` |
 | `GITHUB_TOKEN` | 可选 | 提高 GitHub Trending API 限额 |
 | `JINA_API_KEY` | 可选 | HN 外链正文（Jina Reader） |
 
-#### `DEEPSEEK_API_KEY`
+#### `LLM_API_KEY`
+
+支持任意 **OpenAI 兼容** 接口的大模型。在 `.env` 或 Secrets 中配置 Key，并在 `config.user.json` 中设置对应的 `llm.baseUrl` 与 `llm.model`。
+
+**示例（DeepSeek，低成本选项之一）：**
 
 1. [DeepSeek 开放平台](https://platform.deepseek.com/) 创建 Key
-2. `config.user.json` 中 `llm.baseUrl` 为 `https://api.deepseek.com/v1`，`model` 推荐 `deepseek-chat`
+2. `llm.baseUrl`: `https://api.deepseek.com/v1`，`model`: `deepseek-chat`
+
+**示例（OpenAI）：** `baseUrl`: `https://api.openai.com/v1`，`model`: `gpt-4o-mini`
+
+> 向后兼容：若仍使用旧环境变量名 `DEEPSEEK_API_KEY`，程序会自动读取（`LLM_API_KEY` 优先）。
 
 #### `WECOM_WEBHOOK_URL`
 
@@ -105,7 +113,7 @@ git push -u origin main
 
 | Secret | 必填 | 说明 |
 |--------|------|------|
-| `DEEPSEEK_API_KEY` | ✅ | 同 `.env` |
+| `LLM_API_KEY` | ✅ | 同 `.env`（兼容旧名 `DEEPSEEK_API_KEY`） |
 | `WECOM_WEBHOOK_URL` | ✅ | 同 `.env` |
 | `PAGES_BASE_URL` | 推荐 | 同 `.env` |
 | `GITHUB_TOKEN` | 可选 | 用户 PAT，非 Actions 内置 token |
@@ -210,7 +218,7 @@ RSS / GitHub Trending / Hacker News
 ## 已做的本地适配
 
 1. **企微推送**：即时热点 + digest news + 完整版链接
-2. **DeepSeek**：`config.user.json` 使用 `deepseek-chat`
+2. **LLM 默认**：`config.user.json` 默认使用 DeepSeek（可改为其他 OpenAI 兼容模型）
 3. **时区**：`timezone_hours: 8`
 4. **GitHub Actions 多 workflow**：fetch / daily / health-check，daily **内联 Pages 部署**
 5. **调度修复**：移除脆弱的 `date -u` detect；独立 concurrency
@@ -237,7 +245,7 @@ RSS / GitHub Trending / Hacker News
 A：可以。`config.user.json` 已 `wecom.enabled: true`，其余为 `false`。
 
 **Q：LLM 费用？**  
-A：DeepSeek 按 token；主要成本来源，与 GitHub Actions 无关。
+A：按 token 计费，为主要成本来源，与 GitHub Actions 无关。DeepSeek 等为低成本选项之一。
 
 **Q：公开库 Actions 会超 2000 分钟吗？**  
 A：**公开仓库**标准 runner 基本不限分钟；**私有库** Free 约 2000 分钟/月，hourly fetch 易触顶。
@@ -261,7 +269,7 @@ A：改 `.github/workflows/daily.yml` 的 cron（UTC）；`config.json` 的 `pus
 
 ### 推荐操作顺序（新环境）
 
-1. 配置 Secrets：`DEEPSEEK_API_KEY`、`WECOM_WEBHOOK_URL`、`PAGES_BASE_URL`
+1. 配置 Secrets：`LLM_API_KEY`、`WECOM_WEBHOOK_URL`、`PAGES_BASE_URL`
 2. **Settings → Pages → GitHub Actions**
 3. **Actions → AI Daily 早报 → Run workflow**
 4. 确认日志：`deploy-pages` ✅ → `wecom` ✅

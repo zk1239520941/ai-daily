@@ -35,7 +35,7 @@ def _cfg(history_file: str, max_deep_dive: int = 10) -> dict:
         "llm": {
             "model": "x",
             "baseUrl": "http://x",
-            "apiKeyName": "DEEPSEEK_API_KEY",
+            "apiKeyName": "LLM_API_KEY",
             "prompts": {"section_github": "prompts/section_github.md"},
         },
     }

@@ -25,7 +25,7 @@ def _cfg() -> dict:
         "llm": {
             "model": "x",
             "baseUrl": "http://x",
-            "apiKeyName": "DEEPSEEK_API_KEY",
+            "apiKeyName": "LLM_API_KEY",
             "prompts": {"insights": "prompts/insights.md"},
         },
     }

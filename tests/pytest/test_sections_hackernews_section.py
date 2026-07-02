@@ -39,7 +39,7 @@ def _cfg() -> dict:
         "llm": {
             "model": "x",
             "baseUrl": "http://x",
-            "apiKeyName": "DEEPSEEK_API_KEY",
+            "apiKeyName": "LLM_API_KEY",
             "prompts": {
                 "section_hackernews_select": "prompts/section_hackernews_select.md",
                 "section_hackernews": "prompts/section_hackernews.md",

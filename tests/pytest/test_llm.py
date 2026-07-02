@@ -16,6 +16,7 @@ from llm import (
     _build_batch_prompt,
     _merge_scores,
     _score_single_batch,
+    _resolve_llm_api_key,
     call_llm,
     check_llm_available,
     generate_immediate_push,
@@ -172,6 +173,30 @@ class TestMergeScores:
         assert result[1]["score"] == 60
 
 
+class TestResolveLlmApiKey:
+    """测试 LLM API Key 解析与向后兼容"""
+
+    def test_primary_key(self, monkeypatch):
+        monkeypatch.setenv("LLM_API_KEY", "sk-primary")
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        assert _resolve_llm_api_key("LLM_API_KEY") == "sk-primary"
+
+    def test_fallback_to_deepseek(self, monkeypatch):
+        monkeypatch.delenv("LLM_API_KEY", raising=False)
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-legacy")
+        assert _resolve_llm_api_key("LLM_API_KEY") == "sk-legacy"
+
+    def test_llm_api_key_takes_priority(self, monkeypatch):
+        monkeypatch.setenv("LLM_API_KEY", "sk-primary")
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-legacy")
+        assert _resolve_llm_api_key("LLM_API_KEY") == "sk-primary"
+
+    def test_old_config_name_reads_llm_api_key(self, monkeypatch):
+        monkeypatch.setenv("LLM_API_KEY", "sk-primary")
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        assert _resolve_llm_api_key("DEEPSEEK_API_KEY") == "sk-primary"
+
+
 class TestCallLlm:
     """测试LLM调用"""
 
@@ -191,10 +216,20 @@ class TestCallLlm:
         assert result == "Test response"
 
     @pytest.mark.asyncio
-    async def test_call_llm_missing_key(self):
-        config = {"model": "gpt-4", "apiKeyName": "MISSING_KEY"}
+    async def test_call_llm_missing_key(self, monkeypatch):
+        monkeypatch.delenv("LLM_API_KEY", raising=False)
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        config = {"model": "gpt-4", "apiKeyName": "LLM_API_KEY"}
 
-        with pytest.raises(ValueError, match="未设置MISSING_KEY"):
+        with pytest.raises(ValueError, match="未设置 LLM API Key"):
+            await call_llm("Test prompt", config)
+
+    @pytest.mark.asyncio
+    async def test_call_llm_missing_custom_key(self, monkeypatch):
+        monkeypatch.delenv("CUSTOM_KEY", raising=False)
+        config = {"model": "gpt-4", "apiKeyName": "CUSTOM_KEY"}
+
+        with pytest.raises(ValueError, match="未设置CUSTOM_KEY"):
             await call_llm("Test prompt", config)
 
 
