@@ -38,3 +38,11 @@ def test_fetch_and_daily_separate_concurrency():
     assert "ai-daily-fetch" in fetch
     assert "ai-daily-daily" in daily
     assert "ai-daily-fetch" not in daily or "ai-daily-daily" in daily
+
+
+def test_health_check_can_dispatch_daily():
+    """健康检查失败时应能补触发 daily workflow。"""
+    health = (WORKFLOW_DIR / "health-check.yml").read_text(encoding="utf-8")
+    assert "actions: write" in health
+    assert "createWorkflowDispatch" in health
+    assert "daily.yml" in health
