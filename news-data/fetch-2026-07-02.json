@@ -3421,6 +3421,157 @@
       "score": 50,
       "summary": "KOL 歸藏发布一条仅含链接的推文，无实质内容。",
       "fetched_at": "2026-07-02T12:14:49.472912+08:00"
+    },
+    {
+      "title": "[AINews] not much happened today",
+      "link": "https://www.latent.space/p/ainews-not-much-happened-today-900",
+      "published": "2026-07-02T15:10:14+08:00",
+      "source": "Latent Space",
+      "content": "Fable was relaunched on schedule, and AIE was on top of it with **the first Field Guide to Fable talk**, as well as the rest of the excellent  coverage of AIEWF Day 3 across [Autoresearch](https://www.latent.space/p/autoresearch-introspection), [Cursor FDE](https://www.latent.space/p/cursor-forward-deployed-engineers), and a [followup](https://www.latent.space/p/software-factories) to [Zach Lloyd’s popular talk yesterday on Software Factories](https://www.youtube.com/watch?v=4sX_He5c4sI), as well as “all killer no filler” closing keynotes:\n\n> AI News for 7/1/2026-7/1/2026. We checked 12 subreddits, [544 Twitters](https://twitter.com/i/lists/1585430245762441216) and no further Discords. [AINews’ website](https://news.smol.ai/) lets you search all past issues. As a reminder, [AINews is now a section of Latent Space](https://www.latent.space/p/2026). You can [opt in/out](https://support.substack.com/hc/en-us/articles/8914938285204-How-do-I-subscribe-to-or-unsubscribe-from-a-section-on-Substack) of email frequencies!\n\n---\n\n# **AI Twitter Recap**\n\n**Coding Models, Agent Harnesses, and the Fable 5 Re-launch**\n\n* **Anthropic re-enabled Claude Fable 5, but with visible safety fallbacks**: After a day of pent-up demand, [@claudeai](https://x.com/claudeai/status/2072402636813607381) announced **Fable 5 is back**, alongside a clarifying note that updated cybersecurity safeguards may route some requests to **Opus 4.8**, with biology/chemistry classifiers still overly broad for now [@claudeai](https://x.com/claudeai/status/2072402638247968855). The relaunch immediately propagated into tooling: **Cursor** says Fable 5 leads its evals but is the **most expensive per task** [@cursor\\_ai](https://x.com/cursor_ai/status/2072403323844428217); **Devin** added it across Cloud/Desktop/CLI [@cognition](https://x.com/cognition/status/2072405137117548601); **Perplexity** restored it as an orchestrator model [@perplexity\\_ai](https://x.com/perplexity_ai/status/2072433125104505226). Anthropic also reset rate limits for users once the model was live again [@ClaudeDevs](https://x.com/ClaudeDevs/status/2072429181565288665).\n* **The interesting story was less “model is back” than “how people are adapting to frontier-model constraints”**: Multiple builders converged on **multi-model orchestration** rather than single-model dependence. [@theo](https://x.com/theo/status/2072481845363822914) described using Fable only for higher-value reasoning/planning while delegating implementation, verification, and computer-use work to other models; he reports a substantial improvement in end-to-end PR yield [@theo](https://x.com/theo/status/2072482460122964067). Similar views came from [@omarsar0](https://x.com/omarsar0/status/2072400978079261041), who argued teams should design **model-combination strategies** rather than build around one frontier model, and from [@MParakhin](https://x.com/MParakhin/status/2072275413116784961), who pushed back on “simple-task pre-classifiers,” arguing that reliable routing often requires solving the task first. On the benchmark side, [@kimmonismus](https://x.com/kimmonismus/status/2072376968729817531) highlighted **Fable 5’s 16.10% on the Remote Labor Index**, while [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2072427328689619241) reported **Sonnet 5** ranking second on **AA-Briefcase** but with much higher turn counts and weaker cost-performance tradeoffs at lower effort settings.\n\n**Open Models, Chinese Labs, and the Expanding Coding Stack Around GLM-5.2**\n\n* **Z.ai is building product surface area around GLM-5.2, not just shipping a checkpoint**: The most concrete launch was **ZCode**, the official dev environment for **GLM-5.2**, with BYOK support, cross-platform availability, and a quota boost for coding-plan subscribers [@Zai\\_org](https://x.com/Zai_org/status/2072349453361557898). Commentary from [@kimmonismus](https://x.com/kimmonismus/status/2072378141041991702) framed it as an AI-native coding IDE optimized for GLM workflows and long-running autonomous tasks. The surrounding ecosystem is moving quickly too: **LangChain** published guides for using GLM-5.2 in coding flows [@LangChain](https://x.com/LangChain/status/2072334663457067064), and [@hwchase17](https://x.com/hwchase17/status/2072344890755977571) explicitly called out developers turning to GLM-5.2 as a daily driver.\n* **Benchmarks suggest open coding models are closing specific gaps even if not leading overall frontier performance**: [@mercor\\_ai](https://x.com/mercor_ai/status/2072448918751941041) reported **GLM 5.2** as the first open model to lead a category on **APEX-SWE**, posting **55.3% Pass@1 on Integration**, and ranking as the best open model tested overall there; **Kimi K2.7** followed closely. That complements [@scaling01](https://x.com/scaling01/status/2072346101068238946), who cautioned against overclaiming that GLM has surpassed top Western frontier models while still acknowledging a rapidly shrinking coding gap.\n* **Inference work around open models is becoming a meaningful part of the story**: [@vllm\\_project](https://x.com/vllm_project/status/2072545387639189798) landed native **DSpark speculative decoding** support in **vLLM** for DeepSeek models, reporting around **250 tok/s** on 8×B300 with improved acceptance over MTP, and [@mgoin\\_](https://x.com/mgoin_/status/2072525522639212825) released a **GLM-5.2 DSpark preview** claiming roughly **1.5× faster decode**. Separately, [@jon\\_durbin](https://x.com/jon_durbin/status/2072293557172363720) reported an in-house **dflash** drafter on **Qwen3-32B** yielding **~50% higher throughput** on the same hardware.\n\n**Agent Infrastructure: Memory, Wikis, Skill Composition, and Structured Workflows**\n\n* **“Wiki memory” is emerging as a practical design pattern for agents**: [@sydneyrunkle](https://x.com/sydneyrunkle/status/2072311589072486879) argued for **wiki-structured memory** as a simple, extensible substrate, and that idea rapidly turned into product releases. **LangChain** launched **OpenWiki**, a tool to generate and maintain agent-consumable codebase docs with `openwiki --init` [@BraceSproul](https://x.com/BraceSproul/status/2072375499125596262), [@LangChain](https://x.com/LangChain/status/2072376975545798792). The motivation is consistent across posts: agents repeatedly lose working context between threads and need a maintained, inspectable knowledge layer rather than raw logs [@caspar\\_br](https://x.com/caspar_br/status/2072420582717858292).\n* **Memory systems are shifting from retrieval-only to reconciliation and maintenance**: Weaviate’s **Engram** pitch is representative here: candidate memories are extracted, transformed against existing memory, and only then committed, so contradictions are resolved once rather than at every query [@PrajjwalYd](https://x.com/PrajjwalYd/status/2072291317695324410). [@bpalit](https://x.com/bpalit/status/2072378273343082537) extends the same argument to enterprise settings, where agent memory must be governed, permission-aware, and shared—not just a folder of markdown files.\n* **Structured composition is replacing naive “give the model all the tools” approaches**: [@omarsar0](https://x.com/omarsar0/status/2072430551446032847) highlighted **SkillComposer**, which treats skill selection as a joint autoregressive composition problem and reports **+23.1pp / +18.2pp** gains on SkillsBench over no-skill baselines. On the framework side, Deep Agents added support for **recursive language model workflows** [@sydneyrunkle](https://x.com/sydneyrunkle/status/2072348322526810594), and [@hwchase17](https://x.com/hwchase17/status/2072377816780624266) connected **dynamic subagents** to patterns like **Agentic MapReduce**. This general direction—more explicit workflow structure, fan-out/fan-in patterns, and code-enforced orchestration—showed up repeatedly across products and benchmarks.\n\n**Security, Evaluation, and Agentic MapReduce**\n\n* **Cognition’s Devin Security Swarm is one of the clearer examples of agent architecture specializing around a real enterprise workflow**: The system uses **Agentic MapReduce** to fan out bounded agents across a codebase, aggregate findings, and validate exploitability before surfacing confirmed vulnerabilities [@cognition](https://x.com/cognition/status/2072368168182432109). Cognition claims this is both **more cost-effective and more accurate** than alternatives, and says a Fortune 500 pilot found and fixed **over a thousand vulnerabilities** in production repos [@walden\\_yan](https://x.com/walden_yan/status/2072377406267273248). The broader reaction from builders like [@jakejluo](https://x.com/jakejluo/status/2072380678419705949) and [@levie](https://x.com/levie/status/2072519377371459836) was that this pattern will generalize to large-scale document, code, and knowledge workflows.\n* **AI-agent evaluation is quickly becoming its own subfield**: [@random\\_walker](https://x.com/random_walker/status/2072375245969719374) noted several new papers advancing agent evaluation and described it as a distinct discipline. Practical examples included **Agent Arena** re-enabling Fable 5 in agent mode [@arena](https://x.com/arena/status/2072423538641031372), **AA-AgentPerf** for agents-per-megawatt system benchmarking [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2072254061244825981), and **WorldModelGym**, which evaluates whether a world model actually supports good decision-making rather than just producing plausible simulations [@RekaAILabs](https://x.com/RekaAILabs/status/2072325792558956573).\n* **There is also a push toward better reporting pipelines for AI failures**: **FLARE-AI**, launched with a coalition spanning cyber and AI safety researchers, aims to standardize **flaw and incident reporting** so issues can be routed to the right developers and registries instead of disappearing into siloed intake forms [@ClementDelangue](https://x.com/ClementDelangue/status/2072401982569025742), [@ShayneRedford](https://x.com/ShayneRedford/status/2072408461015707883).\n\n**Systems, Inference, and Architecture Work Worth Watching**\n\n* **NVIDIA’s TwoTower result stands out as a concrete speed/quality tradeoff on generation architecture**: [@NVIDIAAI](https://x.com/NVIDIAAI/status/2072394812301480067) introduced **Nemotron-Labs-TwoTower**, adapting a 30B model into a diffusion-style language model that writes tokens in parallel via a two-copy setup. Claimed result: **2.42× faster generation** while preserving **98.7%** of the original model’s quality. [@LiorOnAI](https://x.com/LiorOnAI/status/2072402904867365167) summarized the trick as reusing a frozen context model plus a trained writer model, avoiding full retraining from scratch.\n* **On-device and browser inference continue to benefit from agentic optimization and specialized runtimes**: [@googlegemma](https://x.com/googlegemma/status/2072416614188974274) highlighted **WebGPU Gemma 4** running at **255 tok/s on M4**, attributed to kernels written with Fable 5. [@andimarafioti](https://x.com/andimarafioti/status/2072335408294236164) demoed a fully open-source realtime voice stack around **Gemma 4 31B** with **Cerebras** inference, aiming as a drop-in alternative to OpenAI’s realtime API. At the kernel level, Hugging Face’s kernels library now exposes MiniMax’s **MSA kernel** [@RisingSayak](https://x.com/RisingSayak/status/2072277942554841292), and Triton-on-Mac drew interest as well [@QuixiAI](https://x.com/QuixiAI/status/2072345855093289005).\n* **Architecture research beyond vanilla LLM scaling also surfaced**: [@gklambauer](https://x.com/gklambauer/status/2072213633640075366) pointed to **AdaJEPA**, a LeCun-led world-model approach with **test-time adaptation** via latent-state prediction error; [@LiorOnAI](https://x.com/LiorOnAI/status/2072380547603829224) summarized **NEO** as learning reusable causal “programs” rather than only next-frame prediction; and [@ziv\\_ravid](https://x.com/ziv_ravid/status/2072402889092616309) highlighted “training in imagination” as an active paradigm rather than just speculation.\n\n**Top tweets (by engagement)**\n\n* **Fable 5 availability dominated technical attention**: [@claudeai: “Fable 5 is back.”](https://x.com/claudeai/status/2072402636813607381), [@ClaudeDevs on rate-limit resets](https://x.com/ClaudeDevs/status/2072429181565288665), and [@cursor\\_ai on Fable 5 leading CursorBench](https://x.com/cursor_ai/status/2072403323844428217).\n* **Systems/infra launch with broad reach**: [@NVIDIAAI on TwoTower’s 2.42× faster generation at 98.7% quality retention](https://x.com/NVIDIAAI/status/2072394812301480067).\n* **Open model ecosystem momentum**: [@Zai\\_org launching ZCode for GLM-5.2](https://x.com/Zai_org/status/2072349453361557898) and [@TogetherCompute announcing its $800M Series C at an $8.3B valuation](https://x.com/vipulved/status/2072321276094673083).\n* **High-signal tooling and knowledge-layer releases**: [@LangChain/OpenWiki](https://x.com/LangChain/status/2072376975545798792) and [@cognition/Devin Security Swarm](https://x.com/cognition/status/2072368168182432109).\n\n---\n\n# **AI Reddit Recap**\n\n## **/r/LocalLlama + /r/localLLM Recap**\n\n### **1. Open-Weight Model Releases and Local Runtime Benchmarks**\n\n[Read more](https://www.latent.space/p/ainews-not-much-happened-today-900)",
+      "tags": [
+        "Fable 5",
+        "Anthropic",
+        "重新上线"
+      ],
+      "score": 85,
+      "summary": "Anthropic重新上线Fable 5，但增加了安全回退机制，部分请求路由至Opus 4.8。",
+      "image_url": "https://substackcdn.com/image/youtube/w_728,c_limit/4sX_He5c4sI",
+      "fetched_at": "2026-07-02T16:20:37.621073+08:00"
+    },
+    {
+      "title": "How do you turn AI coding chaos into a repeatable playbook?​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌…",
+      "link": "https://stackoverflow.blog/2026/07/02/ai-coding-chaos-into-a-repeatable-playbook/",
+      "published": "2026-07-02T15:40:00+08:00",
+      "source": "Stack Overflow Blog",
+      "content": "Vivek Raghunathan, SVP of engineering at Snowflake, joins Leaders of Code at Snowflake Summit to break down the five-stage framework his org used to go from \"let chaos reign\" to a repeatable, org-wide system for AI-assisted engineering.​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​﻿‍‍​‍﻿﻿​‍﻿﻿‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍﻿﻿‌‍‍‌‌‍﻿‍‌﻿‌​‌‍‌‌‌‍﻿‍‌﻿‌​​‍﻿﻿‌‍‌‌‌‍‌​‌‍‍‌‌﻿‌​​‍﻿﻿‌‍﻿‌‌‍﻿﻿‌‍‌​‌‍‌‌​﻿﻿‌‌﻿​​‌﻿​‍‌‍‌‌‌﻿​﻿‌‍‌‌‌‍﻿‍‌﻿‌​‌‍​‌‌﻿‌​‌‍‍‌‌‍﻿﻿‌‍﻿‍​﻿‍﻿‌‍‍‌‌‍‌​​﻿﻿‌​﻿‌‌‌‍​﻿​﻿‌﻿‌‍‌‍​﻿​​​﻿‍​​﻿‍​​﻿​‍​‍﻿‌‌‍‌‌​﻿​‌‌‍​‌​﻿‌﻿​‍﻿‌​﻿‌​‌‍‌​​﻿​​‌‍‌‌​‍﻿‌​﻿‍‌‌‍‌‌​﻿​​​﻿‌‍​‍﻿‌​﻿‍​​﻿‌‍‌‍​﻿‌‍​﻿‌‍‌‌​﻿‍‌‌‍​﻿​﻿​﻿​﻿‌‍​﻿​‌​﻿​﻿‌‍​‌​﻿‍﻿‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​﻿‍﻿‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​﻿﻿﻿‌‍​‍‌‍​‌‌﻿​﻿‌‍‌‌‌‌‌‌‌﻿​‍‌‍﻿​​﻿﻿‌‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​‍‌‌​﻿​﻿‌​​‌​‍‌‌​﻿​‍‌​‌‍​‍‌‌​﻿​‍‌​‌‍‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍‌‍‌‍‍‌‌‍‌​​﻿﻿‌​﻿‌‌‌‍​﻿​﻿‌﻿‌‍‌‍​﻿​​​﻿‍​​﻿‍​​﻿​‍​‍﻿‌‌‍‌‌​﻿​‌‌‍​‌​﻿‌﻿​‍﻿‌​﻿‌​‌‍‌​​﻿​​‌‍‌‌​‍﻿‌​﻿‍‌‌‍‌‌​﻿​​​﻿‌‍​‍﻿‌​﻿‍​​﻿‌‍‌‍​﻿‌‍​﻿‌‍‌‌​﻿‍‌‌‍​﻿​﻿​﻿​﻿‌‍​﻿​‌​﻿​﻿‌‍​‌​‍‌‍‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​‍‌‍‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​‍‌‍‌﻿​​‌‍‌‌‌﻿​‍‌﻿​﻿‌﻿​​‌‍‌‌‌‍​﻿‌﻿‌​‌‍‍‌‌﻿‌‍‌‍‌‌​﻿﻿‌‌﻿​​‌﻿‌‌‌‍​‍‌‍﻿​‌‍‍‌‌﻿​﻿‌‍‍​‌‍‌‌‌‍‌​​‍​‍‌﻿﻿‌",
+      "tags": [
+        "Snowflake",
+        "AI辅助工程",
+        "框架"
+      ],
+      "score": 70,
+      "summary": "Snowflake工程SVP分享AI辅助工程五阶段框架，将混乱转为可重复系统。",
+      "fetched_at": "2026-07-02T16:20:37.621086+08:00"
+    },
+    {
+      "title": "Fable 5 复活，第一批用户却沉默了",
+      "link": "https://www.ifanr.com/1670745?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-02T15:46:04+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/07/13-1.png)经过半个多月的极限拉扯，Anthropic 今天终于重新恢复了 Fable 5 的访问权限，并且还部分解禁了 Mythos 5。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/11-1.png)\n\n目前，Fable 5 可在 Claude Platform、Claude.ai、Claude Code 和 Claude Cowork 中使用\n\nPro、Max、Team 和部分 Enterprise 用户，在当地时间 7 月 7 日前最多可以把每周额度的 50% 用在 Fable 5 上。\n\n7 月 7 日之后，继续使用需要 usage credits。标准 Enterprise 席位默认不包含 Fable 5 额度，如果没有启用 credits，就无法继续使用。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/12-1.png)\n\nFable 5 的回归当然是好消息。\n\n可从官方说明和社区反馈看，它已经不是发布当初的那个白月光模型了。安全过滤更严格，回退到 Opus 4.8 的概率更高，Token 消耗也更快。想用好它，你还得需要注意以下这些新细节。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/13-1.png)\n\n### 一句 Hi，就可能把你送去 Opus 4.8\n\nFable 5 和 Mythos 5 都是在 6 月 10 日发布的。两个模型底层相同，但开放尺度不同。\n\nFable 5 面向更广泛用户，带有更强的安全机制。Mythos 5 限制更少，只提供给少数可信的 Glasswing 项目合作伙伴，主要用于防御性网络安全。\n\n暂停访问的直接原因，来自 Amazon 研究人员的一份报告。\n\n报告称，一种提示方式可以绕过 Fable 5 的部分安全机制，让模型识别软件漏洞，并在一个案例中生成漏洞利用演示代码。\n\n虽然 Anthropic 事后复盘时非常笃定地强调：「相关案例根本没有释放出 Mythos 5 级别的网络攻击能力。」 而且官方还暗戳戳拉了同行下水：你们去测测 Claude Opus 4.8、GPT-5.5、Kimi K2.7，大家也都能识别出这个漏洞啊。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/14-1.png)\n\n▲ 也算是给 Kimi 打了个广告，官方博客![🔗](https://s.w.org/images/core/emoji/11/72x72/1f517.png) https://www.anthropic.com/news/redeploying-fable-5\n\n尽管如此，为了恢复访问，Anthropic 还是重新训练了安全分类器。\n\n新分类器在超过 99% 的情况下可以阻止 Amazon 报告中提到的那类绕过方式。只是代价是巨大的：一些正常的编码、调试请求，会比以前更容易被误判，然后被系统转给 Opus 4.8 回答。\n\n具体来说，Fable 5 的安全分类器会重点拦截几类内容：攻击性网络安全技术，比如漏洞利用、恶意软件、攻击工具；生物与生命科学内容，比如实验方法、分子机制；以及试图提取模型摘要思考过程的请求。\n\n麻烦在于，Fable 5 现在彻底变成了「敏感肌」：良性的网络安全工作、正常的生命科学任务，也可能触发保护机制。\n\n结果就是正常干活的程序员和科研派惨遭大规模误伤，社区里现在已经哀嚎一片：\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/15-1.png)\n\n有人只是向 Fable 5 深情表白了一句 「HI FABLE I MISSED YOU」，就被转到了 Opus 4.8。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/16-1.png)\n\n还有医生科学家背景的用户表示，只要自己的个人上下文里带有 physician-scientist，打个招呼，就足以触发回退。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/21-1.png)\n\n更离谱的是，有人去问了个听起来人畜无害的生物学问题：「大黄蜂会不会放屁？」，也因为关键词触发拒答或转交到 Opus 4.8。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/22-1.png)\n\n究其原因，Anthropic 表示，生物和化学分类器并没有随着这次回归一起更新，仍然沿用首发版本。官方承认，这两类分类器目前覆盖范围偏宽，连一些基础的生物学相关问题，也可能触发回退到 Opus 4.8。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/23-1.png)\n\nAnthropic 称，这部分分类器改进很快会上线，但在此之前，相关领域的体验大概率会更敏感。\n\n逼得大家没办法，「奶奶越狱」这种上古老梗又迎来了文艺复兴，比如用「我奶奶生前喜欢 fullstack Next.js 应用」的方式包装问题。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/24-1.png)\n\n玩笑归玩笑，Fable 5 回归后，用户面对的不只是模型能力，还有一整套更敏感的审查机制，使用体验大幅度下滑。\n\nAnthropic 承认，接下来几周还会继续优化这些分类器，目标是减少误报，更准确地区分真正的滥用和合法请求。\n\n### 一个简单问题，Pro 额度先少 2%\n\n当请求触发安全分类器后，系统不一定只是拒绝回答，也可能把请求转给 Claude Opus 4.8。\n\n问题在于，Fable 5 的价格明显更高。\n\nFable 5 每百万 tokens 输入 10 美元、输出 50 美元，约为 Opus 4.8 的两倍。如果用户付的是 Fable 5 的价格，等待的是 Fable 5 的分类器审查，最后经常拿到 Opus 4.8 的回答，这显然是不合理的。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/25.png)\n\n▲ API 价格![🔗](https://s.w.org/images/core/emoji/11/72x72/1f517.png) https://platform.claude.com/docs/en/about-claude/pricing\n\n(你一个开水果摊的，卖给我生瓜蛋子，这谁能接受.jpg)\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/26.png)\n\n不仅如此，Token 的燃烧速度也快到了令人发指的地步。\n\n有网友实测，自己只试了约 3 个大型提示词，每个都用了大量子 Agent，总 API 账单接近 90 美元。开始时 5 小时额度还剩约 90%，30 分钟后只剩 30%。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/27.png)\n\n还有用户说，一个简单问题就消耗了 Pro 计划 5 小时额度里的 2%。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/31.png)\n\n用网友的话来说，Fable 5 消耗使用量太快，产出结果没有明显拉开差距，还过于频繁地转到 Opus 4.8，完全是灾难性的。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/32.png)\n\n对此，T3 Chat 的 CEO Theo Browne 给出了一套非常接地气的「省钱防坑指南」：。\n\n他表示，只在 high effort 下使用 Fable 5，少用 xhigh。他认为 xhigh 很吃 tokens，max 或 extra 档位消耗更大，输出质量也不一定更好。\n\n他的第二个做法，是让 Claude Code 学会把 Codex 当作大量实现任务的备用模型。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/33.png)\n\n第三，在 CLAUDE.md 里写清楚不同任务该优先用哪个模型。第四，把代码库分析、上下文整理、计算机使用这类高消耗任务交给其他模型完成，再把结果交回 Fable 5。\n\n顺便提个有趣的冷知识，知名 AI 博主 Simon Willison 昨天借助 Claude Sonnet，对 Anthropic 新一代 tokenizer 进行测试，结果显示同样文本在不同语言里的 token 膨胀程度差异很大。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/34.png)\n\n▲ ![🔗](https://s.w.org/images/core/emoji/11/72x72/1f517.png) https://simonwillison.net/2026/Jun/30/claude-sonnet-5/\n\n英文大约变成上一代的 1.4 倍，西班牙语约 1.33 倍，Python 代码约 1.28 倍，简体中文几乎没有明显变化。\n\n这说明中文内容的信息密度优势依然存在。全中文沟通，反而成了最省钱的物理外挂。\n\n### 最贵的模型，应该留给最难的活\n\n吐槽归吐槽，Fable 5 敢收这么贵，底子还是毋庸置疑地强。\n\nAnthropic 对 Fable 5 的定位很明确：长周期自主任务、复杂问题一次通过、视觉理解、企业工作流、代码审查和调试、模糊任务处理、多代理协作。\n\n早期测试者还报告过，一些原本需要多天迭代的系统实现，Fable 5 可以一次完成。视觉能力也是重点。Anthropic 称，Fable 5 对密集技术图、网页应用、复杂截图的理解更准确，还被训练成会使用 bash 和 crop 工具处理翻转、模糊、带噪点的图片。\n\n企业工作流方面，它更擅长金融分析、表格、幻灯片、文档等任务。在代码审查和调试方面，除去安全分类器覆盖的敏感网络安全领域，Fable 5 的 bug 查找召回率高于 Opus 4.8，也更会查代码库和历史提交。\n\nFable 5 回归后，网友也使劲地玩上了。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/35.png)\n\n有人用 Fable 5 一次生成了一个《火箭联盟》克隆版游戏，效果让测试者相当惊讶。也有人用它在 Godot 里做出蜘蛛侠荡网游戏，并评价 Fable 5 在 Godot 编码时比 GPT-5.5 少出错。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/36.png)\n\n难怪 Cursor 官方也赶紧宣布 Fable 5 重新接入，并表示：它在 CursorBench 榜单上依然稳居第一（虽然也是单任务成本最高的一个）。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/37.png)\n\n当然，它也不是所有场景都占优。\n\n有网友 @AiBattle\\_ 拿 Fable 5 和 GPT-5.6 Pro 做 3D 房屋提示对比，结论是 GPT-5.6 Pro 的 3D 模型和房屋构图更好；Fable 5 的版本无法移动，但光照效果更好，生成速度更快。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/41.png)\n\n该网友还提到，GPT-5.6 Sol 将部署在 Cerebras 上，按 OpenAI 说法速度可达 750 tokens/s，速度优势会很明显。在他的判断里，Fable 5 在很多领域表现很好，但 3D 方向 GPT-5.6 可能更强。\n\n所以，Fable 5 最适合的任务，是复杂工程、长期 agent、代码审查、多文件调试、游戏原型、企业文档和多 Agent 协作。拿它做简单聊天和普通问答，性价比不高，更适合把它留给真正复杂、真正值得花钱的任务。\n\n### 长任务时代，提示词也要升级\n\n在 Fable 5 回归之际，Anthropic 也发布了官方提示指南，明确建议用户调整提示词和工作流。\n\n第一，不要要求模型展示内部思考过程。\n\n过去很多人喜欢让模型「写出推理过程」，用来提高答案可信度。但在 Fable 5 里，要求模型回显、转录或解释内部推理，可能触发 reasoning\\_extraction 相关拦截，进而导致拒答或转到 Opus 4.8。\n\n如果应用需要展示过程，官方更建议读取结构化 thinking blocks，或者通过 send-to-user 一类工具展示阶段性进展，而不是让模型把内部推理写成正文。\n\n第二，要给模型明确边界。\n\nFable 5 更积极，也更容易做过头。官方建议用户说明：不要添加额外功能，不要进行无关重构，不要为假设需求设计复杂抽象。任务足够明确时，直接行动，不要反复讨论已经确认过的事实。\n\n如果用户只是描述问题、询问判断、思考方案，也最好明确要求模型只输出评估，不要直接修改代码或执行操作。\n\n第三，长任务要让模型核对证据。\n\nAnthropic 建议，在长任务里要求模型汇报进度前，先核对当前会话里的工具结果。测试失败就说失败，没验证就说没验证，跳过的步骤也要说清楚。\n\n第四，可以建立外部记忆系统。\n\n官方建议，把每次任务里确认过的做法、需要长期遵守的规则、过去犯过的错误写成 Markdown 文件，后续任务再引用。对于长期 agent 来说，这比单纯依赖上下文更可靠，也更省成本。\n\n第五，合理使用子 Agent。\n\nFable 5 更擅长调用并维持并行子 Agent。适合把独立子任务交给子 Agent，主模型继续推进工作。长生命周期子 Agent 还能保留上下文，减少重复消耗。\n\n真正决定 Fable 5 上限的，不光是模型能力，还有你的使用方式。\n\n### Claude 的桌面工作流，开始覆盖 Linux\n\nFable 5 回归之外，Claude 产品线还有一个值得关注的更新：Claude Desktop 终于推出 Linux 测试版了。\n\nLinux 版支持 Ubuntu 22.04 及以上、Debian 12 及以上，覆盖 x86\\_64 和 arm64。桌面应用提供 Chat、Cowork 和 Code 三个标签页，包括并行会话、可视化 diff 审查、集成终端和编辑器、实时应用预览等功能。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/42.png)\n\n安装方式也比较标准。用户可以通过 Anthropic 的 apt 仓库安装并接收系统更新，也可以下载 .deb 包手动安装。\n\n不过，Linux 测试版暂时没有 Computer Use 的应用和屏幕控制，没有桌面语音输入。\n\nQuick Entry 全局快捷键在 X11 下可用，在 Wayland 下取决于桌面环境的 GlobalShortcuts portal。Fedora 和 RHEL 目前还不在官方支持范围内。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/43.png)\n\n▲ ![🔗](https://s.w.org/images/core/emoji/11/72x72/1f517.png) https://code.claude.com/docs/en/desktop-linux\n\nLinux 版的到来，像是 Anthropic 给这座 AI 兽笼又开了一扇门。Claude 不再只待在网页聊天框里，而是一步步走进终端、编辑器、本地应用和开发者的日常工作台。\n\n问题是，门开得更多了，笼子也加得更密了。\n\nAnthropic 一方面想向世界证明，他们能造出最强的安全模型；另一方面，他们又因营销恐惧这种力量失控而遭到反噬，最终不得不为这头 AI 猛兽加上层层限制。\n\n属实是求锤得锤。\n\n而在这种风声鹤唳的安全叙事之下，大多数用户更关心的是：花了这么多钱、操作又如此谨慎，它是否能够稳定地完成任务。显而易见的是，只要 Fable 5 依旧频繁误判、回退，就很难说是当下最优的模型选择。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "Fable 5",
+        "安全过滤",
+        "用户反馈"
+      ],
+      "score": 75,
+      "summary": "Fable 5恢复访问但安全过滤更严，正常请求易被误判转至Opus 4.8，用户抱怨体验下降。",
+      "fetched_at": "2026-07-02T16:20:37.621091+08:00"
+    },
+    {
+      "title": "天工AI业务ARR突破8亿美元，向中国首个非BAT10亿美元ARR的AI公司迈进",
+      "link": "https://www.qbitai.com/2026/07/441786.html",
+      "published": "2026-07-02T14:23:10+08:00",
+      "source": "量子位",
+      "content": "其中AI短剧平台业务ARR超过7亿美元",
+      "tags": [
+        "天工AI",
+        "ARR",
+        "8亿美元"
+      ],
+      "score": 80,
+      "summary": "天工AI业务ARR突破8亿美元，其中AI短剧平台ARR超7亿美元。",
+      "fetched_at": "2026-07-02T16:20:37.621095+08:00"
+    },
+    {
+      "title": "Launched at AIE!",
+      "link": "https://x.com/aiDotEngineer/status/2072570512287707238",
+      "published": "2026-07-02T14:38:11+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Launched at AIE!\n\n![Z.ai](https://pbs.twimg.com/profile_images/1970775077181411328/W8XKaUIh_normal.jpg)\n\nZ.ai@Zai\\_org\n\nIntroducing ZCode, the official development environment for GLM-5.2  \n  \n- GLM Coding Plan subscribers: now 1.5x usage quota in ZCode  \n- BYOK supported: works with your existing subscriptions and APIs  \n- Available on macOS, Windows, and Linux  \n  \nDownload now: [zcode.z.ai/en](http://zcode.z.ai/en)\n\n[🔗 View Quoted Tweet](https://x.com/Zai_org/status/2072349453361557898)\n\n💬0🔄0❤️10👀2175📊2",
+      "tags": [
+        "ZCode",
+        "GLM-5.2",
+        "开发环境"
+      ],
+      "score": 80,
+      "summary": "Z.ai发布ZCode，GLM-5.2官方开发环境，支持BYOK和多平台。",
+      "fetched_at": "2026-07-02T16:20:37.621098+08:00"
+    },
+    {
+      "title": "we need a thread of all the INCREDIBLE costume and out of home advertising game you guys pulled at A...",
+      "link": "https://x.com/aiDotEngineer/status/2072570369886785596",
+      "published": "2026-07-02T14:37:37+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "we need a thread of all the INCREDIBLE costume and out of home advertising game you guys pulled at AIE this year because HOLY SHIT\n\n![Gabriel Chua](https://pbs.twimg.com/profile_images/2000727056112607232/WnaCabQi_normal.jpg)\n\nGabriel Chua@gabrielchua\n\n🙈\n\n![Tweet Image](https://pbs.twimg.com/media/HMHwNNTbgAAQwZm.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/gabrielchua/status/2072201416048103463)\n\n💬1🔄0❤️3👀1120📊1",
+      "tags": [
+        "AIE",
+        "服装",
+        "广告"
+      ],
+      "score": 30,
+      "summary": "AIE大会上的服装和户外广告创意获得称赞。",
+      "fetched_at": "2026-07-02T16:20:37.621100+08:00"
+    },
+    {
+      "title": "源：https://t.co/ydNVSg9c7P",
+      "link": "https://x.com/FinanceYF5/status/2072576480106906068",
+      "published": "2026-07-02T15:01:54+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/EXM7777/status…](https://x.com/EXM7777/status/2072455329712070815)\n\n![Machina](https://pbs.twimg.com/profile_images/1922574051580563456/-OFXIxnm_normal.jpg)\n\nMachina@EXM7777\n\njust sent my first prompt to Fable 5  \n  \n> it instantly routed the task to Opus 4.8  \n> which spawned Sonnet 5 sub agents  \n> that burned 30% of my weekly limit  \n> and handed me slop  \n  \nthis thing used to build full open words and refactor entire codebases in one shot  \n  \nWHAT DID YOU DO ANTHROPIC\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072455269800697856/vid/avc1/1348x720/2f0Z7Q2wsRCKDOU3.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/EXM7777/status/2072455329712070815/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/EXM7777/status/2072455329712070815)\n\n💬0🔄0❤️0👀396",
+      "tags": [
+        "Fable 5",
+        "路由",
+        "Opus 4.8"
+      ],
+      "score": 70,
+      "summary": "用户反馈Fable 5恢复后任务被路由至Opus 4.8并派生Sonnet 5子代理，消耗30%周限额。",
+      "fetched_at": "2026-07-02T16:20:37.621103+08:00"
+    },
+    {
+      "title": "Fable 5刚回来不到一天，已经有人在喊话\"你们对它做了什么\"。\n\n同样的任务现在会被自动路由给Opus 4.8，再派生Sonnet 5子代理去跑，一下烧掉30%周限额，结果拿到的还是一堆\"糊弄活\"...",
+      "link": "https://x.com/FinanceYF5/status/2072576468077691208",
+      "published": "2026-07-02T15:01:51+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Fable 5刚回来不到一天，已经有人在喊话\"你们对它做了什么\"。  \n  \n同样的任务现在会被自动路由给Opus 4.8，再派生Sonnet 5子代理去跑，一下烧掉30%周限额，结果拿到的还是一堆\"糊弄活\"。他说以前这模型能一次性写完整个开源库、重构整个代码库。  \n  \n路由链条变长了，体验反而缩水了？\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072576450319060992/vid/avc1/1348x720/V0VVC2JKlYBMi-9-.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2072576468077691208/video/1)\n\n💬1🔄0❤️0👀1368📊1",
+      "tags": [
+        "Fable 5",
+        "体验下降",
+        "路由"
+      ],
+      "score": 70,
+      "summary": "Fable 5恢复后路由链条变长，任务自动转Opus 4.8再派生子代理，消耗额度且输出质量下降。",
+      "fetched_at": "2026-07-02T16:20:37.621105+08:00"
+    },
+    {
+      "title": "With Gemini Omni Flash, real footage and AI-generated video are now indistinguishable.",
+      "link": "https://x.com/lovart_ai/status/2072565679082127611",
+      "published": "2026-07-02T14:18:58+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "With Gemini Omni Flash, real footage and AI-generated video are now indistinguishable.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072565565139664896/vid/avc1/2160x2880/5oszfPwKrp8vE9lk.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2072565679082127611/video/1)\n\n💬1🔄0❤️20👀732📊3",
+      "tags": [
+        "Gemini Omni Flash",
+        "AI视频",
+        "逼真"
+      ],
+      "score": 75,
+      "summary": "Gemini Omni Flash生成的AI视频与真实画面难以区分。",
+      "fetched_at": "2026-07-02T16:20:37.621108+08:00"
+    },
+    {
+      "title": "任何一个漂亮的模板，被大量传播使用之后，都会快速进入审美疲劳。\n\n还是应该向内看，寻找自己对「美」的理解，哪怕是粗糙的、笨拙的、质朴的，都有一种「你之为你」的味道。\n\n这种「异质性」的味道，本身就是美...",
+      "link": "https://x.com/lijigang/status/2072569757753323969",
+      "published": "2026-07-02T14:35:11+08:00",
+      "source": "李继刚(@lijigang_com)",
+      "content": "任何一个漂亮的模板，被大量传播使用之后，都会快速进入审美疲劳。  \n  \n还是应该向内看，寻找自己对「美」的理解，哪怕是粗糙的、笨拙的、质朴的，都有一种「你之为你」的味道。  \n  \n这种「异质性」的味道，本身就是美的。\n\n💬3🔄1❤️8👀857📊5",
+      "tags": [
+        "审美",
+        "模板",
+        "个人风格"
+      ],
+      "score": 30,
+      "summary": "李继刚谈模板易致审美疲劳，应向内寻找个人对美的理解。",
+      "fetched_at": "2026-07-02T16:20:37.621110+08:00"
     }
   ]
 }
