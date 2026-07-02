@@ -1304,6 +1304,294 @@
       "score": 50,
       "summary": "向阳乔木计划下周开源一个GitHub Star统计网站。",
       "fetched_at": "2026-07-03T02:44:01.346110+08:00"
+    },
+    {
+      "title": "Using DSPy to evaluate and improve Datasette Agent's SQL system prompts",
+      "link": "https://simonwillison.net/2026/Jul/2/dspy-datasette-agent-prompts/#atom-everything",
+      "published": "2026-07-03T02:25:00+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**Research:** [Using DSPy to evaluate and improve Datasette Agent's SQL system prompts](https://github.com/simonw/research/tree/main/dspy-datasette-agent-prompts#readme)\n\nOne of this morning's AIE keynotes covered [dspy](https://github.com/stanfordnlp/dspy), which reminded me I've been meaning to see if it could help me improve the system prompt used by [Datasette Agent](https://agent.datasette.io) - so I fired off an asynchronous research task in Claude Code for web using Claude Fable 5:\n\n> `Pip install the latest Datasette alpha and datasette-agent and dspy - then figure out how to use dspy to evaluate and improve the main system prompts used by Datasette Agent for the feature where it can execute read only SQL queries to answer user questions about data.`\n\nFable chose to test using GPT 4.1 mini and nano, and identified several promising looking directions for improvements. I particularly like this one:\n\n> The schema listing gives only table names; the \"don't call describe\\_table if you already have the information\" advice caused column-name guessing (page\\_count, o.order\\_id, first\\_name) and error-retry loops in baseline traces. Either include column names in the prompt's schema listing or soften that advice.\n\nTags: [ai](https://simonwillison.net/tags/ai), [datasette](https://simonwillison.net/tags/datasette), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [evals](https://simonwillison.net/tags/evals), [dspy](https://simonwillison.net/tags/dspy), [datasette-agent](https://simonwillison.net/tags/datasette-agent), [claude-mythos](https://simonwillison.net/tags/claude-mythos)",
+      "tags": [
+        "DSPy",
+        "Datasette Agent",
+        "SQL prompts"
+      ],
+      "score": 75,
+      "summary": "Simon Willison使用DSPy评估并改进了Datasette Agent的SQL系统提示词。",
+      "fetched_at": "2026-07-03T04:26:13.684255+08:00"
+    },
+    {
+      "title": "who's gonna tell him",
+      "link": "https://x.com/aiDotEngineer/status/2072761068628447512",
+      "published": "2026-07-03T03:15:23+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "who's gonna tell him\n\n![harsh](https://pbs.twimg.com/profile_images/2064961541322272768/BfZjL1Kj_normal.jpg)\n\nharsh@devloperhs\n\n[@sarahfim](https://x.com/sarahfim)[@composio](https://x.com/composio)[@aiDotEngineer](https://x.com/aiDotEngineer) Is AI Engineer a big thing?, all I see them on yt is doing postcast / events recordings.  \n  \nIs it a community of some sort that I am missing on?\n\n[🔗 View Quoted Tweet](https://x.com/devloperhs/status/2072750460008906931)\n\n💬1🔄0❤️3👀914📊1",
+      "tags": [
+        "AI Engineer",
+        "社区讨论"
+      ],
+      "score": 10,
+      "summary": "用户质疑AI Engineer社区价值，引发讨论。",
+      "fetched_at": "2026-07-03T04:26:13.684268+08:00"
+    },
+    {
+      "title": "Last chance to stop by the Startup Battlefield - 3rd floor of Moscone West. Almost 20 startups going...",
+      "link": "https://x.com/aiDotEngineer/status/2072756082062348748",
+      "published": "2026-07-03T02:55:34+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Last chance to stop by the Startup Battlefield - 3rd floor of Moscone West. Almost 20 startups going head to head.\n\n![Tweet Image](https://pbs.twimg.com/media/HMPoZiqa0AAlRRo.jpg)\n\n💬0🔄1❤️5👀1030📊1",
+      "tags": [
+        "Startup Battlefield",
+        "活动"
+      ],
+      "score": 10,
+      "summary": "AI Engineer活动通知：Startup Battlefield在Moscone West三楼举行。",
+      "fetched_at": "2026-07-03T04:26:13.684273+08:00"
+    },
+    {
+      "title": "Wow!!",
+      "link": "https://x.com/adocomplete/status/2072752786106634375",
+      "published": "2026-07-03T02:42:28+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Wow!!\n\n![Ann Nguyen](https://pbs.twimg.com/profile_images/2023605027441688576/pV8KpVYD_normal.jpg)\n\nAnn Nguyen@ann\\_nnng\n\nNever seen a model this powerful  \n  \nClaude Fable 5 just helped me build this whole koi pond where every single fish is drawn manually, live, point by point  \n  \nNo images, no SVGs, literally all straight outta code (html, css, and js)  \n  \nTry it below, sound on for the music 🎶\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072647937562439680/vid/avc1/1810x1358/4Rax9tUH7Hx1sKSo.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/ann_nnng/status/2072648308846370897/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/ann_nnng/status/2072648308846370897)\n\n💬0🔄0❤️9👀1369📊2",
+      "tags": [
+        "Claude Fable 5",
+        "代码生成"
+      ],
+      "score": 40,
+      "summary": "用户用Claude Fable 5生成代码绘制锦鲤池，展示模型能力。",
+      "fetched_at": "2026-07-03T04:26:13.684277+08:00"
+    },
+    {
+      "title": "Super happy to watch and celebrate Team USA’s World Cup victory with the GOAT, Yahoo founder Jerry Y...",
+      "link": "https://x.com/ericjing_ai/status/2072755975271158168",
+      "published": "2026-07-03T02:55:09+08:00",
+      "source": "Eric Jing(@ericjing_ai)",
+      "content": "Super happy to watch and celebrate Team USA’s World Cup victory with the GOAT, Yahoo founder Jerry Yang!!\n\n![Tweet Image](https://pbs.twimg.com/media/HMPoi-kacAANxqI.jpg)\n\n💬1🔄0❤️5👀200📊2",
+      "tags": [
+        "世界杯",
+        "Jerry Yang"
+      ],
+      "score": 5,
+      "summary": "Eric Jing与雅虎创始人杨致远庆祝美国队世界杯胜利。",
+      "fetched_at": "2026-07-03T04:26:13.684280+08:00"
+    },
+    {
+      "title": "congrats @yudapearl!",
+      "link": "https://x.com/GaryMarcus/status/2072764752963805291",
+      "published": "2026-07-03T03:30:01+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "congrats [@yudapearl](https://x.com/yudapearl)!\n\n![Judea Pearl](https://pbs.twimg.com/profile_images/1012181647993606144/TeYvs7NH_normal.jpg)\n\nJudea Pearl@yudapearl\n\nJudea Pearl Named AI Pioneer by Boston Global Forum in Honor of America’s 250th Anniversary [samueli.ucla.edu/judea-pearl-na…](https://samueli.ucla.edu/judea-pearl-named-ai-pioneer-by-boston-global-forum-in-honor-of-americas-250th-anniversary/) via [@uclaengineering](https://x.com/uclaengineering)   \nI'm glad Boston Global Forum recognizes causal inference as an indispensable pillar of AI architecture.   \n[@eliasbareinboim](https://x.com/eliasbareinboim)[@GaryMarcus](https://x.com/GaryMarcus)[@GadSaad](https://x.com/GadSaad)[@vgcerf](https://x.com/vgcerf)[@JFrgatUCLA](https://x.com/JFrgatUCLA)[@Vardi](https://x.com/Vardi)[@MakingSenseHQ](https://x.com/MakingSenseHQ)\n\n[🔗 View Quoted Tweet](https://x.com/yudapearl/status/2072761284832199028)\n\n💬0🔄1❤️8👀2550📊1",
+      "tags": [
+        "Judea Pearl",
+        "AI Pioneer",
+        "因果推断"
+      ],
+      "score": 70,
+      "summary": "Judea Pearl被波士顿全球论坛评为AI先驱，表彰因果推断贡献。",
+      "fetched_at": "2026-07-03T04:26:13.684283+08:00"
+    },
+    {
+      "title": "wikis!",
+      "link": "https://x.com/hwchase17/status/2072777199489515653",
+      "published": "2026-07-03T04:19:29+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "wikis!\n\n![elvis](https://pbs.twimg.com/profile_images/939313677647282181/vZjFWtAn_normal.jpg)\n\nelvis@omarsar0\n\nLLM Wikis are being slept on.  \n  \nI argue that creating knowledge bases with LLMs or coding agents is one of the most valuable applications of AI today.  \n  \nIt's about being intentional in building and scaling your intelligence stack.  \n  \nTo showcase this, I wanted to share an LLM Wiki I have built over the last couple of months.  \n  \nIt's called PaperWiki, and I use it across all my research workflows, along with my research agents.  \n  \nIn fact, I also use it to curate papers I share with my communities, newsletter, and on X.  \n  \nThe PaperWiki is updated regularly with automations, so I basically have agents on a loop maintaining it. All the entries are ingested from different sources and stored in a vault (Obsidian) and further indexed using qmd. And then further presented via an HTML artifact. So all of it is easily accessible to all my agents and easily searchable through full-text search and rich semantic search. The structure of the wiki has proven significantly useful to start interesting and exciting cutting-edge research projects with my research agents (from building tiny and more efficient gpt/difussion llms to building out SoTA harnesses and memory systems). It turns out that agents love markdown files and can more easily navigate the papers given the rich metadata structure of the wiki.  \n  \nI am just getting started on this, but it's clear to me that we should all be experimenting with LLM Wikis.  \n  \nHere's why:  \n  \nBuilding LLM knowledge bases gets you into the habit of leveraging AI outputs in all kinds of creative ways. It's the good kind of tokenmaxxing we should all be pushing for.  \n  \nLLM Wikis can be maintained automatically in a loop. I use an automation that updates the wiki every day based on papers I curate. The curation is another automation I run in a loop (with a bit of human in the loop), so I get to build on all my previous knowledge and expertise, and all of it compounds the deeper the integration/layers.  \n  \nOne interesting result of this process is that I feel like I can better spot high-quality papers and remove noise more easily. Social media could never solve that. And most paper aggregators use metrics I simply don't trust. I like that agents can help with the noise vs. signal problem. This is important for research. Lots of people consider agents to produce mostly slop. But it doesn't have to be that way. Careful curations, prompts, automations, verifiers, and human-in-the-loop can produce some astonishing results.  \n  \nAnd you really don't need frontier models for this. I use a combination of frontier models (opus-4.8) and open-weight models (deepseek-v4-flash) to maintain this. An exciting future work (we are working on this [@dair\\_ai](https://x.com/dair_ai)) is to tune specialized models on top of this to allow LLMs to quickly understand cutting-edge research ideas and can better conceptualize research strategies that further accelerate scientific research agents.   \n  \nI plan to open-source a bunch of this work, including the artifact, but this is currently work in progress, and I was excited to share some thoughts as I continue working on it. Sharing more as I go. Stay tuned!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072734677736046592/vid/avc1/3740x2160/qh8KXG2LenO6UBkj.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2072735813469905026/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/omarsar0/status/2072735813469905026)\n\n💬0🔄0❤️1👀304",
+      "tags": [
+        "LLM Wiki",
+        "知识库",
+        "研究"
+      ],
+      "score": 65,
+      "summary": "Elvis介绍LLM Wiki（PaperWiki）用于研究，强调AI知识库价值。",
+      "fetched_at": "2026-07-03T04:26:13.684285+08:00"
+    },
+    {
+      "title": "@OpenAI @ajambrosino Don't miss my full chat with Andrew https://t.co/KAozixB5gS",
+      "link": "https://x.com/lennysan/status/2072756596812444054",
+      "published": "2026-07-03T02:57:37+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "[@OpenAI](https://x.com/OpenAI)[@ajambrosino](https://x.com/ajambrosino) Don't miss my full chat with Andrew [youtube.com/watch?v=P3KDeb…](https://www.youtube.com/watch?v=P3KDebPTUrw)\n\n💬1🔄2❤️2👀2318📊2",
+      "tags": [
+        "OpenAI",
+        "Codex",
+        "Andrew Ambrosino"
+      ],
+      "score": 10,
+      "summary": "Lenny Rachitsky推广与OpenAI Codex负责人Andrew Ambrosino的访谈。",
+      "fetched_at": "2026-07-03T04:26:13.684288+08:00"
+    },
+    {
+      "title": "Don't miss my full chat with Andrew https://t.co/KAozixB5gS",
+      "link": "https://x.com/lennysan/status/2072756566860972099",
+      "published": "2026-07-03T02:57:30+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Don't miss my full chat with Andrew [youtube.com/watch?v=P3KDeb…](https://www.youtube.com/watch?v=P3KDebPTUrw)\n\n💬1🔄0❤️3👀1843📊1",
+      "tags": [
+        "Andrew Ambrosino",
+        "访谈"
+      ],
+      "score": 10,
+      "summary": "Lenny Rachitsky推广与Andrew Ambrosino的访谈。",
+      "fetched_at": "2026-07-03T04:26:13.684290+08:00"
+    },
+    {
+      "title": "paging @clairevo",
+      "link": "https://x.com/lennysan/status/2072755038687199469",
+      "published": "2026-07-03T02:51:25+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "paging [@clairevo](https://x.com/clairevo)\n\n💬0🔄0❤️2👀540",
+      "tags": [
+        "@clairevo"
+      ],
+      "score": 5,
+      "summary": "Lenny Rachitsky艾特用户clairevo。",
+      "fetched_at": "2026-07-03T04:26:13.684293+08:00"
+    },
+    {
+      "title": "OpenAI Codex app lead: \"PRDs are not dead.\"",
+      "link": "https://x.com/lennysan/status/2072754548478021815",
+      "published": "2026-07-03T02:49:28+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "OpenAI Codex app lead: \"PRDs are not dead.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072748964525580288/vid/avc1/1920x1080/lzAoTLLLdTf9gTGi.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2072754548478021815/video/1)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nAndrew Ambrosino ([@ajambrosino](https://x.com/ajambrosino)) leads the team behind the Codex desktop app at [@OpenAI](https://x.com/OpenAI). Codex usage has 6x'd since February, reaching over 5M weekly active users, and nearly 100% of OpenAI's employees use the Codex app regularly (and not just the engineers).  \n  \nAndrew's personal mission is to build \"the best desktop app that has ever existed, full stop.\" If you've used the Codex app lately, you know he's not far off from that goal.  \n  \nIn our in-depth conversation, we discuss:  \n🔸 The \"zone defense\" model of how PMs at OpenAI operate  \n🔸 Why AI is so bad at design  \n🔸 Why Andrew thinks the Codex app would have flopped if they'd shipped it in November instead of February (same product—only the model changed)  \n🔸 What “taste” really means as a professional skill  \n🔸 How Andrew uses Codex to run his workflows  \n🔸 His vision for Codex + ChatGPT  \n  \nListen [youtu.be/P3KDebPTUrw](https://youtu.be/P3KDebPTUrw)ohRbCiu\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2071294324999115057)\n\n💬11🔄2❤️39👀7529📊14",
+      "tags": [
+        "OpenAI Codex",
+        "Andrew Ambrosino",
+        "PRDs"
+      ],
+      "score": 80,
+      "summary": "OpenAI Codex负责人Andrew Ambrosino称PRD未死，Codex周活超500万。",
+      "fetched_at": "2026-07-03T04:26:13.684296+08:00"
+    },
+    {
+      "title": "We heard people asking for this yesterday, so we built &amp; shipped it!\n\nHTML blocks now work with ...",
+      "link": "https://x.com/NotionHQ/status/2072759315589652663",
+      "published": "2026-07-03T03:08:25+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "We heard people asking for this yesterday, so we built & shipped it!  \n  \nHTML blocks now work with any agent via MCP 🫡\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072759224648736768/vid/avc1/1920x1080/YfHp2_WMwV3yX5Cv.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/NotionHQ/status/2072759315589652663/video/1)\n\n💬9🔄5❤️138👀7666📊29",
+      "tags": [
+        "Notion",
+        "MCP",
+        "HTML blocks"
+      ],
+      "score": 80,
+      "summary": "Notion官方宣布HTML块现可通过MCP与任何Agent协作。",
+      "fetched_at": "2026-07-03T04:26:13.684298+08:00"
+    },
+    {
+      "title": "Interactive explainer from the demo: https://t.co/314104MVMN",
+      "link": "https://x.com/NotionHQ/status/2072759316973752477",
+      "published": "2026-07-03T03:08:25+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Interactive explainer from the demo: [ntn.so/mcp-explained](https://ntn.so/mcp-explained)\n\n💬1🔄2❤️7👀1271📊3",
+      "tags": [
+        "Notion",
+        "MCP",
+        "交互式说明"
+      ],
+      "score": 10,
+      "summary": "Notion发布MCP交互式说明链接。",
+      "fetched_at": "2026-07-03T04:26:13.684301+08:00"
+    },
+    {
+      "title": "Thought I’d share a fun activity I did with my 8-year-old daughter and Codex today:\n\n1. She drew a p...",
+      "link": "https://x.com/petergyang/status/2072756657856422379",
+      "published": "2026-07-03T02:57:51+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Thought I’d share a fun activity I did with my 8-year-old daughter and Codex today:  \n  \n1. She drew a picture of a dragon.  \n  \n2. We uploaded her drawing to Codex and used image gen to make a few more dragon poses. She used voice to give Codex feedback until we got the result below.  \n  \n3. We sent it to customstickers(dot)com to print sticker sheets (it's about $20 for 10 sheets).  \n  \nNow she can share her stickers with her friends when they arrive in the mail next week. Try it if you have kids stuck at home this summer :)\n\n![Tweet Image](https://pbs.twimg.com/media/HMPpMd0bIAAZ7-_.jpg)\n\n💬3🔄0❤️9👀1597📊4",
+      "tags": [
+        "Codex",
+        "图像生成",
+        "亲子活动"
+      ],
+      "score": 40,
+      "summary": "用户用Codex将女儿画作生成贴纸，展示AI应用。",
+      "fetched_at": "2026-07-03T04:26:13.684303+08:00"
+    },
+    {
+      "title": "vibecon brought some brilliant minds to the stage.\n\nThank you to every speaker who showed up, shared...",
+      "link": "https://x.com/Replit/status/2072757416941265171",
+      "published": "2026-07-03T03:00:52+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "vibecon brought some brilliant minds to the stage.  \n  \nThank you to every speaker who showed up, shared hard-won lessons, and gave the room something to think about. We're all better builders for it. 💡\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072757350889349120/pu/vid/avc1/1280x720/4pTb3E5EWJZOWXHm.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2072757416941265171/video/1)\n\n💬0🔄0❤️12👀2331📊1",
+      "tags": [
+        "vibecon",
+        "Replit"
+      ],
+      "score": 10,
+      "summary": "Replit感谢vibecon演讲者。",
+      "fetched_at": "2026-07-03T04:26:13.684306+08:00"
+    },
+    {
+      "title": "If you want to work on the other .02%, we’re not hiring",
+      "link": "https://x.com/shl/status/2072753650544312701",
+      "published": "2026-07-03T02:45:54+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "If you want to work on the other .02%, we’re not hiring\n\n💬5🔄0❤️18👀2030📊6",
+      "tags": [
+        "招聘"
+      ],
+      "score": 5,
+      "summary": "Sahil Lavingia称不招聘。",
+      "fetched_at": "2026-07-03T04:26:13.684308+08:00"
+    },
+    {
+      "title": "Full data via Thinking Machines: \n\nhttps://t.co/sWD3kwxYy4",
+      "link": "https://x.com/TheRundownAI/status/2072764941019328641",
+      "published": "2026-07-03T03:30:46+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Full data via Thinking Machines:   \n  \n[thinkingmachines.ai/news/learning-…](https://thinkingmachines.ai/news/learning-to-replicate-expert-judgment-in-financial-tasks/)\n\n💬0🔄0❤️0👀338",
+      "tags": [
+        "Thinking Machines",
+        "金融任务"
+      ],
+      "score": 10,
+      "summary": "The Rundown AI转发Thinking Machines关于金融任务中复制专家判断的数据。",
+      "fetched_at": "2026-07-03T04:26:13.684311+08:00"
+    },
+    {
+      "title": "Mira Murati's Thinking Machines Lab and Bridgewater, the world's largest hedge fund, published joint...",
+      "link": "https://x.com/TheRundownAI/status/2072764804658589814",
+      "published": "2026-07-03T03:30:14+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Mira Murati's Thinking Machines Lab and Bridgewater, the world's largest hedge fund, published joint results on using AI for a basic but important task in investing:   \n  \nDeciding which news deserves an analyst's attention.  \n  \nFirst, Bridgewater tried the frontier models. GPT, Claude, and Gemini variants averaged around 50% across six filtering tests.  \n  \nThen, expert investors wrote the prompts themselves. Accuracy climbed into the mid-70s. Still shy of the 80% the investors said they'd need before trusting a system in daily work.  \n  \nThen came the fine-tune using TML's Tinker API, with Bridgewater training an open-weight model on its experts' real judgement calls.  \n  \nThe results: 84.7%, with mistakes down 29.8% versus the top frontier model tested, and at a 13.8x lower per-task cost.  \n  \nMurati, on X: \"Experts improving AI that empowers experts.\"\n\n![Tweet Image](https://pbs.twimg.com/media/HMPvETzW0AAorRf.jpg)\n\n💬4🔄0❤️4👀1880📊4",
+      "tags": [
+        "Thinking Machines Lab",
+        "Bridgewater",
+        "AI金融"
+      ],
+      "score": 85,
+      "summary": "Mira Murati的Thinking Machines Lab与Bridgewater合作，微调模型在金融过滤任务中达84.7%准确率。",
+      "fetched_at": "2026-07-03T04:26:13.684313+08:00"
+    },
+    {
+      "title": "Related chart. Let’s make people rich\n\nThis is why the tech above will unlock nannies, drivers, surr...",
+      "link": "https://x.com/andrewchen/status/2072751100571332678",
+      "published": "2026-07-03T02:35:46+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "Related chart. Let’s make people rich  \n  \nThis is why the tech above will unlock nannies, drivers, surrogacy and other things that will help make having kids much easier than it is now\n\n![Tweet Image](https://pbs.twimg.com/media/HMPkJA3bYAAzTIc.jpg)\n\n💬2🔄0❤️3👀931📊2",
+      "tags": [
+        "技术",
+        "育儿"
+      ],
+      "score": 20,
+      "summary": "Andrew Chen讨论技术如何降低育儿成本。",
+      "fetched_at": "2026-07-03T04:26:13.684316+08:00"
+    },
+    {
+      "title": "\"consensus\" can't just built by big tech! let's all be careful of regulatory capture and extreme con...",
+      "link": "https://x.com/ClementDelangue/status/2072752653436653755",
+      "published": "2026-07-03T02:41:57+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "\"consensus\" can't just built by big tech! let's all be careful of regulatory capture and extreme concentration of power!\n\n![Polymarket](https://pbs.twimg.com/profile_images/2005664281002491904/bz2ZO_nU_normal.jpg)\n\nPolymarket@Polymarket\n\nNEW: Anthropic announces it is drafting a consensus framework with Amazon, Microsoft, & Google to assess AI jailbreak severity.\n\n[🔗 View Quoted Tweet](https://x.com/Polymarket/status/2072300940103647591)\n\n💬5🔄8❤️62👀4573📊10",
+      "tags": [
+        "Anthropic",
+        "共识框架",
+        "监管"
+      ],
+      "score": 75,
+      "summary": "Clement Delangue评论Anthropic与Amazon、Microsoft、Google起草AI越狱严重性评估共识框架。",
+      "fetched_at": "2026-07-03T04:26:13.684318+08:00"
     }
   ]
 }
