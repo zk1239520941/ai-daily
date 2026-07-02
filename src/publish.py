@@ -50,7 +50,13 @@ def _git_pull_rebase(root: Path) -> bool:
 
 
 def cleanup_old_push_files(days: int = 30, data_dir: str = "news-data") -> int:
-    """删除超过 days 天的 push-*.md，返回删除数量。"""
+    """删除超过 days 天的 push-*.md，返回删除数量。
+
+    days <= 0 表示永不删除 push 文件。
+    """
+    if days <= 0:
+        return 0
+
     data_path = Path(data_dir)
     if not data_path.exists():
         return 0

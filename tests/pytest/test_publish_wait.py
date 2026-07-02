@@ -2,6 +2,7 @@
 
 import os
 import sys
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -9,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.publish import resolve_push_full_url, wait_for_url
+from src.publish import cleanup_old_push_files, resolve_push_full_url, wait_for_url
 
 
 class TestResolvePushFullUrl:
@@ -78,3 +79,37 @@ async def test_wait_for_url_timeout():
 @pytest.mark.asyncio
 async def test_wait_for_url_empty():
     assert await wait_for_url("") is False
+
+
+class TestCleanupOldPushFiles:
+    """测试 push 文件保留策略"""
+
+    def test_skips_when_keep_days_zero(self, tmp_path):
+        old_date = (datetime.now() - timedelta(days=40)).strftime("%Y-%m-%d")
+        md = tmp_path / f"push-{old_date}-08-00-00.md"
+        html = tmp_path / f"push-{old_date}-08-00-00.html"
+        md.write_text("old", encoding="utf-8")
+        html.write_text("<html></html>", encoding="utf-8")
+
+        deleted = cleanup_old_push_files(days=0, data_dir=str(tmp_path))
+
+        assert deleted == 0
+        assert md.exists()
+        assert html.exists()
+
+    def test_deletes_when_keep_days_positive(self, tmp_path):
+        old_date = (datetime.now() - timedelta(days=40)).strftime("%Y-%m-%d")
+        new_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        old_md = tmp_path / f"push-{old_date}-08-00-00.md"
+        old_html = tmp_path / f"push-{old_date}-08-00-00.html"
+        new_md = tmp_path / f"push-{new_date}-08-00-00.md"
+        old_md.write_text("old", encoding="utf-8")
+        old_html.write_text("<html></html>", encoding="utf-8")
+        new_md.write_text("new", encoding="utf-8")
+
+        deleted = cleanup_old_push_files(days=30, data_dir=str(tmp_path))
+
+        assert deleted == 1
+        assert not old_md.exists()
+        assert not old_html.exists()
+        assert new_md.exists()

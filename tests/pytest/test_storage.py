@@ -244,14 +244,17 @@ class TestCleanupOldFiles:
         assert not (temp_dir / f"fetch-{old_date}.json").exists()
         assert (temp_dir / f"fetch-{new_date}.json").exists()
 
-    def test_cleanup_push_files(self, temp_dir):
+    def test_cleanup_preserves_push_files(self, temp_dir):
+        """push-*.md 由 publish 策略单独管理，storage 清理不应删除。"""
         old_time = datetime.now() - timedelta(days=10)
         new_time = datetime.now() - timedelta(days=1)
 
-        (temp_dir / f"push-{old_time.strftime('%Y-%m-%d-%H-%M-%S')}.md").touch()
-        (temp_dir / f"push-{new_time.strftime('%Y-%m-%d-%H-%M-%S')}.md").touch()
+        old_push = temp_dir / f"push-{old_time.strftime('%Y-%m-%d-%H-%M-%S')}.md"
+        new_push = temp_dir / f"push-{new_time.strftime('%Y-%m-%d-%H-%M-%S')}.md"
+        old_push.touch()
+        new_push.touch()
 
         cleanup_old_files(days=7, data_dir=str(temp_dir))
 
-        files = list(temp_dir.glob("push-*.md"))
-        assert len(files) == 1
+        assert old_push.exists()
+        assert new_push.exists()

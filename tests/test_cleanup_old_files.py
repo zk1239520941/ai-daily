@@ -35,9 +35,9 @@ def create_test_files():
         ("fetch", -3, "json"),  # 3天前 - 应该保留
         ("fetch", -1, "json"),  # 1天前 - 应该保留
         ("fetch", 0, "json"),  # 今天 - 应该保留
-        ("push", -10, "md"),  # 10天前 - 应该删除
-        ("push", -7, "md"),  # 7天前 - 应该删除
-        ("push", -5, "md"),  # 5天前 - 应该保留
+        ("push", -10, "md"),  # 10天前 - 应保留（push 永不删除）
+        ("push", -7, "md"),  # 7天前 - 应保留
+        ("push", -5, "md"),  # 5天前 - 应保留
         ("push", -2, "md"),  # 2天前 - 应该保留
         ("push", 0, "md"),  # 今天 - 应该保留
         ("notify", -9, "md"),  # 9天前 - 应该删除
@@ -73,7 +73,9 @@ def create_test_files():
         with open(filepath, "w") as f:
             f.write(f"测试文件 - {filename}")
 
-        status = "🗑️ 将删除" if offset <= -7 else "✅ 将保留"
+        status = "✅ 将保留" if prefix == "push" else (
+            "🗑️ 将删除" if offset <= -7 else "✅ 将保留"
+        )
         print(f"   {status}: {filename}")
         created_files.append(filename)
 
