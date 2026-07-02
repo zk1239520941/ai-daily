@@ -819,6 +819,8 @@ def build_search_html(
 
 def build_archive_pages(archive_root: Path, issues: List[Dict[str, Any]]) -> None:
     """生成 archive/index.html、archive/YYYY/index.html 与 archive/YYYY/MM.html。"""
+    if archive_root.exists():
+        shutil.rmtree(archive_root)
     archive_root.mkdir(parents=True, exist_ok=True)
 
     by_year: Dict[str, List[Dict[str, Any]]] = {}
