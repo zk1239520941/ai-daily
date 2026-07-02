@@ -32,6 +32,16 @@ def test_daily_workflow_uses_push_result_status():
     assert "wecom_only" in daily
 
 
+def test_daily_wecom_only_on_generated():
+    """幂等 rerun 不得重复推企微。"""
+    daily = (WORKFLOW_DIR / "daily.yml").read_text(encoding="utf-8")
+    assert "if: steps.push.outputs.status == 'generated'" in daily
+    assert (
+        "steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'"
+        not in daily
+    )
+
+
 def test_fetch_and_daily_separate_concurrency():
     fetch = (WORKFLOW_DIR / "fetch.yml").read_text(encoding="utf-8")
     daily = (WORKFLOW_DIR / "daily.yml").read_text(encoding="utf-8")
@@ -40,9 +50,19 @@ def test_fetch_and_daily_separate_concurrency():
     assert "ai-daily-fetch" not in daily or "ai-daily-daily" in daily
 
 
-def test_health_check_can_dispatch_daily():
-    """健康检查失败时应能补触发 daily workflow。"""
+def test_fetch_ensure_digest_can_dispatch_daily():
+    """hourly fetch 在 digest 缺失时应能补触发 daily / wecom。"""
+    fetch = (WORKFLOW_DIR / "fetch.yml").read_text(encoding="utf-8")
+    assert "actions: write" in fetch
+    assert "ensure-digest" in fetch
+    assert "createWorkflowDispatch" in fetch
+    assert "daily.yml" in fetch
+    assert "wecom_only" in fetch
+
+
+def test_health_check_alert_only():
+    """health-check 仅告警，不再负责补触发。"""
     health = (WORKFLOW_DIR / "health-check.yml").read_text(encoding="utf-8")
-    assert "actions: write" in health
-    assert "createWorkflowDispatch" in health
-    assert "daily.yml" in health
+    assert "health-check" in health
+    assert "createWorkflowDispatch" not in health
+    assert "actions: write" not in health

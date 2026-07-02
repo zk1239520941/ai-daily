@@ -58,7 +58,11 @@ from src.storage import (
     save_push_file,
 )
 from src.run_state import (
+    EXIT_ENSURE_DISPATCH_DAILY,
+    EXIT_ENSURE_DISPATCH_WECOM,
+    EXIT_ENSURE_OK,
     evaluate_daily_health,
+    evaluate_ensure_digest,
     has_digest_skip_for_date,
     read_push_result,
     record_digest_error,
@@ -66,6 +70,7 @@ from src.run_state import (
     record_digest_success,
     record_fetch_error,
     record_fetch_success,
+    record_wecom_sent,
     write_push_result,
 )
 
@@ -826,6 +831,7 @@ async def cmd_wecom(
 
     try:
         await send_digest_wecom(config, push_file, full_url)
+        record_wecom_sent(push_file, config)
         return 0
     except Exception as e:
         print(f"❌ digest 企微推送失败: {e}")
@@ -952,6 +958,13 @@ async def cmd_health_check(config: Dict) -> int:
     else:
         print(alert_text)
     return 1
+
+
+def cmd_ensure_digest(config: Dict) -> int:
+    """fetch 完成后检查是否需要补触发 daily / 企微（供 GHA 使用）。"""
+    code, message = evaluate_ensure_digest(config)
+    print(message)
+    return code
 
 
 async def cmd_notify_skip(config: Dict) -> int:
@@ -1093,6 +1106,10 @@ def _parse_args() -> argparse.Namespace:
     sub.add_parser("commit-fetch", help="提交 fetch/notify/trending 数据到 git")
     sub.add_parser("health-check", help="检查今日 digest 是否已执行")
     sub.add_parser(
+        "ensure-digest",
+        help="fetch 后检查是否需要补触发 daily/企微（GHA 专用，exit 2=daily 3=wecom）",
+    )
+    sub.add_parser(
         "notify-skip",
         help="发送 digest 跳过通知（读取 .last-push-result.json）",
     )
@@ -1175,6 +1192,9 @@ def main() -> int:
 
     if args.command == "health-check":
         return asyncio.run(cmd_health_check(config))
+
+    if args.command == "ensure-digest":
+        return cmd_ensure_digest(config)
 
     if args.command == "notify-skip":
         return asyncio.run(cmd_notify_skip(config))

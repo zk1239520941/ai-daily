@@ -63,6 +63,10 @@ jobs:
           WECOM_URL_WAIT: "60"
         run: uv run python -m src.main wecom
 
+      - name: 提交企微推送记录
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.wecom_only == true }}
+        run: uv run python -m src.main commit-fetch
+
       - name: 同步远端 news-data（git 为唯一真源）
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.wecom_only != true }}
         run: git pull --rebase origin ${{ github.ref_name }} || true
@@ -101,14 +105,18 @@ jobs:
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
           echo "push_status=$STATUS"
 
+      - name: 今日 digest 已存在（幂等，不重复推企微）
+        if: steps.push.outputs.status == 'idempotent'
+        run: echo "ℹ️ 今日 digest 已存在，跳过 publish / Pages / 企微"
+
       - name: 提交 push 日报到 git
-        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        if: steps.push.outputs.status == 'generated'
         env:
           PAGES_BASE_URL: ${{ secrets.PAGES_BASE_URL }}
         run: uv run python -m src.main publish
 
       - name: 准备 Pages 站点
-        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        if: steps.push.outputs.status == 'generated'
         run: |
           uv run python scripts/build_pages_index.py
           mkdir -p _site
@@ -117,22 +125,22 @@ jobs:
           if [ -d static ]; then cp -r static _site/; fi
 
       - name: 配置 Pages
-        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        if: steps.push.outputs.status == 'generated'
         uses: actions/configure-pages@v5
 
       - name: 上传 Pages artifact
-        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        if: steps.push.outputs.status == 'generated'
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - name: 部署 GitHub Pages
-        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        if: steps.push.outputs.status == 'generated'
         id: deployment
         uses: actions/deploy-pages@v4
 
       - name: URL 可访问后推送 digest 企微
-        if: steps.push.outputs.status == 'generated' || steps.push.outputs.status == 'idempotent'
+        if: steps.push.outputs.status == 'generated'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
@@ -142,6 +150,10 @@ jobs:
           SKIP_PAGES_WORKFLOW_WAIT: "true"
           WECOM_URL_WAIT: "180"
         run: uv run python -m src.main wecom
+
+      - name: 提交 run-state（含企微推送记录）
+        if: steps.push.outputs.status == 'generated'
+        run: uv run python -m src.main commit-fetch
 
       - name: 提交 skip 状态到 git
         if: steps.push.outputs.status == 'skipped'

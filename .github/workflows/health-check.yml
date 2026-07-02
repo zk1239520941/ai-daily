@@ -1,12 +1,8 @@
 name: AI Daily 健康检查
 
-permissions:
-  actions: write
-  contents: read
-
 on:
   schedule:
-    # UTC 01:00 ≈ 北京 09:00，digest 应已跑完
+    # UTC 01:00 ≈ 北京 09:00；仅告警，补发由 hourly fetch 负责
     - cron: "0 1 * * *"
   workflow_dispatch:
 
@@ -25,32 +21,7 @@ jobs:
 
       - run: cp config.user.json config.json
 
-      - name: 检查今日 digest 是否已执行
-        id: health
+      - name: 检查今日 digest 是否已执行（仅告警）
         env:
           WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}
-        run: |
-          set +e
-          uv run python -m src.main health-check
-          CODE=$?
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: 补触发早报 workflow
-        if: steps.health.outputs.code != '0'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: "daily.yml",
-              ref: context.ref,
-              inputs: {
-                skip_fetch: false,
-                force: false,
-                wecom_only: false,
-              },
-            });
-            core.notice("今日 digest 缺失，已补触发 AI Daily 早报 workflow");
+        run: uv run python -m src.main health-check
