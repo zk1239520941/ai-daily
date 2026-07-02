@@ -792,7 +792,7 @@ def build_search_html(
 
     <header class="page-header reveal">
       <h1>搜索日报</h1>
-      <p class="page-lead">在 {total} 期精选中搜索标题与摘要（本地检索，无需联网后端）。</p>
+      <p class="page-lead">在 {total} 期精选中搜索标题与摘要。</p>
     </header>
 
     <div class="search-box reveal">
