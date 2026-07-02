@@ -121,7 +121,9 @@ jobs:
           uv run python scripts/build_pages_index.py
           mkdir -p _site
           cp index.html _site/
+          cp search.html _site/ 2>/dev/null || true
           cp -r news-data _site/
+          if [ -d archive ]; then cp -r archive _site/; fi
           if [ -d static ]; then cp -r static _site/; fi
 
       - name: 配置 Pages

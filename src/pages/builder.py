@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import html
+import json
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import markdown
 
@@ -31,6 +32,8 @@ SITE_HERO_LEAD = "精选 AI 领域要闻。最新一期置顶，更多内容见�
 SITE_BACK_LINK = "← 返回首页"
 SITE_EMPTY_STATE = "暂无内容，敬请期待。"
 SITE_FOOTER = "AI Daily"
+HOME_SSR_LIMIT = 30
+ON_THIS_DAY_MAX = 5
 FONT_LINK = (
     "https://fonts.googleapis.com/css2?"
     "family=IBM+Plex+Mono:wght@400;500&"
@@ -383,7 +386,63 @@ def _html_head(title: str, css_href: str, cover_image: str = "") -> str:
   <link rel="stylesheet" href="{html.escape(css_href)}"/>"""
 
 
-def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> str:
+def _site_nav_html(
+    prefix: str = "",
+    *,
+    compact: bool = False,
+    back_href: str = "",
+    show_archive_links: bool = True,
+) -> str:
+    """生成站点导航栏 HTML。"""
+    compact_class = " site-nav--compact" if compact else ""
+    back = ""
+    if compact or back_href:
+        href = back_href or f"{prefix}index.html"
+        back = f'<a class="back-link" href="{html.escape(href)}">{SITE_BACK_LINK}</a>'
+    links = ""
+    if show_archive_links and not compact:
+        links = (
+            f'<div class="site-nav__links">'
+            f'<a href="{prefix}archive/index.html">归档浏览</a>'
+            f'<a href="{prefix}search.html">搜索</a>'
+            f"</div>"
+        )
+    return f"""    <nav class="site-nav{compact_class}">
+      <div class="site-brand">
+        <a href="{prefix}index.html">{html.escape(SITE_TITLE)}</a>
+      </div>
+      {links}
+      {back}
+    </nav>"""
+
+
+def _render_on_this_day_html(items: List[Dict[str, Any]]) -> str:
+    """渲染「往年今日」模块（无数据时返回空字符串）。"""
+    if not items:
+        return ""
+    rows = []
+    for item in items:
+        rows.append(
+            f'        <li class="on-this-day__item">'
+            f'<a href="../{html.escape(item["url"])}">'
+            f'<span class="on-this-day__year">{item["year"]}</span>'
+            f'<span class="on-this-day__title">{html.escape(item["title"])}</span>'
+            f"</a></li>"
+        )
+    return f"""    <section class="on-this-day reveal" aria-label="往年今日">
+      <h2 class="on-this-day__heading">往年今日</h2>
+      <ul class="on-this-day__list">
+{chr(10).join(rows)}
+      </ul>
+      <p class="on-this-day__foot"><a href="../archive/index.html">浏览全部归档 →</a></p>
+    </section>"""
+
+
+def build_article_html(
+    md_path: Path,
+    css_href: str = "../static/pages.css",
+    on_this_day: Optional[List[Dict[str, Any]]] = None,
+) -> str:
     """从 push md 生成单篇 HTML 页面。"""
     raw = md_path.read_text(encoding="utf-8")
     meta, body = parse_frontmatter(raw)
@@ -434,6 +493,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
         )
     body_html = _render_article_body(body, entry_images)
     section_toc = _build_section_toc(body)
+    on_this_day_html = _render_on_this_day_html(on_this_day or [])
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -443,12 +503,7 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
 <body class="article-page">
   <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
   <div class="site-shell">
-    <nav class="site-nav site-nav--compact">
-      <div class="site-brand">
-        <a href="../index.html">{html.escape(SITE_TITLE)}</a>
-      </div>
-      <a class="back-link" href="../index.html">{SITE_BACK_LINK}</a>
-    </nav>
+{_site_nav_html("../", compact=True, back_href="../index.html", show_archive_links=False)}
 
     <article class="article-main">
       <header class="article-hero reveal">
@@ -470,6 +525,8 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
       </div>
     </article>
 
+{on_this_day_html}
+
     <footer class="site-footer">
       {html.escape(SITE_FOOTER)}
     </footer>
@@ -480,22 +537,157 @@ def build_article_html(md_path: Path, css_href: str = "../static/pages.css") -> 
 """
 
 
-def _load_issue_card(md_path: Path) -> Dict[str, str]:
-    """读取 md frontmatter 构建索引卡片数据。"""
+def _load_issue_entry(md_path: Path, issue_no: int) -> Dict[str, Any]:
+    """读取 md frontmatter 构建完整 issue 条目。"""
     raw = md_path.read_text(encoding="utf-8")
     meta, _ = parse_frontmatter(raw)
     parsed = parse_push_filename(md_path.name)
     html_name = md_path.with_suffix(".html").name
+    lead = str(meta.get("lead") or "").strip()
+    excerpt = lead[:180] + ("…" if len(lead) > 180 else "")
+    if not excerpt:
+        excerpt = "点击阅读全文"
+    date = parsed["date"]
+    month_day = date[5:10] if len(date) >= 10 else ""
+    section_summary = _format_sections_summary(meta, compact=True)
     return {
+        "id": md_path.stem,
+        "date": date,
+        "time": parsed.get("time", ""),
+        "month_day": month_day,
         "title": str(meta.get("title") or parsed["display"]),
-        "lead": str(meta.get("lead") or "").strip(),
+        "excerpt": excerpt,
+        "lead": lead,
+        "url": f"news-data/{html_name}",
+        "cover": str(meta.get("cover_image") or "").strip(),
+        "sections": section_summary,
+        "issue_no": issue_no,
         "profile": _profile_label(str(meta.get("profile") or ""), md_path.name),
         "display": parsed["display"],
-        "href": f"news-data/{html_name}",
         "entries": str(meta.get("totalEntries") or ""),
+        "section_summary": section_summary,
         "cover_image": str(meta.get("cover_image") or "").strip(),
-        "section_summary": _format_sections_summary(meta, compact=True),
+        "href": f"news-data/{html_name}",
     }
+
+
+def _load_issue_card(md_path: Path, issue_no: int = 0) -> Dict[str, str]:
+    """读取 md frontmatter 构建索引卡片数据。"""
+    entry = _load_issue_entry(md_path, issue_no)
+    return {
+        "title": entry["title"],
+        "lead": entry["lead"],
+        "profile": entry["profile"],
+        "display": entry["display"],
+        "href": entry["href"],
+        "entries": entry["entries"],
+        "cover_image": entry["cover_image"],
+        "section_summary": entry["section_summary"],
+    }
+
+
+def _issue_json_record(issue: Dict[str, Any]) -> Dict[str, Any]:
+    """提取写入 JSON 索引的字段。"""
+    return {
+        "id": issue["id"],
+        "date": issue["date"],
+        "time": issue["time"],
+        "month_day": issue["month_day"],
+        "title": issue["title"],
+        "excerpt": issue["excerpt"],
+        "url": issue["url"],
+        "cover": issue["cover"],
+        "sections": issue["sections"],
+        "issue_no": issue["issue_no"],
+        "profile": issue["profile"],
+    }
+
+
+def collect_all_issues(data_dir: Path) -> List[Dict[str, Any]]:
+    """扫描 push-*.md 并返回倒序 issue 列表。"""
+    md_files = sorted(data_dir.glob("push-*.md"), reverse=True)
+    total = len(md_files)
+    return [
+        _load_issue_entry(md_path, issue_no=total - index)
+        for index, md_path in enumerate(md_files)
+    ]
+
+
+def write_issues_json(data_dir: Path, issues: List[Dict[str, Any]]) -> None:
+    """写入 issues-index.json 与按年拆分的 issues-YYYY.json。"""
+    by_year: Dict[str, List[Dict[str, Any]]] = {}
+    for issue in issues:
+        year = issue["date"][:4]
+        by_year.setdefault(year, []).append(_issue_json_record(issue))
+
+    year_list = sorted(by_year.keys(), reverse=True)
+    for year, year_issues in by_year.items():
+        path = data_dir / f"issues-{year}.json"
+        path.write_text(
+            json.dumps(year_issues, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    index_data = {
+        "title": SITE_TITLE,
+        "total": len(issues),
+        "years": year_list,
+        "home_ssr_limit": HOME_SSR_LIMIT,
+        "updated_at": issues[0]["display"] if issues else "",
+    }
+    (data_dir / "issues-index.json").write_text(
+        json.dumps(index_data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def write_on_this_day_json(data_dir: Path, issues: List[Dict[str, Any]]) -> None:
+    """写入 on-this-day.json（键 MM-DD → 历史条目数组）。"""
+    otd: Dict[str, List[Dict[str, Any]]] = {}
+    for issue in issues:
+        month_day = issue.get("month_day")
+        if not month_day:
+            continue
+        otd.setdefault(month_day, []).append(
+            {
+                "year": int(issue["date"][:4]),
+                "date": issue["date"],
+                "title": issue["title"],
+                "url": issue["url"],
+            }
+        )
+    for items in otd.values():
+        items.sort(key=lambda item: item["year"], reverse=True)
+    (data_dir / "on-this-day.json").write_text(
+        json.dumps(otd, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def get_on_this_day_items(
+    issues: List[Dict[str, Any]],
+    month_day: str,
+    current_year: str,
+    limit: int = ON_THIS_DAY_MAX,
+) -> List[Dict[str, Any]]:
+    """获取同月日历史条目（仅更早年份）。"""
+    items: List[Dict[str, Any]] = []
+    for issue in issues:
+        if issue.get("month_day") != month_day:
+            continue
+        issue_year = issue["date"][:4]
+        if issue_year >= current_year:
+            continue
+        items.append(
+            {
+                "year": int(issue_year),
+                "date": issue["date"],
+                "title": issue["title"],
+                "url": issue["url"],
+            }
+        )
+    items.sort(key=lambda item: item["year"], reverse=True)
+    return items[:limit]
 
 
 def _render_issue_card(
@@ -558,25 +750,280 @@ def _render_issue_card(
     </article>"""
 
 
+def _render_compact_issue_card(issue: Dict[str, Any], index: int) -> str:
+    """渲染归档月页精简卡片。"""
+    meta_bits: List[str] = []
+    if issue.get("entries"):
+        meta_bits.append(f'{html.escape(str(issue["entries"]))} 条精选')
+    if issue.get("sections"):
+        meta_bits.append(html.escape(str(issue["sections"])))
+    meta_extra = " · ".join(meta_bits)
+    return f"""    <article class="archive-issue reveal" style="--i:{index}">
+      <div class="archive-issue__meta">
+        <span class="archive-issue__no">第 {issue["issue_no"]:03d} 期</span>
+        <span class="archive-issue__date">{html.escape(issue["display"])}</span>
+        <span class="archive-issue__badge">{html.escape(issue["profile"])}</span>
+      </div>
+      <h2><a href="../../{html.escape(issue["url"])}">{html.escape(issue["title"])}</a></h2>
+      <p class="archive-issue__excerpt">{html.escape(issue["excerpt"])}</p>
+      {f'<p class="archive-issue__foot">{meta_extra}</p>' if meta_extra else ""}
+    </article>"""
+
+
+def build_search_html(
+    output: Path,
+    total: int,
+    issues: Optional[List[Dict[str, Any]]] = None,
+    title: str = f"{SITE_TITLE} · 搜索",
+) -> None:
+    """生成 search.html 客户端搜索页。"""
+    years = sorted({issue["date"][:4] for issue in (issues or [])}, reverse=True)
+    index_data = {"total": total, "years": years}
+    index_json = json.dumps(index_data, ensure_ascii=False)
+    content = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  {_html_head(title, "static/pages.css")}
+</head>
+<body class="search-page">
+  <div class="site-shell">
+{_site_nav_html("", compact=True, back_href="index.html")}
+
+    <header class="page-header reveal">
+      <h1>搜索日报</h1>
+      <p class="page-lead">在 {total} 期精选中搜索标题与摘要（本地检索，无需联网后端）。</p>
+    </header>
+
+    <div class="search-box reveal">
+      <label class="search-box__label" for="search-input">关键词</label>
+      <input id="search-input" class="search-box__input" type="search"
+             placeholder="输入标题或摘要关键词…" autocomplete="off"/>
+      <p class="search-box__hint" id="search-status" aria-live="polite">输入关键词开始搜索</p>
+    </div>
+
+    <section class="search-results" id="search-results" aria-live="polite"></section>
+
+    <footer class="site-footer">
+      共 {total} 期 · {html.escape(SITE_FOOTER)}
+    </footer>
+  </div>
+  <script type="application/json" id="issues-index-data">{index_json}</script>
+  <script src="static/pages.js" defer></script>
+</body>
+</html>
+"""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(content, encoding="utf-8")
+
+
+def build_archive_pages(archive_root: Path, issues: List[Dict[str, Any]]) -> None:
+    """生成 archive/index.html、archive/YYYY/index.html 与 archive/YYYY/MM.html。"""
+    archive_root.mkdir(parents=True, exist_ok=True)
+
+    by_year: Dict[str, List[Dict[str, Any]]] = {}
+    for issue in issues:
+        by_year.setdefault(issue["date"][:4], []).append(issue)
+
+    year_counts = {year: len(items) for year, items in by_year.items()}
+    year_links = []
+    for year in sorted(year_counts.keys(), reverse=True):
+        count = year_counts[year]
+        year_links.append(
+            f'      <li class="archive-years__item reveal">'
+            f'<a href="{html.escape(year)}/index.html">'
+            f'<span class="archive-years__label">{html.escape(year)} 年</span>'
+            f'<span class="archive-years__count">{count} 期</span>'
+            f"</a></li>"
+        )
+    years_body = (
+        "\n".join(year_links)
+        if year_links
+        else f'      <li class="empty-state">{html.escape(SITE_EMPTY_STATE)}</li>'
+    )
+
+    archive_index = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  {_html_head(f"{SITE_TITLE} · 归档", "../static/pages.css")}
+</head>
+<body class="archive-page">
+  <div class="site-shell">
+{_site_nav_html("../", compact=True, back_href="../index.html")}
+
+    <header class="page-header reveal">
+      <h1>归档浏览</h1>
+      <p class="page-lead">按年份浏览全部 {len(issues)} 期 AI Daily 精选。</p>
+    </header>
+
+    <ul class="archive-years">
+{years_body}
+    </ul>
+
+    <footer class="site-footer">
+      共 {len(issues)} 期 · {html.escape(SITE_FOOTER)}
+    </footer>
+  </div>
+  <script src="../static/pages.js" defer></script>
+</body>
+</html>
+"""
+    (archive_root / "index.html").write_text(archive_index, encoding="utf-8")
+
+    month_names = [
+        "一月", "二月", "三月", "四月", "五月", "六月",
+        "七月", "八月", "九月", "十月", "十一月", "十二月",
+    ]
+
+    for year, year_issues in by_year.items():
+        year_dir = archive_root / year
+        year_dir.mkdir(parents=True, exist_ok=True)
+
+        month_counts: Dict[str, int] = {}
+        month_dates: Dict[str, List[str]] = {}
+        for issue in year_issues:
+            month = issue["date"][5:7]
+            month_counts[month] = month_counts.get(month, 0) + 1
+            day = issue["date"][8:10]
+            month_dates.setdefault(month, [])
+            if day not in month_dates[month]:
+                month_dates[month].append(day)
+
+        month_links = []
+        for mm in range(1, 13):
+            key = f"{mm:02d}"
+            count = month_counts.get(key, 0)
+            label = month_names[mm - 1]
+            if count:
+                month_links.append(
+                    f'          <li class="archive-months__item">'
+                    f'<a href="{key}.html">'
+                    f'<span class="archive-months__label">{label}</span>'
+                    f'<span class="archive-months__count">{count} 期</span>'
+                    f"</a></li>"
+                )
+            else:
+                month_links.append(
+                    f'          <li class="archive-months__item archive-months__item--empty">'
+                    f'<span class="archive-months__label">{label}</span>'
+                    f'<span class="archive-months__count">—</span>'
+                    f"</li>"
+                )
+
+        calendar_data = {
+            "year": year,
+            "months": {mm: sorted(days) for mm, days in month_dates.items()},
+        }
+        calendar_json = json.dumps(calendar_data, ensure_ascii=False)
+
+        year_page = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  {_html_head(f"{SITE_TITLE} · {year} 年归档", "../../static/pages.css")}
+</head>
+<body class="archive-page archive-year-page">
+  <div class="site-shell">
+{_site_nav_html("../../", compact=True, back_href="../../index.html")}
+
+    <header class="page-header reveal">
+      <p class="page-kicker"><a href="../index.html">归档</a> / {html.escape(year)}</p>
+      <h1>{html.escape(year)} 年</h1>
+      <p class="page-lead">共 {len(year_issues)} 期，可按月份列表或日历浏览。</p>
+    </header>
+
+    <div class="archive-tabs" id="archive-tabs" data-year="{html.escape(year)}">
+      <div class="archive-tabs__bar" role="tablist" aria-label="归档视图">
+        <button type="button" class="archive-tabs__btn is-active" role="tab"
+                aria-selected="true" data-tab="list">列表</button>
+        <button type="button" class="archive-tabs__btn" role="tab"
+                aria-selected="false" data-tab="calendar">日历</button>
+      </div>
+      <div class="archive-tabs__panel is-active" data-panel="list" role="tabpanel">
+        <ul class="archive-months">
+{chr(10).join(month_links)}
+        </ul>
+      </div>
+      <div class="archive-tabs__panel" data-panel="calendar" role="tabpanel" hidden>
+        <div class="archive-calendar-toolbar">
+          <label for="calendar-month-select">月份</label>
+          <select id="calendar-month-select" class="archive-calendar-select"></select>
+        </div>
+        <div id="archive-calendar" class="archive-calendar" aria-label="月历"></div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      {html.escape(year)} 年 · {len(year_issues)} 期
+    </footer>
+  </div>
+  <script type="application/json" id="archive-year-data">{calendar_json}</script>
+  <script src="../../static/pages.js" defer></script>
+</body>
+</html>
+"""
+        (year_dir / "index.html").write_text(year_page, encoding="utf-8")
+
+        for month, count in month_counts.items():
+            month_issues = [
+                issue for issue in year_issues if issue["date"][5:7] == month
+            ]
+            cards = [
+                _render_compact_issue_card(issue, index)
+                for index, issue in enumerate(month_issues)
+            ]
+            month_label = month_names[int(month) - 1]
+            month_page = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  {_html_head(f"{SITE_TITLE} · {year} 年{month_label}", "../../static/pages.css")}
+</head>
+<body class="archive-page archive-month-page">
+  <div class="site-shell">
+{_site_nav_html("../../", compact=True, back_href="../../index.html")}
+
+    <header class="page-header reveal">
+      <p class="page-kicker">
+        <a href="../index.html">归档</a> /
+        <a href="index.html">{html.escape(year)}</a> /
+        {html.escape(month_label)}
+      </p>
+      <h1>{html.escape(year)} 年 {html.escape(month_label)}</h1>
+      <p class="page-lead">本月共 {count} 期。</p>
+    </header>
+
+    <section class="archive-issue-list">
+{chr(10).join(cards) if cards else f'      <div class="empty-state">{html.escape(SITE_EMPTY_STATE)}</div>'}
+    </section>
+
+    <footer class="site-footer">
+      <a href="index.html">← 返回 {html.escape(year)} 年归档</a>
+    </footer>
+  </div>
+  <script src="../../static/pages.js" defer></script>
+</body>
+</html>
+"""
+            (year_dir / f"{month}.html").write_text(month_page, encoding="utf-8")
+
+
 def build_index_html(
     data_dir: Path,
     output: Path,
     title: str = SITE_INDEX_TITLE,
+    issues: Optional[List[Dict[str, Any]]] = None,
 ) -> int:
     """扫描 push-*.md 生成 index.html 与对应文章 HTML。"""
-    md_files = sorted(data_dir.glob("push-*.md"), reverse=True)
-    cards: List[str] = []
+    if issues is None:
+        issues = collect_all_issues(data_dir)
 
-    for index, md_path in enumerate(md_files):
-        issue = _load_issue_card(md_path)
-        html_path = md_path.with_suffix(".html")
-        html_path.write_text(build_article_html(md_path), encoding="utf-8")
+    ssr_issues = issues[:HOME_SSR_LIMIT]
+    cards: List[str] = []
+    for index, issue in enumerate(ssr_issues):
         cards.append(
             _render_issue_card(
                 issue,
                 index,
                 featured=(index == 0),
-                issue_no=len(md_files) - index,
+                issue_no=issue["issue_no"],
             )
         )
 
@@ -585,8 +1032,27 @@ def build_index_html(
         if cards
         else f'    <div class="empty-state">{html.escape(SITE_EMPTY_STATE)}</div>'
     )
+
+    md_files = [data_dir / f"{issue['id']}.md" for issue in issues]
     updated_at = _latest_update_label(md_files)
-    latest_label = _load_issue_card(md_files[0])["display"] if md_files else "—"
+    latest_label = issues[0]["display"] if issues else "—"
+    total = len(issues)
+    has_more = total > HOME_SSR_LIMIT
+
+    load_more_html = ""
+    if has_more:
+        load_more_html = f"""
+    <div class="load-more-wrap reveal" id="load-more-wrap"
+         data-shown="{HOME_SSR_LIMIT}" data-total="{total}">
+      <button type="button" class="load-more-btn" id="load-more-btn">加载更多</button>
+    </div>"""
+
+    index_data = {
+        "total": total,
+        "years": sorted({issue["date"][:4] for issue in issues}, reverse=True),
+        "home_ssr_limit": HOME_SSR_LIMIT,
+    }
+    index_json = json.dumps(index_data, ensure_ascii=False)
 
     content = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -595,11 +1061,7 @@ def build_index_html(
 </head>
 <body>
   <div class="site-shell">
-    <nav class="site-nav">
-      <div class="site-brand">
-        <a href="index.html">{html.escape(SITE_TITLE)}</a>
-      </div>
-    </nav>
+{_site_nav_html("")}
 
     <header class="hero reveal">
       <div class="hero-copy">
@@ -610,40 +1072,69 @@ def build_index_html(
       <aside class="hero-panel reveal" aria-label="站点概览">
         <dl>
           <dt>已发布</dt>
-          <dd>{len(md_files)} 期</dd>
+          <dd>{total} 期</dd>
           <dt>最近更新</dt>
           <dd>{html.escape(latest_label)}</dd>
         </dl>
       </aside>
     </header>
 
-    <section class="issue-grid">
+    <section class="issue-grid" id="issue-grid">
 {grid_body}
     </section>
+{load_more_html}
 
     <footer class="site-footer">
-      共 {len(md_files)} 篇精选 · 最近更新 {html.escape(updated_at)}
+      共 {total} 篇精选 · 最近更新 {html.escape(updated_at)}
     </footer>
   </div>
+  <script type="application/json" id="issues-index-data">{index_json}</script>
   <script src="static/pages.js" defer></script>
 </body>
 </html>
 """
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content, encoding="utf-8")
-    return len(md_files)
+    return total
 
 
 def build_all_pages(
     data_dir: Path | str = "news-data",
     index_output: Path | str = "index.html",
     title: str = SITE_INDEX_TITLE,
+    archive_root: Path | str | None = None,
+    search_output: Path | str | None = None,
 ) -> int:
-    """生成 index.html 与全部 push-*.html。"""
+    """生成 index.html、JSON 索引、归档、搜索与全部 push-*.html。"""
     data_path = Path(data_dir)
     output_path = Path(index_output)
-    count = build_index_html(data_path, output_path, title=title)
-    print(f"[OK] 已生成 {output_path} 与 {count} 篇 HTML 日报")
+    site_root = output_path.parent
+    archive_path = Path(archive_root) if archive_root else site_root / "archive"
+    search_path = Path(search_output) if search_output else site_root / "search.html"
+
+    issues = collect_all_issues(data_path)
+    write_issues_json(data_path, issues)
+    write_on_this_day_json(data_path, issues)
+
+    for issue in issues:
+        md_path = data_path / f"{issue['id']}.md"
+        otd = get_on_this_day_items(
+            issues,
+            issue.get("month_day", ""),
+            issue["date"][:4],
+        )
+        html_path = data_path / f"{issue['id']}.html"
+        html_path.write_text(
+            build_article_html(md_path, on_this_day=otd),
+            encoding="utf-8",
+        )
+
+    count = build_index_html(data_path, output_path, title=title, issues=issues)
+    build_search_html(search_path, total=count, issues=issues)
+    build_archive_pages(archive_path, issues)
+    print(
+        f"[OK] 已生成 {output_path}、归档、搜索与 {count} 篇 HTML 日报"
+    )
     return count
 
 

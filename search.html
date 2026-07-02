@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#F5F5F2"/>
+  <title>AI Daily · 搜索</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="static/pages.css"/>
+</head>
+<body class="search-page">
+  <div class="site-shell">
+    <nav class="site-nav site-nav--compact">
+      <div class="site-brand">
+        <a href="index.html">AI Daily</a>
+      </div>
+      
+      <a class="back-link" href="index.html">← 返回首页</a>
+    </nav>
+
+    <header class="page-header reveal">
+      <h1>搜索日报</h1>
+      <p class="page-lead">在 2 期精选中搜索标题与摘要（本地检索，无需联网后端）。</p>
+    </header>
+
+    <div class="search-box reveal">
+      <label class="search-box__label" for="search-input">关键词</label>
+      <input id="search-input" class="search-box__input" type="search"
+             placeholder="输入标题或摘要关键词…" autocomplete="off"/>
+      <p class="search-box__hint" id="search-status" aria-live="polite">输入关键词开始搜索</p>
+    </div>
+
+    <section class="search-results" id="search-results" aria-live="polite"></section>
+
+    <footer class="site-footer">
+      共 2 期 · AI Daily
+    </footer>
+  </div>
+  <script type="application/json" id="issues-index-data">{"total": 2, "years": ["2026"]}</script>
+  <script src="static/pages.js" defer></script>
+</body>
+</html>

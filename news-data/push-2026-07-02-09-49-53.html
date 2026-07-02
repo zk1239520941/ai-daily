@@ -19,6 +19,7 @@
       <div class="site-brand">
         <a href="../index.html">AI Daily</a>
       </div>
+      
       <a class="back-link" href="../index.html">← 返回首页</a>
     </nav>
 
@@ -198,6 +199,8 @@
 <p><strong>Parsewise 的 HN 讨论揭示了文档智能处理领域一个被忽视的工程事实：embedding 和向量相似度在专业领域文档中可能完全失效。</strong> 创始人明确表示不使用 embedding，因为财务数据等专业文档内容高度同质，embedding 空间区分度低。这一判断直接挑战了当前 RAG 架构的默认假设——即 embedding 是通用且有效的。Parsewise 选择 "穷举搜索" 而非 RAG 采样，并采用多模型路由（vLLM 解析 + 小模型搜索 + 大模型决策），本质上是在承认：<strong>对于需要跨文档精确推理的场景，近似检索的代价（遗漏关键信息）超过了计算成本。</strong> 这一工程取舍值得关注——它暗示了在特定垂直领域（金融、法律、合规），"全量搜索 + 分层模型" 可能比 "embedding + 向量数据库" 更可靠，尽管计算成本更高。</p></div></section>
       </div>
     </article>
+
+
 
     <footer class="site-footer">
       AI Daily
