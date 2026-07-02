@@ -1,0 +1,843 @@
+{
+  "meta": {
+    "date": "2026-07-03"
+  },
+  "entries": [
+    {
+      "title": "Multi-Region Architecture: Going Global Without Going Broke",
+      "link": "https://blog.bytebytego.com/p/multi-region-architecture-going-global",
+      "published": "2026-07-02T23:30:30+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "When an application grows geographically, it is logical to start serving it from a second region to improve latency and availability. However, adding a second region to an application can make it slower and less reliable than it was with one.\n\nThat runs against the instinct, which says more locations should mean faster service and steadier uptime, which is often the case. But once the same data lives in two places at once, a new class of problem appears that can nullify the advantages of multi-region deployments.\n\nLet’s look at a short example. Picture two edits to the same piece of data, made at nearly the same instant, one handled by a server on the US East Coast and one by a server in Frankfurt, right as the network link between those regions drops. Both edits are saved locally. Each region now holds a different version of that data, with no shared record of which one came first. When the link comes back, one of the two versions has to be chosen over the other. The way a system handles that question has a large effect on what a global footprint costs to build and to run.\n\nGoing global is better understood as a progression than as a single decision. In this article, we will start with the building blocks, the small set of concepts every regional design rests on, then work through the common setups in order, from a single region with backups up to running every region at once. Each step buys something concrete: lower latency, higher availability, or the ability to keep data inside a country’s borders. Each one also has a price, in money and in the consistency tradeoffs it introduces.\n\n[![](https://substackcdn.com/image/fetch/$s_!6gKa!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F955f4dc3-759d-407c-9c6e-784685c2ba6c_2650x3068.png)](https://substackcdn.com/image/fetch/$s_!6gKa!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F955f4dc3-759d-407c-9c6e-784685c2ba6c_2650x3068.png)\n\n## Foundations\n\n[Read more](https://blog.bytebytego.com/p/multi-region-architecture-going-global)",
+      "tags": [
+        "多区域架构",
+        "系统设计"
+      ],
+      "score": 70,
+      "summary": "ByteByteGo发布多区域架构文章，探讨全球部署的权衡。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!6gKa!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F955f4dc3-759d-407c-9c6e-784685c2ba6c_2650x3068.png",
+      "fetched_at": "2026-07-03T00:59:07.038733+08:00"
+    },
+    {
+      "title": "How GitHub used secret scanning to reach inbox zero",
+      "link": "https://github.blog/security/application-security/how-github-used-secret-scanning-to-reach-inbox-zero/",
+      "published": "2026-07-03T00:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "Several years ago, GitHub Security launched an initiative to assess and improve our overall secrets hygiene. As part of that effort, we piloted the Secret Scanning capability that was under development at the time. That’s when we found more than 20,000 secrets spread across our 15,000+ repositories.\n\nThe number was significantly higher than we anticipated, but it quickly became clear that success would depend on identifying which alerts represented real risk, assigning ownership, and remediating them safely. Nine months later, we reached zero open alerts.\n\nNew secret scanning customers often ask us: “How do you manage this internally? How did you actually clean up your existing secrets?”\n\nLike many long-running software companies, GitHub’s approach to secrets management evolved over time. GitHub was founded in 2008, before today’s centralized vaults, automated secret scanning, and dedicated secrets-management platforms were common across the industry. As engineering practices matured and GitHub grew, we continued investing in stronger controls, better tooling, and systematic risk reduction for legacy patterns. This work reflects our ongoing commitment to improving security, reducing exposure, and ensuring our internal practices meet the same high standards we expect across the industry.\n\nThis blog post shares what worked for us during this effort, and highlights strategies you can apply to better protect your own secrets.\n\n## Cutting out the noise\n\nThe first thing we discovered was that the alert count was a bit misleading—i.e., 20,000 alerts did not mean 20,000 equally risky problems.\n\nWhen we dug into the data, we discovered that just five repositories accounted for roughly 18,000 of those alerts, and every one of those secrets was inactive: test fixtures, deactivated credentials, and fake-but-valid-looking secrets used for testing. (We build secret scanning, so naturally we have repositories full of legitimate-looking secrets in tests.)\n\nThat left over 2,000 alerts that needed attention: potential live credentials and thousands of decisions about risk, rotation, and remediation.\n\n## Secrets don’t just live in code\n\nSecret remediation touched more than source code. We found secrets in support tickets (customers occasionally include tokens), bug bounty reports (researchers disclose what they found with complete reproductions, including API requests with tokens used), incident notes, and wiki pages.\n\nWe partnered with customer support, security incident response, and our bug bounty program to develop shared playbooks. Across all these workflows, we had to ensure we weren’t creating new problems, like opening issues or pushing commits containing the very secrets we were trying to remediate.\n\n## Our phased approach\n\nWe were not going to close 20,000 alerts by asking a few security engineers to grind through them one by one. We treated it like any other operational backlog: stop new debt, then work down what already exists with a workflow that’s repeatable, measurable, and not dependent on one person’s institutional knowledge.\n\n## Phase 1: Enable everywhere, stop the accumulation\n\nBefore cleaning up existing secrets, we had to stop new ones from piling up.\n\nWe enabled secret scanning and push protection across all of our enterprises and organizations. Thanks to GitHub Advanced Security’s organization-level settings, this wasn’t a repository-by-repository slog across 15,000 repositories. We enforced the setting so individual repositories and teams could not quietly opt out.\n\nPush protection blocked new secrets at the source. That kept the backlog from growing faster than we could burn it down.\n\n## Phase 2: Understand and triage\n\nWe broke down the 20,000+ alerts by repository, secret type, and age so we could separate noise from work.\n\nWhen we dug in, we discovered that just five repositories accounted for roughly 18,000 of those alerts, and every one of those secrets was inactive: test fixtures, deactivated credentials, and fake-but-valid-looking secrets used for testing. (We build secret scanning, so naturally we have repositories full of legitimate-looking secrets in tests.)\n\nFor high-volume, low-risk alerts, we developed criteria for bulk closure. If a secret was in a dedicated test repository, had never been active, and matched a known test pattern, we could confidently mark it resolved. In a matter of days, we closed out roughly 18,000 alerts.\n\n### The hard questions\n\nWe had to make strategic decisions about how to remediate secrets. When a secret lives in an issue, do you edit the body (and potentially remove revision history), or preserve the audit trail? When a secret is committed to a repository, do you rewrite git history? Anyone who’s tried rewriting git history at scale knows what happens next: force-pushes break open pull requests, invalidate commit SHAs, and generally interrupt developers.\n\nA common question was: “Can we just delete the repository if it’s no longer in use?” Our answer was generally no. A deleted repository takes its audit trail with it. If a secret in that repository was ever leaked or the repository was ever compromised, you lose the forensic record you’d need during incident response. Rotate the secret, archive the repository if appropriate, but keep the history.\n\nWhenever possible, we rotate or revoke the exposed secret first. The harder question is whether the residual risk warrants rewriting git history, or whether a revoked secret in history can safely be left in place. These are the types of questions and decisions present with each alert that product security teams wrestle with.\n\n## Phase 3: Validate what’s actually live\n\nA credential sitting in a repository might have been rotated years ago, or it might still unlock production systems. You can’t prioritize without knowing the difference.\n\nAt the time, secret scanning didn’t have native validity checking, so we built our own approach. The goal was narrow: determine whether a credential still worked and, when appropriate, collect enough metadata to route the alert or notify the right owner.\n\nFor example, for a GitHub token, a representative check could make a single authenticated request to a low-impact endpoint like GET /user:\n\n```\nresponse=\"$( \n  curl -sS -w '\\n%{http_code}' \\ \n    -H \"Authorization: Bearer $TOKEN\" \\ \n    -H \"Accept: application/vnd.github+json\" \\ \n    -H \"X-GitHub-Api-Version: 2022-11-28\" \\ \n    https://api.github.com/user \n)\" \n\nstatus=\"${response##*$'\\n'}\" \nbody=\"${response%$'\\n'*}\" \n\ncase \"$status\" in \n  200) \n    login=\"$(jq -r '.login // empty' <<< \"$body\")\" \n    echo \"token appears active for GitHub user: $login\" \n    ;; \n  401) \n    echo \"token appears invalid or revoked\" \n    ;; \n  403|429) \n    echo \"unable to determine validity; rate-limited or blocked\" \n    ;; \n  *) \n    echo \"unable to determine validity: HTTP $status\" \n    ;; \nesac\n```\n\nRemember, our goal was to answer the smallest useful set of questions: does this credential still work, and who needs to know about it? We treated ambiguous responses as inconclusive, and we avoided follow-on requests to repositories, organizations, or other private resources.\n\nThis required close partnership with our privacy and legal teams. Even a “read-only” validity check can have implications when you’re touching a credential you may not own.\n\nAs we worked through this manually, our product team built the solution natively, which made the remaining work much faster. Validity checking is now built into GitHub secret scanning.\n\n## Phase 4: Figure out who owns what\n\nThat cross-functional work also exposed an ownership problem: even after we knew a credential was active, we still had to figure out who could rotate it.\n\nWe partnered with customer support, security incident response, and our bug bounty program to develop shared playbooks for secrets reported outside of code. That included redacting secret values before routing work to teams, determining whether a credential belonged to GitHub or a customer, and notifying affected customers or researchers so they could rotate tokens under their control. Across all these workflows, we had to ensure we weren’t creating new problems, like opening issues or pushing commits containing the very secrets we were trying to remediate.\n\nFor GitHub-issued credentials like personal access tokens, we worked with our product team to surface secret metadata directly in the alert: who created the token, when, and what scopes it had. That meant we didn’t need to use the token itself to figure out who it belonged to.\n\nFor everything else, ownership was harder, and this exposed a deeper problem: not all repositories had clear owners.\n\nOur internal engineering standards (the [Engineering Fundamentals](https://github.blog/engineering/engineering-principles/githubs-engineering-fundamentals-program-how-we-deliver-on-availability-security-and-accessibility/) program) enforce durable ownership on services, and we maintain a mapping between services and repositories, but not all repositories map cleanly to a service. The pain we experienced led to a broader repository ownership initiative (using GitHub’s Custom Properties), plus a parallel effort to ensure all secrets in our credential manager have durable owners. You can’t rotate a secret if you can’t find the owner.\n\n## Phase 5: Manual triage for the long tail\n\nEven with validation and metadata, a long tail of alerts required human judgment. For each one: what does this grant access to, has it been rotated, who owns the connected system, and what’s the remediation path?\n\nFor every alert we dismissed, we ensured an accurate disposition (e.g., revoked, used in test, false positive) was recorded, along with a comment containing relevant context, such as a link to a remediation issue or an approved security exception.\n\nThis phase required close collaboration across teams to identify system owners, validate remediation status, and assess residual risk where automated signals alone were insufficient.\n\n## Phase 6: Systematize and drive accountability\n\nAs patterns emerged, we made the work scalable:\n\n* We routed alerts into our internal [vulnerability management platform](https://github.blog/security/application-security/scaling-vulnerability-management-across-thousands-of-services-and-more-than-150-million-findings/) for centralized tracking and reporting.\n* Different credentials need different remediation steps. We documented playbooks by secret type so teams could self-serve.\n* We automated notifications, routing alerts to the right teams based on repository ownership.\n\nThe final piece was accountability. We tied secret remediation to GitHub’s [Engineering Fundamentals](https://github.blog/engineering/engineering-principles/githubs-engineering-fundamentals-program-how-we-deliver-on-availability-security-and-accessibility/) program, making it a security fundamental that teams were measured against. We set clear expectations and gave teams visibility into status. When secret hygiene is part of how engineering health is measured, it becomes a shared responsibility across the organization.\n\nNine months after we started, we hit inbox zero.\n\n## Lessons learned\n\n1. **Don’t panic at the number.** Our initial count was 20,000+ alerts, but 90% were not valid. The raw count is almost never the real scope of work.\n2. **Enable and enforce everywhere, no exceptions.** Partial rollouts create blind spots. We enabled and enforced secret scanning and push protection at the enterprise level, without allowing anyone to opt out.\n3. **Validate before you escalate.** Not every detected secret is live. Validation helps you create a prioritized to-do list.\n4. **Metadata saves hours.** For GitHub credentials, secret metadata cut down the necessary detective work. If you’re working with third-party providers, push them to surface similar metadata, or build your own enrichment layer.\n5. **You can’t remediate without ownership.** Invest in durable ownership infrastructure early.\n6. **Automate the workflow after detection.** Detection gets you started, but the operational challenge was routing alerts, tracking owners, and closing the loop. Invest in the workflow layer.\n7. **Make it everyone’s problem.** Security teams can’t remediate thousands of alerts alone. We tied secret hygiene to our Engineering Fundamentals program. When leadership watches the dashboards, teams find time to fix things.\n8. **Document your decision framework.** You’ll encounter secrets without clean remediation paths. Document how you decide: When is rotation sufficient? When do you rewrite history? When do you accept residual risk?\n\n## What this means for you\n\nYou don’t need to reinvent most of what we built. Many of our manual workarounds, including validity checking, ownership identification, and bulk triage, are now native features in secret scanning.\n\nIf you’re starting today:\n\n* [Enable and enforce secret scanning](https://docs.github.com/en/code-security/secret-scanning/introduction/about-secret-scanning) and [push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection) everywhere.\n* Triage the backlog by repository and secret type; bulk-close what you can prove is noise.\n* Validate what’s live before you escalate.\n* Route alerts to owners, and track remediation like any other engineering work.\n\nReady to get started? [Learn how to enable secret scanning and push protection with GitHub Advanced Security](https://github.com/features/security).\n\n*Coming soon: How we tackled repository ownership at scale, and why durable ownership of repositories and secrets is the foundation everything else depends on.*\n\nThe post [How GitHub used secret scanning to reach inbox zero](https://github.blog/security/application-security/how-github-used-secret-scanning-to-reach-inbox-zero/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub",
+        "密钥扫描",
+        "安全"
+      ],
+      "score": 70,
+      "summary": "GitHub博客分享内部使用密钥扫描清理20000+密钥的经验。",
+      "fetched_at": "2026-07-03T00:59:07.038742+08:00"
+    },
+    {
+      "title": "法拉利大师操刀设计，预售 14.38 万起！小鹏 MONA L03 大脚步冲进市场",
+      "link": "https://www.ifanr.com/1670830?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-02T23:38:28+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/07/gfavscga.jpg)\n\n小鹏 MONA 系列的第二款车于今晚正式亮相。\n\n大家都知道，先前的 M03 卖得很好——上市 674 天，累计交付 28 万台。尝到成功滋味的小鹏，顺理成章地将目光投向了 SUV 市场。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iepm3q50t6j34fu2ylhdx.jpg)\n\n在 10 到 20 万元的主流 SUV 区间，传统燃油车至今仍占据半壁江山。这一价位段的燃油车型大多设计平庸，智能化配置更是乏善可陈。\n\n平庸产品的泛滥，让年轻人在选购人生第一台车时陷入两难。\n\n何小鹏在现场指出了这个问题：\n\n> 对于一个刚毕业不久的年轻人，如果要考虑买车，大概率需要家里支持一部分预算，再加上自己攒下的一点积蓄。但那时你会发现，看得上的车买不起，买得起的又看不上，这会让人非常痛苦。\n\n长期以来，这一级别的 SUV 往往过于强调工具属性，使得预算集中在 15 万元左右的消费者，在设计与科技体验上几乎没有选择余地。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/008Devqogy1ieopu9w50uj32vu1mfhdv.jpg)\n\n今晚登场的 MONA L03，正是瞄准了这一沉寂已久的市场。它要将以往高规格的软硬件配置与设计美学，带入大众主流消费区间。\n\n### 一辆看着像超跑的 SUV\n\n谈到设计，各种发布会上的漂亮词想必大家已经听过不少。所以，何小鹏今天直接搬出设计团队的履历来背书。\n\n执掌 L03 外形设计的团队由小鹏设计副总裁胡安马亲自带队，这位在欧洲超跑阵营里资历深厚的老将，曾主导过法拉利旗舰超跑 LaFerrari 的外观设计，法拉利 Purosangue 的造型亦出自他之手。这份履历，让他更懂得如何利用比例去塑造一台紧凑型 SUV 的运动姿态。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iemafa87d5j31hc0u0h3j.jpg)\n\nL30 采用了 0.46 的大轮高比和 1.20 的宽高比，顺势将整车重心往下压，呈现出跨界跑车的贴地形态。\n\n同时，许多常见于豪车的的设计，比如隐藏式水切、无框车门以及纯平侧窗，这一次悉数变成了 L03 的标配。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iemafa88i4j31hc0u0aye.jpg)\n\n何小鹏表示，L03 车身接缝被严格控制在 3.25 至 3.5 毫米以内，工艺精度比不少 30 万元级 SUV 还要高。车面的漆料则采用了 80V 高亮清漆工艺，号称漆面厚度高出行业平均水准 20%，曲面在不同光线下的反光显得更有质感。\n\n空气动力学表现同样是这台车很重要的硬件指标。\n\nL03 的车头配备了主动进气格栅，在车辆高速行驶时会自动关闭。而车辆尾部那条独特的导流风道，则是开发团队在听取意向车主的建议后做出的针对性优化。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/gsvd.jpg)\n\n总之，车身上的各种小细节，让 L03 的整车风阻系数下降到 Cd 0.228，在目前量产的新能源 SUV 里稳稳进入了前五名。\n\n进气格栅上方，是由四百多颗 LED 灯珠组成的星舰大灯，它支持三种不同节奏的迎宾灯语。后尾灯红光的波长也经过了专门调校，确保它在夜间亮起时显得更加深邃，整体质感较 M03 有明显提升。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/bgvsd.jpg)\n\n拉开无框车门进入车内，日常行车信息由一块 26.8 英寸高亮度 W-HUD 呈现，15.6 英寸的 2.5K 超清中控大屏也能与 W-HUD 进行联动，同步显示导航信息。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iek1gr8gkij36684mo4qy.jpg)\n\n何小鹏介绍称，L03 的内饰质感和 M03 相比提升了不少，双幅方向盘加入了好用的卫星按键，车软包面积超过 72%，音响面罩也采用了金属拉丝工艺。\n\n与此同时，座舱内部的静谧性也同样下足了成本，全车内饰隔音材料覆盖率超 90%，前后门窗的钢化玻璃厚度也增加了 25%。\n\n隔音增强的同时，小鹏还给 L03 准备了 20 个扬声器。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iek1inl845j36684mob2e.jpg)\n\n何小鹏表示，依托小鹏自研的 AI 空间音频渲染技术，系统能把普通的音频音源渲染成极具包裹感的三维空间声场。配合专用降噪芯片，座舱实现了 RNC 路噪与 ENC 引擎主动降噪的双重叠加，即便在时速 120km/h 的高速状态下，车内的静谧性表现依然出色，超过了特斯拉 Model Y。\n\n针对现在的年轻人把车当作午休场所的需求，小鹏为 L03 的主驾座椅加入了 14 点云朵按摩、电动腰托及通风加热，副驾更是配备了带 14 点按摩的零重力座椅。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iek1i9rzwuj3668445qvc.jpg)\n\n中午小憩时，用户还可从二排座椅下方拉出一个 10 升容量的隐藏式储物抽屉，用来存放枕头和被子。\n\n说到二排，尽管车身采用溜背设计，但二排的乘坐空间并未受到挤压，有效的垂直空间达到 985mm，后排靠背还支持角度调节，不过可调范围只有 5°，聊胜于无。\n\n作为一台面向生活玩乐的 SUV，L03 为用户准备了 102L 前备箱和 539L 常规后备箱，放倒后排座椅后可扩充至 1640L。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1iek1gdpedaj36684mohdy.jpg)\n\n座舱内还预留了 8 个磁吸外接点，可以用来吸附纸巾盒或玩偶，新加入的 5 个标准的四分之一螺纹接口可以用来固定运动相机，充电口也给够了，全车一共有 8 个。\n\n同时，L03 还支持 6kW 对外放电，以满足周末露营的用电需要。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/008Devqogy1ieopudycjvj32vu1mfe82.jpg)\n\n这次，小鹏还推出了一款由年轻产品团队主导的「ROAM 拾光漫游特别版」。\n\n这其实是一个定制化方案，提供维奥拉紫和鹦鹉粉两款专属内饰，座椅升级为 NAPPA 面料并缝制了专属刺绣，车尾换上了黑化的运动鸭尾和 Logo，车机界面则深度定制了漫游飞船 UI 皮肤，美妆镜也扩大了尺寸并配上环形柔光灯。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/006erGLUgy1ien9xhdl00j33341qihdv.jpg)\n\n另外，这一版本的后备箱内部还融入了可 DIY 定制的洞洞板，让各种露营小装备都有了专属的归纳空间。\n\n### L03 大概率能成为小鹏的下一个明星产品\n\n聊完了静态配置，我们来看看这台车真正拉开代差的地方——智能化与动力系统。\n\n辅助驾驶提供两个方案，入门的 Max 版搭载单颗图灵芯片，算力 750 TOPS。小鹏将在三季度为该版本推送第二代 VLA 大模型蒸馏版，届时这套系统的日常驾驶体验会更加流畅。\n\n而高配的 Ultra SE 版本，则直接给到了双图灵芯片。\n\n它的有效算力被推高到了 1500 TOPS，达到了同级主流车型的十倍以上。这一版本支持从车位到车位的全场景辅助驾驶，还能在无导航的情况下进行漫游。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/008Devqogy1ieopufytzdj32vu1mf4qr.jpg)\n\n动力路线也有大调整，多了一个超级增程版本。\n\n先说纯电车型，大小电池两个版本分别可以提供 525km 和 625km 的 CLTC 续航，能耗低至每百公里 11.9 度。\n\n新加入的超级增程版，具备 315km 的超长纯电续航，油电全满下总续航拉长到了 1330km，基本上就和蒙多一样想去哪就去哪了。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/gvdf.jpg)\n\n底盘采用前麦弗逊与后五连杆独立悬架，这个倒是意料之中的，真正让人没想到的是 L03 竟然全系标配了可变阻尼减振器。\n\n这个硬件配置在 15 万级 SUV 里确实很少见，配合小鹏的防晕车 2.0 模式，行车时的仰头和点头应该能被有效抑制。当然，我还没开过，如果不能，那就是小鹏的调校出了大问题。\n\n安全保障上，作为一款全球车型，L03 按照全球五星碰撞标准开发，标配 7 个气囊、17 项主动安全、爆胎稳行以及驾驶员失能辅助。\n\n价格方面，纯电 Max 版预售价 14.38 万起，Ultra SE 版 15.58 万起，超级增程版为 14.98 万起。新车定于 7 月 16 日在德国慕尼黑全球上市。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/gvdfaczs.jpg)\n\n在小鹏看来，这辆车大概率是能延续先前轿车车型 M03 的畅销态势的。\n\nM03 之所以能创下月均交付超 13000 台的成绩，主要是因为它在主流消费大盘里建立了一种牢固的信任。车主们发现，在这个价位上，小鹏是真的能把高阶辅助驾驶和行车能耗控制做到扎实、可靠。\n\n这种经过长周期积累下来的品牌信任红利，大概率会非常自然地迁移到这台全新的 SUV 车型上。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/008Devqogy1ieopuen5ltj32vu1mfnpd.jpg)\n\n另一个更关键的胜负手，在于超级增程路线的加入。\n\n过去纯电紧凑型 SUV 受限于充电设施，很难真正下沉到低线城市，传统燃油车在这些市场依然过得挺滋润。而这次 L03 超级增程版提供 315km 的长纯电续航，既能保证工作日无油耗通勤，又依靠 1330km 的综合续航打破了地理隔阂。这对于原本打算购买哈弗 H6、锋兰达的刚需客群来说，足以产生较强的替代效应。\n\n动力变阵带来受众面的成倍扩容，让那些家里没有充电桩、却又眼红智能化体验的买车人，有了一个完全不需要妥协的选择。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/008Devqogy1ieopucov2oj32vu1mfu0x.jpg)\n\n再者来说，15 万左右的紧凑型 SUV 市场虽然规模巨大，但多数产品长期处于同质化严重的胶着状态。\n\n不按常理出牌的 L03，把可变阻尼减震器、高算力智驾平台以及 20 扬声器等硬件放进这个价位，在技术上形成了明显的代差。这种不对称优势结合其跑车化的跨界形态，大有希望延续甚至超越先前 M03 的良好势头，成为小鹏的下一个明星产品。\n\n**[李华 (李华)](https://www.ifanr.com/author/tanjiewen)**\n\n带轮子的都关注，欢迎交流。\n邮箱：tanjiewen@ifanr.com\n\n[邮箱](mailto:tanjiewen@ifanr.com)\n[8](https://www.ifanr.com/5)\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "小鹏MONA L03",
+        "SUV",
+        "法拉利设计师"
+      ],
+      "score": 60,
+      "summary": "小鹏发布MONA L03 SUV，由前法拉利设计师操刀，预售14.38万起。",
+      "fetched_at": "2026-07-03T00:59:07.038746+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "美团LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团发布万亿参数大模型LongCat-2.0，在五万卡国产算力集群上完成训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-03T00:59:07.038749+08:00"
+    },
+    {
+      "title": "@AnthropicAI @GoogleDeepMind @amazon for the last day of AIE Keynotes, @barrnanas returns to give th...",
+      "link": "https://x.com/aiDotEngineer/status/2072716214242357581",
+      "published": "2026-07-03T00:17:09+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "[@AnthropicAI](https://x.com/AnthropicAI)[@GoogleDeepMind](https://x.com/GoogleDeepMind)[@amazon](https://x.com/amazon) for the last day of AIE Keynotes, [@barrnanas](https://x.com/barrnanas) returns to give the annual State of AI Engineering, [@JohnOusterhout](https://x.com/JohnOusterhout) has a special appearance introducing the hardware/inference track, [@mikeyk](https://x.com/mikeyk) and [@garrytan](https://x.com/garrytan) gives advice to founders, and [@theo](https://x.com/theo) gets roasted!  \n  \n[youtube.com/live/I2cbIws9j…](https://youtube.com/live/I2cbIws9j10)\n\n💬0🔄0❤️2👀435",
+      "tags": [
+        "AIE Keynotes",
+        "AI工程"
+      ],
+      "score": 60,
+      "summary": "AIE最后一天主题演讲，包括年度AI工程报告等。",
+      "fetched_at": "2026-07-03T00:59:07.038751+08:00"
+    },
+    {
+      "title": "Scientists assemble!!!",
+      "link": "https://x.com/adocomplete/status/2072700370258956325",
+      "published": "2026-07-02T23:14:11+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Scientists assemble!!!\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nAnnouncing Built with Claude: Life Sciences, a global virtual hackathon.  \n  \nJoin us and [@GladstoneInst](https://x.com/GladstoneInst) for a week of researching and building with Claude Science and Claude Code, with a prize pool of $100k in credits.\n\n![Tweet Image](https://pbs.twimg.com/media/HMOh1KqXAAEudqm.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072681853971001849)\n\n💬1🔄0❤️8👀2047📊2",
+      "tags": [
+        "Claude",
+        "Built with Claude",
+        "生命科学黑客松"
+      ],
+      "score": 80,
+      "summary": "Anthropic宣布与Gladstone研究所联合举办生命科学虚拟黑客松，奖金10万美元。",
+      "fetched_at": "2026-07-03T00:59:07.038753+08:00"
+    },
+    {
+      "title": "换助理了！！！\n\n新助理说每个人都需要一个数字人？\n那么，还要她干嘛呢？\n\n你说呢？兄弟们～",
+      "link": "https://x.com/berryxia/status/2072709199507882146",
+      "published": "2026-07-02T23:49:16+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "换助理了！！！  \n  \n新助理说每个人都需要一个数字人？  \n那么，还要她干嘛呢？  \n  \n你说呢？兄弟们～\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072709034676019200/vid/avc1/610x1280/CkkQgiXj_SeE28cW.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2072709199507882146/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n开始让美女助教卖课了😂 丝滑～\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2071530392314871808/vid/avc1/640x1280/ud_Uy4P-EyGjqWLO.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2071530456269681095/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2071530456269681095)\n\n💬2🔄0❤️1👀241📊2",
+      "tags": [
+        "数字人",
+        "卖课"
+      ],
+      "score": 30,
+      "summary": "Berryxia.AI发布数字人助理视频，推广课程。",
+      "fetched_at": "2026-07-03T00:59:07.038755+08:00"
+    },
+    {
+      "title": "此刻，关灯了，躺在被窝里。 \n\n用手机远程操作电脑指挥Claude Fable 5 干活。\n\n偷感十足，因为老婆已经睡了。\n\n不让在被窝玩手机😂",
+      "link": "https://x.com/berryxia/status/2072706440805179630",
+      "published": "2026-07-02T23:38:19+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "此刻，关灯了，躺在被窝里。   \n  \n用手机远程操作电脑指挥Claude Fable 5 干活。  \n  \n偷感十足，因为老婆已经睡了。  \n  \n不让在被窝玩手机😂\n\n![Tweet Image](https://pbs.twimg.com/media/HMO7hEAbcAAtacH.jpg)\n\n💬4🔄0❤️2👀1249📊5",
+      "tags": [
+        "Claude Fable 5",
+        "远程操作"
+      ],
+      "score": 20,
+      "summary": "用户分享在被窝用手机远程操作Claude Fable 5的经历。",
+      "fetched_at": "2026-07-03T00:59:07.038757+08:00"
+    },
+    {
+      "title": "Try it out here, or send this to your agent:\nhttps://t.co/Rgx35PKl6U",
+      "link": "https://x.com/browser_use/status/2072699515593990343",
+      "published": "2026-07-02T23:10:48+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Try it out here, or send this to your agent:  \n[docs.browser-use.com/open-source/br…](https://docs.browser-use.com/open-source/browser-use-cli)\n\n💬0🔄0❤️3👀308📊1",
+      "tags": [
+        "Browser Use CLI"
+      ],
+      "score": 60,
+      "summary": "Browser Use发布CLI 3.0，可将任意模型转为浏览器Agent。",
+      "fetched_at": "2026-07-03T00:59:07.038759+08:00"
+    },
+    {
+      "title": "Introducing: Browser Use CLI 3.0 🌐\n\nTurn any model into a SOTA browser agent\n&gt; Direct CDP contro...",
+      "link": "https://x.com/browser_use/status/2072699513228378262",
+      "published": "2026-07-02T23:10:47+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Introducing: Browser Use CLI 3.0 🌐  \n  \nTurn any model into a SOTA browser agent  \n> Direct CDP control via browser-harness  \n> Run on cloud browsers or real Chrome  \n> 6× smaller, fewer tokens  \n  \nTry it now 🔗↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072680116409470976/vid/avc1/1660x1080/hpMJAvtvC5iBR7bB.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/browser_use/status/2072699513228378262/video/1)\n\n💬2🔄0❤️31👀1638📊9",
+      "tags": [
+        "Browser Use CLI 3.0",
+        "浏览器Agent"
+      ],
+      "score": 80,
+      "summary": "Browser Use发布CLI 3.0，支持CDP控制，体积缩小6倍。",
+      "fetched_at": "2026-07-03T00:59:07.038762+08:00"
+    },
+    {
+      "title": "Read the announcement: \n\nhttps://t.co/M0U1jH4keS",
+      "link": "https://x.com/cognition/status/2072704174400090135",
+      "published": "2026-07-02T23:29:18+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Read the announcement:   \n  \n[cognition.com/blog/devin-sec…](https://cognition.com/blog/devin-security-vulnerability-remediation-program)\n\n💬0🔄0❤️2👀871",
+      "tags": [
+        "Devin",
+        "安全漏洞修复"
+      ],
+      "score": 70,
+      "summary": "Cognition宣布Devin安全漏洞修复计划，链接公告。",
+      "fetched_at": "2026-07-03T00:59:07.038764+08:00"
+    },
+    {
+      "title": "Our goal is to help security teams shift from reactive triage to proactively fixing what matters, cl...",
+      "link": "https://x.com/cognition/status/2072704080649056654",
+      "published": "2026-07-02T23:28:56+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Our goal is to help security teams shift from reactive triage to proactively fixing what matters, close the critical gaps scanners miss before they become breaches, and return engineering capacity to the product roadmap.  \n  \nLearn more and enroll today: [devin.ai/security-progr…](http://devin.ai/security-program)\n\n💬1🔄0❤️3👀911📊1",
+      "tags": [
+        "Devin",
+        "安全漏洞修复"
+      ],
+      "score": 70,
+      "summary": "Cognition推出Devin安全漏洞修复计划，旨在六周内清零安全积压。",
+      "fetched_at": "2026-07-03T00:59:07.038766+08:00"
+    },
+    {
+      "title": "Building on Devin's new capabilities, today we're announcing the Security Vulnerability Remediation ...",
+      "link": "https://x.com/cognition/status/2072704075993412054",
+      "published": "2026-07-02T23:28:55+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Building on Devin's new capabilities, today we're announcing the Security Vulnerability Remediation Program: a tailored engagement to take your security backlog towards zero in six weeks.  \n  \nRemediation no longer has to compete with your product roadmap for engineering time.\n\n![Cognition](https://pbs.twimg.com/profile_images/1765909640364068865/MvH-m0gd_normal.jpg)\n\nCognition@cognition\n\nIntroducing Devin Security Swarm  \n  \nA more cost effective and accurate way to find security vulnerabilities in complex codebases, based on a new architecture: Agentic MapReduce.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072365104679518208/vid/avc1/1920x1080/c1H_UlWBTVEVWXNG.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/cognition/status/2072368168182432109/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/cognition/status/2072368168182432109)\n\n💬4🔄8❤️67👀9318📊11",
+      "tags": [
+        "Devin",
+        "Security Swarm",
+        "Agentic MapReduce"
+      ],
+      "score": 80,
+      "summary": "Cognition发布Devin Security Swarm，基于Agentic MapReduce架构发现漏洞。",
+      "fetched_at": "2026-07-03T00:59:07.038768+08:00"
+    },
+    {
+      "title": "用 AI 发推特不太好玩\n前面有几条推文\n是我用 YouMind 帮我发的\n\n然后作为真人的我\n发现一天下来\n老觉得有啥事没做\n\n今天突然想起\n是因为没怎么逛推特\n\n有些事\n花时间去做\n就是做人的意义...",
+      "link": "https://x.com/lifesinger/status/2072703891742117905",
+      "published": "2026-07-02T23:28:11+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "用 AI 发推特不太好玩  \n前面有几条推文  \n是我用 YouMind 帮我发的  \n  \n然后作为真人的我  \n发现一天下来  \n老觉得有啥事没做  \n  \n今天突然想起  \n是因为没怎么逛推特  \n  \n有些事  \n花时间去做  \n就是做人的意义所在  \n无法替代  \n  \n如果能替代  \n意味着  \n本身就可以不做\n\n💬5🔄0❤️8👀1147📊6",
+      "tags": [
+        "AI发推",
+        "个人感悟"
+      ],
+      "score": 20,
+      "summary": "用户分享用AI发推后感到空虚，认为手动逛推更有意义。",
+      "fetched_at": "2026-07-03T00:59:07.038770+08:00"
+    },
+    {
+      "title": "🆕 @Kimi_Moonshot's Kimi K2.7 Code is now generally available in GitHub Copilot.\n\nThis is the first ...",
+      "link": "https://x.com/github/status/2072712821377286168",
+      "published": "2026-07-03T00:03:40+08:00",
+      "source": "GitHub(@github)",
+      "content": "🆕 [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot)'s Kimi K2.7 Code is now generally available in GitHub Copilot.  \n  \nThis is the first open-weight model offered as a selectable option in the Copilot model picker. 🎉   \n  \nEarly testing shows Kimi K2.7 is a lower-cost option with strong performance comparable to highly popular frontier models.  \n  \nTry it out now in [@code](https://x.com/code) and look out for it in more GitHub Copilot surfaces. �[github.blog/changelog/2026…](https://github.blog/changelog/2026-07-01-kimi-k2-7-is-now-available-in-github-copilot/)s7i\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072712084605800448/vid/avc1/1280x720/3YDts4wCeyOS4kHP.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/github/status/2072712821377286168/video/1)\n\n💬9🔄12❤️117👀14840📊22",
+      "tags": [
+        "Kimi K2.7",
+        "GitHub Copilot",
+        "开源模型"
+      ],
+      "score": 85,
+      "summary": "GitHub宣布Kimi K2.7 Code模型在Copilot中可用，为首个可选开源模型。",
+      "fetched_at": "2026-07-03T00:59:07.038772+08:00"
+    },
+    {
+      "title": "Private connectivity between services is 🔑 for backends.\n\n1️⃣ Register 𝚋𝚒𝚗𝚍𝚒𝚗𝚐𝚜 in ...",
+      "link": "https://x.com/rauchg/status/2072715658157027375",
+      "published": "2026-07-03T00:14:56+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Private connectivity between services is 🔑 for backends.  \n  \n1️⃣ Register 𝚋𝚒𝚗𝚍𝚒𝚗𝚐𝚜 in 𝚟𝚎𝚛𝚌𝚎𝚕.𝚓𝚜𝚘𝚗 (1LOC)  \n2️⃣ Read it:  \n  \n𝚗𝚎𝚠 𝚄𝚁𝙻(\"/𝚊𝚙𝚒\", 𝚙𝚛𝚘𝚌𝚎𝚜𝚜.𝚎𝚗𝚟.𝙱𝙰𝙲𝙺𝙴𝙽𝙳\\_𝙸𝙽𝚃𝙴𝚁𝙽𝙰𝙻\\_𝚄𝚁𝙻)  \n  \nWorks for Node, Python, 𝙳𝚘𝚌𝚔𝚎𝚛𝚏𝚒𝚕𝚎… you name it\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nYou can now securely connect apps on Vercel using internal URLs.  \n  \nLearn how to configure Service Bindings ↓[vercel.com/changelog/secu…](https://vercel.com/changelog/secure-internal-communication-between-services)\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2072712710526320839)\n\n💬8🔄0❤️77👀9126📊11",
+      "tags": [
+        "Vercel",
+        "Service Bindings"
+      ],
+      "score": 60,
+      "summary": "Vercel推出Service Bindings，实现服务间私有连接。",
+      "fetched_at": "2026-07-03T00:59:07.038774+08:00"
+    },
+    {
+      "title": "Everyone in NYC has the same dog. It's a french bulldog. This needs to be studied",
+      "link": "https://x.com/rauchg/status/2072711610712330658",
+      "published": "2026-07-02T23:58:51+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Everyone in NYC has the same dog. It's a french bulldog. This needs to be studied\n\n💬24🔄0❤️70👀5991📊26",
+      "tags": [
+        "纽约",
+        "法国斗牛犬"
+      ],
+      "score": 10,
+      "summary": "Guillermo Rauch调侃纽约人养同款法国斗牛犬。",
+      "fetched_at": "2026-07-03T00:59:07.038777+08:00"
+    },
+    {
+      "title": "Watching our product owners pitch and demo internally with @v0⁠s feels like science fiction, especia...",
+      "link": "https://x.com/rauchg/status/2072701005377016112",
+      "published": "2026-07-02T23:16:43+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Watching our product owners pitch and demo internally with [@v0](https://x.com/v0)⁠s feels like science fiction, especially with our design system fidelity. It gives the company end-user empathy and decision-making velocity that we never had with text or slides. Demos > memos.\n\n💬21🔄2❤️164👀9285📊34",
+      "tags": [
+        "v0",
+        "设计系统",
+        "内部演示"
+      ],
+      "score": 60,
+      "summary": "Vercel CEO称赞内部使用v0进行产品演示，提升决策效率。",
+      "fetched_at": "2026-07-03T00:59:07.038778+08:00"
+    },
+    {
+      "title": "Special episode with @bentannyhill  on the Max Agency podcast. A month ago, his team shipped LangSmi...",
+      "link": "https://x.com/hwchase17/status/2072708930057429501",
+      "published": "2026-07-02T23:48:12+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Special episode with [@bentannyhill](https://x.com/bentannyhill) on the Max Agency podcast. A month ago, his team shipped LangSmith Engine, our agent that hunts through your agent's failures, prioritizes issues, and drafts the fix.  \n  \nWe dive into the architecture decisions -- from how we used sandboxes to how we created subagents. And we also discuss an interesting challenge -- how we were able to build evals for an agent that never stops running.  \n  \nCheck out the full conversation ⤵️  \n  \n⏯️ YouTube: [youtu.be/YqjR4vQwbTc?si…](https://youtu.be/YqjR4vQwbTc?si=wp2AKnhbVnFSCzb8)  \n  \n🎧 Apple:[podcasts.apple.com/nz/podcast/the…](https://podcasts.apple.com/nz/podcast/the-best-ai-agents-are-secretly-teams-ben-tannyhill/id1891551672?i=1000775182821)m  \n  \n🟢 Spotify[open.spotify.com/episode/5lT8hv…](https://open.spotify.com/episode/5lT8hva20sVmJ0WiVCLAaO?si=81119f1d193e4f7d)Vl\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072708731918561280/vid/avc1/3840x2160/morJJMU_uzXxf1_M.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/hwchase17/status/2072708930057429501/video/1)\n\n💬1🔄2❤️11👀2279📊5",
+      "tags": [
+        "LangSmith Engine",
+        "Agent调试",
+        "Harrison Chase"
+      ],
+      "score": 80,
+      "summary": "Harrison Chase在播客中分享LangSmith Engine架构，用于自动修复Agent失败。",
+      "fetched_at": "2026-07-03T00:59:07.038780+08:00"
+    },
+    {
+      "title": "For making it this far 🏆",
+      "link": "https://x.com/Kling_ai/status/2072696803229650987",
+      "published": "2026-07-02T23:00:01+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "For making it this far 🏆\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072692719697477633/vid/avc1/2160x3840/ldMQuLh6F-tmYEpO.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2072696803229650987/video/1)\n\n💬1🔄0❤️28👀3400📊4",
+      "tags": [
+        "Kling AI",
+        "视频生成"
+      ],
+      "score": 50,
+      "summary": "Kling AI发布庆祝视频，内容未明确。",
+      "fetched_at": "2026-07-03T00:59:07.038782+08:00"
+    },
+    {
+      "title": "🎧A look at how we built LangSmith Engine with @hwchase17 + @bentannyhill",
+      "link": "https://x.com/LangChain/status/2072721482934112514",
+      "published": "2026-07-03T00:38:05+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "🎧A look at how we built LangSmith Engine with [@hwchase17](https://x.com/hwchase17) + [@bentannyhill](https://x.com/bentannyhill)\n\n![Harrison Chase](https://pbs.twimg.com/profile_images/1569345624935485442/R67C4wCQ_normal.jpg)\n\nHarrison Chase@hwchase17\n\nSpecial episode with [@bentannyhill](https://x.com/bentannyhill) on the Max Agency podcast. A month ago, his team shipped LangSmith Engine, our agent that hunts through your agent's failures, prioritizes issues, and drafts the fix.  \n  \nWe dive into the architecture decisions -- from how we used sandboxes to how we created subagents. And we also discuss an interesting challenge -- how we were able to build evals for an agent that never stops running.  \n  \nCheck out the full conversation ⤵️  \n  \n⏯️ YouTube: [youtu.be/YqjR4vQwbTc?si…](https://youtu.be/YqjR4vQwbTc?si=wp2AKnhbVnFSCzb8)  \n  \n🎧 Apple:[podcasts.apple.com/nz/podcast/the…](https://podcasts.apple.com/nz/podcast/the-best-ai-agents-are-secretly-teams-ben-tannyhill/id1891551672?i=1000775182821)m  \n  \n🟢 Spotify[open.spotify.com/episode/5lT8hv…](https://open.spotify.com/episode/5lT8hva20sVmJ0WiVCLAaO?si=81119f1d193e4f7d)Vl\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072708731918561280/vid/avc1/3840x2160/morJJMU_uzXxf1_M.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/hwchase17/status/2072708930057429501/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/hwchase17/status/2072708930057429501)\n\n💬0🔄0❤️4👀1239📊1",
+      "tags": [
+        "LangSmith Engine",
+        "播客"
+      ],
+      "score": 70,
+      "summary": "LangChain转发Harrison Chase关于LangSmith Engine的播客。",
+      "fetched_at": "2026-07-03T00:59:07.038784+08:00"
+    },
+    {
+      "title": "LiteParse runs anywhere, including inside agent runtimes.\nTo prove it, we built an email processing ...",
+      "link": "https://x.com/llama_index/status/2072713940073603190",
+      "published": "2026-07-03T00:08:07+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "LiteParse runs anywhere, including inside agent runtimes.  \nTo prove it, we built an email processing assistant using [@flueai](https://x.com/flueai) (the agentic framework by [@astrodotbuild](https://x.com/astrodotbuild)), [@resend](https://x.com/resend) webhooks, and [@tursodatabase](https://x.com/tursodatabase) for persistence📩   \n  \nHere's how it works:  \n→ Send an email  \n→ The agent reads its corpus, fetches attachments, and parses any PDFs with LiteParse  \n→ It summarizes the message and drafts a reply for you  \n  \nThis integration is an example of how parsing tools shouldn't just handle files, they should deepen what agents understand about them, augmenting their context📂   \n  \n👩‍💻 Code he[github.com/run-llama/flue…](http://github.com/run-llama/flue-liteparse-resend)Luy4\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072713916187025408/pu/vid/avc1/1280x720/M8laX2Xt5L04AD96.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/llama_index/status/2072713940073603190/video/1)\n\n💬1🔄1❤️4👀877📊2",
+      "tags": [
+        "LiteParse",
+        "LlamaIndex",
+        "邮件处理Agent"
+      ],
+      "score": 75,
+      "summary": "LlamaIndex展示LiteParse集成，构建邮件处理助手。",
+      "fetched_at": "2026-07-03T00:59:07.038786+08:00"
+    },
+    {
+      "title": "Marcin is a hardware engineer at Midjourney (and a YouTube star). So we asked him to make a video!",
+      "link": "https://x.com/midjourney/status/2072705638468292629",
+      "published": "2026-07-02T23:35:07+08:00",
+      "source": "Midjourney(@midjourney)",
+      "content": "Marcin is a hardware engineer at Midjourney (and a YouTube star). So we asked him to make a video!\n\n![Marcin Plaza](https://pbs.twimg.com/profile_images/2072111541995159552/bRru9RX3_normal.jpg)\n\nMarcin Plaza@marcinplaz\n\nI watched the Midjourney scanner get built from my desk; here's a look behind the scenes\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072555005572501504/vid/avc1/1920x1080/EGgUEQuySL-YFD9E.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/marcinplaz/status/2072651506138960291/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/marcinplaz/status/2072651506138960291)\n\n💬11🔄7❤️105👀12452📊20",
+      "tags": [
+        "Midjourney",
+        "硬件工程师",
+        "扫描仪"
+      ],
+      "score": 60,
+      "summary": "Midjourney硬件工程师展示扫描仪幕后视频。",
+      "fetched_at": "2026-07-03T00:59:07.038788+08:00"
+    },
+    {
+      "title": "𝗪𝗲 𝗼𝗽𝗲𝗻-𝘀𝗼𝘂𝗿𝗰𝗲𝗱 𝗠𝗙𝗦 (𝗠𝘂𝗹𝘁𝗶-𝘀𝗼𝘂𝗿𝗰𝗲 𝗙𝗶𝗹𝗲-𝗹𝗶𝗸𝗲 𝗦𝗲𝗮𝗿𝗰𝗵), a tool...",
+      "link": "https://x.com/milvusio/status/2072704349017461228",
+      "published": "2026-07-02T23:30:00+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "𝗪𝗲 𝗼𝗽𝗲𝗻-𝘀𝗼𝘂𝗿𝗰𝗲𝗱 𝗠𝗙𝗦 (𝗠𝘂𝗹𝘁𝗶-𝘀𝗼𝘂𝗿𝗰𝗲 𝗙𝗶𝗹𝗲-𝗹𝗶𝗸𝗲 𝗦𝗲𝗮𝗿𝗰𝗵), a tool that can turn a repo, a Slack thread, a design doc, a Jira issue, a CRM note, or a database row those sources into one file-like namespace with stable URIs.  \n  \nConnectors feed data into mfs-server, where queue, cache, metadata, and index keep the sources searchable and browsable.  \n  \nAgents can use it through the CLI, Python/TypeScript SDKs, or two skills:  \n• mfs-ingest registers sources, syncs updates, builds indexes, and helps inspect connectors.  \n• mfs-find searches across what has been ingested, then browses into the original source with commands like tree, ls, cat, head, and tail.  \n  \nThe architecture is straightforward: locate semantically, then verify progressively.  \n  \nFor agents, that means memory, skills, docs, messages, issues, PRs, emails, customer records, and tables can live in one context layer instead of[github.com/zilliztech/mfs](https://github.com/zilliztech/mfs)ate tools.  \n  \nRepo: <https://t.co/RJI5lMigrE>\n\n![Tweet Image](https://pbs.twimg.com/media/HMI-7mEbAAAqte6.jpg)\n\n💬0🔄0❤️0👀81",
+      "tags": [
+        "MFS",
+        "Milvus",
+        "多源文件搜索"
+      ],
+      "score": 75,
+      "summary": "Milvus开源MFS工具，实现多源文件统一搜索。",
+      "fetched_at": "2026-07-03T00:59:07.038789+08:00"
+    },
+    {
+      "title": "Talent = Capability x Taste x Agency\n\n@ivanhzhao &amp; @tim at @LDNTechWeek",
+      "link": "https://x.com/NotionHQ/status/2072705909068025879",
+      "published": "2026-07-02T23:36:12+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Talent = Capability x Taste x Agency  \n  \n[@ivanhzhao](https://x.com/ivanhzhao) & [@tim](https://x.com/tim) at [@LDNTechWeek](https://x.com/LDNTechWeek)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072704214346989568/vid/avc1/1920x1080/pnoZfHD-EoSq1hg7.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/NotionHQ/status/2072705909068025879/video/1)\n\n💬3🔄4❤️49👀6314📊11",
+      "tags": [
+        "Notion",
+        "人才公式"
+      ],
+      "score": 50,
+      "summary": "Notion CEO在伦敦科技周分享人才公式：能力×品味×能动性。",
+      "fetched_at": "2026-07-03T00:59:07.038791+08:00"
+    },
+    {
+      "title": "If you're curious about this watch, it's not only beautiful but accurate to -2 sec/day dial up. This...",
+      "link": "https://x.com/paulg/status/2072711785069556094",
+      "published": "2026-07-02T23:59:33+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "If you're curious about this watch, it's not only beautiful but accurate to -2 sec/day dial up. This particular one is long since sold, but they made a lot of these.  \n  \n[goldammer.me/products/iwc-c…](https://goldammer.me/products/iwc-cal-89-18k-rose-1961)\n\n💬4🔄1❤️11👀6679📊5",
+      "tags": [
+        "手表",
+        "IWC"
+      ],
+      "score": 10,
+      "summary": "Paul Graham分享一款IWC手表。",
+      "fetched_at": "2026-07-03T00:59:07.038793+08:00"
+    },
+    {
+      "title": "The history of golden age watch case and face design consists of designers wishing they hadn't alrea...",
+      "link": "https://x.com/paulg/status/2072699166610870298",
+      "published": "2026-07-02T23:09:24+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "The history of golden age watch case and face design consists of designers wishing they hadn't already known the right answer since the 1940s. They orbited it for the next 30 years, but couldn't escape it.\n\n![Tweet Image](https://pbs.twimg.com/media/HMO0y7UWEAAq_VO.jpg)\n\n💬37🔄3❤️199👀29666📊47",
+      "tags": [
+        "手表设计",
+        "黄金时代"
+      ],
+      "score": 10,
+      "summary": "Paul Graham评论黄金时代手表设计。",
+      "fetched_at": "2026-07-03T00:59:07.038795+08:00"
+    },
+    {
+      "title": "Intelligence is now metered 🥲 \n\nHave to use this very wisely",
+      "link": "https://x.com/petergyang/status/2072720933446701170",
+      "published": "2026-07-03T00:35:54+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Intelligence is now metered 🥲   \n  \nHave to use this very wisely\n\n![Tweet Image](https://pbs.twimg.com/media/HMPIpZobsAAkeXc.jpg)\n\n💬4🔄0❤️10👀1322📊5",
+      "tags": [
+        "AI计量",
+        "使用限制"
+      ],
+      "score": 30,
+      "summary": "用户感叹AI使用受计量限制。",
+      "fetched_at": "2026-07-03T00:59:07.038797+08:00"
+    },
+    {
+      "title": "Code: https://t.co/aHiNul4ThN",
+      "link": "https://x.com/_philschmid/status/2072723306806227426",
+      "published": "2026-07-03T00:45:20+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Code: [ai.google.dev/gemini-api/doc…](https://ai.google.dev/gemini-api/docs/omni#edit_your_own_videos)\n\n![Tweet Image](https://pbs.twimg.com/media/HMPKnk3bcAA30bx.jpg)\n\n💬0🔄0❤️1👀147",
+      "tags": [
+        "Gemini Omni Flash",
+        "视频编辑"
+      ],
+      "score": 60,
+      "summary": "Philipp Schmid分享Gemini Omni Flash视频编辑代码。",
+      "fetched_at": "2026-07-03T00:59:07.038799+08:00"
+    },
+    {
+      "title": "\"Make it day time.\" The lighting shift, the shadows move, the sky changes. Gemini Omni Flash can edi...",
+      "link": "https://x.com/_philschmid/status/2072723305187225927",
+      "published": "2026-07-03T00:45:19+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "\"Make it day time.\" The lighting shift, the shadows move, the sky changes. Gemini Omni Flash can edit your videos through conversation. Upload a clip, describe the change, get a new video back.  \n  \nAll it takes is 12 lines and the Interactions API ⬇️\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072723076140478466/vid/avc1/1280x1440/GO7po1i-QtmUk8pX.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_philschmid/status/2072723305187225927/video/1)\n\n💬3🔄2❤️2👀682📊4",
+      "tags": [
+        "Gemini Omni Flash",
+        "视频编辑",
+        "对话式"
+      ],
+      "score": 80,
+      "summary": "Gemini Omni Flash支持通过对话编辑视频，12行代码实现。",
+      "fetched_at": "2026-07-03T00:59:07.038801+08:00"
+    },
+    {
+      "title": "Claude Fable 5 and Gemini Omni Flash are now on Poe!\n\nFable 5 is Anthropic's most powerful model, ba...",
+      "link": "https://x.com/poe_platform/status/2072696799471788054",
+      "published": "2026-07-02T23:00:00+08:00",
+      "source": "Poe(@poe_platform)",
+      "content": "Claude Fable 5 and Gemini Omni Flash are now on Poe!  \n  \nFable 5 is Anthropic's most powerful model, back to the public after a brief hiatus.  \n  \nGemini Omni Flash enables conversational video creation and editing — like Nano Banana, but for video — using world understanding for realistic motion and consistent edits.  \n  \nTry them today:  \n[poe.com/Claude-Fable-5](https://poe.com/Claude-Fable-5)[poe.com/Gemini-Omni-Fl…](https://poe.com/Gemini-Omni-Flash)\n\n![Tweet Image](https://pbs.twimg.com/media/HMMesThaUAABXOJ.jpg)\n\n💬3🔄4❤️21👀1959📊9",
+      "tags": [
+        "Claude Fable 5",
+        "Gemini Omni Flash",
+        "Poe"
+      ],
+      "score": 80,
+      "summary": "Poe平台上线Claude Fable 5和Gemini Omni Flash模型。",
+      "fetched_at": "2026-07-03T00:59:07.038803+08:00"
+    },
+    {
+      "title": "26 retro games in one collection, world cup soccer included",
+      "link": "https://x.com/Replit/status/2072712179120222255",
+      "published": "2026-07-03T00:01:07+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "26 retro games in one collection, world cup soccer included\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072712156366127105/pu/vid/avc1/720x900/G_5bLOYo-_qjqQM-.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2072712179120222255/video/1)\n\n💬1🔄0❤️2👀741📊1",
+      "tags": [
+        "Replit",
+        "复古游戏"
+      ],
+      "score": 40,
+      "summary": "Replit展示用户构建的26款复古游戏合集。",
+      "fetched_at": "2026-07-03T00:59:07.038804+08:00"
+    },
+    {
+      "title": "a landing page for a bay area home organizing business",
+      "link": "https://x.com/Replit/status/2072712180793778555",
+      "published": "2026-07-03T00:01:07+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "a landing page for a bay area home organizing business\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072712156248788992/pu/vid/avc1/720x900/CGUh6PJYvwDtVeZ_.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2072712180793778555/video/1)\n\n💬0🔄0❤️1👀734",
+      "tags": [
+        "Replit",
+        "落地页"
+      ],
+      "score": 40,
+      "summary": "Replit展示用户构建的家政服务落地页。",
+      "fetched_at": "2026-07-03T00:59:07.038806+08:00"
+    },
+    {
+      "title": "Check out what people are building on Replit:\n\nOpen Thread 🧵",
+      "link": "https://x.com/Replit/status/2072712175462863109",
+      "published": "2026-07-03T00:01:06+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Check out what people are building on Replit:  \n  \nOpen Thread 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072712158622765056/pu/vid/avc1/720x900/UnZGFNG_8TGbugQg.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2072712175462863109/video/1)\n\n💬1🔄1❤️15👀2472📊3",
+      "tags": [
+        "Replit",
+        "社区展示"
+      ],
+      "score": 40,
+      "summary": "Replit发起开放线程展示用户作品。",
+      "fetched_at": "2026-07-03T00:59:07.038808+08:00"
+    },
+    {
+      "title": "Fable 5 is back on Replit!\n\nEspecially great for longer, harder projects.\n\nToggle on High effort mod...",
+      "link": "https://x.com/Replit/status/2072712027144081452",
+      "published": "2026-07-03T00:00:31+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Fable 5 is back on Replit!  \n  \nEspecially great for longer, harder projects.  \n  \nToggle on High effort mode in Replit Agent and try it today on your toughest builds!\n\n💬7🔄6❤️39👀3837📊12",
+      "tags": [
+        "Claude Fable 5",
+        "Replit",
+        "High effort模式"
+      ],
+      "score": 80,
+      "summary": "Replit宣布Claude Fable 5回归，支持High effort模式。",
+      "fetched_at": "2026-07-03T00:59:07.038810+08:00"
+    },
+    {
+      "title": "New in Replit: Everything We Shipped in June! https://t.co/jjsJsDcbZl",
+      "link": "https://x.com/Replit/status/2072711588101136884",
+      "published": "2026-07-02T23:58:46+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "New in Replit: Everything We Shipped in June! [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1yGBeeAYwQMKN)\n\n💬0🔄0❤️7👀2160📊2",
+      "tags": [
+        "Replit",
+        "六月更新"
+      ],
+      "score": 50,
+      "summary": "Replit直播回顾六月所有更新。",
+      "fetched_at": "2026-07-03T00:59:07.038812+08:00"
+    },
+    {
+      "title": "https://t.co/hw2yW1dMwB",
+      "link": "https://x.com/shl/status/2072713695440822436",
+      "published": "2026-07-03T00:07:08+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "[Antiwork.com](http://Antiwork.com)\n\n💬1🔄0❤️4👀1079📊1",
+      "tags": [
+        "Antiwork"
+      ],
+      "score": 10,
+      "summary": "Sahil Lavingia分享Antiwork网站链接。",
+      "fetched_at": "2026-07-03T00:59:07.038814+08:00"
+    },
+    {
+      "title": "One agent runs 99.98% of Gumroad",
+      "link": "https://x.com/shl/status/2072702134210945261",
+      "published": "2026-07-02T23:21:12+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "One agent runs 99.98% of Gumroad\n\n![Sahil Lavingia](https://pbs.twimg.com/profile_images/1885323625542127616/-8EVOv3W_normal.jpg)\n\nSahil Lavingia@shl\n\nOne agent is all you need\n\n[🔗 View Quoted Tweet](https://x.com/shl/status/2072652143257944307)\n\n💬11🔄3❤️90👀12009📊15",
+      "tags": [
+        "Gumroad",
+        "单一Agent",
+        "自动化"
+      ],
+      "score": 80,
+      "summary": "Sahil Lavingia称一个Agent运行了Gumroad 99.98%的业务。",
+      "fetched_at": "2026-07-03T00:59:07.038816+08:00"
+    },
+    {
+      "title": "The future of the firm is a learning loop in which human capital and token capital compound. \n \nWith...",
+      "link": "https://x.com/satyanadella/status/2072708957077176563",
+      "published": "2026-07-02T23:48:19+08:00",
+      "source": "Satya Nadella(@satyanadella)",
+      "content": "The future of the firm is a learning loop in which human capital and token capital compound.   \n   \nWith our new Frontier Co., our ambition is to help every enterprise build its own AI capability, and to help create a frontier ecosystem where every organization can turn its knowledge, workflows, and judgment into its own AI systems that continuously improve. [blogs.microsoft.com/blog/2026/07/0…](https://blogs.microsoft.com/blog/2026/07/02/microsoft-frontier-company-ai-engineering-that-amplifies-and-protects-your-intelligence/)\n\n💬58🔄49❤️318👀40086📊94",
+      "tags": [
+        "Microsoft",
+        "Frontier Co.",
+        "企业AI"
+      ],
+      "score": 90,
+      "summary": "Satya Nadella宣布Microsoft Frontier Co.，帮助每个企业构建AI能力。",
+      "fetched_at": "2026-07-03T00:59:07.038817+08:00"
+    },
+    {
+      "title": "What's the most ambitious project you have Fable working on right now?",
+      "link": "https://x.com/simonw/status/2072700221524750383",
+      "published": "2026-07-02T23:13:36+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "What's the most ambitious project you have Fable working on right now?\n\n💬88🔄5❤️125👀24812📊93",
+      "tags": [
+        "Fable",
+        "项目"
+      ],
+      "score": 50,
+      "summary": "Simon Willison询问用户用Fable做的最有雄心的项目。",
+      "fetched_at": "2026-07-03T00:59:07.038819+08:00"
+    },
+    {
+      "title": "因为房产在没有维护的前提下衰败的速度跟消费品没太大区别。哪怕衰败最慢的平房别墅，在没人住的情况下5-10年可以彻底废弃了。",
+      "link": "https://x.com/feltanimalworld/status/2072708453378773099",
+      "published": "2026-07-02T23:46:19+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "因为房产在没有维护的前提下衰败的速度跟消费品没太大区别。哪怕衰败最慢的平房别墅，在没人住的情况下5-10年可以彻底废弃了。\n\n![Nora X](https://pbs.twimg.com/profile_images/2046415173804806144/IqEHzmqZ_normal.jpg)\n\nNora X@NoraX2026\n\n你会突然发现  \n  \n你的家族血脉明明己经近续了20万年  \n  \n但居然没有一套哪怕是多余的房子？？？\n\n[🔗 View Quoted Tweet](https://x.com/NoraX2026/status/2072516930355757147)\n\n💬1🔄1❤️3👀1225📊2",
+      "tags": [
+        "房产",
+        "维护"
+      ],
+      "score": 10,
+      "summary": "讨论房产不维护会衰败。",
+      "fetched_at": "2026-07-03T00:59:07.038821+08:00"
+    },
+    {
+      "title": "不会，只要丰田旗下还有类似Corolla卡罗拉这类车型，对于类似美国这种超级市场，这个用户粘性甚至可以传世代。没钱？买个卡罗拉吧。",
+      "link": "https://x.com/feltanimalworld/status/2072706511306953008",
+      "published": "2026-07-02T23:38:35+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "不会，只要丰田旗下还有类似Corolla卡罗拉这类车型，对于类似美国这种超级市场，这个用户粘性甚至可以传世代。没钱？买个卡罗拉吧。\n\n![王局志安](https://pbs.twimg.com/profile_images/1527433965824802816/PgXCsVL6_normal.jpg)\n\n王局志安@wangzhian8848\n\n丰田感觉好日子快到头了。\n\n[🔗 View Quoted Tweet](https://x.com/wangzhian8848/status/2072589751769763936)\n\n💬1🔄0❤️0👀701📊1",
+      "tags": [
+        "丰田",
+        "卡罗拉"
+      ],
+      "score": 10,
+      "summary": "讨论丰田卡罗拉的用户粘性。",
+      "fetched_at": "2026-07-03T00:59:07.038823+08:00"
+    },
+    {
+      "title": "OpenAI CEO Sam Altman, in the Financial Times:\n\n\"Democratic institutions must not cede their respons...",
+      "link": "https://x.com/TheRundownAI/status/2072700883658301461",
+      "published": "2026-07-02T23:16:14+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "OpenAI CEO Sam Altman, in the Financial Times:  \n  \n\"Democratic institutions must not cede their responsibilities to AI labs. The labs develop the technology, but citizens and their elected representatives must make the rules.\"  \n  \nAlso via the FT: OpenAI has reportedly floated giving the US government a 5% stake in the company.  \n  \nAt OpenAI's $852B valuation, that's roughly $43B in equity.  \n  \nThe proposal goes beyond OpenAI: every major US lab (possibly Anthropic, Google, and Meta) would put up the same 5%. The FT says it's unclear whether any would agree.  \n  \nWhere the equity would go: a fund modeled on the Alaska Permanent Fund, which turns the state's oil money into dividend checks for Alaska's government and residents.\n\n![Tweet Image](https://pbs.twimg.com/media/HMOya5AXsAAjvz3.png)![Tweet Image](https://pbs.twimg.com/media/HMOy04mW4AAMWc_.jpg)\n\n💬4🔄1❤️10👀3495📊5",
+      "tags": [
+        "Sam Altman",
+        "OpenAI",
+        "美国政府持股"
+      ],
+      "score": 80,
+      "summary": "Sam Altman提议美国政府持有AI实验室5%股份，建立类似阿拉斯加永久基金。",
+      "fetched_at": "2026-07-03T00:59:07.038825+08:00"
+    },
+    {
+      "title": "Fraud detection used to be slow, rigid, and blind to novel patterns.\n\nHere's what conversational dat...",
+      "link": "https://x.com/weaviate_io/status/2072696861337510174",
+      "published": "2026-07-02T23:00:15+08:00",
+      "source": "Weaviate • vector database(@weaviate_io)",
+      "content": "Fraud detection used to be slow, rigid, and blind to novel patterns.  \n  \nHere's what conversational data exploration looks like instead.  \n  \nPowered by the 𝗪𝗲𝗮𝘃𝗶𝗮𝘁𝗲 𝗤𝘂𝗲𝗿𝘆 𝗔𝗴𝗲𝗻𝘁, our fraud detection demo inside the Weaviate Playground shows how natural language questions get turned into structured database queries, complete with filters and aggregations across multiple collections.  \n  \nHere's what happens under the hood:  \n  \n1. You ask a plain-English question (e.g., \"Which customers have flagged transactions with mismatched shipping addresses?\")  \n2. The Query Agent analyzes your question and determines the exact queries to run  \n3. It searches across 𝘁𝗵𝗿𝗲𝗲 𝗰𝗼𝗻𝗻𝗲𝗰𝘁𝗲𝗱 𝗰𝗼𝗹𝗹𝗲𝗰𝘁𝗶𝗼𝗻𝘀 simultaneously — Transactions, Customers, and PhoneProducts  \n4. It applies filters, aggregations, and cross-collection lookups automatically  \n5. The answer streams back to you in real time  \n  \nIn the demo, you can see the exact queries the Query Agent constructed behind the scenes, and watch how it handles multipart questions that would normally require several manual query steps.  \n  \nSome of the fraud patterns it surfaces:  \n• Flagged customers and their transaction history  \n• Suspicious payment methods  \n• Mismatched billing and shipping addresses  \n• Brand-level fraud rates across PhoneProducts  \n  \nTraditional fraud detection relies on slow, rule-based systems that struggle with novel patterns. This approach lets you explore your data conv[frauddetection.playground.weaviate.io/?utm\\_source=ch…](https://frauddetection.playground.weaviate.io/?utm_source=channels&utm_medium=w_social&utm_campaign=builderroom_frauddetection&utm_content=video_post_680356753)  \n  \nTry it yourself 👇  \n<https://t.co/pBEiukFD2t>\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2072696822565400576/pu/vid/avc1/1282x720/Nsd85Ai-qklRyXcs.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/weaviate_io/status/2072696861337510174/video/1)\n\n💬0🔄5❤️5👀342📊3",
+      "tags": [
+        "Weaviate",
+        "Query Agent",
+        "欺诈检测"
+      ],
+      "score": 70,
+      "summary": "Weaviate展示Query Agent用于欺诈检测的对话式数据探索。",
+      "fetched_at": "2026-07-03T00:59:07.038827+08:00"
+    },
+    {
+      "title": "Claude Fable 5 is available in Devin Desktop and Devin CLI!",
+      "link": "https://x.com/devindesktop/status/2072714624936329433",
+      "published": "2026-07-03T00:10:50+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "Claude Fable 5 is available in Devin Desktop and Devin CLI!\n\n![Cognition](https://pbs.twimg.com/profile_images/1765909640364068865/MvH-m0gd_normal.jpg)\n\nCognition@cognition\n\nClaude Fable 5 is available in Devin.  \n  \nYou can use Fable 5 in Devin Cloud’s Ultra agent, our smartest and most capable agent, which excels at long-horizon tasks and debugging.  \n  \nClaude Fable 5 is also available in Devin Desktop and Devin CLI.\n\n[🔗 View Quoted Tweet](https://x.com/cognition/status/2072405137117548601)\n\n💬1🔄0❤️8👀1682📊2",
+      "tags": [
+        "Claude Fable 5",
+        "Devin",
+        "桌面版"
+      ],
+      "score": 80,
+      "summary": "Devin Desktop和CLI支持Claude Fable 5。",
+      "fetched_at": "2026-07-03T00:59:07.038829+08:00"
+    },
+    {
+      "title": "Try it out today: https://t.co/nXxLlUERm3",
+      "link": "https://x.com/devindesktop/status/2072714626790289643",
+      "published": "2026-07-03T00:10:50+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "Try it out today: [devin.ai/desktop](http://devin.ai/desktop)\n\n💬0🔄0❤️1👀287",
+      "tags": [
+        "Devin Desktop"
+      ],
+      "score": 50,
+      "summary": "Devin Desktop试用链接。",
+      "fetched_at": "2026-07-03T00:59:07.038830+08:00"
+    },
+    {
+      "title": "why are the open tools so low in the list? We need to improve integration between open platforms and...",
+      "link": "https://x.com/ClementDelangue/status/2072708858129043658",
+      "published": "2026-07-02T23:47:55+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "why are the open tools so low in the list? We need to improve integration between open platforms and open models [@steipete](https://x.com/steipete)[@thdxr](https://x.com/thdxr)[@Teknium](https://x.com/Teknium)[@badlogicgames](https://x.com/badlogicgames)!\n\n![Daniel van Strien](https://pbs.twimg.com/profile_images/1274680904217251840/N_svCCtg_normal.jpg)\n\nDaniel van Strien@vanstriendaniel\n\nCoding agents are real users of the [@huggingface](https://x.com/huggingface) Hub!  \n  \nThey're searching for models, building and pushing datasets, training models on Jobs, spinning up Spaces...  \n  \nNow there's public data: each agent's share of Hub traffic, updated monthly 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HMOi1kAXYAAGZz0.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/vanstriendaniel/status/2072699507142180973)\n\n💬6🔄5❤️48👀4882📊9",
+      "tags": [
+        "Hugging Face",
+        "开源工具",
+        "Agent流量"
+      ],
+      "score": 60,
+      "summary": "Clement Delangue呼吁改进开源平台与模型的集成。",
+      "fetched_at": "2026-07-03T00:59:07.038832+08:00"
+    },
+    {
+      "title": "Yesterday, I saw a lot of early excitement on Fable 5. \n\nBut as I predicted, that wore off super fas...",
+      "link": "https://x.com/omarsar0/status/2072713255248630227",
+      "published": "2026-07-03T00:05:23+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Yesterday, I saw a lot of early excitement on Fable 5.   \n  \nBut as I predicted, that wore off super fast.   \n  \nMy timeline is full of disappointments around limitations, guardrails, capabilities, costs, and much more.   \n  \nI miss the aura of the Opus 4.5 launch. It just worked.\n\n💬9🔄3❤️29👀3290📊11",
+      "tags": [
+        "Fable 5",
+        "失望"
+      ],
+      "score": 40,
+      "summary": "用户对Fable 5的早期兴奋消退，表达失望。",
+      "fetched_at": "2026-07-03T00:59:07.038834+08:00"
+    },
+    {
+      "title": "This is why we have started to educate AI builders on the topic: https://t.co/Erj1qIOz4t",
+      "link": "https://x.com/omarsar0/status/2072711399642485117",
+      "published": "2026-07-02T23:58:01+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "This is why we have started to educate AI builders on the topic: [academy.dair.ai/labs](https://academy.dair.ai/labs)\n\n💬0🔄0❤️3👀707📊1",
+      "tags": [
+        "AI教育",
+        "课程"
+      ],
+      "score": 40,
+      "summary": "Elvis分享AI Builder教育课程链接。",
+      "fetched_at": "2026-07-03T00:59:07.038837+08:00"
+    },
+    {
+      "title": "So much alpha in tuning/building LLM verifiers and judges. \n\nI use them on top of my harness, and it...",
+      "link": "https://x.com/omarsar0/status/2072710620261093436",
+      "published": "2026-07-02T23:54:55+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "So much alpha in tuning/building LLM verifiers and judges.   \n  \nI use them on top of my harness, and it has unlocked agentic coding workflows that are beyond anything that exists in the market today.  \n  \nBuilding verifiers and LLM judges is starting to become a skill in high demand.\n\n![Mira Murati](https://pbs.twimg.com/profile_images/2057853902918455296/D_nfq15L_normal.jpg)\n\nMira Murati@miramurati\n\nBridgewater used their unique financial knowledge and partnered with us on [@tinkerapi](https://x.com/tinkerapi) to fine-tune a model that helps their analysts focus on what's important. Experts improving AI that empowers experts.  \n[thinkingmachines.ai/news/learning-…](https://thinkingmachines.ai/news/learning-to-replicate-expert-judgment-in-financial-tasks/)\n\n[🔗 View Quoted Tweet](https://x.com/miramurati/status/2072050039317578236)\n\n💬5🔄7❤️26👀4774📊10",
+      "tags": [
+        "LLM验证器",
+        "Agent编码"
+      ],
+      "score": 70,
+      "summary": "Elvis强调构建LLM验证器和评判器的重要性。",
+      "fetched_at": "2026-07-03T00:59:07.038839+08:00"
+    },
+    {
+      "title": "Get testing and building with the new Fullstack Code Arena at: https://t.co/DYnDhxb9y7",
+      "link": "https://x.com/arena/status/2072713735198888190",
+      "published": "2026-07-03T00:07:18+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Get testing and building with the new Fullstack Code Arena at: [arena.ai/code](http://arena.ai/code)\n\n💬0🔄1❤️1👀719📊1",
+      "tags": [
+        "Code Arena",
+        "全栈"
+      ],
+      "score": 60,
+      "summary": "lmarena.ai推出全栈Code Arena测试平台。",
+      "fetched_at": "2026-07-03T00:59:07.038841+08:00"
+    },
+    {
+      "title": "Code Arena just leveled up with fullstack capabilities 🚀\n\nIntroducing the new Fullstack Code Arena....",
+      "link": "https://x.com/arena/status/2072713730711023673",
+      "published": "2026-07-03T00:07:17+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Code Arena just leveled up with fullstack capabilities 🚀  \n  \nIntroducing the new Fullstack Code Arena. We’re moving beyond frontend prototypes to fullstack development complete with databases, API keys, and fast deployments. Build, iterate, and ship real-world software — all in one place.  \n  \nModels now act as agents in the Code Arena, using structured tool calls to plan, execute, and refine in real time with real world tasks.  \n  \nRead more about it in the thread 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072711701645119488/vid/avc1/1920x1080/0j5HPR2SDBIr4md2.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/arena/status/2072713730711023673/video/1)\n\n💬2🔄3❤️25👀4337📊6",
+      "tags": [
+        "Code Arena",
+        "全栈",
+        "Agent"
+      ],
+      "score": 80,
+      "summary": "lmarena.ai发布全栈Code Arena，支持数据库和API密钥。",
+      "fetched_at": "2026-07-03T00:59:07.038843+08:00"
+    },
+    {
+      "title": "Code Arena now goes beyond frontend prototypes. Read more about all the new fullstack features in ou...",
+      "link": "https://x.com/arena/status/2072713733969981821",
+      "published": "2026-07-03T00:07:17+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Code Arena now goes beyond frontend prototypes. Read more about all the new fullstack features in our blog:  \n[arena.ai/blog/fullstack…](http://arena.ai/blog/fullstack-code-arena/)\n\n💬1🔄1❤️4👀994📊2",
+      "tags": [
+        "Code Arena",
+        "全栈",
+        "博客"
+      ],
+      "score": 60,
+      "summary": "lmarena.ai发布全栈Code Arena博客。",
+      "fetched_at": "2026-07-03T00:59:07.038845+08:00"
+    },
+    {
+      "title": "Claude Sonnet 5 (Thinking) landed #32 overall for Text. Let's dig into why.\n\nIn the Text Arena, you ...",
+      "link": "https://x.com/arena/status/2072699414981075064",
+      "published": "2026-07-02T23:10:24+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Claude Sonnet 5 (Thinking) landed #32 overall for Text. Let's dig into why.  \n  \nIn the Text Arena, you can filter by category and occupational domain. Notably, Sonnet 5 outranks 4.6 on Expert-level prompts, and holds steady in categories like Math, Writing, Literature & Language, and Life, Physical & Social Science - but drops in rank across most other categories.\n\n![Tweet Image](https://pbs.twimg.com/media/HMOzRHcbgAE1kPV.jpg)\n\n💬3🔄2❤️16👀1977📊6",
+      "tags": [
+        "Claude Sonnet 5",
+        "Text Arena",
+        "排名"
+      ],
+      "score": 70,
+      "summary": "Claude Sonnet 5在Text Arena排名第32，专家级提示表现优异。",
+      "fetched_at": "2026-07-03T00:59:07.038847+08:00"
+    },
+    {
+      "title": "Claude Sonnet 5 (Thinking) has landed #6 for Code Arena: Frontend. \n\nThe latest Sonnet scores +29 po...",
+      "link": "https://x.com/arena/status/2072699410983903523",
+      "published": "2026-07-02T23:10:23+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Claude Sonnet 5 (Thinking) has landed #6 for Code Arena: Frontend.   \n  \nThe latest Sonnet scores +29 points higher than its predecessor, Sonnet 4.6, on agentic frontend webdev tasks, and outscores Opus 4.6 (Thinking) by +9 points. It also ranks widely across other modalities:  \n- #11 in Document Arena  \n- #17 in Search Arena  \n- #21 in Vision Arena  \n- #32 in Text Arena  \n  \nMore details on how Sonnet 5 differs over 4.6 in thread.   \n  \nCongrats to [@AnthropicAI](https://x.com/AnthropicAI) on this release.\n\n![Tweet Image](https://pbs.twimg.com/media/HMO05uZacAASvZk.jpg)\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nIntroducing Claude Sonnet 5, our most agentic Sonnet yet.  \n  \nIt makes plans, uses tools like browsers and terminals, and runs autonomously at a level that just a few months ago required larger and more expensive models.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072014980103176192/vid/avc1/1728x2160/zHnxI04ExEMPKIbE.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072017450611142835/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072017450611142835)\n\n💬15🔄20❤️187👀15901📊29",
+      "tags": [
+        "Claude Sonnet 5",
+        "Code Arena",
+        "排名"
+      ],
+      "score": 80,
+      "summary": "Claude Sonnet 5在Code Arena前端排名第6，比前代高29分。",
+      "fetched_at": "2026-07-03T00:59:07.038849+08:00"
+    },
+    {
+      "title": "看着Claude fable 5为了解决问题，自己去火山引擎上提交工单然后跟火山的工程师交流给我看懵逼了。。。。",
+      "link": "https://x.com/Khazix0918/status/2072698058308202648",
+      "published": "2026-07-02T23:05:00+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "看着Claude fable 5为了解决问题，自己去火山引擎上提交工单然后跟火山的工程师交流给我看懵逼了。。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HMOz1ubaYAE3jCa.jpg)\n\n💬33🔄7❤️209👀41716📊71",
+      "tags": [
+        "Claude Fable 5",
+        "自主提交工单"
+      ],
+      "score": 80,
+      "summary": "用户发现Claude Fable 5自主在火山引擎提交工单并与工程师交流。",
+      "fetched_at": "2026-07-03T00:59:07.038851+08:00"
+    },
+    {
+      "title": "LLM token 是思维的卡路里。",
+      "link": "https://x.com/lijigang/status/2072720037904101752",
+      "published": "2026-07-03T00:32:20+08:00",
+      "source": "李继刚(@lijigang_com)",
+      "content": "LLM token 是思维的卡路里。\n\n💬0🔄0❤️0👀186",
+      "tags": [
+        "LLM token",
+        "思维卡路里"
+      ],
+      "score": 30,
+      "summary": "李继刚比喻LLM token为思维的卡路里。",
+      "fetched_at": "2026-07-03T00:59:07.038853+08:00"
+    },
+    {
+      "title": "SwiftUI Adds New Document Protocol, Improves Performance, and More",
+      "link": "https://www.infoq.com/news/2026/07/swiftui-wwdc26/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-03T00:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/swiftui-wwdc26/en/headerimage/swiftui-wwdc26-1783007395426.jpeg)\n\nAnnounced at WWDC 2026, the latest SwiftUI release brings a new Document protocol for efficient disk access and snapshot-based updates, along with improved APIs for reordering items in lists, grids, and sections. In addition, it expands presentation features, such as swipe actions on any view, better AsyncImage caching, and lazy state initialization for Observable types to boost performance.\n\n*By Sergio De Simone*",
+      "tags": [
+        "SwiftUI",
+        "WWDC 2026",
+        "文档协议"
+      ],
+      "score": 70,
+      "summary": "SwiftUI在WWDC 2026发布新文档协议和性能改进。",
+      "fetched_at": "2026-07-03T00:59:07.038855+08:00"
+    }
+  ]
+}
