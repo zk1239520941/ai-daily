@@ -802,6 +802,246 @@
       "score": 40,
       "summary": "向阳乔木预告将分享使用Fable 5和多个Skill生成42个对比页面的结果。",
       "fetched_at": "2026-07-04T02:19:41.218705+08:00"
+    },
+    {
+      "title": "Fable's judgement",
+      "link": "https://simonwillison.net/2026/Jul/3/judgement/#atom-everything",
+      "published": "2026-07-04T02:51:06+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "One of the most interesting tips I got from [the Fireside Chat](https://www.ai.engineer/worldsfair/schedule?session=asn_slot_2026_06_30_main_stage_1230_2026_06_08t09_35_43_039z) I hosted with Cat Wu and Thariq Shihipar from the Claude Code team at AIE on Wednesday was to let Fable (and to a certain extent Opus) use their own judgement rather than dictating how they should work.\n\nThe example they gave was testing. You can tell Fable \"only use automated testing for larger features, don't update and run tests for small copy or design changes\" - but it's better to just tell Fable to use its own judgement when deciding to write tests instead.\n\nJesse Vincent just gave me a related tip to help avoid burning too many of those valuable Fable tokens in the few days we have left before the prices go up. Tell Fable to use other models for smaller tasks, applying its own judgement about which model to use.\n\nI prompted Claude Code just now with:\n\n> `For all coding tasks use your judgement to decide an appropriate lower power model and run that in a subagent`\n\nClaude saved this memory file in `~/.claude/projects/name-of-project/memory/delegate-coding-to-subagents.md`:\n\n> ```\n> ---\n> name: delegate-coding-to-subagents\n> description: Simon wants coding tasks delegated to subagents running an appropriately lower-power model\n> metadata: \n>   node_type: memory\n>   type: feedback\n>   originSessionId: 30068d78-43a9-4fb1-bb29-9799e18c526a\n> ---\n> ```\n>\n> Stated by Simon on 2026-07-03: \"For all coding tasks use your judgement to\n> decide an appropriate lower power model and run that in a subagent.\"\n>\n> **Why:** cost/efficiency — implementation work rarely needs the top-tier\n> model; judgment, review, and synthesis stay with the main loop.\n>\n> **How to apply:** when a task in this project is primarily writing/editing\n> code, spawn an Agent with a model override (sonnet for substantive\n> implementation, haiku for trivial/mechanical edits) and a self-contained\n> prompt; review the result in the main loop before committing. Design,\n> auditing, data synthesis, and anything judgment-heavy stays in the main\n> model. See also [[project-goals]].\n\nSo far it seems to be working well. I'm getting a *ton* of work done and my Fable allowance is shrinking less quickly than before.\n\nTags: [claude](https://simonwillison.net/tags/claude), [ai](https://simonwillison.net/tags/ai), [claude-code](https://simonwillison.net/tags/claude-code), [llms](https://simonwillison.net/tags/llms), [prompt-engineering](https://simonwillison.net/tags/prompt-engineering), [coding-agents](https://simonwillison.net/tags/coding-agents), [generative-ai](https://simonwillison.net/tags/generative-ai), [claude-mythos-fable](https://simonwillison.net/tags/claude-mythos-fable), [anthropic](https://simonwillison.net/tags/anthropic)",
+      "tags": [
+        "Fable",
+        "Claude Code",
+        "模型自主判断"
+      ],
+      "score": 80,
+      "summary": "Simon Willison分享Fable使用技巧：让模型自主判断使用低功耗模型执行编码任务以节省token。",
+      "fetched_at": "2026-07-04T04:21:29.632671+08:00"
+    },
+    {
+      "title": "Program-as-Weights\n\nA Programming Paradigm for Fuzzy Functions",
+      "link": "https://x.com/_akhaliq/status/2073110969853641163",
+      "published": "2026-07-04T02:25:46+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "Program-as-Weights  \n  \nA Programming Paradigm for Fuzzy Functions\n\n![Tweet Image](https://pbs.twimg.com/media/HMUrWepXcAA3Gsi.png)\n\n💬2🔄1❤️13👀4210📊4",
+      "tags": [
+        "Program-as-Weights",
+        "模糊函数编程"
+      ],
+      "score": 70,
+      "summary": "AK转发Program-as-Weights论文，提出一种面向模糊函数的编程范式。",
+      "fetched_at": "2026-07-04T04:21:29.632684+08:00"
+    },
+    {
+      "title": "paper: https://t.co/9do4vu5qqp",
+      "link": "https://x.com/_akhaliq/status/2073110971757773023",
+      "published": "2026-07-04T02:25:46+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "paper: [huggingface.co/papers/2607.02…](https://huggingface.co/papers/2607.02512)\n\n💬0🔄0❤️1👀1841📊1",
+      "tags": [
+        "Program-as-Weights",
+        "论文链接"
+      ],
+      "score": 70,
+      "summary": "AK提供Program-as-Weights论文链接。",
+      "fetched_at": "2026-07-04T04:21:29.632689+08:00"
+    },
+    {
+      "title": "Agentic self-improvement. \n\nGive your agent the ability to introspect its past runs, spot inefficien...",
+      "link": "https://x.com/rauchg/status/2073132174958841887",
+      "published": "2026-07-04T03:50:02+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Agentic self-improvement.   \n  \nGive your agent the ability to introspect its past runs, spot inefficiencies, errors, redundant tool calls, and produce new prompts and skills.  \n  \nThat’s why agent observability is built-in when you deploy [eve.dev](http://eve.dev) to Vercel.\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nAgent Runs are now available on MCP and CLI.  \n  \n[@evedev\\_](https://x.com/evedev_) traces are automatically ingested and made available to agents.  \n  \nRun 𝚟𝚌 𝚊𝚐𝚎𝚗𝚝-𝚛𝚞𝚗𝚜 --𝚑𝚎𝚕𝚙 o[vercel.com/changelog/agen…](http://vercel.com/changelog/agent-runs-vercel-mcp-cli)t.co/YxGxXTxPO1\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2073129220377849968)\n\n💬4🔄2❤️43👀3749📊8",
+      "tags": [
+        "Vercel",
+        "Agent自改进",
+        "eve.dev"
+      ],
+      "score": 75,
+      "summary": "Guillermo Rauch介绍Agent自改进能力：通过回顾运行记录发现低效并生成新技能，Vercel内置可观测性。",
+      "fetched_at": "2026-07-04T04:21:29.632692+08:00"
+    },
+    {
+      "title": "“We hold these truths to be self-evident, that all men are created equal, that they are endowed by t...",
+      "link": "https://x.com/rauchg/status/2073127044708479429",
+      "published": "2026-07-04T03:29:38+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "“We hold these truths to be self-evident, that all men are created equal, that they are endowed by their Creator with certain unalienable Rights, that among these are Life, Liberty and the pursuit of Happiness.”   \n  \nSuch beautiful, sacred words.\n\n💬10🔄3❤️60👀3984📊14",
+      "tags": [
+        "独立日",
+        "美国"
+      ],
+      "score": 10,
+      "summary": "Guillermo Rauch引用独立宣言，表达对美国价值观的赞美。",
+      "fetched_at": "2026-07-04T04:21:29.632695+08:00"
+    },
+    {
+      "title": "I like my airplanes like I like my 𝚁𝚎𝚊𝚌𝚝.𝚌𝚛𝚎𝚊𝚝𝚎𝙴𝚕𝚎𝚖𝚎𝚗𝚝 syntax: JSX\n\nA glimmer of h...",
+      "link": "https://x.com/rauchg/status/2073119955709821372",
+      "published": "2026-07-04T03:01:28+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "I like my airplanes like I like my 𝚁𝚎𝚊𝚌𝚝.𝚌𝚛𝚎𝚊𝚝𝚎𝙴𝚕𝚎𝚖𝚎𝚗𝚝 syntax: JSX  \n  \nA glimmer of hope for how great airtravel could be again.  \n  \nLightning quick onboarding, no security theater, Starlink, unstressed friendly staff, convenient terminals.\n\n![Tweet Image](https://pbs.twimg.com/media/HMUznJtaEAA5RHx.jpg)\n\n💬16🔄0❤️99👀7885📊22",
+      "tags": [
+        "JSX",
+        "航空旅行"
+      ],
+      "score": 10,
+      "summary": "Guillermo Rauch用JSX比喻理想航空旅行，表达对高效便捷体验的期待。",
+      "fetched_at": "2026-07-04T04:21:29.632698+08:00"
+    },
+    {
+      "title": "Spectacular.",
+      "link": "https://x.com/pmarca/status/2073125805023191187",
+      "published": "2026-07-04T03:24:43+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Spectacular.\n\n![Andrew T. Walker](https://pbs.twimg.com/profile_images/2065516911564140544/UOMOQSvc_normal.jpg)\n\nAndrew T. Walker@AndrewTWalker\n\nThe rule of American Order is backed by the rule of American Force.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073087199138963456/vid/avc1/720x1280/fMnc-GpXCzGmRAVN.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LPDonovan/status/2073087262426890523/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/AndrewTWalker/status/2073109467651018948)\n\n💬16🔄8❤️181👀22282📊21",
+      "tags": [
+        "美国秩序",
+        "武力"
+      ],
+      "score": 10,
+      "summary": "Marc Andreessen转发关于美国秩序由武力支撑的观点。",
+      "fetched_at": "2026-07-04T04:21:29.632700+08:00"
+    },
+    {
+      "title": "Self recommending.",
+      "link": "https://x.com/pmarca/status/2073124030656512064",
+      "published": "2026-07-04T03:17:40+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Self recommending.\n\n![James Poulos](https://pbs.twimg.com/profile_images/1951740139170140160/VVIOwi2Z_normal.jpg)\n\nJames Poulos@jamespoulos\n\nAmid the AI free-for-all, our free will is miraculously intact. Put it to good use. Skip the psychoses of prediction and paralysis. Beyond fate, beyond fantasy… choose life. 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HMUuhVQaIAAg0f1.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/jamespoulos/status/2073114356485963884)\n\n💬10🔄2❤️52👀22121📊11",
+      "tags": [
+        "自由意志",
+        "AI"
+      ],
+      "score": 10,
+      "summary": "Marc Andreessen转发关于AI时代自由意志依然完整的观点。",
+      "fetched_at": "2026-07-04T04:21:29.632703+08:00"
+    },
+    {
+      "title": "HT @ENERGY",
+      "link": "https://x.com/pmarca/status/2073111548181246096",
+      "published": "2026-07-04T02:28:04+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "HT [@ENERGY](https://x.com/ENERGY)\n\n![Tweet Image](https://pbs.twimg.com/media/HMUr91qbsAAesoY.jpg)\n\n💬29🔄15❤️417👀21716📊55",
+      "tags": [
+        "能源",
+        "图片"
+      ],
+      "score": 10,
+      "summary": "Marc Andreessen转发一张图片，提及能源部。",
+      "fetched_at": "2026-07-04T04:21:29.632706+08:00"
+    },
+    {
+      "title": "The risk is the creation of a closed, self-referential universe, disconnected from reality.",
+      "link": "https://x.com/pmarca/status/2073111084266037251",
+      "published": "2026-07-04T02:26:13+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "The risk is the creation of a closed, self-referential universe, disconnected from reality.\n\n![Samuel Fitoussi](https://pbs.twimg.com/profile_images/1926217001250304000/IRe69s1h_normal.jpg)\n\nSamuel Fitoussi@SamuelFitouss10\n\nThomas Sowell définit l'intellectuel comme celui dont le travail commence et finit dans la sphère des idées. Cela signifie que l’intellectuel, souvent, ne subit pas lui-même les conséquences de ses erreurs. Il n'existe donc aucun processus darwinien permettant d'éliminer ses mauvaises idées.  \n  \nUn neurochirurgien possède des croyances ancrées dans la réalité, puisqu’il existe un critère de vérification empirique pour les vérifier (ses patients guérissent-ils ?). De même, un électricien ne pourrait plus exercer son métier s’ils ne satisfaisait pas ses clients en appliquant des méthodes qui fonctionnent. En sociologie, en revanche, le critère de vérification empirique n’existe pas toujours. Le seul critère existant pour évaluer la validité d’une idée : d’autres sociologues la trouvent-ils séduisante ?   \n  \nLe risque est la création d’un univers clos, autoréférentiel, déconnecté du réel. Si 20 chercheurs, persuadés que la Terre est plate, créaient un département universitaire, ils pourraient se valider les uns les autres, publier des papiers « scientifiques », faire passer des examens et distribuer des diplômes. Ils auraient créé un système circulaire de validation de leurs convictions. L’exemple semble fantaisiste, mais peut-être correspond-il à ce à quoi nous assistons aujourd’hui, par exemple dans les départements d’étude de genre.  \n  \nDe même, les intellectuels de gauche au 20ème siècle ont sans doute créé un monde autoréférentiel, où des idées catastrophiques (Mao est un philanthrope duquel nous devrions nous inspirer), mais jugées justes ou vertueuses dans leur univers social, rebondissaient et s'entretenaient, sans pouvoir être disqualifiées au contact du monde réel.\n\n[🔗 View Quoted Tweet](https://x.com/SamuelFitouss10/status/2073029312903569787)\n\n💬21🔄10❤️85👀25638📊20",
+      "tags": [
+        "知识分子",
+        "自指宇宙"
+      ],
+      "score": 10,
+      "summary": "Marc Andreessen转发关于知识分子可能创造脱离现实的自指宇宙的观点。",
+      "fetched_at": "2026-07-04T04:21:29.632708+08:00"
+    },
+    {
+      "title": "@NousResearch @karan4d Update: We are now talking about Sonic Adventures 2 😅",
+      "link": "https://x.com/petergyang/status/2073135384536760368",
+      "published": "2026-07-04T04:02:47+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "[@NousResearch](https://x.com/NousResearch)[@karan4d](https://x.com/karan4d) Update: We are now talking about Sonic Adventures 2 😅\n\n💬0🔄0❤️0👀329",
+      "tags": [
+        "NousResearch",
+        "闲聊"
+      ],
+      "score": 10,
+      "summary": "Peter Yang与NousResearch讨论Sonic Adventures 2游戏。",
+      "fetched_at": "2026-07-04T04:21:29.632711+08:00"
+    },
+    {
+      "title": "If folks have better ideas on how to do this btw I’m all ears",
+      "link": "https://x.com/petergyang/status/2073120046466183614",
+      "published": "2026-07-04T03:01:50+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "If folks have better ideas on how to do this btw I’m all ears\n\n![Tweet Image](https://pbs.twimg.com/media/HMUzsesawAAiCHf.jpg)\n\n💬2🔄1❤️1👀924📊2",
+      "tags": [
+        "寻求建议"
+      ],
+      "score": 10,
+      "summary": "Peter Yang询问关于某个流程的改进建议。",
+      "fetched_at": "2026-07-04T04:21:29.632714+08:00"
+    },
+    {
+      "title": "Because Instagram and TikTok APIs are garbage, I have this crazy Codex workflow that makes video cli...",
+      "link": "https://x.com/petergyang/status/2073115061355532429",
+      "published": "2026-07-04T02:42:01+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Because Instagram and TikTok APIs are garbage, I have this crazy Codex workflow that makes video clips for me (ffmpeg ftw) and then uses browser use for Meta Business Suite and TikTok UI to schedule them.  \n  \nI'm always worried it'll fall over since there are like 20+ steps and UI button clicks but so far so good.\n\n💬9🔄4❤️44👀5368📊16",
+      "tags": [
+        "Codex",
+        "自动化视频",
+        "浏览器自动化"
+      ],
+      "score": 70,
+      "summary": "Peter Yang分享使用Codex和浏览器自动化制作并调度视频剪辑的工作流。",
+      "fetched_at": "2026-07-04T04:21:29.632716+08:00"
+    },
+    {
+      "title": "new oss: https://t.co/udbG1wp4Se",
+      "link": "https://x.com/shl/status/2073126006106251388",
+      "published": "2026-07-04T03:25:31+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "new oss: [github.com/antiwork/chrom…](http://github.com/antiwork/chromeless)\n\n![Tweet Image](https://pbs.twimg.com/media/HMU451ZXEAEteHY.jpg)\n\n💬2🔄0❤️23👀2678📊5",
+      "tags": [
+        "chromeless",
+        "开源"
+      ],
+      "score": 70,
+      "summary": "Sahil Lavingia发布新开源项目chromeless。",
+      "fetched_at": "2026-07-04T04:21:29.632719+08:00"
+    },
+    {
+      "title": "More notes on my blog: https://t.co/R2tCp4ThFH",
+      "link": "https://x.com/simonw/status/2073117671521210525",
+      "published": "2026-07-04T02:52:24+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "More notes on my blog: [simonwillison.net/2026/Jul/3/jud…](https://simonwillison.net/2026/Jul/3/judgement/)\n\n💬0🔄0❤️32👀3893📊7",
+      "tags": [
+        "博客链接"
+      ],
+      "score": 10,
+      "summary": "Simon Willison提供更多笔记的博客链接。",
+      "fetched_at": "2026-07-04T04:21:29.632721+08:00"
+    },
+    {
+      "title": "The most interesting Fable tip I've heard so far is to let the model use its own judgement as much a...",
+      "link": "https://x.com/simonw/status/2073117641020215566",
+      "published": "2026-07-04T02:52:16+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "The most interesting Fable tip I've heard so far is to let the model use its own judgement as much as possible  \n  \nI told it \"For all coding tasks use your judgement to decide an appropriate lower power model and run that in a subagent\" and it seems to be saving a lot of tokens\n\n💬35🔄20❤️531👀21887📊129",
+      "tags": [
+        "Fable",
+        "Claude Code",
+        "节省token"
+      ],
+      "score": 80,
+      "summary": "Simon Willison分享Fable技巧：让模型自主判断使用低功耗模型执行编码任务以节省token。",
+      "fetched_at": "2026-07-04T04:21:29.632724+08:00"
+    },
+    {
+      "title": "And I must add that this is strongly connected with something I have been sharing lately related to ...",
+      "link": "https://x.com/omarsar0/status/2073127720339353630",
+      "published": "2026-07-04T03:32:20+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "And I must add that this is strongly connected with something I have been sharing lately related to judges and verifiers. These verifiers require you to look at AI outputs and steer them towards the correct goals. It's not just prompts; it's deeper levels of understanding the inner workings of these models through richer interactions. This is also another indicator of the importance of developing expertise/knowledge in the specific domain/area where you are using AI agents.\n\n💬1🔄1❤️2👀527📊1",
+      "tags": [
+        "AI验证器",
+        "领域知识"
+      ],
+      "score": 60,
+      "summary": "Elvis评论AI验证器需要深入理解模型内部运作和领域知识。",
+      "fetched_at": "2026-07-04T04:21:29.632727+08:00"
     }
   ]
 }
