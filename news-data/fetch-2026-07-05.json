@@ -1,0 +1,283 @@
+{
+  "meta": {
+    "date": "2026-07-05"
+  },
+  "entries": [
+    {
+      "title": "Proof of Human: How to Verify a Person Is Real and Unique",
+      "link": "https://blog.bytebytego.com/p/proof-of-human-how-to-verify-a-person",
+      "published": "2026-07-04T23:30:16+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "In the age of AI, proving you are a human has become increasingly hard.\n\nThe defenses websites have relied on for years are failing in predictable ways, and the failure shows up most visibly in moments like the one below.\n\nA popular retailer drops a thousand pairs of a limited-edition shoe at noon. Within thirty seconds, the inventory is gone. The buyers turn out to be automated agents working for resellers. The real people who wanted the shoes get nothing.\n\nThe retailer almost certainly tried the standard defenses: rate limits by IP, CAPTCHA, phone verification, device fingerprinting. Each of them helps for a while and then stops working. The reason they all fail in the same way is worth pausing on.\n\nEvery one of those defenses relies on a proxy for what the retailer actually wants to verify. An IP address is a proxy for a different network. A phone number is a proxy for a different person. A device fingerprint is a proxy for a different device. Each proxy fails the moment adversaries learn to acquire many of them cheaply, and adversaries always do. Phone numbers can be bought in bulk. Fingerprints can be randomized. IPs can be rotated through residential proxy networks. None of these strategies binds the verification to a real, unique person.\n\nAuthentication systems do not solve this either. Single sign-on, face unlock, passkeys, OAuth tokens, all of them compare an incoming credential against a stored template and return yes or no. None of them answers the question that actually matters here: has this user already been verified somewhere else in the world?\n\n**The central question: How do you let a real, unique human be recognized across the internet, without ever knowing who they are?**\n\nFor this article we spoke with the team behind World, including [Tiago Sada](https://www.linkedin.com/in/tiagosada/) and [Lily Gordon](https://www.linkedin.com/in/lilygordon/) at Tools for Humanity, on how they try to solve this problem.\n\n[![](https://substackcdn.com/image/fetch/$s_!ti7x!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F56b99880-b72f-4a73-a2b6-60363d3da33e_2048x1190.png)](https://substackcdn.com/image/fetch/$s_!ti7x!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F56b99880-b72f-4a73-a2b6-60363d3da33e_2048x1190.png)\n\nTraditional Authentication vs Proof of human\n\n## **Five Pillars of a Proof-of-Human System**\n\nA working answer to the central question requires five distinct ingredients. We will look at each one in turn.\n\n**Uniqueness.** Why is this a different identity problem than the ones we usually solve?\n\n**Anonymity.** How can a credential be issued without anyone knowing the identity of the user?\n\n**Recovery.** How does the system survive lost phones and reinstalled apps?\n\n**Verification.** How does the holder present the credential without revealing more than necessary?\n\n**Delegation.** What changes when the holder is an AI agent acting on a person’s behalf?\n\n[![](https://substackcdn.com/image/fetch/$s_!3L2H!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa0fd7fc9-899f-4e81-9afe-f56401b02dda_2048x1042.png)](https://substackcdn.com/image/fetch/$s_!3L2H!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa0fd7fc9-899f-4e81-9afe-f56401b02dda_2048x1042.png)\n\n## Pillar 1: Uniqueness\n\nTo see why uniqueness is structurally different from authentication, start with a system everyone already trusts: Face ID on a phone.\n\nWhen the user sets up the phone, the camera captures a single facial template and stores it locally. From then on, every unlock attempt produces a fresh capture, which the phone compares against the stored template. The comparison space is exactly one. If the fresh capture matches the template within some tolerance, the phone unlocks. If not, the phone refuses. The system handles other faces by failing the match.\n\nThis is a one-to-one matching problem. The math is simple because the comparison is small. Even with a per-comparison error rate of one in a million, the phone unlocks reliably for its owner and refuses essentially every other face.\n\nHowever, the example with the retailer wants a different guarantee. They want to verify, at checkout, that the buyer is different from every other person who has already bought those special edition shoes. The comparison is no longer against one template, but against the entire population of past buyers. If the system is meant to work at internet scale, the population is potentially every person on the planet.\n\nThis is a one-to-many matching problem, and the diagram below shows this comparison in the context of World ID. As you can notice, the math can get much more complex when the comparison space grows.\n\n[![](https://substackcdn.com/image/fetch/$s_!1xTt!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F79c10b81-7618-4f61-a885-4652c3116238_2042x1404.png)](https://substackcdn.com/image/fetch/$s_!1xTt!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F79c10b81-7618-4f61-a885-4652c3116238_2042x1404.png)\n\nThe probability of a false match scales roughly with the size of the comparison space. A per-comparison error rate of one in a million sounds excellent, but checked against a billion candidates, it produces roughly a thousand false matches per query. To make one-to-many uniqueness viable at a billion-person scale, the per-comparison error rate has to be on the order of one in a hundred billion or better. That requirement rules out most consumer-grade biometric methods straight away.\n\nThis type of system that answers the one-to-many question is what the World ID calls the proof of human. At present, there is no widely deployed equivalent of this category. We have a great deal of authentication infrastructure and very little uniqueness infrastructure.\n\n## Pillar 2: Anonymity\n\nOnce the goal is uniqueness at an internet scale, an apparent paradox emerges.\n\nChecking whether someone is the same as anyone else usually requires recognizing them. If a system cannot identify a person, how can it tell whether it has seen that person before?\n\nThe answer takes multiple steps.\n\n**Step 1: Find a biometric signal that scales**\n\nMost consumer biometrics fall short. For example, fingerprints have decent entropy but can be captured from surfaces. Face geometry varies less than people assume. The iris pattern of the human eye, by contrast, turns out to be one of the few biometric features with the entropy needed for billion-scale comparisons. Two unrelated humans have essentially no chance of producing matching iris patterns, even after accounting for camera noise and aging.\n\nHowever, reading the iris reliably is the next challenge, and this is where hardware matters.\n\nA standard phone camera can be replaced with a device that injects images directly into the camera pipeline, defeating any face check done in software. A printed iris image can fool an infrared camera that lacks depth detection. To get a reading that resists these attacks, the capture has to happen on hardware that controls the entire signal path from sensor to processing.\n\nTools for Humanity handles this using a purpose-built device called the Orb. The Orb uses multispectral imaging across infrared and visible wavelengths, runs several neural networks locally to verify liveness and detect masks, and deletes the original images before anything leaves the device. What gets transmitted is signed, encrypted material derived from the iris, not the iris itself.\n\n**Step 2: Check for duplicates without anyone seeing the data**\n\nThat solves the first half of the problem. The second half is harder. The system needs to check whether anyone else in the world has the same reading, while no party (including the system operator) ever sees the reading itself.\n\nThe trick works like this:\n\n* Take the iris reading and split it into three pieces of statistically random noise.\n* Hand each piece to a different organization operating in a different legal jurisdiction.\n* Each party, looking only at its piece, can tell nothing about the underlying reading.\n* The parties can jointly compute answers like “does this reading match any reading we have already enrolled?” without any single party ever holding the whole reading.\n* The pieces are combined only in the abstract space of the computation, never reconstructed on any actual machine.\n\n[![](https://substackcdn.com/image/fetch/$s_!60wS!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8302568f-4880-4c93-b8a8-93275275b5a5_2048x1182.png)](https://substackcdn.com/image/fetch/$s_!60wS!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8302568f-4880-4c93-b8a8-93275275b5a5_2048x1182.png)\n\nThis is what cryptographers call secure multi-party computation, and the specific variant World uses is called anonymized multi-party computation (AMPC). The parties (referred to as SMPC nodes) are operated by independent organizations in different legal jurisdictions.\n\nSee the diagram below that tries to conceptualize what each SMPC party actually sees:\n\n[![](https://substackcdn.com/image/fetch/$s_!7ZeZ!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf9c5090-45b2-4945-8765-eb1113735420_2048x1498.png)](https://substackcdn.com/image/fetch/$s_!7ZeZ!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf9c5090-45b2-4945-8765-eb1113735420_2048x1498.png)\n\nWhat emerges from this setup is the property that makes proof of human possible. The system can determine whether a given human has enrolled before, and no single party (including the main organization) ever sees the underlying biometric in usable form. The user is verified as unique without being identified.\n\n## Pillar 3: Recovery\n\nA verified credential is only useful if the human carrying it can keep using it across years and across devices. In a normal life, phones get lost, and software gets reinstalled. Any system meant to anchor a lifelong property like “I am a verified unique human” has to handle the case where the holder loses access to everything they were using to prove it.\n\nIf the credential is a private key on a phone, losing the phone means losing the credential. The user would have to re-enroll. If the system is anchored in physical hardware verification, it means traveling back to a central location (in the case of World ID, that means the Orb). It would be a rather poor user experience for everyday loss, and impossible for some users in some regions.\n\nThe fix is to stop treating the credential as a single secret. Instead, treat the verified human as an abstract account in a public registry. The account does not hold the user’s biometric or any user secret directly. It holds a list of public keys (called Authenticators) that the user has authorized to act on the account’s behalf.\n\nThink of an Authenticator as any piece of software or hardware that holds a private key on the user’s behalf. Here are some examples:\n\n* A common Authenticator could be the user’s phone with the wallet app installed.\n* A browser extension that holds a separate key could be another.\n* A hardware security token plugged in over USB is a third option.\n\nWhen the user wants to verify on a service or app, the Authenticator is what actually produces the cryptographic proof and signs the verification request with its private key. The account in the public registry holds the matching public key, so anyone can confirm the signature without ever knowing the secret. Keys can be added, revoked, and rotated. The account itself persists.\n\nFor more context, the public registry stores one entry per verified human. Each entry contains the public keys of all currently authorized Authenticators, the designated Recovery agents for that account, and the rules under which those agents can act. The biometric reading itself is never stored in the registry. This ensures that reading the registry cannot reveal personal details about the verified humans.\n\nSee the diagram below that shows this approach in the context of World ID’s solution:\n\n[![](https://substackcdn.com/image/fetch/$s_!eaMz!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3e79f2bf-985b-4823-9ecc-8bcda8b33bcc_2048x1299.png)](https://substackcdn.com/image/fetch/$s_!eaMz!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3e79f2bf-985b-4823-9ecc-8bcda8b33bcc_2048x1299.png)\n\nIf the user loses all of their Authenticators, the account also designates one or more Recovery Agents, which are parties trusted to re-authenticate the human (typically by running them through a fresh biometric check) and let them register new keys.\n\nIn the current design of World ID, the Orb network serves as the default Recovery Agent. The on-chain registry that holds all of this is called the WorldIDRegistry.\n\nWhat this might look like in practice is as follows: imagine the user’s phone is stolen on a trip. They get a new phone and install the wallet app fresh, but the app has no private keys yet. Rather than travel back to an Orb to start over, the user can initiate a recovery through one of the Recovery Agents they previously designated. The agent runs them through a fresh biometric check, typically through the Orb’s mobile face authentication. If the check passes, the agent submits a transaction to the registry that revokes the stolen phone’s key and registers the new phone’s key.\n\nHowever, the open question here is governance. The Recovery Agents can themselves become a trust point, which would require some form of oversight.\n\n## Pillar 4: Verification\n\nSo far, we have a way to verify a human as unique, and a way for them to hold their credentials durably.\n\nWhat we need next is a way to present that credential to a relying party (for example, a dating app, a shoe retailer, or any service that wants to enforce one-per-human) so the service can do its job while learning as little as possible about the user.\n\nA relying party in this scenario needs three things at once:\n\n* Assurance that the request is backed by a real and verified unique human.\n* The ability to enforce its own one-per-human rule, which means recognizing repeat visits by the same human within its own context.\n* Confidence that what the user reveals is limited to the fact of being a verified, unique human, with identity, other activity, and behavior on other platforms staying private.\n\nSatisfying all three at once is harder than it sounds. Standard identity tokens (an OAuth token, a JWT, a session cookie) tie recognition to identity. The relying party gets the ability to enforce policies, but pays for it with the user’s privacy.\n\nThe World ID handled this problem using a primitive called a nullifier. A nullifier is a number derived from three inputs combined together. The inputs are the user’s verified credentials, the relying party’s identifier, and a particular action. The same combination always produces the same number. Different combinations produce uncorrelated numbers. If the relying party sees the same nullifier again for the same action, they know it is the same human attempting the same thing twice. Nullifiers from the same user on a different action, or in a different service, are uncorrelated and cannot be linked back.\n\nSee the diagram below that shows what the relying party actually sees:\n\n[![](https://substackcdn.com/image/fetch/$s_!kjJb!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7becef8-758a-4e65-830a-2a1f17b1d680_2048x1493.png)](https://substackcdn.com/image/fetch/$s_!kjJb!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7becef8-758a-4e65-830a-2a1f17b1d680_2048x1493.png)\n\nGenerating a nullifier like this requires careful design. A user cannot generate it alone (they cannot be trusted to use the right inputs), and a single server cannot generate it either (the server would learn who the user is). It needs a distributed network of nodes, and here’s how they work:\n\n* The user sends a blinded version of their query\n* Each node computes on the blinded value while staying unaware of what the value represents\n* The user unblinds the result.\n* A threshold of nodes must cooperate. These nodes are called OPRF nodes (oblivious pseudorandom function).\n\nOne more piece is needed to complete the puzzle. If a user could reuse the same nullifier multiple times within one relying party context, an enterprising service could build a pseudonymous profile of the user’s repeated interactions. To prevent this, the design maintains an on-chain list of every nullifier that has been used, called the Oblivious Nullifier Pool. The user’s own software refuses to generate a proof for a nullifier already in the pool.\n\nSo, how is all this complexity handled from an application’s perspective?\n\nIn the context of World ID, all of this gets bundled into two zero-knowledge proofs that the user presents to the relying party. An SDK named IDKIT wraps the flow for integrators.\n\nSee the diagram below that shows a simple IDKit Proof Flow:\n\n[![](https://substackcdn.com/image/fetch/$s_!ngiE!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ea66295-4a60-4dc5-ac74-2fc3fa75b586_2048x1295.png)](https://substackcdn.com/image/fetch/$s_!ngiE!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ea66295-4a60-4dc5-ac74-2fc3fa75b586_2048x1295.png)\n\n## Pillar 5: Delegation\n\nUp to this point, we have assumed the human is the one acting. The user might open a dating app, buy sneakers from an online retailer, or sign a document. The design handles each case by binding one verifiable human to one proof.\n\nThe interesting question is what happens when the human is not the one acting. This is because people are now increasingly using AI agents to take actions on their behalf. For example:\n\n* An assistant books a flight.\n* An agent monitors product drops and buys when something matches.\n* A service fills out and submits forms for a user who would rather not.\n\nThe standard defense against agents is to block them as bots, but here the human wants the agent to act for them. Treating the agent as adversarial defeats the very automation the user is paying for.\n\nThe extension to the design for an ideal proof of human solution is to let the agent register against a real human’s credentials before it acts. When the agent later contacts a service, the service can verify that the agent is backed by a verified, unique human, while still learning nothing about which human. The agent’s activity counts against the human’s quota, so a single human cannot turn into many parallel agents to amplify their reach.\n\nSee the diagram below that shows how World ID implements this using AgentKit:\n\n[![](https://substackcdn.com/image/fetch/$s_!OMXE!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3200a15f-9c79-4408-83ae-808e708d0dab_2048x1489.png)](https://substackcdn.com/image/fetch/$s_!OMXE!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3200a15f-9c79-4408-83ae-808e708d0dab_2048x1489.png)\n\nIn World’s implementation, the agent registers its wallet address in a registry called AgentBook (deployed on the World Chain blockchain), tying the agent to the human’s World ID through a verification flow in the user’s wallet app. A service or application that wants to admit human-backed agents installs the SDK called AgentKit, which by default allows three uses per human per service before normal payment takes over.\n\nA few new use cases become possible:\n\n* A startup can offer a free trial that bots cannot farm at scale, because each trial use is bound to a verified human.\n* A retailer can enforce one pair per human on a limited drop, even when agents do the buying.\n* A merchant can require human backing for transactions where chargeback fraud is a concern.\n\nWhat remains open is how this scales. At present, the volume of agent traffic is quite small compared with what AI agents will likely produce in the coming years. Whether the per-human cap stays meaningful when one human represents many concurrent agents is a question worth looking into.\n\n## Conclusion\n\nTaken together, the five pillars (uniqueness, anonymity, recovery, verification, and delegation) form a working blueprint for proof of human in principle. Whether any particular implementation, World ID included, becomes the way the larger question gets answered at internet scale remains to be seen.\n\nA few specific questions are worth tracking as the design meets larger-scale reality:\n\n* **Hardware decentralization.** The longer-term plan calls for multiple independent manufacturers of devices like the Orb, distributed across jurisdictions and cross-checking each other through security deposits. The architectural properties depend on this transition actually happening.\n* **Unlinkability under adversarial pressure.** The cryptography looks sound on paper. The harder test is what happens when relying parties, governments, or other large actors try to extract more from the system than the design intends. Whether the unlinkability properties hold in practice at scale is something the community will only learn over time.\n* **Delegation at agent scale.** Most agent traffic today still flows through traditional authorization systems. As agents take on more autonomous activity, the per-human cap will be tested in ways the existing deployment has not yet seen. New abuse patterns will almost certainly emerge.\n* **The bootstrap problem.** Proof of human becomes useful at scale, and reaching scale requires apps to require it, which in turn requires users to have it. How any such system navigates that loop, and what happens if a meaningful fraction of the internet starts to require proof of human, is far from clear today.\n\nThe point of this article was not to argue for any particular product, but to surface the techniques. Once you can see the shape of the problem, one-to-many matching, secret-shared biometrics, scoped nullifiers, account-style key rotation, delegated quotas, the headlines about “verify you are human” start to look less mysterious. They are attempts to solve a specific class of problems that the rest of the identity stack has so far left alone.\n\n**References and Further Reading**\n\n* <https://world.org/liftoff>\n* <https://docs.world.org/world-id/idkit/integrate>\n* <https://docs.world.org/agents/agent-kit/integrate>\n* <https://world.org/blog/engineering/private-proof-of-human>\n* <https://eprint.iacr.org/2024/705>\n* <https://world.org/blog/engineering/introducing-world-id-4.0>",
+      "tags": [
+        "World",
+        "Proof of Human",
+        "身份验证"
+      ],
+      "score": 79,
+      "summary": "ByteByteGo文章探讨AI时代如何验证真实独特人类身份，介绍World项目方案。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!3L2H!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa0fd7fc9-899f-4e81-9afe-f56401b02dda_2048x1042.png",
+      "fetched_at": "2026-07-05T00:12:15.553515+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团正式发布万亿参数大模型LongCat-2.0，在五万卡国产算力集群上完成全流程训练与推理，并开源。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-05T00:12:15.553525+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "ASX",
+        "Agent",
+        "顶会论文"
+      ],
+      "score": 80,
+      "summary": "美团搜推ASX团队分享6篇AI顶会论文，涉及强化学习、奖励建模等Agent技术。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-05T00:12:15.553529+08:00"
+    },
+    {
+      "title": "ACL 2026 精选论文分享：美团履约团队前沿技术专场",
+      "link": "https://tech.meituan.com/2026/06/11/ACL-2026-Agent.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "## 团队介绍\n\n美团业务研发平台/履约 AI 算法团队，聚焦构建大模型为基础的 Agent 技术体系，用 AI 赋能美团履约业务， 构建 Agent 自进化的运营系统。在大模型 CPT、Post-training、Agentic RL 以及多模态理解等核心前沿方向持续深耕，已在 ACL、EMNLP 等AI领域的国际顶会发表数十篇高质量研究成果。本文分享了美团履约团队专场聚焦 ACL 会议论文以及前沿技术实践。\n\n## 01 GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR\n\n**低秩高效：冻结残差分量，高效稠密计算**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2601.09361)\n\n![](https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png)\n\n**论文简介**：基于可验证奖励的强化学习（RLVR）是提升大规模推理模型能力的关键范式。与监督微调（SFT）不同，RLVR 展现出截然不同的优化动力学，其对预训练几何结构的保持高度敏感。然而，现有的参数高效方法在这一范式下面临着关键的局限性。一方面，像 PiSSA 和 MiLoRA 这样的低秩适配方法主要面向监督微调设计，未能考虑到 RLVR 独特的优化动力学与几何结构；直接将它们应用于 RLVR 往往会导致谱塌缩和训练不稳定。另一方面，直接去微调那些受 RLVR 青睐的非结构化稀疏参数子空间，又会在现代硬件上遭遇效率瓶颈。\n\n为解决这些挑战，我们提出了 GeoRA（几何感知低秩适配），一种专为 RLVR 定制的低秩适配方法。具体而言，GeoRA 利用了 RL 更新子空间的各向异性与可压缩结构，并通过奇异值分解（SVD）提取其主方向来初始化低秩适配器。在 RLVR 训练期间，残差分量被冻结作为结构锚点。该设计既保留了预训练结构，又实现了高效的稠密计算。在参数规模从 1.5B 到 32B 的 Qwen 和 Llama 模型上的实验表明，GeoRA 在数学、医学和代码等 RLVR 场景中持续优于强有力的低秩基线方法，同时在域外任务上展现出更强的泛化能力和更少的遗忘。\n\n## 02 Efficient Paths and Dense Rewards: Probabilistic Flow Reasoning for Large Language Models\n\n**Infra的引擎是数学：离散推理步骤建模为连续概率流，推动推理过程是逼近目标的“速度向量”**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09260)\n\n![](https://p1.meituan.net/meituantechblog/1437e163c0cfec3bb322c2ebc0704ff6492492.png)\n\n**论文简介**：高质量的思维链（CoT）在激发大语言模型推理能力方面展现出了巨大的潜力 。然而，现有的推理范式通常将推理过程视为不可分割的序列，缺乏量化每一步信息增益的内在机制 。这种细粒度的缺失导致了两个关键瓶颈：一是在缺乏明确引导的情况下，模型容易进行冗余探索，造成推理效率低下；二是由于结果监督信号稀疏或外部验证器成本高昂，导致模型优化困难 。\n\n为解决上述问题，本论文提出了一种名为 CoT-Flow 的全新理论框架，将离散的推理步骤重新概念化为连续的概率流 。受整流流（Rectified Flow）理论的启发，该框架将推理过程建模为将模型的信息状态从初始问题平滑传输到真实答案的连续过程 。在此视角下，每一个推理步骤都被视为一个推动推理过程逼近目标的“速度向量”，以严格量化每一步对生成最终正确答案的瞬时信息增益 。基于这样的量化指标，实现了一种基于对比解码的贪心解码策略，回答长度平均减少 10% ~ 15%，并且在 AIME24 上能够获得高达 15.9% 的准确率提升。同一框架下导出的 RL loss，和 GRPO, VeriFree 等 baseline 相比，在 AIME24, GPQA 等 benchmark 上取得接近或更高的准确率，同时实现 11% ~ 37% 的长度压缩，训练加速 32%。\n\n## 03 UserLM-R1: Modeling Human Reasoning in User Language Models with Multi-Reward Reinforcement Learning\n\n**可以进化的RL环境：像人一样思考的用户模拟器**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09215)\n\n![](https://p0.meituan.net/meituantechblog/7b56191c592435d903f4775d86c9cf18488821.png)\n\n**论文简介**：用户模拟器是智能体后训练的核心交互环境，理想的用户模拟器应具备跨领域泛化能力，并能主动通过质疑或议价等方式参与协商。然而，现有方法存在两个问题：其一，依赖静态且缺乏上下文感知的用户画像，在面对新场景时需要大量人工重新设计，泛化能力有限；其二，忽视人类的策略性思维，导致智能体易于对用户模拟器进行操控。\n\n为此，我们提出UserLM-R1——一种具备推理能力的新型用户语言模型。具体而言，我们首先构建兼顾静态角色与动态场景目标的综合用户画像，以适应多样化场景；进而提出目标驱动的决策策略，在生成回复前先产生高质量的推理链，并通过监督微调与多奖励强化学习进一步提升推理能力与策略水平。大量实验结果表明，UserLM-R1显著优于各竞争基线方法，在更具挑战性的对抗测试集上尤为突出。\n\n## 04 Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management\n\n**自进化的心脏：基于因果反馈对齐的通用Agent记忆管理系统**\n\n论文下载：[PDF](https://arxiv.org/abs/2601.08435)\n\n![](https://p0.meituan.net/meituantechblog/1c5c09ef9ebab017268bdf9aa478b4ac210795.png)\n\n**论文简介**：有效的内存管理对于大型语言模型代理执行长期任务至关重要。近期研究探索了使用强化学习来开发专门的内存管理器代理。然而，现有方法主要依赖最终任务性能作为主要奖励，这导致奖励稀疏且信用分配无效，无法为单个内存操作提供足够的指导。\n\n为此，我们提出了Fine-Mem，一个专为细粒度反馈对齐设计的统一框架。首先，我们引入了“块级步骤奖励”，通过辅助的特定块问题回答任务提供即时的步骤级监督。其次，我们设计了“基于证据的奖励归因”，通过将信用锚定到关键记忆操作，基于推理中用作证据的特定记忆项，重新分配全局奖励。这些组件共同实现了稳定的策略优化，并将局部记忆操作与记忆的长期效用相统一。在Memalpha和MemoryAgentBench上的实验表明，Fine-Mem在各种子任务中均优于强大的基线模型，取得了更高的成功率。进一步分析揭示了其在不同模型配置和主干网络中的适应性和强大的泛化能力。\n\n## 05 DuplexOmni: Real-Time Listening, Seeing, Thinking, and Speaking for Full-Duplex Interaction\n\n**不止像人：神奇的看、听、说、想、做并行推理全模态大模型**\n\n**论文下载**：[PDF](http://arxiv.org/abs/2606.09186)\n\n![](https://p0.meituan.net/meituantechblog/4780307ea3e0765e53b012b45976b4a8741349.png)\n\n**论文简介**：人类交互本质上是连续、多模态和全双工的。尽管近期通用模型在语音、视觉和文本建模方面取得了实质性进展，但在统一系统中将低延迟实时交互与复杂推理和工具使用相结合仍然具有挑战性。\n\n我们提出了DuplexOmni，一种用于实时多模态全双工交互的方法。DuplexOmni将模型能力划分为交互层和思考层，并通过异步并行协作将它们连接起来。交互层由DuplexOmni模型实现，该模型接收流式音频和视频输入，并实时生成文本和语音响应。思考层作为可插拔的外部模块，提供复杂推理和工具使用功能。为了支持这种交互范式，我们进一步研发了一个Writer-Director数据管道，用于构建连续交互训练数据。实验表明，DuplexOmni在多个公开基准测试上表现出色，并展现出自然的双工交互能力。",
+      "tags": [
+        "ACL 2026",
+        "GeoRA",
+        "CoT-Flow"
+      ],
+      "score": 80,
+      "summary": "美团履约团队分享ACL 2026论文，提出GeoRA低秩适配和CoT-Flow推理框架。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png",
+      "fetched_at": "2026-07-05T00:12:15.553533+08:00"
+    },
+    {
+      "title": "大神DanKoe又有新的文章了，值得看看。\nAI时代最有价值的不是技术技能，而是理解人的能力。\n\n你要知道：21世纪最赚钱的技能（不是AI）\n\n没人知道现在该学什么技能。\n\nAI？编程？营销？\n是不是...",
+      "link": "https://x.com/berryxia/status/2073427538097918455",
+      "published": "2026-07-04T23:23:42+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "大神DanKoe又有新的文章了，值得看看。  \nAI时代最有价值的不是技术技能，而是理解人的能力。  \n  \n你要知道：21世纪最赚钱的技能（不是AI）  \n  \n没人知道现在该学什么技能。  \n  \nAI？编程？营销？  \n是不是在别人vibe coding做app的时候去上学就是在浪费时间？  \n要不要做YouTube？还是Substack？到底该不该找工作？还是自己干？  \n  \n机会比以往任何时候都多，但机会越多，人越迷茫。选项太多，开始学一样东西就觉得1-2年后就会过时。  \n  \n但有一项技能永远不会过时。  \n  \n一个\"元技能\":学会它之后，能增强你学的任何其他技能的力量。  \n  \n这个技能是什么？  \n  \n人性。  \n  \n如果你理解人类思维的运作方式,什么让它运转、什么让它注意、什么让它行动,你就能让任何生意成功。  \n  \n你能撬动新机会。  \n  \n你能交友、能影响他人。你不再被自己的思维奴役，而是成为它的主人。  \n  \n核心框架：3大张力 + 5个心理杠杆  \n  \nDan Koe提出了一个完整的说服力框架：  \n  \n3大心理张力：  \n  \n生存张力 — 人对威胁高度敏感，财务危机、社交焦虑、错失机会都能触发.  \n  \n身份张力 — 人需要部落、地位、归属感，会本能维护自己的身份认同.  \n  \n进步张力 — 人渴望清晰、方向、目标和转变  \n  \n5个心理杠杆（按顺序使用）：  \n  \n杠杆1：点名威胁（触发生存张力）  \n  \n先让人意识到问题存在，再给解决方案  \n  \n例：\"没人知道该学什么技能\",一句话就让所有人停下来  \n  \n实操：想5个你经历过的问题 = 5个比凭空想更好的内容选题  \n  \n杠杆2：镜像身份（触发身份张力）  \n  \n用\"如果你是……\"开头，精准命中目标人群  \n  \n例：\"如果你是个懒人\"\"如果你很穷\"\"如果你是个写作者\"  \n一句话标题 = 问题 + 身份 + 解决方案  \n  \n杠杆3：排除人群（深化身份张力）  \n  \n明确说\"这不是给谁谁谁的\"  \n  \n排除创造归属感，逼人站队  \n  \n例：\"这不是给想'试试'健身的人，这是给受够了自己借口的人\"  \n  \n杠杆4：描绘转变（激活进步张力）  \n  \n模拟未来体验,大脑想象和真实体验用的是同一套神经回路  \n  \n让人\"感受到\"还没发生的未来  \n  \n杠杆5：给出第一步（激活进步张力）  \n  \n人不改变是因为不相信自己能做到  \n  \n一个小步骤触发蔡格尼克效应,大脑讨厌未完成的任务  \n  \n例：别大改生活，先早睡一小时  \n  \n解读  \n  \n这篇文章的本质是：AI时代最有价值的不是技术技能，而是理解人的能力。  \n  \nDan Koe的论点很清晰：AI会替代所有\"工具型\"技能（编程、设计、数据分析），但替代不了\"理解人\"的能力。因为：  \n  \n钱是人付的 — 你的客户、老板、合作伙伴都是人。  \n  \nAI降低了一切技术门槛 — 当所有人都能vibe code一个app时，技术本身不再是壁垒。  \n  \n最后的护城河是你自己 — 你的判断力、审美、对人性的理解，这些AI学不来。  \n  \n他的3张力5杠杆框架本质上是把营销、销售、说服力统一成了一个东西：讲故事的能力。  \n  \n一句话：别卷技术了，卷对人的理解。AI越强，这个能力越值钱。\n\n![Tweet Image](https://pbs.twimg.com/media/HMZKe9QaMAEvGF5.jpg)\n\n![DAN KOE](https://pbs.twimg.com/profile_images/1845856303174037504/Q7ZZqVFa_normal.jpg)\n\nDAN KOE@thedankoe\n\n[x.com/i/article/2073…](http://x.com/i/article/2073407597307457536)\n\n[🔗 View Quoted Tweet](https://x.com/thedankoe/status/2073418764058825045)\n\n💬1🔄0❤️1👀627📊1",
+      "tags": [
+        "DanKoe",
+        "人性技能",
+        "说服力框架"
+      ],
+      "score": 60,
+      "summary": "Berryxia转述DanKoe文章，强调AI时代理解人性的能力比技术技能更有价值。",
+      "fetched_at": "2026-07-05T00:12:15.553535+08:00"
+    },
+    {
+      "title": "https://t.co/gN9cBK7feV",
+      "link": "https://x.com/thedankoe/status/2073418764058825045",
+      "published": "2026-07-04T22:48:50+08:00",
+      "source": "DAN KOE(@thedankoe)",
+      "content": "[x.com/i/article/2073…](http://x.com/i/article/2073407597307457536)\n\n💬64🔄139❤️1125👀83643📊557",
+      "tags": [
+        "DanKoe",
+        "文章链接"
+      ],
+      "score": 50,
+      "summary": "DanKoe发布推文仅含文章链接，无实质内容。",
+      "fetched_at": "2026-07-05T00:12:15.553538+08:00"
+    },
+    {
+      "title": "这个轻松贷不就是气球贷吗，前期月供极低、期末需要一次性偿还巨额本金尾款。2024年，国内部分商业银行曾针对商住两用房等业务重新推广气球贷，引发了业内对其可能过度放大普通人财务风险的争议 。",
+      "link": "https://x.com/geekbb/status/2073413777442361597",
+      "published": "2026-07-04T22:29:01+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "这个轻松贷不就是气球贷吗，前期月供极低、期末需要一次性偿还巨额本金尾款。2024年，国内部分商业银行曾针对商住两用房等业务重新推广气球贷，引发了业内对其可能过度放大普通人财务风险的争议 。\n\n![Tweet Image](https://pbs.twimg.com/media/HMY-1EzbEAAOfBt.png)\n\n💬4🔄1❤️8👀2743📊5",
+      "tags": [
+        "气球贷",
+        "金融风险"
+      ],
+      "score": 0,
+      "summary": "Geek评论轻松贷类似气球贷，存在财务风险，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553541+08:00"
+    },
+    {
+      "title": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.\n\nEach one come...",
+      "link": "https://x.com/thejustinwelsh/status/2073414128002068685",
+      "published": "2026-07-04T22:30:24+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.  \n  \nEach one comes with one specific exercise and a clear output, so you can execute today.  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬3🔄0❤️2👀1100📊3",
+      "tags": [
+        "Justin Welsh",
+        "商业指南"
+      ],
+      "score": 0,
+      "summary": "Justin Welsh推广免费商业指南，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553544+08:00"
+    },
+    {
+      "title": "\"People who are serious about technology have to get serious about society.\" \n\nOn July 4th, a quick ...",
+      "link": "https://x.com/kevinweil/status/2073426084889301116",
+      "published": "2026-07-04T23:17:55+08:00",
+      "source": "Kevin Weil 🇺🇸(@kevinweil)",
+      "content": "\"People who are serious about technology have to get serious about society.\"   \n  \nOn July 4th, a quick must-listen podcast between [@lulumeservey](https://x.com/lulumeservey)[@boztank](https://x.com/boztank) and Lee Robinson of General Matter.   \n  \nOn service, American values, and solving hard problems 🇺🇸\n\n![Lulu Cheng Meservey](https://pbs.twimg.com/profile_images/1971007341697912832/5H-zAzVN_normal.jpg)\n\nLulu Cheng Meservey@lulumeservey\n\nAmerica turns 250 this week and Silicon Valley is still debating whether it's ok to work with the US military...  \n  \nAndrew Bosworth ([@Meta](https://x.com/Meta) CTO) and Lee Robinson ([@generalmatter](https://x.com/generalmatter) founding team) make the case for technologists to build in the national interest  \n  \nBoth joined the Army: Lee was 27 when he walked into a recruiter's office and ended up in the Ranger Regiment. [@boztank](https://x.com/boztank) was 44, already exec at Meta, when he got a cold call from [@ssankar](https://x.com/ssankar)   \n  \nThey also serve America through the technologies they choose to build, from LLMs to uranium enrichment  \n  \nWe cover:  \n8:25 - the unglamorous tech the country needs: chips, energy, manufacturing, infra  \n11:15 - how the US went from inventing uranium enrichment to producing 0.01% of it  \n17:00 - when safety-first turns into safety-only, and you regulate yourself out of the game  \n18:00 - if you don't build it, someone else (with worse standards) will  \n35:30 - how to have impact AND make money  \n  \nThis is for the technologists who choose to use their talents in service of the country. Happy 4th!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073092582716968960/vid/avc1/1920x1080/pN-MlDVsfnJYqewO.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/lulumeservey/status/2073097814070939883/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lulumeservey/status/2073097814070939883)\n\n💬0🔄0❤️1👀359",
+      "tags": [
+        "Kevin Weil",
+        "技术与社会",
+        "播客"
+      ],
+      "score": 70,
+      "summary": "Kevin Weil推荐关于技术与社会责任的播客，涉及AI与国家利益。",
+      "fetched_at": "2026-07-05T00:12:15.553547+08:00"
+    },
+    {
+      "title": "My episode tomorrow is an inside look at how an OpenAI PM uses Codex for product work.\n\nRohan (Codex...",
+      "link": "https://x.com/petergyang/status/2073410256840139047",
+      "published": "2026-07-04T22:15:01+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "My episode tomorrow is an inside look at how an OpenAI PM uses Codex for product work.  \n  \nRohan (Codex PM) walked through how to:  \n  \n→ Use Image Gen to explore designs fast  \n→ Trigger Codex automations from Slack  \n→ Use one Codex thread to manage others  \n  \n📌 Subscribe to get the full episode tomorrow:[youtube.com/@PeterYangYT?s…](https://www.youtube.com/@PeterYangYT?sub_confirmation=1)0\n\n![Tweet Image](https://pbs.twimg.com/media/HMY7o-UaUAAAnvj.jpg)\n\n💬4🔄6❤️44👀3169📊13",
+      "tags": [
+        "OpenAI",
+        "Codex",
+        "产品工作"
+      ],
+      "score": 80,
+      "summary": "Peter Yang预告采访OpenAI Codex PM，展示如何用Codex进行产品工作。",
+      "fetched_at": "2026-07-05T00:12:15.553549+08:00"
+    },
+    {
+      "title": "I love everything about the 4th of July, and the 250th anniversary is especially great for me becaus...",
+      "link": "https://x.com/RayDalio/status/2073414368268570634",
+      "published": "2026-07-04T22:31:22+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "I love everything about the 4th of July, and the 250th anniversary is especially great for me because I am joining with family and friends for a reading of the Declaration of Independence, a BBQ, and fireworks.  \n  \nAs I reflect on what has happened over the 250 years that followed July 4th, 1776, it seems like an impossible dream come true. Think about it. Imagine that at the outset on July 4th, 1776, you were asked what odds for success a country would have if it would be mostly made up of poor immigrants coming from all different countries with very different cultures and religions and it would be governed by a political system in which the leaders reported to these people who themselves had to vote, compromise, and submit to life-changing decisions that many disagreed with. Would you bet that it would do exceptionally well and improve for 250 years? I would have thought that virtually impossible, yet America has been exceptional for 250 years.  \n  \nI also see that it was shockingly terrific and lucky for me to have lived through the best part of those 250 years because I was born four years after the 1945 post-World War II beginning of the new American world order, which gave me the best time in history in the best place in the world.  \n  \nThese reflections give me a deep appreciation for the principles and practices—the secret sauce—that created and sustained this remarkable American story, a fear that we are losing sight of them, and a sense of responsibility to contribute to sustaining them.\n\n💬26🔄23❤️265👀38990📊46",
+      "tags": [
+        "Ray Dalio",
+        "美国独立日"
+      ],
+      "score": 0,
+      "summary": "Ray Dalio发表美国独立日感想，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553552+08:00"
+    },
+    {
+      "title": "No matter how you spell it, 250 years of American innovation, ingenuity &amp; curiosity is something...",
+      "link": "https://x.com/sundarpichai/status/2073436433415614491",
+      "published": "2026-07-04T23:59:02+08:00",
+      "source": "Sundar Pichai(@sundarpichai)",
+      "content": "No matter how you spell it, 250 years of American innovation, ingenuity & curiosity is something to celebrate. Have a happy & safe 4th of July!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073433802957889536/vid/avc1/1080x1920/ydr1HYIj7aMo3B8p.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/sundarpichai/status/2073436433415614491/video/1)\n\n💬8🔄7❤️91👀16085📊15",
+      "tags": [
+        "Sundar Pichai",
+        "美国独立日"
+      ],
+      "score": 0,
+      "summary": "Sundar Pichai庆祝美国独立日，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553554+08:00"
+    },
+    {
+      "title": "乐高的缺点就是贵。现在我也不大喜欢乐高的发展方向，完全成人化，甚至开发1000美元的乐高套装。",
+      "link": "https://x.com/feltanimalworld/status/2073421893860786204",
+      "published": "2026-07-04T23:01:16+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "乐高的缺点就是贵。现在我也不大喜欢乐高的发展方向，完全成人化，甚至开发1000美元的乐高套装。\n\n💬1🔄0❤️0👀144📊1",
+      "tags": [
+        "乐高",
+        "成人化"
+      ],
+      "score": 0,
+      "summary": "Susan STEM评论乐高价格和成人化方向，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553557+08:00"
+    },
+    {
+      "title": "乐高的基石就是parametric。我很早以前想这辈子也必须设计一种parametric系统。这两天脑子都烧干了。大量建模人员在设计parametric，可以进一步理解一下。总之，乐高的核心就是接口不...",
+      "link": "https://x.com/feltanimalworld/status/2073417351257530747",
+      "published": "2026-07-04T22:43:13+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "乐高的基石就是parametric。我很早以前想这辈子也必须设计一种parametric系统。这两天脑子都烧干了。大量建模人员在设计parametric，可以进一步理解一下。总之，乐高的核心就是接口不变，具体可变的参数，那就靠工程师去高明的设计。毕竟我见过乐高里面最奇特的部件。#软工跨硬件\n\n![Tweet Image](https://pbs.twimg.com/media/HMZBwgzW4AAAr5_.jpg)\n\n![Susan STEM](https://pbs.twimg.com/profile_images/1941884420048265216/Dbcchu0q_normal.jpg)\n\nSusan STEM@feltanimalworld\n\n3D圈对Gridfinity一种模块化收纳方案非常流行。许多3D达人都是从收纳方案做起的。我认为乐高是人类历史上最伟大的公司之一，模块化我做“乞丐版”收纳（省料抠门）。玩到高级technic乐高的时候发现所谓模块化，最核心的地方就是Unit的定义和接口方式（乐高不变的就只有那个圆形扣），我就先定位这个槽...\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072345590688591873/vid/avc1/720x1280/EjviP7rqOMxxCacU.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/feltanimalworld/status/2072346760542843090/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/feltanimalworld/status/2072346760542843090)\n\n💬1🔄0❤️4👀678📊2",
+      "tags": [
+        "乐高",
+        "parametric"
+      ],
+      "score": 0,
+      "summary": "Susan STEM讨论乐高模块化设计中的parametric概念，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553560+08:00"
+    },
+    {
+      "title": "Prefer a native Mac experience?\n\nMole for Mac brings the same cleanup engine with a polished UI, vis...",
+      "link": "https://x.com/HiTw93/status/2073417835980996716",
+      "published": "2026-07-04T22:45:08+08:00",
+      "source": "Tw93(@HiTw93)",
+      "content": "Prefer a native Mac experience?  \n  \nMole for Mac brings the same cleanup engine with a polished UI, visual cleanup review, one-click uninstall, software updates, disk maps, system maintenance, live status, and a menu bar companion.  \n  \n[mole.fit](https://mole.fit)\n\n💬1🔄0❤️0👀562📊1",
+      "tags": [
+        "Mole",
+        "Mac清理"
+      ],
+      "score": 0,
+      "summary": "Tw93推广Mole for Mac清理工具，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553562+08:00"
+    },
+    {
+      "title": "Been shipping a lot of updates to Mole CLI lately. Recent releases brought a major cleanup output re...",
+      "link": "https://x.com/HiTw93/status/2073416680789692519",
+      "published": "2026-07-04T22:40:33+08:00",
+      "source": "Tw93(@HiTw93)",
+      "content": "Been shipping a lot of updates to Mole CLI lately. Recent releases brought a major cleanup output redesign, much smarter uninstall detection, significantly faster cleanup on large machines, mo status --watch for AI agents and automation, and plenty of architecture work behind the scenes.  \n  \nSafety also got a big upgrade. Mole now protects Endpoint Security and EDR tools, handles multiple edge cases more gracefully, improves deletion validation, and avoids touching user data or live applications when the system can’t provide reliable information.  \n  \nThere are lots of new cleanup targets too, including LM Studio, Chrome on-device AI models, JetBrains leftovers, Handoff clipboard staging, plus many fixes across Xcode, Anki, Clash Verge, Homebrew, Spotlight, and more.  \n  \nIf you’re already using Mole, I think you’ll notice the difference. As always, Mole CLI is free and open source: [github.com/tw93/mole](https://github.com/tw93/mole)\n\n![Tweet Image](https://pbs.twimg.com/media/HMZA4KdbsAA6xls.jpg)![Tweet Image](https://pbs.twimg.com/media/HMZA4KWbEAA9p_c.jpg)![Tweet Image](https://pbs.twimg.com/media/HMZA4KabkAAvfcX.jpg)![Tweet Image](https://pbs.twimg.com/media/HMZBbXQacAAG2XB.jpg)\n\n💬3🔄2❤️21👀2027📊6",
+      "tags": [
+        "Mole CLI",
+        "系统清理"
+      ],
+      "score": 0,
+      "summary": "Tw93介绍Mole CLI更新，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553565+08:00"
+    },
+    {
+      "title": "Happy birthday, USA.",
+      "link": "https://x.com/a16z/status/2073412649384358132",
+      "published": "2026-07-04T22:24:32+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Happy birthday, USA.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073412530853314560/vid/avc1/1280x720/NdR_5PN_heMRd-xy.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2073412649384358132/video/1)\n\n💬20🔄63❤️497👀19430📊72",
+      "tags": [
+        "a16z",
+        "美国独立日"
+      ],
+      "score": 0,
+      "summary": "a16z发布美国独立日祝福视频，非AI主题。",
+      "fetched_at": "2026-07-05T00:12:15.553568+08:00"
+    },
+    {
+      "title": "coding 的本质不是 coding",
+      "link": "https://x.com/oran_ge/status/2073415016527929806",
+      "published": "2026-07-04T22:33:56+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "coding 的本质不是 coding\n\n![Tweet Image](https://pbs.twimg.com/media/HMY_9ekbgAA8et9.jpg)\n\n💬0🔄1❤️0👀992📊1",
+      "tags": [
+        "coding",
+        "本质"
+      ],
+      "score": 50,
+      "summary": "orange.ai发表推文'coding的本质不是coding'，无具体内容。",
+      "fetched_at": "2026-07-05T00:12:15.553570+08:00"
+    },
+    {
+      "title": "https://t.co/vn2KWih9Vd",
+      "link": "https://x.com/vista8/status/2073423638003408970",
+      "published": "2026-07-04T23:08:12+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "[x.com/i/article/2073…](http://x.com/i/article/2073423473985134592)\n\n💬1🔄0❤️0👀672📊1",
+      "tags": [
+        "链接"
+      ],
+      "score": 0,
+      "summary": "向阳乔木转发链接，无实质内容。",
+      "fetched_at": "2026-07-05T00:12:15.553573+08:00"
+    }
+  ]
+}
