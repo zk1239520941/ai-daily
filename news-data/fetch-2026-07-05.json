@@ -483,6 +483,146 @@
       "score": 25,
       "summary": "分享用Codex或ChatGPT根据文章生成字形图标的提示词。",
       "fetched_at": "2026-07-05T02:10:07.964858+08:00"
+    },
+    {
+      "title": "#616.Matt Puckett：用一份检查清单，终结 AI Agent 的“技能地狱”",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a49649f3fb7233cbf43c439",
+      "published": "2026-07-05T03:54:35+08:00",
+      "source": "跨国串门儿计划",
+      "content": "📝 本期播客简介\n\n本期我们克隆了：知名播客《AI Engineer》 [**Building Great Agent Skills: The Missing Manual**](https://www.youtube.com/watch?v=UNzCG3lw6O0)\n\n原内容更新时间：2026-06-29\n\n本期主讲人是 Matt Puckett，他是 AI 工程领域最流行的技能集之一 MatPat Skills 的作者。这期节目源于他原本要在 AI Engineer World's Fair 上做的一场演讲，因为无法到场，他选择将内容直接分享出来。他聚焦于一个被称作“技能地狱”的普遍困境：开发者手头有大量 Agent 技能，却缺乏一套评判标准，分不清好技能和坏技能，导致拼凑出来的效果远不如预期。\n\nMatt 没有停留在抱怨，而是直接给出了一套系统性的技能构建框架。他从技能的触发、结构、引导和剪枝四个维度出发，提供了一份可操作的检查清单。无论你是正在为 Agent 编写技能的开发者，还是试图将组织流程转化为 Agent 可执行操作的技术负责人，这期节目都能帮你建立一套审视和改进技能的方法论。\n\n👨‍⚕️ 本期嘉宾\n\nMatt Puckett，MatPat Skills 的作者与维护者。MatPat Skills 是目前 AI 工程领域最流行的 Agent 技能集之一，被大量开发者用于构建和增强 AI Agent 的能力。Matt 本人长期深耕 Agent 技能的设计与优化，对如何写出高质量、可维护的技能有着丰富的一手经验和系统性思考。\n\n⏱️ 时间戳\n\n开场与“技能地狱”\n\n00:00 本期克隆节目介绍\n\n01:06 演讲主题：《缺失的手册：如何写出好技能》\n\n01:27 从“教程地狱”到“框架地狱”，再到“技能地狱”\n\n02:21 技能地狱的典型症状：拼凑框架却拿不到承诺的效果\n\n02:41 走出技能地狱的关键：建立评判技能好坏的标准\n\n技能检查清单总览\n\n03:01 技能检查清单的四大维度：触发、结构、引导、剪枝\n\n03:50 配套技能 Writing Great Skills 已发布\n\n触发：技能如何被调用\n\n04:05 触发是技能被调用的方式\n\n04:25 用户调用 vs 模型调用技能的区别\n\n05:10 模型调用技能的原理：上下文指针指向 [skill.md](http://skill.md/)\n\n05:53 第一条建议：决定技能是用户调用还是模型调用\n\n06:07 模型调用技能的代价：上下文负载\n\n06:29 用户调用技能的代价：用户认知负载\n\n06:39 MatPat skills 与 superpowers 的对比：两种调用哲学\n\n07:09 模型调用技能的不可预测性风险\n\n07:26 Matt 偏好用户调用技能的原因：消除不可预测性\n\n结构：技能内部如何布局\n\n07:55 技能内部的两个主要单元：步骤和参考\n\n08:24 案例：2PRD 技能的步骤与参考材料\n\n08:59 从零写技能的方法：先定步骤，再定参考\n\n09:17 第三条建议：让主 [skill.md](http://skill.md/) 文件尽可能小\n\n09:49 瘦身技巧：识别技能的不同分支\n\n10:27 案例：domain modeling 技能的多分支结构\n\n10:58 外部参考：把分支资料藏在上下文指针后面\n\n引导：让 Agent 按你的想法做事\n\n11:56 引导的核心技巧：引导词\n\n12:17 Agent 不按想法做的原因：没用引导词\n\n12:26 引导词的概念：把大量含义压缩到小空间\n\n12:53 案例：用“垂直切片”引导 Agent 改变编码习惯\n\n13:59 如何验证引导词生效：观察推理轨迹\n\n14:32 引导词不生效时的改进方法\n\n14:54 增加基础工作量的技巧：隐藏未来步骤\n\n15:09 案例：计划模式中“问澄清性问题”永远做不够\n\n15:35 解决方案：把技能拆成独立步骤，一次只让 Agent 看到一个\n\n剪枝：给技能做减法\n\n16:35 剪枝是一组快速过一遍的失败模式\n\n16:51 失败模式一：不要重复自己，保持单一事实来源\n\n17:19 失败模式二：冗余沉积，多人协作的经典问题\n\n18:00 失败模式三：无效操作，看起来有用但不影响行为的内容\n\n18:27 精简技能的秘诀：删除测试、压缩成引导词、清除无关内容\n\n总结与上手\n\n18:39 框架回顾：触发、结构、引导、剪枝\n\n19:29 上手最佳方式：使用 Writing Great Skills 技能\n\n19:42 后续内容：AI 编码速成课程与 newsletter\n\n🌟 精彩内容\n\n💡 技能地狱的本质是缺乏评判标准\n\nMatt 指出，开发者陷入技能地狱的根本原因，不是技能太少，而是没有一个共享的评判标准来审视技能的好坏。这导致人们盲目拼凑，却搞不清楚为什么效果不佳。\n\n“没有一个共享的评判标准，没有一个框架来审视技能并把它变得更好。”\n\n💡 模型调用技能的隐藏代价是不可预测性\n\n很多人觉得让模型自己调用技能更灵活，但 Matt 提醒，每次增加模型调用技能，都在增加上下文负载，更关键的是引入了不可预测性——模型可能就是不调用那个完美匹配的技能。\n\n“每次你有一个模型调用技能，基本上你就要付出不可预测性的代价。”\n\n💡 引导词是把大量含义压缩到小空间\n\nMatt 提出的“引导词”技巧，是本期最核心的实操方法。通过在整个技能中反复使用一个高度浓缩的短语，可以让 Agent 在推理轨迹中自我强化，从而改变行为。\n\n“引导词的概念，就是有些词能把一大堆意思压缩到很小的空间里。”\n\n💡 隐藏未来步骤，增加当前步骤的基础工作量\n\n当 Agent 总是急于跳到下一步、基础工作做不够时，Matt 的建议是把技能拆成独立步骤，让 Agent 一次只能看到一个目标。这能有效迫使它在当前阶段投入更多精力。\n\n“通过隐藏未来的目标、隐藏未来的步骤，来增加当前步骤的基础工作量。”\n\n💡 精简技能的秘诀是做删除测试\n\n面对技能文件越来越臃肿的问题，Matt 的方法简单直接：删掉某段内容，看 Agent 的行为是否改变。如果没变，那段内容就是无效操作，可以砍掉。\n\n“如果你把那段话直接删掉会怎样？Agent 大概率还是会写出一份像样的提交信息。”\n\n💡 技能构建的四大支柱\n\nMatt 将整个框架浓缩为四个可操作的维度，为技能设计和审查提供了清晰的路径。\n\n“第一，检查触发；第二，结构方面要考虑分支；第三，引导方面要把文本浓缩成引导词；最后是剪枝。”\n\n```\n\n🌐 播客信息补充\n\n本播客采用原有人声声线进行播客音频制作，也可能会有一些地方听起来怪怪的\n\n使用 AI 进行翻译，因此可能会有一些地方不通顺；\n\n如果有后续想要听中文版的其他外文播客，也欢迎联系微信：iEvenight",
+      "tags": [
+        "Matt Puckett",
+        "Agent技能",
+        "检查清单"
+      ],
+      "score": 80,
+      "summary": "Matt Puckett分享构建AI Agent技能的检查清单，涵盖触发、结构、引导和剪枝四个维度。",
+      "fetched_at": "2026-07-05T04:15:06.626729+08:00"
+    },
+    {
+      "title": "If this doesn’t chill you, I don’t know what will. 😱\n\n“A president with the authority that Trump is...",
+      "link": "https://x.com/GaryMarcus/status/2073475829510676787",
+      "published": "2026-07-05T02:35:35+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "If this doesn’t chill you, I don’t know what will. 😱  \n  \n“A president with the authority that Trump is now asserting could in theory put the world’s most powerful AI to repressive ends while at the same time keeping it off the market and out of the hands of rival power centers.”\n\n![Robert Wright](https://pbs.twimg.com/profile_images/798011533838139392/htt8vZNY_normal.jpg)\n\nRobert Wright@robertwrighter\n\nOver the past few weeks, President Trump has accomplished what you might call a time-release power grab. He has asserted a kind of authority over the dissemination of large language models that, as AI gets more and more capable, will make it easier for presidents to abuse their power. And, given the rate at which AI capabilities are growing, it’s not impossible that Trump will, during his remaining time in office, get a chance to demonstrate this fact.  \n  \nThe good news: I doubt that, even if Trump does get this chance, the 2.5-year constitutional limit on his tenure will be exceeded. But you never know…  \n  \nMuch of the dynamic I’m talking about is captured in this sentence from a Washington Post op-ed that I wrote last week (before events that, as I’ll explain, gave Trump’s power grab de facto validation): “A president with the authority that Trump is now asserting could in theory put the world’s most powerful AI to repressive ends while at the same time keeping it off the market and out of the hands of rival power centers.”  \n  \nTo keep reading, just go to nonzero dot org.\n\n[🔗 View Quoted Tweet](https://x.com/robertwrighter/status/2073442511247343935)\n\n💬5🔄7❤️38👀4952📊8",
+      "tags": [
+        "特朗普",
+        "AI权力",
+        "模型管控"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus转发Robert Wright观点，称特朗普可能利用AI进行权力滥用。",
+      "fetched_at": "2026-07-05T04:15:06.626744+08:00"
+    },
+    {
+      "title": "🆕 Custom agents in GitHub Copilot CLI.\n\nDefine roles, tools, and guardrails in Markdown, then run c...",
+      "link": "https://x.com/github/status/2073492041326088701",
+      "published": "2026-07-05T03:40:00+08:00",
+      "source": "GitHub(@github)",
+      "content": "🆕 Custom agents in GitHub Copilot CLI.  \n  \nDefine roles, tools, and guardrails in Markdown, then run consistent workflows for security audits, release notes, incident response, and more.[github.blog/ai-and-ml/gith…](https://github.blog/ai-and-ml/github-copilot/from-one-off-prompts-to-workflows-how-to-use-custom-agents-in-github-copilot-cli/?utm_source=x&utm_medium=social&utm_campaign=dev-pod-copilot-cli-2026)l\n\n💬6🔄1❤️19👀6587📊7",
+      "tags": [
+        "GitHub Copilot",
+        "自定义Agent",
+        "CLI"
+      ],
+      "score": 85,
+      "summary": "GitHub在Copilot CLI中推出自定义Agent功能，支持Markdown定义角色、工具和护栏。",
+      "fetched_at": "2026-07-05T04:15:06.626751+08:00"
+    },
+    {
+      "title": "You should start fine-tuning your own models.\n\nFor real.\n\nYou can get better answers with a free ope...",
+      "link": "https://x.com/itsPaulAi/status/2073482751219565054",
+      "published": "2026-07-05T03:03:05+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "You should start fine-tuning your own models.  \n  \nFor real.  \n  \nYou can get better answers with a free open-source local AI model than with Claude  \n  \nAll you have to do is fine-tune it for YOUR tasks  \n  \nFor many workflows a SLM trained on your specific data can outperform the \"general\" models from Anthropic or OpenAI.  \n  \nAmong other reasons:  \n  \n> the model stops giving generic responses  \n> your sensitive work never touches the cloud  \n> no usage-based billing  \n> no expensive API calls  \n> no usage limits  \n> works perfectly even offline  \n> more reliable inside your actual systems  \n  \nYou don’t always need the biggest model.  \n  \nYou need the right one tailor-made for your task.  \n  \nAnd sometimes the right model is small, local, private, fast, and trained specifically FOR YOU.  \n  \nGemma 4 or Qwen 3.5/3.6 are amazing as a base. Just fine-tune them using unsloth studio.\n\n![Tweet Image](https://pbs.twimg.com/media/HMZ7pUMX0AADSm1.jpg)\n\n💬7🔄3❤️11👀2640📊10",
+      "tags": [
+        "微调",
+        "本地模型",
+        "SLM"
+      ],
+      "score": 70,
+      "summary": "Paul Couvert建议微调开源本地模型，认为针对特定任务的SLM可超越通用大模型。",
+      "fetched_at": "2026-07-05T04:15:06.626757+08:00"
+    },
+    {
+      "title": "Wow AI agrees with me 🤣",
+      "link": "https://x.com/petergyang/status/2073492785991438426",
+      "published": "2026-07-05T03:42:58+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Wow AI agrees with me 🤣\n\n![Tweet Image](https://pbs.twimg.com/media/HMaGszzagAALA9l.jpg)\n\n💬1🔄0❤️0👀410📊1",
+      "tags": [
+        "无意义"
+      ],
+      "score": 10,
+      "summary": "Peter Yang发布无实质内容的推文，仅表达AI同意其观点。",
+      "fetched_at": "2026-07-05T04:15:06.626763+08:00"
+    },
+    {
+      "title": "Rooting for Paraguay later 😅\n\nPlease pull some Cape Verde shit",
+      "link": "https://x.com/petergyang/status/2073486769828614296",
+      "published": "2026-07-05T03:19:04+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Rooting for Paraguay later 😅  \n  \nPlease pull some Cape Verde shit\n\n💬4🔄0❤️18👀1959📊5",
+      "tags": [
+        "体育"
+      ],
+      "score": 5,
+      "summary": "Peter Yang为巴拉圭队加油，与AI无关。",
+      "fetched_at": "2026-07-05T04:15:06.626769+08:00"
+    },
+    {
+      "title": "Poor Canada 😭",
+      "link": "https://x.com/petergyang/status/2073482236536787095",
+      "published": "2026-07-05T03:01:03+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Poor Canada 😭\n\n💬2🔄0❤️3👀1643📊2",
+      "tags": [
+        "体育"
+      ],
+      "score": 5,
+      "summary": "Peter Yang感叹加拿大失利，与AI无关。",
+      "fetched_at": "2026-07-05T04:15:06.626773+08:00"
+    },
+    {
+      "title": "Happy Fourth of July! 🇺🇸 🇺🇸",
+      "link": "https://x.com/ycombinator/status/2073480668328448004",
+      "published": "2026-07-05T02:54:49+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Happy Fourth of July! 🇺🇸 🇺🇸\n\n💬18🔄13❤️299👀10999📊38",
+      "tags": [
+        "节日"
+      ],
+      "score": 5,
+      "summary": "Y Combinator发布独立日祝福，与AI无关。",
+      "fetched_at": "2026-07-05T04:15:06.626779+08:00"
+    },
+    {
+      "title": "In celebration of America’s 250 years, a book to add to your reading list - some wonderful stories a...",
+      "link": "https://x.com/andrewchen/status/2073485748440039647",
+      "published": "2026-07-05T03:15:00+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "In celebration of America’s 250 years, a book to add to your reading list - some wonderful stories about the creation of:  \n- F 117 nighthawk  \n- U2 spy plane  \n- SR71 blackbird  \n… and more  \n  \nWonderful read! H/t [@jasonrosenthal](https://x.com/jasonrosenthal)\n\n![Tweet Image](https://pbs.twimg.com/media/HMaATNvbkAEu0Ld.jpg)\n\n💬2🔄0❤️35👀3234📊9",
+      "tags": [
+        "书籍推荐"
+      ],
+      "score": 5,
+      "summary": "Andrew Chen推荐一本关于美国军事飞机的书，与AI无关。",
+      "fetched_at": "2026-07-05T04:15:06.626784+08:00"
+    },
+    {
+      "title": "Claude Fable 5 is back - it might be the most impressive model we've ever seen.\n\n@petergostev ran it...",
+      "link": "https://x.com/arena/status/2073484893334691855",
+      "published": "2026-07-05T03:11:36+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Claude Fable 5 is back - it might be the most impressive model we've ever seen.  \n  \n[@petergostev](https://x.com/petergostev) ran it through 60+ of the hardest 3D generations: modern cities, art, world wonders, and more.  \n  \nThe results are incredible. Fable is clearly in a league of its own. Watch youtube here:  \n[youtube.com/watch?v=rTc2\\_-…](https://www.youtube.com/watch?v=rTc2_-1KuRE)\n\n💬9🔄9❤️110👀11868📊25",
+      "tags": [
+        "Claude Fable 5",
+        "3D生成",
+        "lmarena"
+      ],
+      "score": 85,
+      "summary": "lmarena.ai称Claude Fable 5在3D生成测试中表现惊人，可能是最令人印象深刻的模型。",
+      "fetched_at": "2026-07-05T04:15:06.626790+08:00"
     }
   ]
 }
