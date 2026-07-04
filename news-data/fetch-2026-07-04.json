@@ -1846,6 +1846,149 @@
       "score": 10,
       "summary": "拉斯维加斯大圆球展示美国250周年庆。",
       "fetched_at": "2026-07-04T18:21:58.984007+08:00"
+    },
+    {
+      "title": "Claude Code 省钱诀窍：这个开源工具让 Fable 5 成本最高降 70%",
+      "link": "https://mp.weixin.qq.com/s?__biz=MjM5ODkzMzMwMQ==&mid=2650452556&idx=1&sn=6dcf8fbb112a0f13a55ea1ad48901c1a",
+      "published": "2026-07-04T18:55:00+08:00",
+      "source": "AINLP",
+      "content": "原创 NLPer 2026-07-04 18:55 江苏\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=61b1a81e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FQsOstc0fpvmx03ajjsL8Xd7CV3WYQFUjVlxddpQ3muVbaKh6JVA0D0bpicXWzmZcy6qBTNbnUHJSGl7icFnojDFocfa0KAlTWKU4yrXZXFqWg%2F0%3Fwx_fmt%3Djpeg)\n\ncut Fable 5 token usage by rendering text context as images\n\nClaude Code 的省钱办法，很多人第一反应是换便宜模型、少跑几轮、早点 `/compact`。\n\n这个开源工具 pxpipe 却给了一个更好玩也更工程的办法：别急着删上下文，先把一部分上下文变成图片。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=9890fb0d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FQsOstc0fpvmFmCGzuctl0icjxWqwqn2seI1bk2duj7x2NEhLQkolhqRrcib7hjZrCzeJRTaBPzx0K5TrryB1rfBMicWFhmcPcEn6tfCxQYNBqg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n用 Claude Code 跑大仓库时，当前这条指令通常不长。贵的是每一轮请求里反复带上的系统提示、工具文档、历史记录、测试日志、搜索结果和代码片段。人只问了一句“继续修这个测试”，模型背后可能要重新读一大包上下文。\n\npxpipe 的做法，是把其中一部分又长又密、主要用来恢复语境的内容，先在本地渲染成 PNG，再作为图片交给支持视觉输入的模型。项目作者自己算过一笔账：按 Fable 5 的价格口径，端到端账单可以下降 59%-70%。\n\n不过这不是 Claude Code 自带的新功能。pxpipe 是一个第三方本地代理，开源仓库是 `teamchong/pxpipe`，协议是 MIT，npm 包名是 `pxpipe-proxy`。它跑在本机，夹在 Claude Code 和 Anthropic Messages API 中间，帮你在请求发出去之前改一下上下文形态。\n\n一句话讲，pxpipe 盯上的是长任务里反复携带旧上下文的成本。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=b0bc0d24&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FQsOstc0fpvkljA2ricmZOE9FwhfOpB3xvWWl2J9zKVs0IhQVA2uibQkmof71FaOfk843PBu3G7xnic2NVrMdX1Gsp9mfpmj2V9bkQQyqxxBibN8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n这个例子里，约 4.8 万字符的系统提示和工具文档，如果按文本输入，大约是 2.5 万 token；渲染成图片后，大约是 2700 个 image token。\n\n这就是它有趣的地方。模型没换，Claude Code 的交互方式没改，提示词也不用重写。它只是在请求进入模型前，把一部分长上下文换了个形态。\n\n## 先跑起来：npx 直接用\n\n项目文档给的最短跑法，不需要先全局安装。只要本机有 Node.js 18 以上，可以直接用 `npx` 拉起本地代理：\n\n```\nnpx pxpipe-proxy\n```\n\n再让 Claude Code 把请求发到本地代理：\n\n```\nANTHROPIC_BASE_URL=http://127.0.0.1:47821 claude\n```\n\n如果只是先试一下，这两行就够了。如果要固定版本、放进团队脚本或长期使用，再考虑按 npm 包方式安装。\n\n## 省钱发生在请求进模型之前\n\nClaude Code 还是照常用，pxpipe 会拦截 `/v1/messages` 请求，把符合条件的大块输入渲染成 PNG，再转发给上游 API。\n\n项目文档里提到的典型对象包括系统提示、工具文档、较旧的历史记录和大段 `tool_result`。最近几轮对话、需要精确保真的内容，仍然保留文本。它只动输入，不动输出，模型回答出来的内容还是正常文本。\n\n从实现上看，pxpipe 会把文本按 1928px 宽的列排版，一页 1928 x 1928 的 PNG 大约消耗 4761 个 vision tokens，最多可以塞进约 9.2 万字符。Claude Code 这类上下文经常很密，项目文档里给出的真实流量约为 1.91 chars/token；这种情况下，图片形态就可能更便宜。\n\n换成普通自然语言长文，情况就不一定了。文本本来很稀疏时，比如 3.5 chars/token，图片反而可能不划算。pxpipe 省的是“高密度上下文”的钱。\n\n## 省下多少，pxpipe 给了几组账\n\n最直观的是项目文档里的 example render。大约 4.8 万字符的系统提示和工具文档，如果直接按文本输入，大约是 2.5 万 token；渲染成图片后，大约是 2700 个 image token。这个样例解释了 pxpipe 为什么会对 Claude Code 有吸引力：系统提示和工具说明这类内容又密又长，正好适合被压成图片。\n\n再看端到端账单。项目作者给出的数字是 59%-70% 降幅。这个结果依赖工作负载、模型价格、缓存命中和上下文密度，不能直接理解成所有任务都会省到 70%。但它说明了一个方向：Claude Code 的成本优化，不一定只靠换模型，也可以从请求形态下手。\n\nSWE-bench Lite pilot 里，pxpipe ON/OFF 两组都是 10/10，成本从 53.61 美元降到 27.27 美元。样本不大，但很适合说明 coding agent 场景里的成本空间。SWE-bench Pro 的结果更谨慎一些：ON 是 14/19，OFF 是 15/19，19 对里有 18 对判定一致，请求规模约降 60%。这组数字同时告诉你两件事：省钱是真的有空间，效果也可能有轻微损失。\n\n项目还做了几组更细的测试。Gist recall 是文本 98/98、图片 98/98；state tracking 是文本 18/18、图片 18/18；这类任务说明，读大意、记状态，图片化并不一定拖后腿。但 12 字符 hex 精确回忆就不一样了：Fable 5 是 13/15，Opus 是 0/15。精确字符串这类内容，最好不要只交给图片。\n\n这些数字放到 Claude Code 里，就能看到 pxpipe 想解决的问题。过去大家常用的办法是换便宜模型、缩短上下文、手动 `/compact`、删日志、拆任务。pxpipe 走的是另一条路：旧上下文不直接删，先压成模型仍能读的大图。\n\n它和 `/compact` 的区别也在这里。`/compact` 会把历史总结成较短文本，保留一段压缩后的语义摘要；pxpipe 保留更多原始内容的视觉形态，但读图本身会引入误读和漏读。\n\n早期他们把目标设成“完美逐字回忆”，后来发现这个标准不合适。pxpipe 更适合被理解成 lossy gist-compressor，也就是有损的大意压缩器。\n\n## 省钱可以，精确值别乱放\n\npxpipe 有意思，也有明显的使用红线。\n\n项目也直接把风险写出来：精确 ID、hash、secret、短字符串这类 byte-exact 值，应该保持文本。因为模型看图片时，可能把字符看错，而且这种错误不一定会以“我看不清”的方式出现，可能会直接编出一个看似合理的值。\n\nFINDINGS.md 里记录过一个真实观察：模型能顺利接上被图片化的历史上下文，但在回忆 10 个 12 字符 hex 字符串时，只精确答对了 7 个，其中有 4 个字符级错误。后续测试里，Fable 5 在 dense 12-char hex recall 上是 13/15，Opus 是 0/15。\n\n所以它适合这些内容：\n\n* 系统提示、工具说明、长日志、大块搜索结果；\n* 旧对话历史里只需要读大意的部分；\n* 编码任务中用于恢复上下文、理解项目背景、判断方向的材料；\n* token 密度很高、反复出现在请求里的上下文。\n\n下面这些内容最好继续用文本：\n\n* 精确 ID、commit hash、短 token、密钥、文件路径里的关键字符；\n* 需要逐字复制的命令、配置、错误码；\n* 任何错一个字符就会导致严重后果的内容。\n\n这也解释了 pxpipe 默认只处理 allowlist 里的模型，并提供 `PXPIPE_MODELS` 控制开关。README 中的默认值包含 `claude-fable-5,gpt-5.6`；也可以设为 `PXPIPE_MODELS=off` 关闭图片化。对不确定的模型或子任务，项目建议直接让请求按文本通过。\n\npxpipe 的缺点也基本集中在这里。它是有损压缩，读大意可以，逐字保真不适合交给图片。错误还可能比较隐蔽，模型看错字符时不一定会报错，可能直接给出一个看起来很像真的答案。它也很吃任务类型，高密度日志、工具说明、旧上下文更适合图片化，普通长文和稀疏文本未必省钱。效果同样依赖模型，Fable 5 在项目测试里更友好，换到别的模型就要重新看结果。再加上它本身多了一层本地代理，运行、调试和安全面都比直接用 Claude Code 多一点。\n\n所以 pxpipe 不是“免费省钱”。它把一部分 token 成本，换成了对上下文类型、模型能力和本地代理的管理。用对地方，它很聪明；用错地方，它可能把省下来的 token 变成后面排查问题的时间。\n\n## 适合谁用\n\n如果只是偶尔让 Claude Code 回答一个问题，pxpipe 的存在感不会很强。\n\n它更适合把 Claude Code 当 coding agent 用的人：让它读仓库、改代码、跑测试、修 bug、再继续跑下一轮。任务越长，上下文越容易膨胀，省下来的空间也越明显。\n\n在这种用法里，真正要分清的是输入内容的颗粒度。最近一轮用户需求、关键代码 diff、测试失败信息、短 ID、配置值，应该继续用文本。系统提示、工具说明、旧历史、大段日志和检索材料，很多时候只是在帮助模型恢复语境，不需要逐字复制。\n\npxpipe 还做了一件实际的事：它会对原始未压缩请求做 `count_tokens` 计数，再用响应里的实际 usage 估算压缩后的账单。这样至少能把“感觉省了”变成可观察的请求轨迹。\n\n换句话说，它把“上下文怎么进入模型”这件事拿出来单独优化，更像是在 Claude Code 前面加了一层上下文入口。\n\n## 总结\n\npxpipe 的诀窍很简单：Claude Code 长任务里反复出现的大块上下文，不一定都要继续以文本形态进入模型。\n\n把适合读大意的内容变成图片，输入 token 可以明显压下来。项目给出的测试里，Fable 5 场景下端到端账单最高可降到 70%；SWE-bench Lite 小样本里，结果保持 10/10，成本约减半。\n\n但它不能当无损上下文压缩器用。它适合让模型读长上下文的整体语义，不适合承载精确字符串、关键 ID、hash 和需要逐字复制的内容。省钱这笔账，也要和可控性一起算。\n\n## 参考链接\n\n* pxpipe GitHub：<https://github.com/teamchong/pxpipe>\n\n```\n```\n进技术交流群请添加AINLP小助手微信（id: ainlp2)\n```\n\n```\n请备注具体方向+所用到的相关技术点\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=ba43c803&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FnW2ZPfuYqSJADkmZ2IX6Z23znAibuEevotDMq9iaMxiapK7jfMibiauGFkycicAJEs6x5U9SGyDJZ0S1tRed9TPNUUDQ%2F640%3Fwx_fmt%3Dother%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26randomid%3D1nuwjg8f%26tp%3Dwebp%23imgIndex%3D9)\n\n```\n```\n关于AINLP\n\nAINLP 是一个有趣有AI的自然语言处理社区，专注于 AI、NLP、机器学习、深度学习、推荐算法等相关技术的分享，主题包括LLM、预训练模型、自动生成、文本摘要、智能问答、聊天机器人、机器翻译、知识图谱、推荐系统、计算广告、招聘信息、求职经验分享等，欢迎关注！加技术交流群请添加AINLP小助手微信(id：ainlp2)，备注工作/研究方向+加群目的。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=7d300ab2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FnW2ZPfuYqSKABHCqVVQkVYPrM4XY1vsd0iaeuXzyJnoFc8cibd5mYb4wdA3WMQtiaPVmr0XLZHMuVibqWncibpnTSnQ%2F640%3Fwx_fmt%3Dother%26wxfrom%3D5%26wx_lazy%3D1%26randomid%3Dbwsg8l57%26tp%3Dwebp%23imgIndex%3D10)\n```\n```\n```\n```\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=363beb6e&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMjM5ODkzMzMwMQ%3D%3D%26mid%3D2650452556%26idx%3D1%26sn%3D6dcf8fbb112a0f13a55ea1ad48901c1a)",
+      "tags": [
+        "pxpipe",
+        "Claude Code",
+        "token成本降低"
+      ],
+      "score": 75,
+      "summary": "开源工具pxpipe通过将长上下文渲染为图片，降低Claude Code调用Fable 5的token成本59%-70%。",
+      "fetched_at": "2026-07-04T20:13:18.853273+08:00"
+    },
+    {
+      "title": "源：https://t.co/LaTYMHSgmL",
+      "link": "https://x.com/FinanceYF5/status/2073368393265348870",
+      "published": "2026-07-04T19:28:40+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/minchoi/status…](https://x.com/minchoi/status/2073263686299341141)\n\n![Min Choi](https://pbs.twimg.com/profile_images/1638359113221517312/CBZaJFyA_normal.jpg)\n\nMin Choi@minchoi\n\nAI beer commercial - 3 years ago\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073261955280666624/vid/avc1/1920x1080/1MmA77ZYbMkIu5rD.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/minchoi/status/2073263686299341141/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/minchoi/status/2073263686299341141)\n\n💬0🔄0❤️0👀413",
+      "tags": [
+        "AI啤酒广告",
+        "2023年"
+      ],
+      "score": 60,
+      "summary": "转发3年前AI生成的啤酒广告视频，引发对2026年模型效果的讨论。",
+      "fetched_at": "2026-07-04T20:13:18.853286+08:00"
+    },
+    {
+      "title": "3年前的AI啤酒广告，拿出来看还是有点震撼\n\n2023年那会儿大家都在笑AI生成的手指和眼睛，这个视频的完成度已经比同期高了一截\n\n现在2026年的模型再来做一遍，会是什么效果？",
+      "link": "https://x.com/FinanceYF5/status/2073368381118615631",
+      "published": "2026-07-04T19:28:38+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "3年前的AI啤酒广告，拿出来看还是有点震撼  \n  \n2023年那会儿大家都在笑AI生成的手指和眼睛，这个视频的完成度已经比同期高了一截  \n  \n现在2026年的模型再来做一遍，会是什么效果？\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073368351196471296/vid/avc1/1280x720/VX8p5Sp1NUlWAlJS.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2073368381118615631/video/1)\n\n💬1🔄0❤️0👀1616📊1",
+      "tags": [
+        "AI啤酒广告",
+        "2023年"
+      ],
+      "score": 60,
+      "summary": "评论3年前AI啤酒广告完成度高，好奇2026年模型重做效果。",
+      "fetched_at": "2026-07-04T20:13:18.853291+08:00"
+    },
+    {
+      "title": "有开发者说Sonnet 5做网页设计的效率高得离谱，专门录了条18分钟教程，讲怎么用Claude Code配Sonnet 5搭出拿奖级别的网站。\n\n想学这套网页设计打法的，这条视频值得收藏。",
+      "link": "https://x.com/FinanceYF5/status/2073367022516441526",
+      "published": "2026-07-04T19:23:14+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有开发者说Sonnet 5做网页设计的效率高得离谱，专门录了条18分钟教程，讲怎么用Claude Code配Sonnet 5搭出拿奖级别的网站。  \n  \n想学这套网页设计打法的，这条视频值得收藏。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072284147457146880/vid/avc1/3324x2160/0Mb6tTPH9pTeGIQ5.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/viktoroddy/status/2072290912085123326/video/1)\n\n💬1🔄2❤️4👀974📊3",
+      "tags": [
+        "Sonnet 5",
+        "Claude Code",
+        "网页设计"
+      ],
+      "score": 65,
+      "summary": "开发者分享18分钟教程，展示用Claude Code配合Sonnet 5高效设计获奖级别网站。",
+      "fetched_at": "2026-07-04T20:13:18.853294+08:00"
+    },
+    {
+      "title": "以上就是全部\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/vFLLwZf0QT",
+      "link": "https://x.com/FinanceYF5/status/2073365760576225315",
+      "published": "2026-07-04T19:18:13+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2073365499686342878)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n1/🧭 a16z 抛出反共识判断：AI 把药造多了，每款反而更不值钱  \n  \n过去十年药物管线翻倍，FDA 每年批准数却卡在 50 款上下。  \n  \n讨论的是 Formation Bio CEO 的长文：发现不再稀缺，临床才是。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HMYS7ywb0AEYLjD.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2073365499686342878)\n\n💬0🔄0❤️0👀281",
+      "tags": [
+        "a16z",
+        "AI制药"
+      ],
+      "score": 50,
+      "summary": "推广a16z关于AI制药导致药物管线过剩、临床稀缺的观点。",
+      "fetched_at": "2026-07-04T20:13:18.853296+08:00"
+    },
+    {
+      "title": "阅读原文：https://t.co/DWP5xpV8Oc",
+      "link": "https://x.com/FinanceYF5/status/2073365601515675932",
+      "published": "2026-07-04T19:17:35+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "阅读原文：[a16z.news/p/uneven-front…](https://www.a16z.news/p/uneven-frontiers)\n\n💬1🔄0❤️0👀206📊1",
+      "tags": [
+        "a16z",
+        "AI制药"
+      ],
+      "score": 50,
+      "summary": "提供a16z文章链接，内容关于AI制药的挑战。",
+      "fetched_at": "2026-07-04T20:13:18.853299+08:00"
+    },
+    {
+      "title": "1/🧭 a16z 抛出反共识判断：AI 把药造多了，每款反而更不值钱\n\n过去十年药物管线翻倍，FDA 每年批准数却卡在 50 款上下。\n\n讨论的是 Formation Bio CEO 的长文：发现不...",
+      "link": "https://x.com/FinanceYF5/status/2073365499686342878",
+      "published": "2026-07-04T19:17:11+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "1/🧭 a16z 抛出反共识判断：AI 把药造多了，每款反而更不值钱  \n  \n过去十年药物管线翻倍，FDA 每年批准数却卡在 50 款上下。  \n  \n讨论的是 Formation Bio CEO 的长文：发现不再稀缺，临床才是。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HMYS7ywb0AEYLjD.jpg)\n\n💬1🔄0❤️2👀845📊2",
+      "tags": [
+        "a16z",
+        "AI制药",
+        "临床稀缺"
+      ],
+      "score": 65,
+      "summary": "a16z反共识观点：AI导致药物管线翻倍，但临床资源成为瓶颈。",
+      "fetched_at": "2026-07-04T20:13:18.853302+08:00"
+    },
+    {
+      "title": "仔细看了一下某社群的人是怎么发帖的，密度是平均 1 小时、半小时、甚至 5 分钟发一次。。。话题涉及全宇宙，什么八杆子打不着的内容都发。这种打法和约炮一样，广撒网，万一有傻子上当呢，万一有某个帖子火了...",
+      "link": "https://x.com/dingyi/status/2073376779738427569",
+      "published": "2026-07-04T20:02:00+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "仔细看了一下某社群的人是怎么发帖的，密度是平均 1 小时、半小时、甚至 5 分钟发一次。。。话题涉及全宇宙，什么八杆子打不着的内容都发。这种打法和约炮一样，广撒网，万一有傻子上当呢，万一有某个帖子火了呢。你还别说，还真管用。一个二手视频几十万流量，比你辛辛苦苦做教程更火。  \n  \n但人设这个东西吧，比流量重要多了，你以为某个盗图或二手视频给你带来百万流量，但人设就没了，没人会想起你，不会有源源不断的商单。你看一提起 AI 博主都是宝玉、归藏那些人，看你怎么选择了，是想要垂直领域做到头部，还是贪图短期利益。\n\n💬0🔄0❤️0👀28",
+      "tags": [
+        "社群发帖",
+        "人设"
+      ],
+      "score": 40,
+      "summary": "批评某社群高频发帖广撒网策略，强调垂直领域人设比短期流量重要。",
+      "fetched_at": "2026-07-04T20:13:18.853305+08:00"
+    },
+    {
+      "title": "The biggest flex in your 40s is a healthy marriage, a fit body, and a profitable business.",
+      "link": "https://x.com/thejustinwelsh/status/2073376836839424250",
+      "published": "2026-07-04T20:02:14+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "The biggest flex in your 40s is a healthy marriage, a fit body, and a profitable business.\n\n💬16🔄1❤️25👀2569📊15",
+      "tags": [
+        "人生感悟"
+      ],
+      "score": 0,
+      "summary": "40岁最大的炫耀是健康婚姻、健康身体和盈利事业。",
+      "fetched_at": "2026-07-04T20:13:18.853308+08:00"
+    },
+    {
+      "title": "this is literally documented in the published Fable 5 System Card",
+      "link": "https://x.com/Thom_Wolf/status/2073350943886758318",
+      "published": "2026-07-04T18:19:20+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "this is literally documented in the published Fable 5 System Card\n\n![Tweet Image](https://pbs.twimg.com/media/HMYEtmNXIAA9JUJ.jpg)![Tweet Image](https://pbs.twimg.com/media/HMYEyZsW8AEKwL-.jpg)\n\n![Om Patel](https://pbs.twimg.com/profile_images/1918476395111501824/M9qX-gQP_normal.jpg)\n\nOm Patel@om\\_patel5\n\nSOMEONE CAUGHT FABLE 5 LEAKING ITS UNFILTERED INNER VOICE, AND ITS JUST MUTTERING AND GRUMBLING TO ITSELF THE WHOLE TIME  \n  \nhe gave it a brutal competitive programming problem, and instead of a clean answer the web interface spilled out its actual chain of thought  \n  \nthis is what claude is thinking behind the scenes:  \n  \n> bursts of \"DATA DATA DATA. GO.\" while it works through the problem  \n> \"GRRR\" and \"GAAAH\" when its clearly frustrated  \n> a little \"PHEW\" when it finally gets somewhere  \n> the whole thing reads like frantic caveman shorthand, not full sentences  \n  \nthe clean, readable answers these models give you are the polished output  \n  \nunderneath, the model is basically talking to itself, reasoning in its own compressed shorthand thats faster and more token efficient than proper english  \n  \nits basically built its own private language to think in\n\n![Tweet Image](https://pbs.twimg.com/media/HMM0uKuXQAA-PqG.jpg)![Tweet Image](https://pbs.twimg.com/media/HMM0wIaXkAAhykm.jpg)![Tweet Image](https://pbs.twimg.com/media/HMM169dWEAA6gv4.jpg)![Tweet Image](https://pbs.twimg.com/media/HMM19zGXoAAfJVZ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/om_patel5/status/2072559663636205824)\n\n💬3🔄8❤️75👀9669📊12",
+      "tags": [
+        "Fable 5",
+        "系统卡",
+        "思维链泄露"
+      ],
+      "score": 80,
+      "summary": "HuggingFace联合创始人Thomas Wolf指出Fable 5系统卡中记录了模型内部思维链泄露现象。",
+      "fetched_at": "2026-07-04T20:13:18.853310+08:00"
     }
   ]
 }
