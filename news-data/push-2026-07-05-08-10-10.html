@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#F5F5F2"/>
+  <title>GitHub Copilot CLI 推自定义 Agent，LlamaIndex 发布 Retrieval Harness，Claude 新模型工具调用退化 · AI Daily</title>
+  <meta property="og:image" content="https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../static/pages.css"/>
+</head>
+<body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+  <div class="site-shell">
+    <nav class="site-nav site-nav--compact">
+      <div class="site-brand">
+        <a href="../index.html">AI Daily</a>
+      </div>
+      
+      <a class="back-link" href="../index.html">← 返回首页</a>
+    </nav>
+
+    <article class="article-main">
+      <header class="article-hero reveal">
+        <div class="article-hero__top">
+          <time datetime="2026年07月05日 · 08:10">2026年07月05日 · 08:10</time>
+          <span class="article-edition">早报</span>
+        </div>
+        <figure class="article-cover"><img src="https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png" alt="" loading="eager" referrerpolicy="no-referrer" decoding="async"/></figure>
+        <h1>GitHub Copilot CLI 推出自定义 Agent，LlamaIndex 发布 Retrieval Harness</h1>
+        <p class="article-lead">GitHub 在 Copilot CLI 中推出自定义 Agent 功能，用户可通过 Markdown 定义角色、工具和护栏；LlamaIndex 发布 Retrieval Harness，支持 Agent 自主爬取知识库；Flask 作者 Armin Ronacher 发现新版 Claude 模型（Opus 4.8、Sonnet 5）在调用第三方编辑工具时生成额外字段，导致工具调用失败。</p>
+        <div class="highlight-tags"><span><i>1</i>GitHub Copilot CLI 推出自定义 Agent，Markdown 定义角色与护栏</span><span><i>2</i>LlamaIndex 发布 Retrieval Harness，Agent 自主检索知识库</span><span><i>3</i>Claude 新模型工具调用退化，第三方工具生成额外字段</span></div>
+        <div class="article-stats"><span>7 个来源</span><span>7 条精选</span></div><div class="article-sections">RSS 精选 7 · GitHub 趋势 3 · Hacker News 3 · 今日洞察</div>
+      </header>
+
+      <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">7</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
+
+      <div class="article-body">
+        <section class="board-section board-rss reveal" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>[持续跟踪] Fable 5 内部思维链泄露：系统卡确认模型自言自语</h3>
+<ul>
+<li><strong>前情提要</strong>：昨日有用户发现 Claude Fable 5 在处理编程问题时，Web 界面泄露了其未过滤的内部思维链，包含“DATA DATA DATA. GO.”、“GRRR”、“GAAAH”、“PHEW”等类似原始人速记的内心独白。</li>
+<li><strong>最新进展</strong>：HuggingFace 联合创始人 Thomas Wolf 确认，这一现象在已发布的 Fable 5 System Card 中有明确记录。系统卡显示模型在推理过程中会使用自己的压缩速记语言进行思考，比完整英语更高效。</li>
+<li><strong>行业意义</strong>：这揭示了前沿模型在推理时使用的内部语言机制——模型并非用完整句子思考，而是使用自己构建的私有语言进行高效 token 运算。用户看到的整洁回答是经过“抛光”的输出。<br>
+ 🔗 <a href="https://x.com/Thom_Wolf/status/2073350943886758318">Thomas Wolf 推文</a> | <a href="https://x.com/om_patel5/status/2072559663636205824">Om Patel 原始发现</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-2"><h3>LlamaIndex 发布 Retrieval Harness：Agent 自主检索知识库</h3>
+<ul>
+<li><strong>核心发布</strong>：LlamaIndex 创始人 Jerry Liu 宣布创建了一套全面的 Retrieval Harness，用于 2026 年的现代 Agent 检索。该工具提供持久化数据管道，可连接数据源、索引和更新大规模知识库，并暴露类似文件系统操作的工具集（语义/关键词搜索、正则 grep、文件搜索、读取）。</li>
+<li><strong>参考实现</strong>：LlamaIndex 同步开源了 legal-kb 参考应用，将 Index v2 集成到 Agent 知识自动化工作流中，支持项目级知识库、可视化引用、版本控制和数据导出。</li>
+<li><strong>行业意义</strong>：这标志着 RAG 系统正从“被动检索”向“Agent 自主爬取”演进，让 Agent 能够像人类一样在知识库中自主导航以解决复杂任务。<br>
+ 🔗 <a href="https://x.com/jerryjliu0/status/2073407100642852871">Jerry Liu 推文</a> | <a href="https://github.com/run-llama/legal-kb">legal-kb GitHub</a> | <a href="https://cloud.llamaindex.ai/">LlamaParse</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-3"><h3>GitHub Copilot CLI 推出自定义 Agent：Markdown 定义角色与护栏</h3>
+<ul>
+<li><strong>核心发布</strong>：GitHub 宣布在 Copilot CLI 中推出自定义 Agent 功能。用户可通过 Markdown 定义角色、工具和护栏，然后运行一致的工作流，用于安全审计、发布说明、事件响应等场景。</li>
+<li><strong>使用方式</strong>：开发者可创建自定义 Agent 模板，指定其行为边界和可用工具集，确保团队内工作流的一致性和可重复性。</li>
+<li><strong>行业意义</strong>：这标志着编码 Agent 正从“通用助手”向“可定制工作流引擎”演进，企业可构建符合自身安全与合规要求的专用 Agent。<br>
+ 🔗 <a href="https://x.com/github/status/2073492041326088701">GitHub 官方公告</a> | <a href="https://github.blog/ai-and-ml/github-copilot/from-one-off-prompts-to-workflows-how-to-use-custom-agents-in-github-copilot-cli/">官方博客</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-4"><h3>[持续跟踪] 新版 Claude 模型工具调用退化：Opus 4.8 和 Sonnet 5 在 Pi 中生成额外字段</h3>
+<ul>
+<li><strong>前情提要</strong>：Flask 作者 Armin Ronacher 正在开发新的编码工具 Pi。</li>
+<li><strong>最新突破</strong>：Armin 报告了一个奇怪的问题——新版 Claude 模型（Opus 4.8 和 Sonnet 5）在调用 Pi 的编辑工具时，会在嵌套的 <code>edits[]</code> 数组中生成额外的、不存在的字段。编辑本身通常是正确的，但参数不符合 schema，导致 Pi 拒绝工具调用并要求重试。</li>
+<li><strong>根因分析</strong>：Armin 推测这是因为新版 Anthropic 模型通过强化学习被专门训练以更好地使用 Claude Code 内置的编辑工具，导致其他编码框架的自定义编辑工具被错误调用。Simon Willison 指出，这引出一个问题：第三方编码框架是否应为不同模型实现多个编辑工具？<br>
+ 🔗 <a href="https://lucumr.pocoo.org/2026/7/4/better-models-worse-tools/">Armin Ronacher 博客</a> | <a href="https://simonwillison.net/2026/Jul/4/better-models-worse-tools/">Simon Willison 解读</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-5"><h3>开源 AI 效率之争：Hugging Face CEO 称开源可提升一个数量级效率</h3>
+<ul>
+<li><strong>核心发布</strong>：Hugging Face CEO Clement Delangue 评论称，美国 2027 年将在 AI 上花费 1 万亿美元，而中国仅花 1230 亿美元却能交付前沿模型。原因在于：开源 AI 和开放科学允许各方共享计算资源，使效率提升一个数量级。</li>
+<li><strong>行业背景</strong>：这一评论呼应了 NVIDIA 核心科学家 Bryan Catanzaro 的观点——当算力推到极限时，效率成为获得更多智能的唯一途径。开源社区通过互惠化支出实现更高效的资源利用。<br>
+ 🔗 <a href="https://x.com/ClementDelangue/status/2073387290856955955">Clement Delangue 推文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-6"><h3>多模型编排策略成熟：Fable 5 作为大脑，Opus 和 Sonnet 作为执行者</h3>
+<ul>
+<li><strong>核心发布</strong>：开发者社区总结出 Fable 5 的最佳使用策略——将其作为编排器（大脑），而非每一步的执行者。具体做法：Fable 5 负责规划和分解任务，Opus 负责深度推理阶段，Sonnet 负责机械性工作，Codex 作为同级资深工程师提供不同视角。</li>
+<li><strong>实操教程</strong>：开发者 Diego 分享了完整的 Claude Code 多 Agent 设置流程，包括创建子 Agent、安装 Codex 插件、配置 CLAUDE.md 文件等。</li>
+<li><strong>行业意义</strong>：这标志着前沿模型的使用正从“单一模型全流程”向“多模型协作编排”演进，通过任务分解和模型路由实现成本与性能的平衡。<br>
+ 🔗 <a href="https://x.com/daniel_mac8/status/2065066247448821841">Dan McAteer 分享</a> | <a href="https://x.com/diegocabezas01/status/2072436501263339841">Diego 完整教程</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-7"><h3>pxpipe 开源工具：将 Claude Code 长上下文渲染为图片，成本降 70%</h3>
+<ul>
+<li><strong>核心发布</strong>：开源工具 pxpipe 通过将 Claude Code 中的长上下文（系统提示、工具文档、历史记录）在本地渲染为 PNG 图片，再交给支持视觉输入的模型，实现端到端账单下降 59%-70%。</li>
+<li><strong>技术原理</strong>：约 4.8 万字符的系统提示和工具文档，按文本输入约 2.5 万 token；渲染成图片后约 2700 个 image token。模型没换，交互方式没改，提示词不用重写。</li>
+<li><strong>使用限制</strong>：适合读大意的上下文（系统提示、工具说明、长日志），不适合精确字符串、ID、hash 和需要逐字复制的内容。Fable 5 在精确 12 字符 hex 回忆测试中为 13/15，Opus 为 0/15。<br>
+ 🔗 <a href="https://mp.weixin.qq.com/s?__biz=MjM5ODkzMzMwMQ==&amp;mid=2650452556&amp;idx=1&amp;sn=6dcf8fbb112a0f13a55ea1ad48901c1a">AINLP 报道</a> | <a href="https://github.com/teamchong/pxpipe">pxpipe GitHub</a></li>
+</ul></section></div></section>
+<section class="board-section board-github reveal" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
+<section class="story-block reveal" id="story-1"><h3>alibaba/page-agent ⭐ 今日 +742</h3>
+<p><strong>语言/许可：</strong> TypeScript / MIT<br>
+<strong>总 Stars：</strong> 23.1k<br>
+<strong>仓库：</strong> <a href="https://github.com/alibaba/page-agent">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向 SaaS 产品开发者的轻量级 GUI Agent SDK，通过注入单行 JavaScript 脚本，让任何 Web 页面具备自然语言驱动的界面操控能力。</p>
+<p><strong>核心功能：</strong><br>
+- <strong>纯前端集成</strong>：无需浏览器扩展、Python 后端或 headless 浏览器，通过 <code>&lt;script&gt;</code> 标签或 npm 包即可嵌入<br>
+- <strong>基于文本的 DOM 操作</strong>：不依赖截图或多模态模型，通过解析 DOM 结构实现元素定位与交互<br>
+- <strong>自带 LLM 支持</strong>：支持接入任意 OpenAI-compatible API，内置免费测试 API 用于快速验证<br>
+- <strong>可选 Chrome 扩展与 MCP Server</strong>：支持跨标签页的多页面 Agent 任务，以及通过 MCP 协议从外部控制浏览器</p>
+<p><strong>技术亮点：</strong><br>
+基于 <code>browser-use</code> 的 DOM 处理模式，但将执行环境从服务端迁移至客户端浏览器内，显著降低部署复杂度。</p>
+<hr></section>
+<section class="story-block reveal" id="story-2"><h3>ogulcancelik/herdr ⭐ 今日 +707</h3>
+<p><strong>语言/许可：</strong> Rust / AGPL-3.0<br>
+<strong>总 Stars：</strong> 11.4k<br>
+<strong>仓库：</strong> <a href="https://github.com/ogulcancelik/herdr">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向 AI 编码 Agent 开发者的终端多路复用器，在单个终端内管理多个 Agent 会话，并提供 Agent 状态（阻塞/工作中/完成）的实时可视化。</p>
+<p><strong>核心功能：</strong><br>
+- <strong>Agent 感知的终端管理</strong>：自动检测 Claude Code、Codex、Copilot CLI 等 15+ 种 Agent 的运行状态，并在侧边栏以颜色编码展示<br>
+- <strong>持久化会话</strong>：后台守护进程保持所有 Agent 会话存活，支持断开后从任意终端（包括手机 SSH）重新连接<br>
+- <strong>工作区/标签页/窗格</strong>：支持鼠标拖拽分割窗格、创建标签页和工作区，原生终端渲染而非模拟<br>
+- <strong>可编程 Socket API</strong>：Agent 可通过本地 Unix Socket 创建窗格、读取输出、订阅状态变更，支持自定义插件</p>
+<p><strong>技术亮点：</strong><br>
+基于 Rust 实现单二进制约 10MB 的轻量级部署，无 Electron 依赖；通过进程名匹配加终端输出启发式算法实现零配置的 Agent 状态检测。</p>
+<hr></section>
+<section class="story-block reveal" id="story-3"><h3>Zackriya-Solutions/meetily ⭐ 今日 +718</h3>
+<p><strong>语言/许可：</strong> Rust / MIT<br>
+<strong>总 Stars：</strong> 15.2k<br>
+<strong>仓库：</strong> <a href="https://github.com/Zackriya-Solutions/meetily">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向隐私敏感型企业和个人的本地 AI 会议助手，基于 Rust 实现 100% 本地化的实时转录、说话人分离与摘要生成。</p>
+<p><strong>核心功能：</strong><br>
+- <strong>本地实时转录</strong>：支持 Whisper 和 Parakeet 模型，4 倍速实时转录，所有数据处理在本地完成<br>
+- <strong>说话人分离</strong>：内置 Sortformer 模型实现多人对话的说话人识别<br>
+- <strong>AI 摘要生成</strong>：支持 Ollama（本地）、Claude、Groq、OpenRouter 等多种 LLM 后端，可自定义摘要模板<br>
+- <strong>GPU 加速</strong>：macOS 支持 Metal/CoreML，Windows/Linux 支持 CUDA/Vulkan，构建时自动启用</p>
+<p><strong>技术亮点：</strong><br>
+基于 Tauri 框架构建，Rust 后端处理核心逻辑，Next.js 前端提供 UI；支持导入已有音频文件进行重新转录或模型升级。</p></section></div></section>
+<section class="board-section board-hackernews reveal" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>GPT-5.5 Codex reasoning-token clustering may be leading to degraded performance</h3>
+<p>108 pts · 27 comments · <a href="github.com/openai">site</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>用户通过分析 Codex 遥测数据发现，GPT-5.5 模型的 <code>reasoning_output_tokens</code> 异常集中在 516、1034、1552 等固定值（间隔 518），且该现象与复杂任务错误率高度相关。</li>
+<li>HN 关注点:</li>
+<li>该模式是 GPT-5.5 特有的，GPT-5.4 较弱，GPT-5.2/5.3 几乎不存在。</li>
+<li>数据表明，GPT-5.5 在 5-6 月的平均推理 token 数大幅下降（从 268 降至 107-168），同时 516 精确命中率从 0.11% 飙升至 35-53%。</li>
+<li>多位用户独立复现了该模式，并发现 516+518*k 的算术阶梯，暗示推理被量化的预算边界截断。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识观点</strong>：该现象真实存在，且是 GPT-5.5 模型特有的推理预算截断问题。多位用户通过本地 Codex 会话日志独立复现了相同的 token 聚类模式。</li>
+<li><strong>工程经验</strong>：用户发现，当推理 token 数达到 6000-8000 时，模型能正确回答复杂问题；而截断在 516 时几乎总是错误。有用户通过提示词“Use maximum effort... to think for at least 60s”可绕过该问题。</li>
+<li><strong>商业现实</strong>：社区普遍认为这是 OpenAI 为降低推理成本而实施的优化。有评论指出，此前传闻 OpenAI 将推理成本减半的“突破性优化”很可能就是这个机制。</li>
+<li><strong>反对意见</strong>：少数观点认为这可能是推理引擎或 agent 框架的缺陷/配置错误，而非故意的模型降级。但多数用户认为，无论意图如何，实际效果是付费用户获得了降级服务。</li>
+</ul>
+<p>🔗 <a href="https://github.com/openai/codex/issues/30364">原文</a> · <a href="https://news.ycombinator.com/item?id=48789428">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-2"><h3>Better Models: Worse Tools</h3>
+<p>74 pts · 21 comments · <a href="pocoo.org">site</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>作者发现，Anthropic 的新模型（Opus 4.8、Sonnet 5）在调用 Pi 的编辑工具时，会在 <code>edits[]</code> 数组中凭空添加 <code>requireUnique</code>、<code>oldText2</code> 等不存在的字段，导致工具调用失败。而旧模型（Opus 4.5）表现正常。</li>
+<li>HN 关注点:</li>
+<li>根本原因：新模型在 post-training 阶段被优化用于 Claude Code 的扁平化编辑工具（<code>old_string</code>/<code>new_string</code>/<code>replace_all</code>），对 Pi 的嵌套 <code>edits[]</code> 格式产生了“过拟合”。</li>
+<li>Claude Code 的客户端代码会静默修复模型输出的各种“slop”（别名、未知字段过滤、Unicode 修复），这进一步强化了模型的不良输出习惯。</li>
+<li>使用 Anthropic 的 <code>strict</code> 模式可以解决该问题，但该模式对工具定义复杂度有限制。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识观点</strong>：工具 schema 不再是中立的抽象契约。模型在特定 harness 上的 post-training 会使其对其他工具格式的适应能力下降。这是封闭生态系统的必然结果。</li>
+<li><strong>工程经验</strong>：有开发者分享，使用 Sam 编辑器的语法（约 650 token 系统提示）比 JSON diff 更可靠。另有开发者选择用 curl 命令替代 MCP，因为模型对 curl 的熟悉度极高。</li>
+<li><strong>历史背景</strong>：有评论将当前问题类比为 1990 年代 MOO 客户端中“带内控制序列”的困境——任何试图在文本流中嵌入控制信号的方案都充满安全风险和兼容性问题。</li>
+<li><strong>风险/限制</strong>：如果模型继续在单一封闭 harness 上优化，其他 harness 将被迫继承其 quirks。有评论指出，这可能导致“模型按浏览器”的碎片化局面。</li>
+</ul>
+<p>🔗 <a href="https://lucumr.pocoo.org/2026/7/4/better-models-worse-tools/">原文</a> · <a href="https://news.ycombinator.com/item?id=48788599">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-3"><h3>My AI-built PHP engine in Rust passes 17% of PHP-src tests, renders WordPress</h3>
+<p>8 pts · 5 comments · <a href="ekinertac.com">site</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>作者不会 Rust，但通过 AI 编写了一个从零开始的 PHP 解释器（Phargo），目前通过了 PHP 官方测试套件 22,037 个测试中的 3,844 个（17.4%），并能渲染 WordPress 首页和管理后台。</li>
+<li>HN 关注点:</li>
+<li>核心方法论：使用 PHP 官方测试套件作为“不可贿赂的预言机”，AI 编写代码，人类只负责“瞄准”和“确认”。</li>
+<li>当前性能约为真实 PHP 的 1/55（7.1s vs 126ms），但新的字节码 VM 在微基准测试中已达到 PHP 8.5 的 1-3 倍。</li>
+<li>项目已发现并修复了 <code>clone</code> 返回 NULL、<code>unset</code> 无操作、<code>trim</code> 忽略字符列表等“静默错误”。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识观点</strong>：17% 的通过率在当前 AI 能力下是合理的，但距离真正可用还有巨大差距。有评论认为“20% 可能就是 LLM 的极限”。</li>
+<li><strong>工程经验</strong>：作者强调了“测量你的测量”的重要性——早期因 CRLF 换行符问题导致数百个测试误判失败，修复后瞬间通过。</li>
+<li><strong>反对意见</strong>：有评论认为“不到 100% 就只是另一个项目”，但作者回应称，剩余测试中大部分测试的是 C 扩展（GD、curl 等），实际可达到的上限约为 40-45%。</li>
+</ul>
+<p>🔗 <a href="https://ekinertac.com/blog/i-dont-know-rust-my-ai-is-rewriting-php-in-it/">原文</a> · <a href="https://news.ycombinator.com/item?id=48789325">HN 讨论页</a></p></div></details></section></div></section>
+<section class="board-section board-insights reveal" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>模型 post-training 正在侵蚀工具生态的兼容性。</strong> Armin Ronacher 发现 Claude Opus 4.8 和 Sonnet 5 在调用 Pi 的编辑工具时，会在 <code>edits[]</code> 数组中凭空生成 <code>requireUnique</code>、<code>oldText2</code> 等不存在的字段。根因是新模型在强化学习阶段被专门优化用于 Claude Code 的扁平化编辑工具（<code>old_string</code>/<code>new_string</code>/<code>replace_all</code>），对嵌套格式产生了“过拟合”。更关键的是，Claude Code 客户端会静默修复模型输出的各种“slop”，这进一步强化了模型的不良输出习惯。这意味着工具 schema 不再是中立的抽象契约——模型在特定 harness 上的 post-training 会使其对其他工具格式的适应能力下降。如果模型继续在单一封闭 harness 上优化，其他第三方框架将被迫继承其 quirks，或为不同模型实现多个编辑工具。</p>
+<p><strong>Agent 工具调用的退化正在推动开发者转向更鲁棒的接口设计。</strong> HN 讨论中，有开发者分享使用 Sam 编辑器的语法（约 650 token 系统提示）比 JSON diff 更可靠，另有开发者选择用 curl 命令替代 MCP，因为模型对 curl 的熟悉度极高。这暴露了一个工程现实：当模型对结构化工具调用的可靠性下降时，开发者会退回到模型最熟悉的“文本接口”——自然语言命令和标准 Unix 工具。pxpipe 的走红也印证了这一趋势：通过将长上下文渲染为图片，利用模型对视觉输入的鲁棒性，绕过文本 token 的精度问题。这些信号表明，Agent 工具生态正在从“结构化 schema 驱动”向“文本接口优先”回摆，后者虽然更粗糙，但在当前模型能力下更可靠。</p>
+<p><strong>多模型编排策略的成熟，本质上是开发者对单一模型能力边界的有意识补偿。</strong> 社区总结的 Fable 5 最佳实践——将其作为编排器，Opus 负责深度推理，Sonnet 负责机械工作——不是性能优化，而是对模型各自弱点的工程对冲。Fable 5 在精确 12 字符 hex 回忆测试中为 13/15，Opus 为 0/15，说明不同模型在不同任务上的能力分布极不均匀。当模型 post-training 进一步窄化其能力分布（如 Claude 新模型对非 Claude Code 工具的退化），多模型编排将从“可选优化”变为“必要架构”。这会加速 Agent 框架向“模型路由层”的演进——不是简单调用一个模型，而是根据任务特征动态选择最合适的模型和接口格式。</p></div></section>
+      </div>
+    </article>
+
+
+
+    <footer class="site-footer">
+      AI Daily
+    </footer>
+  </div>
+  <script src="../static/pages.js" defer></script>
+</body>
+</html>
