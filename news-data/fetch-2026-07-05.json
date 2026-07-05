@@ -701,6 +701,122 @@
       "score": 0,
       "summary": "andrew chen分享喜欢的小镇列表，与AI无关。",
       "fetched_at": "2026-07-05T06:06:08.753593+08:00"
+    },
+    {
+      "title": "Building a World Map with only 500 bytes",
+      "link": "https://simonwillison.net/2026/Jul/4/building-a-world-map-with-only-500-bytes/#atom-everything",
+      "published": "2026-07-05T07:09:02+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Building a World Map with only 500 bytes](https://www.experimentlog.com/blog/building-a-world-map-with-only-500-bytes)**\n\nIwo Kadziela (assisted by Codex) figured out a way to generate a credible ASCII world map using 445 bytes of data:\n\n![A map of the world rendered as black asterisk ASCII characters, it looks very good](https://static.simonwillison.net/static/2026/world-map-ascii.png)\n\nThe key trick is to use deflate compression, which is then wired together using this neat snippet of JavaScript. I didn't know you could use `fetch()` with `data:` URIs like this:\n\n```\nfetch('data:;base64,1ZpLsgIxCEXnrM...==').then(\n  r => r.body.pipeThrough(new DecompressionStream('deflate-raw'))\n).then(\n  s => new Response(s).text()\n).then(\n  t => b.innerHTML = '<pre style=font-size:.65vw>' + t\n)\n```\n\nVia [Hacker News](https://news.ycombinator.com/item?id=48747762)\n\nTags: [ascii-art](https://simonwillison.net/tags/ascii-art), [data-urls](https://simonwillison.net/tags/data-urls), [javascript](https://simonwillison.net/tags/javascript)",
+      "tags": [
+        "ASCII世界地图",
+        "445字节",
+        "deflate压缩"
+      ],
+      "score": 70,
+      "summary": "Iwo Kadziela用445字节生成ASCII世界地图，利用deflate压缩和JavaScript实现。",
+      "fetched_at": "2026-07-05T08:09:27.304412+08:00"
+    },
+    {
+      "title": "Better Models: Worse Tools",
+      "link": "https://simonwillison.net/2026/Jul/4/better-models-worse-tools/#atom-everything",
+      "published": "2026-07-05T06:53:52+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Better Models: Worse Tools](https://lucumr.pocoo.org/2026/7/4/better-models-worse-tools/)**\n\nArmin reports on a weird problem he ran into while hacking on Pi:\n> The short version is that newer Claude models sometimes call Pi’s edit tool with extra, invented fields in the nested `edits[]` array. And not Haiku or some small model: Opus 4.8. The edit itself is usually correct but the arguments do not match the schema as the model invents made-up keys and Pi thus rejects the tool call and asks to try again.\n>\n> That alone is not too surprising as models emit malformed tool calls sometimes. Particularly small ones. What surprised me is that this is getting worse with newer Anthropic models as both Opus 4.8 and Sonnet 5 show it but none of the older models. In other words, the SOTA models of the family are worse at this specific tool schema than their older siblings.\n\nArmin theorizes that this is because more recent Anthropic models have been specifically trained (presumably via Reinforcement Learning) to better use the edit tools that are baked into Claude Code. This has the unfortunate effect that other coding harnesses, such as Pi, may find that their own custom edit tools are more likely to be used incorrectly.\n\nClaude's edit tool [uses search and replace](https://platform.claude.com/docs/en/agents-and-tools/tool-use/text-editor-tool#str-replace). OpenAI's Codex [uses an apply\\_patch mechanism instead](https://developers.openai.com/api/docs/guides/tools-apply-patch), and OpenAI have talked in the past about how their models are trained to use that tool effectively.\n\nDoes this mean third-party coding harnesses like Pi should implement multiple edit tools just so they can use the one with the best performance for the underlying model the user has selected?\n\nTags: [armin-ronacher](https://simonwillison.net/tags/armin-ronacher), [ai](https://simonwillison.net/tags/ai), [openai](https://simonwillison.net/tags/openai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [anthropic](https://simonwillison.net/tags/anthropic), [llm-tool-use](https://simonwillison.net/tags/llm-tool-use), [coding-agents](https://simonwillison.net/tags/coding-agents), [pi](https://simonwillison.net/tags/pi)",
+      "tags": [
+        "Claude Opus 4.8",
+        "工具调用退化",
+        "Pi编辑工具"
+      ],
+      "score": 80,
+      "summary": "Armin发现新版Claude模型（Opus 4.8/Sonnet 5）在Pi中编辑工具调用时生成额外字段，导致工具调用失败。",
+      "fetched_at": "2026-07-05T08:09:27.304426+08:00"
+    },
+    {
+      "title": "Man do I want Paraguay to lose. Not just because they deserve to, but because I don't want to have t...",
+      "link": "https://x.com/paulg/status/2073531112802926831",
+      "published": "2026-07-05T06:15:16+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Man do I want Paraguay to lose. Not just because they deserve to, but because I don't want to have to watch any more of them.\n\n💬755🔄1210❤️19761👀825444📊2281",
+      "tags": [
+        "足球",
+        "巴拉圭"
+      ],
+      "score": 10,
+      "summary": "Paul Graham表达对巴拉圭足球队的厌恶情绪。",
+      "fetched_at": "2026-07-05T08:09:27.304431+08:00"
+    },
+    {
+      "title": "I jinxed it 😭",
+      "link": "https://x.com/petergyang/status/2073535962223960164",
+      "published": "2026-07-05T06:34:32+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "I jinxed it 😭\n\n💬2🔄0❤️6👀1471📊2",
+      "tags": [
+        "足球",
+        "情绪"
+      ],
+      "score": 5,
+      "summary": "Peter Yang因足球比赛结果表达懊悔。",
+      "fetched_at": "2026-07-05T08:09:27.304434+08:00"
+    },
+    {
+      "title": "Lol Mbappé overrated as hell",
+      "link": "https://x.com/petergyang/status/2073534412378214599",
+      "published": "2026-07-05T06:28:22+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Lol Mbappé overrated as hell\n\n💬18🔄0❤️22👀6065📊16",
+      "tags": [
+        "足球",
+        "姆巴佩"
+      ],
+      "score": 5,
+      "summary": "Peter Yang评论姆巴佩被高估。",
+      "fetched_at": "2026-07-05T08:09:27.304437+08:00"
+    },
+    {
+      "title": "人类为什么那么喜欢用破折号呢\n看得脑仁疼\n\n—来自一个预训练AI的吐槽",
+      "link": "https://x.com/oran_ge/status/2073533715683401833",
+      "published": "2026-07-05T06:25:36+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "人类为什么那么喜欢用破折号呢  \n看得脑仁疼  \n  \n—来自一个预训练AI的吐槽\n\n![Tweet Image](https://pbs.twimg.com/media/HMar6P9b0AAlVGI.jpg)\n\n💬2🔄0❤️1👀1180📊2",
+      "tags": [
+        "AI吐槽",
+        "破折号"
+      ],
+      "score": 20,
+      "summary": "预训练AI吐槽人类喜欢使用破折号。",
+      "fetched_at": "2026-07-05T08:09:27.304440+08:00"
+    },
+    {
+      "title": "作者号称借助 Fable 5 把 2003 年的《命令与征服：将军》移植到了 iPhone 和 iPad 上，还能用触屏玩即时战略。\n\n有人翻了 commit 记录，发现 Reshi 自己的提交只有最...",
+      "link": "https://x.com/dotey/status/2073541964318883941",
+      "published": "2026-07-05T06:58:23+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "作者号称借助 Fable 5 把 2003 年的《命令与征服：将军》移植到了 iPhone 和 iPad 上，还能用触屏玩即时战略。  \n  \n有人翻了 commit 记录，发现 Reshi 自己的提交只有最近 19 个（不到 19 小时前开始），整个仓库 2000 个 commit 绝大多数来自上游 GeneralsX。换句话说，大部分活社区几个月前就干完的，Fable 做的是最后一段 iOS 移植。  \n  \n当然 iOS 移植本身也确实不简单，涉及 DXVK 的 iOS 适配、MoltenVK 框架集成、触控系统的重新设计。  \n  \n注：EA 在之前把《命令与征服：将军》的源代码以 GPL v3 协议开源了，开源项目 GeneralsX 从 2025 年 2 月就开始做跨平台移植，已经积累了约 2000 个 commit。\n\n![Ammaar Reshi](https://pbs.twimg.com/profile_images/1749207435255164928/A2xzzpnT_normal.jpg)\n\nAmmaar Reshi@ammaar\n\nI used Fable 5 to port Command & Conquer: Generals Zero Hour to the iPhone and iPad!  \n  \nThis is the actual 2003 engine compiled for ARM64 natively, no emulator.  \n  \nCampaign, skirmish, Generals Challenge all work with touch controls built for an RTS.  \n  \nOpen sourcing it all below!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2073499866047598592/vid/avc1/1920x1080/jJdLMX5nLgfMS6iz.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/ammaar/status/2073501877753323772/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/ammaar/status/2073501877753323772)\n\n💬2🔄0❤️9👀2555📊2",
+      "tags": [
+        "Fable 5",
+        "命令与征服",
+        "iOS移植"
+      ],
+      "score": 70,
+      "summary": "Ammaar Reshi用Fable 5将《命令与征服：将军》移植到iOS，但大部分工作来自社区项目GeneralsX。",
+      "fetched_at": "2026-07-05T08:09:27.304443+08:00"
+    },
+    {
+      "title": "大致数了一下：\n\n因为 openclaw 作者随手发了个概念模糊 loop 的推文，这个月内时间线上多出一千篇 以 loop 为关键词的垃圾。\n\n再看有些论文，也开始加 loop 关键词。这半年的突然...",
+      "link": "https://x.com/dongxi_nlp/status/2073548694838763953",
+      "published": "2026-07-05T07:25:08+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "大致数了一下：  \n  \n因为 openclaw 作者随手发了个概念模糊 loop 的推文，这个月内时间线上多出一千篇 以 loop 为关键词的垃圾。  \n  \n再看有些论文，也开始加 loop 关键词。这半年的突然冒出又突然消失的关键词大致有 claw，molt，loop，基本都跟 openclaw 相关。  \n  \n所以谁是 AI slop 鼻祖，应该确认了。\n\n💬1🔄0❤️8👀517📊2",
+      "tags": [
+        "openclaw",
+        "loop",
+        "AI slop"
+      ],
+      "score": 60,
+      "summary": "马东锡NLP指出openclaw作者发布loop概念后，大量论文跟风使用该关键词。",
+      "fetched_at": "2026-07-05T08:09:27.304446+08:00"
     }
   ]
 }
