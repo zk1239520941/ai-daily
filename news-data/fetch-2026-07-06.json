@@ -764,6 +764,372 @@
       "score": 80,
       "summary": "InfoQ报道Model Context Protocol推出企业托管授权扩展，集中控制MCP服务器访问。",
       "fetched_at": "2026-07-06T17:08:18.384600+08:00"
+    },
+    {
+      "title": "LeRobot v0.6.0: Imagine, Evaluate, Improve",
+      "link": "https://huggingface.co/blog/lerobot-release-v060",
+      "published": "2026-07-07T08:00:00+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "LeRobot v0.6.0",
+        "机器人学习"
+      ],
+      "score": 80,
+      "summary": "Hugging Face发布LeRobot v0.6.0，新增Imagine、Evaluate、Improve功能。",
+      "fetched_at": "2026-07-06T21:56:38.158888+08:00"
+    },
+    {
+      "title": "Fragments: July  6",
+      "link": "https://martinfowler.com/fragments/2026-07-06.html",
+      "published": "2026-07-06T20:53:00+08:00",
+      "source": "Martin Fowler",
+      "content": "Last week, Thoughtworks ran a second [Future of Software Development Retreat](https://martinfowler.com/bliki/FutureOfSoftwareDevelopment.html), this time in Europe. As with the previous event, I’ll be sharing some fragmentary thoughts on this. There were five parallel streams, so I could, at best, only attend ⅕ of sessions. This isn’t an event that forms conclusions, rather one that allows those exploring to share what they’ve found, and their visions for the future. The [bliki post](https://martinfowler.com/bliki/FutureOfSoftwareDevelopment.html) lists all the writing I’ve run into on this, by myself and others. I’ll be updating it as more posts appear.\n\nGiles Edwards-Alexander [“noticed a real difference between the retreats”](https://overwatering.org/blog/2026/07/notes-from-fose-europe/):\n\n> Where Deer Valley had hesitancy and a belief that there was something here even if we weren’t yet sure what it was, Engelberg had confidence: the value is here. As I explained to a colleague today, this was not a conference for true believers: the evidence is in.\n>\n> What does the evidence say? Well, that was less clear. Some patterns and practices are emerging (one attendee had catalogued dozens of agentic engineering pattern libraries) but they are emerging. There is more work to do to truly establish what is effective, and when.\n\nGreg Herlein [felt similarly](https://blog.herlein.com/post/retreat-observations/):\n\n> Reading the reports of the February event, when a lot of these same folks last got together, the conversation was about what agentic development might look like. Aspirational. More about what was coming.\n>\n> This time? Everybody in the room was doing it. Shipping it. Not slides - production. The whole debate about whether this changes software engineering is over. People have stopped arguing about whether a while ago. They’re arguing about how, and the how is getting real.\n\nOn a more micro level, I noted two other things. Firstly, there was much talk now about [harness engineering](https://martinfowler.com/articles/harness-engineering.html), when that wasn’t even a term in Utah - an example of how rapidly things are moving. Secondly people are now worrying about the cost of tokens, where before folks were wanting to do almost anything to incentivize people to talk to [The Genie](https://martinfowler.com/articles/who-is-llm.html).\n\n ❄                ❄\n\nA question that continued from Utah was whether architecture and design are still important. There seems to be two landmark hypotheses here, one is that The Genie has such a Galaxy Brain that we no longer need to care about such matters, it will handle as much spaghetti as we can throw at it. The other is, in Laura Tacho’s [memorable phrase](https://martinfowler.com/fragments/2026-02-13.html): “the Venn Diagram of Developer Experience and Agent Experience is a circle”. The point being that The Genie uses the same constructs to understand a code base that humans do, so things like good modularity and naming help it as much as it helps humans. Adam Tornhill’s writing is a [good example](https://adamtornhill.substack.com/p/welcome-to-code-for-humans-and-machines) of this viewpoint.\n\nTidbits from our session on this:\n\n* to evaluate the value of architecture we need to focus on desirable outcomes. Internal design quality boils down to [ease of change](https://martinfowler.com/articles/is-quality-worth-cost.html). The question is whether the lessons we’ve learned so far will continue for agents.\n* a way to measure design quality is to look at token costs. If the same change requires less tokens that indicates a better architecture.\n* a good architecture only shows its quality over time, we can’t easily measure it in the short term\n* why did 3GL languages continue when things like 4GLs, UML etc not take hold? It’s because these programming languages hit a sweet spot of human comprehension of computation\n* we’re at the first time ever where the computers care about code quality\n* will future models write machine code directly? If so what will humans review or specify?\n* we should beware of speculating about what LLMs may do in the future. Instead we need [mechanical sympathy](https://martinfowler.com/bliki/MechanicalSympathy.html) for our LLMs, so we can gain a sense of how they work and how best to use them.\n* One workflow:\n  + take story from backlog\n  + talk it over with an agent\n  + once get an agreement, make an ADR for persistent record of spec\n  + generate a task list\n  + get agent to complete it\n* we need abstractions to communicate with agents *(echoing Unmesh Joshi’s thoughts on [building conceptual models](https://martinfowler.com/articles/what-is-code.html))*\n* we often find duplication in LLM generated code, together with mixing of concerns (eg intermingled domain and display logic) - even with a good harness\n* get agents to generate explanatory documentation at the end of a session\n* overnight quality checks with a report for humans to act on in the morning\n* LLMs look at existing code, so if that code has problems, the LLM will amplify them\n* we should be wary of drawing too many conclusions comparing LLM code with human code - human code varies enormously from team to team.\n\n ❄                ❄\n\nIn his account of the retreat, Mathias Verraes goes into the details of [his perspective of these issues of software design](https://verraes.net/2026/07/software-design-in-the-agentic-age/). He adds another concern: we need good design as a hedge against the risk of dependence on AI. After all, we don’t know how high the costs may rise to. We see governments blocking access to models. We see popular opposition to AI campaigning against data centers and calling for regulation. How much can we rely on AI tools being available to maintain and extend our software in the future?\n\n ❄                ❄                ❄                ❄                ❄\n\nCharity Majors has a post on [the ethics of working with AI](https://charitydotwtf.substack.com/p/make-ai-boring-again) and does an excellent job of articulating how I feel about this topic. She outlines the harms inherent in AI, both in the creation of its models (training on stolen data) and in inference (slop, lack of accountability, skill atrophy). Her conclusion however, like mine, is that there’s no ethical gain from renouncing the use of AI and castigating those who use it. Such purity provides little practical help with a technology that is so powerful and so useful.\n\n> The way you show care is by showing up. The way you make the world a better place is by getting down in the muck and building it, using whatever skills and resources you have on hand. The way you drive change is you engage.\n>\n> Yes, we are all complicit. Yes, we are all compromised. No argument. But what are you going to do with that feeling of conviction? Will you channel your discomfort into solidarity and action, or try to ease your conscience by removing yourself from the system? Which does more to help those being harmed?\n\nHer suggestions on how to engage aren’t striking, but that’s hardly unusual. At the [Future of Software Development Retreat](https://martinfowler.com/bliki/FutureOfSoftwareDevelopment.html) I convened a session on this question, and nothing striking turned up there either. That said, I’ve never been much of an activist, so my imagination may be limited.\n\n ❄                ❄                ❄                ❄                ❄\n\nGergely Orosz has run into a case where an article of his was [erased from Google search](https://blog.pragmaticengineer.com/pollen-tried-to-remove-my-article-about-callum-negus-fancey-and-google-is-assisting-to-it/) by a clearly fraudulent DMCA claim.\n\n> It seems that anyone can file a bogus copyright claim to get an article they don’t like removed from Google’s search index. This happened in this case. I have no information on who filed the copyright claim. Even less so on who claims to be the copyright owner? Because I am the only possible copyright owner!\n\nHe was able to find the DMCA complaint, it was made by “Ellie Piee” whose profile listed them as living on Bouvet Island, an uninhabited Norwegian dependent territory near Antarctica. It claimed Gergely’s article copied a New York Post article entitled “Band Leader Hits Winning Chord”. But Gergely’s article is “Inside Pollen’s Collapse: “$200M Raised” but Staff Unpaid”, and the two do not share a single sentence. There’s an obvious motivation for folks connected with Pollen to have done this, and I hope the resulting [Streisand effect](https://en.wikipedia.org/wiki/Streisand_effect?ref=blog.pragmaticengineer.com) bites them where it hurts.\n\n ❄                ❄                ❄                ❄                ❄\n\n404 media have a bunch of (paywalled) reports on the impact of companies realizing that token costs are getting out of control. They’ve acquired [leaked Slack chats, internal dashboards, emails and other material](https://www.404media.co/companies-are-throttling-employees-ai-use-because-its-too-expensive/) from companies including Citi and Amazon.\n\nCompanies are urging staff to use less powerful models, or cutting off frontier models entirely. A dashboard indicates that one company has seen its token bill rise from $5 million in August 2025 to $15 million in May 2026, on track to spend over $120 million in the fiscal year.\n\n404 earlier reported about [Accenture taking steps to reduce token usage](https://www.404media.co/the-tokenpocalypse-is-here-companies-are-scrambling-to-stop-spending-so-much-on-ai/). The biggest problem wasn’t software engineering using [agentic programming](https://martinfowler.com/bliki/AgenticProgramming.html), but rather staff “chewing tokens” by using AI to do things like turning PDFs into presentation slides. They saw themselves, and their clients, grappling with exponential increases in token costs. Inevitably, after consulting firms spent time urging their clients to use AI heavily, they are now offering services to control these costs.\n\nAnother post says it appears that one way to reduce token costs is to get AI tools to [speak like cavemen](https://www.404media.co/companies-are-making-claude-and-codex-talk-like-cavemen-to-stop-ais-soaring-costs/), using a [skill/plugin](https://github.com/JuliusBrussee/caveman?ref=404media.co).\n\nThere’s a good summary of all this on 404’s freely available podcast: [The AI Tokenpocalypse Is Here](https://www.youtube.com/watch?v=Sia4LZGNkVs).\n\n ❄                ❄                ❄                ❄                ❄\n\nI share these thoughts just after the July 4th weekend here in America, indeed the Semiquincentennial. Historian Bret Devereaux celebrated this event with [a careful reading of the Declaration of Independence](https://acoup.blog/2026/07/04/collections-on-the-declaration-of-independence/), a document often talked about more than it’s read. Which is a shame since it is hardly very long, and its impact was remarkable, and not just in what is now the United States.\n\n> The Declaration of Independence was recognized as a radical, potentially explosive document at the time of its issuance, as we’ll see. And it was explosive: the world of 1775 was one dominated by monarchies with just a tiny handful of traditional republics (which we should not ignore!). It took a long time for the seeds of the declaration to spread, but the world it helped create is one where liberal democracies, while hardly universal (more people have always lived in unfree societies than free ones) represent the most economically and culturally dominant bloc in world affairs – something that had never happened before. The Declaration, in its way, remade not just the Thirteen Colonies, but slowly, surely, as water seeps through the cracks of rocks (or my floorboards, alas), it remade the whole world.\n\nDevereaux shines a light onto the world of this text, illuminating its historic context, a world that is very different to the one anyone reading this grew up in. It’s assertions of a natural law that there is equality of rights among men and that governments ought to derive their powers from the consent of the governed would seem hardly worth stating now, yet were deeply radical in 1776. I’ve found that reading history like this has helped me understand how the world is, and gives me a broader perspective on the drama of current affairs.",
+      "tags": [
+        "软件工程",
+        "Agent开发"
+      ],
+      "score": 70,
+      "summary": "Martin Fowler分享欧洲软件工程未来峰会观察，Agent开发已从讨论转向实践。",
+      "fetched_at": "2026-07-06T21:56:38.158902+08:00"
+    },
+    {
+      "title": "这个 Text Reveal Animation 牛逼， 还真没见过。\n\nhttps://t.co/CcgZSfhhlK",
+      "link": "https://x.com/dingyi/status/2074100474727616969",
+      "published": "2026-07-06T19:57:42+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "这个 Text Reveal Animation 牛逼， 还真没见过。  \n  \n[perfectdays-movie.jp/en/](https://www.perfectdays-movie.jp/en/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074100302014451712/vid/avc1/1146x720/hj1MbZPVVJ1QQFVw.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/dingyi/status/2074100474727616969/video/1)\n\n💬2🔄1❤️11👀1418📊4",
+      "tags": [
+        "Text Reveal Animation"
+      ],
+      "score": 10,
+      "summary": "用户分享一个文本揭示动画效果，非AI相关。",
+      "fetched_at": "2026-07-06T21:56:38.158907+08:00"
+    },
+    {
+      "title": "me, 2023: profits will be meager; LLMs will become a commodity.\n\ntoday: LLMs are in fact literally a...",
+      "link": "https://x.com/GaryMarcus/status/2074129913159074042",
+      "published": "2026-07-06T21:54:41+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "me, 2023: profits will be meager; LLMs will become a commodity.  \n  \ntoday: LLMs are in fact literally about to become a commodity.   \n  \nscoop from [@MadisonMills22](https://x.com/MadisonMills22):\n\n![Tweet Image](https://pbs.twimg.com/media/HMjKKgAbEAA2-ZB.jpg)\n\n💬0🔄0❤️0👀299",
+      "tags": [
+        "LLM商品化"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus称LLM即将成为商品，引用Madison Mills的独家报道。",
+      "fetched_at": "2026-07-06T21:56:38.158910+08:00"
+    },
+    {
+      "title": "DeepSeek 面试👇",
+      "link": "https://x.com/geekbb/status/2074112002717569489",
+      "published": "2026-07-06T20:43:31+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "DeepSeek 面试👇\n\n![Bojie Li](https://pbs.twimg.com/profile_images/819210652564615168/NNNeTcef_normal.jpg)\n\nBojie Li@bojie\\_li\n\nA rant about DeepSeek's interview process. First, after passing the written test, they didn't schedule an interview for half a month. By then, offers from other companies had already come through. Only after repeated prodding did they finally schedule the interview. When I interviewed at other companies, none of them required a coding interview, yet DeepSeek still required a written test, and the first two interview rounds were both coding interviews—something I never encountered while interviewing with any other company. During the second round, the interviewer felt that all the problems I described were research problems and had no grasp of what I was talking about; he kept pushing me to talk about what engineering challenges there were. During the coding interview, I had two monitors, and the interviewer said I kept glancing at the left screen, accused me of copying code, told me to stop copying, and said that if I couldn't prove I wasn't copying code, the interview couldn't continue. I felt deeply insulted and immediately decided to terminate the interview. Based on the conduct of both interviewers in the first and second rounds, DeepSeek turned out to be completely different from what I had imagined. I have decided to terminate DeepSeek's interview process, and I'm exposing it on social media. Please spread the word—feel free to share.\n\n[🔗 View Quoted Tweet](https://x.com/bojie_li/status/2074071987929112961)\n\n💬0🔄0❤️0👀1094",
+      "tags": [
+        "DeepSeek面试",
+        "争议"
+      ],
+      "score": 65,
+      "summary": "Bojie Li曝光DeepSeek面试流程问题，包括延迟安排、重复编码面试及被指抄袭代码。",
+      "fetched_at": "2026-07-06T21:56:38.158912+08:00"
+    },
+    {
+      "title": "肉色蛇头形状和颜色太像人类屁股了……",
+      "link": "https://x.com/geekbb/status/2074100672858071118",
+      "published": "2026-07-06T19:58:29+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "肉色蛇头形状和颜色太像人类屁股了……\n\n![Tweet Image](https://pbs.twimg.com/media/HMivVWKakAAP7Ah.jpg)\n\n💬1🔄0❤️0👀1491📊1",
+      "tags": [
+        "蛇头",
+        "搞笑"
+      ],
+      "score": 0,
+      "summary": "用户分享肉色蛇头形状像人类屁股的图片，非AI相关。",
+      "fetched_at": "2026-07-06T21:56:38.158915+08:00"
+    },
+    {
+      "title": "Tap the link below to create yours ⬇️\nhttps://t.co/84OJ1qnXRH",
+      "link": "https://x.com/Hailuo_AI/status/2074102300625531341",
+      "published": "2026-07-06T20:04:58+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "Tap the link below to create yours ⬇️  \n[hailuoai.video/generate/ai-vi…](https://hailuoai.video/generate/ai-video/529705705672200197)\n\n💬0🔄0❤️0👀432",
+      "tags": [
+        "Hailuo AI",
+        "视频生成"
+      ],
+      "score": 70,
+      "summary": "Hailuo AI推广其AI视频生成功能，提供一键创作链接。",
+      "fetched_at": "2026-07-06T21:56:38.158918+08:00"
+    },
+    {
+      "title": "One click to propose on top of the world 💍",
+      "link": "https://x.com/Hailuo_AI/status/2074102298775785628",
+      "published": "2026-07-06T20:04:57+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "One click to propose on top of the world 💍\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074100982355734529/vid/avc1/1280x720/5RSUVZHQ0dBpZHgh.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Hailuo_AI/status/2074102298775785628/video/1)\n\n💬2🔄0❤️9👀2181📊3",
+      "tags": [
+        "Hailuo AI",
+        "视频生成"
+      ],
+      "score": 70,
+      "summary": "Hailuo AI展示一键生成求婚场景视频的功能。",
+      "fetched_at": "2026-07-06T21:56:38.158920+08:00"
+    },
+    {
+      "title": "Entrepreneurship rewards self-belief long before it rewards skill.",
+      "link": "https://x.com/thejustinwelsh/status/2074117932230094876",
+      "published": "2026-07-06T21:07:04+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Entrepreneurship rewards self-belief long before it rewards skill.\n\n💬51🔄8❤️116👀5703📊56",
+      "tags": [
+        "创业",
+        "自我信念"
+      ],
+      "score": 0,
+      "summary": "Justin Welsh发表创业感悟：自我信念先于技能得到回报。",
+      "fetched_at": "2026-07-06T21:56:38.158923+08:00"
+    },
+    {
+      "title": "Your expertise is worth more as content than it is as labor.",
+      "link": "https://x.com/thejustinwelsh/status/2074101613749318128",
+      "published": "2026-07-06T20:02:14+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Your expertise is worth more as content than it is as labor.\n\n💬60🔄4❤️186👀9154📊71",
+      "tags": [
+        "专业知识",
+        "内容"
+      ],
+      "score": 0,
+      "summary": "Justin Welsh称专业知识作为内容比作为劳动更有价值。",
+      "fetched_at": "2026-07-06T21:56:38.158925+08:00"
+    },
+    {
+      "title": "Product Manager @BenTannyhill on why LangSmith Engine routes trace investigation through screener + ...",
+      "link": "https://x.com/LangChain/status/2074120153579524321",
+      "published": "2026-07-06T21:15:54+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Product Manager [@BenTannyhill](https://x.com/BenTannyhill) on why LangSmith Engine routes trace investigation through screener + verifier sub agents instead of letting the main agent read everything.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2074119977494360064/pu/vid/avc1/1280x720/w6ImXocq8a2sNwZa.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2074120153579524321/video/1)\n\n💬5🔄0❤️10👀2879📊6",
+      "tags": [
+        "LangSmith Engine",
+        "Agent路由"
+      ],
+      "score": 80,
+      "summary": "LangChain产品经理解释LangSmith Engine使用筛选器和验证器子代理进行追踪调查。",
+      "fetched_at": "2026-07-06T21:56:38.158928+08:00"
+    },
+    {
+      "title": "@bentannyhill Listen to the full conversation on your favorite podcasting platform.\n\n⏯️ YouTube: htt...",
+      "link": "https://x.com/LangChain/status/2074120155148235230",
+      "published": "2026-07-06T21:15:54+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "[@bentannyhill](https://x.com/bentannyhill) Listen to the full conversation on your favorite podcasting platform.  \n  \n⏯️ YouTube: [youtu.be/YqjR4vQwbTc?si…](https://youtu.be/YqjR4vQwbTc?si=wp2AKnhbVnFSCzb8)  \n  \n🎧 Apple:[podcasts.apple.com/nz/podcast/the…](https://podcasts.apple.com/nz/podcast/the-best-ai-agents-are-secretly-teams-ben-tannyhill/id1891551672?i=1000775182821)5  \n  \n🟢 Spotify[open.spotify.com/episode/5lT8hv…](https://open.spotify.com/episode/5lT8hva20sVmJ0WiVCLAaO?si=81119f1d193e4f7d)DR\n\n💬0🔄0❤️0👀1515",
+      "tags": [
+        "LangChain",
+        "播客"
+      ],
+      "score": 70,
+      "summary": "LangChain分享与Ben Tannyhill的完整对话播客链接。",
+      "fetched_at": "2026-07-06T21:56:38.158930+08:00"
+    },
+    {
+      "title": "India visa approved! See you next week! 🇮🇳",
+      "link": "https://x.com/patloeber/status/2074113208906924068",
+      "published": "2026-07-06T20:48:18+08:00",
+      "source": "Patrick Loeber(@patloeber)",
+      "content": "India visa approved! See you next week! 🇮🇳\n\n![Patrick Loeber](https://pbs.twimg.com/profile_images/1960117571232964608/Tpnsw5cD_normal.jpg)\n\nPatrick Loeber@patloeber\n\nExcited to travel to Bangalore next month for Google I/O Connect India! Looking forward to catching up with the local dev community🇮🇳  \n  \nLet me know if you're around and want to say hi! :)\n\n![Tweet Image](https://pbs.twimg.com/media/HKdIgFxXUAAiqe-.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/patloeber/status/2064700874581049642)\n\n💬4🔄0❤️33👀1697📊6",
+      "tags": [
+        "印度签证",
+        "Google I/O"
+      ],
+      "score": 0,
+      "summary": "Patrick Loeber宣布印度签证获批，将参加Google I/O Connect India。",
+      "fetched_at": "2026-07-06T21:56:38.158933+08:00"
+    },
+    {
+      "title": "need a model for ocr or vqa? try gemini 3.5 flash. gemini 3.5 flash is faster, cheaper, and more acc...",
+      "link": "https://x.com/_philschmid/status/2074107045423296809",
+      "published": "2026-07-06T20:23:49+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "need a model for ocr or vqa? try gemini 3.5 flash. gemini 3.5 flash is faster, cheaper, and more accurate.   \n  \nDetails ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HMiz6EDXwAA0wFB.jpg)\n\n💬2🔄0❤️31👀2297📊7",
+      "tags": [
+        "Gemini 3.5 Flash",
+        "OCR",
+        "VQA"
+      ],
+      "score": 80,
+      "summary": "Philipp Schmid推荐Gemini 3.5 Flash用于OCR和VQA，称其更快、更便宜、更准确。",
+      "fetched_at": "2026-07-06T21:56:38.158935+08:00"
+    },
+    {
+      "title": "https://t.co/bI45FaTPzJ",
+      "link": "https://x.com/_philschmid/status/2074107047587529121",
+      "published": "2026-07-06T20:23:49+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "[x.com/skalskip92/sta…](https://x.com/skalskip92/status/2072776111176429847?s=20)\n\n![SkalskiP](https://pbs.twimg.com/profile_images/1557421659925237763/RzJu2YI3_normal.jpg)\n\nSkalskiP@skalskip92\n\nneed a model for OCR and VQA? Fable 5 is NOT your best option  \n  \nGemini 3.5 Flash is 1.3x faster, 2.9x cheaper, and more accurate  \n  \nFable 5 struggles especially on tasks that require counting objects.  \n  \n↓ cost comparison and interesting failure cases\n\n![Tweet Image](https://pbs.twimg.com/media/HMPzCvwW4AAZhvu.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/skalskip92/status/2072776111176429847)\n\n💬0🔄1❤️4👀824📊1",
+      "tags": [
+        "Gemini 3.5 Flash",
+        "OCR",
+        "VQA"
+      ],
+      "score": 80,
+      "summary": "SkalskiP对比Gemini 3.5 Flash与Fable 5，前者在OCR和VQA上更快、更便宜且更准确。",
+      "fetched_at": "2026-07-06T21:56:38.158938+08:00"
+    },
+    {
+      "title": "Prompt 1:\nLuminous coastal metropolis at night, towering silver-white skyscrapers emerging from mist...",
+      "link": "https://x.com/recraftai/status/2074118901009428813",
+      "published": "2026-07-06T21:10:55+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Prompt 1:  \nLuminous coastal metropolis at night, towering silver-white skyscrapers emerging from mist, elegant passenger ship gliding across dark water, intricate light reflections spreading across the surface like liquid silver patterns, deep navy and charcoal palette, atmospheric haze, cinematic nocturnal mood, projected light ripples, soft luminous glow, seamless tonal transitions, smooth gradient rendering, delicate diffusion, subtle motion softness, ethereal dreamlike atmosphere, ultra refined lighting, low contrast shadows, realistic yet surreal, no texture, no grain, no noise, only smooth color transitions and soft light.  \n  \nPrompt 2:  \nMysterious gentleman in a long dark coat and hat walking a white dog, dramatic projected light patterns covering the ground in flowing concentric waves, elongated shadows, dark midnight background, elegant noir atmosphere, cinematic composition, luminous white projections, soft volumetric glow, seamless gradient blending, delicate tonal transitions, subtle motion blur, dreamlike realism, poetic solitude, smooth rendering, low contrast edges, no texture, no grain, no harsh details, only soft luminous transitions.  \n  \nPrompt 3:  \nRustic loaf of bread, sliced bread and a clear glass of water on a checkered tablecloth, illuminated by intricate projected light reflections creating moving organic patterns across every surface, dark background, quiet still life, silver-white highlights, cinematic lighting, soft glow, seamless gradients, subtle atmospheric diffusion, delicate light transitions, dreamy realism, gentle motion softness, smooth color blending, no texture, no grain, no noise, only soft light and smooth tonal shifts.  \n  \nPrompt 4:  \nGroup of cyclists riding beneath a ceiling of glowing organic light formations, road transformed by luminous projected patterns stretching into the distance, surreal landscape, silhouettes against silver-white illumination, expansive perspective, cinematic atmosphere, dreamlike journey, volumetric glow, smooth gradient transitions, subtle motion blur, soft diffusion, delicate tonal harmony, low contrast edges, no texture, no grain, only flowing light and seamless color transitions.\n\n💬0🔄0❤️0👀128",
+      "tags": [
+        "Recraft V4.1",
+        "图像生成"
+      ],
+      "score": 70,
+      "summary": "Recraft展示V4.1版本生成的四种光影场景图像提示词。",
+      "fetched_at": "2026-07-06T21:56:38.158940+08:00"
+    },
+    {
+      "title": "Light can completely change a scene.\n\nA city, a walk, a loaf of bread, a bike ride — ordinary subjec...",
+      "link": "https://x.com/recraftai/status/2074118808353050757",
+      "published": "2026-07-06T21:10:33+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Light can completely change a scene.  \n  \nA city, a walk, a loaf of bread, a bike ride — ordinary subjects become something else when light becomes the main character.  \n  \nCreated with Recraft V4.1  \n  \nPrompts ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HMjABzKX0AAZ4Lw.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjABzjXYAEJRiX.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjABy7XsAA0o4P.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjABy4W8AAvVrB.jpg)\n\n💬2🔄1❤️6👀357📊4",
+      "tags": [
+        "Recraft V4.1",
+        "图像生成"
+      ],
+      "score": 70,
+      "summary": "Recraft展示V4.1版本以光影为主角的图像生成效果。",
+      "fetched_at": "2026-07-06T21:56:38.158943+08:00"
+    },
+    {
+      "title": "Learn more: https://t.co/sytfU0idOM",
+      "link": "https://x.com/runwayml/status/2074100796237418563",
+      "published": "2026-07-06T19:58:59+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Learn more: [runwayml.com/news/announcin…](https://runwayml.com/news/announcing-our-paris-office)\n\n💬0🔄0❤️4👀1262📊1",
+      "tags": [
+        "Runway",
+        "巴黎办公室"
+      ],
+      "score": 80,
+      "summary": "Runway宣布在巴黎开设首个法国办公室，建立AI研究枢纽。",
+      "fetched_at": "2026-07-06T21:56:38.158945+08:00"
+    },
+    {
+      "title": "Today we're announcing the opening of Runway's first office in France, establishing a new research h...",
+      "link": "https://x.com/runwayml/status/2074100794102595770",
+      "published": "2026-07-06T19:58:58+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Today we're announcing the opening of Runway's first office in France, establishing a new research hub in Paris anchored by an initial team of ten employees.  \n  \nFrance is one of the world's strongest AI ecosystems. Its concentration of world-class research institutions, the depth of engineering talent coming out of them and the French government's sustained investment in AI infrastructure make it one of the most important places to be building frontier AI.  \n  \nWe're hiring in Paris, and across Europe. To learn more and apply for open roles, visit the link below.\n\n![Tweet Image](https://pbs.twimg.com/media/HMitq0EWQAAybQ3.jpg)\n\n💬9🔄5❤️59👀6390📊17",
+      "tags": [
+        "Runway",
+        "巴黎办公室"
+      ],
+      "score": 80,
+      "summary": "Runway宣布在巴黎开设首个法国办公室，初始团队10人，正在招聘。",
+      "fetched_at": "2026-07-06T21:56:38.158947+08:00"
+    },
+    {
+      "title": "Work doesn't happen in one app.\n\nThat's why Skywork connects your entire workflow: From Gmail and No...",
+      "link": "https://x.com/Skywork_ai/status/2074117025581219899",
+      "published": "2026-07-06T21:03:28+08:00",
+      "source": "Skywork(@Skywork_ai)",
+      "content": "Work doesn't happen in one app.  \n  \nThat's why Skywork connects your entire workflow: From Gmail and Notion to Slack and Drive, you can focus on getting things done.  \n  \nConnect your workflow. Automate your work. Build with Skywork 👉[skywork.ai](http://skywork.ai)T\n\n![Tweet Image](https://pbs.twimg.com/media/HMi3gN8agAAxE9e.jpg)\n\n💬0🔄0❤️1👀157📊1",
+      "tags": [
+        "Skywork",
+        "工作流自动化"
+      ],
+      "score": 70,
+      "summary": "Skywork推广其连接Gmail、Notion等应用的工作流自动化平台。",
+      "fetched_at": "2026-07-06T21:56:38.158950+08:00"
+    },
+    {
+      "title": "3D打印现在在北美，已经市场下沉。比如前几年还有一些小型3D打印店，租街边店面的那种。现在他们很多客户也已经有了家用，很多发烧友还是2台，3台。但是商业订单没跟上，要跨入工业界精度和质控还不够。我一直...",
+      "link": "https://x.com/feltanimalworld/status/2074107358804906121",
+      "published": "2026-07-06T20:25:04+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "3D打印现在在北美，已经市场下沉。比如前几年还有一些小型3D打印店，租街边店面的那种。现在他们很多客户也已经有了家用，很多发烧友还是2台，3台。但是商业订单没跟上，要跨入工业界精度和质控还不够。我一直认为SLS，SLM才是工业未来，不能用丝材，得用粉材。\n\n![Susan STEM](https://pbs.twimg.com/profile_images/1941884420048265216/Dbcchu0q_normal.jpg)\n\nSusan STEM@feltanimalworld\n\n我也是突然发现3D打印机的螺纹thread很靠谱（但是不能小于m6尺寸），是一个很大的认知分水岭。这个时候开始认真对待建模这件事情。\n\n[🔗 View Quoted Tweet](https://x.com/feltanimalworld/status/2073813617921622523)\n\n💬1🔄0❤️4👀1051📊2",
+      "tags": [
+        "3D打印",
+        "市场分析"
+      ],
+      "score": 0,
+      "summary": "Susan STEM分析北美3D打印市场下沉，认为SLS/SLM是工业未来。",
+      "fetched_at": "2026-07-06T21:56:38.158952+08:00"
+    },
+    {
+      "title": "豆瓣居然有一个单独观鸟的入口 搜索观鸟可以找到 有一系列鸟类的名录 可以打卡啥的\n\n在所有其他App都在添加各种乱七八糟的短视频和AI功能的时候 只有豆瓣还在更新一些连入口都找不到的功能 很神奇",
+      "link": "https://x.com/vikingmute/status/2074114292325237116",
+      "published": "2026-07-06T20:52:37+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "豆瓣居然有一个单独观鸟的入口 搜索观鸟可以找到 有一系列鸟类的名录 可以打卡啥的  \n  \n在所有其他App都在添加各种乱七八糟的短视频和AI功能的时候 只有豆瓣还在更新一些连入口都找不到的功能 很神奇\n\n![Tweet Image](https://pbs.twimg.com/media/HMi79DmbEAArftp.jpg)\n\n💬1🔄0❤️1👀135📊1",
+      "tags": [
+        "豆瓣",
+        "观鸟"
+      ],
+      "score": 0,
+      "summary": "用户发现豆瓣有单独的观鸟功能入口，可打卡鸟类名录。",
+      "fetched_at": "2026-07-06T21:56:38.158955+08:00"
+    },
+    {
+      "title": "\"Ghost memory\" is a real problem with agents.\n\nYou might have seen the issue where a long-running ag...",
+      "link": "https://x.com/omarsar0/status/2074121191846261022",
+      "published": "2026-07-06T21:20:02+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "\"Ghost memory\" is a real problem with agents.  \n  \nYou might have seen the issue where a long-running agent still confidently repeats a user fact that stopped being true weeks ago?  \n  \nNew research names the failure \"ghost memory.\"  \n  \nOld facts, current facts, and the transition between them all sit in the memory bank at once, get retrieved together, and mislead the answer model. A-TMA is a state-aware overlay that keeps superseded and transition records instead of deleting them, builds evidence packets scoped to the state the query is asking about, and hands current, historical, and transition labels to the QA step.  \n  \nMost memory benchmarks report only final QA accuracy, which hides where the error happened. On the conflict-heavy LTP benchmark, adding A-TMA to Graphiti lifts conflict accuracy by 0.240 absolute.  \n  \nIf you build persistent assistants, it's best to evaluate the bank, the retrieval, and the answer separately.  \n  \nPaper: [arxiv.org/abs/2607.01935](https://arxiv.org/abs/2607.01935)  \n  \nLearn to build effective AI agents in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HMjCOzSbYAAKjh9.png)\n\n💬9🔄2❤️19👀2593📊12",
+      "tags": [
+        "Ghost Memory",
+        "A-TMA",
+        "Agent记忆"
+      ],
+      "score": 85,
+      "summary": "新研究定义Agent的'幽灵记忆'问题，提出A-TMA方法提升冲突准确性0.240。",
+      "fetched_at": "2026-07-06T21:56:38.158957+08:00"
+    },
+    {
+      "title": "腾讯 Hy3 模型正式开源发布 @TencentHunyuan \n\n295B/A21B MoE 架构、上下文窗口 256K\n\n模型详细评测和介绍可以看下文：\nhttps://t.co/Lu6T8doQ...",
+      "link": "https://x.com/shao__meng/status/2074100035823055056",
+      "published": "2026-07-06T19:55:58+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "腾讯 Hy3 模型正式开源发布 [@TencentHunyuan](https://x.com/TencentHunyuan)   \n  \n295B/A21B MoE 架构、上下文窗口 256K  \n  \n模型详细评测和介绍可以看下文：  \n[hy.tencent.com/research/hy3](https://hy.tencent.com/research/hy3)  \n   \n看到官方引用了 WorkBuddy 的评价，可以看看。  \nHy3 和 Hy3 preview 相比：  \n· 任务成功率：72% → 90%  \n· 执行效率：平均耗时缩短 34%  \n· 成本效率：文档处理 token 省 47.4%，PPT 制作省 49.0%（相比 GLM-5.2）  \n  \n还有引用元宝、ima、Marvis、QQ 浏览器、微信读书、微信公众号、腾讯游戏（流放之路：降临）和腾讯文档 中实际应用的提升。  \n  \n如果能在腾讯体系内的产品用跑起来，确实是个难得的数据循环强化过程。\n\n![Tweet Image](https://pbs.twimg.com/media/HMiuQFNbwAA5Avx.jpg)\n\n💬1🔄0❤️1👀349📊1",
+      "tags": [
+        "腾讯Hy3",
+        "开源",
+        "MoE"
+      ],
+      "score": 85,
+      "summary": "腾讯开源Hy3模型，295B/A21B MoE架构，上下文256K，任务成功率提升至90%。",
+      "fetched_at": "2026-07-06T21:56:38.158960+08:00"
+    },
+    {
+      "title": "Workbuddy 海外版上了？",
+      "link": "https://x.com/op7418/status/2074112539630412227",
+      "published": "2026-07-06T20:45:39+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Workbuddy 海外版上了？\n\n![Tencent WorkBuddy](https://pbs.twimg.com/profile_images/2058853956714164224/SkCh2A3G_normal.jpg)\n\nTencent WorkBuddy@WorkBuddy\\_AI\n\nWe're Top 1 Product of the Day on Product Hunt !!!  \n  \nTencent WorkBuddy is an AI agent built for everyday office work — turning everyday tasks into expert-level, ready-to-use results.\n\n![Tweet Image](https://pbs.twimg.com/media/HMidVcCbcAA_PRT.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/WorkBuddy_AI/status/2074080624051405298)\n\n💬8🔄0❤️10👀3958📊6",
+      "tags": [
+        "WorkBuddy",
+        "Product Hunt"
+      ],
+      "score": 80,
+      "summary": "腾讯WorkBuddy海外版上线，成为Product Hunt当日第一。",
+      "fetched_at": "2026-07-06T21:56:38.158962+08:00"
+    },
+    {
+      "title": "InfoQ Opens AI Security & Privacy Engineering Cohort for Regulated Industries",
+      "link": "https://www.infoq.com/news/2026/07/online-cohort-ai-security/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-06T20:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/online-cohort-ai-security/en/headerimage/online-ai-security-cohort-1783334952666.jpg)\n\nInfoQ has opened enrollment for a five-week AI Security & Privacy Engineering cohort for senior engineers and architects in regulated industries, focused on applying security, privacy, threat modeling, observability, and governance practices to production AI systems.\n\n*By Artenisa Chatziou*",
+      "tags": [
+        "AI安全",
+        "隐私工程"
+      ],
+      "score": 70,
+      "summary": "InfoQ开设面向受监管行业的AI安全与隐私工程五周课程。",
+      "fetched_at": "2026-07-06T21:56:38.158965+08:00"
     }
   ]
 }
