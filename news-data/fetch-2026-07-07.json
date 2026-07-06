@@ -1,0 +1,684 @@
+{
+  "meta": {
+    "date": "2026-07-07"
+  },
+  "entries": [
+    {
+      "title": "Automatically redact PII in images with Amazon Nova",
+      "link": "https://aws.amazon.com/blogs/machine-learning/automatically-redact-pii-in-images-with-amazon-nova/",
+      "published": "2026-07-07T00:55:02+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Sharing data internally across teams, externally with partners, or using it for workloads such as machine learning (ML) model training is fundamental to modern business operations. However, when that data contains Personally Identifiable Information (PII), organizations face significant legal and compliance obligations under regulations such as the General Data Protection Regulation (GDPR) and the Payment Card Industry Data Security Standard (PCI DSS). If PII isn’t properly redacted before sharing or processing data, the result can be regulatory penalties, reputational damage, and erosion of customer trust.\n\nPII redaction in real-world image datasets is particularly challenging. Unlike structured text, PII in images can appear in unexpected places and forms: a partial face captured at the edge of a frame, a face reflected on the polished surface of a car, a partially visible street sign that, combined with other visual cues, becomes identifiable, or a document lying on a desk in a wide-angle photo that reveals names, addresses, or ID numbers. These edge cases routinely defeat single-purpose masking tools.\n\n[Amazon Nova](https://aws.amazon.com/nova/models/?trk=33dc490e-0fb2-4cb1-a521-3941c13b64c0&sc_channel=ps) is a family of foundation models with advanced vision understanding capabilities, making it a strong candidate to serve as the intelligent coordinator for complex image analysis workflows. Nova interprets image content holistically, reasons about whether something constitutes PII in context, including the subtle and unusual cases described earlier, and directs the entire redaction pipeline from start to finish. By understanding the “what” of PII, Nova coordinates specialized tools to achieve pixel-level precision in redaction while preserving the overall value of the image.\n\nIn this post, we present a multi-step pipeline directed by Amazon Nova, which uses its contextual vision reasoning to coordinate complementary tools, including Meta’s open-source Segment Anything Model (SAM 3) deployed on [Amazon SageMaker AI](https://aws.amazon.com/sagemaker/ai/?trk=047fc009-5bd4-4337-800d-8b880665cece&sc_channel=ps&trk=c3974822-373e-499b-9739-834a50722377&sc_channel=ps&ef_id=CjwKCAjwuO_QBhAWEiwAIkVhU_SEPtv0f-b7rSZQYrxPl_-56NFn16ZJoiNS46JpT4hYCiMKhkwu2xoCNY0QAvD_BwE:G:s&s_kwcid=AL!4422!3!795877020716!e!!g!!sagemaker%20ai!23532472972!194311071804&gad_campaignid=23532472972&gclid=CjwKCAjwuO_QBhAWEiwAIkVhU_SEPtv0f-b7rSZQYrxPl_-56NFn16ZJoiNS46JpT4hYCiMKhkwu2xoCNY0QAvD_BwE) for pixel-level segmentation, and [Amazon Textract](https://aws.amazon.com/textract/) for optical character recognition (OCR). This pipeline is designed to provide comprehensive and compliant PII redaction even for challenging edge cases such as fingerprints, ID cards, or license plates in arbitrary orientations.\n\n## Solution overview\n\nThis solution uses the following key services to achieve comprehensive PII redaction:\n\n### Nova 2 Lite\n\nAmazon Nova 2 Lite is a fast, cost-effective multimodal foundation model that processes text, images, videos, and documents. Available in [Amazon Bedrock](https://aws.amazon.com/bedrock), the model offers strong price-performance and helps enterprises and developers build capable, reliable, and efficient applications. It serves as the central coordinator of this solution, coordinating the entire PII detection and redaction workflow, making decisions at every stage, and coordinating specialized services to achieve comprehensive results.\n\n### Segment Anything Model (SAM 3)\n\nSAM 3 is an open-source segmentation model that detects, segments, and tracks objects in images from text and visual prompts. In this solution, SAM 3 acts as a precision instrument directed by Nova. When Nova identifies visual PII elements, it delegates the segmentation task to SAM 3 to produce exact boundaries for redaction.\n\n![SAM 3 segmentation masks overlaid on a photo of flowers](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-1.png)\n\nSAM 3 segmentation masks overlaid on the original image when prompted with the word ‘flower’ on model playground (https://ai.meta.com/research/sam3/)\n\n### Amazon Textract\n\nAmazon Textract is an ML service that automatically extracts text, handwriting, layout elements, and data from formats such as PDFs, images, tables, and forms. In this pipeline, Amazon Textract serves as Nova’s OCR capability. When Nova determines that an image contains textual PII, it directs Amazon Textract to extract all text content along with their coordinates, which Nova then evaluates to determine what constitutes sensitive information, taking into account context of the entire image.\n\n### PII detection\n\nCommon PII items found in images include, but are not limited to:\n\n* Name.\n* Identification number, such as driver’s license number.\n* Address.\n* Telephone number.\n* Asset information, such as Media Access Control (MAC) address.\n* Property identification number, such as a vehicle identification number (VIN).\n* Personal characteristic, such as facial images.\n* Biometric data, such as fingerprints.\n\nThese items can be divided into 2 modalities: textual (name, identification number, address, telephone number, asset information, and property identification number) and visual (personal characteristics and biometric data).\n\nNova directs a workflow with access to two sub-processes, each identifying either the pixel coordinates of the textual or the visual PII items. Nova first performs an initial assessment of the image to determine what types of PII are present, then intelligently routes the image to the appropriate sub-processes. An AWS Lambda function subsequently obscures the contents at the coordinates identified under Nova’s direction.\n\nThis solution is ideal for one-off or batch image pre-processing scenarios where high redaction accuracy is required. Nova 2 Lite’s strong price-performance, low latency, and advanced multimodal reasoning make it well-suited to coordinate this workflow, delivering accurate PII redaction without requiring your organization to have deep machine learning expertise or to fine-tune purpose-built models.\n\n## Prerequisites\n\nTo follow along with this solution, you should have:\n\n* An AWS account.\n* Familiarity with Amazon Bedrock, Amazon SageMaker AI, [Amazon Simple Storage Service](https://aws.amazon.com/s3/) (Amazon S3), [AWS Lambda](https://aws.amazon.com/pm/lambda/?trk=787b43c8-35d2-4537-bf86-d42e7c121401&sc_channel=ps&ef_id=CjwKCAjwjtTNBhB0EiwAuswYhn24Uq2Bt6TTYg3nK2K9N_nKetvrkOs45tJOZ4-kVMJYfk1hZavFShoCVeoQAvD_BwE:G:s&s_kwcid=AL!4422!3!795794141653!e!!g!!amazon%20lambda!23527793966!192204324466&gad_campaignid=23527793966&gbraid=0AAAAADjHtp_DJwRcBBdbHLaptszTVpfxR&gclid=CjwKCAjwjtTNBhB0EiwAuswYhn24Uq2Bt6TTYg3nK2K9N_nKetvrkOs45tJOZ4-kVMJYfk1hZavFShoCVeoQAvD_BwE), [AWS Step Functions](https://aws.amazon.com/step-functions/), [Amazon EventBridge](https://aws.amazon.com/eventbridge/), and Amazon Textract.\n* Access to Nova 2 Lite via Amazon Bedrock in your AWS Region.\n* [Deploy SAM 3](https://github.com/facebookresearch/sam3) on SageMaker AI.\n* Basic knowledge of AWS Software Development Kits (SDK).\n* Basic understanding of computer vision concepts and image processing.\n* Familiarity with foundation models and prompt engineering techniques.\n\nPlease be aware that this solution will incur AWS charges including: S3 storage, Lambda invocations, Step Functions state transitions, SageMaker AI endpoint hosting, Amazon Bedrock API calls, and Amazon Textract API calls. Make sure you understand the pricing for these services in your AWS Region before you create the corresponding resources.\n\n## Solution architecture\n\nThis section describes an architectural guidance where Nova drives the image processing workflow and directs parallel textual and visual analysis to identify and redact sensitive information.\n\n![Architecture diagram of the Amazon Nova-directed PII detection and redaction pipeline](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/25/ml-20185-arch.png)\n\n### 1. Document upload and workflow trigger\n\nWhen you upload an image to the S3 `input/` folder, an S3 event notification triggers an EventBridge rule, which initiates the AWS Step Functions workflow.\n\n![Step 1: an image uploaded to the Amazon S3 originals folder triggers the Step Functions workflow](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/20185-1.png)\n\n### 2. File validation and initial PII screening\n\nThe workflow first validates that your uploaded file type is compatible with Amazon Bedrock supported image formats. After validation, Nova 2 Lite performs its initial assessment of the image, acting as the first line of intelligence to determine whether PII is present. If Nova determines that no PII exists, the workflow exits early and the image is immediately moved to the S3 noPII/ folder, ready for downstream use without further processing. Most business images contain no PII. This early-exit decision by Nova routes away a large number of images at the first and least expensive step. It significantly reduces overall pipeline cost by avoiding unnecessary invocations of downstream services such as Amazon Textract and SAM 3 on SageMaker AI.\n\n![Step 2: Nova 2 Lite validates the file and screens for PII before further processing](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/20185-2.png)\n\n### 3. Parallel PII detection: Visual process\n\nWhen Nova 2 Lite identifies potential PII, it classifies the detected PII by type, textual, visual, or both, and makes the routing decision for downstream processing. Based on Nova’s classification, the Step Functions workflow selectively invokes one or both specialized processes: the textual process if Nova detected textual PII, the visual process if Nova detected visual PII, or both processes in parallel if Nova identified both types.\n\nThe visual process focuses on detecting visual PII elements such as faces and license plates within your image. Under Nova’s direction, SAM 3, deployed on SageMaker AI, is prompted to locate visual PII elements and produce pixel-by-pixel segmentation masks. A segmentation mask is a pixel-level outline that traces the exact shape of an object in an image. It labels each pixel as either belonging to that object or not, similar to a precise digital stencil. Unlike a simple bounding box (a rough rectangle around an object), a segmentation mask follows the true contours of the detected item, allowing redaction of only the sensitive pixels without obscuring surrounding content. This precision approach, guided by Nova’s initial PII classification, helps maintain the image’s value while removing only the sensitive regions. For example, when training ML models on large image datasets, this method helps prevent PII from being passed to the model while preserving your dataset size and non-sensitive visual information.\n\n![Step 3: SAM 3 on SageMaker AI generates segmentation masks for visual PII](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/20185-3.png)\n\n### 4. Parallel PII detection: Textual process\n\nThe textual process uses Nova’s multimodal reasoning to analyze text embedded within your image with the help of Amazon Textract. First, Amazon Textract identifies pixel-level location of text in images and extracts its content. It provides both axis-aligned bounding box and polygon coordinates for each detected text element, and you can choose which coordinate type best suits your redaction needs. Nova 2 Lite then evaluates each extracted text element, alongside the raw image, to determine which ones contain PII such as names, addresses, or identification numbers. This is where Nova’s contextual intelligence is critical: some text elements, when considered in isolation, might not appear to be PII, but Nova can reason about the surrounding visual context in the image to recognize their sensitive nature. For example, a street name and a street number broken into 2 locations do not constitute PII separately by themselves, but because they both appear in the same image, the full address is visible and should be obscured as PII. As a multimodal model, Nova can process text and image simultaneously to make these nuanced PII determinations. Finally, Amazon Textract returns the coordinates of the text that Nova identified as PII for use in the next step.\n\n### 5. PII redaction and final verification\n\nAfter the sub-process(es) complete their analysis under Nova’s direction, their coordinate outputs are passed to the next stage for redaction. Recall that the output from the visual process is segmentation mask coordinates from SAM 3, while the output from the textual process is bounding box or polygon coordinates from Amazon Textract.\n\nA Lambda function merges coordinates returned from the process(es) into a unified set of PII locations across your image. The `RedactPII` Lambda function then obscures the identified regions in the original image using the `Pillow` (`PIL`) library in Python and stores the redacted image in the S3 redacted/ folder.\n\nAs a final quality assurance step, Nova 2 Lite performs a comprehensive review of the redacted image to decide if all detected PII has been removed. This final verification uses Nova’s holistic vision understanding to catch any residual sensitive content. If Nova determines that the image is clean, it is moved to the S3 noPII/ folder for downstream use. If Nova still detects PII, the image is moved to a quarantine folder for manual review, designed to help prevent PII from slipping through.\n\n![Step 5: a Lambda function redacts identified regions and Nova verifies the result](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/25/ml-20185-p5.png)\n\n### 6. Test the solution\n\nTo verify that the solution is working correctly, follow these steps:\n\n1. Use a sample test image containing PII. You can use an AI-generated image.\n2. Upload the image to the S3 originals/ bucket using the AWS Command Line Interface (AWS CLI) or the Amazon S3 console.\n3. Monitor the Step Functions execution on the AWS Step Functions console to track the workflow progress.\n4. Verify the redacted image appears in the S3 redacted/ or humanreview/ folder.\n5. Download the output image from the S3 redacted/ or humanreview/ folder.\n6. Inspect the image to check if PII has been successfully removed, or identify PII elements (for example, niche elements beyond those cited in the “PII detection” section) that require human review.\n\n![AI-generated sample photo with a visible face and street address before redaction](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-7.jpeg)\n\nAI-generated image with textual PII (address) and visual PII (face)\n\n![The same sample photo after the pipeline redacts the face and address](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-8.jpeg)\n\nPII elements redacted in the same image by pipeline using bounding box coordinates from Amazon Textract and segmentation mask coordinates from SAM 3\n\n## Clean up\n\nComplete the following steps to clean up your resources when you no longer need this solution. Before proceeding with cleanup, make sure you have backed up any data you need to retain from the S3 buckets. The following steps will permanently delete all resources and data.\n\n1. Back up any necessary data from the S3 buckets.\n2. Delete the S3 buckets (`originals/`, `noPII/`, `redacted/`, and `humanreview/`)\n3. Delete the SageMaker AI endpoint hosting the SAM 3 model.\n4. Delete the Step Functions state machine.\n5. Delete the Lambda functions (PII detection, redaction, and final verification).\n6. Delete the EventBridge rule configured for S3 event notifications.\n\n## Conclusion\n\nIn this post, we demonstrated how Amazon Nova 2 Lite serves as the intelligent coordinator of a serverless, automated pipeline for detecting and redacting PII from images without requiring custom model training or fine-tuning. Nova’s multimodal reasoning drives every decision in the workflow: from initial PII detection and classification, through intelligent routing to specialized tools like Amazon Textract and SAM 3 on Amazon SageMaker AI, to final quality verification of the redacted output. With Nova 2 Lite’s strong price-performance and advanced vision capabilities, organizations can deploy PII redaction at scale while maintaining full compliance with data protection regulations.\n\nThis post provides architectural guidance that you can adapt to your specific compliance requirements and deploy in your own AWS account. To get started, explore Amazon Nova models in the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/), and refer to the [Amazon Nova documentation](https://docs.aws.amazon.com/nova/), the [Amazon Textract documentation](https://docs.aws.amazon.com/textract/), and the [Amazon SageMaker AI documentation](https://docs.aws.amazon.com/sagemaker/) to deploy the complementary services used in this pipeline.\n\n---\n\n## About the authors\n\n![Caroline Des Rochers](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-9.jpg)\n\n### Caroline Des Rochers\n\nCaroline is a Montreal-based bilingual Solutions Architect at Amazon Web Services. She works closely with financial institutions to accelerate their AI and cloud transformation journeys, embrace innovation, and create new business opportunities. Outside work, she’s a passionate skier and cyclist, always ready for new outdoor adventures.\n\n![Caitlin McDonald](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-10.jpg)\n\n### Caitlin McDonald\n\nCaitlin is a Montreal-based bilingual Solutions Architect at AWS with a development background. Caitlin works with customers to accelerate innovation and advise them through technical challenges. An advocate for practical AI, helping organizations turn AI’s potential into meaningful business outcomes. In her spare time, she enjoys triathlons, hockey, and traveling.\n\n![Karen Lee](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-11.jpg)\n\n### Karen Lee\n\nKaren is a Solutions Architect at Amazon Web Services, previously based in Hong Kong, now based in Montreal. She works with Independent Software Vendors who provide various technology solutions. Karen frequently travels to see her customers and the many sights of the world.\n\n![Isabelle Charette](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-12.jpg)\n\n### Isabelle Charette\n\nIsabelle is a Solutions Architect at AWS, based in Montreal, where she helps customers tackle technical challenges and move faster in the cloud in both English and French. With a background in software development, she brings a builder’s mindset to every engagement. When she’s not at her desk, she’s most likely halfway up a rock face or somewhere in the mountains.\n\n![Eric Borland](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/23/ML-20185-13.jpg)\n\n### Eric Borland\n\nEric is a Senior Solutions Developer on the Prototyping and Customer Engineering (PACE) team within Amazon Web Services Industries (AWSI), based in Barcelona. He builds prototypes for global customers to derisk the most complex parts of their AWS workloads. Outside work, he plays and coaches sports, and enjoys building small startups.",
+      "tags": [
+        "Amazon Nova",
+        "PII redaction",
+        "图像处理"
+      ],
+      "score": 79,
+      "summary": "AWS发布基于Amazon Nova的自动图像PII脱敏管道。",
+      "fetched_at": "2026-07-07T00:58:30.466196+08:00"
+    },
+    {
+      "title": "Streaming benchmark and recommendation results to MLflow with Amazon SageMaker AI",
+      "link": "https://aws.amazon.com/blogs/machine-learning/streaming-benchmark-and-recommendation-results-to-mlflow-with-amazon-sagemaker-ai/",
+      "published": "2026-07-07T00:53:38+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Teams benchmarking generative AI models often evaluate dozens of GPU instance types, serving containers, parallelism strategies, and optimization techniques such as speculative decoding before deploying to production. Practitioners can spend weeks navigating configuration decisions and manually piecing together what they tried, what worked, and why. That complexity is exactly why we introduced [optimized generative AI inference recommendations for Amazon SageMaker AI](https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-ai-now-supports-optimized-generative-ai-inference-recommendations/): to help teams move from manual trial-and-error to guided, data-driven optimization and benchmarking.\n\nToday, we are adding MLflow integration so teams can stream AI benchmark and recommendation results into a single place to track every experiment. This integration reduces data silos, accelerates iteration cycles, and brings full reproducibility to your inference optimization workflows.\n\nIn this post, you learn how to use the new MLflow integration with [Amazon SageMaker AI optimized inference recommendation jobs](https://docs.aws.amazon.com/sagemaker/latest/dg/generative-ai-inference-recommendations.html) and [Amazon SageMaker AI benchmark jobs](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateAIBenchmarkJob.html) to automatically stream experiment data into a unified tracking interface.\n\nThis integration streams metrics, parameters, and charts into your serverless [Amazon SageMaker MLflow App](https://docs.aws.amazon.com/sagemaker/latest/dg/mlflow-app-setup.html) in real time and you get a unified experiment tracking experience.\n\n## Solution overview\n\nWith this release, when you submit an optimized inference recommendation job or a benchmarking job, Amazon SageMaker AI automatically streams results into a SageMaker MLflow app of your choice. Submit multiple jobs to the same MLflow experiment, and you can select them in the MLflow experiment view to compare side by side, with no manual data wrangling required.\n\nThe following diagram shows how you can set up MLflow with your benchmarking and recommendation jobs:\n\n![Architecture diagram showing benchmark and recommendation jobs streaming results into a SageMaker MLflow app](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-1.jpeg)\n\nYou follow these steps to set up MLflow with your existing recommendations and benchmarking jobs:\n\n* **Create an MLflow App**: In your AWS account, open Amazon SageMaker Studio. Then go to **MLflow** and choose **Create MLflow App**.\n* **Grant permissions:** Add `sagemaker-mlflow:*` on the MLflow App ARN to your job’s execution role.\n* **Pass `MlflowConfig`** when creating your benchmark or recommendation job.\n\n## Benefits of this implementation\n\nSome of the benefits of this implementation are:\n\n**Eliminate manual data consolidation:** With native MLflow integration, benchmark and recommendation results from multiple jobs are consolidated under the same experiment name automatically. This removes the need to manually collect metrics, logs, and configurations across separate runs. You can then compare runs side by side to understand how instance type, model configuration, batch size, or speculative decoding affects performance. For example, you can compare `qwen2-0.5b` on `ml.g4dn.12xlarge` versus `ml.p4d.24xlarge`.\n\n**Monitor long-running jobs in real time:** Benchmark and recommendation jobs can take hours. Rather than waiting for completion without visibility, you can now watch metrics stream live into the MLflow UI. Latency and throughput metrics update as each configuration is tested, giving you an observable process from start to finish. We publish live metrics in the metrics section, and they update over time instead of being published only at the end of the job. You can use these metrics to check whether throughput is as expected in the recommendation job and stop it early if it is not.\n\n**Maintain a complete audit trail:** Experiment runs capture the full context: job parameters, timestamps, metrics at checkpoints, and emitted artifacts. This audit trail stays queryable and reproducible for months. You can trace which configuration changes drove improvements, identify performance plateaus, and revisit past decisions with full context.\n\n**Better collaboration and governance:** A shared MLflow experiment becomes the single source of truth for an optimization effort. Team members can review what’s been tried, what worked, and what didn’t, which reduces duplicated effort and supports informed handoffs between shifts or team members.\n\n## Technical walkthrough: Track SageMaker AI benchmarking and recommendations in MLflow\n\nIn this example, a customer has deployed `Qwen/Qwen2-0.5B-Instruct` to an Amazon SageMaker AI real-time endpoint using an OpenAI-compatible serving stack on ml.g6.12xlarge. The team has two questions to answer: how the existing Qwen endpoint performs for a lightweight chatbot workload, and what configuration to use for a larger workload with longer prompts and responses.\n\nTo make the evaluation reproducible, both the benchmark job and recommendation job write metrics, parameters, and charts to the same SageMaker MLflow experiment. The benchmark job evaluates an existing SageMaker endpoint. The recommendation job evaluates deployment options for the Qwen model artifact stored in Amazon Simple Storage Service (Amazon S3) and returns ranked configurations. We will use a walkthrough notebook to show you how you can set up MLflow with both recommendations using `Qwen/Qwen2-0.5B-Instruct` on `ml.g6.12xlarge` instance for latency optimization\n\nThe end-to-end walkthrough typically takes **45–120 minutes**, depending on endpoint readiness, model size, workload configuration, instance availability, and recommendation job search space.\n\n### Prerequisites\n\nThis [notebook](https://github.com/aws-samples/sagemaker-genai-hosting-examples/blob/main/03-features/gen-ai-inference-recommendations/gen-ai-inference-recommendations-and-benchmarking-mlflow.ipynb) walks you through how you can set up your MLflow app for benchmark and recommendations jobs experiment tracking. You need to complete the following steps to get started with running this notebook.\n\n* Set up [Amazon SageMaker Studio](https://aws.amazon.com/sagemaker/studio/) for your development environment on Amazon SageMaker AI.\n* Create a [SageMaker MLflow App](https://docs.aws.amazon.com/sagemaker/latest/dg/mlflow-app-setup.html) from SageMaker Unified Studio (SageMaker Unified Studio → MLflow → Create MLflow App).\n* A **SageMaker endpoint** running an OpenAI-compatible model (already InService) for the benchmark job. You can deploy the Qwen 2 0.5B model from the Amazon SageMaker JumpStart Studio UI to get started as shown in the following diagram:  \n   ![Amazon SageMaker JumpStart Studio UI for deploying the Qwen 2 0.5B model](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-2.jpeg)\n\n* A model artifact in Amazon S3 for the recommendation job.\n* An AWS Identity and Access Management (IAM) execution role with `AmazonSageMakerFullAccess` plus inline policies for MLflow and endpoint invoke access. See the accompanying notebook for IAM role creation steps.\n\n### Key considerations\n\n* This integration supports SageMaker MLflow Apps and does not stream results to self-hosted MLflow tracking servers.\n* Set `tooling.version` to 0.8.0 or later to use MLflow nested run support.\n* Recommendation jobs provision their own endpoints internally, so do not pass `ComputeSpec.InstanceTypes` unless you have a specific reason to constrain the search space. The execution role must include the required SageMaker, MLflow, Amazon S3, and endpoint invocation permissions. The S3 output bucket must be in the same Region as the job.\n\nFor the complete end-to-end notebook, including additional examples with `AIRecommendationJob`, see the step-by-step tutorial.\n\n### Step 1: Set up your environment\n\nStart by setting your environment variables and initializing the SageMaker client.\n\n```\nimport json\nimport time\nimport uuid\n\nimport boto3\nimport botocore.config\n\n# Update these values for your environment\nREGION = \"us-west-2\"\nACCOUNT_ID = \"<your-account-id>\"\nMLFLOW_APP_ARN = \"arn:aws:sagemaker:us-west-2:<account-id>:mlflow-app/<app-id>\"\nENDPOINT_NAME = \"my-model-endpoint\"\n\nsm = boto3.client(\n    \"sagemaker\",\n    region_name=REGION,\n    config=botocore.config.Config(\n        retries={\"mode\": \"standard\", \"max_attempts\": 15}\n    ),\n)\n\n# The S3 output bucket must be in the same Region as the job\nS3_OUTPUT_BUCKET = f\"mlflow-sagemaker-{REGION}-{ACCOUNT_ID}\"\n```\n\n### Step 2: Resolve the execution role\n\nAmazon SageMaker AI uses the execution role to run the benchmark and recommendation jobs. It must have permissions to access SageMaker, invoke endpoints, write job output to Amazon S3, and publish tracking information to the SageMaker MLflow App. Follow the [notebook](https://github.com/aws-samples/sagemaker-genai-hosting-examples/blob/main/03-features/gen-ai-inference-recommendations/gen-ai-inference-recommendations-and-benchmarking-mlflow.ipynb) to create the IAM roles.\n\nThe role should include the following permissions:\n\n|  |  |\n| --- | --- |\n| **Permission area** | **Required access** |\n| SageMaker job execution | `AmazonSageMakerFullAccess`, or a scoped equivalent |\n| MLflow integration | `sagemaker-mlflow:*`, `sagemaker:CallMlflowAppApi`, `sagemaker:DescribeMlflowApp` |\n| Endpoint invocation | `sagemaker:InvokeEndpoint`, `sagemaker:InvokeEndpointWithResponseStream` |\n| S3 output | Read/write access to the configured output bucket |\n\n```\nROLE_NAME = \"tutorial-exec-role\"\n\niam = boto3.client(\"iam\")\nrole = iam.get_role(RoleName=ROLE_NAME)[\"Role\"]\nROLE_ARN = role[\"Arn\"]\n\nprint(f\"Role ARN: {ROLE_ARN}\")\n```\n\nConfigure the execution role trust policy to allow SageMaker to assume the role. In some environments, you may also need to include the account root principal depending on how the role is created and passed.\n\n### Step 3: Verify the MLflow App and define experiment names\n\nNext, verify that the SageMaker MLflow App is available. Then define a shared experiment name and unique run names for the benchmark and recommendation jobs.\n\nUsing the same `MlflowExperimentName` for both jobs makes it easier to compare results in one place.\n\n```\n# Verify that the MLflow App is available\napp = sm.describe_mlflow_app(Arn=MLFLOW_APP_ARN)\nMLFLOW_APP_URL = app[\"Url\"]\n\nassert app[\"Status\"] in (\"Created\", \"Updated\")\n\nprint(f\"MLflow URL: {MLFLOW_APP_URL}\")\n\n# Define a shared experiment and unique run names\nMLFLOW_EXPERIMENT = \"gemma-experiments\"\nSESSION_UID = uuid.uuid4().hex[:6]\n\nBENCH_RUN_NAME = f\"benchmark-{SESSION_UID}\"\nREC_RUN_NAME = f\"recommendation-{SESSION_UID}\"\n```\n\n### Step 4: Submit the benchmark job\n\nA SageMaker AI benchmark job evaluates an existing endpoint using a workload specification. In this example, the workload uses NVIDIA AIPerf with an OpenAI-compatible API schema.\n\nThe key field is `MlflowConfig` in `OutputConfig`. This tells SageMaker to stream benchmark metrics, parameters, and charts directly into your SageMaker MLflow App.\n\n```\n# Tokenizer MUST match the deployed model.\n# tooling.version=0.8.0 is the minimum for MLflow nested run support.\nTOKENIZER = \"Qwen/Qwen2-0.5B-Instruct\"\nbench_workload = {\n    \"benchmark\": {\"type\": \"aiperf\"},\n    \"parameters\": {\n        \"model\": TOKENIZER,\n        \"concurrency\": 1,\n        \"request_count\": 3,\n        \"streaming\": True,\n        \"prompt_input_tokens_mean\": 32,\n        \"prompt_input_tokens_stddev\": 8,\n        \"output_tokens_mean\": 16,\n        \"output_tokens_stddev\": 4,\n        \"random_seed\": 42,\n    },\n    \"tooling\": {\n        \"api_standard\": \"openai\",\n        \"version\": \"0.8.0\",\n    },\n}\n\nBENCH_CONFIG = f\"mlflow-bench-cfg-{SESSION_UID}\"\nBENCH_JOB = f\"mlflow-bench-job-{SESSION_UID}\"\n\nsm.create_ai_workload_config(\n    AIWorkloadConfigName=BENCH_CONFIG,\n    AIWorkloadConfigs={\n        \"WorkloadSpec\": {\n            \"Inline\": json.dumps(bench_workload)\n        }\n    },\n)\n\nsm.create_ai_benchmark_job(\n    AIBenchmarkJobName=BENCH_JOB,\n    AIWorkloadConfigIdentifier=BENCH_CONFIG,\n    RoleArn=ROLE_ARN,\n    BenchmarkTarget={\n        \"Endpoint\": {\n            \"Identifier\": ENDPOINT_NAME\n        }\n    },\n    OutputConfig={\n        \"S3OutputLocation\": f\"s3://{S3_OUTPUT_BUCKET}/mlflow-tutorial/{BENCH_JOB}/\",\n        \"MlflowConfig\": {\n            \"MlflowResourceArn\": MLFLOW_APP_ARN,\n            \"MlflowExperimentName\": MLFLOW_EXPERIMENT,\n            \"MlflowRunName\": BENCH_RUN_NAME,\n        },\n    },\n)\n\nprint(f\"Benchmark job submitted: {BENCH_JOB}\")\n```\n\n### Step 5: Submit the recommendation job\n\nSageMaker AI recommendation jobs evaluate deployment configurations and recommend options based on your workload and performance target. Unlike benchmark jobs, recommendation jobs provision their own endpoints internally during the evaluation process.\n\nThe following example uses the same MLflow experiment name as the benchmark job, so both runs appear together in the SageMaker MLflow App.\n\n```\nrec_workload = {\n    \"benchmark\": {\"type\": \"aiperf\"},\n    \"parameters\": {\n        \"prompt_input_tokens_mean\": 1600,\n        \"prompt_input_tokens_stddev\": 200,\n        \"output_tokens_mean\": 600,\n        \"output_tokens_stddev\": 100,\n        \"request_count\": 100,\n    },\n    \"tooling\": {\n        \"api_standard\": \"openai\",\n        \"version\": \"0.8.0\",\n    },\n}\n\nREC_CONFIG = f\"mlflow-rec-cfg-{SESSION_UID}\"\nREC_JOB = f\"mlflow-rec-job-{SESSION_UID}\"\n\nsm.create_ai_workload_config(\n    AIWorkloadConfigName=REC_CONFIG,\n    AIWorkloadConfigs={\n        \"WorkloadSpec\": {\n            \"Inline\": json.dumps(rec_workload)\n        }\n    },\n)\n\nsm.create_ai_recommendation_job(\n    AIRecommendationJobName=REC_JOB,\n    ModelSource={\n        \"S3\": {\n            \"S3Uri\": MODEL_S3_URI\n        }\n    },\n    OutputConfig={\n        \"S3OutputLocation\": f\"s3://{S3_OUTPUT_BUCKET}/mlflow-tutorial/{REC_JOB}/\",\n        \"MlflowConfig\": {\n            \"MlflowResourceArn\": MLFLOW_APP_ARN,\n            \"MlflowExperimentName\": MLFLOW_EXPERIMENT,\n            \"MlflowRunName\": REC_RUN_NAME,\n        },\n    },\n    RoleArn=ROLE_ARN,\n    AIWorkloadConfigIdentifier=REC_CONFIG,\n    PerformanceTarget={\n        \"Constraints\": [\n            {\n                \"Metric\": \"ttft-ms\"\n            }\n        ]\n    },\n    OptimizeModel=False,\n)\n\nprint(f\"Recommendation job submitted: {REC_JOB}\")\n```\n\n### Step 6: Compare results in MLflow\n\nAfter the jobs complete, open the SageMaker MLflow App and navigate to the experiment you configured. The following code gives you the URL to your MLflow app in the notebook.\n\n```\nprint(f\"Open: {MLFLOW_APP_URL}\")\n```\n\nIn the experiment view, the parent runs are empty placeholders that exist to show relationships between child runs. You need to expand each parent run to view the nested metrics.\n\n```\nbenchmark-<uid>        -> Single run with AIPerf benchmark metrics\nrecommendation-<uid>   -> Nested run tree with ranked recommendation configurations\n```\n\nThe child runs contain the model metrics. To review recommendation job metrics, go to the MLflow Runs page, expand the recommendation job parent run, and then expand the nested child runs until the concurrency rows are visible. The benchmark metrics appear in the Metrics columns for each concurrency run as shown in the following diagram:\n\n![MLflow Runs page showing benchmark metrics in the Metrics columns for each concurrency run](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-3.png)\n\nTo inspect recommendations artifacts, open the **Concurrency=4** run and choose the **Artifacts** tab. In the artifact file tree, expand **exports** and select **outputs.json**. The preview panel shows the artifact file path and JSON output, including request-level fields such as session ID, request timing, output token count, request latency, and response text as shown in the following diagram:\n\n![MLflow Artifacts tab showing the outputs.json file with request-level fields for the Concurrency=4 run](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-4.png)\n\nOn the Runs page, select the benchmark runs you want to compare, such as the Concurrency=32, Concurrency=16, Concurrency=8, and Concurrency=4 rows. Choose Compare to view metric differences across duration, throughput, output token count, and request latency as shown in the following diagram:\n\n![MLflow comparison view of benchmark metrics across the Concurrency=32, 16, 8, and 4 runs](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-5.png)\n\nIn the Metrics section, use the Show diff only toggle to view only changed metrics. The table compares benchmark metrics such as benchmark duration and end-to-end output token throughput across the selected benchmark or recommendation job results as shown in the following diagram:\n\n![MLflow Metrics section with the Show diff only toggle comparing benchmark duration and output token throughput](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-6.png)\n\n## Clean up resources\n\nTo avoid ongoing charges, delete the resources you created during this walkthrough. Remove the SageMaker MLflow App from SageMaker Unified Studio and delete the benchmark and recommendation jobs. Terminate any SageMaker endpoints you deployed for testing and remove the S3 output objects if they are no longer needed. If you created a dedicated IAM role for this tutorial, delete it along with its inline policies.\n\n## Conclusion\n\nThe MLflow integration for SageMaker AI `BenchmarkJob` and `AIRecommendationJob` makes experiment results easier to track and understand. By streaming results directly into a familiar tracking interface, this integration removes the manual overhead that slows you down and provides real-time monitoring that saves compute costs. It also provides the reproducibility that production machine learning (ML) workflows demand.\n\nStart comparing experiments in seconds. Add `MlflowConfig` to your next benchmark job, open the generated runs in MLflow, and compare metrics such as benchmark duration, throughput, output token count, and request latency across configurations.\n\n*To learn more about Amazon SageMaker AI optimization capabilities, visit the [SageMaker documentation](https://docs.aws.amazon.com/sagemaker/) and the [GitHub](https://github.com/aws-samples/sagemaker-genai-hosting-examples/blob/main/03-features/gen-ai-inference-recommendations/gen-ai-inference-recommendations-and-benchmarking-mlflow.ipynb) notebook to get started.*\n\n---\n\n## About the authors\n\n![Mona Mona](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-7.jpeg)\n\n### Mona Mona\n\n[Mona](https://www.linkedin.com/in/mona-mona/) currently works as Sr AI/ML specialist Solutions Architect at Amazon. She worked in Google previously as Lead generative AI specialist. She is a published author of three AI books. She has authored multiple blogs on AI/ML and cloud technology and a co-author on a research paper on CORD19 Neural Search which won an award for Best Research Paper at the prestigious AAAI (Association for the Advancement of Artificial Intelligence) conference.\n\n![Lokeshwaran Ravi](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-8.png)\n\n### Lokeshwaran Ravi\n\nLokeshwaran is a Senior Deep Learning Compiler Engineer at AWS, specializing in ML optimization, model acceleration, and AI security. He focuses on enhancing efficiency, reducing costs, and building secure ecosystems to democratize AI technologies, making cutting-edge ML accessible and impactful across industries.\n\n![Kareem Syed-Mohammed](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-9.png)\n\n### Kareem Syed-Mohammed\n\nKareem is a Product Manager at AWS. He is focuses on enabling Gen AI model development and governance on SageMaker HyperPod. Prior to this, at Amazon Quick Sight, he led embedded analytics, and developer experience. In addition to Quick Sight, he has been with AWS Marketplace and Amazon retail as a Product Manager. Kareem started his career as a developer for call center technologies, Local Expert and Ads for Expedia, and management consultant at McKinsey.\n\n![Shen Teng](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-21187-10.jpg)\n\n### Shen Teng\n\nShen is a Software Dev Engineer II at AWS.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/01/image-9-1.png)\n\n### Siddharth Shah\n\nSiddharth is a Principal Engineer at AWS SageMaker, specializing in large-scale model hosting and optimization for Large Language Models. He previously worked on the launch of Amazon Textract, performance improvements in the model-hosting platform, and expedited retrieval systems for Amazon S3 Glacier. Outside of work, he enjoys hiking, video games, and hobby robotics.",
+      "tags": [
+        "SageMaker AI",
+        "MLflow",
+        "推理基准"
+      ],
+      "score": 79,
+      "summary": "Amazon SageMaker AI新增MLflow集成，可流式传输推理基准结果。",
+      "fetched_at": "2026-07-07T00:58:30.466207+08:00"
+    },
+    {
+      "title": "LAST CALL FOR ENROLLMENT: Become an AI Engineer - Cohort 7",
+      "link": "https://blog.bytebytego.com/p/last-call-for-enrollment-become-an-72b",
+      "published": "2026-07-06T23:31:49+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "Our 7th cohort of *Becoming an AI Engineer* starts in **less than a week**. This is a live, cohort-based course created in collaboration with best-selling author Ali Aminian and published by ByteByteGo.\n\n[Check it out Here](https://go.bytebytego.com/substack-bbai)\n\n[![](https://substackcdn.com/image/fetch/$s_!cnwp!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcb4096b9-580b-41ca-9d43-65090c3f0fa4_2360x2920.png)](https://go.bytebytego.com/substack-bbai)\n\nHere’s what makes this cohort special:\n\n* Learn by doing: Build real world AI applications, not just by watching videos.\n* Structured, systematic learning path: Follow a carefully designed curriculum that takes you step by step, from fundamentals to advanced topics.\n* Live feedback and mentorship: Get direct feedback from instructors and peers.\n* Community driven: Learning alone is hard. Learning with a community is easy!\n\nWe are focused on skill building, not just theory or passive learning. Our goal is for every participant to walk away with a strong foundation for building AI systems.\n\nIf you want to start learning AI from scratch, this is the perfect platform for you to begin.\n\n[Check it out Here](https://go.bytebytego.com/substack-bbai)",
+      "tags": [
+        "ByteByteGo",
+        "AI课程",
+        "招生"
+      ],
+      "score": 10,
+      "summary": "ByteByteGo AI工程师课程第7期招生截止提醒。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!cnwp!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcb4096b9-580b-41ca-9d43-65090c3f0fa4_2360x2920.png",
+      "fetched_at": "2026-07-07T00:58:30.466211+08:00"
+    },
+    {
+      "title": "OpenAI and Databricks at DAIS 2026: Making enterprise AI real",
+      "link": "https://www.databricks.com/blog/openai-and-databricks-dais-2026-making-enterprise-ai-real",
+      "published": "2026-07-06T23:04:20+08:00",
+      "source": "Databricks",
+      "content": "Data + AI Summit 2026 brought together over 32k+ in-person attendees across hundreds of sessions, product announcements...",
+      "tags": [
+        "OpenAI",
+        "Databricks",
+        "DAIS 2026"
+      ],
+      "score": 70,
+      "summary": "OpenAI与Databricks在DAIS 2026上讨论企业AI落地。",
+      "fetched_at": "2026-07-07T00:58:30.466215+08:00"
+    },
+    {
+      "title": "Shift into high gear with agents: Securing the software-defined vehicle",
+      "link": "https://cloud.google.com/blog/products/identity-security/shift-into-high-gear-with-agents-securing-the-software-defined-vehicle/",
+      "published": "2026-07-07T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "The automotive industry is at a pivotal crossroads as it hits the gas on adopting new technology. The era of the traditional connected vehicle has shifted into the age of the software-defined vehicle (SDV), notable for rapid innovation with many new capabilities delivered over the air.\n\nBy integrating AI and agents, the next generation of SDVs will be capable of turning raw telemetry into actionable insights in real-time, allowing for a fundamental rethink of [how vehicles interact with their environment and their users](https://blog.google/products-and-platforms/platforms/android/android-automotive-os/). To better support and secure SDVs, Google Cloud and [Valtech](https://www.valtech.com/) have partnered to develop [Nexus SDV](https://nexus-sdv.io/), a highly-scalable, AI-enabled connected vehicle platform built on Google Cloud. This modular, developer-friendly and open-source solution is designed to manage up to 100 million devices, and features deep integration with [Android Automotive OS](https://source.android.com/docs/automotive) (AAOS) to streamline data flows and in-vehicle experiences. \n\nWe are proud to announce the first release of the [Nexus SDV](https://github.com/googlecloudplatform/nexus-sdv) open-source core that showcases how it can reduce total cost of ownership through Arm-based compute and Bigtable, while providing a AI-native environment for building the next era of automotive intelligence.\n\n### **AI-driven experiences with Nexus SDV**\n\nNexus AI serves as the platform’s intelligent engine, transforming the vehicle from a passive data source into a proactive, agentic partner. Using Gemini models and Gemini Enterprise Agent Platform, Nexus AI can analyze complex telemetry in real-time to provide information for autonomous decision-making and hyper-personalized driver assistance, effectively acting as an intelligent agent that anticipates user needs. \n\nCrucially, this advanced intelligence is paired with a focus on significant total cost of ownership (TCO) reduction. By using high-efficiency Arm-based compute and Bigtable-optimized data storage, the platform lowers the operational costs associated with processing massive data volumes. This modular, AI-native architecture ensures that manufacturers can scale their fleet intelligence rapidly without the prohibitive cloud and development expenses traditionally associated with next-generation vehicle software.\n\n### **Cloud-native under the hood**\n\nThe architecture of Nexus SDV is built on a modular, cloud-native foundation designed to bridge the gap between the vehicle edge and the data center. Deep compatibility with AAOS is the keystone of the close integration between the cloud and the vehicle, and will help ensure that high-fidelity telemetry is ingested and synchronized in real-time. This robust data loop allows Nexus AI to quickly push intelligent updates and services back to the vehicle. \n\nBy providing this developer-friendly, open framework, Nexus SDV enables manufacturers to manage the entire lifecycle of a SDV with the scalability and reliability of the Google Cloud ecosystem.\n\n![image1](https://storage.googleapis.com/gweb-cloudblog-publish/images/image1_sErFoiT.max-1000x1000.png)\n\nArchitecture for Nexus SDV.\n\n### **Defense in depth with Google Cloud Security controls**\n\nBy building on Google's secure foundations, including secure-by-design and Zero Trust architecture, Nexus SDV supports the heavy lifting of compliance and threat protection. To achieve this, the Nexus SDV architecture implements a comprehensive, defense-in-depth security model across six key elements:\n\n**Mutual TLS (mTLS) and public key infrastructure (PKI)**Nexus SDV relies on cryptographic trust chains to authenticate vehicles before any data exchange can occur. The infrastructure uses [Google Cloud Certificate Authority Service](https://cloud.google.com/security/products/certificate-authority-service) (CAS) to manage distinct CA pools (server, factory, and registration CAs), ensuring a highly available and secure root of trust. \n\nSpecifically, the registration server enforces registration by forcing clients to present a valid \"factory-issued\" certificate during the initial TLS handshake, extracting and parsing the certificate directly from the connection stream to definitively prove the vehicle's identity. During registration, the server performs [Certificate Signing Request](https://en.wikipedia.org/wiki/Certificate_signing_request) (CSR) validation sent by the vehicle before issuing a new operational certificate.\n\n**Identity and access management**The system uses identity brokering where [Keycloak](https://www.keycloak.org/) is deployed as the central OpenID Connect (OIDC) identity provider. Vehicles authenticate against Keycloak using their operational certificate via mTLS to receive a short-lived JSON Web Token (JWT). \n\nFor fine-grained access control, a custom NATS Auth Callout service provides dynamic subject permissions: It intercepts all messaging broker connection attempts, validates the Keycloak JWT using public JWK keys, and programmatically maps the vehicle's roles to specific NATS subjects. \n\nFor secure service-to-service communication, it uses [Workload Identity Federation](https://docs.cloud.google.com/iam/docs/workload-identity-federation) so pipelines exchange GitHub OIDC tokens for temporary Google Cloud access, removing static credentials, while [GKE Workload Identity](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity) allows Kubernetes Pods to access backend services like Bigtable by binding Kubernetes service accounts to Google service accounts. \n\nSecurity is reinforced through [restricted IAM scopes](https://docs.cloud.google.com/bigtable/docs/oauth-scopes), ensuring dedicated service accounts are provisioned with minimal permissions, such as the data API being restricted only to reading from Bigtable. Using [VPC-SC](https://cloud.google.com/security/vpc-service-controls), [Organization policy constraints](https://docs.cloud.google.com/resource-manager/docs/organization-policy/overview) and [Private Service Connect (PSC)](https://docs.cloud.google.com/vpc/docs/private-service-connect) in your deployment context also helps you achieve secure foundations.  \n\n**Secret management**Nexus SDV relies on centralized secret management to protect sensitive information. All sensitive configurations, database passwords, and cryptographic signing keys are generated dynamically during Terraform infrastructure provisioning and locked inside [Google Cloud Secret Manager](https://cloud.google.com/security/products/secret-manager). \n\nA [secret fetching](https://github.com/google-github-actions/get-secretmanager-secrets#get-secretmanager-secrets) during deployment is used to avoid baking secrets into application code and container images. Instead, services pull signing keys and credentials directly into memory only at runtime, minimizing exposure both at rest and in transit.\n\n**Network isolation**To enforce network isolation, the underlying computer infrastructure is heavily shielded. Nexus SDV runs on [private GKE clusters](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/legacy/network-isolation) where worker nodes have no public IP addresses, preventing direct internet exposure. Additionally, the Keycloak PostgreSQL database uses [Cloud SQL IAM Authentication](https://docs.cloud.google.com/sql/docs/mysql/sql-proxy), which allows the Cloud SQL Proxy to connect securely using IAM roles rather than relying on static database passwords or managing IP allowlists. \n\n**Secure AI Framework**Google Cloud secures these advanced AI capabilities through a comprehensive, enterprise-grade framework that prioritizes data privacy, model governance, and safe execution, based on guidance from the [Secure AI Framework](https://saif.google/) (SAIF). With Gemini Enterprise Agent Platform, security and governance are natively embedded into the machine-learning lifecycle through capabilities, such as dedicated Explainability and Safety controls, continuous Evaluation and Monitoring, and secure model registries. \n\nYou can learn more about how we [secure AI here](https://cloud.google.com/security/securing-ai).  \n\n**Data API**   \nInstead of allowing downstream applications and external clients direct access to data stores like Bigtable, Nexus SDV routes data retrieval through a custom Data API. This microservice acts as a secure abstraction layer that translates strictly, such as querying specific vehicle IDs, sensor data types, and predefined time windows, into heavily constrained Bigtable row-range scans and column filters. \n\nBy doing so, it serves as a secure gateway that enforces structured data access patterns. \n\n### **Start your journey with Nexus SDV**\n\nNexus SDV represents a new era of automotive intelligence, delivering an agentic, secure, and cost-efficient platform that empowers manufacturers to harness the full power of AI in an open-source framework. You can learn more about how we are [redefining the software-defined vehicle here](https://nexus-sdv.io/).",
+      "tags": [
+        "Nexus SDV",
+        "Gemini",
+        "软件定义车辆"
+      ],
+      "score": 79,
+      "summary": "Google Cloud发布Nexus SDV开源平台，集成Gemini模型实现AI驱动车辆。",
+      "fetched_at": "2026-07-07T00:58:30.466218+08:00"
+    },
+    {
+      "title": "PRX Part 4: Our Data Strategy",
+      "link": "https://huggingface.co/blog/Photoroom/prx-part4-data",
+      "published": "2026-07-06T23:30:55+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "Photoroom",
+        "PRX",
+        "数据策略"
+      ],
+      "score": 70,
+      "summary": "Photoroom发布PRX系列第四部分：数据策略。",
+      "fetched_at": "2026-07-07T00:58:30.466221+08:00"
+    },
+    {
+      "title": "When the sensor starts thinking: SnortML, agentic AI, and the evolving architecture of intrusion detection​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍…",
+      "link": "https://stackoverflow.blog/2026/07/06/when-the-sensor-starts-thinking-snortml-agentic-ai-and-the-evolving-architecture-of-intrusion-detection/",
+      "published": "2026-07-06T23:23:34+08:00",
+      "source": "Stack Overflow Blog",
+      "content": "Signature-based detection has always known what it was looking for. Machine learning and autonomous agents are changing the question entirely, shifting from \"does this match a known pattern?\" to \"does this actually make sense in context?\"​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​﻿‍‍​‍﻿﻿​‍﻿﻿‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍﻿﻿‌‍‍‌‌‍﻿‍‌﻿‌​‌‍‌‌‌‍﻿‍‌﻿‌​​‍﻿﻿‌‍‌‌‌‍‌​‌‍‍‌‌﻿‌​​‍﻿﻿‌‍﻿‌‌‍﻿﻿‌‍‌​‌‍‌‌​﻿﻿‌‌﻿​​‌﻿​‍‌‍‌‌‌﻿​﻿‌‍‌‌‌‍﻿‍‌﻿‌​‌‍​‌‌﻿‌​‌‍‍‌‌‍﻿﻿‌‍﻿‍​﻿‍﻿‌‍‍‌‌‍‌​​﻿﻿‌​﻿‌﻿​﻿‌‍‌‍​﻿​﻿‍‌​﻿‌﻿​﻿‌﻿​﻿​‌‌‍​‍​‍﻿‌​﻿​﻿​﻿‌​‌‍‌‌​﻿‌‍​‍﻿‌​﻿‌​‌‍‌​​﻿‍‌​﻿‍​​‍﻿‌​﻿‍​​﻿‌‍​﻿‌​​﻿​‌​‍﻿‌‌‍‌‌‌‍​﻿‌‍‌‌‌‍‌‍‌‍​﻿​﻿‌﻿​﻿​‌​﻿​‌‌‍‌‍​﻿​​‌‍‌‌‌‍‌‍​﻿‍﻿‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​﻿‍﻿‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​﻿﻿﻿‌‍​‍‌‍​‌‌﻿​﻿‌‍‌‌‌‌‌‌‌﻿​‍‌‍﻿​​﻿﻿‌‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​‍‌‌​﻿​﻿‌​​‌​‍‌‌​﻿​‍‌​‌‍​‍‌‌​﻿​‍‌​‌‍‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍‌‍‌‍‍‌‌‍‌​​﻿﻿‌​﻿‌﻿​﻿‌‍‌‍​﻿​﻿‍‌​﻿‌﻿​﻿‌﻿​﻿​‌‌‍​‍​‍﻿‌​﻿​﻿​﻿‌​‌‍‌‌​﻿‌‍​‍﻿‌​﻿‌​‌‍‌​​﻿‍‌​﻿‍​​‍﻿‌​﻿‍​​﻿‌‍​﻿‌​​﻿​‌​‍﻿‌‌‍‌‌‌‍​﻿‌‍‌‌‌‍‌‍‌‍​﻿​﻿‌﻿​﻿​‌​﻿​‌‌‍‌‍​﻿​​‌‍‌‌‌‍‌‍​‍‌‍‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​‍‌‍‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​‍‌‍‌﻿​​‌‍‌‌‌﻿​‍‌﻿​﻿‌﻿​​‌‍‌‌‌‍​﻿‌﻿‌​‌‍‍‌‌﻿‌‍‌‍‌‌​﻿﻿‌‌﻿​​‌﻿‌‌‌‍​‍‌‍﻿​‌‍‍‌‌﻿​﻿‌‍‍​‌‍‌‌‌‍‌​​‍​‍‌﻿﻿‌",
+      "tags": [
+        "SnortML",
+        "入侵检测",
+        "Agentic AI"
+      ],
+      "score": 79,
+      "summary": "Stack Overflow博客探讨SnortML与Agentic AI在入侵检测中的应用。",
+      "fetched_at": "2026-07-07T00:58:30.466224+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团正式发布万亿参数模型LongCat-2.0，在五万卡国产算力集群上完成全流程训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-07T00:58:30.466226+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "美团",
+        "ASX",
+        "搜索推荐"
+      ],
+      "score": 70,
+      "summary": "美团技术团队分享搜索推荐ASX专场6篇顶会论文。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-07T00:58:30.466229+08:00"
+    },
+    {
+      "title": "ACL 2026 精选论文分享：美团履约团队前沿技术专场",
+      "link": "https://tech.meituan.com/2026/06/11/ACL-2026-Agent.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "## 团队介绍\n\n美团业务研发平台/履约 AI 算法团队，聚焦构建大模型为基础的 Agent 技术体系，用 AI 赋能美团履约业务， 构建 Agent 自进化的运营系统。在大模型 CPT、Post-training、Agentic RL 以及多模态理解等核心前沿方向持续深耕，已在 ACL、EMNLP 等AI领域的国际顶会发表数十篇高质量研究成果。本文分享了美团履约团队专场聚焦 ACL 会议论文以及前沿技术实践。\n\n## 01 GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR\n\n**低秩高效：冻结残差分量，高效稠密计算**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2601.09361)\n\n![](https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png)\n\n**论文简介**：基于可验证奖励的强化学习（RLVR）是提升大规模推理模型能力的关键范式。与监督微调（SFT）不同，RLVR 展现出截然不同的优化动力学，其对预训练几何结构的保持高度敏感。然而，现有的参数高效方法在这一范式下面临着关键的局限性。一方面，像 PiSSA 和 MiLoRA 这样的低秩适配方法主要面向监督微调设计，未能考虑到 RLVR 独特的优化动力学与几何结构；直接将它们应用于 RLVR 往往会导致谱塌缩和训练不稳定。另一方面，直接去微调那些受 RLVR 青睐的非结构化稀疏参数子空间，又会在现代硬件上遭遇效率瓶颈。\n\n为解决这些挑战，我们提出了 GeoRA（几何感知低秩适配），一种专为 RLVR 定制的低秩适配方法。具体而言，GeoRA 利用了 RL 更新子空间的各向异性与可压缩结构，并通过奇异值分解（SVD）提取其主方向来初始化低秩适配器。在 RLVR 训练期间，残差分量被冻结作为结构锚点。该设计既保留了预训练结构，又实现了高效的稠密计算。在参数规模从 1.5B 到 32B 的 Qwen 和 Llama 模型上的实验表明，GeoRA 在数学、医学和代码等 RLVR 场景中持续优于强有力的低秩基线方法，同时在域外任务上展现出更强的泛化能力和更少的遗忘。\n\n## 02 Efficient Paths and Dense Rewards: Probabilistic Flow Reasoning for Large Language Models\n\n**Infra的引擎是数学：离散推理步骤建模为连续概率流，推动推理过程是逼近目标的“速度向量”**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09260)\n\n![](https://p1.meituan.net/meituantechblog/1437e163c0cfec3bb322c2ebc0704ff6492492.png)\n\n**论文简介**：高质量的思维链（CoT）在激发大语言模型推理能力方面展现出了巨大的潜力 。然而，现有的推理范式通常将推理过程视为不可分割的序列，缺乏量化每一步信息增益的内在机制 。这种细粒度的缺失导致了两个关键瓶颈：一是在缺乏明确引导的情况下，模型容易进行冗余探索，造成推理效率低下；二是由于结果监督信号稀疏或外部验证器成本高昂，导致模型优化困难 。\n\n为解决上述问题，本论文提出了一种名为 CoT-Flow 的全新理论框架，将离散的推理步骤重新概念化为连续的概率流 。受整流流（Rectified Flow）理论的启发，该框架将推理过程建模为将模型的信息状态从初始问题平滑传输到真实答案的连续过程 。在此视角下，每一个推理步骤都被视为一个推动推理过程逼近目标的“速度向量”，以严格量化每一步对生成最终正确答案的瞬时信息增益 。基于这样的量化指标，实现了一种基于对比解码的贪心解码策略，回答长度平均减少 10% ~ 15%，并且在 AIME24 上能够获得高达 15.9% 的准确率提升。同一框架下导出的 RL loss，和 GRPO, VeriFree 等 baseline 相比，在 AIME24, GPQA 等 benchmark 上取得接近或更高的准确率，同时实现 11% ~ 37% 的长度压缩，训练加速 32%。\n\n## 03 UserLM-R1: Modeling Human Reasoning in User Language Models with Multi-Reward Reinforcement Learning\n\n**可以进化的RL环境：像人一样思考的用户模拟器**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09215)\n\n![](https://p0.meituan.net/meituantechblog/7b56191c592435d903f4775d86c9cf18488821.png)\n\n**论文简介**：用户模拟器是智能体后训练的核心交互环境，理想的用户模拟器应具备跨领域泛化能力，并能主动通过质疑或议价等方式参与协商。然而，现有方法存在两个问题：其一，依赖静态且缺乏上下文感知的用户画像，在面对新场景时需要大量人工重新设计，泛化能力有限；其二，忽视人类的策略性思维，导致智能体易于对用户模拟器进行操控。\n\n为此，我们提出UserLM-R1——一种具备推理能力的新型用户语言模型。具体而言，我们首先构建兼顾静态角色与动态场景目标的综合用户画像，以适应多样化场景；进而提出目标驱动的决策策略，在生成回复前先产生高质量的推理链，并通过监督微调与多奖励强化学习进一步提升推理能力与策略水平。大量实验结果表明，UserLM-R1显著优于各竞争基线方法，在更具挑战性的对抗测试集上尤为突出。\n\n## 04 Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management\n\n**自进化的心脏：基于因果反馈对齐的通用Agent记忆管理系统**\n\n论文下载：[PDF](https://arxiv.org/abs/2601.08435)\n\n![](https://p0.meituan.net/meituantechblog/1c5c09ef9ebab017268bdf9aa478b4ac210795.png)\n\n**论文简介**：有效的内存管理对于大型语言模型代理执行长期任务至关重要。近期研究探索了使用强化学习来开发专门的内存管理器代理。然而，现有方法主要依赖最终任务性能作为主要奖励，这导致奖励稀疏且信用分配无效，无法为单个内存操作提供足够的指导。\n\n为此，我们提出了Fine-Mem，一个专为细粒度反馈对齐设计的统一框架。首先，我们引入了“块级步骤奖励”，通过辅助的特定块问题回答任务提供即时的步骤级监督。其次，我们设计了“基于证据的奖励归因”，通过将信用锚定到关键记忆操作，基于推理中用作证据的特定记忆项，重新分配全局奖励。这些组件共同实现了稳定的策略优化，并将局部记忆操作与记忆的长期效用相统一。在Memalpha和MemoryAgentBench上的实验表明，Fine-Mem在各种子任务中均优于强大的基线模型，取得了更高的成功率。进一步分析揭示了其在不同模型配置和主干网络中的适应性和强大的泛化能力。\n\n## 05 DuplexOmni: Real-Time Listening, Seeing, Thinking, and Speaking for Full-Duplex Interaction\n\n**不止像人：神奇的看、听、说、想、做并行推理全模态大模型**\n\n**论文下载**：[PDF](http://arxiv.org/abs/2606.09186)\n\n![](https://p0.meituan.net/meituantechblog/4780307ea3e0765e53b012b45976b4a8741349.png)\n\n**论文简介**：人类交互本质上是连续、多模态和全双工的。尽管近期通用模型在语音、视觉和文本建模方面取得了实质性进展，但在统一系统中将低延迟实时交互与复杂推理和工具使用相结合仍然具有挑战性。\n\n我们提出了DuplexOmni，一种用于实时多模态全双工交互的方法。DuplexOmni将模型能力划分为交互层和思考层，并通过异步并行协作将它们连接起来。交互层由DuplexOmni模型实现，该模型接收流式音频和视频输入，并实时生成文本和语音响应。思考层作为可插拔的外部模块，提供复杂推理和工具使用功能。为了支持这种交互范式，我们进一步研发了一个Writer-Director数据管道，用于构建连续交互训练数据。实验表明，DuplexOmni在多个公开基准测试上表现出色，并展现出自然的双工交互能力。",
+      "tags": [
+        "美团",
+        "ACL 2026",
+        "Agent"
+      ],
+      "score": 70,
+      "summary": "美团履约团队在ACL 2026发表多篇Agent相关论文。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png",
+      "fetched_at": "2026-07-07T00:58:30.466232+08:00"
+    },
+    {
+      "title": "How does Adobe actually think this is a good pitch?\n\n\"You can generate your own images, but you'll s...",
+      "link": "https://x.com/AiBreakfast/status/2074169883521343755",
+      "published": "2026-07-07T00:33:31+08:00",
+      "source": "AI Breakfast(@AiBreakfast)",
+      "content": "How does Adobe actually think this is a good pitch?  \n  \n\"You can generate your own images, but you'll still pay us a royalty if part of it comes from another image!\"  \n  \nThey are so cooked man.\n\n![Tweet Image](https://pbs.twimg.com/media/HMjuOqeaYAEAh2F.jpg)\n\n💬1🔄0❤️1👀1623📊1",
+      "tags": [
+        "Adobe",
+        "版权",
+        "批评"
+      ],
+      "score": 20,
+      "summary": "用户批评Adobe的AI图像生成版权政策。",
+      "fetched_at": "2026-07-07T00:58:30.466235+08:00"
+    },
+    {
+      "title": "中转站的试金石网站来了，直接开源免费使用。 \n\n地址：https://t.co/ProGrPUkAz",
+      "link": "https://x.com/berryxia/status/2074155419392684101",
+      "published": "2026-07-06T23:36:02+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "中转站的试金石网站来了，直接开源免费使用。   \n  \n地址：[tokhub.me](https://www.tokhub.me/)\n\n![姚金刚](https://pbs.twimg.com/profile_images/2039226063088463872/_zw7eSeM_normal.jpg)\n\n姚金刚@yaojingang\n\n这是一个面向 AI API 中转站的开源监控及专属网关管理系统：TokHub  \n迭代了一个月，和 [@vista8](https://x.com/vista8) 讨论后，我们决定开源给大家，欢迎下载本地部署，也可以直接使用  \n（文末附GitHub链接和TokHub网址）  \n  \n核心做了几层能力：  \n1、公开监控和通道详情  \n可以看已监测的API通道的状态、成功率、延迟、模型、价格和健康评分  \n  \n2、L1 / L2 / L3 分层探测  \nL1 看 DNS、TCP、TLS、HTTP 连通性  \nL2 看 API Key、模型列表和模型可用性  \nL3 直接做一次最小真实生成，用来判断“入口正常但模型实际不可用”的情况  \n  \n3、用户工作区和私有通道  \n用户可以收藏公开通道，也可以接入自己的 Endpoint 和 API Key  \n私有 Key 加密保存，按组织隔离，不把用户自己的上游暴露给平台后台  \n  \n4、一键生成个人专属网关  \n可以把多个平台通道和私有通道，聚合成个人专属网关，供自己的Agent或者自己的AI客户端统一调用，按延迟、成功率或成本做路由，并记录 Token、延迟、成本、错误类型和审计事件  \n  \nTokHub 现在提供 Docker 自托管部署，包含 PostgreSQL / Redis、生产预检、备份恢复、安全扫描和发布检查  \n  \n可以把它当作公开监控站，也可以用作自己或企业内部的AI网关  \n也欢迎在它上面继续二次开发自己的API服务导航  \n  \nGitHub地址：  \n[github.com/yaojingang/Tok…](https://github.com/yaojingang/TokHub)  \n  \nTokHub网址：  \n[tokhub.me](https://www.tokhub.me)\n\n![Tweet Image](https://pbs.twimg.com/media/HMjGMpxbAAAzcVm.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjGXPJbAAAOZ2O.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjGu34bkAAJMH2.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjGz-IbMAA3SZr.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/yaojingang/status/2074127139306455492)\n\n💬0🔄0❤️0👀296",
+      "tags": [
+        "TokHub",
+        "API网关",
+        "开源"
+      ],
+      "score": 70,
+      "summary": "开源AI API中转站监控及网关系统TokHub发布。",
+      "fetched_at": "2026-07-07T00:58:30.466237+08:00"
+    },
+    {
+      "title": "其实，没有人类的创意。AI啥也不是。\n\nAI并没有自己搞出这种创意、只不过它是会执行指令的程序罢了。",
+      "link": "https://x.com/berryxia/status/2074154186216988754",
+      "published": "2026-07-06T23:31:08+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "其实，没有人类的创意。AI啥也不是。  \n  \nAI并没有自己搞出这种创意、只不过它是会执行指令的程序罢了。\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2073956984463007744/pu/vid/avc1/720x1280/8IswiNEkB0BkELOF.mp4?tag=26)\n\n[🔗 View on Twitter](https://x.com/Priyarakeshdub1/status/2073957026888335650/video/1)\n\n💬1🔄0❤️1👀306📊1",
+      "tags": [
+        "AI",
+        "创意",
+        "评论"
+      ],
+      "score": 10,
+      "summary": "用户评论AI缺乏人类创意。",
+      "fetched_at": "2026-07-07T00:58:30.466240+08:00"
+    },
+    {
+      "title": "刚刚注意礼品卡充值后会给你送2 个月的Apple TV 会员可以看看纪录片和美剧。\n\n记得到期前取消就可以了～ \n\n不一定要Apple TV的盒子哈 ，直接app就可以。\n\n对了 安卓的设备包括授权的...",
+      "link": "https://x.com/berryxia/status/2074153043705405670",
+      "published": "2026-07-06T23:26:36+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "刚刚注意礼品卡充值后会给你送2 个月的Apple TV 会员可以看看纪录片和美剧。  \n  \n记得到期前取消就可以了～   \n  \n不一定要Apple TV的盒子哈 ，直接app就可以。  \n  \n对了 安卓的设备包括授权的电视剧也可以使用哈\n\n![Tweet Image](https://pbs.twimg.com/media/HMje7I6bAAABMWC.jpg)\n\n💬1🔄0❤️2👀748📊1",
+      "tags": [
+        "Apple TV",
+        "礼品卡",
+        "会员"
+      ],
+      "score": 0,
+      "summary": "用户分享Apple礼品卡赠送Apple TV会员信息。",
+      "fetched_at": "2026-07-07T00:58:30.466243+08:00"
+    },
+    {
+      "title": "You can't focus because you never let yourself be bored. Actually bored. Not \"bored\" scrolling on yo...",
+      "link": "https://x.com/thedankoe/status/2074154287429558756",
+      "published": "2026-07-06T23:31:32+08:00",
+      "source": "DAN KOE(@thedankoe)",
+      "content": "You can't focus because you never let yourself be bored. Actually bored. Not \"bored\" scrolling on your phone taxing your brain into oblivion with more dopamine in 10 minutes than people a thousand years ago would get in an entire month.\n\n💬73🔄31❤️338👀16192📊109",
+      "tags": [
+        "专注",
+        "无聊",
+        "建议"
+      ],
+      "score": 0,
+      "summary": "用户分享关于专注与无聊的观点。",
+      "fetched_at": "2026-07-07T00:58:30.466245+08:00"
+    },
+    {
+      "title": "Today, we're helping kick off AMD AI Developer Hackathon: ACT II. \n\nWe're giving $50 in Fireworks cr...",
+      "link": "https://x.com/FireworksAI_HQ/status/2074174693633118598",
+      "published": "2026-07-07T00:52:37+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Today, we're helping kick off AMD AI Developer Hackathon: ACT II.   \n  \nWe're giving $50 in Fireworks credits to participants in this event which also includes:  \n  \n$20K in prizes. $150 in credits. Fully online.  \n  \nPowered by [@AIatAMD](https://x.com/AIatAMD)[@lablabai](https://x.com/lablabai)   \n  \nSign up → [lablab.ai/ai-hackathons/…](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074172907283197953/vid/avc1/1920x1080/QSwa_hGEvuIQIslQ.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/FireworksAI_HQ/status/2074174693633118598/video/1)\n\n💬1🔄0❤️1👀173📊1",
+      "tags": [
+        "Fireworks AI",
+        "AMD",
+        "黑客松"
+      ],
+      "score": 60,
+      "summary": "Fireworks AI为AMD AI开发者黑客松提供50美元积分。",
+      "fetched_at": "2026-07-07T00:58:30.466249+08:00"
+    },
+    {
+      "title": "As @Apptronik expands their Robot Park facility, our research partnership means real-world data coll...",
+      "link": "https://x.com/GoogleDeepMind/status/2074157282477154597",
+      "published": "2026-07-06T23:43:26+08:00",
+      "source": "Google DeepMind(@GoogleDeepMind)",
+      "content": "As [@Apptronik](https://x.com/Apptronik) expands their Robot Park facility, our research partnership means real-world data collected by the latest Apollo 2 humanoid platform will help train and advance Gemini Robotics. 🤖  \n  \nFind out more →[goo.gle/4vOPwpO](https://goo.gle/4vOPwpO)H\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HMji9aeW0AAfKJi.jpg)](https://video.twimg.com/tweet_video/HMji9aeW0AAfKJi.mp4)\n\n💬27🔄26❤️179👀19525📊42",
+      "tags": [
+        "Google DeepMind",
+        "Apptronik",
+        "Gemini Robotics"
+      ],
+      "score": 85,
+      "summary": "Google DeepMind与Apptronik合作，利用Apollo 2人形机器人数据训练Gemini Robotics。",
+      "fetched_at": "2026-07-07T00:58:30.466251+08:00"
+    },
+    {
+      "title": "🚀Hy3 is here.\n\n295B MoE. Best in its size class. Rivals trillion-scale flagships.\nReliable and affo...",
+      "link": "https://x.com/TencentHunyuan/status/2074148098876768478",
+      "published": "2026-07-06T23:06:57+08:00",
+      "source": "Hunyuan(@TXhunyuan)",
+      "content": "🚀Hy3 is here.  \n  \n295B MoE. Best in its size class. Rivals trillion-scale flagships.  \nReliable and affordable for most agentic usecases.   \nApache 2.0. Friendly for commercial use.  \nFREE API for 2 weeks →[openrouter.ai/tencent/hy3:fr…](https://openrouter.ai/tencent/hy3:free)i  \n  \n�[huggingface.co/tencent/Hy3](https://huggingface.co/tencent/Hy3)SL  \n[hy.tencent.com/research/hy3](https://hy.tencent.com/research/hy3)cW4\n\n![Tweet Image](https://pbs.twimg.com/media/HMjapAiaoAAvV8D.jpg)\n\n💬43🔄79❤️555👀49075📊169",
+      "tags": [
+        "Hy3",
+        "295B MoE",
+        "腾讯混元"
+      ],
+      "score": 95,
+      "summary": "腾讯混元发布295B MoE模型Hy3，性能媲美万亿参数模型，开源且免费API两周。",
+      "fetched_at": "2026-07-07T00:58:30.466254+08:00"
+    },
+    {
+      "title": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.\n\nEach one come...",
+      "link": "https://x.com/thejustinwelsh/status/2074146470475763775",
+      "published": "2026-07-06T23:00:28+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.  \n  \nEach one comes with one specific exercise and a clear output, so you can execute today.  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬1🔄1❤️4👀1789📊2",
+      "tags": [
+        "指南",
+        "个人品牌",
+        "营销"
+      ],
+      "score": 0,
+      "summary": "用户推广个人商业指南。",
+      "fetched_at": "2026-07-07T00:58:30.466256+08:00"
+    },
+    {
+      "title": "Get my free 12-page ambition audit to see if you're building the right business.\n\n4 questions and th...",
+      "link": "https://x.com/thejustinwelsh/status/2074146470471610423",
+      "published": "2026-07-06T23:00:28+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Get my free 12-page ambition audit to see if you're building the right business.  \n  \n4 questions and the patterns behind your answers to see if your ambition is real or borrowed.  \n  \nFree here: [justinwelsh.me/guides/ambitio…](https://justinwelsh.me/guides/ambition-audit)\n\n💬1🔄0❤️5👀1133📊2",
+      "tags": [
+        "指南",
+        "个人品牌",
+        "营销"
+      ],
+      "score": 0,
+      "summary": "用户推广个人商业指南。",
+      "fetched_at": "2026-07-07T00:58:30.466259+08:00"
+    },
+    {
+      "title": "Visiting historic buildings in Europe is wild because how can they create this and not AC",
+      "link": "https://x.com/venturetwins/status/2074161057250336960",
+      "published": "2026-07-06T23:58:26+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Visiting historic buildings in Europe is wild because how can they create this and not AC\n\n![Tweet Image](https://pbs.twimg.com/media/HMjmeiXboAE2Tsn.jpg)\n\n💬0🔄0❤️0",
+      "tags": [
+        "欧洲",
+        "建筑",
+        "评论"
+      ],
+      "score": 0,
+      "summary": "用户评论欧洲历史建筑没有空调。",
+      "fetched_at": "2026-07-07T00:58:30.466261+08:00"
+    },
+    {
+      "title": "Every emotion is saying I love you ❤️",
+      "link": "https://x.com/Kling_ai/status/2074146351080783970",
+      "published": "2026-07-06T23:00:00+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "Every emotion is saying I love you ❤️\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074065211980382208/vid/avc1/1080x1920/C6WSQUQqP7bD0m5o.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2074146351080783970/video/1)\n\n💬5🔄1❤️36👀3365📊9",
+      "tags": [
+        "Kling AI",
+        "情感",
+        "视频"
+      ],
+      "score": 60,
+      "summary": "Kling AI发布情感主题视频。",
+      "fetched_at": "2026-07-07T00:58:30.466264+08:00"
+    },
+    {
+      "title": "We're taking Interrupt on the road this fall with two new stops in NYC and London.\n\n🗽 NYC: Septembe...",
+      "link": "https://x.com/LangChain/status/2074173885155553745",
+      "published": "2026-07-07T00:49:25+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We're taking Interrupt on the road this fall with two new stops in NYC and London.  \n  \n🗽 NYC: September 24  \n  \n🇬🇧 London: October 13  \n  \nGet your tickets no[interrupt.langchain.com](https://interrupt.langchain.com/)Sxf\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074157845092741120/vid/avc1/1080x1080/QtFq6bTINS3ppe2-.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2074173885155553745/video/1)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074157845109477376/vid/avc1/1080x1080/06pS_tfcllsocVew.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2074173885155553745/video/1)\n\n💬0🔄1❤️1👀1283📊1",
+      "tags": [
+        "LangChain",
+        "Interrupt",
+        "活动"
+      ],
+      "score": 60,
+      "summary": "LangChain宣布Interrupt活动新增纽约和伦敦站。",
+      "fetched_at": "2026-07-07T00:58:30.466266+08:00"
+    },
+    {
+      "title": "Last minute webinar this Thursday\n\nWill cover all things related to \"LLM Wikis\"",
+      "link": "https://x.com/LangChain/status/2074165387114283034",
+      "published": "2026-07-07T00:15:39+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Last minute webinar this Thursday  \n  \nWill cover all things related to \"LLM Wikis\"\n\n![Harrison Chase](https://pbs.twimg.com/profile_images/1569345624935485442/R67C4wCQ_normal.jpg)\n\nHarrison Chase@hwchase17\n\n🚨Emergency webinar: LLM Wikis and how to give your agent memory  \n  \nLLM Wikis are so hot right now - OpenWiki by [@BraceSproul](https://x.com/BraceSproul) up to nearly 7k GitHub stars in less than a week  \n  \nI'll be chatting with Brace and [@devstein64](https://x.com/devstein64) about Wikis this Thursday:[events.langchain.com/webinar/llm-wi…](https://events.langchain.com/webinar/llm-wiki/)i\n\n![Tweet Image](https://pbs.twimg.com/media/HMjqD18aoAAGwz3.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/hwchase17/status/2074165007768785339)\n\n💬6🔄1❤️9👀2728📊5",
+      "tags": [
+        "LangChain",
+        "LLM Wikis",
+        "网络研讨会"
+      ],
+      "score": 70,
+      "summary": "LangChain将举办关于LLM Wikis的网络研讨会。",
+      "fetched_at": "2026-07-07T00:58:30.466269+08:00"
+    },
+    {
+      "title": "How to run agent evals with @harborframework and LangSmith sandboxes, full traces included.",
+      "link": "https://x.com/LangChain/status/2074160151783764183",
+      "published": "2026-07-06T23:54:50+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "How to run agent evals with [@harborframework](https://x.com/harborframework) and LangSmith sandboxes, full traces included.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074155722867179520/vid/avc1/1920x1080/_ng7Lv35MTworEI6.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2074160151783764183/video/1)\n\n💬2🔄2❤️12👀3021📊4",
+      "tags": [
+        "LangChain",
+        "Agent评估",
+        "LangSmith"
+      ],
+      "score": 70,
+      "summary": "LangChain展示如何使用Harbor和LangSmith运行Agent评估。",
+      "fetched_at": "2026-07-07T00:58:30.466271+08:00"
+    },
+    {
+      "title": "Grab your seat! https://t.co/G6DpTOnED6",
+      "link": "https://x.com/lennysan/status/2074159566347284938",
+      "published": "2026-07-06T23:52:31+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Grab your seat! [maven.com/tech-for-produ…](https://maven.com/tech-for-product/become-an-ai-native-builder)\n\n💬0🔄0❤️1👀753📊1",
+      "tags": [
+        "课程",
+        "推广"
+      ],
+      "score": 0,
+      "summary": "用户推广AI课程。",
+      "fetched_at": "2026-07-07T00:58:30.466274+08:00"
+    },
+    {
+      "title": "LFG",
+      "link": "https://x.com/lennysan/status/2074159111512670677",
+      "published": "2026-07-06T23:50:42+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "LFG\n\n![Tweet Image](https://pbs.twimg.com/media/HMjkbj8bsAAYXBB.png)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nAlready 2nd most popular course on Maven LFG\n\n![Tweet Image](https://pbs.twimg.com/media/HMJ080bagAARY_K.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2072347587458502832)\n\n💬4🔄0❤️5👀2715📊4",
+      "tags": [
+        "课程",
+        "推广"
+      ],
+      "score": 0,
+      "summary": "用户推广AI课程。",
+      "fetched_at": "2026-07-07T00:58:30.466276+08:00"
+    },
+    {
+      "title": "In studio: Swedish founders building with Lovable.\n\nComing soon…",
+      "link": "https://x.com/Lovable/status/2074146825011970209",
+      "published": "2026-07-06T23:01:53+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "In studio: Swedish founders building with Lovable.  \n  \nComing soon…\n\n![Tweet Image](https://pbs.twimg.com/media/HMjZbrdXEAEQbRM.jpg)![Tweet Image](https://pbs.twimg.com/media/HMjZbrbXkAAb7kX.jpg)\n\n💬5🔄2❤️41👀5880📊9",
+      "tags": [
+        "Lovable",
+        "瑞典",
+        "创始人"
+      ],
+      "score": 60,
+      "summary": "Lovable发布瑞典创始人使用其平台的故事。",
+      "fetched_at": "2026-07-07T00:58:30.466279+08:00"
+    },
+    {
+      "title": "𝗔𝗱𝗱𝗶𝗻𝗴 𝗮𝗻 𝗔𝗜 𝗮𝗴𝗲𝗻𝘁 𝘁𝗼 𝗱𝗮𝘁𝗮𝗯𝗮𝘀𝗲 𝘁𝗼𝗼𝗹𝗶𝗻𝗴 𝗿𝗮𝗶𝘀𝗲𝘀 𝗮𝗻 ...",
+      "link": "https://x.com/milvusio/status/2074153902254014870",
+      "published": "2026-07-06T23:30:00+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "𝗔𝗱𝗱𝗶𝗻𝗴 𝗮𝗻 𝗔𝗜 𝗮𝗴𝗲𝗻𝘁 𝘁𝗼 𝗱𝗮𝘁𝗮𝗯𝗮𝘀𝗲 𝘁𝗼𝗼𝗹𝗶𝗻𝗴 𝗿𝗮𝗶𝘀𝗲𝘀 𝗮𝗻 𝗼𝗯𝘃𝗶𝗼𝘂𝘀 𝗾𝘂𝗲𝘀𝘁𝗶𝗼𝗻: 𝗪𝗵𝗲𝗿𝗲 𝗱𝗼 𝗺𝘆 𝗱𝗮𝘁𝗮 𝗮𝗻𝗱 𝗟𝗟𝗠 𝗰𝗿𝗲𝗱𝗲𝗻𝘁𝗶𝗮𝗹𝘀 𝗴𝗼?  \n𝗔𝘁𝘁𝘂 𝟯.𝟬 𝗯𝗲𝘁𝗮 𝘁𝗮𝗸𝗲𝘀 𝗮 𝗯𝗿𝗶𝗻𝗴-𝘆𝗼𝘂𝗿-𝗼𝘄𝗻-𝗟𝗟𝗠 𝗮𝗽𝗽𝗿𝗼𝗮𝗰𝗵. It doesn’t bundle a model service or route model requests through an Attu-hosted proxy. 𝗬𝗼𝘂 𝗽𝗼𝗶𝗻𝘁 𝗔𝘁𝘁𝘂 𝗮𝘁 𝘁𝗵𝗲 𝗽𝗿𝗼𝘃𝗶𝗱𝗲𝗿 𝘆𝗼𝘂 𝗮𝗹𝗿𝗲𝗮𝗱𝘆 𝘂𝘀𝗲:  \n• OpenAI  \n• Anthropic  \n• DeepSeek  \n• Google Gemini  \n• OpenRouter  \n• any OpenAI-compatible endpoint  \n  \n𝗜𝗻 𝗽𝗿𝗮𝗰𝘁𝗶𝗰𝗲:  \n• your API key is stored locally, with encryption  \n• model traffic goes directly to your configured provider  \n• you choose the model, provider, and cost profile  \n  \nThat means the agent can help manage Milvus through natural language across 50+ built-in tools, without forcing you into a managed LLM service behind the scenes.  \n  \n𝗔𝘁𝘁𝘂 𝗽𝗿𝗼𝘃𝗶𝗱𝗲𝘀 𝘁𝗵𝗲 𝗱𝗮𝘁𝗮𝗯𝗮𝘀𝗲 𝗰𝗼𝗻𝘁𝗿𝗼𝗹 𝘀𝘂𝗿𝗳𝗮𝗰𝗲. 𝗬𝗼𝘂 𝗸𝗲𝗲𝗽 𝗰𝗼𝗻𝘁𝗿𝗼𝗹 𝗼𝘃𝗲𝗿 𝘁𝗵𝗲 𝗟𝗟𝗠 𝗽𝗿𝗼𝘃𝗶𝗱𝗲𝗿, 𝗰𝗿𝗲𝗱𝗲𝗻𝘁𝗶𝗮𝗹𝘀, 𝗮𝗻𝗱 𝗱𝗮𝘁𝗮 𝗽𝗮𝘁𝗵.\n\n![Tweet Image](https://pbs.twimg.com/media/HMi2MahaEAAIqX0.jpg)\n\n💬0🔄0❤️0👀73",
+      "tags": [
+        "Milvus",
+        "Attu 3.0",
+        "AI Agent"
+      ],
+      "score": 70,
+      "summary": "Milvus发布Attu 3.0 beta，支持自带LLM的AI Agent管理数据库。",
+      "fetched_at": "2026-07-07T00:58:30.466281+08:00"
+    },
+    {
+      "title": "Healthcare is the most important application of AI: making humans happier + healthier. Our recently ...",
+      "link": "https://x.com/mustafasuleyman/status/2074152085793145161",
+      "published": "2026-07-06T23:22:47+08:00",
+      "source": "Mustafa Suleyman(@mustafasuleyman)",
+      "content": "Healthcare is the most important application of AI: making humans happier + healthier. Our recently published paper \"Public use of a generalist LLM chatbot for health queries\" made the front cover of Nature Health. So proud of the team!  \n[nature.com/articles/s4436…](https://www.nature.com/articles/s44360-026-00117-x)\n\n![Tweet Image](https://pbs.twimg.com/media/HMjeMB3WUAAQW6Q.png)\n\n💬8🔄6❤️30👀5225📊13",
+      "tags": [
+        "Mustafa Suleyman",
+        "Nature Health",
+        "LLM医疗"
+      ],
+      "score": 85,
+      "summary": "Mustafa Suleyman团队关于LLM医疗问答的论文登上Nature Health封面。",
+      "fetched_at": "2026-07-07T00:58:30.466284+08:00"
+    },
+    {
+      "title": "https://t.co/hGUlsRVW9p",
+      "link": "https://x.com/NVIDIAAI/status/2074162875464286312",
+      "published": "2026-07-07T00:05:40+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "[x.com/nvidia/status/…](https://x.com/nvidia/status/2074161704456356216)\n\n![NVIDIA](https://pbs.twimg.com/profile_images/1828904711124078593/SRvCZSfQ_normal.jpg)\n\nNVIDIA@nvidia\n\nOpen models are becoming the foundation for modern AI research.  \n  \nAt #ICML2026, 145 accepted papers cite NVIDIA Nemotron models and datasets, 74 NVIDIA papers were accepted, and ~2,000 accepted papers cite NVIDIA GPUs.\n\n![Tweet Image](https://pbs.twimg.com/media/HMjnFAcWcAAqcX5.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/nvidia/status/2074161704456356216)\n\n💬0🔄1❤️6👀1927📊1",
+      "tags": [
+        "NVIDIA",
+        "Nemotron",
+        "ICML 2026"
+      ],
+      "score": 80,
+      "summary": "NVIDIA在ICML 2026上展示Nemotron模型被145篇论文引用。",
+      "fetched_at": "2026-07-07T00:58:30.466286+08:00"
+    },
+    {
+      "title": "How much can an LLM memorize? \n\nThis ICML paper separates unintended memorization from generalizatio...",
+      "link": "https://x.com/NVIDIAAI/status/2074162777535516985",
+      "published": "2026-07-07T00:05:16+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "How much can an LLM memorize?   \n  \nThis ICML paper separates unintended memorization from generalization and estimates GPT-style model capacity at about 3.6 bits per parameter, offering a sharper way to reason about data, scaling, and privacy.  \n  \nYou can read the full paper here 👉[nvda.ws/4gjIJ2H](https://nvda.ws/4gjIJ2H)k\n\n![Tweet Image](https://pbs.twimg.com/media/HMjoDcoWsAAtJDY.jpg)\n\n💬9🔄15❤️66👀4684📊20",
+      "tags": [
+        "NVIDIA",
+        "ICML",
+        "LLM记忆"
+      ],
+      "score": 80,
+      "summary": "NVIDIA在ICML发表论文，估计GPT模型容量约3.6 bits/参数。",
+      "fetched_at": "2026-07-07T00:58:30.466289+08:00"
+    },
+    {
+      "title": "Almost everyone is early.",
+      "link": "https://x.com/NotionHQ/status/2074161346946687422",
+      "published": "2026-07-06T23:59:35+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Almost everyone is early.\n\n![Tweet Image](https://pbs.twimg.com/media/HMjmqe9bcAAgwmp.png)\n\n💬0🔄1❤️5👀1588📊2",
+      "tags": [
+        "Notion",
+        "AI",
+        "营销"
+      ],
+      "score": 0,
+      "summary": "Notion发布AI采用相关营销内容。",
+      "fetched_at": "2026-07-07T00:58:30.466291+08:00"
+    },
+    {
+      "title": "There’s a lot of noise around AI right now. \n\nThe loudest stories tend to come from the edges: compa...",
+      "link": "https://x.com/NotionHQ/status/2074161055685845425",
+      "published": "2026-07-06T23:58:26+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "There’s a lot of noise around AI right now.   \n  \nThe loudest stories tend to come from the edges: companies replacing entire business functions, running autonomous fleets of agents, or claiming they have already transformed the nature of work. Read enough of these stories and it can start to feel like everyone is already ahead.  \n  \nWe wanted to challenge that assumption and understand what AI adoption actually looks like in the real world.   \n  \nTo do that, we mapped more than six thousand respondents’ answers to a four-level AI maturity model, from a thought partner that individuals reach for, to AI as the system, where autonomous agents run critical processes end-to-end.\n\n![Tweet Image](https://pbs.twimg.com/media/HMjmP_ybAAA2_Av.jpg)\n\n![Notion](https://pbs.twimg.com/profile_images/1903224093476077568/OCclsw4c_normal.jpg)\n\nNotion@NotionHQ\n\nAI is moving fast. Most companies aren't.  \n  \nThe loudest stories come from the edges - autonomous agents, massive job losses, whole industries about to flip. Read enough of these stories and it feels like you’re behind and everyone else is way ahead.  \n  \nThis didn’t feel quite right to us. So we surveyed 6,000 professionals across 10 markets to map where AI at work actually is. Here's what we found 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HLmdhGaWEAEm7hU.png)![Tweet Image](https://pbs.twimg.com/media/HLmdhFGWYAAr2Fn.png)\n\n[🔗 View Quoted Tweet](https://x.com/NotionHQ/status/2069859946028539941)\n\n💬5🔄5❤️88👀10324📊16",
+      "tags": [
+        "Notion",
+        "AI采用",
+        "调研"
+      ],
+      "score": 70,
+      "summary": "Notion发布AI采用调研报告，显示多数公司仍处于早期阶段。",
+      "fetched_at": "2026-07-07T00:58:30.466294+08:00"
+    },
+    {
+      "title": "V4 also broke DeepSeek away from the other Chinese models.\n\nAt 6.6T weekly tokens it now runs well a...",
+      "link": "https://x.com/OpenRouter/status/2074150209207115963",
+      "published": "2026-07-06T23:15:20+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "V4 also broke DeepSeek away from the other Chinese models.  \n  \nAt 6.6T weekly tokens it now runs well ahead of Xiaomi (4.0T), Minimax (3.6T), and Tencent (3.8T), and it edges out Anthropic's 6.1T as the highest-token-volume model lab on the platform.\n\n![Tweet Image](https://pbs.twimg.com/media/HMjcjIuWkAA5AMQ.jpg)\n\n💬3🔄2❤️7👀1757📊4",
+      "tags": [
+        "DeepSeek V4",
+        "OpenRouter",
+        "Token份额"
+      ],
+      "score": 80,
+      "summary": "OpenRouter数据显示DeepSeek V4周Token量达6.6T，超越Anthropic。",
+      "fetched_at": "2026-07-07T00:58:30.466296+08:00"
+    },
+    {
+      "title": "Full breakdown across 457 trillion tokens of request data here: https://t.co/sV83QDrRCI",
+      "link": "https://x.com/OpenRouter/status/2074150211300073578",
+      "published": "2026-07-06T23:15:20+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Full breakdown across 457 trillion tokens of request data here: [openrouter.ai/blog/insights/…](https://openrouter.ai/blog/insights/deepseek-v4-adoption/)\n\n💬0🔄0❤️3👀1209",
+      "tags": [
+        "DeepSeek V4",
+        "OpenRouter",
+        "数据分析"
+      ],
+      "score": 80,
+      "summary": "OpenRouter发布DeepSeek V4采用率详细分析。",
+      "fetched_at": "2026-07-07T00:58:30.466298+08:00"
+    },
+    {
+      "title": "DeepSeek doubled its token share on OpenRouter in six months, going from 9% in January to 18% by Jun...",
+      "link": "https://x.com/OpenRouter/status/2074150205260239303",
+      "published": "2026-07-06T23:15:19+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "DeepSeek doubled its token share on OpenRouter in six months, going from 9% in January to 18% by June.  \n  \nThe driver is agentic work. New data deep dive in our blog 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HMjbH9wWgAAV1WL.jpg)\n\n💬10🔄11❤️105👀7605📊22",
+      "tags": [
+        "DeepSeek",
+        "OpenRouter",
+        "Agent"
+      ],
+      "score": 80,
+      "summary": "OpenRouter数据显示DeepSeek Token份额半年翻倍至18%，由Agent工作驱动。",
+      "fetched_at": "2026-07-07T00:58:30.466301+08:00"
+    },
+    {
+      "title": "Gaming is such as tough space. \n\nThis paragraph jumped out for me:\n\n\"We will reduce management layer...",
+      "link": "https://x.com/petergyang/status/2074150826281672937",
+      "published": "2026-07-06T23:17:47+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Gaming is such as tough space.   \n  \nThis paragraph jumped out for me:  \n  \n\"We will reduce management layers to no more than 5, and where possible, 3. We will deliver success through a flatter organization that is built around makers (individual contributors focused on building), player-coaches (leaders who remain deeply involved in the work while developing their teams), and directly responsible individuals (DRIs) who own key decisions and outcomes.\"\n\n![ASHA](https://pbs.twimg.com/profile_images/2063455794503589888/PRGu8lRP_normal.jpg)\n\nASHA@asha\\_shar\n\nThis is an important email I sent today to all employees at XBOX:  \n  \nTeam,  \n  \nWe are beginning the most significant restructure in XBOX history. After careful consideration, I've made the difficult decision to reduce our team by approximately 3,200 throughout FY27. This will include approximately 1,600 role eliminations today, and in addition, four studios will leave XBOX to new management. I recognize that a year-long restructuring creates additional challenges. Unfortunately, it is not possible to make all the necessary changes in a single day, and I wanted to be direct about the scale.  \n  \nI know this is painful. These changes will directly affect people who have poured their creativity into building XBOX. Many joined us through acquisitions, while others were recruited here, or sought us out because they loved this industry and loved XBOX. Today's decisions do not reflect their talent or dedication.  \n  \nOur business today is not healthy. We are operating at margins that are 3–10x lower than comparable platform and publishing businesses. We entered Gen 9 with a smaller install base and a higher cost structure. To grow, we bet on Game Pass, multi-platform, and a broader portfolio of content. While those businesses have created meaningful value, they did not grow at the pace we expected. As that happened, our core business weakened, and we added more teams, more investment, and more time, hoping for a better outcome. And now the industry is facing the most severe hardware crisis in its history. We must reset XBOX.  \n  \nFirst, we will reset our content portfolio.  \n  \nSince 2018, we have aggressively expanded our studio portfolio while the number of games created each month across the industry now outpaces the last ten years combined. We now find ourselves competing not only with the largest publishers, but also with smaller independent studios. It is neither possible nor desirable to own every great independent studio. We have also learned that we are not the best home for every type of studio; in a typical year, we lost 64 cents for every dollar we invested. As we reset XBOX, we will help independent creators succeed by providing open development tools and audiences to realize their vision.  \n  \nCompulsion Games and Double Fine Productions will return to management and transition to independent studios with their IP, catalog, and runway for their next games. Ninja Theory and Undead Labs have entered terms to join new ownership with funding to complete and grow Senua and State of Decay 3. In France, Arkane’s management is beginning required consultation with its Works Council to review potential strategic options.  \n  \nWe are also making reductions across other units, and in some cases, shifting investment to focus on higher priority projects. These changes vary in size across Activision, Bethesda/ZeniMax, Blizzard, King, Mojang, and XBOX Game Studios. None of our first party publicly announced games or projects are being cancelled as part of these reductions.  \n  \nIn addition, Mojang and King will now report directly to me. These two studios have increasingly become platforms and are our largest by monthly active players. They bring critical geographic, demographic, and differentiation to XBOX.  \n  \nSecond, we will reset our platform.  \n  \nWe know that great technology gets better when it gets simpler, not bigger. Today, in some parts of the company, work passes through as many as 14 layers of management. Our platform teams are 40% larger than they were at the start of this generation, even as our player base and playtime have declined. That complexity has slowed decisions, blurred accountability, and made it harder to deliver for players. As we reset XBOX, we will simplify.  \n  \nWe will reduce management layers to no more than 5, and where possible, 3. We will deliver success through a flatter organization that is built around makers (individual contributors focused on building), player-coaches (leaders who remain deeply involved in the work while developing their teams), and directly responsible individuals (DRIs) who own key decisions and outcomes. And we will streamline how we work across our tools, with a cleaner code base, shared services, and 50% reduced vendor spend.  \n  \nThird, we are resetting how we operate.  \n  \nAs XBOX grew our headcount, we became more fragmented. Teams, studios, and functions often operate independently, and it became harder to work towards a shared goal, make the right tradeoffs, and get things done.  \n  \nFor the first time, we are establishing a Chief Operating Officer with end-to-end P&L responsibility across content, hardware, platform, and services. Helen Chiang has been promoted to this role and will report directly to me. Over nearly two decades at XBOX, Helen has helped build some of our most important businesses, from XBOX Live to leading Mojang and the Minecraft franchise. She will bring our businesses together under one operating model, making sure we make clear investment decisions, learn from our successes and failures, and hold ourselves accountable for results.  \n  \nThank you, Dave McCarthy, who is retiring after 17 years with XBOX. Dave has played a defining role in building the platform that millions of players rely on every day and has been a trusted partner through many of the biggest moments in XBOX's history. We wish him all the best.  \n  \nThese changes are about a bigger future for XBOX, not a smaller one. The next decade of gaming will be larger, more global, and more creative than anything we've seen before. This year, we'll invest as much in XBOX as we ever have, but we'll invest with greater focus, greater discipline, and greater clarity, all in service of making XBOX where the world plays and creates.  \n  \nI want XBOX to be one of the few companies that entertains more than a billion people each day and gives everyone the opportunity to create and connect. I know we can achieve this goal. XBOX has many of the most beloved franchises in entertainment history, talented studios around the world, and we will return to growth in 2027.  \n  \nHistory is full of companies that mistake longevity for inevitability. We will not be one of them.  \n  \nAsha\n\n[🔗 View Quoted Tweet](https://x.com/asha_shar/status/2074124008795369482)\n\n💬11🔄0❤️29👀6788📊10",
+      "tags": [
+        "Xbox",
+        "重组",
+        "裁员"
+      ],
+      "score": 60,
+      "summary": "Xbox宣布大规模重组，裁员3200人。",
+      "fetched_at": "2026-07-07T00:58:30.466303+08:00"
+    },
+    {
+      "title": "Nvidia's first wearable ships tomorrow",
+      "link": "https://x.com/TheRundownAI/status/2074162689069273146",
+      "published": "2026-07-07T00:04:55+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Nvidia's first wearable ships tomorrow\n\n![Tweet Image](https://pbs.twimg.com/media/HMjn65PWEAAnJcS.jpg)\n\n💬1🔄0❤️7👀3066📊2",
+      "tags": [
+        "NVIDIA",
+        "可穿戴设备",
+        "发布"
+      ],
+      "score": 60,
+      "summary": "The Rundown AI报道NVIDIA首款可穿戴设备明日发货。",
+      "fetched_at": "2026-07-07T00:58:30.466306+08:00"
+    },
+    {
+      "title": "From a few hundred thousand to 100M AI builders in 2028? AI will create tons of jobs if we make it d...",
+      "link": "https://x.com/ClementDelangue/status/2074149078691090595",
+      "published": "2026-07-06T23:10:50+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "From a few hundred thousand to 100M AI builders in 2028? AI will create tons of jobs if we make it distributed instead of monopolized by a few companies!\n\n![Observer](https://pbs.twimg.com/profile_images/1681766366674649089/MYlu2MFP_normal.jpg)\n\nObserver@observer\n\n\"A few years ago, there were a few hundred thousand A.I. builders on Hugging Face. Now there are 15 million.\"  \n  \n[@huggingface](https://x.com/huggingface) CEO and Observer A.I. Power Honoree [@ClementDelangue](https://x.com/ClementDelangue) on the labor shift he thinks everyone's underestimating: not job loss, but a population explosion of builders. Delangue projects that there will be as many as 100 million A.I. builders by 2028.  \n  \nObserver's A.I. Power List goes live on July 15. Until then, keep watching for more interviews with our 2026 A.I. Power Honorees.  \n  \n#ObserverPowerIndex#ObserverPowerLists\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074147677462241280/vid/avc1/1080x1920/Jr742JnO82WQaK9-.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/observer/status/2074147811377967503/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/observer/status/2074147811377967503)\n\n💬4🔄11❤️54👀5706📊10",
+      "tags": [
+        "Clement Delangue",
+        "Hugging Face",
+        "AI开发者"
+      ],
+      "score": 80,
+      "summary": "Hugging Face CEO预测2028年AI开发者将达1亿。",
+      "fetched_at": "2026-07-07T00:58:30.466308+08:00"
+    },
+    {
+      "title": "Absolutely. And protect your expertise as much as you can in this new era of AI. Learn to package it...",
+      "link": "https://x.com/omarsar0/status/2074161796680679602",
+      "published": "2026-07-07T00:01:23+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Absolutely. And protect your expertise as much as you can in this new era of AI. Learn to package it as a product or experience using AI.   \n  \nI find that content creation is one of the highest ROI activities I spend time on these days. I don't consider myself a content creator, as I do lots more technical work as a software engineer and researcher, but I find that my entire business and the services I provide revolve around or benefit significantly from content creation. So I have naturally learned to think about how to productize it.\n\n![Justin Welsh](https://pbs.twimg.com/profile_images/2059297321695793152/EA6xt7NP_normal.jpg)\n\nJustin Welsh@thejustinwelsh\n\nYour expertise is worth more as content than it is as labor.\n\n[🔗 View Quoted Tweet](https://x.com/thejustinwelsh/status/2074101613749318128)\n\n💬5🔄1❤️10👀2518📊5",
+      "tags": [
+        "AI",
+        "专业知识",
+        "评论"
+      ],
+      "score": 10,
+      "summary": "用户评论AI时代应保护专业知识。",
+      "fetched_at": "2026-07-07T00:58:30.466311+08:00"
+    },
+    {
+      "title": "To be clear, age is just a number. I think what I see matters more is the ability to understand a fi...",
+      "link": "https://x.com/omarsar0/status/2074159749084348623",
+      "published": "2026-07-06T23:53:14+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "To be clear, age is just a number. I think what I see matters more is the ability to understand a field/domain deeply. I see fewer people interested in investing time in that for some strange reason. I think it stems from that other scam that AI will solve it all. Don't miss out on the opportunity to develop mastery and expertise in a specific field.\n\n💬0🔄0❤️2👀1184",
+      "tags": [
+        "AI",
+        "专业知识",
+        "评论"
+      ],
+      "score": 10,
+      "summary": "用户评论AI时代应深入理解领域。",
+      "fetched_at": "2026-07-07T00:58:30.466313+08:00"
+    },
+    {
+      "title": "\"AI rewards whoever has the most domain knowledge to point it at.\"\n\nI'm not 40 yet, but this resonat...",
+      "link": "https://x.com/omarsar0/status/2074158017793106419",
+      "published": "2026-07-06T23:46:22+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "\"AI rewards whoever has the most domain knowledge to point it at.\"  \n  \nI'm not 40 yet, but this resonates a lot.  \n  \nAnd you would think your knowledge is only useful for a specific domain. You can diversify as well. AI has allowed me to apply my expertise/knowledge across domains (investing, product, marketing, teaching, community, research, and engineering).  \n  \nThe reality is that AI has allowed me to pursue things that I would otherwise never have time for.   \n  \nThis is why I consider all this talk about AI replacing jobs to be a huge scam.   \n  \nIf you can commit months/years in a field and use AI to accelerate learning and application, you will be rewarded tremendously.  \n  \nDeveloping domain expertise is not something you want to take shortcuts on. This is how you will stand out in the era of AI. And one more thing, protect that knowledge/experitise as much as you can. Convert it into a product/experience. AI can assist you with this.\n\n![Garry Tan](https://pbs.twimg.com/profile_images/1922894268403941377/-dGWAt3N_normal.jpg)\n\nGarry Tan@garrytan\n\nThe founder in their 40s with taste and discernment is the new gentleman unicorn founder  \n  \nBecause there can be 100x to 1000x of them working at their beck and call via agents and software factories all the time\n\n[🔗 View Quoted Tweet](https://x.com/garrytan/status/2073858886180942200)\n\n💬10🔄1❤️26👀5401📊12",
+      "tags": [
+        "AI",
+        "专业知识",
+        "评论"
+      ],
+      "score": 10,
+      "summary": "用户评论AI奖励拥有领域知识的人。",
+      "fetched_at": "2026-07-07T00:58:30.466315+08:00"
+    },
+    {
+      "title": "果然已经有类似的调研，越用 AI ，人越忙。\n\nAI 节省的时间，更多用来接新活...",
+      "link": "https://x.com/vista8/status/2074159400697377156",
+      "published": "2026-07-06T23:51:51+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "果然已经有类似的调研，越用 AI ，人越忙。  \n  \nAI 节省的时间，更多用来接新活...\n\n![Tweet Image](https://pbs.twimg.com/media/HMjkwgWbUAA1qRd.jpg)\n\n💬2🔄0❤️2👀508📊2",
+      "tags": [
+        "AI",
+        "效率",
+        "评论"
+      ],
+      "score": 10,
+      "summary": "用户评论AI使用越多越忙。",
+      "fetched_at": "2026-07-07T00:58:30.466318+08:00"
+    },
+    {
+      "title": "电影制作公司一边起诉 AI 公司，一边偷偷用 AI 工具做前期预览、概念设计，甚至直接生成镜头。\n\n模型牛逼是硬道理...",
+      "link": "https://x.com/vista8/status/2074150477785428110",
+      "published": "2026-07-06T23:16:24+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "电影制作公司一边起诉 AI 公司，一边偷偷用 AI 工具做前期预览、概念设计，甚至直接生成镜头。  \n  \n模型牛逼是硬道理...\n\n![Tweet Image](https://pbs.twimg.com/media/HMjcdQ1bsAA1baD.jpg)\n\n💬3🔄0❤️2👀1222📊3",
+      "tags": [
+        "AI",
+        "电影制作",
+        "评论"
+      ],
+      "score": 10,
+      "summary": "用户评论电影公司一边起诉AI一边使用AI工具。",
+      "fetched_at": "2026-07-07T00:58:30.466320+08:00"
+    }
+  ]
+}
