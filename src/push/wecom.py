@@ -1,5 +1,6 @@
 """企业微信（WeCom）群机器人推送平台。"""
 
+import asyncio
 import os
 import re
 from typing import Any, Dict, List, Optional
@@ -16,6 +17,9 @@ MAX_NEWS_DESC_CHARS = 128
 MAX_NEWS_ARTICLES = 8
 # text 消息 UTF-8 字节上限
 MAX_TEXT_BYTES = 2048
+# webhook POST 超时与重试（应对 GHA 到企微的偶发连接超时）
+POST_TIMEOUT_SECONDS = 30
+POST_MAX_RETRIES = 3
 
 
 class WeComPlatform(PushPlatform):
@@ -125,15 +129,33 @@ class WeComPlatform(PushPlatform):
             await self._post_payload(payload)
 
     async def _post_payload(self, payload: Dict):
-        """POST 到 webhook，不打印 URL / key。"""
-        async with aiohttp.ClientSession() as session:
-            async with session.post(self.webhook_url, json=payload) as resp:
-                data = await resp.json()
-                if data.get("errcode") != 0:
-                    raise RuntimeError(
-                        f"企业微信推送失败: errcode={data.get('errcode')} "
-                        f"errmsg={data.get('errmsg')}"
-                    )
+        """POST 到 webhook，不打印 URL / key；网络错误自动重试。"""
+        timeout = aiohttp.ClientTimeout(total=POST_TIMEOUT_SECONDS)
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, POST_MAX_RETRIES + 1):
+            try:
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.post(self.webhook_url, json=payload) as resp:
+                        data = await resp.json()
+                        if data.get("errcode") != 0:
+                            raise RuntimeError(
+                                f"企业微信推送失败: errcode={data.get('errcode')} "
+                                f"errmsg={data.get('errmsg')}"
+                            )
+                return
+            except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
+                last_error = exc
+                if attempt >= POST_MAX_RETRIES:
+                    break
+                wait_seconds = 2**attempt
+                print(
+                    f"⚠️ 企微 webhook 请求失败（第 {attempt}/{POST_MAX_RETRIES} 次）: "
+                    f"{exc}，{wait_seconds}s 后重试"
+                )
+                await asyncio.sleep(wait_seconds)
+
+        raise RuntimeError(f"企业微信推送失败: {last_error}")
 
 
 def resolve_pages_base_url(wecom_config: Dict) -> str:

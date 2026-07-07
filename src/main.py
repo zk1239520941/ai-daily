@@ -579,12 +579,15 @@ async def send_digest_wecom(
     metadata["full_url"] = full_url
 
     digest_title = metadata.get("title", "AI Daily")
-    await send_to_platforms(
+    sent = await send_to_platforms(
         body,
         config["push"],
         title="📰 AI Daily 早报 | " + digest_title,
         metadata=metadata,
     )
+    if not sent:
+        print("❌ digest 企微推送失败")
+        return False
     if full_url:
         print(f"✅ digest 企微已推送 | full_url={full_url}")
     else:
@@ -830,7 +833,9 @@ async def cmd_wecom(
             return 1
 
     try:
-        await send_digest_wecom(config, push_file, full_url)
+        sent = await send_digest_wecom(config, push_file, full_url)
+        if not sent:
+            return 1
         record_wecom_sent(push_file, config)
         return 0
     except Exception as e:

@@ -33,7 +33,9 @@ async def test_send_digest_wecom_loads_push_file(tmp_path, sample_config):
         encoding="utf-8",
     )
 
-    with patch("src.main.send_to_platforms", new=AsyncMock()) as send_mock:
+    with patch(
+        "src.main.send_to_platforms", new=AsyncMock(return_value=True)
+    ) as send_mock:
         ok = await send_digest_wecom(
             sample_config,
             str(push_file),
@@ -44,6 +46,38 @@ async def test_send_digest_wecom_loads_push_file(tmp_path, sample_config):
     send_mock.assert_awaited_once()
     _, kwargs = send_mock.call_args
     assert kwargs["metadata"]["full_url"] == "https://pages.example/full.md"
+
+
+@pytest.mark.asyncio
+async def test_send_digest_wecom_returns_false_when_send_fails(tmp_path, sample_config):
+    push_file = tmp_path / "push-test.md"
+    push_file.write_text(
+        "---\ntitle: 测试日报\nprofile: default\n---\n\n### 1. 新闻\n\n* 要点\n",
+        encoding="utf-8",
+    )
+
+    with patch("src.main.send_to_platforms", new=AsyncMock(return_value=False)):
+        ok = await send_digest_wecom(
+            sample_config,
+            str(push_file),
+            "https://pages.example/full.md",
+        )
+
+    assert ok is False
+
+
+@pytest.mark.asyncio
+async def test_cmd_wecom_fails_when_send_digest_returns_false(sample_config):
+    with patch("src.main.get_last_push_file", return_value="news-data/push-x.md"), patch(
+        "src.publish.resolve_push_full_url",
+        return_value="https://pages.example/full.html",
+    ), patch(
+        "src.main.send_digest_wecom", new=AsyncMock(return_value=False)
+    ), patch("src.main.record_wecom_sent") as record_mock:
+        code = await cmd_wecom(sample_config, skip_wait=True)
+
+    assert code == 1
+    record_mock.assert_not_called()
 
 
 @pytest.mark.asyncio

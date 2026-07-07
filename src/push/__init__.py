@@ -43,16 +43,34 @@ def create_platform(name: str, config: Dict) -> Optional[PushPlatform]:
     return platform
 
 
-async def send_to_platforms(content: str, push_config: Dict, title: str = None, metadata: Optional[Dict] = None):
-    """发送内容到所有已启用且配置有效的平台"""
+async def send_to_platforms(
+    content: str,
+    push_config: Dict,
+    title: str = None,
+    metadata: Optional[Dict] = None,
+) -> bool:
+    """发送内容到所有已启用且配置有效的平台。
+
+    Returns:
+        全部启用平台均推送成功时返回 True，任一失败或未配置有效平台时返回 False。
+    """
+    all_ok = True
     for platform_name, platform_conf in push_config.items():
+        if not platform_conf.get("enabled"):
+            continue
+
         platform = create_platform(platform_name, platform_conf)
         if platform is None:
+            print(f"❌ {platform_name} 已启用但配置无效，跳过推送")
+            all_ok = False
             continue
 
         try:
             if _dry_run:
-                print(f"🔍 [dry-run] 将推送到 {platform_name} | title={title!r} profile={(metadata or {}).get('profile')}")
+                print(
+                    f"🔍 [dry-run] 将推送到 {platform_name} | title={title!r} "
+                    f"profile={(metadata or {}).get('profile')}"
+                )
                 if metadata and metadata.get("wecom_items"):
                     for i, item in enumerate(metadata["wecom_items"], 1):
                         print(f"   条目{i}: {item}")
@@ -61,3 +79,5 @@ async def send_to_platforms(content: str, push_config: Dict, title: str = None, 
             print(f"✅ 已推送到 {platform_name}")
         except Exception as e:
             print(f"❌ 推送到 {platform_name} 失败: {e}")
+            all_ok = False
+    return all_ok
