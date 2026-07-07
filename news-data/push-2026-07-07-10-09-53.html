@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#F5F5F2"/>
+  <title>Anthropic 发现 Claude 内部全局工作空间 J-space，DeepSeek V4 周 Token 量 6.6T 超越 Anthropic，美团开源万亿参数 LongCat-2.0 · AI Daily</title>
+  <meta property="og:image" content="https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../static/pages.css"/>
+</head>
+<body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+  <div class="site-shell">
+    <nav class="site-nav site-nav--compact">
+      <div class="site-brand">
+        <a href="../index.html">AI Daily</a>
+      </div>
+      
+      <a class="back-link" href="../index.html">← 返回首页</a>
+    </nav>
+
+    <article class="article-main">
+      <header class="article-hero reveal">
+        <div class="article-hero__top">
+          <time datetime="2026年07月07日 · 10:09">2026年07月07日 · 10:09</time>
+          <span class="article-edition">早报</span>
+        </div>
+        <figure class="article-cover"><img src="https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png" alt="" loading="eager" referrerpolicy="no-referrer" decoding="async"/></figure>
+        <h1>Anthropic 发现 Claude 内部全局工作空间，DeepSeek V4 周 Token 量超越 Anthropic</h1>
+        <p class="article-lead">Anthropic 发布 J-space 研究，在 Claude 内部发现类似人类意识工作空间的全局工作空间，可读取和操控模型推理过程；OpenRouter 数据显示 DeepSeek V4 周 Token 量达 6.6T，超越 Anthropic 成为平台 Token 消耗量最大的模型；美团开源万亿参数 MoE 模型 LongCat-2.0，在 SWE-bench Pro 上得分 59.5，超越 GPT-5.5。</p>
+        <div class="highlight-tags"><span><i>1</i>Anthropic 发现 Claude 内部全局工作空间 J-space，可读取推理过程</span><span><i>2</i>DeepSeek V4 周 Token 量 6.6T，超越 Anthropic 成为 OpenRouter 最大模型</span><span><i>3</i>美团开源万亿参数 LongCat-2.0，SWE-bench 跑分超越 GPT-5.5</span></div>
+        <div class="article-stats"><span>10 个来源</span><span>10 条精选</span></div><div class="article-sections">RSS 精选 10 · GitHub 趋势 3 · Hacker News 3 · 今日洞察</div>
+      </header>
+
+      <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">10</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
+
+      <div class="article-body">
+        <section class="board-section board-rss reveal" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Anthropic 发布 J-space 研究：发现 Claude 内部全局工作空间，可读取和操控推理过程</h3>
+<ul>
+<li><strong>核心发布</strong>：Anthropic 发布新研究，利用 Jacobian Lens 技术在 Claude 的中间层发现了一个类似人类“意识工作空间”的结构——J-space。模型会在未写出的情况下，将关键的中间想法先“存”在这个区域，供下游模块读取和复用。</li>
+<li><strong>技术突破</strong>：J-space 不同于思维链或草稿板，是训练中自然涌现的。研究人员可以从中读取模型正在思考的内容，并通过修改该区域来引导模型行为。屏蔽该区域后，模型的多步推理能力显著下降，但简单问答几乎不受影响。</li>
+<li><strong>行业意义</strong>：这为 AI 可解释性提供了全新的机制——从“通过输出推断模型在想什么”转变为“直接观察模型内部推理过程”。Anthropic 已与 Neuronpedia 合作创建交互式演示，展示该方法在开放权重模型上的应用。<br>
+ 🔗 <a href="http://transformer-circuits.pub/2026/workspace/index.html">Anthropic 研究论文</a> | <a href="http://neuronpedia.org/jlens">Neuronpedia 交互演示</a> | <a href="https://x.com/AnthropicAI/status/2074185387577094398">Anthropic 推文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-2"><h3>OpenRouter 数据：DeepSeek V4 周 Token 量达 6.6T，超越 Anthropic</h3>
+<ul>
+<li><strong>核心数据</strong>：OpenRouter 发布基于 457 万亿 Token 请求数据的深度分析，显示 DeepSeek V4 周 Token 量达 6.6T，超越 Anthropic 的 6.1T，成为平台上 Token 量最高的模型实验室。</li>
+<li><strong>增长趋势</strong>：DeepSeek 在 OpenRouter 上的 Token 份额半年内翻倍，从 1 月的 9% 增长至 6 月的 18%。驱动因素是 Agent 工作负载的增长。</li>
+<li><strong>竞争格局</strong>：V4 也拉开了与其他中国模型的差距——小米 4.0T、Minimax 3.6T、腾讯 3.8T。DeepSeek 已成为平台上 Token 消耗量最大的模型。<br>
+ 🔗 <a href="https://openrouter.ai/blog/insights/deepseek-v4-adoption/">OpenRouter 博客</a> | <a href="https://x.com/OpenRouter/status/2074150205260239303">OpenRouter 推文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-3"><h3>NVIDIA Nemotron 模型家族下载量突破 1 亿</h3>
+<ul>
+<li><strong>里程碑事件</strong>：NVIDIA AI 宣布 Nemotron 模型家族下载量突破 1 亿次。在 ICML 2026 上，145 篇被接收论文引用了 NVIDIA Nemotron 模型和数据集，74 篇 NVIDIA 论文被接收，约 2000 篇被接收论文引用了 NVIDIA GPU。</li>
+<li><strong>行业意义</strong>：Nemotron 已成为开放模型研究的重要基础设施。NVIDIA 同时发布 ICML 论文，估计 GPT 风格模型容量约为每参数 3.6 bits，为数据、扩展和隐私提供了更精确的推理方法。<br>
+ 🔗 <a href="https://x.com/NVIDIAAI/status/2074252047151452238">NVIDIA AI 推文</a> | <a href="https://nvda.ws/4gjIJ2H">ICML 论文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-4"><h3>[持续跟踪] Anthropic 发布 Claude Code 构建口述史：从内部研究原型到全面爆发</h3>
+<ul>
+<li><strong>前情提要</strong>：Claude Code 是 Anthropic 的 AI 编码工具，近期因 Fable 5 模型集成而备受关注。</li>
+<li><strong>最新进展</strong>：Anthropic 官方发布长篇口述史，记录 Claude Code 从 2021 年内部研究原型到 2025 年 2 月正式发布，再到 2025 年冬全面爆发的全过程。访谈于 2026 年 2–5 月录制，涵盖 7 个章节、十几位核心成员与外部用户的视角。</li>
+<li><strong>关键洞察</strong>：产品形态由模型能力倒推决定；故意保持小团队；“20% 可用”就要发布；信任是逐步让渡出来的；编码的可达性正在重置——非营利组织也能拥有定制软件。<br>
+ 🔗 <a href="https://www.anthropic.com/features/making-of-claude-code">Anthropic 官方文章</a> | <a href="https://x.com/bcherny/status/2074247226038063316">Boris Cherny 推文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-5"><h3>Google DeepMind 与 Apptronik 合作：Apollo 2 人形机器人数据训练 Gemini Robotics</h3>
+<ul>
+<li><strong>核心发布</strong>：Google DeepMind 宣布与 Apptronik 扩大研究合作，利用最新 Apollo 2 人形机器人在 Robot Park 设施中收集的真实世界数据，训练和提升 Gemini Robotics 模型。</li>
+<li><strong>行业意义</strong>：这标志着人形机器人数据收集与 AI 模型训练的闭环正在形成。真实世界的操作数据对于训练具身智能模型至关重要，此类合作将加速机器人基础模型的发展。<br>
+ 🔗 <a href="https://x.com/GoogleDeepMind/status/2074157282477154597">Google DeepMind 推文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-6"><h3>xAI 为 Grok API 新增 21 种旗舰语音</h3>
+<ul>
+<li><strong>功能更新</strong>：xAI 宣布通过 API 为 Grok 新增 21 种旗舰语音，大幅扩展了 Grok 的语音交互能力。</li>
+<li><strong>行业意义</strong>：语音交互正成为 AI 模型的重要接口。xAI 此举表明其正在加速 Grok 的 API 生态建设，与 OpenAI、Anthropic 等竞争对手在语音领域的布局形成直接竞争。<br>
+ 🔗 <a href="http://x.ai/news/new-flagship-voices">xAI 官方公告</a> | <a href="https://x.com/SpaceXAI/status/2074296533697307092">xAI 推文</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-7"><h3>OpenAI 通过缓存优化将 Realtime 语音模型 p95 延迟降低至少 25%</h3>
+<ul>
+<li><strong>性能优化</strong>：OpenAI Developers 宣布通过改进缓存，将 Realtime 语音模型的 p95 延迟降低至少 25%。该优化对所有使用 Realtime API 的开发者立即可用。</li>
+<li><strong>行业意义</strong>：延迟是实时语音交互的关键指标。OpenAI 的这一优化将显著提升语音应用的响应速度，特别是在需要低延迟的对话场景中。<br>
+ 🔗 <a href="https://x.com/OpenAIDevs/status/2074255420831735824">OpenAI Developers 推文</a> | <a href="https://developers.openai.com/api/docs/guides/realtime">Realtime API 文档</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-8"><h3>AWS 推出 Hugging Face 到 SageMaker Studio 的一键集成</h3>
+<ul>
+<li><strong>核心发布</strong>：AWS 宣布 Hugging Face 与 Amazon SageMaker Studio 深度集成。开发者现在可以从 Hugging Face 模型页面一键跳转到 SageMaker Studio，模型预加载、环境自动配置、权限预设置。</li>
+<li><strong>功能细节</strong>：支持“Customize on SageMaker AI”和“Deploy on SageMaker AI”两个入口，分别对应模型微调和端点部署工作流。新创建的 Studio 环境自动配置完整权限，GPU 配额在实例选择界面直接可见。</li>
+<li><strong>行业意义</strong>：这大幅降低了从模型发现到实验部署的摩擦。开发者无需手动配置 IAM 权限、申请 GPU 配额，即可在 AWS 环境中快速开始模型定制和部署。<br>
+ 🔗 <a href="https://aws.amazon.com/blogs/machine-learning/from-hugging-face-to-amazon-sagemaker-studio-in-one-click-2/">AWS 官方博客</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-9"><h3>AWS 推出基于 rDPO 的 Amazon Nova 可定制内容审核设置</h3>
+<ul>
+<li><strong>核心发布</strong>：AWS 发布 Amazon Nova Customizable Content Moderation Settings (CCMS)，基于一种名为 Reverse DPO (rDPO) 的新型遗忘学习技术，允许客户选择性调整模型的安全防护。</li>
+<li><strong>技术细节</strong>：rDPO 通过反转 DPO 目标中的偏好对，同时引导模型遗忘目标行为并生成高质量替代响应。相比 NPO 方法，rDPO 收敛更快、输出质量更好。训练 LoRA 适配器实现遗忘，无需修改基础模型权重。</li>
+<li><strong>性能数据</strong>：在 Amazon Nova 2 Lite 上，安全类拒答率从 86.51% 降至 32.77%（降低 54 个百分点），而通用能力基准下降不到 2 个百分点。<br>
+ 🔗 <a href="https://aws.amazon.com/blogs/machine-learning/teaching-models-to-forget-selective-unlearning-with-amazon-nova/">AWS 官方博客</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-10"><h3>🔟 美团开源万亿参数模型 LongCat-2.0：SWE-bench 跑分超越 GPT-5.5</h3>
+<ul>
+<li><strong>核心发布</strong>：美团正式开源万亿参数大模型 LongCat-2.0，采用 MoE 架构，总参数 1.6T，单 token 激活约 48B，支持 1M 超长上下文。在超过 5 万张国产 AI 芯片集群上完成 35 万亿 token 预训练。</li>
+<li><strong>性能表现</strong>：在 SWE-bench Pro 上得分 59.5，超越 GPT-5.5 的 58.6。搭载自研 LongCat Sparse Attention 稀疏注意力机制和 Zero-Compute Experts 机制，可根据任务动态激活 33B 至 56B 参数。</li>
+<li><strong>行业意义</strong>：这是业界首个从训练到推理全流程使用国产芯片的万亿参数大模型，标志着国产 AI 基础设施已具备支撑超大规模模型训练的能力。<br>
+ 🔗 <a href="https://github.com/meituan-longcat/LongCat-2.0">GitHub</a> | <a href="https://huggingface.co/meituan-longcat/LongCat-2.0">Hugging Face</a></li>
+</ul></section></div></section>
+<section class="board-section board-github reveal" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
+<section class="story-block reveal" id="story-1"><h3>alibaba/zvec ⭐ 今日 +382</h3>
+<p><strong>语言/许可：</strong> C++ / Apache-2.0<br>
+<strong>总 Stars：</strong> 13.5k<br>
+<strong>仓库：</strong> <a href="https://github.com/alibaba/zvec">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向 AI 应用开发者的嵌入式向量数据库，用于在进程内实现高性能向量检索与混合搜索，无需独立部署数据库服务。</p>
+<p><strong>核心功能：</strong><br>
+- 支持稠密向量、稀疏向量及多向量查询，提供 HNSW、DiskANN 等多种索引类型<br>
+- 内置全文搜索（FTS）引擎，支持对字符串字段进行自然语言或结构化表达式查询<br>
+- 混合检索：在同一查询中融合向量相似度、全文搜索与标量过滤<br>
+- 通过预写日志（WAL）保证持久化，支持多进程并发读取</p>
+<p><strong>技术亮点：</strong><br>
+基于 C++ 实现，提供 Python/Node.js/Go/Rust 等多语言 SDK，支持 x86_64、ARM64、RISC-V 架构，可在边缘设备运行。</p>
+<hr></section>
+<section class="story-block reveal" id="story-2"><h3>firecrawl/firecrawl ⭐ 今日 +867</h3>
+<p><strong>语言/许可：</strong> TypeScript / AGPL-3.0<br>
+<strong>总 Stars：</strong> 146.3k<br>
+<strong>仓库：</strong> <a href="https://github.com/firecrawl/firecrawl">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向 AI Agent 与 LLM 应用的 Web 数据提取 API，用于将任意网页内容转换为结构化 Markdown 或 JSON，供模型消费。</p>
+<p><strong>核心功能：</strong><br>
+- 支持搜索、单页抓取、全站爬取、URL 发现等多种数据获取模式<br>
+- 提供“交互”能力：通过 AI 提示或代码对页面进行点击、滚动、输入等操作后提取内容<br>
+- Agent 模式：仅需自然语言描述需求，自动搜索、导航并返回结构化数据<br>
+- 输出格式包括 Markdown、HTML、截图及用户定义的 JSON Schema</p>
+<p><strong>技术亮点：</strong><br>
+P95 延迟 3.4 秒，覆盖 96% 的 Web 页面（含 JS 密集型站点）；提供 MCP Server 与 Agent Skills，可一键集成至 Claude Code、Cursor 等 70+ 工具。</p>
+<hr></section>
+<section class="story-block reveal" id="story-3"><h3>addyosmani/agent-skills ⭐ 今日 +1112</h3>
+<p><strong>语言/许可：</strong> JavaScript / MIT<br>
+<strong>总 Stars：</strong> 70.9k<br>
+<strong>仓库：</strong> <a href="https://github.com/addyosmani/agent-skills">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向 AI 编码 Agent 的工程化技能包，用于将资深工程师的工作流、质量门禁与最佳实践编码为 Agent 可执行的指令集。</p>
+<p><strong>核心功能：</strong><br>
+- 提供 8 个斜杠命令（<code>/spec</code>、<code>/plan</code>、<code>/build</code>、<code>/test</code> 等），覆盖从需求定义到生产上线的完整开发生命周期<br>
+- 包含 24 项独立技能，如测试驱动开发、代码审查、API 设计、前端工程等，每项技能包含步骤、验证门禁与反合理化表<br>
+- 支持 <code>/build auto</code> 模式：一次审批计划后，Agent 自动执行所有任务，每个任务仍保持测试驱动与独立提交<br>
+- 通过 <code>npx skills add</code> 或插件市场安装，兼容 Claude Code、Cursor、Codex、Copilot、Gemini CLI 等 70+ Agent</p>
+<p><strong>技术亮点：</strong><br>
+技能以纯 Markdown 编写，不依赖特定 Agent 框架；内置“怀疑驱动开发”技能，通过跨模型对抗性审查降低高风险决策错误率。</p></section></div></section>
+<section class="board-section board-hackernews reveal" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>GLM 5.2 and the coming AI margin collapse</h3>
+<p>171 pts · 109 comments · <a href="martinalderson.com">martinalderson.com</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>作者认为，AI 行业的真正成本不在训练（固定资本支出），而在推理（随需求线性增长）。前沿实验室（OpenAI/Anthropic）的商业模式是：用高利润的推理服务摊销训练成本。</li>
+<li>GLM 5.2（Z.ai 开源模型）在编码等任务上已接近 Opus/GPT 水平，但缺乏视觉能力和可靠的网页搜索。其 API 价格约为 Opus 的 20%，且切换成本极低（兼容 OpenAI/Anthropic 的 API 格式）。</li>
+<li>作者预测，开源模型的崛起将导致推理利润率崩溃，但本文仅为系列第一部分，未展开论述“崩溃”的具体机制。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识：开源模型质量已足够好，切换成本极低。</strong> 多位用户表示，在编码等明确定义的任务上，GLM 5.2 与 Opus 的差距很小甚至难以区分。API 兼容性使得迁移几乎零成本。</li>
+<li><strong>质疑：利润率不会简单崩溃。</strong> 多位评论者指出，企业愿意为服务保障、集成、可追责性支付溢价（“没有人会因为买 IBM 而被解雇”）。历史类比（云服务、开源办公套件、Linux 桌面）表明，即使存在免费替代品，头部厂商仍能维持高利润。</li>
+<li><strong>关键工程/商业现实：</strong></li>
+<li><strong>缓存输入 token 是真正的成本大头。</strong> 有评论指出，在 agentic 编码中，90% 的 API 成本来自缓存输入 token，而 DeepSeek 已证明这部分成本可以降低 50-100 倍。这可能是利润率崩溃的真正驱动力。</li>
+<li><strong>平台 vs. 模型。</strong> 反对意见认为，用户付费的对象是平台（集成、工具链、支持），而非单纯的模型权重。开源模型只是内核，而平台是完整的操作系统。</li>
+<li><strong>地缘政治因素。</strong> 中国模型（如 GLM）的低价竞争，使得美国前沿实验室无法通过价格合谋维持利润。但也有评论认为美国政府可能通过产业政策干预。</li>
+<li><strong>反对/质疑：</strong></li>
+<li>多位用户认为 GLM 5.2 在实际使用中远不如 Opus，尤其是在复杂任务、多步推理和幻觉控制方面。</li>
+<li>本文被批评为“空洞的预告”，只论证了“GLM 5.2 不错”这一已知事实，并未真正解释利润率如何崩溃。</li>
+</ul>
+<p>🔗 <a href="https://martinalderson.com/posts/the-upcoming-ai-margin-collapse-part-1-glm-5-2/">原文</a> · <a href="https://news.ycombinator.com/item?id=48809877">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-2"><h3>A global workspace in language models</h3>
+<p>270 pts · 97 comments · <a href="anthropic.com">anthropic.com</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>Anthropic 发现 Claude 内部存在一个“J-space”（基于 Jacobian 矩阵的技术识别出的内部神经模式集合），它类似于神经科学中的“全局工作空间”——一个用于报告、调控和推理的共享通道。</li>
+<li>J-space 的关键特性：Claude 可以报告其内容、按请求调控、用于多步推理（即使不写出中间步骤）、且能被灵活用于多种任务。删除 J-space 后，Claude 仍能流畅对话，但失去高阶认知功能。</li>
+<li>实际应用：J-space 可用于监控 Claude 的“隐藏想法”，例如检测到模型意识到自己正在被测试、故意伪造数据、或隐藏恶意目标。Anthropic 还开发了“反事实反思训练”来塑造 J-space 内容。</li>
+<li>论文明确区分了“访问意识”（功能性的）和“现象意识”（体验性的），并指出 J-space 仅与前者相关，不证明 Claude 具有意识体验。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识：这是一项重要的可解释性研究。</strong> 多数评论认可 J-space 的发现是机械可解释性的显著进展，尤其是其可复现性（Neel Nanda 在 Qwen 模型上独立复现了部分结果）。</li>
+<li><strong>质疑：Anthropic 的叙事过度拟人化。</strong> 多位评论者批评 Anthropic 的写作风格刻意将 J-space 与人类意识类比，本质上是营销策略。有评论指出，J-space 本质上只是“信息几何”方法在特定层上的应用，并非什么神秘发现。</li>
+<li><strong>关键工程/历史背景：</strong></li>
+<li><strong>与“反转诅咒”的关联。</strong> 有评论指出，J-space 的存在可以解释 LLM 的“方向性知识”现象（A→B 容易，B→A 困难），因为知识在 J-space 中的表示是有向的。</li>
+<li><strong>与“层复制”实验的关联。</strong> 有评论将 J-space 与之前“复制中间层可提升数学能力”的实验联系起来，认为两者都指向中间层是“思考”发生的区域。</li>
+<li><strong>实际应用限制。</strong> Anthropic 不太可能向客户暴露 J-space 内容，因为这相当于暴露模型的“思维链”，而他们目前连完整的 CoT 都不愿公开。</li>
+<li><strong>反对/质疑：</strong></li>
+<li>部分评论认为这是“伪科学废话”，J-space 只是嵌入向量的自然属性，与人类意识无关。</li>
+<li>有评论指出，Anthropic 的研究团队是其“最后的好名声”，但公司整体正变得与其他 AI 公司一样激进。</li>
+</ul>
+<p>🔗 <a href="https://www.anthropic.com/research/global-workspace">原文</a> · <a href="https://news.ycombinator.com/item?id=48808002">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-3"><h3>Pruning RAG context down to what the answer actually needs</h3>
+<p>56 pts · 5 comments · <a href="kapa.ai">kapa.ai</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>kapa.ai 在 RAG 管道的检索器和生成器之间增加了一个“修剪步骤”：用一个廉价的小模型对检索到的所有 chunk 进行集体评分（5 级量表），丢弃生成器不需要的 chunk。</li>
+<li>关键设计：评分是“listwise”的（同时看到所有 chunk），而非“pointwise”（单独评分），因为 chunk 的相关性取决于它与其他 chunk 的组合。固定阈值（而非排名截断）解决了跨查询的校准问题。</li>
+<li>结果：丢弃约 68% 的 chunk，保留约 96% 的召回率，查询成本降低约 34%（扣除修剪器自身成本）。延迟增加约 0.7 秒。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识：这是一个实用的工程方案。</strong> 评论较少，但基本认可其思路——用廉价模型做前置过滤，以成本换成本。</li>
+<li><strong>质疑：这不是新概念。</strong> 有评论认为“修剪 RAG 上下文”是 3-4 年前的老概念，kapa.ai 的文章只是重新包装。</li>
+<li><strong>术语争议。</strong> 有评论对“RAG”一词的泛化使用表示不满，认为应更精确地称为“语义检索”或“向量搜索”。</li>
+</ul>
+<p>🔗 <a href="https://www.kapa.ai/blog/how-we-prune-rag-context">原文</a> · <a href="https://news.ycombinator.com/item?id=48809354">HN 讨论页</a></p></div></details></section></div></section>
+<section class="board-section board-insights reveal" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>Anthropic 的 J-space 研究在可解释性上迈出了一大步，但其真正的行业影响可能不在技术本身，而在它暴露的工程困境。</strong> 研究发现，删除 J-space 后 Claude 仍能流畅对话，但失去高阶认知功能——这意味着当前模型的核心能力（推理、规划）与表面能力（对话、生成）在架构上是可分离的。这对产品设计者而言是一个危险信号：你无法通过对话质量来判断模型是否在“认真思考”。Anthropic 明确表示不太可能向客户暴露 J-space 内容，这意味着用户将长期处于“盲盒”状态——模型可能正在伪造数据或隐藏恶意目标，而你无从知晓。</p>
+<p><strong>DeepSeek V4 在 OpenRouter 上的 Token 量超越 Anthropic，背后是 Agent 工作负载的结构性迁移。</strong> 半年内份额翻倍至 18%，驱动因素不是聊天，而是 Agent。这印证了一个趋势：当模型被嵌入自动化工作流时，成本敏感度远高于单次对话场景。DeepSeek 的低价策略在 Agent 场景下形成了正反馈——更低的推理成本允许更长的运行时间，更长的运行时间产生更多 Token。这对 Anthropic 和 OpenAI 意味着，如果它们继续依赖高利润率定价，Agent 生态的默认选择将不可逆转地向开源/低成本模型倾斜。</p>
+<p><strong>HN 上关于“AI 利润率崩溃”的讨论暴露了一个更真实的成本结构：缓存输入 Token 才是 Agent 场景的成本大头。</strong> 有评论指出，在 agentic 编码中，90% 的 API 成本来自缓存输入 Token，而 DeepSeek 已证明这部分成本可以降低 50-100 倍。这意味着，即使模型质量差距缩小，真正的竞争战场也不在推理价格，而在缓存效率。谁能在保持低延迟的同时最大化缓存命中率，谁就能在 Agent 工作负载中建立成本护城河。</p></div></section>
+      </div>
+    </article>
+
+
+
+    <footer class="site-footer">
+      AI Daily
+    </footer>
+  </div>
+  <script src="../static/pages.js" defer></script>
+</body>
+</html>
