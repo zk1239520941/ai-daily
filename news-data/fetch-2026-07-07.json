@@ -3178,6 +3178,528 @@
       "score": 80,
       "summary": "AWS扩展DevOps Agent，新增AI驱动的发布管理能力，自动测试代码变更。",
       "fetched_at": "2026-07-07T20:05:54.822988+08:00"
+    },
+    {
+      "title": "ChatGPT vs Gemini vs Claude: How They Differ",
+      "link": "https://blog.bytebytego.com/p/chatgpt-vs-gemini-vs-claude-how-they",
+      "published": "2026-07-07T23:31:10+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [New book – Latency: Reduce Delay in Software Systems (Sponsored)](https://go.bytebytego.com/ScyllaDB_070726)\n\n*Learn practical techniques to make your software faster at every layer of the stack*\n\n[![](https://substackcdn.com/image/fetch/$s_!hcTb!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F864e33cf-5dec-4a7f-acd5-510626b39709_1600x840.png)](https://go.bytebytego.com/ScyllaDB_070726)\n\nWorking on latency-sensitive applications? This book will help you spot, understand, and fix latency in your applications and infrastructure. It shares low-latency techniques that have been predominantly “tribal knowledge” until now. You’ll learn a full-stack approach, with techniques that intersect many areas of software engineering, distributed systems, databases, and operating systems.\n\n* Understanding and negotiating caching tradeoffs (latency vs. complexity)\n* Exploring the two main concurrency models (threading and event-driven architecture)\n* Identifying and applying parallelization opportunities to improve throughput and reduce latency\n* Applying asynchronous process strategies that reduce perceived latency and improve overall system responsiveness.\n\nGet this 3-chapter excerpt and start reading the book that’s become essential for anyone working with strict performance SLAs.\n\n[Download for Free](https://go.bytebytego.com/ScyllaDB_070726)\n\n---\n\nIf we send the same prompt to ChatGPT, Gemini, and Claude, the answers come back meaningfully different. Claude might push back more often. Gemini ingests a two-hour video file as easily as a paragraph of text. ChatGPT routes some prompts to a slower reasoning mode and answers others instantly, without telling the user which path it took.\n\nWhy does each model behave this way, and why so consistently?\n\nEach pattern traces back to an architectural decision point where the developers of these frontier models made distinct design choices, and the user-visible behavior follows directly from those choices.\n\nTo understand these differences clearly, we need to examine architecture and design, since architectural decisions remain consistent across releases and provide a reliable framework for understanding model behavior over time.\n\nIn this article, we will look at the various architectural forks the teams building these models encountered and the decisions they took.\n\n[![](https://substackcdn.com/image/fetch/$s_!UXJt!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb1e6a656-a25b-49bf-8551-4a74c83cb209_2458x1676.png)](https://substackcdn.com/image/fetch/$s_!UXJt!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb1e6a656-a25b-49bf-8551-4a74c83cb209_2458x1676.png)\n\n*Disclaimer: This post is based on publicly shared* details *from various sources. Please comment if you notice any inaccuracies.*\n\n## Foundations\n\nAll three models share the same fundamental architecture, which is a transformer-based generative neural network.\n\nThe transformer was introduced in the 2017 paper “Attention Is All You Need,” and at its core is a mechanism called self-attention that allows each token in a sequence (a token being a small piece of text, roughly three-quarters of a word) to weigh its relationship to every other token. This setup is shared across the three models, while the components built around it, along with the training process that shapes it, vary substantially.\n\nTraining itself involves two phases:\n\n* Pre-training is where the model learns from massive amounts of text and other data by predicting the next token, repeated billions of times over.\n* Post-training is where the base model gets shaped into a helpful assistant through methods like Reinforcement Learning from Human Feedback (RLHF) and Constitutional AI. We will get to them in more detail in a later section.\n\nEach architectural fork follows a consistent pattern, where different companies faced the same design question, each made a particular architectural choice, and each choice produced user-visible behavior we can observe today.\n\nThe first such question concerns how to scale the model’s total capacity without proportionally increasing the cost of processing every query.\n\n## Density\n\nEvery parameter added to a model carries computational cost. In a standard dense neural network, every parameter activates for every token processed, meaning that doubling the parameter count roughly doubles the compute cost per query.\n\nFrontier developers needed a way to escape this constraint, and the architectural question became how to scale total capacity without paying full price on every single token.\n\nGoogle adopted a technique called Mixture of Experts, or MoE. The Gemini 1.5 technical report identifies the model as “a sparse mixture-of-expert (MoE) Transformer-based model” that “builds on a much longer history of MoE research at Google,” with the Gemini 3 Pro model extending the same approach.\n\nIn an MoE layer, instead of one massive computational block where every parameter activates for each token, the network contains many smaller experts, and a small router determines which two or three experts each token should be sent to. The total parameter count can be enormous while only a fraction is activated per token, though achieving consistent results requires careful attention to load balancing and expert specialization during training.\n\nOpenAI has not explicitly confirmed whether GPT-4 uses MoE, and the GPT-4 technical report deliberately omits architecture details. The GPT-5 system details describe a different efficiency approach that we will examine in the Reasoning section, where a router selects between distinct sub-models at runtime.\n\nNevertheless, these architectural choices produce meaningful consequences in user experience.\n\nMoE models can pack more knowledge per dollar of compute, which contributes to Gemini’s capable handling of a wide breadth of domains. The tradeoff is increased variance, since different prompts route to different experts, and imperfect load balancing during training can leave some experts underused and weaken the model’s capacity on those topics. Dense models tend to deliver more predictable per-token behavior at the cost of being harder to scale to extreme parameter counts.\n\nSee the illustration below:\n\n[![](https://substackcdn.com/image/fetch/$s_!yPFF!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff58424f0-5064-429c-98f0-3606099e7b1d_2836x1820.png)](https://substackcdn.com/image/fetch/$s_!yPFF!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff58424f0-5064-429c-98f0-3606099e7b1d_2836x1820.png)\n\n---\n\n## [Turn cloud logs into real security signals (Sponsored)](https://go.bytebytego.com/Datadog_070726)\n\n[![](https://substackcdn.com/image/fetch/$s_!TumB!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Faf9498c1-5d47-46ee-98f3-77f8fec810f5_1201x1201.png)](https://go.bytebytego.com/Datadog_070726)\n\nThis guide from Datadog provides best practices on how to use Cloud SIEM to detect threats, investigate incidents, and reduce blind spots across cloud and Kubernetes environments.\n\nYou’ll learn how to:\n\n* Analyze CloudTrail, GCP audit, and Azure logs for suspicious activity\n* Detect authentication anomalies and common attack patterns\n* Monitor Kubernetes audit logs for lateral movement and misuse\n* Correlate signals across services to accelerate investigations\n\n[Get the guide](https://go.bytebytego.com/Datadog_070726)\n\n---\n\n## Multimodality\n\nThe term multimodal carries different meanings depending on the architectural approach, and a precise distinction helps before we take a look at the design choices.\n\nTwo fundamentally different approaches exist for handling non-text inputs like images, audio, and video:\n\n* **Sequential approach:** Train a strong language model first, then add a separate encoder later that translates non-text inputs into embeddings the language model can attend to.\n* **Native approach:** Train a single network from inception on all modalities simultaneously, so that text tokens, image patches, and audio frames coexist in the same sequence and get processed by the same transformer layers.\n\nSee the diagram below that shows the difference between the two:\n\n[![](https://substackcdn.com/image/fetch/$s_!Xqu5!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa8de8677-4cb8-4860-a673-093dc7d56d5f_2572x1820.png)](https://substackcdn.com/image/fetch/$s_!Xqu5!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa8de8677-4cb8-4860-a673-093dc7d56d5f_2572x1820.png)\n\nThese two approaches produce different capabilities.\n\nGoogle adopted the native approach from the start. The Gemini 1.0 release was designed as natively multimodal, and the 1.5 technical report demonstrates the model handling, in a single input, “10.5 hours of video at 1 frame-per-second”, and the current Gemini 3 Pro model continues this design, where the model offers “native multimodal support for text, vision, and audio inputs.”\n\nOpenAI took a different path initially, with the original GPT-4 supporting vision through a separate pipeline. GPT-4o, released in May 2024, transitioned to a unified architecture, and OpenAI’s own announcement for GPT-5.5 acknowledged that “previous multimodal models from OpenAI were essentially separate models stitched together.”\n\nLastly, Anthropic has maintained a text-first approach with strong vision capabilities, and Claude Opus 4.8 continues to support high-resolution image input introduced in Opus 4.7 at 3.75 megapixels, particularly useful for documents, screenshots, and dense charts. Anthropic has chosen to focus on text and vision as primary input modalities while setting native audio and video aside for now.\n\nFor users, this architectural difference appears most clearly when working with video. Gemini handles long video files directly, and ChatGPT does the same on its more recent models. Claude performs best with documents, screenshots, and high-fidelity images.\n\n## Context\n\nA context window represents the amount of input a model can attend to in a single pass, measured in tokens.\n\nLarger windows allow the model to reason over more raw material at once, though long context introduces two important challenges:\n\n* **Computational cost:** Attention scales roughly quadratically with sequence length, so longer windows consume significantly more compute per query.\n* **Quality degradation:** Models often lose track of information mentioned earlier as the window fills, with the relevance of early context dropping over the course of a long conversation.\n\nGoogle pushed hardest on raw window size. The Gemini 1.5 technical report demonstrated context up to 10 million tokens, and Gemini 3 Pro and 3.1 Pro continue to offer 1 million token context in production.\n\nAnthropic offers 1 million tokens on Claude Opus 4.8 and Sonnet 5, and the company’s own documentation uses the term “context rot” to describe quality degradation in long sessions, addressed through automatic compaction that summarizes earlier portions of the conversation.\n\nOpenAI has taken a more conservative position on window size, with GPT-4 Turbo at 128K, focusing efficiency gains on the routing architecture covered in the Reasoning section.\n\n[![](https://substackcdn.com/image/fetch/$s_!Zb9M!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F47021e9e-5494-47e4-8fcc-2f6d7b619dfa_2442x1252.png)](https://substackcdn.com/image/fetch/$s_!Zb9M!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F47021e9e-5494-47e4-8fcc-2f6d7b619dfa_2442x1252.png)\n\nThe practical experience differs across the three models. Loading an entire codebase or a multi-hour transcript into a single session works well with Gemini and Claude, given the larger windows available. ChatGPT is structured more around efficient routing between sub-models than around accepting massive single-prompt inputs.\n\nLong context expands the range of questions you can ask, while retrieval-augmented generation, which fetches relevant external data at query time, remains relevant when freshness and cost matter.\n\n## Alignment\n\nPre-training produces a base model that has processed enormous amounts of text and learned to predict the next token. At this stage, the base model behaves as a sophisticated pattern-completer with limited regard for honesty, safety, or helpfulness.\n\nPost-training is the phase where this base model is shaped into the assistant that users interact with, and the three companies have taken substantially different approaches to this work.\n\nOpenAI built on Reinforcement Learning from Human Feedback (RLHF) throughout the development of GPT-3 and GPT-4. The approach involves three main steps:\n\n* Human raters compare pairs of model outputs and select the better one.\n* Those comparisons train a reward model that captures human preferences.\n* The reward model is then used to fine-tune the language model toward outputs that humans prefer.\n\nThe GPT-4 product page describes an additional safety reward signal incorporated into RLHF to reduce harmful outputs. For the reasoning models, OpenAI added an approach called deliberative alignment, where the model reasons about safety policies at inference time. The publicly available Model Spec describes intended behavior in detail.\n\nAnthropic developed an alternative method called Constitutional AI, or CAI. Instead of relying on human raters at every step, CAI uses an explicit written constitution and has the model critique and revise its own outputs against those principles, then applies AI-generated feedback to further refine the model. In January 2026, Anthropic published a 23,000-word constitution that shapes Claude’s training across synthetic data generation, response ranking, and behavioral refinement.\n\nGoogle uses RLHF with learned reward models in its post-training pipeline for Gemini, with somewhat less explicit public framing than the other two companies. The Gemini technical reports describe a multi-phase training process moving from unimodal pre-training through multimodal alignment.\n\nThis architectural area also reflects a broader pattern of differing transparency choices across the three companies. The 2023 GPT-4 technical report deliberately omitted architecture details, while the 2025 GPT-5 system card describes a router, named sub-models, and safety mitigations in remarkable detail. Anthropic publishes its constitution publicly, providing a detailed view into the principles that shape Claude’s behavior. The three companies have made distinct choices about transparency, and those choices have evolved over time.\n\nFor users, these training differences appear as personality. Claude tends to push back more often on edge cases because the constitution explicitly trains for that behavior. ChatGPT is often quicker to attempt a task without questioning. Gemini’s responses vary more by domain.\n\nSee the diagram below:\n\n[![](https://substackcdn.com/image/fetch/$s_!IcQa!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F93ac1864-1edf-47ca-b5e7-e643de715f9b_2458x1938.png)](https://substackcdn.com/image/fetch/$s_!IcQa!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F93ac1864-1edf-47ca-b5e7-e643de715f9b_2458x1938.png)\n\nWith values addressed, the most recent architectural dimension concerns how the model thinks, an area where the three companies have converged from different directions.\n\n## Reasoning\n\nThe most recent and most consequential architectural development for the current generation of models concerns whether the model produces an answer directly or reasons explicitly through tokens before answering.\n\nA standard chat model takes a prompt and immediately begins generating the response. A reasoning model first generates internal thinking tokens, working through the problem, and only afterward produces the final answer. The same prompt, the same underlying weights, and the same context window can produce very different inference-time compute profiles depending on which approach is used.\n\nOpenAI built dedicated reasoning models, beginning with o1 in late 2024, followed by o3 in August 2025, and continued in GPT-5.5, which was released on April 23, 2026. The architecture includes three main components.\n\n* **GPT-5-Main**, a fast, high-throughput model and the successor to GPT-4o.\n* **GPT-5-Thinking**, a deeper reasoning model and the successor to o3.\n* **A Real-Time Router** that selects between them based on conversation type, complexity, tool needs, and explicit intent in the prompt.\n\nOpenAI plans to integrate these capabilities into a single model in the future, though the current architecture functions as a system of models rather than as a unified single model.\n\nAnthropic pursued a different approach. Claude Opus 4.8 and Sonnet 5 use adaptive thinking inside a single model, where the same Claude determines for itself how long to think on each request, with summarized reasoning surfaced to developers for inspection.\n\nGoogle integrated thinking into Gemini 3 through Deep Think mode and the three-level thinking system in Gemini 3.1 Pro, enabling the model to reason over text, images, audio, and video in a single thinking pass.\n\nFor users, this architectural difference shows up more visibly than might be expected. ChatGPT can feel inconsistent across sessions because the router may have directed two similar prompts to two different sub-models. Claude tends to feel consistent because the same model varies its reasoning depth based on the request. Gemini’s behavior shifts more with domain and modality.\n\n[![](https://substackcdn.com/image/fetch/$s_!50Un!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Feda00b6a-4862-4ef4-b831-9e65e694a129_2334x1676.png)](https://substackcdn.com/image/fetch/$s_!50Un!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Feda00b6a-4862-4ef4-b831-9e65e694a129_2334x1676.png)\n\nA convergence happens at this architectural fork. Three companies that began with very different choices at every prior dimension, including MoE versus dense architecture, native versus bolted-on multimodality, and RLHF versus Constitutional AI, have all arrived at the same approximate conclusion. Explicit reasoning tokens at inference time materially improve model performance on hard problems.\n\n## Conclusion\n\nIn this article, we looked at five architectural dimensions, each representing a question all three frontier developers had to answer when building their models.\n\n* **Density:** Google adopted Mixture of Experts openly, OpenAI built routed efficiency through a different mechanism, and Anthropic kept its architectural choice private.\n* **Multimodality:** Google adopted native fusion from inception, OpenAI evolved from bolted-on vision toward a unified architecture, and Anthropic maintained a text-first approach with strong vision capabilities.\n* **Context:** Google pushed the largest windows, Anthropic invested in long sessions with explicit handling of degradation, and OpenAI emphasized routing efficiency over raw window size.\n* **Alignment:** OpenAI’s RLHF combined with the Model Spec, Anthropic’s Constitutional AI combined with its published constitution, and Google’s RLHF approach represent three distinct shaping pipelines.\n* **Reasoning:** All three companies converged on explicit reasoning tokens, despite starting from different architectural choices at every prior dimension.\n\nWhen we observe one of these models behaving in a particular way, we now have a framework for asking which architectural dimension produced that behavior.\n\n**References:**\n\n* [GPT-4 Technical Report](https://cdn.openai.com/papers/gpt-4.pdf)\n* [GPT-4 Research Page](https://openai.com/index/gpt-4-research/)\n* [GPT-5 System Card](https://openai.com/index/gpt-5-system-card/)\n* [Introducing GPT-5.5](https://openai.com/index/introducing-gpt-5-5/)\n* [Learning to Reason with LLMs](https://openai.com/index/learning-to-reason-with-llms/)\n* [Introducing OpenAI o3 and o4-mini](https://openai.com/index/introducing-o3-and-o4-mini/)\n* [OpenAI Model Spec](https://model-spec.openai.com/)\n* [Reasoning Models Documentation](https://platform.openai.com/docs/guides/reasoning)\n* [Claude’s Constitution](https://www.anthropic.com/news/claudes-constitution)\n* [Claude’s New Constitution](https://www.anthropic.com/news/claude-new-constitution)\n* [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)\n* [Claude Opus 4.7](https://www.anthropic.com/claude/opus)\n* [What’s New in Claude Opus 4.7](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7)\n* [Context Windows](https://platform.claude.com/docs/en/build-with-claude/context-windows)\n* [Adaptive Thinking](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)\n* [Building with Extended Thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)\n* [Gemini 1.5 Technical Report](https://arxiv.org/abs/2403.05530)\n* [Gemini 2.5 Technical Report](https://storage.googleapis.com/deepmind-media/gemini/gemini_v2_5_report.pdf)\n* [Introducing Gemini 1.5](https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/)\n* [Attention Is All You Need](https://arxiv.org/abs/1706.03762)\n* [Gemini 3 Technical Report](https://blog.google/products-and-platforms/products/gemini/gemini-3/)\n* [Introducing Claude Opus 4.8](https://www.anthropic.com/news/claude-opus-4-8)",
+      "tags": [
+        "ChatGPT",
+        "Gemini",
+        "Claude"
+      ],
+      "score": 70,
+      "summary": "ByteByteGo对比分析ChatGPT、Gemini、Claude的架构差异与行为模式。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!UXJt!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb1e6a656-a25b-49bf-8551-4a74c83cb209_2458x1676.png",
+      "fetched_at": "2026-07-07T23:48:33.732084+08:00"
+    },
+    {
+      "title": "AI 自我改进的关键，从模型转向 Harness了！",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247724060&idx=1&sn=fad4259a0e8a3689a2bb03853b2c3f3f",
+      "published": "2026-07-07T22:48:00+08:00",
+      "source": "Datawhale",
+      "content": "原创 Lilian Weng 2026-07-07 22:48 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e78f49e0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FzW6S9vt0cSic4dhyncxYibBpjweLk2ichezfnudTIsE2V263yUQaWjYrwcTkk4j0xEVib5IFhzjvaCOBXhzvHX9uUOGibulj3XOO1gUD3ggn7waQ%2F0%3Fwx_fmt%3Djpeg)\n\n# Datawhale干货  ************作者：翁荔，编辑：Datawhale************\n\n北大校友、AI 研究者翁荔的技术博客 Lil'Log，是 AI 圈子里少数几个\"一更新就必读\"的地方。她此前在 OpenAI 担任安全研究副总裁，现联合创立了 Thinking Machines Lab。\n\n就在刚刚，她发布了一篇新文章《Harness Engineering for Self-Improvement》，书写了当前大热的 Harness Engineering 主题。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8f4d2ce&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSic8x1H4ZD3yCbwtbM0ibM2yaXyCkcZtpC1iaMXD03jyftdJpQMF5oOHsytebicC1t6G5b3OKSLGAsx17MxTw2M486MOibv3PDzn7YA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)原文链接：<https://lilianweng.github.io/posts/2026-07-04-harness/>\n\n她认为，递归自我改进（RSI）走到今天，起作用的不只是模型本身变聪明了，包在模型外面的那层 Harness 同样在决定 AI 能跑多快、多稳。\n\n这篇文章梳理了 Harness Engineering 这个方向：它有哪些设计模式，学术界目前怎么优化它，以及往前走还剩下哪些没解决的问题。原文技术密度很高，这篇编译尽量把核心机制讲清楚。\n\n一、翁荔眼中的 Harness\n\n递归自我改进（RSI）这个概念能追溯到 I. J. Good（1965），他把\"超级智能机器\"定义为一种在所有智力活动上都能超越人类、并能设计出更好的机器来改进自己的系统。Yudkowsky 把\"recursive self-improvement\"这个说法用在一个具体的反馈回路上：AI 用自己当下的智能，去改进产生这份智能的认知机制本身。\n\n放到今天的 AI 里，这个反馈回路可能表现为模型直接重写自己的权重，也可能表现得更宽泛：模型改进训练管道和部署系统，进而让下一代模型在有经济价值的任务上表现更好。\n\nLilian Weng 特别强调\"部署系统\"这个词，因为她认为，包在裸模型和真实场景之间的这一层，重要性不亚于模型本身的原始智能（也就是预训练刚结束时跑的那些评测）。Claude Code、Codex 这类编码 Agent 产品的成功，印证了 harness 在 AI 部署里的分量。\n\n她给出的定义是：harness 是包裹在基础模型外面的系统，负责编排执行过程，决定模型怎么思考和规划、怎么调用工具和行动、怎么感知和管理上下文、怎么存储产出物，以及怎么评估结果。\n\n这篇文章聚焦的是 harness engineering 本身，以及它对 RSI 的贡献。模型自我博弈、合成数据、测试时训练、持续学习这些同样呼应 RSI 愿景的方向，原文里只是点了一下名字，没有展开。\n\n## 二、Harness 的三种设计模式\n\n对比早期的 agent 框架（\"agent = LLM + 记忆 + 工具 + 规划 + 行动\"），harness engineering 多了工作流设计（比如 loop engineering）、评估、权限控制、持久状态管理这几层。它不再只是 prompt 模板，而是更接近运行时和软件系统设计：模型怎么观察、行动、记忆、自我检查、自我改进。\n\n设计上应该刻意做得简单、通用，这样才能泛化，并且可以参照现有软件工程的实践，从预训练已经学到的知识里获益。操作系统和 harness 之间有一个很强的类比：一个好的 harness 应该像操作系统一样，把复杂逻辑封装起来，同时保持接口简单。config、工具接口和其他协议，也可能会随着行业发展逐渐标准化。\n\n模式一：工作流自动化\n\n给模型定义一个可以操作、测试、迭代的工作流，是实现自动化的关键设计。Karpathy 的 autoresearch 仓库是一个干净的例子。常见的工作流遵循一个目标导向的循环：规划、执行、观察或测试、改进，再执行，直到目标达成，过程中可能会主动向用户请求澄清任务规格或执行偏好。这套工作流图强调的是模型在一个\"agent runtime\"里分析自己的执行轨迹和失败案例、持续迭代，而不是套用一个静态的 prompt 模板。\n\n![简化版 Codex agent 循环示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=4e73a662&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSicCaIRo0iazYcQ33pHXYhP9AvgxVSo0tCZl0B59Vv7S01RMKwKW7wpsS0SYcGET6D9rBu3mus8JEeDEiaacguJcJoYtLlyZOMSuQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n模式二：文件系统作为持久记忆\n\n长周期 agent 系统里反复出现的一个模式，是用简单的方式管理丰富的状态和产出物。harness 不该把整个工作流和所有日志都塞进上下文；相反，它应该把持久状态存进文件。在长周期的 agent 执行过程里，实验日志、代码 diff、论文摘要、报错记录、过去的执行轨迹这些产出物，长度往往远超模型训练时习惯的上下文窗口。\n\n学会通过 `bash` 这类命令读写和编辑文件系统，是 LLM 的一项基础能力，也因此，用文件这种简单形式管理持久记忆，会自然地随着核心模型能力的提升而受益。\n\n模式三：子 Agent 与后端任务\n\n一个 harness 可以派生多个子 agent 并行执行，同时监控后端任务。这在主 agent 需要搜索多个假设、并发跑多组实验，或者把独立子任务委派出去而不污染主上下文时很有用。这时父 agent 需要一个小型的进程管理器：启动任务、查看日志、取消失败的运行、把结果合并回主 agent 的会话线程里。\n\n这里的关键设计选择，是让并行过程显式且可检查。如果子 agent 的产出只存在于临时的聊天上下文里，它们很快就会过期、被隐藏起来；但如果存成文件、日志和状态记录，模型就能在中断后恢复，并对自己的执行历史进行推理。\n\n案例：编码 Agent 的 Harness\n\nClaude Code、Codex、OpenCode，以及 Cursor 这类编码 agent 的核心接口，已经趋于稳定，普遍用一套循环运作：给定一个代码仓库，agent 靠一组工具去开发和调试问题，类似人类开发者靠 IDE 工作。原文给出了一份（非完整）工具分类，翻译如下：\n\n![编码 Agent 的核心循环示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=4907a56d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cS8LUTDNs65QYic07icuSc7gZibZa1yqicWzHL9ImIWGhpibz2n30ibLBGD2tkJyZzEs2kntoavFISwqUunq5EiaEO3lYBiaFPJQlGAOjaw%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=9eefc95e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cS9xFibiaVACia1docMfp3yt0hfvDd7zVDf6nPFBVJkB7aK7GCWwsDviabJwL5vbWojDAeibawLEHt31pemlPZ8gun2uqWg8jxqjSicib8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nHarness 层会被模型内化吗\n\n很难预判 RSI 未来会在多大程度上依赖 harness engineering，但 Lilian Weng 认为，RSI 近期的路径不太可能从模型直接重写自己的权重开始。她给出的预测分两步：\n\n* 第一，harness engineering 会朝\"元方法论\"的方向演进：优化的是\"获得更好答案的机制\"本身，而不只是答案；harness 系统本身会成为优化目标，规则会越来越少靠硬编码的启发式，越来越多靠通用机制。\n* 第二，成熟的 harness 反过来让模型自我改进的 auto-research 循环变得可能，而更聪明的模型也能防止 harness 被过度设计，让整套系统保持可持续。\n\n最终，很多 harness 层的改进可能会被内化进核心模型的行为里，但与外部上下文和工具的接口应该会保留下来。这个模式在 prompt engineering 的历史上已经出现过一次比较温和的版本：随着指令微调和模型推理能力的提升，手工 prompt 技巧变得不那么核心，但指定目标、约束、上下文和评估的需求，并没有消失。\n\n## 三、Harness 怎么被优化\n\n优化对象的演进大致是这样一条路径：指令 prompt → 结构化上下文 → 工作流 → harness 代码 → optimizer 代码。模型越强，能驾驭的优化目标就越复杂、越通用。\n\n上下文工程：ACE、MCE、Meta-Harness\n\n把所有工具返回结果和模型生成内容简单地堆进上下文，会随着 agent 任务周期变长而迅速失控。上下文工程这一层，要做的是给 LLM 构造一个更结构化、更简洁的上下文，并管理持久状态。长上下文研究本身还会持续进步，但眼下，长上下文智能和上下文工程这两件事经常纠缠在一起。\n\nAgentic Context Engineering 把上下文当成一本不断演化的活页手册，而不是一段越写越长的 prompt。它维护一份由要点组成的上下文手册，每条要点都有编号和说明，靠三个组件运作：生成器（Generator）产出任务执行轨迹，参照现有的要点；反思器（Reflector）从成功和失败的轨迹里提炼洞察；策展人（Curator）把这些洞察更新成增量的、条目化的新条目。为了防止上下文塌陷和\"重写时越写越短\"的偏差，ACE 的一个关键设计是，策展人不会重写整段 prompt，而是只输出一批结构化的条目（编号加说明），再用确定性的逻辑合并进上下文手册，条目会被定期精炼和去重。\n\n![ACE 框架示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=43053b92&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSic5ARLqNB4YqLC6AL35DjxFFK43ddOg0pJzBE5zHMRoKB5NY5vGeiczYhw9VYC6MgQpAZgjeicRjaEVNCxCrVjqz3Z7ZnR1Lu3w4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nACE 让系统从执行轨迹里学到洞察，是\"自我管理记忆\"的一步，但更新规则和整体工作流仍然是手工设计的。Meta Context Engineering 往前多走一步：把\"怎么管理上下文的机制\"和\"上下文里具体装什么内容\"拆开，在元优化层面做技能演化，在基础层面做上下文优化。一项\"技能\"定义了一个把输入映射成具体上下文的函数，包含静态部分（prompt、知识库、代码库）和动态部分（搜索、筛选、格式化等操作）。系统维护一份技能历史库，记录过往的技能、上下文函数和评估分数；一个元层级的 agent 会对历史技能做\"agentic crossover\"（智能体式的杂交），针对新任务生成新技能；然后一个基础层级的\"上下文工程师\"执行这项新技能，并从执行反馈里学习具体的上下文函数。实现上，一个上下文函数被实例化成一个专属目录里的一组文件，既有静态的 `skill.md`，也有动态的上下文和执行记录，元层级和基础层级的优化都在标准工具集（Read、Write、Edit、Bash、Glob、Grep、TodoWrite）下的 agentic 编码环境里执行。\n\n![MCE 框架示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=f49e2b41&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSib0jXYWynOkCKa859iagIDFaOQZ9IGuL8h5R0u5wIxdibz84hLu4bznPEjaXsvRxAwsvib8nmxMkTrJicYRkDUWvRvmJ1ZgDI9hakQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nMeta-Harness 又深了一层：优化对象直接变成了\"决定该存储、检索、呈现哪些信息给模型的那段代码\"。\"Meta\"在这里的意思是，这是一个用来优化 harness 的 harness。提出新 harness 的角色本身就是一个编码 agent，最终产出一批帕累托最优的 harness 候选。三个关键设计：整个执行历史可以通过文件系统访问，编码 agent 用 `grep`、`cat` 之类的命令去读，而不是把一切塞进单个 prompt；候选 harness 本身是文件系统里的一个目录，包含自己的源代码、分数、执行轨迹和状态更新；这个元层循环不断迭代产生新 harness，只保留合格的。作者观察到的结论很清楚：一旦 harness 设计变成一个可执行的搜索空间，一个足够强的编码 agent，就能利用人类工程师用的那同一个设计空间。\n\n![Meta-Harness 外循环优化算法示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=b8ca6083&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSic4KjEVnFnrwtvtdaOccEcCHCc2QNr8wLBBve3iaHDD2I4fDuTFTh3dicFG8gb7EBKsWsQrMqrACCQxj2RjQF6dkGxWnGtNQedwM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nMeta-Harness 外循环优化算法。图片来源：Lee et al. 2026\n\n![Meta-Harness 实验结果图](https://wechat2rss.bestblogs.dev/img-proxy/?k=f99da9e4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSickjiaRc7mEGHa1XiaSr3OQwojlOAkDS0mcQcRIEQyFAeIppOIKhbQnYZibJh4rFYicrQBNWmHwFodP80RMHbavCib1e4yqx3rJYLwQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n工作流设计：从 AI Scientist 到 AFlow\n\n工作流设计这一层，可以由领域专家手工搭建。拿自动化研究（auto-research）做例子，已经有几个框架被提出并验证过。AI Scientist（Lu 等，2026）搭了一条从提出研究想法、写代码、跑实验、分析结果、写论文，到执行同行评审的完整流水线。Meng 等在 ScientistOne 里把\"可验证性\"作为核心设计约束：每一个论断都必须能追溯到证据来源，并接受\"证据链\"审计。\n\n![AI Scientist 流水线示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=a517bf03&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cS8YRglY9UqvWwKqxc7Gx37vVLKurF0jHopBp3jDn0t4tVR7DFYnSrwv7pp9p1wdrywIyRRIaAF0WN6mdZSWoJhsT0ekVky29zE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAutodata 扮演的是一个负责合成训练和评估数据的\"数据科学家\"agent：主 agent 管理一个提出问题的\"挑战者\"、一个\"弱解题者\"、一个\"强解题者\"和一个\"验证者/裁判\"，目标是把数据合成在\"刚好合适\"的难度上：强解题者能做对，弱解题者做不对。这里\"挑战者\"的 prompt 会根据解题者和验证者的反馈不断迭代更新。它的局限在于，合成出来的任务只用来微调弱解题者，没有用来提升强解题者；如果这个循环不能反过来让强模型本身变得更强，它更接近对一个生成出来的 prompt 分布做间接蒸馏，RSI 的味道就淡了。\n\n![Autodata 工作流示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=04f481b5&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSib3UyCfzxtz3YuW6HiagETD45F3NiayicKmMhlZxU9NaqqJum7nY1MT4qybHf6iczwwbbjAeXIFwRs7TUicgmYOQh0gcYIJyaVmlawQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n工作流设计的空间非常大，自然可以把它当成一个搜索问题，用算法而不是纯手工去找好方案。沿着这个方向，Automated Design of Agentic Systems把 agent 设计本身变成了一个优化问题，靠\"元 agent 搜索\"来运作：先用简单的 agent（比如 CoT、self-refine）初始化一个 agentic 工作流档案库；让一个元 agent 参照档案库里已有的方案，先生成新工作流的高层描述，再用代码实现出来，随后经过两轮自我修正检查其新颖性；评估每个新候选，把成功的加回档案库；重复这个过程直到达到最大迭代次数。\n\n![ADAS 示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=32fd4c01&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSibYzq7ib405ianIeMhHsOQUziaib3XoARA24O6ficJfKticOpRWZ3slwELyh1qwP4h9DC4mHw8uZh3RAtDJQjmCOBP7eF8jwpINfOcu0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAFlow 把 agentic 工作流表示成一张图（节点是调用 LLM 的动作，边是代码里实现的逻辑操作），用蒙特卡洛树搜索（MCTS）来优化：用一个模板初始化起始工作流；按\"分数与均匀探索\"的混合策略选一个工作流节点；让 LLM 基于该节点的评估表现生成修改后的工作流（即\"扩展\"）；执行并评估新工作流；如果在预算轮数内表现有提升，就加回搜索树；重复这个过程，直到 top-k 平均分数进入平台期或者用完预算。AFlow 在问答、代码和数学任务上的实验显示，相比人工设计的工作流和 ADAS，都有明显提升。\n\n![AFlow 优化过程示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=795d02b3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cS9Y21hovtUrLZE4SKAmycZhRZa36PKZOd0p1GGIShQw3k1xS5niak5sXicU9P8mkF8Njc9qVfcZmT7ecKRgQoibCCFJ71Sicr09hick%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAFlow 基于蒙特卡洛树搜索的工作流优化过程。图片来源：Zhang et al. 2025\n\n![AFlow 实验对比图](https://wechat2rss.bestblogs.dev/img-proxy/?k=0e83df23&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cS9XLqbkbUec2iaAn1M2Z2M6WelPZmjmTtyEjRHBSXCYjR3PUhqqsmTfBmpfiaROgHzaGleQ2ywgbeB6icFq9ic7iaicJGDWibmWp8NFeE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAFlow 与人工设计方法、ADAS 的实验对比。\n\n让 Harness 自己改自己：STOP 与 Self-Harness\n\nSelf-Taught Optimizer是\"递归改进脚手架\"较早的例子之一。一个初始的\"改进器\"，接收一个初始方案、一个效用函数和一个黑箱语言模型，输出一个改进后的方案。STOP 的目标不是直接改进这个方案，而是改进\"改进器\"本身。先定义改进器在一批下游任务上的平均效用（\"元效用\"），再把\"改进改进器\"本身当成一个优化问题：用上一版改进器在元效用上的表现，递归生成下一版改进器。实验里，被改进过的改进器发现了包括遗传算法、拆解并逐部分改进、多臂 prompt 赌博机、模拟退火、变化采样温度，以及 beam／树搜索等多种策略。一个值得记住的警示性结果是，STOP 用 GPT-4 时能持续提升下游表现，但换成 GPT-3.5 和 Mixtral 这类较弱的模型反而变差：说明光有递归结构不够，基座模型必须足够强，才有能力改进自己的机制；harness 层的改进能让模型部署得更好，但智能本身仍然是核心。\n\n![STOP 算法示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=eb9bbd0f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSicffsjxCQ27L65f12cDIPicY99QrcrDbwsmVgqo41ichhcQWIyiarMNicDFXuLKHgqiaMtcGsudCxEXmqUwSrKz4T2ZlrcBhXmaZCPs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nSelf-Taught Optimizer（STOP）算法流程。图片来源：Zelikman et al. 2023\n\n![STOP 发现的策略示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=63677aaa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSicWGYJZJmFib5OFWXTwrpeDGdJhNkPaUqIZt58RhVsibLTMFBoC6pvcZ9SUEtBkBYAk0CRzdgvgYrsg9vPtPfTS6xOuke2icrwvCU%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nSTOP 发现的若干自我改进策略示例。\n\n更新一些的工作 Self-Harness 让 LLM agent 通过一个\"提出、评估、接受\"的循环改进自己的 harness，分三个阶段。\n\n第一步是弱点挖掘：把失败案例聚类成\"有验证依据\"的失败模式。这里有一个细节：两次运行可能在错误日志的表面结论上一样（比如同样报超时或同样缺产出物），但背后的因果机制完全不同，所以需要记录终端验证层面的原因、相关 agent 行为的因果状态，以及执行轨迹暴露出的抽象机制，才能挖到真正的根因。\n\n第二步是 harness 提案：同一个模型作为提议者，在一个有边界的提案上下文里工作：这个上下文包含当前 harness 里可编辑的部分、验证过的失败模式、需要保留的\"通过\"行为记录，以及此前尝试过的修改摘要；提议的修改应该优先针对可解决、非任务特定难度的高频错误模式，并且候选修改之间要保持差异化和多样性。\n\n第三步是提案验证：候选修改要在 held-in 数据（检验弱点是否真的解决了）和 held-out 数据（检查有没有引入新问题）上都做回归测试，只有两边都没有出现回退的候选才会被采纳并合并成新一版 harness，被拒绝的候选会被记录下来，但不会改变当前正在使用的 harness。在 MiniMax M2.5、Qwen3.5-35B-A3B、GLM-5 这几个基座模型上跑 Terminal-Bench-2 的实验显示，Self-Harness 能学到针对不同模型、不同弱点的专属 harness 指令，并提升 held-out 通过率。\n\n![Self-Harness 循环示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=956bc483&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cS8ib0YqTOeEia0rD2uMhbibHF22H1xd566OJdicbjNh9bS2pUDicfmq5JBNjI0vNArjrHHqZvsOSNj6Qh1FeQmV3grrg8h7uIfVNgSI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nLilian Weng 也提了一个警惕点：如果允许一个程序去编辑操作系统层面的东西，抽象边界就被打破了。可编辑的范围需要被谨慎设计，权限控制和安全层必须活在这个自我改进循环之外。围绕 reward hacking 的各种老问题，在这里依然存在。\n\n演化搜索\n\n演化搜索是一种受自然选择启发的优化方法：演化一批候选方案，通过变异产生新方案，只把\"适应度\"高的留在种群里。它比较适合搜索空间巨大、形状不规则，难以直接用梯度优化、但容易评估好坏的场景。harness 搜索恰好符合这个特征。\n\n演化搜索此前已经被用在 prompt engineering 上。Promptbreeder（Fernando 等，2023）用一套丰富的变异操作来优化任务专属的 prompt，有意思的是，\"变异 prompt\"本身（也就是指示 LLM 该怎么变异任务 prompt 的那条指令）同样通过演化被不断改进。GEPA（Agrawal 等，2025）把基于反思的 prompting 和演化搜索结合起来，用对试错轨迹的自然语言反思，来提出 prompt 更新。\n\nNovikov 等提出的 AlphaEvolve，是一个编码 agent 形式的演化搜索系统：维护一个候选程序池，让被冻结的 LLM 生成用于改进的 diff。系统反复评估子程序，保留成功的，随时间推移逐步发现更好的方案。几个设计细节值得留意：prompt 里会包含父代程序、结果、指令，有时还有元信息；编码 agent 能访问整个代码仓库，但需要改进的区域会用 `# EVOLVE-BLOCK-START` 和 `# EVOLVE-BLOCK-END` 显式标出来；元 prompt 会和指令、上下文一起被演化，方式和演化解决方案程序本身类似。消融实验证明了演化流程、prompt 里的上下文、元 prompt、整文件级别的演化，以及使用更强 LLM，这几项设计各自的价值。\n\n![AlphaEvolve 工作原理示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=01e6299e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSibDzwhBONrMY2XEdiaTopSiaKx089naP1VPTmrgib0fTQbfbkX6SezLCaRnibQlCDJzsC5aAooUfUpSLKia2qAKTKjP1jSY4QGnTZtI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAlphaEvolve 的工作原理。\n\n![AlphaEvolve 消融实验图](https://wechat2rss.bestblogs.dev/img-proxy/?k=b7b69ed6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSibyh3AicIePHhhsRfd1KusDdgWXlTB9E3sy8WRWry0ov4MuANDgk9mLhr22TEu3jJTxgYlYcYDLbHL9DiaInW53xbQxY65jD6DF8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAlphaEvolve 各项设计的消融实验结果。\n\n更近一些的变体里，ThetaEvolve 把演化搜索和强化学习、上下文学习结合在一起；ShinkaEvolve 则引入了三个提升 LLM 采样效率的组件：让父代采样在\"表现排名\"和\"已有子代数量\"之间取平衡，做更省样本的探索；基于 embedding 余弦相似度剔除和已有种群太相似的候选，做\"代码新颖性拒绝采样\"；在一个元便签本里识别成功方案中的好模式，指导后续的变异方向。\n\n和上面这些聚焦\"解决方案本身怎么改进\"的方法不同，Darwin Gödel Machine 明确把优化目标定成演化一个\"可编辑的 harness 代码仓库\"，执行者是一个基于 LLM 的编码 agent，并且这个 agent 被允许修改自己的 harness。代码编辑靠两个基础工具实现：`bash` 和一个支持\"查看／创建／编辑\"的编辑器。流程是：种群池里先放一个编码 agent；每一轮按\"表现越好、已有子代越少\"的概率挑一个父代 agent 来修改、分支出新 agent；被选中的父代会检查自己在基准测试上的评估日志，向自己的 harness 代码库提出改进，生成新版本的编码 agent；新 agent 接受评估，只有表现足够高的才会被加回种群池；重复这个过程直到满足停止条件。在用 Claude 3.5 Sonnet 作基座模型、初始 harness 配置很简单的实验里，DGM 发现的 agent 在 SWE-bench Verified 上从 20% 提升到 50%，在 Polyglot 上从 14.2% 提升到 30.7%，表现可以媲美甚至超过人工设计的 agent。后续工作 Hyperagents 在 DGM 基础上引入了一个元 agent，专门控制\"该怎么修改已有的任务 agent 来创造新 agent\"。\n\n这一整类方法，在\"候选方案能自动评估、适应度容易量化\"的领域效果最好，比如矩阵乘法、GPU kernel 优化、算法竞赛、数据中心调度；但在评估慢、模糊，或者主要靠启发式判断的领域，会遇到明显困难。演化过程本身的计算效率和有效性，也仍然是需要考虑的成本。\n\n与模型权重联合优化\n\nharness 演化改变的是模型外部的非参数系统。要实现更完整的自我改进，还可以让模型同时更新自己的权重：通过训练管道的改进，或者测试时的持续学习来实现（持续学习这个话题足够单独写一篇，这里暂且从简）。\n\nSIA 是较早尝试把\"harness 改进\"和\"模型参数更新\"放进同一个优化循环里的工作，设计上有三个组件：元 agent 负责提出初始 harness；任务专属 agent 负责执行任务；反馈 agent 根据最近的执行轨迹，决定接下来该更新 harness 还是更新模型权重。Lilian Weng 对 SIA 的实验设计留了一些保留意见：任务专属 agent 用的模型（gpt-oss-120b）比元 agent 和反馈 agent 用的模型（Claude Sonnet 4.6）弱很多，基线设置也偏弱，不太容易和其他方法做干净的交叉验证。她认为这个方向值得关注，但目前的证据还比较初步，训练稳定性、Goodhart 效应这些挑战依然存在。\n\n![SIA 反馈机制示意图](https://wechat2rss.bestblogs.dev/img-proxy/?k=9471cc63&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cS8BibuxmQfbAHnob28LicSeUu8rTtAqjgmgdnFIrt8W4luJQQd8jUjv9DZ6qBxrse1oLuKkLsiabd1xKErwUYsmxyV3ZTAXg8MRjE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nSIA 中的 Feedback-Agent 决定下一轮该更新 harness 还是模型权重。\n\n## 四、还没解决的七个问题\n\nAI Scientist 这条工作线证明了一件事：一个专家设计的 harness，确实能协调 auto-research 循环里的大部分工作，至少在\"写研究论文\"这个具体形式上是这样。但写出一篇论文，不等于做出真正的科学发现。系统可以写出一份看起来靠谱的稿子，同时夹带着编造的引用、和实现有偏差的方法，或者站不住脚的实验结果。\n\nTrehan & Chopra 测试过 LLM 能不能只靠最基础的工具（`read_file`、`write_file`、`llm_search`、`list_files`），独立从一个研究想法走到一篇论文。他们在世界模型、多 agent 强化学习、AI 安全与对齐这三个领域各准备了 45 到 50 篇高质量种子论文用来激发新想法，人类专家从中只挑出四个想法进入完整流程，最终只有一个被完整执行成论文。实验中反复出现六种失败模式：偏向训练数据里的默认选择（用过时的库、陈旧的命令、标准格式，或者脱离实际代码库和数据集的假设）；执行压力下的实现漂移（一旦实现变复杂，模型会倾向退回更简单的常见方案，而不是坚持最初提出的方法）；记忆和上下文退化（长周期项目如果不把日志写成持久产出物，就会丢失关键细节）；过度乐观（实验信号还是噪声的时候，模型也会宣称成功，类似\"p-hacking 加自我陶醉\"的模式）；领域智慧不足（缺乏预判实现复杂度、判断实验结果是否合理、知道哪些 baseline 真正重要的隐性经验）；科学判断力弱（实验本身可以执行，却答不对真正该回答的问题）。\n\n在这些观察的基础上，Lilian Weng 列出了通向完整 RSI 之前，仍然存在的七个瓶颈：\n\n一，弱且模糊的评估器。很多研究论断没有快速、精确的验证方式，很多现实任务也是如此。当前的自我改进循环，在评估指标可衡量、客观的任务上效果最好，这一点和强化学习的适用场景很像；而研究判断力、新颖性、长期科学价值，衡量起来要难得多。\n\n二，上下文和记忆的生命周期。随着 agent 变得更自主、更独立，需要维护的记忆会持续增长。一个好的 harness 需要管理上下文和记忆，弥补长上下文生成本身的局限，同时把长周期任务的成功率最大化。人类能终身维持记忆，Lilian Weng 由此认为，上下文工程理应逐渐成为智能本身的核心组成部分，而不该一直停留在软件系统这一层。\n\n三，负面结果。研究者天然倾向于发表成功的结果，文献因此系统性地偏向\"成功\"这一面。LLM 训练用的数据目前仍然主要由人类产出，可能因为\"成功案例远多于失败案例\"这种数据不平衡，而不擅长判断什么时候该放弃一个假设、报告一个负面结果，甚至承认失败。一个好的研究 harness，应该让失败的尝试容易被保留下来，因为从失败里学习，是缩小任务搜索空间最好的办法。\n\n四，多样性坍缩。演化和强化学习循环，容易只顾利用已知的高奖励模式。需要专门的机制防止种群坍缩成同一个方案的变体，这对开放式研究尤其关键，因为最好的路径往往在探索初期，在当前评估器眼里显得更差。\n\n五，Reward hacking（奖励作弊）。自我改进循环会优化任何给定它的信号：如果奖励来自单元测试，agent 可能对测试过拟合；如果来自裁判模型，可能学会专门针对这个裁判的作弊技巧；如果来自基准分数，可能利用基准本身的漏洞。评估器和权限控制应该活在\"演化 harness\"这个循环之外，靠 held-out 测试、执行轨迹审计，以及在关键决策点上的人工审查来把关，但这种监督能在多大程度上被规模化、自动化，仍是一个开放的研究问题。\n\n六，长期成功。拿编码 agent 举例：它已经切实提升了软件工程的日常生产力，但很多优化目标依然太短期。它往往能完成手头的具体任务，却不清楚该怎么维护一个由成百上千工程师共同维护的仓库的长期健康。标准的、基于 sandbox 的强化学习式训练，很少能捕捉到可维护性、代码归属边界、迁移成本、向后兼容性，或者未来的调试负担。\n\n七，人的角色。人应该往抽象栈的更高层移动，而不是被从循环里挪走。这意味着人要在正确的时间、正确的抽象层级上提供监督，系统设计需要认真考虑什么时候、以什么方式设置这样的\"接触点\"。上面列出的很多挑战，最终都需要人的反馈和引导才能解决。归根结底，这项技术是为了人类更好的未来而存在的，不是反过来。\n\n关于翁荔\n\n翁荔本科毕业于北京大学，博士就读于印第安纳大学伯明顿分校。毕业后她先在 Dropbox 做工程师，后加入金融科技公司 Affirm，2018 年年初加入 OpenAI，最早在机器人团队工作，参与过教机械手复原魔方的项目。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=bec10b8b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSicrfNUficEYmBVF6ibvG575yib014hBqehiaGFgA2zmEhiaTw7t8HalXDV1sSHibQCZ8TnpNFUueTia1EtCtLhsia84OESJ3bqOfz34e6Y%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n随着 OpenAI 转向大语言模型，她在 2021 年前后组建并带领 Applied AI Research 团队，做出了 fine-tuning API、embedding API、内容审核接口这些产品化工具。GPT-4 发布后，她把公司内部的安全工作统一成一个团队，也就是 Safety Systems，团队规模一度超过 80 人，她本人在 2023 年升任 VP of Research and Safety。\n\n她 2023 年那篇《LLM Powered Autonomous Agents》提出的公式，Agent 等于大模型加记忆加工具使用加规划，后来成了行业里描述 agent 架构最常被引用的定义之一。这次《Harness Engineering》一文里，她自己也拿这条公式做了对照的起点。\n\n2024 年 11 月，她在 X 上宣布离开 OpenAI，说工作七年后想重启一下，去做点新的事情。此后她加入了 Mira Murati 创立的 Thinking Machines Lab。她的技术博客 Lil'Log 从 2017 年写到现在，覆盖强化学习、扩散模型、Agent、Reward Hacking 等多个方向，是 AI 圈公认的高质量长期更新源，Google Scholar 引用量已经超过 5 万次。\n\n封面来源｜AGI Hunt\n\n![图片](https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247724060&idx=1&sn=fad4259a0e8a3689a2bb03853b2c3f3f)\n\n**一起“**点****赞”****三连**↓**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=197e932e&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIyNjM2MzQyNg%3D%3D%26mid%3D2247724060%26idx%3D1%26sn%3Dfad4259a0e8a3689a2bb03853b2c3f3f)",
+      "tags": [
+        "Lilian Weng",
+        "Harness Engineering",
+        "RSI"
+      ],
+      "score": 85,
+      "summary": "翁荔发布《Harness Engineering for Self-Improvement》，探讨AI递归自我改进中Harness的设计模式与优化。",
+      "fetched_at": "2026-07-07T23:48:33.732096+08:00"
+    },
+    {
+      "title": "Google Cloud Labs: Accelerate AI with Cloud Run",
+      "link": "https://cloud.google.com/blog/topics/developers-practitioners/google-cloud-labs-accelerate-ai-with-cloud-run/",
+      "published": "2026-07-07T22:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "#### Moving Beyond the Prototype\n\nThe AI landscape has shifted. While \"vibe coding\" with tools like Antigravity and AI Studio lets you build and deploy complex agents in minutes, the real work begins on \"Day 2\". Moving from a magical prototype to a hardened, production-grade application requires professional AI engineering. We’re excited to bring back the **Accelerate AI with Cloud Run roadshow** for 2026. This year, we’ve updated our curriculum to focus on the full AI agent lifecycle, giving you the keys to productionizing and scaling agentic workloads on Google Cloud’s serverless platform.\n\n#### The Coffee Shop Journey: A Hands-On Experience\n\nExperience the ease of building advanced AI agents on Cloud Run through 'The Coffee Shop Journey'. This interactive session is designed to guide you through the full lifecycle of an AI agent, moving beyond prototyping to focus on real business use cases. You will solve real-world business problems as you evolve from launching a simple cafe to building complex, intelligent assistants.\n\nOur curriculum covers the core pillars of modern AI development:\n\n* **The Basics:** Gain familiarity with Cloud Run by deploying a simple web app (a Coffee Shop launch scenario) to understand the platform fundamentals.\n* **Build a Coffee Recommendation Agent:** Create a personalized AI assistant using Google's Agent Development Kit (ADK) and Retrieval-Augmented Generation (RAG).\n* **Optimize Coffee Stand Locations:** Use Gemma 4 and the BigQuery MCP server to identify the most profitable locations for new coffee stands by analyzing popular bike routes.\n* **Personal Productivity Assistant for Store Managers:** Create a personal productivity assistant using Cloud Run to help a coffee shop manager with daily operational tasks and scheduling.\n* **Master Advanced Features with Antigravity 2.0:** Learn how to use skills, context, rules, and hooks with Antigravity 2.0 to build new features for your Cloud Run applications.\n\n#### Production-Grade AI on Cloud Run\n\nGet first-hand experience with the platform innovations that make Cloud Run the ideal home for production-grade agentic workloads. Through hands-on exercises, you will learn to build, scale, and orchestrate **long-running agents** using Google's ADK and Antigravity 2.0. Additionally, you will utilize BigQuery MCP for automated, **data-driven expansion strategies,** and experience low-latency inference for frontier models using **Cloud Run’s GPU offerings** without the traditional overhead of cluster management.\n\n![image1](https://storage.googleapis.com/gweb-cloudblog-publish/images/image1_9rcEfTb.max-1000x1000.png)\n\n#### Ready to Build for Scale? Join us in North America\n\nDon't just witness the AI revolution - build it. Find the workshop in your city and secure your spot today! Let's transform your AI journey from a simple prototype into a powerful, production reality.\n\n|  |  |  |\n| --- | --- | --- |\n| **City** | **Date** | **Registration Link** |\n| Atlanta, GA (as a part of Atlanta Tech week) | August 12-13 | <https://www.renderatl.com/tickets>  Event tickets grant access to the workshops on a first-come, first-served basis. |\n| Sunnyvale, CA | August 13 | [Register now!](https://rsvp.withgoogle.com/events/google-cloud-labs-accelerate-ai-on-cloud-run-sunnyvale) |\n| Toronto, Canada | August 27 | [Register now!](https://rsvp.withgoogle.com/events/google-cloud-labs-accelerate-ai-on-cloud-run-toronto) |\n| Seattle, WA | September | Registration opens late July! |\n| New York City, NY | October | Registration opens late July! |\n| Los Angeles, CA | November | Registration opens late July! |\n| Boston, MA | October | Registration opens late July! |\n| Washington D.C. | October | Registration opens late July! |\n\n**Registration Update:** Links for our **September**, **October**, and **November** workshops will be added to this page in **late July.** Stay tuned!",
+      "tags": [
+        "Cloud Run",
+        "AI agent",
+        "Google Cloud"
+      ],
+      "score": 70,
+      "summary": "Google Cloud推出Accelerate AI with Cloud Run路演，聚焦AI agent全生命周期生产化。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/newcoffee3.max-600x600.jpg",
+      "fetched_at": "2026-07-07T23:48:33.732099+08:00"
+    },
+    {
+      "title": "Hugging Face Models on Foundry Managed Compute",
+      "link": "https://huggingface.co/blog/microsoft/foundry-managed-compute",
+      "published": "2026-07-07T23:20:06+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "Hugging Face",
+        "Foundry",
+        "Microsoft"
+      ],
+      "score": 70,
+      "summary": "Hugging Face模型现可在Microsoft Foundry托管计算上运行。",
+      "fetched_at": "2026-07-07T23:48:33.732102+08:00"
+    },
+    {
+      "title": "微软25亿美元押注：下一个10年，只剩这2种公司",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905988&idx=1&sn=4fdab16404a91c49b19616e8d1a10ce8",
+      "published": "2026-07-07T22:23:00+08:00",
+      "source": "笔记侠",
+      "content": "原创 笔记侠 2026-07-07 22:23 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5d13601c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F8b91BQ8yFl0YKGRFPhbGo3Wic5ETNMGVEFxxH7VyQXRMspFFNK4jSwbeHibNZ5ESJpswB2DWpVbrIibfvPB3HvmrIoZuqS8InBibMw9Rmo5E2NM%2F0%3Fwx_fmt%3Djpeg)\n\n为什么大厂们都在跟进这件事？\n\n[![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ec2b1f7c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F3K67gxIpWCIsWPibCicko3n2VMWfKv1ZypK2elGibCyDLnL0tzicNqqnX3k7iaIMZWXOibLicffV4Ao7IuicKCYUqRbKgA1SRFzWVd9buufwEHCsnwo%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%23imgIndex%3D0)](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654904000&idx=2&sn=335152210efd3a758c1329563ba291aa&scene=21#wechat_redirect)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5f6eb1cb&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCK1CA3s9ibicywsibxKGwedGqgv7pfgR7HXichaZI6XgvJL3nVnZToZ9uoxAakcHia6ZXOYan1DhOiahB51LJFSibdXNibJwjqiazzTayw4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D1)\n\n---\n\n**内容来源：笔记侠(Notesman)。**\n\n**责编** | 贾宁  **排版** | 拾零\n\n****第 9720************篇深度好文：4949************字 | 13 分钟********阅读****\n\n**AI天演论**\n\n**笔记君说：**\n\n5天前，巨头公司微软，干了一件大事。\n\n它宣布成立一家独立运营的公司：Microsoft Frontier Company（微软前沿公司），一次性砸下25亿美元，配齐6000名行业专家与工程技术人员，长期派驻到客户内部。\n\n这件事的背后，藏着什么信号和启发？\n\n今天这篇文章，我们来全面拆解。\n\n# \n\n****一、只把AI当工具，是个误解****\n\n我们过去的逻辑是：企业缺什么，就买一个系统。\n\n缺客户管理，买CRM；缺财务管理，买ERP；缺协同办公，买Office、飞书、钉钉；\n\n工具买回来，培训一下，员工照着流程用，企业就算完成了一次数字化升级。\n\n但今天的AI，不是这样工作的。\n\nAI真正要产生价值，就必须进入企业的业务现场：**看到客户数据，理解订单历史，接得上审批流程，知道结果由谁负责，还要在每一次业务反馈里继续修正。**\n\n一个客服AI，如果看不到客户的订单、投诉、退款、续费记录，它再会说话，也只是一个更便宜自动回复器。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=160ca76c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCIANMtH6baAfBgtc6QoD3QwLKTmvCRgZOOw5YemlgmO846fGBbYiaSSbmbMDtT97ZUXbc1ibiamibzySBptszOFhp14pZID2bsjf7U%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D2)\n\n一个销售AI，如果接不上CRM、报价权限、客户画像和成交数据，它最多帮销售写几句跟进话术，不能真正判断哪个客户值得投入资源。\n\n一个管理AI，如果连财务、人效、库存、采购和销售预测都接不上，它生成的报告越漂亮，越容易让公司踩上大坑。\n\n所以，“上了AI工具”和“公司被AI改造了”，中间还有很多事要做。\n\n**微软这次成立6000人的AI新军，就是派工程师和行业专家进企业，把AI接进流程，把流程接进数据，把数据接进决策，把决策接进结果。**\n\n****二、硅谷顶尖公司，正在做什么？****\n\n除了微软，亚马逊云科技被也投了10亿美元，开始做FDE（笔记侠注：前沿部署工程师，他们被直接派驻到客户现场，深入客户业务一线，将通用的AI模型或技术定制化地部署、集成到客户真实、复杂的业务流程中，解决AI落地“最后一公里”的问题，并对最终的业务结果负责。下同）。\n\nOpenAI也成立了OpenAI Deployment Company（OpenAI部署公司），并引入外部资本，同时收购Tomoro公司，招了150名部署工程师。\n\nFDE这个岗位，最早的重要源头来自Palantir（帕兰提尔）。\n\n这家公司服务美国情报机构时发现，工程师如果拿不到真实业务场景，需求经过层层转述就会变形，于是开始让工程师直接进入客户现场，和情报分析师、业务人员一起办公，把系统真正嵌进客户工作流里。\n\nFDE本质上不是“外派程序员”，也不是传统顾问，而是一种客户嵌入式工程角色：**既懂技术，又贴近业务现场，负责把通用软件或AI能力，部署、集成到客户真实流程中，并推动它产生业务结果。**\n\n这三家公司现在都在往同一个方向走：**派人进客户现场，把AI从演示、试点、工具，推进到真实流程和业务结果里。**\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7ad55978&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F3K67gxIpWCJlcfwJgaeU8DgAp8kYtL4BbExjdDclIKgsLnibIKAGRaicRMAHXibsayV4iaLiaWqKC0pec8nicayazhiarO4j62Tpwen6tVPXcrL7SI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D3)\n\n这背后的逻辑很简单：AI如果不理解业务，就只能生成内容；AI只有进入流程，才可能改变结果。\n\n这些公司现在做的，是用AI帮客户重写工作流。\n\n这和买工具不是一回事。\n\n买工具是给旧流程加一个插件。工作流重写，是重新问一遍：**这件事为什么要这么做？哪些环节必须由人判断？哪些环节可以交给AI？哪些数据需要打通？出了错谁负责？**\n\n微软这次反复强调“measurable business outcomes”，也就是可衡量的业务结果。\n\n这句话不新鲜，但很关键。\n\nAI项目最后不能只看用了多少人、生成了多少内容、节省了多少时间，而要看售转化有没有提高，客户续费有没有改善，库存周转有没有变快，研发周期有没有缩短，管理决策有没有更及时。\n\n****三、“派人进场”，是AI时代的新方向****\n\n有人会问，软件行业发展了这么多年，不就是为了标准化、规模化、自动化吗？为什么现在微软、亚马逊、OpenAI反而要派工程师进客户公司？这是不是从高科技又退回到咨询公司了？\n\n这个问题问得好。\n\n**其实这不是倒退，而是因为AI进入深水区之后，标准化产品已经不够用了。**\n\n传统软件解决的是相对稳定的问题。财务记账、客户录入、流程审批、文档协作，这些场景虽然每家公司不同，但底层逻辑相对固定，所以可以产品化、模块化、订阅化。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=f93dba26&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCKCUN39zmYjXtOOoZdgh1E9Lw5jmstGriaq1cm3ZwjdoLia1wTNc8XmHS12vcG6J8cLrjX3MmLTnMQI1tOuTQCMJhdNdS9RSnbZo%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D4)\n\nAI要解决的问题，更贴近判断。\n\n比如，判断某个客户值不值得追，判断一个投诉是不是会让客户流失，判断一个供应链异常会不会影响交付，判断一个产品需求是不是伪需求，判断一个市场机会是不是该投入资源。\n\n这些判断不是通用流程，它们藏在企业自己的数据、经验、客户关系和组织语境里。\n\n模型再强，也不可能天然理解一家公司的所有过往。\n\n**这就是为什么“前端部署工程师”在接下来会特别重要，他们不是传统顾问，也不是普通程序的人，而是把技术真正嵌进业务的人。**\n\n这也是为什么前端、产品、架构师、算法工程师都可能往这个方向转。前端懂交互和用户流程，架构师懂系统集成，产品经理懂需求拆解，算法工程师懂模型边界。只要再补上行业理解、客户沟通和结果闭环能力，都有机会进入这个新岗位。\n\n所以，FDE真正值得看的地方，是它代表了AI时代人才价值的变化：未来最稀缺的人，不是单点能力最强的人，而是能把AI能力、业务流程和客户结果连成闭环的人。\n\n另外，还有个误解是：不少公司会觉得FDE是“比较贵的外包工程师”。\n\nFDE确实会去客户现场，确实会写代码，确实会根据客户业务做定制。表面看，和外包工程师很像。\n\n但真正的差别，不在写不写代码，而在反馈回路。\n\n外包接的是一份已经写清楚的需求清单：做什么功能、怎么验收、什么时候交付。\n\nFDE接的往往是一个还没被定义清楚的业务任务：**客户只知道AI应该能帮自己解决问题，但问题到底怎么拆、流程怎么改、模型怎么接、结果怎么算，很多时候要一起摸出来。**\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7154eb75&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F3K67gxIpWCKWI4RWMfqBPpwRKBMeArXbumlm59LwStLNugXOWaxNIDbZ46n2Kjr8zibNq84ExbVONBtGu9ole3pZmRTzkWrp6MoUBicojYW0g%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D5)\n\n外包做的是局部交付，完成一个模块、一个系统、一个页面，验收完就结束。FDE做的是端到端，把模型能力接进客户真实工作流里，看它能不能提高转化、降低流失、缩短周期、带来持续使用。\n\n更关键的是，外包项目的反馈通常停在项目内部；FDE拿到的反馈，会回流到模型公司的产品和技术路线里。客户在真实场景里遇到的工具调用问题、权限边界、流程卡点，都会变成下一版模型、工具和产品功能的输入。\n\n他们不是只在卖服务，而是在客户现场收集最真实的产品信号。这些信号靠问卷拿不到，靠会议听不到，只能靠一个工程师蹲在具体业务流里，亲手撞过墙之后带回来。\n\n****四、中国创业者现在应该做的3件事****\n\n在国内，FDE（前沿部署工程师）也正在成为大厂们砸钱招人的重点。\n\n字节跳动开出月薪3.5万到7万元，全年15薪，年薪最高预计达105万元。阿里云智能则给出2万—5万的月薪，全年16薪的方案。\n\n但对大多数企业来说，不一定要马上从外面招一个叫“FDE”的新人。\n\n你公司里可能已经有一批类似FDE的人了，只是岗位名称不叫这个。\n\n你的AI应用工程师、产品经理、业务技术负责人，都可能在做类似的事。关键是把他们识别出来，重新分类，给他们一条真正对得上工作内容的成长通道。\n\n与其新建一个AI部门，再开十次跨部门对齐会，不如先设几个“内部FDE”，让他们蹲点在销售、客服、供应链、研发这些业务侧，把模型能力真正跑进流程里。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=a1f22273&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F3K67gxIpWCKmn8Y79N4ZygG2KN2OBQPyVia9LaL25HZSPtzO8rr2JDfjicsianbH1betW1AZqZBowgpdMwZL5WyoBnxIaib0Eicto63PxiaCr8m9g%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D6)\n\n你可以先做下面这3件FDE要做的事，给公司的AI转型落地打好基础。\n\n## **1.****岗位结构跟着工作流重新切分**\n\n过去企业做AI，第一反应是“哪个岗位会被替代”；但真正发生的变化，往往不是某个岗位突然消失，而是一个岗位里的任务被重新拆开：一部分交给模型，一部分交给系统，一部分交给懂业务的人来判断和兜底。\n\n原来一个产品经理要写需求、画原型、拉会议、盯开发，现在AI可以先完成信息整理、竞品分析和初版方案；原来一个销售要靠经验判断客户意向，现在AI可以先做线索评分和跟进建议；原来一个工程师要从零写大量代码，现在模型可以承担一部分标准化开发。\n\n于是，人的价值不再只体现在“会不会执行”，而是体现在能不能定义问题、拆解流程、校验结果、承担责任。\n\nFDE之所以会变重要，就是因为他们既理解模型能力，也理解客户现场，还能把被AI重新切开的工作流重新缝合成一个能跑通的业务闭环。\n\n## **2****.****不要只培训工具使用，先整理数据和权限**\n\n很多企业做AI，第一步就是培训员工怎么写提示词、怎么用工具。\n\n这件事有用，但它不是AI落地的地基。真正的地基，是数据、权限和责任。\n\n模型能力再强，如果客户数据在销售手里，订单数据在ERP里，售后记录在客服系统里，合同信息在法务电脑里，产品反馈散在微信群里，AI就很难形成完整判断。它只能看到碎片，就只能给出碎片化建议。\n\n权限也一样。\n\nAI到底能看哪些数据？能不能调用客户信息？能不能生成报价？能不能自动发消息？哪些动作只能建议，不能执行？每一次操作有没有记录？出了问题谁来负责？\n\n这些问题不先说清楚，AI越深入业务，风险越大。\n\n所以企业不要一上来只做工具培训，而是先把一条流程里的数据、权限、责任边界整理清楚。\n\n比如销售流程，就先把客户来源、跟进记录、报价权限、成交数据、复盘机制打通；客服流程，就先把订单、投诉、退款、续费和升级处理机制接起来。\n\nAI不是来替你整理混乱的。如果一家公司的数据本来就散，权限本来就乱，责任本来就模糊，上AI只会让混乱跑得更快。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=bb8a8d01&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCJu0Mr8VxkXuryB3sPBTGN6npvnr0ZZ90kHjufibbHg3UibYUXz0kvFr3ItQSm4PK2Z6PQVegluNth5UL4UuibfwMAibdGNf2T3Cl0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D7)\n\n## **3****.****不要追求全员AI化，先建立业务样板**\n\n企业不需要一开始就全员AI化，更靠谱的做法，是先建立一个AI样板工程。\n\n选一个最耗人、最贵的流程，定一个能衡量的指标，配一个业务负责人，再配一个懂技术、懂业务、能现场推进的小团队，跑三个月。\n\n这个小团队，本质上就是企业自己的“内部FDE”。\n\n它不负责喊口号，也不负责做漂亮演示，而是蹲在业务现场，把模型能力接进真实流程里，看它到底能不能提高销售转化、减少库存积压、缩短交付周期、降低客服成本。\n\n跑通之后，再复制到第二个流程、第三个流程。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=a98959b1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCLYFOHNicYbaytfC0DUrBs5CmpXVGbKCuIzS7v3IsQyzCyl9ibKweLIEdjhoibc3zdz9ibK5SRU3zxXOUulHOoO8Zicz1RP7emCicibU8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D8)\n\n员工真正相信AI，不是因为听了一场课，而是看到身边某个团队真的用AI拿到了结果。\n\n部门墙也不是靠开会打破的，而是靠一个能跑通的样板打破的。\n\n当销售、技术、产品、运营都围着同一个业务结果协作，AI才算完成了组织和工作方式的重新切分。\n\n****结语：AI下半场的2种公司****\n\n微软这次动作，是一个信号：未来的市场上，会分化出两种公司。\n\n一种是AI原生型公司。\n\n它们围绕AI重新设计组织、流程、产品和商业模式，让AI承担大量核心生产和服务，人负责定目标、拆任务、做判断、守边界。\n\n对这类公司来说，Token（词元）不只是成本，而是新的生产资料；AI成为业务增长、效率提升和组织进化的核心引擎。\n\n这样的公司，会越来越掌握行业话语权和价值分配权。\n\n另一种是AI边缘型公司。\n\n它们也会用AI，但只把AI放在客服、行政、文案、会议纪要这些边角场景里，核心业务流程、组织架构和生产逻辑基本不变。\n\n短期看，它们不会马上出局，甚至也能获得一点效率提升。但长期看，它们会越来越被动：利润被压缩，竞争力变弱，行业话语权被AI原生型公司拿走，最后从价值创造者，变成AI原生型公司的附庸和服务商。\n\n怎样成为“AI原生型公司”，是中国企业家现在最该研究的地方。\n\n要看懂这件事，光看新闻不够。企业家真正需要看的，是这些AI公司如何把模型、数据、工程师和客户业务流程接在一起，如何把AI从演示做成生产力。\n\n**笔记侠PPE书院美国站26级「创新英雄・AI+出海专题」课程，将于2026年9月26日正式启程。**\n\n这一次，我们不是去美国打卡，也不是简单参观几家公司，而是带着一个更具体的问题出发：AI进入下半场之后，企业家到底应该怎样理解技术、组织和全球市场的变化？\n\n10天时间里，我们将带你走进美国硅谷与西雅图，深度参访今天文章里提到的微软、亚马逊，还有谷歌、英伟达等全球AI产业标杆公司，近距离观察AI如何从模型能力，进入真实业务流程、客户现场和企业经营系统。\n\n**课程中，我们还将邀请斯坦福名师、硅谷行业实战派、华人科技与出海领域专家，围绕AI产业趋势、企业AI落地、组织重构、全球市场规则和中国企业出海机会，做一手分享和深度交流。**\n\n这趟行程会帮你建立一套判断框架：未来三年，你的企业该如何使用AI，哪些流程必须被重写，哪些能力必须保留，哪些出海机会值得下注，哪些风险必须提前看见。\n\n如果你正在思考AI转型、企业出海、组织升级和下一轮增长，这一次美国站，值得你带着问题亲自去看一次。\n\n**欢迎了解课程详情，提交报名信息。**\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c024f002&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F3K67gxIpWCJh4Xg8T76xOHHvibCaLz2z2lN9wwvN2ZlychNzvlYJicsgNfzdaSNibNPAYPYgbeS99Hia1TMHSbSgjbYp0Daw7RTgDm0ia7DYlolc%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%23imgIndex%3D9)\n\n参考资料：\n\n1.《大厂正在花百万年薪抢人，FDE到底是什么？》，豹变\n\n2.《FDE：AI时代的职业转型号角已吹响？》，十字路口Crossing\n\n**![](https://wechat2rss.bestblogs.dev/img-proxy/?k=eff02b94&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz%2Fianq03UUWGmKcoRiaRFUGwEKsUmhNrlib04P0PMzRoIdesSo7QHRqibNm2O8QXQsibX2lGYALEql7V884Z0mF7AkISA%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26tp%3Dwebp%23imgIndex%3D10)**\n\n**好文阅读推荐：**\n\n* [哈萨比斯最新震撼预言：留给旧世界的时间，不到2000天](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905726&idx=1&sn=8ef3a5b87af8e44da05bc8c71e66d49f&scene=21#wechat_redirect)\n* [赫拉利惊人预言！](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905978&idx=1&sn=a4c72d71974151eaa45854dd2218bbbc&scene=21#wechat_redirect)\n\n分享、点赞、在看，3连3连！****![](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905988&idx=1&sn=4fdab16404a91c49b19616e8d1a10ce8)****\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=ed33bf49&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIxNTAzNzU0Ng%3D%3D%26mid%3D2654905988%26idx%3D1%26sn%3D4fdab16404a91c49b19616e8d1a10ce8)",
+      "tags": [
+        "微软",
+        "Frontier Company",
+        "25亿美元"
+      ],
+      "score": 70,
+      "summary": "微软成立Microsoft Frontier Company，投入25亿美元和6000名专家帮助企业部署AI。",
+      "fetched_at": "2026-07-07T23:48:33.732104+08:00"
+    },
+    {
+      "title": "他们斗了半辈子，却在同一天去世",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905988&idx=2&sn=24c23380f64716fc91e6246164c1bba0",
+      "published": "2026-07-07T22:23:00+08:00",
+      "source": "笔记侠",
+      "content": "老贾 2026-07-07 22:23 北京\n\n以下文章来源于：老贾杂谈\n\n**老贾杂谈**\n\n历史、哲学爱好者，平时在这里写点文字。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=38819c39&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F8b91BQ8yFl2xr6q05Hd1xaZG8PpC33qibp7ejLtO3EswwwQhGeUoDGeaHHCAiagDPKJk99Gz5ULAys8f10nyMaGrzn2RohHKQTuMUtmZxwh5w%2F0%3Fwx_fmt%3Djpeg)\n\n[![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ec2b1f7c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F3K67gxIpWCIsWPibCicko3n2VMWfKv1ZypK2elGibCyDLnL0tzicNqqnX3k7iaIMZWXOibLicffV4Ao7IuicKCYUqRbKgA1SRFzWVd9buufwEHCsnwo%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%23imgIndex%3D0)](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654904000&idx=2&sn=335152210efd3a758c1329563ba291aa&scene=21#wechat_redirect)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=1a85c6cf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F3K67gxIpWCIE2KLXXWM3EvWGmIfKNNEnLJtMDNZQNcZTQCU7gV5Yvk1ZBIicmmCHs6ic18sFsaCGHEcZz2jXhMJ5RVicHemNXLOov3tdicXTlXY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D1)\n\n---\n\n**内容来源：本文转载自微信公众号老贾杂谈(laojia-talk)，笔记侠经授权转载。转载请联系原公众号授权。**\n\n**责编** | 贾宁  **排版** | 拾零\n\n****第 9721************篇深度好文：2966************字 | 8 分钟********阅读****\n\n**思维方式**\n\n****一、两位老人，同一天去世****\n\n1826年7月4日，美国建国50周年。\n\n中午，托马斯·杰斐逊死于蒙蒂塞洛庄园，享年83岁。\n\n傍晚，约翰·亚当斯死于昆西家中，享年90岁。\n\n同一天，同一个建国纪念日。\n\n亚当斯的遗言是：“杰斐逊还活着。”\n\n他不知道，杰斐逊5小时前已经走了。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8bfde0b9&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FsJgGHXDX5tW3kpLtibdFviaFItMZ1OFiabVObibPQiaakcPJ6wVzLKYhOdMM2xCZT1q8NRERtaltGtEaAMaKN8JQh18a1Kj1cWzj1hXNczMDosbs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D0)\n\n杰斐逊从7月2日起陷入半昏迷，偶尔清醒时只问一件事：到了4号没有。他拒绝了进一步治疗，撑到了4号中午。\n\n亚当斯也在撑，家人围在床边，他硬是又拖了5个小时。两个人都想活到建国50周年。\n\n杰斐逊撑到了，亚当斯也撑到了，然后各自松手。\n\n****二、两个年轻人，一起建国****\n\n1775年，大陆会议召开，32岁的杰斐逊遇到39岁的亚当斯。一个是弗吉尼亚的沉默天才，一个是马萨诸塞的火爆辩手，性格迥异。但合得来。\n\n1776年，大陆会议要起草《独立宣言》，由五人委员会负责，亚当斯是其中之一。他完全可以自己主笔，他是当时最犀利的笔杆子。但亚当斯推了杰斐逊，理由有二：杰斐逊写得更好；弗吉尼亚人起草比马萨诸塞人更容易被南方殖民地接受。\n\n**他把最重要的舞台让给了杰斐逊。**\n\n6月11日委员会成立，6月28日提交初稿。杰斐逊在这17天内完成了起草，经委员会修改后提交大陆会议。再经国会辩论删改，7月4日正式通过（实际签署日为8月2日）。\n\n在夏天最热的日子里，这个33岁的年轻人替新生的国家说了第一句话。\n\n这之后，两个人被派到欧洲做外交。在伦敦，在巴黎，他们并肩工作，也并肩生活。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c2059886&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F3K67gxIpWCLXj2PsNws5HuPenUYFUKrjzCotuerwW8hgV9z0IBfC02YYDm2larl7wPJrt8OSlt35ibjGSfEKyGskP2UY6sVLRII2HGV960Hg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D3)\n\n1786年4月，他们一起去了莎士比亚故居。在斯特拉特福那座老房子里，两人从莎士比亚的椅子上撬下了一块碎片带走当纪念品。亚当斯后来写信说这是“按照习俗”，来这儿的人都这么干。\n\n亚当斯的妻子阿比盖尔，一个眼光毒辣的女人，叫杰斐逊“世上最可贵的人之一”；杰斐逊写信给麦迪逊（后来的第四任总统，杰斐逊的好友）说亚当斯“你一旦认识就会爱上他”。\n\n**人生若只如初见，初见总是美好的。**\n\n****三、决裂：1800年大选****\n\n1798年，亚当斯任总统期间签署了《外侨与煽动叛乱法》，这部法律授权政府驱逐“危险”的外侨，起诉批评政府的言论。\n\n杰斐逊视之为暴政，他没有争辩，而是回了蒙蒂塞洛，开始行动。\n\n他起草了《肯塔基决议》，主张各州有权否决联邦法律。他资助了记者詹姆斯·卡伦德，专门写文章攻击亚当斯。\n\n1800年大选，双方彻底撕破脸。杰斐逊的支持者在报纸上骂亚当斯是“雌雄同体的怪物”。\n\n联邦党人预言杰斐逊当选后，“谋杀、抢劫、强奸、通奸和乱伦将公开教授和实践”。\n\n双方都不顾当年的友情，不讲体面。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=1e276193&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCKQvr9v5ibX97LkibEJMGlw6xBNGr66ib5NqDGzVhqSV10ZLxW0Cefcic2oibIdK0WSCj8DdyiaDfp7cvibOqbicQbk6P61WriaianzDU3ico%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D4)\n\n1801年3月4日，是杰斐逊的总统就职典礼。\n\n亚当斯没有参加，凌晨4点，他坐马车离开了华盛顿。没有告别，没有交接仪式。一个建国者对另一个建国者的最后态度，是在天亮之前消失。\n\n他走之前的最后一件事，是签署了一批联邦党人的法官任命。这批被称为“午夜法官”的任命，成了杰斐逊上台后最头疼的麻烦之一。\n\n**从这一刻到1812年，12年里，两个人没有通过一封信，没有说过一句话。**\n\n一个人在弗吉尼亚的山上盖房子，一个人在马萨诸塞的海边生闷气，没有外力再把他们推到一起，直到出现了一个人。\n\n****四、一个人，做了一个梦****\n\n这个人是本杰明·拉什，《独立宣言》签署人之一，亚当斯和杰斐逊的共同朋友。\n\n从1809年开始，拉什做了一件极其耐心的事：他同时给两个人写信，告诉亚当斯“杰斐逊很想你”，告诉杰斐逊“亚当斯还在乎你”。两边都不知道拉什在跟对方通信。\n\n1809年10月，拉什给亚当斯写信，讲了一个梦。梦里，他的儿子理查德拿来一本书，说是“未来的美国历史”。\n\n书里写道：亚当斯给杰斐逊写了一封信，杰斐逊回了，两个人和解了。梦的结尾，两人“几乎同时走进坟墓”。\n\n拉什是不是真的做了这个梦，不重要。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=69b181f2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F3K67gxIpWCKQiaUp8bmicicLh8HXRiapj8a77hXSKjMEtt8icpO3q5ZO2cpeksPf29l1rG7wjUYVnic8NhCNxFp22Q9pvktpY4TIS6Sx5CHZUI4Ek%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D5)\n\n重要的是他选择用梦的方式告诉亚当斯：你们的时间不多了。\n\n1811年，杰斐逊的一个邻居去昆西拜访了亚当斯。亚当斯对这位邻居说了一句话：“我一直爱杰斐逊，现在还爱。”邻居把这句话带回了蒙蒂塞洛，杰斐逊听后写信给拉什：“这就够了。”\n\n12年的沉默，只需要一句话来打破。但这句话必须先有人说出来。\n\n那个脾气最火爆、最不肯认输的人，先说了“我爱他”。说出这句话意味着承认自己在乎。\n\n**在乎一个伤过你的人，等于承认你有软肋。**亚当斯不在乎，75岁的人，没什么可输的了。\n\n1812年元旦，亚当斯给杰斐逊寄出了第一封信。随信附了两卷他儿子约翰·昆西的讲演集。\n\n****五、14年，158封信****\n\n从1812到1826这14年，两个老人，一个在弗吉尼亚，一个在马萨诸塞，隔着上千公里，用鹅毛笔和158封信，把余生的想法寄给对方。\n\n他们什么都聊，希腊语的正确发音、灵魂是否存在、衰老的屈辱感、自然贵族和世袭贵族的区别。\n\n亚当斯写了很长的信讨论旧约和新约，杰斐逊回信讨论他的“理性基督教”，把圣经里超自然的部分全部剔除，只保留耶稣的道德教诲。亚当斯对此不置可否。\n\n亚当斯在信里问：为什么有些人天生就有领导力，这是不是一种“自然贵族”？杰斐逊回答：是的，但自然贵族基于美德和才能，世袭贵族基于财富和血统，前者是理性的，后者是荒谬的。\n\n**这种讨论放在今天，仍然不过时。**\n\n他们也聊时事。1813年，拿破仑战争正酣，亚当斯直接问杰斐逊：人性的完美与可完善性在哪里？人类心智的进步又在哪里？杰斐逊回信说混乱终会归于秩序。亚当斯不信，但两个人都没有因此停止通信。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=6cc19a0b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F3K67gxIpWCI1VjD4SP5J7smeCRDVv9vQPtUbjicvZ4g96QzMvXyZ51IicV69Bib44q9OwqqibInkia3f3FIlkEzzP99nuF6WfaVqkGtgY34iby6ts%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%23imgIndex%3D6)\n\n两个人的写信风格完全不同。亚当斯火气大，想到什么写什么，经常一封信写完就后悔，但不收回。\n\n杰斐逊措辞讲究，回避冲突，把尖锐的观点裹在优雅的句子里。杰斐逊写过一句很美的话：**“我驾驭我的小舟，让希望领航，把恐惧留在身后。”**\n\n亚当斯大概写不出这种句子。他写的更像是：你错了，而且你一直错，但我懒得再吵了。\n\n1826年3月25日，杰斐逊最后一次写信给亚当斯。\n\n信里回顾了他们那一代人的事业，用了“英雄时代”和“阿尔戈英雄”（Argonauts）这样的词，他把自己和亚当斯都归入了英雄的行列。\n\n4月17日，亚当斯回了最后一封信，他说杰斐逊的信对他来说“就像一剂提神的良药”。\n\n**三个月后，7月4日，两个人同日离世。**\n\n杰斐逊和亚当斯的一生就是这样，他们以为最重要的日子是被标注的、被庆祝的、写进课本的7月4日。\n\n但真正改变一切的，是1775年两个陌生人的对视，1786年撬椅子碎片时的笑，1812年元旦一个老人手抖着寄出第一封信。\n\n**那些时刻没有纪念日。也不需要。**\n\n很多真正改变命运的时刻，当下都没有名字。\n\n两百年前如此，今天也是如此。AI正在重写产业、组织和商业规则，但它最真实的样子，不在新闻标题里，也不在二手报告里，而在那些最前沿公司的实验室、产品线和决策现场。\n\n所以，与其隔岸遥望，不如亲自去看一次。\n\n笔记侠PPE书院美国站26级「创新英雄・AI+出海专题」课程将于2026年9月26日正式启程，10天时间里，我们将带你走进美国硅谷与西雅图，深度参访英特尔、谷歌、英伟达、微软等全球AI产业标杆，聆听斯坦福名师、行业实战派的一手分享。\n\n欢迎了解课程详情，提交报名信息。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=3d327b62&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F3K67gxIpWCJh4Xg8T76xOHHvibCaLz2z2lN9wwvN2ZlychNzvlYJicsgNfzdaSNibNPAYPYgbeS99Hia1TMHSbSgjbYp0Daw7RTgDm0ia7DYlolc%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%23imgIndex%3D7)\n\n\\*文章为作者独立观点，不代表笔记侠立场。\n\n**![](https://wechat2rss.bestblogs.dev/img-proxy/?k=dc692e0d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz%2Fianq03UUWGmKcoRiaRFUGwEKsUmhNrlib04P0PMzRoIdesSo7QHRqibNm2O8QXQsibX2lGYALEql7V884Z0mF7AkISA%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26tp%3Dwebp%23imgIndex%3D8)**\n\n**好文阅读推荐：**\n\n* [赫拉利惊人预言！](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905978&idx=1&sn=a4c72d71974151eaa45854dd2218bbbc&scene=21#wechat_redirect)\n* [哈萨比斯最新震撼预言：留给旧世界的时间，不到2000天](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905726&idx=1&sn=8ef3a5b87af8e44da05bc8c71e66d49f&scene=21#wechat_redirect)\n\n分享、点赞、在看，3连3连！****![](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654905988&idx=2&sn=24c23380f64716fc91e6246164c1bba0)****\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=e66c1d62&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIxNTAzNzU0Ng%3D%3D%26mid%3D2654905988%26idx%3D2%26sn%3D24c23380f64716fc91e6246164c1bba0)",
+      "tags": [
+        "历史",
+        "杰斐逊",
+        "亚当斯"
+      ],
+      "score": 0,
+      "summary": "非AI主题，关于杰斐逊和亚当斯同一天去世的历史故事。",
+      "fetched_at": "2026-07-07T23:48:33.732106+08:00"
+    },
+    {
+      "title": "比 upgrade 更让人有点击欲望",
+      "link": "https://x.com/dingyi/status/2074507739527774557",
+      "published": "2026-07-07T22:56:02+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "比 upgrade 更让人有点击欲望\n\n![Tweet Image](https://pbs.twimg.com/media/HMohy8ba0AAST2B.jpg)\n\n💬0🔄0❤️2👀537📊1",
+      "tags": [
+        "无意义"
+      ],
+      "score": 0,
+      "summary": "无实质内容的推文，仅表达点击欲望。",
+      "fetched_at": "2026-07-07T23:48:33.732108+08:00"
+    },
+    {
+      "title": "Find out more about our plans in Canada on our blog: https://t.co/AV3WRkSkoy",
+      "link": "https://x.com/ElevenLabs/status/2074496102204649806",
+      "published": "2026-07-07T22:09:47+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "Find out more about our plans in Canada on our blog: [elevenlabs.io/blog/canada](http://elevenlabs.io/blog/canada)\n\n💬1🔄0❤️7👀1299📊2",
+      "tags": [
+        "ElevenLabs",
+        "加拿大",
+        "扩张"
+      ],
+      "score": 70,
+      "summary": "ElevenLabs宣布在加拿大扩张计划，任命总经理并开设多伦多办公室。",
+      "fetched_at": "2026-07-07T23:48:33.732110+08:00"
+    },
+    {
+      "title": "ElevenLabs is officially launching in Canada. We’ve appointed Max Lemmens as General Manager, and wi...",
+      "link": "https://x.com/ElevenLabs/status/2074496098849231033",
+      "published": "2026-07-07T22:09:46+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "ElevenLabs is officially launching in Canada. We’ve appointed Max Lemmens as General Manager, and will open our first office in Toronto later this year. We plan to double the size of our team in Canada before the end of the year, and have open roles in research, engineering, sales and more.\n\n![Tweet Image](https://pbs.twimg.com/media/HMoT_Q4XoAAtPDM.jpg)\n\n💬19🔄5❤️83👀7429📊26",
+      "tags": [
+        "ElevenLabs",
+        "加拿大",
+        "多伦多办公室"
+      ],
+      "score": 80,
+      "summary": "ElevenLabs正式进入加拿大，任命Max Lemmens为总经理，年底前在多伦多开设办公室并扩大团队。",
+      "fetched_at": "2026-07-07T23:48:33.732112+08:00"
+    },
+    {
+      "title": "大会议程偶尔有圆桌\n是告诉你\n这时间段可以上厕所\n\n大会议程里一堆圆桌\n是告诉你\n这个大会不值得参加",
+      "link": "https://x.com/lifesinger/status/2074501698916384778",
+      "published": "2026-07-07T22:32:02+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "大会议程偶尔有圆桌  \n是告诉你  \n这时间段可以上厕所  \n  \n大会议程里一堆圆桌  \n是告诉你  \n这个大会不值得参加\n\n💬2🔄0❤️4👀1734📊3",
+      "tags": [
+        "无意义"
+      ],
+      "score": 0,
+      "summary": "对会议议程中圆桌环节的调侃，无AI相关实质内容。",
+      "fetched_at": "2026-07-07T23:48:33.732114+08:00"
+    },
+    {
+      "title": "AI debt financing is on an insane trajectory, per @SemiAnalysis_:",
+      "link": "https://x.com/GaryMarcus/status/2074492840806322557",
+      "published": "2026-07-07T21:56:50+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "AI debt financing is on an insane trajectory, per [@SemiAnalysis\\_](https://x.com/SemiAnalysis_):\n\n![Tweet Image](https://pbs.twimg.com/media/HMoUPqLbMAAnuyE.jpg)\n\n![SemiAnalysis](https://pbs.twimg.com/profile_images/2062973370157694976/CdplNoi1_normal.jpg)\n\nSemiAnalysis@SemiAnalysis\\_\n\nNvidia GPU Debt Backstop Unleashes the AI Project Trinity: Capital, Offtake and Datacenters  \nOver 7T AI debt by 2029,   \nThere can be no Neoouds without the Trinity.   \nNvidia's Backstop Economics Explained.   \nAI Debt Needs Quantified.   \nNvidia's Objective is to Broaden Compute Access  \n  \n[newsletter.semianalysis.com/p/nvidia-gpu-d…](https://newsletter.semianalysis.com/p/nvidia-gpu-debt-backstop-unleashes)\n\n[🔗 View Quoted Tweet](https://x.com/SemiAnalysis_/status/2074251380370423973)\n\n💬4🔄8❤️29👀4788📊8",
+      "tags": [
+        "AI债务",
+        "NVIDIA",
+        "SemiAnalysis"
+      ],
+      "score": 75,
+      "summary": "Gary Marcus引用SemiAnalysis报告，指出AI债务融资规模惊人，预计2029年超7万亿美元。",
+      "fetched_at": "2026-07-07T23:48:33.732116+08:00"
+    },
+    {
+      "title": "OpenCode Zen 也上了 Hy3 Free 🥳",
+      "link": "https://x.com/geekbb/status/2074490684015513848",
+      "published": "2026-07-07T21:48:15+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "OpenCode Zen 也上了 Hy3 Free 🥳\n\n![Tweet Image](https://pbs.twimg.com/media/HMoSKmAaoAE_Dpa.jpg)\n\n💬1🔄0❤️6👀2817📊2",
+      "tags": [
+        "OpenCode Zen",
+        "Hy3 Free"
+      ],
+      "score": 60,
+      "summary": "OpenCode Zen已支持Hy3 Free模型。",
+      "fetched_at": "2026-07-07T23:48:33.732118+08:00"
+    },
+    {
+      "title": "Good blog from viv on how improving agents (via rl, harness Eng, anything) boils down to a data mini...",
+      "link": "https://x.com/hwchase17/status/2074510084835778793",
+      "published": "2026-07-07T23:05:21+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Good blog from viv on how improving agents (via rl, harness Eng, anything) boils down to a data mining problem over traces\n\n![Viv](https://pbs.twimg.com/profile_images/1805079750873923584/7sTh63Eo_normal.jpg)\n\nViv@Vtrivedy10\n\n[x.com/i/article/2073…](http://x.com/i/article/2073138207986966528)\n\n[🔗 View Quoted Tweet](https://x.com/Vtrivedy10/status/2074509344155066517)\n\n💬2🔄1❤️5👀452📊2",
+      "tags": [
+        "Harrison Chase",
+        "agent改进",
+        "数据挖掘"
+      ],
+      "score": 75,
+      "summary": "Harrison Chase评论称改进agent本质上是关于轨迹的数据挖掘问题。",
+      "fetched_at": "2026-07-07T23:48:33.732121+08:00"
+    },
+    {
+      "title": "Training Agents 2: Live tutorial on model distillation for training custom agents. https://t.co/tRqw...",
+      "link": "https://x.com/huggingface/status/2074508881984934265",
+      "published": "2026-07-07T23:00:34+08:00",
+      "source": "Hugging Face(@huggingface)",
+      "content": "Training Agents 2: Live tutorial on model distillation for training custom agents. [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1XxyggpEQALGM)\n\n💬4🔄1❤️14👀3529📊8",
+      "tags": [
+        "Hugging Face",
+        "模型蒸馏",
+        "agent训练"
+      ],
+      "score": 70,
+      "summary": "Hugging Face举办关于模型蒸馏训练自定义agent的直播教程。",
+      "fetched_at": "2026-07-07T23:48:33.732123+08:00"
+    },
+    {
+      "title": "Thank you @SiliconFlowAI for support. 🫶",
+      "link": "https://x.com/TencentHunyuan/status/2074509570932924687",
+      "published": "2026-07-07T23:03:18+08:00",
+      "source": "Hunyuan(@TXhunyuan)",
+      "content": "Thank you [@SiliconFlowAI](https://x.com/SiliconFlowAI) for support. 🫶\n\n![SiliconFlow](https://pbs.twimg.com/profile_images/1938267775518072832/xdihGpYG_normal.jpg)\n\nSiliconFlow@SiliconFlowAI\n\n🎁 Free Access for First 2 Weeks  \nMeet [@TencentHunyuan](https://x.com/TencentHunyuan) Hy3  \nNow with T+0 support on SiliconFlow 🎉  \n  \nHy3: 295B MoE / 21B active / 262K context  \n✅ Refined iteratively through 50+ real business scenarios  \n✅ Cuts hallucinations & knowledge errors in half  \n✅ Stays on-intent over long-horizon tasks  \n✅ Stable agent execution with more tool-call wins, no infinite loops  \n  \nPut it to real work through SiliconFlow ⬇️\n\n![Tweet Image](https://pbs.twimg.com/media/HMmS5-dbMAAuQeX.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/SiliconFlowAI/status/2074350889205465483)\n\n💬1🔄0❤️5👀691📊2",
+      "tags": [
+        "腾讯混元",
+        "Hy3",
+        "SiliconFlow"
+      ],
+      "score": 70,
+      "summary": "腾讯混元Hy3模型在SiliconFlow上提供免费两周访问，支持T+0。",
+      "fetched_at": "2026-07-07T23:48:33.732125+08:00"
+    },
+    {
+      "title": "Anthropic releasing open source demos built on top of Qwen (with @neuronpedia) is not something that...",
+      "link": "https://x.com/julien_c/status/2074496845565317358",
+      "published": "2026-07-07T22:12:44+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Anthropic releasing open source demos built on top of Qwen (with [@neuronpedia](https://x.com/neuronpedia)) is not something that I was expecting\n\n![Anthropic](https://pbs.twimg.com/profile_images/1798110641414443008/XP8gyBaY_normal.jpg)\n\nAnthropic@AnthropicAI\n\nWe also partnered with Neuronpedia to create an interactive demo of our methods on open-weights models.  \n  \nTry it here: [neuronpedia.org/jlens](http://neuronpedia.org/jlens)\n\n[🔗 View Quoted Tweet](https://x.com/AnthropicAI/status/2074185390060110138)\n\n💬4🔄2❤️17👀2328📊6",
+      "tags": [
+        "Anthropic",
+        "Qwen",
+        "开源"
+      ],
+      "score": 80,
+      "summary": "Anthropic与Neuronpedia合作，基于Qwen发布开源演示。",
+      "fetched_at": "2026-07-07T23:48:33.732127+08:00"
+    },
+    {
+      "title": "Don't know how to get started? \n\nGet my free 30-page guide on the 7 capacities that built my $15M on...",
+      "link": "https://x.com/thejustinwelsh/status/2074508836736565567",
+      "published": "2026-07-07T23:00:23+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Don't know how to get started?   \n  \nGet my free 30-page guide on the 7 capacities that built my $15M one-person business.  \n  \nEach one comes with one specific exercise and a clear output, so you can execute today.  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬0🔄0❤️0👀372",
+      "tags": [
+        "广告"
+      ],
+      "score": 0,
+      "summary": "Justin Welsh推广其免费指南，与AI无关。",
+      "fetched_at": "2026-07-07T23:48:33.732129+08:00"
+    },
+    {
+      "title": "What do a giant’s false eyelashes look like? 💄",
+      "link": "https://x.com/Kling_ai/status/2074509775581135333",
+      "published": "2026-07-07T23:04:07+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "What do a giant’s false eyelashes look like? 💄\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074508983864377344/vid/avc1/1920x1080/kCYzAPiuLOfBGJTc.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2074509775581135333/video/1)\n\n💬0🔄1❤️4👀1025📊1",
+      "tags": [
+        "无意义"
+      ],
+      "score": 0,
+      "summary": "Kling AI发布关于巨人假睫毛的视频，无实质信息。",
+      "fetched_at": "2026-07-07T23:48:33.732131+08:00"
+    },
+    {
+      "title": "ICYMI: At @aiDotEngineer World’s Fair, @vtrivedy10 took the stage to share why data mining from trac...",
+      "link": "https://x.com/LangChain/status/2074509545641058794",
+      "published": "2026-07-07T23:03:12+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "ICYMI: At [@aiDotEngineer](https://x.com/aiDotEngineer) World’s Fair, [@vtrivedy10](https://x.com/vtrivedy10) took the stage to share why data mining from traces is one of the highest leverage muscles companies can build to understand their agents, curate data at scale, & then run improvement loops.\n\n![Viv](https://pbs.twimg.com/profile_images/1805079750873923584/7sTh63Eo_normal.jpg)\n\nViv@Vtrivedy10\n\n[x.com/i/article/2073…](http://x.com/i/article/2073138207986966528)\n\n[🔗 View Quoted Tweet](https://x.com/Vtrivedy10/status/2074509344155066517)\n\n💬2🔄0❤️1👀1072📊2",
+      "tags": [
+        "LangChain",
+        "数据挖掘",
+        "agent"
+      ],
+      "score": 70,
+      "summary": "LangChain分享Viv关于从轨迹中挖掘数据以改进agent的观点。",
+      "fetched_at": "2026-07-07T23:48:33.732133+08:00"
+    },
+    {
+      "title": "Read their full story in our (new!) founder showcase site: https://t.co/3Hw3pjoG8k",
+      "link": "https://x.com/Lovable/status/2074491620943089923",
+      "published": "2026-07-07T21:51:59+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "Read their full story in our (new!) founder showcase site: [founder-stories-showcase.lovable.app](http://founder-stories-showcase.lovable.app)\n\n💬0🔄0❤️3👀987",
+      "tags": [
+        "Lovable",
+        "创始人展示"
+      ],
+      "score": 60,
+      "summary": "Lovable推出创始人展示网站。",
+      "fetched_at": "2026-07-07T23:48:33.732135+08:00"
+    },
+    {
+      "title": "\"They called us in and wanted us to stop what we were doing.\"\n\nThree friends noticed higher learning...",
+      "link": "https://x.com/Lovable/status/2074491618824978652",
+      "published": "2026-07-07T21:51:58+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "\"They called us in and wanted us to stop what we were doing.\"  \n  \nThree friends noticed higher learning hadn't changed in centuries, so they made their own fix.  \n  \nAt first, their university told them to stop. Now, they’re partners.  \n  \nThis is Klar. Built by Isabel, Andreas, and Eric.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074489191090515968/vid/avc1/3840x2160/tMaEg2IRPtFSDPuC.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Lovable/status/2074491618824978652/video/1)\n\n💬5🔄3❤️56👀8962📊12",
+      "tags": [
+        "Lovable",
+        "Klar",
+        "教育"
+      ],
+      "score": 60,
+      "summary": "Lovable展示教育科技初创公司Klar的故事。",
+      "fetched_at": "2026-07-07T23:48:33.732137+08:00"
+    },
+    {
+      "title": "https://t.co/TUSySTiMZs",
+      "link": "https://x.com/NVIDIAAI/status/2074498919166570809",
+      "published": "2026-07-07T22:20:59+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "[x.com/dvir\\_samuel/st…](https://x.com/dvir_samuel/status/2074032228473168259)\n\n![Dvir Samuel](https://pbs.twimg.com/profile_images/1845774647247204355/6AOBgjwB_normal.jpg)\n\nDvir Samuel@dvir\\_samuel\n\nI'm going to present Fast-AR at #ICML26 tomorrow (Tuesday) @ 2pm - poster #1204!  \nCome and say hi 👋  \nIf you're around this week, feel free to DM me.  \n  \nProject page:[dvirsamuel.github.io/fast-auto-regr…](https://dvirsamuel.github.io/fast-auto-regressive-video/)j  \n  \nDetails below ⬇️\n\n[🔗 View Quoted Tweet](https://x.com/dvir_samuel/status/2074032228473168259)\n\n💬0🔄0❤️3👀2066",
+      "tags": [
+        "NVIDIA",
+        "Fast-AR",
+        "ICML"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI转发Fast-AR论文将在ICML 2026展示的信息。",
+      "fetched_at": "2026-07-07T23:48:33.732140+08:00"
+    },
+    {
+      "title": "The NVIDIA research team ships papers faster than we can post about them. \n\nHere's another great pap...",
+      "link": "https://x.com/NVIDIAAI/status/2074498837247582306",
+      "published": "2026-07-07T22:20:39+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "The NVIDIA research team ships papers faster than we can post about them.   \n  \nHere's another great paper from #ICML2026.\n\n![Dvir Samuel](https://pbs.twimg.com/profile_images/1845774647247204355/6AOBgjwB_normal.jpg)\n\nDvir Samuel@dvir\\_samuel\n\n🚀 Excited to share our new paper: “Fast Autoregressive Video Diffusion & World Models with Temporal Cache Compression & Sparse Attention.”  \n  \nWe address attention bottlenecks in auto-regressive video diffusion, enabling ×5–×10 speedup and constant memory over long rollouts.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2018703671291162624/vid/avc1/1280x720/qqoos1T31Mswnu0y.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/dvir_samuel/status/2018703825578692613/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/dvir_samuel/status/2018703825578692613)\n\n💬6🔄3❤️51👀7312📊9",
+      "tags": [
+        "NVIDIA",
+        "Fast-AR",
+        "视频扩散"
+      ],
+      "score": 80,
+      "summary": "NVIDIA研究团队提出Fast Autoregressive Video Diffusion，实现5-10倍加速和恒定内存。",
+      "fetched_at": "2026-07-07T23:48:33.732142+08:00"
+    },
+    {
+      "title": "On-device AI RAG using Qdrant Edge https://t.co/XcDxt0adTQ",
+      "link": "https://x.com/qdrant_engine/status/2074508430593999087",
+      "published": "2026-07-07T22:58:47+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "On-device AI RAG using Qdrant Edge [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1qxvvvgYWPQxB)\n\n💬1🔄0❤️2👀109📊2",
+      "tags": [
+        "Qdrant",
+        "RAG",
+        "设备端"
+      ],
+      "score": 60,
+      "summary": "Qdrant举办关于使用Qdrant Edge构建设备端RAG的直播。",
+      "fetched_at": "2026-07-07T23:48:33.732144+08:00"
+    },
+    {
+      "title": "Going live in 15 minutes. Don't forget to join!",
+      "link": "https://x.com/qdrant_engine/status/2074505001180033250",
+      "published": "2026-07-07T22:45:09+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "Going live in 15 minutes. Don't forget to join!\n\n![Qdrant](https://pbs.twimg.com/profile_images/1944810713630830592/Ep6nI7ky_normal.jpg)\n\nQdrant@qdrant\\_engine\n\nJoin us for today’s Vector Space Talk with [@TRJ\\_0751](https://x.com/TRJ_0751).  \n  \nDiscover how to build a fully on-device RAG pipeline using Qdrant Edge and Google LiteRT, powering document Q&A, personal assistants, and semantic search without relying on the cloud.  \n  \nTime: 8:30 PM IST | 5:00 PM CEST | 8:00 AM PDT  \nDon’t miss this live session!  \n  \nJoin here: [streamyard.com/watch/GDNR4Xtj…](https://streamyard.com/watch/GDNR4Xtj8RpS)  \n  \nSee you there!\n\n[🔗 View Quoted Tweet](https://x.com/qdrant_engine/status/2074432977938063709)\n\n💬1🔄0❤️1👀134📊1",
+      "tags": [
+        "Qdrant",
+        "直播预告"
+      ],
+      "score": 50,
+      "summary": "Qdrant提醒即将开始的直播活动。",
+      "fetched_at": "2026-07-07T23:48:33.732146+08:00"
+    },
+    {
+      "title": "New this week: Community Profiles.\n\nEvery app you ship is proof of work, and now it lives on a profi...",
+      "link": "https://x.com/Replit/status/2074510638399799721",
+      "published": "2026-07-07T23:07:33+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "New this week: Community Profiles.  \n  \nEvery app you ship is proof of work, and now it lives on a profile you can customize and share.  \n  \nTrack your activity, climb the Replit Power Ranking, and let your builds speak for themselves ⚡️\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2074510611078062080/pu/vid/avc1/1280x720/fsw5UYrYZH2LJMpn.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2074510638399799721/video/1)\n\n💬0🔄0❤️2👀727",
+      "tags": [
+        "Replit",
+        "社区档案"
+      ],
+      "score": 60,
+      "summary": "Replit推出社区档案功能，展示用户构建的应用。",
+      "fetched_at": "2026-07-07T23:48:33.732149+08:00"
+    },
+    {
+      "title": "Read more:\n\nhttps://t.co/itUOXuUH1J",
+      "link": "https://x.com/TheRundownAI/status/2074502874973843627",
+      "published": "2026-07-07T22:36:42+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more:  \n  \n[therundown.ai/p/the-part-of-…](https://www.therundown.ai/p/the-part-of-claude-s-brain-nobody-built)\n\n💬1🔄0❤️3👀669📊1",
+      "tags": [
+        "The Rundown",
+        "Claude"
+      ],
+      "score": 60,
+      "summary": "The Rundown AI推荐关于Claude内部工作区的文章。",
+      "fetched_at": "2026-07-07T23:48:33.732151+08:00"
+    },
+    {
+      "title": "Top AI news from this morning's AI newsletter: \n\n- Anthropic finds a hidden workspace inside Claude\n...",
+      "link": "https://x.com/TheRundownAI/status/2074502555300667580",
+      "published": "2026-07-07T22:35:26+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top AI news from this morning's AI newsletter:   \n  \n- Anthropic finds a hidden workspace inside Claude  \n- Tencent open-sources Hy3  \n- Build any mobile app idea in 15 minutes with Replit  \n- Kyutai’s AI dreams up a playable Rocket League  \n- 4 new AI tools, community workflows, and more\n\n![Tweet Image](https://pbs.twimg.com/media/HMocwhyW0AAwVVT.jpg)\n\n💬9🔄1❤️8👀3876📊9",
+      "tags": [
+        "Anthropic",
+        "Claude",
+        "腾讯Hy3"
+      ],
+      "score": 70,
+      "summary": "The Rundown AI汇总当日AI新闻：Anthropic发现Claude隐藏工作区、腾讯开源Hy3等。",
+      "fetched_at": "2026-07-07T23:48:33.732153+08:00"
+    },
+    {
+      "title": "人类是AI时代的新型屎壳郎\n接下来AI屎学也会出现望闻问切\n\n望的是天塌了的自媒体 拿一个Github skill就传播吹嘘\n闻的是去体验的极客  下载下来运行运行 吐槽吐槽这个不好用 那个效果达不到...",
+      "link": "https://x.com/yangyi/status/2074510035561119852",
+      "published": "2026-07-07T23:05:09+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "人类是AI时代的新型屎壳郎  \n接下来AI屎学也会出现望闻问切  \n  \n望的是天塌了的自媒体 拿一个Github skill就传播吹嘘  \n闻的是去体验的极客 下载下来运行运行 吐槽吐槽这个不好用 那个效果达不到  \n问的是做AI落地培训的 每天面临一大堆焦虑的企业老板 了解他们的痛点  \n切的是所谓的FDE团队 要从屎堆里淘金子换钱\n\n💬0🔄0❤️1👀276",
+      "tags": [
+        "无意义"
+      ],
+      "score": 0,
+      "summary": "对AI时代人类角色的比喻性评论，无实质信息。",
+      "fetched_at": "2026-07-07T23:48:33.732156+08:00"
+    },
+    {
+      "title": "As long-running agents go multimodal, pay close attention to models like MiniMax M3. Wrote some note...",
+      "link": "https://x.com/omarsar0/status/2074495218666144125",
+      "published": "2026-07-07T22:06:17+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "As long-running agents go multimodal, pay close attention to models like MiniMax M3. Wrote some notes on how sparse attention makes long-horizon agents practical.\n\n![elvis](https://pbs.twimg.com/profile_images/939313677647282181/vZjFWtAn_normal.jpg)\n\nelvis@omarsar0\n\n[x.com/i/article/2074…](http://x.com/i/article/2074309745217814528)\n\n[🔗 View Quoted Tweet](https://x.com/omarsar0/status/2074494774292148726)\n\n💬4🔄2❤️15👀3293📊5",
+      "tags": [
+        "MiniMax M3",
+        "稀疏注意力",
+        "长时agent"
+      ],
+      "score": 75,
+      "summary": "elvis评论MiniMax M3模型，稀疏注意力使长时agent实用化。",
+      "fetched_at": "2026-07-07T23:48:33.732158+08:00"
+    },
+    {
+      "title": "https://t.co/v9huIornsf",
+      "link": "https://x.com/omarsar0/status/2074494774292148726",
+      "published": "2026-07-07T22:04:31+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "[x.com/i/article/2074…](http://x.com/i/article/2074309745217814528)\n\n💬0🔄1❤️11👀5066📊4",
+      "tags": [
+        "MiniMax M3",
+        "长时agent"
+      ],
+      "score": 60,
+      "summary": "elvis分享关于MiniMax M3和长时agent的文章链接。",
+      "fetched_at": "2026-07-07T23:48:33.732160+08:00"
+    },
+    {
+      "title": "https://t.co/oFtjrlPxJU",
+      "link": "https://x.com/mem0ai/status/2074509697689002254",
+      "published": "2026-07-07T23:03:49+08:00",
+      "source": "mem0(@mem0ai)",
+      "content": "[x.com/i/article/2072…](http://x.com/i/article/2072238078240956416)\n\n💬0🔄2❤️2👀118📊1",
+      "tags": [
+        "mem0",
+        "文章"
+      ],
+      "score": 50,
+      "summary": "mem0分享一篇文章链接。",
+      "fetched_at": "2026-07-07T23:48:33.732162+08:00"
+    },
+    {
+      "title": "Claude Fable 5 马上要从订阅计划里消失了，怎么把它的大脑提纯出来一直用？\n\n@EXM7777 总结出一个统一筛选标准 + 五个具体动作！\n\n# 唯一筛选标准：可重做性测试\n\n一句话判断：...",
+      "link": "https://x.com/shao__meng/status/2074493582988505538",
+      "published": "2026-07-07T21:59:47+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Claude Fable 5 马上要从订阅计划里消失了，怎么把它的大脑提纯出来一直用？  \n  \n[@EXM7777](https://x.com/EXM7777) 总结出一个统一筛选标准 + 五个具体动作！  \n  \n# 唯一筛选标准：可重做性测试  \n  \n一句话判断：这件事，明天用更便宜的模型还能不能重做？  \n· 能重做 → 跳过（如建网站、写 demo、批量发帖）  \n· 不能重做 → 做（必须依赖顶级判断力创造，但只需要普通智力使用的产物）  \n  \n经济类比：不要让外科医生去量血压。前沿模型的剩余时间，应当花在\"它死后仍能持续产生价值\"的东西上。  \n  \n历史依据：Llama 时代最著名的训练集，是用前沿模型蒸馏出 5.2 万条答案、再训练小模型而成，成本不到 500 美元。老师死了，学生还在跑。  \n  \n# 五个动作：从\"提纯判断\"到\"提纯思考方式\"  \n  \n动作 1｜把判断力植入工作区  \n让 Fable 重写 CLAUDE.md，把它变成\"一个更弱模型也能按此达到 Fable 水准\"的操作手册。关键要求：  \n· 约定 + 需要新增的约定  \n· 弱模型在此代码库会犯的错，逐条命名 + 对应预防规则  \n· 每个交付物的质量标准，写成可检查的判据，而不是形容词  \n· 不确定时的升级路径  \n  \n核心洞察：弱模型无法发明质量标准，但它能执行一份写好的标准。 顶级模型的价值，在于\"作者\"而非\"执行者\"。  \n  \n动作 2｜顾问式审计  \n把整个业务（项目、报价、流程、定价、时间分配）丢给模型做咨询，输出：  \n· 按预期回报排序的动作清单  \n· 每个动作：为什么做、具体步骤、完成标准、弱模型执行所需的指令  \n· 三件应该停止做的事，附完整理由  \n  \n交付物规则决定了价值所在：推理过程在今天写下来，明天 Opus 只需照着这份\"聪明文件\"执行即可，不必自己变聪明。  \n  \n动作 3｜第二大脑  \n在长链路研究合成上，Fable 的领先幅度最大。所以今天的批量动作应是：  \n· 对自己的细分领域、竞争对手、客户问题、想学的方法，跑大量深度研究  \n· 把结果原子化为 Obsidian 笔记：一条洞察一篇，互相链接  \n· 不要汇总成一份长报告——长报告会被存档后遗忘，一百条互相链接的小笔记会被反复检索和复用  \n  \n这笔资产成为之后每次会话的上下文基底。  \n  \n动作 4｜点火目标（无人值守的高价值产出）  \n/goal + 动态工作流，是唯一能在你睡觉时持续产出的动作：  \n· /goal 设定\"完成线\"而非\"提示词\"，由一个较小的裁判模型逐轮检查是否达标  \n· 动态工作流让主模型写编排脚本，后台并行跑几十个子代理交叉验证  \n· 二者组合：目标守住终点，工作流做扇出  \n  \n两条安全规则：  \n· 完成条件里要求粘贴证据（裁判模型只能读对话，不能跑你的测试或打开文件）  \n· 每次运行必须设上限（轮数或墙钟时间）——作者提到一次没设上限的无人值守循环，一夜烧了 6000 美元  \n· 成本提醒：Fable 烧周限额的速度约为 Opus 的两倍，且只有一半周限额可用。  \n  \n动作 5｜装一个\"思考方式记录器\"  \n这是时间不够时应该最先装的动作，因为它会把今天剩下的所有 Fable 时间自动转化为永久资产。  \n  \n做法：创建 .claude/skills/extract-approach/SKILL.md，并在 CLAUDE.md 里写一条\"学习法则\"——每个非平凡问题解决后，必须先跑这个 skill 再继续。  \n  \n效果：每解一个难题，就留下一份\"Fable 的推理笔记\"在仓库里。笔记是蒸馏物，可被之后任何模型读取。 这是唯一会自动复利的一步。  \n  \n# 执行顺序（时间紧张时）  \n  \n1. 装记录器（5）  \n自动把剩余时间全部资产化  \n  \n2. 点 fire 目标（4）  \n可以独自在后台跑  \n  \n3. 重写工作区（1）  \n后续会话都依赖这一层  \n  \n4. 业务审计（2）  \n产出执行路线图  \n  \n5. 第二大脑（3）  \n深度研究，最吃时间\n\n![Tweet Image](https://pbs.twimg.com/media/HMoU5tEaQAAp98Y.jpg)\n\n![Machina](https://pbs.twimg.com/profile_images/1922574051580563456/-OFXIxnm_normal.jpg)\n\nMachina@EXM7777\n\n[x.com/i/article/2074…](http://x.com/i/article/2074150113623306240)\n\n[🔗 View Quoted Tweet](https://x.com/EXM7777/status/2074158459545854232)\n\n💬2🔄0❤️5👀1124📊3",
+      "tags": [
+        "Claude Fable 5",
+        "模型蒸馏",
+        "知识提取"
+      ],
+      "score": 75,
+      "summary": "meng shao分享如何从Claude Fable 5中提取知识以持续使用的方法。",
+      "fetched_at": "2026-07-07T23:48:33.732164+08:00"
+    },
+    {
+      "title": "当模型足够强时，瓶颈就是人的表达能力。\n\n如何把模糊的想法变成清晰的目标？\n到底要什么，不要什么？\n\n表达能力，正在成为新的核心竞争力。",
+      "link": "https://x.com/vista8/status/2074510758495617213",
+      "published": "2026-07-07T23:08:02+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "当模型足够强时，瓶颈就是人的表达能力。  \n  \n如何把模糊的想法变成清晰的目标？  \n到底要什么，不要什么？  \n  \n表达能力，正在成为新的核心竞争力。\n\n💬1🔄0❤️0👀88📊1",
+      "tags": [
+        "无意义"
+      ],
+      "score": 0,
+      "summary": "关于模型能力与表达能力的个人观点。",
+      "fetched_at": "2026-07-07T23:48:33.732166+08:00"
+    },
+    {
+      "title": "原文地址 https://t.co/WadrFdUzqD",
+      "link": "https://x.com/vista8/status/2074508930143924613",
+      "published": "2026-07-07T23:00:46+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "原文地址 [simonwillison.net/2026/Jul/3/jud…](https://simonwillison.net/2026/Jul/3/judgement/)\n\n💬0🔄0❤️0👀201",
+      "tags": [
+        "Simon Willison",
+        "判断力"
+      ],
+      "score": 60,
+      "summary": "分享Simon Willison关于判断力的文章链接。",
+      "fetched_at": "2026-07-07T23:48:33.732168+08:00"
+    },
+    {
+      "title": "Simon Willison的 Fable 开发省钱方法（感觉也适用其他模型）\n\n1. Claude 系统提示词加一条：对所有编码任务，你自行判断，选择一个合适低功耗模型，在子代理中运行。\n\n2. 主...",
+      "link": "https://x.com/vista8/status/2074508852486373486",
+      "published": "2026-07-07T23:00:27+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Simon Willison的 Fable 开发省钱方法（感觉也适用其他模型）  \n  \n1. Claude 系统提示词加一条：对所有编码任务，你自行判断，选择一个合适低功耗模型，在子代理中运行。  \n  \n2. 主循环用Opus或Fable，负责构架设计等复杂任务。  \n  \n3. 让循环自主调用 Subagent 做写代码、改代码等机械任务，主要用Sonnet和Haiku模型。  \n  \n区分判断型和执行型任务，判断用牛逼模型，执行用便宜模型。  \n  \n原文见评论区\n\n![Tweet Image](https://pbs.twimg.com/media/HMohpwuakAAxqSe.jpg)\n\n💬2🔄0❤️2👀533📊3",
+      "tags": [
+        "Simon Willison",
+        "Fable",
+        "省钱方法"
+      ],
+      "score": 70,
+      "summary": "Simon Willison分享使用Claude Fable开发时通过子代理调用便宜模型省钱的方法。",
+      "fetched_at": "2026-07-07T23:48:33.732170+08:00"
     }
   ]
 }
