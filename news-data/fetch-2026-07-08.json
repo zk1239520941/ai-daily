@@ -848,6 +848,384 @@
       "score": 79,
       "summary": "甲木开源公众号排版Skill，支持多主题和AI生成。",
       "fetched_at": "2026-07-08T02:09:59.545659+08:00"
+    },
+    {
+      "title": "How Imperial College London is accelerating dementia research with a modern data platform",
+      "link": "https://www.databricks.com/blog/how-imperial-college-london-accelerating-dementia-research-modern-data-platform",
+      "published": "2026-07-08T03:20:00+08:00",
+      "source": "Databricks",
+      "content": "Imagine being unable to tell your doctor whether you're in pain or running a fever...",
+      "tags": [
+        "Databricks",
+        "医疗数据平台"
+      ],
+      "score": 70,
+      "summary": "Databricks博客介绍帝国理工学院用现代数据平台加速痴呆症研究。",
+      "fetched_at": "2026-07-08T04:55:15.183637+08:00"
+    },
+    {
+      "title": "sqlite-utils 4.0, now with database schema migrations",
+      "link": "https://simonwillison.net/2026/Jul/7/sqlite-utils-4/#atom-everything",
+      "published": "2026-07-08T03:32:57+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "This morning I released [sqlite-utils 4.0](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0), the 124th release of that project and the first major version bump since [3.0](https://sqlite-utils.datasette.io/en/stable/changelog.html#v3-0) in November 2020. In addition to some small but significant breaking changes (described in [this upgrade guide](https://sqlite-utils.datasette.io/en/stable/upgrading.html)), this version introduces three major features: **database migrations**, **nested transactions** (via a new `db.atomic()` method), and support for **compound foreign keys**.\n\n#### Database schema migrations using sqlite-utils\n\nSchema migrations define a sequence of changes to be made to a SQLite database, plus a mechanism for tracking which migrations have been applied and applying any that are found to be pending.\n\nMigrations are defined in Python files using the [sqlite-utils Python library](https://sqlite-utils.datasette.io/en/stable/python-api.html), which includes a powerful `table.transform()` method providing [enhanced alter table capabilities](https://sqlite-utils.datasette.io/en/stable/python-api.html#transforming-a-table) that are not supported by SQLite's `ALTER TABLE` statement.\n\n(`table.transform()` implements the pattern [recommended by the SQLite documentation](https://www.sqlite.org/lang_altertable.html#otheralter) - create a new temporary table with the new schema, copy across the data, then drop the old table and rename the temporary one in its place.)\n\nHere's an example migration file which creates a table called `creatures`, adds an additional column to it in a second step, then changes the types of two of the columns in a third:\n\n```\nfrom sqlite_utils import Migrations\n\nmigrations = Migrations(\"creatures\")\n\n@migrations()\ndef create_table(db):\n    db[\"creatures\"].create(\n        {\"id\": int, \"name\": str, \"species\": str},\n        pk=\"id\",\n    )\n\n@migrations()\ndef add_weight(db):\n    db[\"creatures\"].add_column(\"weight\", float)\n\n@migrations()\ndef change_column_types(db):\n    db[\"creatures\"].transform(types={\"species\": int, \"weight\": str})\n```\n\nSave that as `migrations.py` and run it against a fresh database like this:\n\n```\nuvx sqlite-utils migrate data.db migrations.py\n```\n\nThen if you check the schema of that database:\n\n```\nuvx sqlite-utils schema data.db\n```\n\nYou'll see this SQL:\n\n```\nCREATE TABLE \"_sqlite_migrations\" (\n   \"id\" INTEGER PRIMARY KEY,\n   \"migration_set\" TEXT,\n   \"name\" TEXT,\n   \"applied_at\" TEXT\n);\nCREATE UNIQUE INDEX \"idx__sqlite_migrations_migration_set_name\"\n    ON \"_sqlite_migrations\" (\"migration_set\", \"name\");\nCREATE TABLE \"creatures\" (\n   \"id\" INTEGER PRIMARY KEY,\n   \"name\" TEXT,\n   \"species\" INTEGER,\n   \"weight\" TEXT\n);\n```\n\nThe `_sqlite_migrations` table is used to keep track of which migration functions have been run. The `creatures` table above is the schema after all three migrations have been applied.\n\nTo see a list of migrations, both pending and applied, run this:\n\n```\nuvx sqlite-utils migrate data.db migrations.py --list\n```\n\nOutput:\n\n```\nMigrations for: creatures\n\n  Applied:\n    create_table - 2026-07-07 17:58:41.360051+00:00\n    add_weight - 2026-07-07 17:58:41.360608+00:00\n    change_column_types - 2026-07-07 18:01:15.802000+00:00\n\n  Pending:\n    (none)\n```\n\nIf you don't specify a migrations file, the `sqlite-utils migrate data.db` command will scan the current directory and its subdirectories for files called `migrations.py` and apply any `Migrations()` instances it finds in them.\n\nYou can also execute migrations [from Python code](https://sqlite-utils.datasette.io/en/stable/migrations.html#applying-migrations-in-python) using the `migrations.apply(db)` method, which is useful for building tools that manage their own database schemas over multiple versions. My own [LLM tool](https://llm.datasette.io/) has been using a version of this pattern for several years now, as shown in [llm/embeddings\\_migrations.py](https://github.com/simonw/llm/blob/0.31/llm/embeddings_migrations.py).\n\n#### Prior art\n\nMy favorite implementation of this pattern remains [Django's Migrations](https://docs.djangoproject.com/en/6.0/topics/migrations/), developed by Andrew Godwin based on his earlier project [South](https://github.com/andrewgodwin/south). Fun fact: Andrew, Russ Keith-Magee, and I presented our competing approaches to schema migrations for Django on the [Schema Evolution panel](https://www.youtube.com/watch?v=VSq8m00p1FM) at the very first DjangoCon back in 2008! My attempt was called [dmigrations](https://simonwillison.net/2008/Sep/3/dmigrations/), developed with a team at Global Radio in London.\n\nDjango's migrations can be automatically generated from model definitions and include the ability to roll back to a previous version. The `sqlite-utils` approach is deliberately simpler: unlike Django, `sqlite-utils` encourages programmatic table creation rather than a model definition ORM, so there isn't anything we can use to automatically generate migrations.\n\nI decided to skip rollback, since in my experience it's a feature that is rarely used. With a SQLite project, an easy way to achieve rollback is to create a copy of your database file before you apply the migrations!\n\n#### Migrating from sqlite-migrate\n\nThe design of `sqlite-utils` migrations is three years old now - I had originally released it as a separate package called [sqlite-migrate](https://github.com/simonw/sqlite-migrate), which never quite graduated beyond a beta release.\n\nI've used that package in enough places now that I'm confident in the design, so I've decided to promote it to a feature of `sqlite-utils` to make it available by default to all of the other tools in the growing sqlite-utils/Datasette/LLM ecosystem.\n\nI made [one last release](https://github.com/simonw/sqlite-migrate/releases/tag/0.2) of `sqlite-migrate`, which switches it to depend on `sqlite-utils>=4` and replaces the `__init__.py` file with the following:\n\n```\nfrom sqlite_utils import Migrations\n\n__all__ = [\"Migrations\"]\n```\n\nAny existing project that depends on `sqlite-migrate` should continue to work without alterations.\n\n#### Everything else in sqlite-utils 4.0\n\nHere are the release notes for this version, with some inline annotations:\n\n> The 4.0 release includes some minor backwards-incompatible fixes (hence the major version number bump) and introduces three major new features:\n>\n> * [Database migrations](https://sqlite-utils.datasette.io/en/stable/migrations.html#migrations), providing a structured mechanism for evolving a project’s schema over time. ([#752](https://github.com/simonw/sqlite-utils/issues/752))\n\nI think of migrations as the signature new feature, hence this blog post.\n\n> * [Nested transaction support](https://sqlite-utils.datasette.io/en/stable/python-api.html#python-api-atomic) via `db.atomic()`, plus numerous improvements to how transactions work across the library. ([#755](https://github.com/simonw/sqlite-utils/issues/755))\n\n`sqlite-utils` has long had a confused relationship with database transactions, partly because when I started designing the library back in 2018 I didn't yet have a great feel for how those worked in SQLite itself.\n\nAdding migrations to the core library made me determined to finally crack this nut, since transactions make migration systems a whole lot safer and easier to reason about.\n\nI ended up building this around a `db.atomic()` context manager which looks like this:\n\n```\nwith db.atomic():\n    db.table(\"dogs\").insert({\"id\": 1, \"name\": \"Cleo\"}, pk=\"id\")\n    db.table(\"dogs\").insert({\"id\": 2, \"name\": \"Pancakes\"})\n```\n\nSQLite supports [Savepoints](https://sqlite.org/lang_savepoint.html), and as a result `db.atomic()` can be nested to carry out transactions inside of transactions. It's pretty neat!\n\n> * Support for [compound foreign keys](https://sqlite-utils.datasette.io/en/stable/python-api.html#python-api-compound-foreign-keys), including creation, transformation and introspection through [table.foreign\\_keys](https://sqlite-utils.datasette.io/en/stable/python-api.html#python-api-introspection-foreign-keys). ([#594](https://github.com/simonw/sqlite-utils/issues/594))\n\nThis came about when I asked a coding agent to review all open issues and PRs for things that should be included in a 4.0 release since they would represent breaking changes if I added them later, and it correctly identified that compound foreign keys were exactly that kind of feature.\n\nI started with a breaking change to the [table.foreign\\_keys](https://sqlite-utils.datasette.io/en/stable/python-api.html#python-api-introspection-foreign-keys) introspection method, and then decided to see if Claude Fable 5 could handle the more fiddly job of integrating compound foreign key *creation* into the library. The API design it helped create felt [exactly right to me](https://sqlite-utils.datasette.io/en/stable/python-api.html#compound-foreign-keys) - consistent with how the rest of the library worked already.\n\n> Other notable changes include:\n>\n> * Upserts now use SQLite’s `INSERT ... ON CONFLICT ... DO UPDATE SET` syntax, detect existing table primary keys automatically and reject records that are missing required primary key values. ([#652](https://github.com/simonw/sqlite-utils/issues/652))\n\nThis was the change that first pushed me to consider a breaking-change 4.0 version bump. I built this to help support [sqlite-chronicle](https://github.com/simonw/sqlite-chronicle), which uses triggers to keep track of rows in a table that have been inserted, updated or deleted.\n\n> * `db.query()` now executes immediately and rejects statements that do not return rows; use `db.execute()` for writes and DDL.\n\nProbably the [most disruptive breaking change](https://sqlite-utils.datasette.io/en/stable/upgrading.html#python-api-changes) - I've had to update a few places in my own code to switch from `db.query()` to `db.execute()` as a result.\n\n> * CSV and TSV imports now detect column types by default, while inserts into existing tables preserve those tables’ column types. ([#679](https://github.com/simonw/sqlite-utils/issues/679))\n\nThe `sqlite-utils insert data.db creatures creatures.csv --detect-types` flag was a later addition to allow column types (text, integer, real) to be automatically detected based on the data in a CSV. It should be the default, and releasing a 4.0 means I can make it so.\n\n> * `table.extract()` and `extracts=` no longer create lookup table records for all-`null` values. ([#186](https://github.com/simonw/sqlite-utils/issues/186))\n\nThe oldest issue addressed by this release - the underlying bug was opened (by me) in October 2020.\n\n> See [Upgrading from 3.x to 4.0](https://sqlite-utils.datasette.io/en/stable/upgrading.html#upgrading-3-to-4) for details on backwards-incompatible changes.\n>\n> The detailed release notes for the features and fixes shipped during the 4.0 pre-release cycle are available in [4.0a0](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0a0), [4.0a1](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0a1), [4.0rc1](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0rc1), [4.0rc2](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0rc2), [4.0rc3](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0rc3) and [4.0rc4](https://sqlite-utils.datasette.io/en/stable/changelog.html#v4-0rc4).\n\nThe upgrade guide was entirely written by Claude Fable 5, Claude Opus 4.8 and GPT-5.5. The same is true of the release notes.\n\nThis is the kind of documentation I've slowly become comfortable outsourcing to the robots. It doesn't need to convince people of anything, or express any opinions - its job is to be as accurate and detailed as possible. I've reviewed the release notes closely and can confirm they are accurate and comprehensive.\n\n#### Claude Fable 5 helped a lot\n\nI released the first alpha of sqlite-utils 4.0 [over a year ago](https://sqlite-utils.datasette.io/en/stable/changelog.html#a0-2025-05-08). I've been dragging my heels on the stable release because of the amount of work it would take to track down and clean up the many other minor design flaws that a major version number allowed me to take on.\n\nAssistance from Claude Fable 5 (and to a lesser extent Opus 4.8 and GPT-5.5) gave me just the boost I needed to overcome inertia and make the most of the time I could afford to spend on this library.\n\nFable has *really good taste* in API design, and is [relentlessly proactive](https://simonwillison.net/2026/Jun/11/fable-is-relentlessly-proactive/) if you give it a more open goal. My most successful prompt was a review task that I issued against what I thought was the last release candidate:\n\n> `review the changes on main since the last tagged 3.x release - I am about to ship them as sqlite-utils 4.0, a stable version that promises no backwards-incompatible fixes for a very long time.`\n>\n> `review the changelog and upgrade guide, and write yourself scratch scripts to try out all of the new features in v4 - save those scripts but don't commit them`\n\nI tried this with GPT-5.5 xhigh in Codex Desktop and Fable 5 in Claude Code.\n\nGPT-5.5 [wrote 5 Python scripts](https://gist.github.com/simonw/823fdecc031371d56dce39537adc0096) and didn't turn up anything particularly interesting - its [final report is here](https://github.com/simonw/sqlite-utils/issues/769#issuecomment-4899982463).\n\nFable 5 [wrote 12 scripts](https://gist.github.com/simonw/95800bf584f8e437f1cf0d48d9ef81e6), identified 4 release blockers and 10 additional issues [in its report](https://github.com/simonw/sqlite-utils/issues/769#issuecomment-4900034150), and built a neat [combined repro script](https://gist.githubusercontent.com/simonw/95800bf584f8e437f1cf0d48d9ef81e6/raw/c43918b36a129bba1d2f2a129117aa11c85146c0/12_bug_repros.py), which, when run, output the following:\n\n```\n=== 1. Failed db.execute() write leaves an implicit transaction open ===\n  in_transaction after failed write: True\n  BUG: table 'other' silently lost when connection closed\n\n=== 2. Leading ';' bypasses the query() first-token scanner ===\n  BUG: raised OperationalError: no such savepoint: sqlite_utils_query\n  BUG: row persisted despite rollback (count=1)\n\n=== 3. Rejected write PRAGMA via query() still takes effect ===\n  BUG: user_version=5 after 'rejected' statement (docs say no effect)\n\n=== 4. Implicit compound FK resolves pk columns in table order, not PK order ===\n  BUG: other_columns reported as ('b', 'a'), should be ('a', 'b')\n  BUG: transform of valid data raised IntegrityError: FOREIGN KEY constraint failed\n\n=== 5. ForeignKey (now a dataclass) is no longer hashable ===\n  BUG: cannot use 'sqlite_utils.db.ForeignKey' as a set element (unhashable type: 'ForeignKey')\n\n=== 6. Mixed ForeignKey objects and tuples in foreign_keys= rejected ===\n  BUG: foreign_keys= should be a list of tuples\n\n=== 7. insert --csv into an EXISTING table transforms its column types ===\n  BUG: existing zip '01234' is now 1234 (column type: int)\n\n=== 8. insert(pk=, alter=True) regression: InvalidColumns before alter runs ===\n  BUG: InvalidColumns: Invalid primary key column ['id'] for table t with columns ['a']\n\n=== 9. migrate --stop-before an already-applied migration applies everything ===\n  BUG: m2 was applied despite --stop-before m1 (m1 already applied)\n\n=== 10. ensure_autocommit_on() silently commits an open transaction ===\n  BUG: row survived rollback (count=1) - transaction was committed\n```\n\nI found myself agreeing with almost all of them. Here's [the PR with 16 commits](https://github.com/simonw/sqlite-utils/pull/779) where we worked through them in turn.\n\nThere's no doubt in my mind that sqlite-utils 4.0 is a significantly higher-quality release than if I had built it without the assistance of the latest frontier models.\n\nTags: [schema-migrations](https://simonwillison.net/tags/schema-migrations), [projects](https://simonwillison.net/tags/projects), [sqlite](https://simonwillison.net/tags/sqlite), [ai](https://simonwillison.net/tags/ai), [sqlite-utils](https://simonwillison.net/tags/sqlite-utils), [annotated-release-notes](https://simonwillison.net/tags/annotated-release-notes), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [ai-assisted-programming](https://simonwillison.net/tags/ai-assisted-programming), [anthropic](https://simonwillison.net/tags/anthropic), [claude](https://simonwillison.net/tags/claude), [agentic-engineering](https://simonwillison.net/tags/agentic-engineering), [claude-mythos-fable](https://simonwillison.net/tags/claude-mythos-fable)",
+      "tags": [
+        "sqlite-utils 4.0",
+        "数据库迁移"
+      ],
+      "score": 70,
+      "summary": "Simon Willison发布sqlite-utils 4.0，新增数据库迁移、嵌套事务和复合外键支持。",
+      "fetched_at": "2026-07-08T04:55:15.183649+08:00"
+    },
+    {
+      "title": "Introducing Muse Image and Muse Video, the first media generation models developed by Meta Superinte...",
+      "link": "https://x.com/AIatMeta/status/2074577662840832382",
+      "published": "2026-07-08T03:33:53+08:00",
+      "source": "AI at Meta(@AIatMeta)",
+      "content": "Introducing Muse Image and Muse Video, the first media generation models developed by Meta Superintelligence Labs.  \n  \nMuse Image is our most advanced image generation model yet. It follows instructions faithfully, edits with precision, composes from multiple references, and draws on Instagram for social context. It also brings agentic tool use capabilities to image generation and integrates with Muse Spark.  \n  \nYou can try Muse Image in the Meta AI app and web, as well as in Instagram Stories and WhatsApp – starting in limited countries with more locations on the way.  \n  \nToday we’re also previewing Muse Video, which is built upon the same pretraining base as Muse Image to deliver exceptional visual fidelity with native audio support.  \n  \nLearn more about both models: [go.meta.me/7f4427](https://go.meta.me/7f4427)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074556401674817536/vid/avc1/1920x1080/-zxEASNFKqyq4L5E.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/AIatMeta/status/2074577662840832382/video/1)\n\n💬28🔄42❤️225👀21825📊64",
+      "tags": [
+        "Muse Image",
+        "Muse Video",
+        "Meta"
+      ],
+      "score": 95,
+      "summary": "Meta官方发布Muse Image和Muse Video，为Meta超级智能实验室首批媒体生成模型。",
+      "fetched_at": "2026-07-08T04:55:15.183653+08:00"
+    },
+    {
+      "title": "China gave its models away when it was behind.\n\nQwen, DeepSeek, GLM. All were open. The strategy was...",
+      "link": "https://x.com/aaditsh/status/2074570220484649178",
+      "published": "2026-07-08T03:04:18+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "China gave its models away when it was behind.  \n  \nQwen, DeepSeek, GLM. All were open. The strategy was to commoditize the model layer so US labs can't charge premium prices.  \n  \nIt worked. US companies now route over 30% of their AI tokens through Chinese models every week (a year ago that was 11%).  \n  \nNow Chinese models are roughly 6 to 9 months behind the US frontier instead of years. And this week it's reported that Beijing is discussing restricting overseas access to its best models for the first time.  \n  \nThe logic is pretty simple. You give the model away when you're second. You restrict it when you think you're about to be first.\n\n![Ethan Mollick](https://pbs.twimg.com/profile_images/1601382188712398850/3AAOlqrX_normal.jpg)\n\nEthan Mollick@emollick\n\nThis is a key reason I don’t expect the flow of frontier open weights models to continue indefinitely, or even for very much longer. [reuters.com/world/beijing-…](https://www.reuters.com/world/beijing-is-looking-curbing-overseas-access-chinas-top-ai-models-sources-say-2026-07-07/)\n\n[🔗 View Quoted Tweet](https://x.com/emollick/status/2074497401578996154)\n\n💬3🔄2❤️15👀5566📊5",
+      "tags": [
+        "中国AI模型",
+        "开放策略",
+        "出口限制"
+      ],
+      "score": 75,
+      "summary": "Aadit Sheth评论中国AI模型开放策略及北京讨论限制海外访问。",
+      "fetched_at": "2026-07-08T04:55:15.183656+08:00"
+    },
+    {
+      "title": "Apply here: https://t.co/dMJZ3Ed8YQ",
+      "link": "https://x.com/adocomplete/status/2074573002784772405",
+      "published": "2026-07-08T03:15:22+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Apply here: [claude.com/contact-sales/…](https://claude.com/contact-sales/claude-for-oss)\n\n💬0🔄0❤️5👀745📊1",
+      "tags": [
+        "Claude for OSS",
+        "申请链接"
+      ],
+      "score": 60,
+      "summary": "Ado发布Claude for Open Source申请链接。",
+      "fetched_at": "2026-07-08T04:55:15.183658+08:00"
+    },
+    {
+      "title": "We're expanding Claude for Open Source to more of the community.\n\n6 months of Claude Max 20x, on us....",
+      "link": "https://x.com/adocomplete/status/2074573001287430200",
+      "published": "2026-07-08T03:15:21+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "We're expanding Claude for Open Source to more of the community.  \n  \n6 months of Claude Max 20x, on us.  \n  \nIf you're a maintainer, a core contributor, someone landing PRs across the ecosystem, or someone keeping a critical package alive, apply today!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074572386754838528/vid/avc1/3600x2024/obXMARip4YDLPa85.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/adocomplete/status/2074573001287430200/video/1)\n\n💬23🔄5❤️105👀6863📊41",
+      "tags": [
+        "Claude for OSS",
+        "Claude Max 20x",
+        "Anthropic"
+      ],
+      "score": 85,
+      "summary": "Anthropic官方宣布扩大Claude for Open Source，提供6个月Claude Max 20x免费。",
+      "fetched_at": "2026-07-08T04:55:15.183660+08:00"
+    },
+    {
+      "title": "Download the app 👇\nhttps://t.co/0MQtJ0BcNq",
+      "link": "https://x.com/github/status/2074574689561870751",
+      "published": "2026-07-08T03:22:04+08:00",
+      "source": "GitHub(@github)",
+      "content": "Download the app 👇[github.com/features/ai/gi…](https://github.com/features/ai/github-app?utm_source=x-byok-demo&utm_medium=social&utm_campaign=github-copilot-app-ga-2026)q\n\n💬0🔄1❤️9👀4473📊2",
+      "tags": [
+        "GitHub Copilot",
+        "App下载"
+      ],
+      "score": 70,
+      "summary": "GitHub发布Copilot App下载链接。",
+      "fetched_at": "2026-07-08T04:55:15.183662+08:00"
+    },
+    {
+      "title": "The GitHub Copilot app is now available on every Copilot plan. 🎉\n\nNo plan? You can still build, jus...",
+      "link": "https://x.com/github/status/2074574687942946819",
+      "published": "2026-07-08T03:22:03+08:00",
+      "source": "GitHub(@github)",
+      "content": "The GitHub Copilot app is now available on every Copilot plan. 🎉  \n  \nNo plan? You can still build, just bring your own key. 🔑 Here's how to set it up.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074572598479044609/vid/avc1/1920x1080/J6BUtnfMXeNFqA0i.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/github/status/2074574687942946819/video/1)\n\n💬7🔄7❤️63👀14085📊15",
+      "tags": [
+        "GitHub Copilot",
+        "App GA",
+        "BYOK"
+      ],
+      "score": 85,
+      "summary": "GitHub官方宣布Copilot App对所有计划可用，支持自带密钥。",
+      "fetched_at": "2026-07-08T04:55:15.183664+08:00"
+    },
+    {
+      "title": "https://t.co/N67br7ouUJ",
+      "link": "https://x.com/HeyGen/status/2074574265714905167",
+      "published": "2026-07-08T03:20:23+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "[x.com/i/article/2074…](http://x.com/i/article/2074572350142681088)\n\n💬6🔄4❤️47👀3164📊17",
+      "tags": [
+        "HeyGen",
+        "文章链接"
+      ],
+      "score": 60,
+      "summary": "HeyGen发布一条推文，包含文章链接。",
+      "fetched_at": "2026-07-08T04:55:15.183666+08:00"
+    },
+    {
+      "title": ".@SchneiderElec runs 60+ AI agents in production across 100+ countries, all traced through self-host...",
+      "link": "https://x.com/LangChain/status/2074569176065196420",
+      "published": "2026-07-08T03:00:09+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": ".[@SchneiderElec](https://x.com/SchneiderElec) runs 60+ AI agents in production across 100+ countries, all traced through self-hosted LangSmith.  \n  \nTheir AI Assistant alone serves 160,000 employees.   \n  \nHow they built the LLMOps foundation to trust agents at that scale.  \n[langchain.com/blog/how-schne…](https://www.langchain.com/blog/how-schneider-electric-built-their-llmops-foundations-at-enterprise-scale-with-langsmith)\n\n💬4🔄0❤️10👀2320📊5",
+      "tags": [
+        "LangChain",
+        "Schneider Electric",
+        "AI Agent"
+      ],
+      "score": 80,
+      "summary": "LangChain介绍施耐德电气在生产中运行60+ AI Agent，覆盖100+国家。",
+      "fetched_at": "2026-07-08T04:55:15.183668+08:00"
+    },
+    {
+      "title": "Here's the full report https://t.co/1w2WJ5zRnS",
+      "link": "https://x.com/lennysan/status/2074577307717751232",
+      "published": "2026-07-08T03:32:28+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Here's the full report [lennysnewsletter.com/p/how-tech-wor…](https://www.lennysnewsletter.com/p/how-tech-workers-are-feeling-in-2026)\n\n💬1🔄0❤️1👀1295📊1",
+      "tags": [
+        "科技工作者报告",
+        "Lenny"
+      ],
+      "score": 60,
+      "summary": "Lenny Rachitsky分享2026年科技工作者感受报告链接。",
+      "fetched_at": "2026-07-08T04:55:15.183670+08:00"
+    },
+    {
+      "title": "Founders are the happiest people in tech",
+      "link": "https://x.com/lennysan/status/2074574721337991197",
+      "published": "2026-07-08T03:22:11+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Founders are the happiest people in tech\n\n![Tweet Image](https://pbs.twimg.com/media/HMpbxKhbgAAMFZM.png)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nThe tech workforce is splitting in two  \n  \nA year ago, we ran the first large-scale survey of how tech workers feel about their jobs and careers. What emerged we summarized in four words: burned out, but optimistic. Today, we're back with the results from our 2026 survey, and it's a tale of two workforces.  \n  \nHalf of tech right now feels amplified by AI—more capable, more confident, more excited than they've been in their entire career.  \n  \nThe other half feels shaken by it—less sure of their value and whether there’s still a place for them.  \n  \nWhich side of that line you fall on predicts how you feel about your career more than anything else, including your role, seniority, company size, or any other measure we collected.   \n  \nThe workforce is bifurcating into two realities.  \n  \nA few other takeaways that surprised us:  \n+ Significant burnout jumped from 44.7% to 55.7% in one year, while career optimism fell from 54.8% to 48.7%. A worrisome trend.  \n+ 53% of tech workers would steer a newcomer away from a career in their own role, even when they're optimistic about their own future.  \n+ The biggest AI fear is of being squeezed to do more work. Only 22% worry about “losing my job to AI.” Far more worry about being expected to do more for the same pay, getting trapped in an unsustainable pace, and the quality of their work declining.  \n  \nThe question that best predicts how a tech worker feels about their work, in 2026, is no longer \"What do you do?\" or \"Where do you work?\" It’s \"What has AI done to your sense of who you are?\"  \n  \nRead the full report here: [lennysnewsletter.com/p/how-tech-wor…](https://www.lennysnewsletter.com/p/how-tech-workers-are-feeling-in-2026)\n\n![Tweet Image](https://pbs.twimg.com/media/HMkPj3wagAAdzwi.png)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2074520165296078964)\n\n💬11🔄4❤️81👀11963📊20",
+      "tags": [
+        "科技工作者调查",
+        "AI影响"
+      ],
+      "score": 70,
+      "summary": "Lenny Rachitsky发布2026年科技工作者调查，显示AI导致劳动力分化。",
+      "fetched_at": "2026-07-08T04:55:15.183672+08:00"
+    },
+    {
+      "title": "Check out the project page here. https://t.co/8ZzNiVCLc5",
+      "link": "https://x.com/NVIDIAAI/status/2074576308407841150",
+      "published": "2026-07-08T03:28:30+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Check out the project page here. [nvda.ws/4pabAZI](https://nvda.ws/4pabAZI)\n\n💬0🔄1❤️5👀1364📊1",
+      "tags": [
+        "NVIDIA",
+        "项目页面"
+      ],
+      "score": 60,
+      "summary": "NVIDIA AI发布项目页面链接。",
+      "fetched_at": "2026-07-08T04:55:15.183674+08:00"
+    },
+    {
+      "title": "When you train a video model for motion, only some clips actually matter.\n\nNew from NVIDIA Research ...",
+      "link": "https://x.com/NVIDIAAI/status/2074576305790546139",
+      "published": "2026-07-08T03:28:29+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "When you train a video model for motion, only some clips actually matter.  \n  \nNew from NVIDIA Research and recipient of an Outstanding Paper Honorable Mention at #ICML2026: MOTIVE shows exactly which training clips improve motion.  \n  \nMOTIVE re-weights training signals toward moving regions and away from static backgrounds, then scores each clip by its influence on motion. You can then curate a small high-influence subset to fine-tune on and get better temporal dynamics.  \n  \nBecause it attributes motion rather than appearance, MOTIVE curates data that boosts VBench dynamics and wins 74.1% human preference against the base model.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074576280998055936/vid/avc1/1280x720/0CB7znVyaBgHKigv.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/NVIDIAAI/status/2074576305790546139/video/1)\n\n💬2🔄4❤️32👀3552📊7",
+      "tags": [
+        "MOTIVE",
+        "NVIDIA Research",
+        "视频模型训练"
+      ],
+      "score": 85,
+      "summary": "NVIDIA AI发布MOTIVE方法，通过重加权训练信号提升视频模型运动效果。",
+      "fetched_at": "2026-07-08T04:55:15.183676+08:00"
+    },
+    {
+      "title": "Chat from anywhere. Capture with text, voice, or photos. Take quick actions — create pages, draft up...",
+      "link": "https://x.com/NotionHQ/status/2074568357878390798",
+      "published": "2026-07-08T02:56:54+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Chat from anywhere. Capture with text, voice, or photos. Take quick actions — create pages, draft updates, search across your connected tools — right from your phone.   \n  \nDownload on the Apple App Store: [apps.apple.com/us/app/notion-…](https://apps.apple.com/us/app/notion-agents/id6759811964)\n\n💬0🔄0❤️20👀3616📊2",
+      "tags": [
+        "Notion",
+        "移动App",
+        "AI助手"
+      ],
+      "score": 70,
+      "summary": "Notion发布移动App，支持文本、语音、照片输入和快速操作。",
+      "fetched_at": "2026-07-08T04:55:15.183678+08:00"
+    },
+    {
+      "title": "Me if Anthropic extends Fable rate limits (sound on) 😅",
+      "link": "https://x.com/petergyang/status/2074579727365591297",
+      "published": "2026-07-08T03:42:05+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Me if Anthropic extends Fable rate limits (sound on) 😅\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074551543534116864/vid/avc1/1920x1080/RY53kAlna88J4vqN.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/TelemundoSports/status/2074551737952940536/video/1)\n\n💬6🔄0❤️9👀2685📊6",
+      "tags": [
+        "Anthropic",
+        "Fable",
+        "幽默"
+      ],
+      "score": 50,
+      "summary": "Peter Yang发推调侃Anthropic延长Fable速率限制。",
+      "fetched_at": "2026-07-08T04:55:15.183680+08:00"
+    },
+    {
+      "title": "I had Claude Fable 5 run a final review of the release using this prompt and it kicked up another fo...",
+      "link": "https://x.com/simonw/status/2074583235007578619",
+      "published": "2026-07-08T03:56:01+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I had Claude Fable 5 run a final review of the release using this prompt and it kicked up another four release blockers! [simonwillison.net/2026/Jul/7/sql…](https://simonwillison.net/2026/Jul/7/sqlite-utils-4/#claude-fable-5-helped-a-lot)\n\n![Tweet Image](https://pbs.twimg.com/media/HMpmTSYboAAHmzn.jpg)\n\n💬0🔄0❤️3👀1028",
+      "tags": [
+        "Claude Fable 5",
+        "sqlite-utils",
+        "代码审查"
+      ],
+      "score": 70,
+      "summary": "Simon Willison用Claude Fable 5审查sqlite-utils发布，发现四个阻塞问题。",
+      "fetched_at": "2026-07-08T04:55:15.183682+08:00"
+    },
+    {
+      "title": "Since this is a slightly backwards-incompatible change here's a detailed upgrade guide - which you c...",
+      "link": "https://x.com/simonw/status/2074582650422177885",
+      "published": "2026-07-08T03:53:42+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Since this is a slightly backwards-incompatible change here's a detailed upgrade guide - which you can read, or feed into your coding agent and have it apply the upgrades for you [sqlite-utils.datasette.io/en/stable/upgr…](https://sqlite-utils.datasette.io/en/stable/upgrading.html)\n\n💬2🔄0❤️2👀1224📊2",
+      "tags": [
+        "sqlite-utils",
+        "升级指南"
+      ],
+      "score": 70,
+      "summary": "Simon Willison发布sqlite-utils 4.0升级指南。",
+      "fetched_at": "2026-07-08T04:55:15.183684+08:00"
+    },
+    {
+      "title": "I released sqlite-utils 4.0, the 124th release but the first major version bump since 3.0 back in 20...",
+      "link": "https://x.com/simonw/status/2074578747106431017",
+      "published": "2026-07-08T03:38:11+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I released sqlite-utils 4.0, the 124th release but the first major version bump since 3.0 back in 2020  \n  \nI managed to keep things backwards-compatible all the way up to version 3.39 before the accumulated design mistakes forced me to bump that number! [simonwillison.net/2026/Jul/7/sql…](https://simonwillison.net/2026/Jul/7/sqlite-utils-4/)\n\n💬6🔄1❤️21👀4801📊8",
+      "tags": [
+        "sqlite-utils 4.0",
+        "发布"
+      ],
+      "score": 70,
+      "summary": "Simon Willison发布sqlite-utils 4.0，为2020年以来首个大版本。",
+      "fetched_at": "2026-07-08T04:55:15.183686+08:00"
+    },
+    {
+      "title": "Impressive @arena benchmarks for Muse Image, slotting in below just OpenAI's GPT Image 2 on text-to-...",
+      "link": "https://x.com/TheRundownAI/status/2074582116763902113",
+      "published": "2026-07-08T03:51:35+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Impressive [@arena](https://x.com/arena) benchmarks for Muse Image, slotting in below just OpenAI's GPT Image 2 on text-to-image, single image editing, and multi-image editing.   \n  \nMeta also previewed Muse Video, which debuts at an impressive No. 3 spot on the Video leaderboard.\n\n![Tweet Image](https://pbs.twimg.com/media/HMpkcbiWQAAmo9e.png)![Tweet Image](https://pbs.twimg.com/media/HMpk50sWMAALyGg.jpg)\n\n![The Rundown AI](https://pbs.twimg.com/profile_images/1672707817197965312/zsxkJv_T_normal.jpg)\n\nThe Rundown AI@TheRundownAI\n\nMeta's newest AI release: Muse Image  \n  \nPowering creative tools in Meta AI and integrated into areas like Instagram Stories and WhatsApp chats.  \n  \nNo benchmarks published yet\n\n[🔗 View Quoted Tweet](https://x.com/TheRundownAI/status/2074565213580361815)\n\n💬3🔄2❤️12👀3587📊4",
+      "tags": [
+        "Muse Image",
+        "Arena基准",
+        "Meta"
+      ],
+      "score": 80,
+      "summary": "The Rundown AI报道Muse Image在Arena基准测试中排名第二，仅次于GPT Image 2。",
+      "fetched_at": "2026-07-08T04:55:15.183688+08:00"
+    },
+    {
+      "title": "In Multi-Image Arena, Meta Muse Image also ranks #2. This is a strong 23 point gap from the next bes...",
+      "link": "https://x.com/arena/status/2074581986702930186",
+      "published": "2026-07-08T03:51:04+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "In Multi-Image Arena, Meta Muse Image also ranks #2. This is a strong 23 point gap from the next best model Nano Banana 2.\n\n![Tweet Image](https://pbs.twimg.com/media/HMplJcuaUAAhZYs.jpg)\n\n💬1🔄1❤️12👀971📊2",
+      "tags": [
+        "Muse Image",
+        "Multi-Image Arena",
+        "排名"
+      ],
+      "score": 80,
+      "summary": "Arena官方称Muse Image在多图Arena排名第二，领先Nano Banana 2达23分。",
+      "fetched_at": "2026-07-08T04:55:15.183690+08:00"
+    },
+    {
+      "title": "Dig into the Image Arena leaderboard details at: https://t.co/7NVNbVi1Po",
+      "link": "https://x.com/arena/status/2074581989756485830",
+      "published": "2026-07-08T03:51:04+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Dig into the Image Arena leaderboard details at: [arena.ai/leaderboard/te…](http://arena.ai/leaderboard/text-to-image)\n\n💬0🔄0❤️4👀641📊1",
+      "tags": [
+        "Image Arena",
+        "排行榜"
+      ],
+      "score": 60,
+      "summary": "Arena发布Image Arena排行榜链接。",
+      "fetched_at": "2026-07-08T04:55:15.183691+08:00"
+    },
+    {
+      "title": "Exciting news: Meta’s Muse Image just claimed #2 in the Image Arena!\n\nMuse Image from @AIatMeta now ...",
+      "link": "https://x.com/arena/status/2074581979765539153",
+      "published": "2026-07-08T03:51:02+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Exciting news: Meta’s Muse Image just claimed #2 in the Image Arena!  \n  \nMuse Image from [@AIatMeta](https://x.com/AIatMeta) now ranks second only to OpenAI's GPT Image 2, outperforming Nano Banana, Grok Imagine, MAI Image, and many other leading image models.  \n  \nIt holds #2 across the board: Text-to-Image, Single-Image Edit, and Multi-Image Edit. Congrats to the Meta team on this incredible milestone!\n\n![Tweet Image](https://pbs.twimg.com/media/HMplDwHaMAAeo7n.jpg)\n\n![AI at Meta](https://pbs.twimg.com/profile_images/1454145678075117568/2qXqM_Cu_normal.png)\n\nAI at Meta@AIatMeta\n\nIntroducing Muse Image and Muse Video, the first media generation models developed by Meta Superintelligence Labs.  \n  \nMuse Image is our most advanced image generation model yet. It follows instructions faithfully, edits with precision, composes from multiple references, and draws on Instagram for social context. It also brings agentic tool use capabilities to image generation and integrates with Muse Spark.  \n  \nYou can try Muse Image in the Meta AI app and web, as well as in Instagram Stories and WhatsApp – starting in limited countries with more locations on the way.  \n  \nToday we’re also previewing Muse Video, which is built upon the same pretraining base as Muse Image to deliver exceptional visual fidelity with native audio support.  \n  \nLearn more about both models: [go.meta.me/7f4427](https://go.meta.me/7f4427)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074556401674817536/vid/avc1/1920x1080/-zxEASNFKqyq4L5E.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/AIatMeta/status/2074577662840832382/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/AIatMeta/status/2074577662840832382)\n\n💬11🔄16❤️90👀9016📊18",
+      "tags": [
+        "Muse Image",
+        "Image Arena",
+        "排名第二"
+      ],
+      "score": 80,
+      "summary": "Arena官方宣布Meta Muse Image在Image Arena排名第二。",
+      "fetched_at": "2026-07-08T04:55:15.183693+08:00"
+    },
+    {
+      "title": "阿根廷对埃及的比赛和梅西的意义就在于让我们永远相信美好的事情终将出现，哪怕当下多么艰难😭😭😭",
+      "link": "https://x.com/FuSheng_0306/status/2074582511032918183",
+      "published": "2026-07-08T03:53:09+08:00",
+      "source": "傅盛(@FuSheng_0306)",
+      "content": "阿根廷对埃及的比赛和梅西的意义就在于让我们永远相信美好的事情终将出现，哪怕当下多么艰难😭😭😭\n\n![Tweet Image](https://pbs.twimg.com/media/HMplyZvboAAJPDi.jpg)![Tweet Image](https://pbs.twimg.com/media/HMplyZza0AAAI1C.jpg)![Tweet Image](https://pbs.twimg.com/media/HMplyZzbUAAdQQ5.jpg)\n\n💬3🔄0❤️3👀267📊4",
+      "tags": [
+        "足球",
+        "梅西"
+      ],
+      "score": 10,
+      "summary": "傅盛发推表达对阿根廷和梅西的情感。",
+      "fetched_at": "2026-07-08T04:55:15.183695+08:00"
+    },
+    {
+      "title": "Claude Fable 5 免费试用延期，7 月 12 日截止\n\nAnthropic 宣布将 Claude Fable 5 的免费体验期延长至 7 月 12 日（太平洋时间 23:59:59）。\n\n...",
+      "link": "https://x.com/dotey/status/2074567631214911505",
+      "published": "2026-07-08T02:54:01+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Claude Fable 5 免费试用延期，7 月 12 日截止  \n  \nAnthropic 宣布将 Claude Fable 5 的免费体验期延长至 7 月 12 日（太平洋时间 23:59:59）。  \n  \nFable 5 是 Claude 目前最新的模型。从 7 月 1 日起，Pro、Max、Team 以及企业版付费用户可以在订阅额度内免费使用，不需要额外付费，也不需要手动开通。  \n  \n但有一个限制：Fable 5 最多只能用掉每周订阅额度的 50%。打个比方，你的周额度是一块蛋糕，Fable 5 最多吃掉一半。用完这一半之后，要么开通 Usage Credits（按量付费）继续用 Fable 5，要么切回其他模型，用剩下的额度干活。  \n  \n另外要注意的是，如果你在切到 Fable 5 之前已经用其他模型消耗了大半额度，Fable 5 能用的量会更少，因为 50% 的上限和其他模型共享同一个总额度池。  \n  \n使用入口覆盖得很全：网页版、手机、桌面客户端、Claude Code（需要 2.1.170 及以上版本）、Cowork、Design，甚至 Microsoft 365 插件里都能选到 Fable 5。  \n  \n免费版用户没有这个福利。企业版的情况稍微复杂一些，Standard 席位本身不含 Fable 5，只有开通了 Usage Credits 才能用；Premium 席位在促销期内免费包含。  \n  \n7 月 12 日之后，Fable 5 不再包含在订阅额度里，所有使用都走 Usage Credits 按量计费。\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nWe're extending access to Claude Fable 5 on all paid plans through July 12.\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2074548242386178258)\n\n💬4🔄0❤️13👀3982📊4",
+      "tags": [
+        "Claude Fable 5",
+        "免费试用延期",
+        "Anthropic"
+      ],
+      "score": 80,
+      "summary": "宝玉转述Anthropic将Claude Fable 5免费试用期延长至7月12日。",
+      "fetched_at": "2026-07-08T04:55:15.183697+08:00"
+    },
+    {
+      "title": "Switching from PostgreSQL to ClickHouse for Improved Performance and Scalability",
+      "link": "https://www.infoq.com/news/2026/07/momentic-postgres-clickhouse/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-08T04:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/momentic-postgres-clickhouse/en/headerimage/momentic-postgres-clickhouse-1783452382371.jpeg)\n\nMomentic, the company behind an AI-driven software testing platform, recently rearchitected its caching system to handle over 2 million queries per day across 20 billion total entries, while maintaining an average response latency of around 250 ms. This improvement was made possible by transitioning from PostgreSQL to the column-oriented database ClickHouse.\n\n*By Sergio De Simone*",
+      "tags": [
+        "ClickHouse",
+        "PostgreSQL",
+        "性能优化"
+      ],
+      "score": 70,
+      "summary": "InfoQ报道Momentic从PostgreSQL迁移到ClickHouse以提升性能和可扩展性。",
+      "fetched_at": "2026-07-08T04:55:15.183699+08:00"
     }
   ]
 }
