@@ -875,6 +875,736 @@
       "score": 60,
       "summary": "Elvis计划尝试GPT-5.6作为执行者、Fable 5作为顾问的模式。",
       "fetched_at": "2026-07-09T01:48:48.832336+08:00"
+    },
+    {
+      "title": "Navigating a Synapse Migration to Databricks",
+      "link": "https://www.databricks.com/blog/navigating-synapse-migration-databricks",
+      "published": "2026-07-09T03:00:00+08:00",
+      "source": "Databricks",
+      "content": "Azure Synapse has served as a reliable foundation for SQL analytics at scale, and...",
+      "tags": [
+        "Databricks",
+        "Synapse迁移"
+      ],
+      "score": 79,
+      "summary": "Databricks发布从Azure Synapse迁移到Databricks的指南。",
+      "fetched_at": "2026-07-09T03:48:22.954137+08:00"
+    },
+    {
+      "title": "GitHub availability report: June 2026",
+      "link": "https://github.blog/news-insights/company-news/github-availability-report-june-2026/",
+      "published": "2026-07-09T03:35:51+08:00",
+      "source": "The GitHub Blog",
+      "content": "Last month, we [added a new section](https://github.blog/news-insights/company-news/github-availability-report-may-2026/) to our monthly reports with updates on GitHub’s availability work and the infrastructure investments behind it. The response and the questions we heard made one thing clear: customers want more of this, not less—including when the news is mixed.\n\n**The short version of June:** We made real structural progress, we paused deliberately when a ramp went sideways, and we missed a target that we’ve now re-baselined.\n\nMonolith traffic in Azure peaked at **45% in Central US** this month. That number is lower than we’d hoped, because we paused the ramp for roughly a month after a stability incident on May 21 made it clear the environment wasn’t ready for more traffic. We restarted the ramp on June 17 with a new per-turnup stability gate that requires the environment to be verifiably healthy before each step up. Going more slowly with more confidence is the right trade—a controlled pause is preferable to relearning the same lessons at higher load.\n\nGit in Azure grew from 30% to a peak of **43% (HTTP and SSH combined)** over the month, and we missed our June target of 50%. We expect Git to plateau near 45% for now because of two deliberate decisions to avoid added user latency: we are waiting on additional vPoP traffic to route to Central US rather than backhauling IAD HUB Git traffic, and we are routing only HTTP for now because SSH has no read/write split at the edge. We continue to prioritize this, but we don’t have a new target to share. We’ll keep working as quickly and safely as possible and will report the specific numbers in our next update.\n\nUnderneath those headline numbers, we made progress that we are particularly excited about. Our new extracted pull requests service, pullsd, is now handling **100% of anonymous pull request reads** in production; this traffic is no longer served by the monolith. Reposd, our new extracted repository service, became the first extracted service to serve production REST traffic from Azure, ramping to 50% of read traffic before we proactively turned it down for a Redis capacity constraint. There was no incident and no rollback under duress. It will re-ramp once that capacity work completes. Our new users service is now offloading roughly **500,000 queries per second at peak** from our primary database, with the physical migration of authentication and authorization tables landing in early July. Our API rate limiting is now approximately **97% handled at the Gateway**, so rate-limiting decisions no longer contend with request-serving workers inside the monolith. Client-side database load shedding is running against 5% of real production traffic, which means we now have live evidence that we can shed low-priority queries under stress before they cascade into user-facing failures. And two-person confirmation is now required end-to-end for interactive production access and ChatOps changes, with a unified audit trail behind it.\n\nThe incident write-ups that follow are the other half of the picture: what the system did well and what it didn’t, what we’ve already changed as a result, and what we’re still changing. The same principle continues to guide us: **availability, then capacity, then features.**\n\n---\n\nIn June, we experienced six incidents that resulted in degraded performance across GitHub services.\n\n**June 04 17:30 UTC (lasting 1 hour and 25 minutes)**\n\nOn June 4, 2026, from 17:30 to 18:55 UTC, Copilot code review experienced elevated failures for review requests on github.com. Affected users saw “Copilot ran into an error” on pull requests when requesting a code review.\n\nDuring the incident window, an average of 81.6% of Copilot code review requests failed, with a peak failure rate of 93.9%, and a total of approximately 36,800 code review requests failing. GitHub Enterprise Cloud with data residency was not impacted.\n\nThe issue was caused by a newly released dependency used by the Copilot code review processing workflow. The release introduced an incompatibility with the runtime environment. Because the workflow automatically consumed the latest release, the incompatible version was picked up without sufficient compatibility validation and caused review processing to fail. Affected review jobs did not fail fast; many continued running until they timed out.\n\nWe mitigated the incident by removing the problematic dependency version and redeploying the affected processing service. New code reviews began recovering at 18:44 UTC, and the failure rate returned to baseline by 18:55 UTC. Remaining timed-out work drained by 19:59 UTC.\n\nTo reduce the risk of recurrence, we are pinning the dependency version instead of automatically consuming the latest release, adding compatibility checks for future releases, improving fast-failure behavior when the review processor cannot start, adding shorter timeout controls for review workflows, and improving monitoring for review completion failures.\n\n**June 08 06:30 UTC (lasting 2 hour and 06 minutes)**\n\nOn June 8, 2026, between approximately 06:30 and 08:36 UTC, signed-out users experienced sustained elevated HTTP 504 errors when accessing pull requests, issues, releases, patch diffs, and other related github.com pages. During the incident, approximately 17% of unauthenticated requests to the affected github.com endpoints returned gateway timeout errors, peaking at roughly 34% of requests at around 06:50 UTC. Some GitHub Actions workflows were also affected when they depended on release downloads or related github.com endpoints. The impact lasted approximately two hours and was isolated to unauthenticated traffic; signed-in users were not affected.\n\nThe issue was caused by a significant increase in abusive, automated anonymous traffic to specific github.com endpoints. Because unauthenticated requests are served by a dedicated pool of web application servers, it degraded our ability to respond to unauthenticated requests, causing requests to queue beyond timeout thresholds and return gateway timeout errors.\n\nWe mitigated the incident by identifying the anomalous traffic pattern and applying targeted blocks at the load balancer and application layers. Once the blocks took full effect, error rates returned to normal and affected services were fully restored by 08:36 UTC.\n\nTo reduce the likelihood and impact of similar incidents in the future, we are improving automated detection and blocking for these traffic patterns, improving our emergency traffic-blocking deployment path, and evaluating routing changes for endpoints used by both signed-out users and automated workflows.\n\n**June 10 15:05 UTC (lasting 1 hour and 20 minutes)**\n\nOn June 10, 2026, between 15:05 and 16:25 UTC, GitHub API services experienced degraded availability due to sporadic authentication failures affecting approximately 9% of requests. Both REST and GraphQL API requests were affected. Customers experienced intermittent “logged out” behavior as erroneous 401 (unauthorized) responses caused first- and third-party app integrations to trigger repeated authentication flows. Because only requests routed through the affected infrastructure failed, the same client could succeed on one request and fail on the next, producing the intermittent behavior. Affected requests also experienced approximately 800ms of additional latency, as the gateway retried authentication before returning an error.\n\nA memcached proxy service, rollout to our internal API infrastructure caused our authentication service to pick up an incorrect host configuration, leading to intermittent authentication lookup failures. We mitigated the incident by deploying a configuration change to memcached service to use the correct host.\n\nTo prevent similar issues in the future, we plan to migrate our authentication system to the new caching infrastructure to improve resilience and strengthen overall reliability posture. We are also improving how the gateway distinguishes transient authentication-system errors from genuinely invalid credentials, so that temporary lookup failures no longer appear to users as being logged out.\n\n**June 16 17:20 UTC (lasting 55 minutes)**\n\nOn June 16, 2026, between 17:20 and 18:15 UTC, the Opus 4.8 model experienced degraded availability in GitHub Copilot. During this window, some requests to Opus 4.8 failed or errored. Other Copilot models were not affected and remained available as alternatives. This was caused by an issue with an upstream model provider.\n\nWhile the issue was ongoing, we enabled degraded-mode messaging to inform affected users. The upstream provider resolved the issue, and we monitored Opus 4.8 until success rates returned to normal. The incident is fully resolved.\n\nWe are reducing our reliance on any single inference provider for a given model and balancing capacity across providers, so traffic can fail over to healthy capacity during an upstream outage. Separately, we hardened our public status-page tooling to ensure incident updates publish reliably, improving how we keep customers informed during mitigation.\n\n**June 17 03:50 UTC (lasting 54 minutes)**\n\nOn June 17, 2026, between approximately 03:50 and 04:44 UTC, GitHub Copilot was degraded and most of its frontier chat models were temporarily unavailable across all regions. During this window, affected models either disappeared from the model picker in the web, editor, and CLI experiences, or returned a “model not available” error when selected. Customers could continue using GitHub Copilot by selecting one of the models that remained available. The incident occurred during off-peak hours, which limited the number of customers affected.\n\nThis was due to a configuration change that our production system deemed invalid. We mitigated the incident by reverting the configuration change, after which the affected models returned automatically as the service reloaded the previous configuration.\n\nWe are working to roll out configuration changes gradually with stronger validations, alerts on sudden drops in the number of available models, and automatically roll back configuration changes that trigger these alerts.\n\n**June 25 17:33 UTC (lasting 23 minutes)**\n\nOn June 25, 2026, between 17:33 and 17:55 UTC, our background job service experienced degradation which increased delays to pull requests, repository pushes, actions workflows, and webhooks, with delays peaking at 7 minutes. The issue was caused by underlying hypervisor issues and an incoming traffic spike, causing service timeouts which led to a connection storm and continual rebalances.\n\nThe issue was mitigated by replacing the impacted node at 17:49, after which all services saw recovery by 18:07.\n\nTo reduce the likelihood and impact of similar incidents in the future, we have made background job processing more resilient to sudden traffic spikes, reduced the possibility of connection churn in degraded cases, removed the co-location of critical nodes so that one unhealthy node cannot affect others, and added earlier alerting on the conditions that led to this degradation.\n\n---\n\nFollow our [status page](https://www.githubstatus.com/) for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the [GitHub Blog](https://github.blog/category/engineering/).\n\nThe post [GitHub availability report: June 2026](https://github.blog/news-insights/company-news/github-availability-report-june-2026/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub",
+        "可用性报告",
+        "Azure迁移"
+      ],
+      "score": 79,
+      "summary": "GitHub发布2026年6月可用性报告，更新Azure迁移进展。",
+      "fetched_at": "2026-07-09T03:48:22.954150+08:00"
+    },
+    {
+      "title": "@vercel @grok Learn more:\nhttps://t.co/nHjpjqAy6H",
+      "link": "https://x.com/aisdk/status/2074916634742116459",
+      "published": "2026-07-09T02:00:50+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "[@vercel](https://x.com/vercel)[@grok](https://x.com/grok) Learn more:  \n[ai-sdk.dev/providers/ai-s…](https://ai-sdk.dev/providers/ai-sdk-providers/xai)\n\n💬1🔄0❤️1👀424📊1",
+      "tags": [
+        "AI SDK",
+        "Grok 4.5",
+        "Vercel"
+      ],
+      "score": 70,
+      "summary": "AI SDK宣布支持xAI的Grok 4.5模型。",
+      "fetched_at": "2026-07-09T03:48:22.954154+08:00"
+    },
+    {
+      "title": "Use xAI’s latest Grok 4.5 model with the AI SDK\nhttps://t.co/6sFEM59cEF",
+      "link": "https://x.com/aisdk/status/2074916622209548683",
+      "published": "2026-07-09T02:00:47+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "Use xAI’s latest Grok 4.5 model with the AI SDK  \n[x.com/SpaceXAI/statu…](https://x.com/SpaceXAI/status/2074915721684086811)\n\n![Tweet Image](https://pbs.twimg.com/media/HMuVrAyaAAADDbB.jpg)\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nAnnouncing Grok 4.5, our first model trained specifically for coding and agents. It was trained with Cursor and offers frontier intelligence at leading speeds and cost efficiency.  \n  \n[x.ai/news/grok-4-5](https://x.ai/news/grok-4-5)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074912187391610880/vid/avc1/1920x1080/YDSaMg54mHmdIfgr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/SpaceXAI/status/2074915721684086811/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2074915721684086811)\n\n💬2🔄3❤️43👀2177📊7",
+      "tags": [
+        "AI SDK",
+        "Grok 4.5"
+      ],
+      "score": 70,
+      "summary": "AI SDK宣布支持xAI最新Grok 4.5模型。",
+      "fetched_at": "2026-07-09T03:48:22.954158+08:00"
+    },
+    {
+      "title": "https://t.co/SSveiarw3m",
+      "link": "https://x.com/_akhaliq/status/2074936757645164631",
+      "published": "2026-07-09T03:20:48+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "[huggingface.co/collections/ro…](https://huggingface.co/collections/robbyant/lingbot-world-v2)\n\n💬0🔄0❤️1👀525",
+      "tags": [
+        "LingBot-World 2.0",
+        "Hugging Face"
+      ],
+      "score": 60,
+      "summary": "AK转发LingBot-World 2.0在Hugging Face上发布的链接。",
+      "fetched_at": "2026-07-09T03:48:22.954161+08:00"
+    },
+    {
+      "title": "LingBot-World 2.0 (Infinity) is out on Hugging Face\n\ninteractive world model with: \nHour-long genera...",
+      "link": "https://x.com/_akhaliq/status/2074936755296641520",
+      "published": "2026-07-09T03:20:47+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "LingBot-World 2.0 (Infinity) is out on Hugging Face  \n  \ninteractive world model with:   \nHour-long generation with zero quality drift   \n  \nRich actions & events: attack, cast spells, shoot, summon storms   \n  \nAgentic world: a Director Agent drives real-time world evolution  \n  \n720p/60fps. Playable like a game\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074936581417259008/vid/avc1/950x576/QmQXT1oKtIvgf4QD.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_akhaliq/status/2074936755296641520/video/1)\n\n💬1🔄3❤️12👀1959📊3",
+      "tags": [
+        "LingBot-World 2.0",
+        "交互世界模型"
+      ],
+      "score": 60,
+      "summary": "AK转发LingBot-World 2.0发布，支持小时级生成和代理世界。",
+      "fetched_at": "2026-07-09T03:48:22.954163+08:00"
+    },
+    {
+      "title": "https://t.co/4Ngm5GFpBe",
+      "link": "https://x.com/_akhaliq/status/2074932731801174179",
+      "published": "2026-07-09T03:04:48+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "[huggingface.co/collections/ro…](https://huggingface.co/collections/robbyant/lingbot-video)\n\n💬1🔄0❤️3👀1026📊1",
+      "tags": [
+        "LingBot-Video",
+        "Hugging Face"
+      ],
+      "score": 60,
+      "summary": "AK转发LingBot-Video在Hugging Face上发布的链接。",
+      "fetched_at": "2026-07-09T03:48:22.954166+08:00"
+    },
+    {
+      "title": "LingBot-Video is out on Hugging Face  \n\nMoE-based video foundation model built for embodied intellig...",
+      "link": "https://x.com/_akhaliq/status/2074932729376870826",
+      "published": "2026-07-09T03:04:47+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "LingBot-Video is out on Hugging Face   \n  \nMoE-based video foundation model built for embodied intelligence  \n  \n30B params, only 3B active at inference   \n  \nAugmented with 70K hours of embodied data on top of large-scale internet video pretraining\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074932568860852224/vid/avc1/1016x576/q2jQz9SEecKpI3PZ.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_akhaliq/status/2074932729376870826/video/1)\n\n💬1🔄5❤️19👀3088📊6",
+      "tags": [
+        "LingBot-Video",
+        "MoE",
+        "30B参数"
+      ],
+      "score": 60,
+      "summary": "AK转发LingBot-Video发布，30B参数MoE模型，3B激活。",
+      "fetched_at": "2026-07-09T03:48:22.954169+08:00"
+    },
+    {
+      "title": "paper: https://t.co/FmEKHFoVgj",
+      "link": "https://x.com/_akhaliq/status/2074927534156677146",
+      "published": "2026-07-09T02:44:09+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "paper: [huggingface.co/papers/2607.06…](https://huggingface.co/papers/2607.06559)\n\n💬0🔄0❤️3👀1249",
+      "tags": [
+        "RynnWorld-4D",
+        "论文"
+      ],
+      "score": 60,
+      "summary": "AK转发RynnWorld-4D论文链接。",
+      "fetched_at": "2026-07-09T03:48:22.954171+08:00"
+    },
+    {
+      "title": "RynnWorld-4D\n\n4D Embodied World Models for Robotic Manipulation",
+      "link": "https://x.com/_akhaliq/status/2074927532688695436",
+      "published": "2026-07-09T02:44:08+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "RynnWorld-4D  \n  \n4D Embodied World Models for Robotic Manipulation\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074927374676709376/vid/avc1/854x480/ksRZKqN-uBhewbGk.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/_akhaliq/status/2074927532688695436/video/1)\n\n💬4🔄4❤️13👀3828📊7",
+      "tags": [
+        "RynnWorld-4D",
+        "机器人操作"
+      ],
+      "score": 60,
+      "summary": "AK转发RynnWorld-4D，4D具身世界模型用于机器人操作。",
+      "fetched_at": "2026-07-09T03:48:22.954174+08:00"
+    },
+    {
+      "title": "https://t.co/YOd4ptcTeD",
+      "link": "https://x.com/addyosmani/status/2074927530482835916",
+      "published": "2026-07-09T02:44:08+08:00",
+      "source": "Addy Osmani(@addyosmani)",
+      "content": "[x.com/i/article/2074…](http://x.com/i/article/2074573342187868160)\n\n💬1🔄2❤️9👀2266📊5",
+      "tags": [
+        "Addy Osmani",
+        "文章"
+      ],
+      "score": 60,
+      "summary": "Addy Osmani转发一篇文章。",
+      "fetched_at": "2026-07-09T03:48:22.954177+08:00"
+    },
+    {
+      "title": "Very excited for this model. It’s an enormous improvement over composer 2.5 and trained entirely fro...",
+      "link": "https://x.com/amanrsanger/status/2074916918390341666",
+      "published": "2026-07-09T02:01:58+08:00",
+      "source": "Aman Sanger(@amanrsanger)",
+      "content": "Very excited for this model. It’s an enormous improvement over composer 2.5 and trained entirely from scratch. It’s been a pleasure working with the SpaceXAI team on it.  \n  \nEven more excited by the slope of the effort and the models to come.\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nWe've partnered with SpaceXAI to train Grok 4.5.  \n  \nIt’s our most powerful model yet and the first we've built for more than software engineering.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuQw2BXUAAJaQd.png)\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2074915744999969059)\n\n💬22🔄13❤️441👀16484📊59",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "SpaceXAI"
+      ],
+      "score": 80,
+      "summary": "Aman Sanger表示Grok 4.5比Composer 2.5大幅改进，从零训练。",
+      "fetched_at": "2026-07-09T03:48:22.954180+08:00"
+    },
+    {
+      "title": "Grok 4.5 and Composer are two different model weight classes.\n\nComposer 2.5 will remain offered, and...",
+      "link": "https://x.com/cursor_ai/status/2074915748544217188",
+      "published": "2026-07-09T01:57:19+08:00",
+      "source": "Cursor(@cursor_ai)",
+      "content": "Grok 4.5 and Composer are two different model weight classes.  \n  \nComposer 2.5 will remain offered, and we will release new models of this size going forward.\n\n💬22🔄16❤️751👀35537📊87",
+      "tags": [
+        "Grok 4.5",
+        "Composer 2.5",
+        "Cursor"
+      ],
+      "score": 85,
+      "summary": "Cursor称Grok 4.5与Composer 2.5是不同重量级，Composer将继续提供。",
+      "fetched_at": "2026-07-09T03:48:22.954182+08:00"
+    },
+    {
+      "title": "We've partnered with SpaceXAI to train Grok 4.5.\n\nIt’s our most powerful model yet and the first we'...",
+      "link": "https://x.com/cursor_ai/status/2074915744999969059",
+      "published": "2026-07-09T01:57:18+08:00",
+      "source": "Cursor(@cursor_ai)",
+      "content": "We've partnered with SpaceXAI to train Grok 4.5.  \n  \nIt’s our most powerful model yet and the first we've built for more than software engineering.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuQw2BXUAAJaQd.png)\n\n💬396🔄638❤️7761👀953763📊1315",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "SpaceXAI"
+      ],
+      "score": 90,
+      "summary": "Cursor宣布与SpaceXAI合作训练Grok 4.5，是其最强模型。",
+      "fetched_at": "2026-07-09T03:48:22.954185+08:00"
+    },
+    {
+      "title": "Try it out in Cursor with double usage for the first week.\n\nhttps://t.co/YBKMn66zS1",
+      "link": "https://x.com/cursor_ai/status/2074915747302690991",
+      "published": "2026-07-09T01:57:18+08:00",
+      "source": "Cursor(@cursor_ai)",
+      "content": "Try it out in Cursor with double usage for the first week.  \n  \n[cursor.com/blog/grok-4-5](https://cursor.com/blog/grok-4-5)\n\n💬26🔄27❤️667👀42232📊88",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "双倍用量"
+      ],
+      "score": 85,
+      "summary": "Cursor宣布Grok 4.5在Cursor中可用，首周双倍用量。",
+      "fetched_at": "2026-07-09T03:48:22.954187+08:00"
+    },
+    {
+      "title": "If you're tired of re-explaining the same context to your AI every day, go see what @PromptQL just l...",
+      "link": "https://x.com/FireworksAI_HQ/status/2074915281278001380",
+      "published": "2026-07-09T01:55:27+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "If you're tired of re-explaining the same context to your AI every day, go see what [@PromptQL](https://x.com/PromptQL) just launched!\n\n![Tanmai Gopal](https://pbs.twimg.com/profile_images/1929696037465477123/8OM2ihwQ_normal.jpg)\n\nTanmai Gopal@tanmaigo\n\nWe raised $136M to kill Slack.  \n  \nIntroducing PromptQL: The first AI version of Slack.  \n  \nHere’s how it works:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074907624580304896/vid/avc1/1920x1080/qFSrPXJy1eOc4hGy.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/tanmaigo/status/2074909177449947198/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/tanmaigo/status/2074909177449947198)\n\n💬1🔄2❤️12👀2165📊3",
+      "tags": [
+        "PromptQL",
+        "Fireworks AI"
+      ],
+      "score": 70,
+      "summary": "Fireworks AI推荐PromptQL，称其推出AI版Slack。",
+      "fetched_at": "2026-07-09T03:48:22.954190+08:00"
+    },
+    {
+      "title": "You've got an idea for a poster, an app, or a website… but it's still stuck in your head.\n\nThis sess...",
+      "link": "https://x.com/genspark_ai/status/2074936014972604618",
+      "published": "2026-07-09T03:17:51+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "You've got an idea for a poster, an app, or a website… but it's still stuck in your head.  \n  \nThis session will get it out. ￼  \n  \nJoin Genspark Academy: Poster, Prototype & Ship in One Session. A live walkthrough of Genspark Design, where one conversation takes you from prompt → print-ready poster → clickable prototype → working product.  \n  \nNo design skills required. Just show up with an idea.  \n  \n￼ [lu.ma/ri0fvbch](http://lu.ma/ri0fvbch)\n\n💬1🔄2❤️2👀500📊2",
+      "tags": [
+        "Genspark",
+        "设计工作坊"
+      ],
+      "score": 70,
+      "summary": "Genspark举办从提示到产品的设计工作坊。",
+      "fetched_at": "2026-07-09T03:48:22.954193+08:00"
+    },
+    {
+      "title": "Build smarter with the new GitHub Copilot app. 💡\n\nJoin our Let's Learn virtual sessions and find ou...",
+      "link": "https://x.com/github/status/2074916486271922558",
+      "published": "2026-07-09T02:00:15+08:00",
+      "source": "GitHub(@github)",
+      "content": "Build smarter with the new GitHub Copilot app. 💡  \n  \nJoin our Let's Learn virtual sessions and find out how this all-in-one control center can help you optimize your workflow with agent-driven development.  \n  \nSign up for your session in English, Korean, Chinese, Japanese, Spanish, or Portuguese. 🗓[gh.io/letslearn](https://gh.io/letslearn)Xt\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HMuViBwXEAE-2KK.jpg)](https://video.twimg.com/tweet_video/HMuViBwXEAE-2KK.mp4)\n\n💬9🔄3❤️42👀10785📊11",
+      "tags": [
+        "GitHub Copilot",
+        "代理驱动开发"
+      ],
+      "score": 70,
+      "summary": "GitHub推广Copilot应用，举办虚拟学习会议。",
+      "fetched_at": "2026-07-09T03:48:22.954195+08:00"
+    },
+    {
+      "title": "Grok 4.5 now available to all Vercel customers",
+      "link": "https://x.com/rauchg/status/2074920996201796067",
+      "published": "2026-07-09T02:18:10+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Grok 4.5 now available to all Vercel customers\n\n💬24🔄9❤️245👀272766📊44",
+      "tags": [
+        "Grok 4.5",
+        "Vercel"
+      ],
+      "score": 80,
+      "summary": "Guillermo Rauch宣布Grok 4.5对Vercel所有客户可用。",
+      "fetched_at": "2026-07-09T03:48:22.954198+08:00"
+    },
+    {
+      "title": "Bigger update coming tmrw, but a bunch of small fixes today!",
+      "link": "https://x.com/hwchase17/status/2074939230124708071",
+      "published": "2026-07-09T03:30:37+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Bigger update coming tmrw, but a bunch of small fixes today!\n\n![Brace](https://pbs.twimg.com/profile_images/1694931592505085952/i14SGO0t_normal.jpg)\n\nBrace@BraceSproul\n\nOpenWiki 0.0.3 just launched with tons of bug fixes and improvements!  \n  \nSome notable changes:  \n- 'openai-compatible' provider to support any LLM provider that supports the OpenAI API spec! Thank you [@bradhuffman](https://x.com/bradhuffman)   \n- deterministically skip updates if no code changes have been made. Shoutout [@hudushy](https://x.com/hudushy)   \n- GitLab CI example workflow for running update jobs  \n- and many more smaller fixes and improvements!  \n  \nlots more coming soon to OpenWiki. also very interested to hear what people want in a memory system\n\n![Tweet Image](https://pbs.twimg.com/media/HMugG2vbkAAcfQb.jpg)![Tweet Image](https://pbs.twimg.com/media/HMugHqVasAAL20K.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/BraceSproul/status/2074930496874889677)\n\n💬0🔄0❤️0",
+      "tags": [
+        "OpenWiki",
+        "LangChain"
+      ],
+      "score": 60,
+      "summary": "Harrison Chase称明天有更大更新，今天有OpenWiki小修复。",
+      "fetched_at": "2026-07-09T03:48:22.954200+08:00"
+    },
+    {
+      "title": "i want to build a more opinionated/detailed coding experience (for prompt optimization, eval set cre...",
+      "link": "https://x.com/hwchase17/status/2074931768353059205",
+      "published": "2026-07-09T03:00:58+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "i want to build a more opinionated/detailed coding experience (for prompt optimization, eval set creation, some more things)  \n  \nwhat is the best way to package it all up?\n\n💬7🔄1❤️4👀888📊7",
+      "tags": [
+        "Harrison Chase",
+        "编码体验"
+      ],
+      "score": 60,
+      "summary": "Harrison Chase想构建更细致的编码体验，征求打包方式。",
+      "fetched_at": "2026-07-09T03:48:22.954203+08:00"
+    },
+    {
+      "title": "Guess what we added someone else to this webinar:\n\n@jeffreyhuber, ceo and cofounder of chroma\n\nWhat ...",
+      "link": "https://x.com/hwchase17/status/2074921073502765407",
+      "published": "2026-07-09T02:18:28+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Guess what we added someone else to this webinar:  \n  \n[@jeffreyhuber](https://x.com/jeffreyhuber), ceo and cofounder of chroma  \n  \nWhat does a vector database think about the concept of “wikis”?  \n  \nCome find out! It’s turning into a party\n\n![Harrison Chase](https://pbs.twimg.com/profile_images/1569345624935485442/R67C4wCQ_normal.jpg)\n\nHarrison Chase@hwchase17\n\ngpt-5.6 sol isnt the only thinking launching thursday  \n  \nwe're also releasing a big update to OpenWiki (auto create wikis of code bases... and more?)  \n  \nwe're also going live with a webinar to talk all things wiki: [events.langchain.com/webinar/llm-wi…](https://events.langchain.com/webinar/llm-wiki/)  \n  \n(openwiki: [github.com/langchain-ai/o…](https://github.com/langchain-ai/openwiki))\n\n![Tweet Image](https://pbs.twimg.com/media/HMtpqL0b0AAUOvH.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/hwchase17/status/2074868244721352840)\n\n💬3🔄1❤️16👀2546📊5",
+      "tags": [
+        "OpenWiki",
+        "LangChain",
+        "Chroma"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase宣布OpenWiki更新及与Chroma CEO的联合网络研讨会。",
+      "fetched_at": "2026-07-09T03:48:22.954205+08:00"
+    },
+    {
+      "title": "Congrats to prime intellect! Love partnering with them on LangChain labs work",
+      "link": "https://x.com/hwchase17/status/2074919314755604855",
+      "published": "2026-07-09T02:11:29+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Congrats to prime intellect! Love partnering with them on LangChain labs work\n\n![Prime Intellect](https://pbs.twimg.com/profile_images/1837605403359633411/Stj4eLIH_normal.jpg)\n\nPrime Intellect@PrimeIntellect\n\nAnnouncing our $130M Series A to build the Open Superintelligence Stack  \n  \nLed by Radical Ventures, with NVIDIA, Intel Capital, Dell Capital, and existing investors  \n  \nTrain, deploy, and continuously improve your own models using our stack.  \n  \nOwn your intelligence.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074897472191856640/vid/avc1/1440x1080/OA9mcxAk77rV9xVo.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/PrimeIntellect/status/2074899489190785419/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/PrimeIntellect/status/2074899489190785419)\n\n💬3🔄1❤️22👀2168📊4",
+      "tags": [
+        "Prime Intellect",
+        "LangChain"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase祝贺Prime Intellect完成1.3亿美元A轮融资。",
+      "fetched_at": "2026-07-09T03:48:22.954208+08:00"
+    },
+    {
+      "title": ".@hwchase17 + Jensen Huang fireside chat.\n\nA discussion on:\n✅Today’s announcement\n✅The blueprint\n✅Op...",
+      "link": "https://x.com/LangChain/status/2074931528337928566",
+      "published": "2026-07-09T03:00:01+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": ".[@hwchase17](https://x.com/hwchase17) + Jensen Huang fireside chat.  \n  \nA discussion on:  \n✅Today’s announcement  \n✅The blueprint  \n✅Open agent systems  \n✅The path to lower-cost enterprise agents\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074910472722173952/vid/avc1/3840x2160/cVQkHaTAECs4UarV.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2074931528337928566/video/1)\n\n💬2🔄0❤️13👀1799📊4",
+      "tags": [
+        "LangChain",
+        "NVIDIA",
+        "NemoClaw"
+      ],
+      "score": 80,
+      "summary": "LangChain发布与NVIDIA合作的NemoClaw Deep Agents Blueprint。",
+      "fetched_at": "2026-07-09T03:48:22.954210+08:00"
+    },
+    {
+      "title": "Excited to team up with partners across the AI infrastructure + enterprise ecosystem.\n\n@EY_US\n@baset...",
+      "link": "https://x.com/LangChain/status/2074916429103599741",
+      "published": "2026-07-09T02:00:01+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Excited to team up with partners across the AI infrastructure + enterprise ecosystem.  \n  \n[@EY\\_US](https://x.com/EY_US)[@baseten](https://x.com/baseten)[@FireworksAI\\_HQ](https://x.com/FireworksAI_HQ)[@nebiusai](https://x.com/nebiusai)[@CrusoeAI](https://x.com/CrusoeAI)[@DeepInfra](https://x.com/DeepInfra)[@togethercompute](https://x.com/togethercompute)\n\n![Tweet Image](https://pbs.twimg.com/media/HMuOHYfW0AAa09b.jpg)\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\nIntroducing the NemoClaw Deep Agents Blueprint, a reference architecture for building open agent systems developed with [@NVIDIA](https://x.com/NVIDIA)  \n  \n✅ A fully open stack enterprises can own and customize  \n✅ Benchmark-leading performance  \n✅ Over 10x lower inference costs  \n  \nBlog: [langchain.com/blog/langchain…](http://www.langchain.com/blog/langchain-and-nvidia-launch-the-nemoclaw-deep-agents-blueprint)  \n  \nVideo: [youtu.be/Yy3JH6dDugc](https://youtu.be/Yy3JH6dDugc)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074866400687017984/vid/avc1/3840x2160/3XWeyqXhsyz6honF.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2074871740350505309/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2074871740350505309)\n\n💬4🔄2❤️26👀3481📊5",
+      "tags": [
+        "LangChain",
+        "NVIDIA",
+        "NemoClaw"
+      ],
+      "score": 80,
+      "summary": "LangChain宣布与多家AI基础设施企业合作推出NemoClaw蓝图。",
+      "fetched_at": "2026-07-09T03:48:22.954213+08:00"
+    },
+    {
+      "title": "\"The question that best predicts how a tech worker feels about their work in 2026 is no longer 'What...",
+      "link": "https://x.com/lennysan/status/2074937363286118859",
+      "published": "2026-07-09T03:23:12+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "\"The question that best predicts how a tech worker feels about their work in 2026 is no longer 'What do you do?' or 'Where do you work?' It’s 'What has AI done to your sense of who you are?'  \n  \nFour archetypes emerged from our survey data, and you almost certainly recognize them:  \n  \n1. The Energized (41%). The all-in adopters. They lead with “excited” (91%), “curious” (83%), and “hopeful” (59%). They’re the most optimistic group, the least burned out, and the only segment with a clearly positive read on their field. For them, AI truly seems like a superpower.  \n  \ne.g. “Product has become fun again! You become an explorer, you play around . . . you spend long hours full of excitement. We’re in an amusement park.” —PM, Principal IC  \n  \n2. The Conflicted (35%). The ambivalent center of gravity—and the largest group after the Amplified. Their signature emotions are “conflicted—holding positive and negative feelings at once” (68%)—and “curious” (64%), trailed closely by “overwhelmed” (56%) and “tired” (55%). They haven’t soured on AI; they’re just exhausted by the work of keeping up with it while holding two feelings at the same time.  \n  \ne.g. “I’m simultaneously having the most fun I’ve had as a product builder and also feeling the most uncertainty I’ve felt. I’m confident I’ll be able to keep my skills sharp and adapt, but I’m not yet sure what it is that I’ll need to adapt into.” —PM, Senior IC  \n  \n3. The Disoriented (12%). Defined almost entirely by one feeling: “disoriented—my role keeps shifting,” layered with “overwhelmed” (74%) and “tired” (73%). These are people watching their job change shape beneath them faster than they can find their footing again. They still think AI is somewhat useful. They’re not “refusers.” They’re just losing the thread of their role in the workplace.  \n  \ne.g. “Things are so uncertain, we’re like farmers on the cusp of the industrial revolution. We know going into farming is the wisest long-term career choice, but we don’t see a clear path. This kind of uncertainty crowds out productivity.” —VP Product  \n  \n4. The Resentful (12%). The burned-out and checked-out. Every one of them selected “resentful—I feel pressured to use AI,” and they cluster with “tired,” “conflicted,” and “overwhelmed.” They report the lowest optimism, the lowest willingness to recommend their field, and the lowest sense that AI is helping them at all. This is AI fatigue transformed into resistance.\"  \n  \n“Tech overall kind of sucks right now. We used to adopt new technology because we were excited about the cool new things we could do. Now all we hear is ‘Use AI or you will lose your job’—and then people get fired anyway. I hate it.” —Director of Product  \n  \nFull report: [lennysnewsletter.com/p/how-tech-wor…](https://www.lennysnewsletter.com/p/how-tech-workers-are-feeling-in-2026)\n\n![Tweet Image](https://pbs.twimg.com/media/HMuk0iSaoAAOXCF.jpg)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nThe tech workforce is splitting in two  \n  \nA year ago, we ran the first large-scale survey of how tech workers feel about their jobs and careers. What emerged we summarized in four words: burned out, but optimistic. Today, we're back with the results from our 2026 survey, and it's a tale of two workforces.  \n  \nHalf of tech right now feels amplified by AI—more capable, more confident, more excited than they've been in their entire career.  \n  \nThe other half feels shaken by it—less sure of their value and whether there’s still a place for them.  \n  \nWhich side of that line you fall on predicts how you feel about your career more than anything else, including your role, seniority, company size, or any other measure we collected.   \n  \nThe workforce is bifurcating into two realities.  \n  \nA few other takeaways that surprised us:  \n+ Significant burnout jumped from 44.7% to 55.7% in one year, while career optimism fell from 54.8% to 48.7%. A worrisome trend.  \n+ 53% of tech workers would steer a newcomer away from a career in their own role, even when they're optimistic about their own future.  \n+ The biggest AI fear is of being squeezed to do more work. Only 22% worry about “losing my job to AI.” Far more worry about being expected to do more for the same pay, getting trapped in an unsustainable pace, and the quality of their work declining.  \n  \nThe question that best predicts how a tech worker feels about their work, in 2026, is no longer \"What do you do?\" or \"Where do you work?\" It’s \"What has AI done to your sense of who you are?\"  \n  \nRead the full report here: [lennysnewsletter.com/p/how-tech-wor…](https://www.lennysnewsletter.com/p/how-tech-workers-are-feeling-in-2026)\n\n![Tweet Image](https://pbs.twimg.com/media/HMkPj3wagAAdzwi.png)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2074520165296078964)\n\n💬1🔄2❤️3👀2401📊2",
+      "tags": [
+        "AI",
+        "科技工作者",
+        "调查"
+      ],
+      "score": 70,
+      "summary": "Lenny Rachitsky分享AI对科技工作者影响的调查，四种类型。",
+      "fetched_at": "2026-07-09T03:48:22.954216+08:00"
+    },
+    {
+      "title": "Excited to release Grok 4.5 with @SpaceXAI. \n\nIt's an Opus-class model that's fast and low cost. It'...",
+      "link": "https://x.com/mntruell/status/2074916251743457787",
+      "published": "2026-07-09T01:59:19+08:00",
+      "source": "Michael Truell(@mntruell)",
+      "content": "Excited to release Grok 4.5 with [@SpaceXAI](https://x.com/SpaceXAI).   \n  \nIt's an Opus-class model that's fast and low cost. It's a significant step up over any model we've developed so far, including Composer 2.5, and has become the daily driver for many on our team.   \n  \nFirst of many releases. More soon.\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nWe've partnered with SpaceXAI to train Grok 4.5.  \n  \nIt’s our most powerful model yet and the first we've built for more than software engineering.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuQw2BXUAAJaQd.png)\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2074915744999969059)\n\n💬148🔄196❤️2568👀239278📊319",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "SpaceXAI"
+      ],
+      "score": 80,
+      "summary": "Michael Truell称Grok 4.5是Opus级模型，快速低成本。",
+      "fetched_at": "2026-07-09T03:48:22.954218+08:00"
+    },
+    {
+      "title": "https://t.co/LXSyde8OlQ",
+      "link": "https://x.com/midjourney/status/2074937415626813732",
+      "published": "2026-07-09T03:23:25+08:00",
+      "source": "Midjourney(@midjourney)",
+      "content": "[midjourneyofficehours.onrender.com/room/623d694f](https://midjourneyofficehours.onrender.com/room/623d694f)\n\n💬0🔄0❤️1👀56",
+      "tags": [
+        "Midjourney",
+        "办公时间"
+      ],
+      "score": 60,
+      "summary": "Midjourney发布办公时间链接。",
+      "fetched_at": "2026-07-09T03:48:22.954221+08:00"
+    },
+    {
+      "title": "https://t.co/CkMOG0JQZR",
+      "link": "https://x.com/midjourney/status/2074935272895361183",
+      "published": "2026-07-09T03:14:54+08:00",
+      "source": "Midjourney(@midjourney)",
+      "content": "[x.com/i/spaces/1rGmq…](https://x.com/i/spaces/1rGmqqryYOwGy)\n\n💬1🔄3❤️7👀2426📊3",
+      "tags": [
+        "Midjourney",
+        "Spaces"
+      ],
+      "score": 60,
+      "summary": "Midjourney发布Spaces链接。",
+      "fetched_at": "2026-07-09T03:48:22.954223+08:00"
+    },
+    {
+      "title": "So @baseten runs a billion AI inference calls a day. And still hit a very human bottleneck: their fi...",
+      "link": "https://x.com/NotionHQ/status/2074931334657794087",
+      "published": "2026-07-09T02:59:15+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "So [@baseten](https://x.com/baseten) runs a billion AI inference calls a day. And still hit a very human bottleneck: their first AE became the person with all the answers. Then answering became the job.  \n  \nSo they built his digital double with Custom Agents. Questions that took Katz 30 minutes now take 20 seconds, around the clock. The whole company gets their answers. And Katz gets back to the deals only he can close.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074930038714351618/vid/avc1/1920x1080/ro7WXhBbmuHVNzUz.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/NotionHQ/status/2074931334657794087/video/1)\n\n💬2🔄0❤️20👀5612📊5",
+      "tags": [
+        "Notion",
+        "Baseten",
+        "自定义Agent"
+      ],
+      "score": 70,
+      "summary": "Notion展示Baseten使用自定义Agent构建数字双胞胎的案例。",
+      "fetched_at": "2026-07-09T03:48:22.954226+08:00"
+    },
+    {
+      "title": "Full story here: https://t.co/WOwcihSoBC",
+      "link": "https://x.com/NotionHQ/status/2074931336767525003",
+      "published": "2026-07-09T02:59:15+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Full story here: [notion.com/customers/base…](https://www.notion.com/customers/baseten)\n\n💬0🔄0❤️2👀1396📊1",
+      "tags": [
+        "Notion",
+        "Baseten",
+        "案例"
+      ],
+      "score": 70,
+      "summary": "Notion提供Baseten案例完整故事链接。",
+      "fetched_at": "2026-07-09T03:48:22.954228+08:00"
+    },
+    {
+      "title": "We're bringing GPT-Live-1 and GPT-Live-1 mini to the API soon.\n\nDevelopers and enterprises can sign ...",
+      "link": "https://x.com/OpenAIDevs/status/2074915334377844896",
+      "published": "2026-07-09T01:55:40+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "We're bringing GPT-Live-1 and GPT-Live-1 mini to the API soon.  \n  \nDevelopers and enterprises can sign up to be notified using this form:  \n[openai.com/form/gpt-live-…](https://openai.com/form/gpt-live-1-in-the-api/)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nGPT-Live makes talking with AI feel like having a real conversation. It’s also our smartest voice model yet.  \n[openai.com/index/introduc…](https://openai.com/index/introducing-gpt-live/)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2074907027378511884)\n\n💬30🔄27❤️532👀39521📊65",
+      "tags": [
+        "GPT-Live-1",
+        "API",
+        "OpenAI"
+      ],
+      "score": 90,
+      "summary": "OpenAI宣布GPT-Live-1和mini即将在API中提供，开放通知注册。",
+      "fetched_at": "2026-07-09T03:48:22.954231+08:00"
+    },
+    {
+      "title": "Use it now: https://t.co/yrkHFKgtBK",
+      "link": "https://x.com/OpenRouter/status/2074922888629543253",
+      "published": "2026-07-09T02:25:41+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Use it now: [openrouter.ai/x-ai/grok-4.5](https://openrouter.ai/x-ai/grok-4.5)\n\n💬1🔄1❤️8👀1193📊2",
+      "tags": [
+        "Grok 4.5",
+        "OpenRouter"
+      ],
+      "score": 70,
+      "summary": "OpenRouter提供Grok 4.5使用链接。",
+      "fetched_at": "2026-07-09T03:48:22.954233+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/SVCrJIH3x9",
+      "link": "https://x.com/OpenRouter/status/2074922889988497851",
+      "published": "2026-07-09T02:25:41+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Read more: [x.ai/news/grok-4-5](https://x.ai/news/grok-4-5)\n\n💬0🔄1❤️1👀917📊1",
+      "tags": [
+        "Grok 4.5",
+        "OpenRouter"
+      ],
+      "score": 70,
+      "summary": "OpenRouter提供Grok 4.5更多信息链接。",
+      "fetched_at": "2026-07-09T03:48:22.954236+08:00"
+    },
+    {
+      "title": "Grok 4.5 is live now on OpenRouter! \n\nCursor’s contributions have helped make @SpaceXAI’s model fron...",
+      "link": "https://x.com/OpenRouter/status/2074922885328543952",
+      "published": "2026-07-09T02:25:40+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Grok 4.5 is live now on OpenRouter!   \n  \nCursor’s contributions have helped make [@SpaceXAI](https://x.com/SpaceXAI)’s model frontier-level on long-horizon engineering tasks.\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nAnnouncing Grok 4.5, our first model trained specifically for coding and agents. It was trained with Cursor and offers frontier intelligence at leading speeds and cost efficiency.  \n  \n[x.ai/news/grok-4-5](https://x.ai/news/grok-4-5)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074912187391610880/vid/avc1/1920x1080/YDSaMg54mHmdIfgr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/SpaceXAI/status/2074915721684086811/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2074915721684086811)\n\n💬13🔄9❤️132👀6954📊21",
+      "tags": [
+        "Grok 4.5",
+        "OpenRouter",
+        "Cursor"
+      ],
+      "score": 70,
+      "summary": "OpenRouter宣布Grok 4.5上线，Cursor贡献使其在工程任务上达到前沿水平。",
+      "fetched_at": "2026-07-09T03:48:22.954239+08:00"
+    },
+    {
+      "title": "This is the first model that I personally prefer over Opus when I am iterating with a single agent. ...",
+      "link": "https://x.com/sualehasif996/status/2074920016135463236",
+      "published": "2026-07-09T02:14:16+08:00",
+      "source": "Sualeh Asif(@sualehasif996)",
+      "content": "This is the first model that I personally prefer over Opus when I am iterating with a single agent. Fast Grok 4.5 feels very very good!  \n  \nThe model always finds its way around seemingly annoying roadblocks, is very direct and easy to communicate with, and is just really really intelligent.  \n  \nReally excited about our future work with [@SpaceXAI](https://x.com/SpaceXAI).\n\n![Tweet Image](https://pbs.twimg.com/media/HMuX3OGawAAwLLV.jpg)\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nWe've partnered with SpaceXAI to train Grok 4.5.  \n  \nIt’s our most powerful model yet and the first we've built for more than software engineering.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuQw2BXUAAJaQd.png)\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2074915744999969059)\n\n💬10🔄4❤️163👀7468📊25",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "个人评价"
+      ],
+      "score": 60,
+      "summary": "Sualeh Asif称Grok 4.5是首个在单代理迭代中优于Opus的模型。",
+      "fetched_at": "2026-07-09T03:48:22.954241+08:00"
+    },
+    {
+      "title": "Strong new SpaceXAI / Cursor release with Grok 4.5. \n\nImpressive benchmarks at a flash-level speed, ...",
+      "link": "https://x.com/TheRundownAI/status/2074925814324301840",
+      "published": "2026-07-09T02:37:19+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Strong new SpaceXAI / Cursor release with Grok 4.5.   \n  \nImpressive benchmarks at a flash-level speed, efficiency, and affordable pricing.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074912187391610880/vid/avc1/1920x1080/YDSaMg54mHmdIfgr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/SpaceXAI/status/2074915721684086811/video/1)\n\n💬4🔄1❤️6👀2909📊5",
+      "tags": [
+        "Grok 4.5",
+        "SpaceXAI",
+        "Cursor"
+      ],
+      "score": 70,
+      "summary": "The Rundown AI报道Grok 4.5发布，称其基准测试出色且速度快。",
+      "fetched_at": "2026-07-09T03:48:22.954244+08:00"
+    },
+    {
+      "title": "Congrats to @joinfleek on their $25M Series B! \n\nThe secondhand clothing market is a $200B+ industry...",
+      "link": "https://x.com/ycombinator/status/2074914808525390202",
+      "published": "2026-07-09T01:53:35+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Congrats to [@joinfleek](https://x.com/joinfleek) on their $25M Series B!   \n  \nThe secondhand clothing market is a $200B+ industry and growing 3x faster than new apparel, but almost all of it still runs on manual assessment and offline trades.  \n  \nFleek is building the AI-native marketplace to modernize it, using vision-language models to identify, grade, and price garments in seconds, then matching inventory between 2,000+ suppliers and 50,000+ resellers across 100+ countries.  \n  \n[fortune.com/2026/07/08/fle…](https://fortune.com/2026/07/08/fleek-an-online-marketplace-connecting-vintage-clothing-wholesalers-and-retailers-raises-25-million-in-new-funding/)\n\n💬0🔄5❤️15👀6710📊3",
+      "tags": [
+        "Fleek",
+        "AI",
+        "二手服装"
+      ],
+      "score": 70,
+      "summary": "Y Combinator祝贺Fleek完成2500万美元B轮融资，用AI改造二手服装市场。",
+      "fetched_at": "2026-07-09T03:48:22.954246+08:00"
+    },
+    {
+      "title": "Tomorrow at 10am PT I'm hosting a live walkthrough of how we progressed from single-player Claude Co...",
+      "link": "https://x.com/_catwu/status/2074925531519468012",
+      "published": "2026-07-09T02:36:11+08:00",
+      "source": "cat(@_catwu)",
+      "content": "Tomorrow at 10am PT I'm hosting a live walkthrough of how we progressed from single-player Claude Code to multi-player Claude Tag. Then, we're going deep on how Claude Tag actually works.  \n  \nAI used to finish your sentence. Then, it wrote entire features. Now, Claude Tag can monitor your channels, do proactive work for you, the whole team can steer it, and it remembers what you told it last week.  \n  \nRegister: [anthropic.com/webinars/how-a…](https://www.anthropic.com/webinars/how-anthropic-works-with-claude-tag-in-slack)\n\n💬22🔄7❤️151👀7800📊54",
+      "tags": [
+        "Claude Tag",
+        "Anthropic",
+        "Slack"
+      ],
+      "score": 80,
+      "summary": "Anthropic员工将举办Claude Tag在Slack中使用的网络研讨会。",
+      "fetched_at": "2026-07-09T03:48:22.954249+08:00"
+    },
+    {
+      "title": "We're still just scratching the surface of how much better, faster, cheaper we can make inference fo...",
+      "link": "https://x.com/ClementDelangue/status/2074921971456803065",
+      "published": "2026-07-09T02:22:02+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "We're still just scratching the surface of how much better, faster, cheaper we can make inference for open-source models!   \n  \nSo super excited to see companies like [@zml\\_ai](https://x.com/zml_ai) by [@steeve](https://x.com/steeve) come out of stealth with their inference engine integrated with [@huggingface](https://x.com/huggingface) as the storage layer.   \n  \nLet's push open-source tokens to the max!\n\n![Tweet Image](https://pbs.twimg.com/media/HMuaEWbW4AAzlj3.jpg)\n\n💬5🔄8❤️70👀4216📊14",
+      "tags": [
+        "Hugging Face",
+        "zml",
+        "推理引擎"
+      ],
+      "score": 70,
+      "summary": "Clement Delangue对zml推理引擎与Hugging Face集成表示兴奋。",
+      "fetched_at": "2026-07-09T03:48:22.954251+08:00"
+    },
+    {
+      "title": "Massive open-source release!\n\nLingBot-Video isn't about video quality; it optimizes for physical rea...",
+      "link": "https://x.com/omarsar0/status/2074932709516853456",
+      "published": "2026-07-09T03:04:42+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Massive open-source release!  \n  \nLingBot-Video isn't about video quality; it optimizes for physical reasoning, and it runs sparse: only 3B of 30B params are active at inference.  \n  \nMoE is finally showing up in long-context video, where inference cost matters a lot.  \n  \nWorth a look.\n\n![Robbyant](https://pbs.twimg.com/profile_images/2014889028919918592/enWAQqPe_normal.jpg)\n\nRobbyant@robbyant\\_brain\n\nToday we open-source LingBot-Video — the first MoE-based video foundation model built for embodied intelligence.  \n🔹30B params, only 3B active at inference.   \n🔹Augmented with 70K hours of embodied data on top of large-scale internet video pretraining.   \n🔹Already outperforming Wan2.6, Seedance 1.5 Pro, and Cosmos3 Super on RBench.  \n🧵👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074883468534935552/vid/avc1/1920x1080/Ej2cmgk3Wc53NizP.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/robbyant_brain/status/2074900716796395951/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/robbyant_brain/status/2074900716796395951)\n\n💬2🔄2❤️14👀2040📊3",
+      "tags": [
+        "LingBot-Video",
+        "MoE",
+        "开源"
+      ],
+      "score": 60,
+      "summary": "elvis评论LingBot-Video是重大开源发布，优化物理推理。",
+      "fetched_at": "2026-07-09T03:48:22.954254+08:00"
+    },
+    {
+      "title": "Grok 4.5 is not quite at the level of Fable 5 or GPT-5.5, but it doesn't need to be if you are using...",
+      "link": "https://x.com/omarsar0/status/2074921779718443155",
+      "published": "2026-07-09T02:21:17+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Grok 4.5 is not quite at the level of Fable 5 or GPT-5.5, but it doesn't need to be if you are using a combination of models in your agent orchestrator.   \n  \n2x efficiency compared to leading models. Competitive with costs, too.   \n  \nNot bad. Definitely worth a look.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuZdDoWsAA-pEV.jpg)\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nAnnouncing Grok 4.5, our first model trained specifically for coding and agents. It was trained with Cursor and offers frontier intelligence at leading speeds and cost efficiency.  \n  \n[x.ai/news/grok-4-5](https://x.ai/news/grok-4-5)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074912187391610880/vid/avc1/1920x1080/YDSaMg54mHmdIfgr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/SpaceXAI/status/2074915721684086811/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2074915721684086811)\n\n💬7🔄2❤️29👀4106📊8",
+      "tags": [
+        "Grok 4.5",
+        "评价"
+      ],
+      "score": 60,
+      "summary": "elvis称Grok 4.5未达到Fable 5或GPT-5.5水平，但效率高。",
+      "fetched_at": "2026-07-09T03:48:22.954257+08:00"
+    },
+    {
+      "title": "https://t.co/AavV1fomt7",
+      "link": "https://x.com/ericzakariasson/status/2074916779441188927",
+      "published": "2026-07-09T02:01:24+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "[cursor.com/evals](https://cursor.com/evals)\n\n💬1🔄1❤️21👀3323📊4",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "评估"
+      ],
+      "score": 60,
+      "summary": "eric zakariasson分享Cursor评估链接。",
+      "fetched_at": "2026-07-09T03:48:22.954259+08:00"
+    },
+    {
+      "title": "try grok 4.5 in cursor now! double usage for the first week included. its a good model",
+      "link": "https://x.com/ericzakariasson/status/2074916676110295232",
+      "published": "2026-07-09T02:01:00+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "try grok 4.5 in cursor now! double usage for the first week included. its a good model\n\n![Tweet Image](https://pbs.twimg.com/media/HMuVtHsX0AAx-kj.jpg)\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nWe've partnered with SpaceXAI to train Grok 4.5.  \n  \nIt’s our most powerful model yet and the first we've built for more than software engineering.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuQw2BXUAAJaQd.png)\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2074915744999969059)\n\n💬84🔄34❤️1062👀50204📊181",
+      "tags": [
+        "Grok 4.5",
+        "Cursor",
+        "双倍用量"
+      ],
+      "score": 60,
+      "summary": "eric zakariasson推荐在Cursor中试用Grok 4.5，首周双倍用量。",
+      "fetched_at": "2026-07-09T03:48:22.954262+08:00"
+    },
+    {
+      "title": "Test out Grok 4.5 in Battle Mode and Agent Mode at: https://t.co/yZiJuG8ica. Scores incoming.",
+      "link": "https://x.com/arena/status/2074933777273594131",
+      "published": "2026-07-09T03:08:57+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Test out Grok 4.5 in Battle Mode and Agent Mode at: [arena.ai](http://arena.ai). Scores incoming.\n\n💬0🔄1❤️5👀853📊1",
+      "tags": [
+        "Grok 4.5",
+        "lmarena",
+        "Agent Arena"
+      ],
+      "score": 70,
+      "summary": "lmarena宣布Grok 4.5可在Battle Mode和Agent Mode中测试。",
+      "fetched_at": "2026-07-09T03:48:22.954264+08:00"
+    },
+    {
+      "title": "Grok 4.5 by @SpaceXAI is now in the Agent Arena!\n\nIn Agent Arena, we measure models on millions of r...",
+      "link": "https://x.com/arena/status/2074933774178300270",
+      "published": "2026-07-09T03:08:56+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Grok 4.5 by [@SpaceXAI](https://x.com/SpaceXAI) is now in the Agent Arena!  \n  \nIn Agent Arena, we measure models on millions of real-world, long-horizon agentic tasks from a global community of users. Models can access web search, filesystem, and terminal tools to complete complex workflows. The leaderboard measures model performance on outcomes relative to the average model using a causal tracing methodology.  \n  \nIn addition to Agent Arena, Grok 4.5 is in Battle Mode for: Text, Vision and Code Arena: Frontend.  \n  \nCome bring your toughest prompts - your votes drive the leaderboards.\n\n![Tweet Image](https://pbs.twimg.com/media/HMulGngasAA_20Z.jpg)\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nAnnouncing Grok 4.5, our first model trained specifically for coding and agents. It was trained with Cursor and offers frontier intelligence at leading speeds and cost efficiency.  \n  \n[x.ai/news/grok-4-5](https://x.ai/news/grok-4-5)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074912187391610880/vid/avc1/1920x1080/YDSaMg54mHmdIfgr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/SpaceXAI/status/2074915721684086811/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2074915721684086811)\n\n💬4🔄4❤️40👀4010📊7",
+      "tags": [
+        "Grok 4.5",
+        "Agent Arena",
+        "lmarena"
+      ],
+      "score": 70,
+      "summary": "lmarena宣布Grok 4.5加入Agent Arena，可进行多模式评测。",
+      "fetched_at": "2026-07-09T03:48:22.954266+08:00"
+    },
+    {
+      "title": "Grok 4.5 is efficient and fast. It uses half as many tokens per task, delivers higher tokens per sec...",
+      "link": "https://x.com/SpaceXAI/status/2074915724972441845",
+      "published": "2026-07-09T01:57:13+08:00",
+      "source": "xAI(@xai)",
+      "content": "Grok 4.5 is efficient and fast. It uses half as many tokens per task, delivers higher tokens per second, and costs less than half as much as comparable models, at $2/M input and $6/M output tokens.\n\n💬12🔄51❤️947👀49918📊93",
+      "tags": [
+        "Grok 4.5",
+        "效率",
+        "定价"
+      ],
+      "score": 90,
+      "summary": "xAI公布Grok 4.5定价：$2/M输入，$6/M输出，效率高。",
+      "fetched_at": "2026-07-09T03:48:22.954269+08:00"
+    },
+    {
+      "title": "Try Grok 4.5 today in the SpaceXAI console, Grok Build, and Cursor. We've reset all limits so you ca...",
+      "link": "https://x.com/SpaceXAI/status/2074915726155211036",
+      "published": "2026-07-09T01:57:13+08:00",
+      "source": "xAI(@xai)",
+      "content": "Try Grok 4.5 today in the SpaceXAI console, Grok Build, and Cursor. We've reset all limits so you can start for free [x.ai/cli](http://x.ai/cli)  \n  \nNote: Grok 4.5 isn't available in the EU yet. EU availability is expected later this month.\n\n💬42🔄48❤️684👀41020📊105",
+      "tags": [
+        "Grok 4.5",
+        "可用性",
+        "EU"
+      ],
+      "score": 90,
+      "summary": "xAI宣布Grok 4.5在控制台、Grok Build和Cursor中可用，EU稍后。",
+      "fetched_at": "2026-07-09T03:48:22.954271+08:00"
+    },
+    {
+      "title": "Grok 4.5 is built for real-world engineering. It excels in large codebases and handles long-running ...",
+      "link": "https://x.com/SpaceXAI/status/2074915723487678904",
+      "published": "2026-07-09T01:57:13+08:00",
+      "source": "xAI(@xai)",
+      "content": "Grok 4.5 is built for real-world engineering. It excels in large codebases and handles long-running tasks that span multiple repositories, hundreds of skills, and a variety of tools.\n\n![Tweet Image](https://pbs.twimg.com/media/HMuRWn0aQAAs60z.jpg)\n\n💬16🔄39❤️670👀27284📊76",
+      "tags": [
+        "Grok 4.5",
+        "工程",
+        "多仓库"
+      ],
+      "score": 90,
+      "summary": "xAI称Grok 4.5擅长大型代码库和跨仓库长任务。",
+      "fetched_at": "2026-07-09T03:48:22.954274+08:00"
+    },
+    {
+      "title": "Announcing Grok 4.5, our first model trained specifically for coding and agents. It was trained with...",
+      "link": "https://x.com/SpaceXAI/status/2074915721684086811",
+      "published": "2026-07-09T01:57:12+08:00",
+      "source": "xAI(@xai)",
+      "content": "Announcing Grok 4.5, our first model trained specifically for coding and agents. It was trained with Cursor and offers frontier intelligence at leading speeds and cost efficiency.  \n  \n[x.ai/news/grok-4-5](https://x.ai/news/grok-4-5)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074912187391610880/vid/avc1/1920x1080/YDSaMg54mHmdIfgr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/SpaceXAI/status/2074915721684086811/video/1)\n\n💬540🔄1205❤️8243👀687680📊1475",
+      "tags": [
+        "Grok 4.5",
+        "SpaceXAI",
+        "Cursor"
+      ],
+      "score": 95,
+      "summary": "xAI正式发布Grok 4.5，专为编码和代理训练，与Cursor合作。",
+      "fetched_at": "2026-07-09T03:48:22.954276+08:00"
     }
   ]
 }
