@@ -2052,6 +2052,301 @@
       "score": 75,
       "summary": "歸藏转述OpenAI官方公告：GPT-5.6本周四发布。",
       "fetched_at": "2026-07-08T15:37:39.227002+08:00"
+    },
+    {
+      "title": "AI编程有了独立工作台！GitHub Copilot App全量开放，模型、Issue、仓库、PR全都交给Agent",
+      "link": "https://mp.weixin.qq.com/s?__biz=MjM5ODI5Njc2MA==&mid=2655941764&idx=1&sn=39c0cdece4f396e948a53b26302d875f",
+      "published": "2026-07-08T16:50:00+08:00",
+      "source": "51CTO技术栈",
+      "content": "原创 姜篇 2026-07-08 16:50 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=32bb56e8&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FZhxqo7xEfgLdbBtxPSwf6rSw2f5lXknL3eN6OdhwNQDjA2820ec6yeCbwEnu836D3p9oiaLMY4HVPESDgwk55eziaBoTkkDTSDWJROvbFxn5U%2F0%3Fwx_fmt%3Djpeg)\n\n7月7日，GitHub宣布，GitHub Copilot App正式向所有Copilot套餐开放\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=b6a4647d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FMOwlO0INfQoIDJ0nx1IhNibpIpYLrpUE0kIP9qbF1iaY7EoZpaic6IojvbXibd5ZGiatxmjtibQRcVbGAPM9Ijvp66yQ%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=17149710&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FZhxqo7xEfgLwTkqf684z1ZFaHOOmG8zwMStIoxqEFnG2ZTq2Z449kQqR6lKCJ7jHNDAbkDAs9ZZ40UKDDS7JGviccNtlsMUuxYE8hT6bCjN8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n编辑 | 姜篇\n\n7月7日，GitHub宣布，GitHub Copilot App正式向所有Copilot套餐开放。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=39a61b6d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FZhxqo7xEfgKGteY1NtOkTcgqaghmnhYfEBEBmwpEcPYmZEEumWDXwTEcArVianCBoKLsoLDxWbfBCEViatuOANOfUFqSVECQggIeYwm0jjInA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nGitHub Changelog在X上同步Copilot App全量开放，明确提到Free、Education和BYOK\n\n这意味着，Copilot Free、GitHub Education、Copilot Pro、Business、Enterprise用户，都可以在macOS、Windows和Linux上使用这个独立桌面应用。\n\n没有Copilot订阅的开发者，也可以通过BYOK接入自己的模型Provider来跑Session。\n\n它能做的，也不只是换个地方和AI聊天。\n\n而是承载着一整段开发流程：从Issue开Session，读仓库，拆任务，跑命令，改代码，看diff，再把结果推到PR里。\n\n这就有点不一样了。\n\n以前Copilot更像IDE旁边的副驾驶，开发者写到哪，它补到哪。\n\n现在GitHub想打造一个工作台：一个Issue丢进去，Agent先跑一轮；你回来就能看到一份已经准备进入Review的结果。\n\n## **Copilot终于有了自己的窗口**\n\nGitHub官方产品页介绍：这是面向Agent驱动开发的桌面体验，运行在macOS、Windows和Linux上。\n\n这句话放在两年前会有点夸张。那时候Copilot的存在感主要来自代码补全的工作。\n\n它跟着IDE走，开发者在哪写代码，它就在哪出现。\n\n现在GitHub把它单独分出来，左侧是Home、My work、Automations、Search，下面是Sessions。\n\n这个界面看起来已经不像传统编辑器插件，而是一个任务面板。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=0a6194bd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FZhxqo7xEfgKWQReG8XLnPQnN252TutBiao8lWRTmKP9dZib1Txy1SuJFDVXmknlfMbC7K1jAVPwCkPiaDyhxN8bnVDCarbaUpvJT7blWvr3QJ0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nCopilot App已经把会话、改动、终端和PR放在同一个窗口里\n\n这可能对开发者有一些影响。\n\n以后不必每次都从IDE开始工作。一个Issue来了，可以先开一个Session；一个小需求要验证，可以先让Agent读仓库、跑计划；等它给出改动，再回到IDE或PR里做最后判断。\n\n## **从Issue到Merge，GitHub想让Agent完成所有工作**\n\n产品页里有一句话可以直接解释这个方向：Direct agents from issue to merge。\n\n过去Issue是写给人的。\n\n产品、工程、测试把问题写清楚，开发者自己读需求、切分支、改代码、跑测试、提PR。\n\nCopilot App把这条链路往前挪了一步。开发者可以从Issue、Prompt，或者已经在进行中的PR里启动Session。\n\nAgent先阅读上下文，开发者能看到它是怎么拆分任务。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=3b38fc31&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FZhxqo7xEfgKUCyeO54WxxZETdFDzKFLegkYSvUC5qKj4ALpgsXXPGTzWsbSnNn5pBU2guxicBnpWtEZ94sib1icoiapRTE9GI7OFMatssnb5lrg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nGitHub产品页展示：Session可以从Issue、Prompt或PR中启动\n\n开发者并没有从流程里消失，反而更重要了，因为要更早把任务讲清楚：这个Issue要动哪些文件，不准碰哪些目录，先跑哪些测试，失败日志放在哪里，改完怎么验收。\n\n如果任务描述只有一句“帮我修一下”，Agent当然也能跑，但最后大概率会把成本和风险都留给人。\n\n## **Session像任务抽屉，开发者开始管多条线**\n\nCopilot App页面里有个容易被忽略的设计：左侧可以同时挂多个Session。\n\n其更接近一个任务抽屉：修一个状态徽章、重写README、做一次安全审计、补一个设置页面，每条线都有自己的上下文和改动记录。\n\n这个变化会影响日常节奏。以前你写代码时被一个任务占住。现在可能是几个Agent同时跑，开发者在中间切换：看计划、看测试、看diff、决定要不要继续。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e5a148ef&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FZhxqo7xEfgIPgBaHGhB9UEqxBcbhbHyLmJk9E5rwJS0hzQChucDDewgKVMMicic5ic5enjwkpV6lewORj6VPNDn0HRbHqSKGbx2WX0xpGIhibNQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n官方功能图里，多个Session被放在侧边栏里管理\n\n听起来更省事，但也更考验人。你要知道哪些任务可以并行，哪些任务会互相踩文件，哪些Session需要停下来重跑。\n\n开发者的注意力会从“我现在敲哪一行代码”，转到“这几条线有没有跑偏”。\n\n## **隔离区必须有，别让Agent乱改你的仓库**\n\nGitHub公开仓库README里，把Copilot App称为agent-native desktop experience。它强调了几个动作：finding、running、steering、landing。\n\n找到任务，跑起来，中途调整，最后落地。中间少不了隔离。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=640a2196&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FZhxqo7xEfgIkyoRwUf9bzVfPtticzovOJicJnClAI47RLSLbbUNCr6m5DufEEC866NP1UShXXahMD6pPHYtndQjiaE6hgD5yTLx6pVxOKcBXO0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nGitHub公开仓库对Copilot App的定位：agent-native desktop experience\n\n对Agent编程来说，隔离是底线。它会读仓库、改文件、跑命令，甚至可能开分支、提PR。没有边界，开发者就很难判断它到底改了什么。\n\n所以Copilot App把Session、branch、file和conversation放在一起，这个设计比“聊天更聪明”更贴近真实工程。\n\n公司里用它，还要多一层：谁能开Session，能连哪个仓库，能不能跑本地命令，能不能碰私有依赖，日志留多久。App进入团队流程后，权限和审计很快会被拉出来谈。\n\n## **最后还是要看diff**\n\n官方主图和功能图里，开发者要盯住右侧的Changes、Terminal、Check Status。\n\nAgent把任务跑完，只是交上来一份结果。开发者要看的还是老几样：改了几个文件，测试有没有跑，新增代码有没有绕路，PR描述能不能解释清楚。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=66d193d6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FZhxqo7xEfgKzWLtdxCyfPTvZ8lCDFP8Qt7KlicNlUIqWs30FdotoIIJUOrGUfAoSe3bwqWicAumzTjszg237AXn4s2b0rFxt4dwR8HSkMnXLE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n功能图里展示了Changes面板，开发者仍然要回到diff和测试结果上验收\n\n这也是Copilot App和普通聊天工具的分界。\n\n聊天工具给你答案。Copilot App要把答案落到仓库里。落到仓库以后，所有问题都变硬了：类型检查、单元测试、CI、回滚、Review意见，谁都绕不开。\n\n所以这类工具越往工程流里走，开发者越不能只看模型写得顺不顺。你得看它能不能被验收。\n\n## **免费和BYOK，GitHub先把入口铺开**\n\n这次公告中写道，Free和Education也能用。\n\nGitHub没有先把Copilot App放在高价套餐里。而是先把开发者拉进这个新入口，让更多人习惯从桌面App开Session。\n\nBYOK也是如此。没有Copilot订阅的人，可以带自己的模型Key进来工作。\n\nX上有开发者提到，BYOK已经能接Ollama、Foundry，以及兼容OpenAI或Anthropic消息格式的Provider。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=9956bda4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FZhxqo7xEfgL3nEqI9JzQV0AVllKhVRoygHCcD7hEr6ANRnHTeseY3Dic6kwko93KnDZwheTpoAE8ibwPquoG6RKmkDbEmyH5guqKmswAslB7g%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n开发者Evan Boyle展示BYOK已经进入Copilot App\n\n这说明一件事：GitHub先要让Copilot App成为入口，模型反而可以后接。\n\n入口一旦固定下来，后面接哪家模型、怎么收费、怎么限额，都会变成产品策略。\n\n## **社区反应：大家盯着入口，也盯着自由度**\n\nGitHub Changelog在X上的帖子提到两点：全套餐支持，BYOK不需要Copilot订阅。\n\n开发者最先注意的也是这两个词。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=77662f41&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FZhxqo7xEfgL2pGbfI0EuttujaPK4nbjgqt4soDhn4QicpCdJwYbkdp3evY1G6co8ZkDLJFia6HIVdicIOrUAC5RZKnoX0Iia9qqabrpNRxicLR94%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nGitHub员工Pierce Boggan提到：Free和学生用户也能用Copilot App\n\n有人说自己只差BYOK就能用自己的模型。\n\n也有人转发GitHub工程师Andrea Griffths的视频，强调Copilot App把工具放到同一个界面里。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=832a599f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FZhxqo7xEfgIth99fwxNPialM28icngep0iaCog6EsSgICnfep9ibRNvWrHnLpL1w2CI2cXicoDsG4BYuXA4RstG020Kuyyibic40YrsUYJKhyBBvJw%2F640%3Fwx_fmt%3Djpeg)\n\n开发者在X上讨论BYOK和“把工具放到同一个界面”\n\n这些反馈能说明开发者的关注点：模型能力之外，还要看能不能用自己的Key、能不能少切工具、能不能把一次任务从开头跑到PR。\n\n当然，App越像工作台，后面的问题也会变多。\n\n额度怎么扣，企业策略怎么制定，本地命令能不能放行，Session产生的改动怎么审，靠安装一个客户端解决不了。\n\n## **写在最后**\n\nCopilot App这次可以换一个看法：AI编程的发生地点正在变。\n\n以前开发者先进入IDE，再顺手调AI。\n\n现在GitHub想让开发者先进入一个任务工作台，在里面开Session、接Issue、看计划、跑Agent、审diff。\n\n这不一定会取代IDE。短期内，IDE还是写代码和调试的主场。Copilot App更像另一张桌子，专门摆那些可以交给Agent先跑的活。\n\n以后开发者每天面对的，可能不再只有编辑器和终端，还会多一个任务面板。里面摆着一条条正在跑的AI会话。\n\n谁能把任务拆清楚，谁能看懂Agent交上来的diff，谁能把失控的Session及时停掉，谁就更容易把这种工作台用出价值。\n\n参考链接：\n\n<https://github.blog/changelog/2026-07-07-github-copilot-app-available-to-all/>\n\n`——好文链接——\n\nNpm联合创始人警告：AI没让程序员消失，但是先取代了初级开发岗！\n\n应用层将兴起！硅谷投资人：AI基础设施已经到位，上下文越来越有价值！5年后将走向递归自我改进或达到平台期\n\nFable5太烧钱？Claude Code省Token新玩法：pxpipe把长上下文变成图片再喂给Fable5，账单直降70%！\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e5d52b63&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FZhxqo7xEfgJo8IcibL07wriaiaN0t4iaYt405QJQd52S3ibRhia2KIgKORYE0Fibf2smpbtn7vlCWnC9qiaXkOggBurrHtVqM78x2BBrQpCP5bO3UyQ%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=a648489b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FMOwlO0INfQoIDJ0nx1IhNibpIpYLrpUE08WAbJJdTMja6PvLXj2wheGNzev6OjG8Csq3SHErQQICIXKiatydK3xw%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)`\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=027132ff&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMjM5ODI5Njc2MA%3D%3D%26mid%3D2655941764%26idx%3D1%26sn%3D39c0cdece4f396e948a53b26302d875f)",
+      "tags": [
+        "GitHub Copilot App",
+        "Agent驱动开发",
+        "全量开放"
+      ],
+      "score": 80,
+      "summary": "GitHub宣布Copilot App向所有套餐开放，支持Agent驱动开发流程。",
+      "fetched_at": "2026-07-08T18:29:21.655999+08:00"
+    },
+    {
+      "title": "一次 PO 故障复盘：告警泛滥，真正问题被海量信息淹没",
+      "link": "https://mp.weixin.qq.com/s?__biz=MjM5ODI5Njc2MA==&mid=2655941764&idx=2&sn=99cb483e025df17917d124afa0dc8d37",
+      "published": "2026-07-08T16:50:00+08:00",
+      "source": "51CTO技术栈",
+      "content": "若城 2026-07-08 16:50 北京\n\n以下文章来源于：全栈若城\n\n**全栈若城**\n\n曾就职容猫，四维等大厂，涉猎大前端，python, 鸿蒙等领域技术。阿里云, CSDN技术社区专家博主，CSDN博客专家Top100， 热衷技术分享\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8d802a39&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FZhxqo7xEfgKicTaayRvvCeJjMUicHOLLLQBqb5TUSFkfDKxZr6nPzuUjiaF82d7ibcqAz2cu7DoPz3NXQrk0ibZ1F2iczjJbl35C669PHF73CzUUw%2F0%3Fwx_fmt%3Djpeg)\n\n本篇内容主要是回顾一下前阵子凌晨出现的问题，以及一些个人的想法。 前阵子凌晨，群里炸锅了，不是那种“有一条告警需要看一下”的小动静，而是几十条、上百条不同系统的红色消息一起往外蹦。数据库慢查询、接口超时、容器重启、网关抖动、业务失败率升高，谁看都觉得像是全线崩了。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=de9900ec&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FR1V1uIkibYk4RcEkDeFyRTUKfpNWicRUonw3XtGCaxvKU4f7sZkTmuUDXhcaDzsePKKsPjib7OMhzbGOhJ6LpqTFMqz9bVXGCXdicw0eeWjdERI%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26watermark%3D1%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D0)\n\n但折腾一圈后我才发现，真正的根因其实只有一个。问题不难，难的是它被一大堆“伴生告警”彻底埋住了。\n\n这也是很多团队嘴上说在做 AIOps，实际还停留在“告警转发机器人”阶段的原因：消息越来越多，人越来越忙，真正该第一时间盯住的东西，反而最容易被错过。\n\n### 这次事故，问题不是没告警，而是告警太多了\n\n很多人对运维告警有个误解，觉得“有告警总比没告警强”。\n\n说实话，这话只对了一半。没有告警当然危险，但告警太多、太碎、没有优先级，一样危险。因为人不是机器，不可能在一分钟内把几十条不同来源、不同级别、不同表达方式的信息全部吃透。\n\n那次故障里，最早出现的其实是一条核心依赖服务响应时间抖动告警。按道理，这条告警应该被立刻放大，因为它是后续一连串异常的起点。\n\n可现实是，它混在一堆“现象级告警”里，存在感并不高。等大家真正定位到它，已经被后面的告警洪峰拖了二十多分钟。\n\n二十多分钟，在故障处理里已经很贵了。\n\n### 为什么一到线上，大家就容易掉进“告警信息海”\n\n我后来复盘，发现这个坑不是某一个人没经验，而是监控体系本身就在制造噪音。\n\n很多团队的监控建设路径都差不多：先把能接的监控都接上，再把能配的阈值都配上，最后把消息一股脑发到群里。刚开始看着很安心，觉得覆盖率很高。可一旦线上真出事，问题也会成倍放大。\n\n#### 告警按资源维度建得太多，按业务链路建得太少\n\nCPU、内存、磁盘、线程数、连接池、QPS、响应时间，这些指标都重要，但它们更像“局部体征”。\n\n真正决定处理效率的，是你能不能快速回答一个问题：**到底是哪条业务链路先坏了，影响范围有多大，根因更像上游、下游，还是平台底座。**\n\n如果监控只能告诉你“这里红了、那里也红了”，但不能把它们串起来，那一线值班的人只能靠经验硬猜。\n\n#### 大量告警是结果，不是原因\n\n接口超时、线程池打满、重试次数升高、消息堆积，这些经常不是第一现场，而是连锁反应。\n\n最怕的不是没有线索，最怕的是线索太多，而且每条都像真的。大家在群里各自贴图、贴日志、贴监控截图，看起来很努力，实际上很容易把排查节奏打散。\n\n#### 告警文案写得像机器，不像给人看的\n\n这一点特别常见。\n\n很多告警消息堆满了指标名、实例名、阈值和时间戳，但没有一句人话告诉你：这条告警意味着什么，建议先看哪里，它和当前已知故障有没有关系。\n\n告警不是存档文件，它是给值班同学在高压状态下快速决策用的。\n\n如果一条告警消息发出来，大家还要先翻半天 Wiki、再问一轮业务方、再猜一遍依赖关系，那它的价值其实已经打了很大折扣。\n\n那次我们是怎么把问题捞出来的\n\n说白了，真正起作用的不是“看到了更多数据”，而是把杂乱信息重新排了序。\n\n当时现场能稳定推进，靠的是下面这三步。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=c8896f6a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FR1V1uIkibYk5YT1pblxFxR2tQlMvibwTMqeBJ1e5fraEic7v2Pib2jut4lhoubRXPEdOhPeicHMcbB1nUyyJKFGzd28RR1fu2Sicv8HDH3QheuTdc%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26watermark%3D1%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D1)\n\n#### 第一步，先停掉“无意义同步”\n\n故障群一热闹，最容易发生的事情就是所有人同时发言。\n\n有人看 JVM，有人查网关，有人看数据库，有人翻发布记录。信息量很大，但大部分是平铺的，没有汇总，也没有主线。这个时候如果继续放任消息流滚下去，排查效率只会越来越低。\n\n我们做的第一个动作，不是继续查，而是先把现场收束住：指定一个人统一汇总结论，其他人只报“已确认的信息”和“下一步动作”，不再贴大片原始截图。\n\n这个动作看起来很土，但特别有用。因为它相当于先把人的注意力从噪声里拉出来。\n\n#### 第二步，只盯最早异常时间点\n\n告警一多，大家很容易追着最新红点跑。\n\n但故障定位不能这么干。越往后出现的异常，越可能只是连锁反应。真正有价值的，通常是最早那一批信号。\n\n所以我们把所有核心告警按时间线重新过了一遍，只看最早 5 分钟内发生了什么。结果很快发现，某个关键依赖在那个时间窗口里先出现了响应抖动，后面业务超时、线程堆积、重试放大，基本都能顺着这条线解释通。\n\n一旦主线出来，很多“看起来也很严重”的告警就可以先降权。\n\n这一步非常关键。\n\n不是每条红色都值得同等对待。\n\n#### 第三步，把“症状”跟“根因候选”分开\n\n我们后来在群里临时做了一个很简单的分类：\n\n* 根因候选：最早出现、影响面大、能解释后续异常的告警\n* 伴生症状：由上游问题引发的失败率、超时、堆积、重启\n* 无关噪音：历史波动、偶发抖动、和本次链路无明显关系的异常\n\n你别小看这个动作。\n\n很多团队之所以复盘老是空转，不是因为没数据，而是因为没有在故障现场做信息分层。大家把三类信息混在一起讨论，自然谁都觉得自己看到的是重点。\n\n一旦分层，处理动作也会跟着清晰很多。根因候选优先拉通负责人验证，伴生症状只做影响面观察，无关噪音先静音或者延后处理。\n\n这件事让我真正理解了 AIOps 该解决什么\n\n以前我也见过一些所谓的 AIOps 方案，演示时很酷：自动聚合、自动关联、自动根因分析、大模型诊断建议，看起来什么都能做。\n\n但如果落不到真实故障处理流程里，再漂亮都只是 PPT 能力。\n\n这次之后我反而更明确了，AIOps 在一线场景里最有价值的，不是替人“生成很多判断”，而是先帮人把注意力用对地方。\n\n具体一点，我觉得至少要做到下面几件事。\n\n#### 告警降噪，不是简单去重\n\n很多系统说自己做了降噪，实际只是把相同文案合并了一下。\n\n这远远不够。真正有效的降噪，应该能识别同一根因引发的多点异常，把一串症状压缩成一个可操作事件。值班的人看到的，不应该是 36 条红消息，而应该是“某核心依赖异常，已影响 4 条业务链路，当前优先级 P1”。\n\n这才叫能用。\n\n#### 要有时间线和因果链，不只是指标堆叠\n\n故障排查最怕静态看板。\n\n因为静态看板只能告诉你“现在有什么异常”，却很难告诉你“谁先发生、谁后发生、谁更像原因”。如果 AIOps 能把监控、日志、链路、变更记录按时间线自动拼起来，现场判断会轻松很多。\n\n运维同学不是不懂技术，很多时候只是缺一个足够清晰的全局视图。\n\n#### 告警内容必须面向处理动作\n\n一条好告警，至少应该回答四个问题：\n\n* 现在到底是什么异常\n* 影响了哪些业务或用户\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=a89f012b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FR1V1uIkibYk5fq23LR07UCQ7Dw2ahSP5gwyKibicxc7hVXmmXnNND54tyA5Tq8nkuibGibxpvaGrya7RdHGDTt41VlwFccsj9p0TI50Umr7tocAE%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26watermark%3D1%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D2)\n\n* 它更像根因还是伴生现象\n* 下一步建议先查什么\n\n如果做不到这四点，告警再快也只是更快地打扰人。\n\n如果你们团队也在被告警折磨，可以先做这 4 个小改动\n\n不用一上来就谈特别重的平台建设。\n\n很多时候，先把几个关键动作做对，效果就已经很明显了。\n\n#### 1. 给核心链路做“首告警”标记\n\n不是所有告警都值得抢占注意力。\n\n把订单、支付、登录、核心接口这类关键链路的首个异常信号单独标出来，优先级直接拉高。哪怕还做不到完整的根因分析，先做到“谁最早出问题，谁先被看见”，已经能省掉不少时间。\n\n#### 2. 给告警加业务语义\n\n别只写实例和指标名。\n\n尽量补上业务名称、上下游依赖、影响范围、推荐排查入口。让看到消息的人不需要二次翻译，直接就能进入处理状态。\n\n#### 3. 建一个故障时间线视图\n\n哪怕一开始只是人工维护，也比没有强。\n\n把“告警出现时间、变更发生时间、流量波动时间、业务恢复时间”串在一起，很多模糊问题会一下子清楚。后面再考虑用平台能力自动化这件事。\n\n#### 4. 复盘时别只盯技术根因，要盯信息流问题\n\n很多复盘文档都喜欢写“根因是某依赖超时”或者“根因是配置错误”。这没错，但还不够。\n\n真正该继续追问的是：为什么根因出现后，没有第一时间被识别？是告警设计问题，还是信息分发问题，还是现场协同问题？\n\n这个问题想明白了，下一次故障处理速度才会真的提高。\n\n写在最后\n\n那次故障结束之后，我最大的感受不是“又处理完一个线上问题”，而是终于看清了一件事：很多团队缺的不是监控工具，也不是模型能力，而是把复杂现场变成清晰判断的能力。\n\nAIOps 真正该做的，不是把告警发得更勤，也不是把术语包装得更高级。\n\n它应该在最混乱的时候，帮一线同学更快抓住主线，更早逼近根因。\n\n如果做不到这一点，再智能，也只是更复杂的噪音制造器。\n\n> ❝\n>\n> 如果你想系统学习 AIOps，推荐这个课程\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=ba296a09&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FR1V1uIkibYk7n20mh6r5icIhGoEGbTzb4rSz9icaAIDEbibe7adg1VicKgKNuJNTeRB04TM20mzycyLWGZAJCEuMyBKxbfQKvPYC0KnAYoK6731w%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26watermark%3D1%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D3)\n> ❝\n>\n> 51CTO 明星讲师授课：崔皓（前惠普中国系统架构师、20年IT经验）& 韩先超（K8s架构师、50万+学员）课程内容：\n>\n> 1. AI 大模型开启智能运维新时代\n> 2. AI 智能解析慢查询：自动诊断 SQL 并给出优化方案\n> 3. 自动化巡检实战：Dify + Prometheus + DeepSeek\n> 4. AIOps 闭环实践：基于大模型的对话式运维（OpenClaw + 微信 + Jenkins）\n> 5. DeepSeek + RAG：构建 K8s 智能故障分析平台\n> 6. 企业级 AI 助手：实时分析 EFK 错误日志\n> 7. 智能运维新范式：AI 故障预测与决策辅助\n> 8. 零基础也能入门！用 AI 智能体实现运维智能化\n\n🔗 点击链接立即报名<https://edu.51cto.com/surl=UL3Fr>\n\n[阅读原文](https://mp.weixin.qq.com/s/ZajeIAr3r8QO3ftPxSIeCA#rd)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=7b7cb641&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMjM5ODI5Njc2MA%3D%3D%26mid%3D2655941764%26idx%3D2%26sn%3D99cb483e025df17917d124afa0dc8d37)",
+      "tags": [
+        "运维故障",
+        "告警泛滥",
+        "复盘"
+      ],
+      "score": 30,
+      "summary": "非AI主题的运维故障复盘，讨论告警过多问题。",
+      "fetched_at": "2026-07-08T18:29:21.656013+08:00"
+    },
+    {
+      "title": "把 Fable 5 装进 MacBook，还要多久",
+      "link": "https://www.ifanr.com/1671196?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-08T17:31:36+08:00",
+      "source": "爱范儿",
+      "content": "Fable 5 传来好消息，原定今日下午就要下线，被延长到了 12 号 才告一段落了，在那之后，订阅用户不再能用套餐限额体验。\n\n这短短的几天，已经让许多人爱上却又要失去。不禁让人畅想，这种级别的模型，什么时候能跑在我们自己的设备上？\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/reddit-1.png)\n\n曾经人们讨论前沿模型时，话题通常是「它有多强」「它比竞品快多少」「它能取代什么工作」。但这一次，有人开始问「它能不能跑在端侧」，这个问题的出现本身就是一种信号：说明端侧 AI 这件事已经从行业术语变成了大众期待。\n\n不过说实话，这个想法目前还是太乐观了。Fable 5 是 Anthropic 第一个 Mythos 级的公开模型，100 万 token 上下文窗口，专为长时间异步任务设计，跑在 AWS 和 Google Cloud 的数据中心里。它离端侧设备之间隔着的不是一代芯片，是好几个数量级的算力、功耗和模型压缩难题。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Fable-and-Mythos.png)\n\n当人们开始把「顶级模型离线跑」从一个玩笑变成一个认真讨论的问题，是一个值得考虑的信号：说明端侧 AI 已经从厂商 PPT 里的愿景走进了用户真实的期待。Fable 5 下线事件本身也在提醒另一件事，正如 Reddit 上所说，如果你不拥有硅和权重，高可用性就是个幻觉。\n\n### 从发布参数，到发布架构\n\n如果说过去两年端侧 AI 的主题是「宣布」，今年的主题变成了「重构」。芯片厂商不再满足于在发布会 PPT 上标一个 NPU 算力数字，而是开始围绕本地 AI 推理重新设计整个硬件架构。\n\n6 月 25 日高通给出了一组让华尔街重新评估这家公司的数字：2029 财年非手机业务收入目标上调到 400 亿美元，约为此前目标的两倍。数据中心 AI 基础设施目标超过 150 亿美元，汽车业务 100 亿美元。CFO Akash Palkhiwala 的表述更直接：「到 2029 年，手机将只占我们芯片收入的三分之一。」\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/qualcomm.jpeg)\n\n支撑这个目标的硬件基础，是已经进入第二代的骁龙 X2 系列。骁龙 X2 Elite 的 Hexagon NPU 做到了 80 TOPS 的 AI 算力，这个数字在 2024 年还属于云端推理芯片。最高 18 核 CPU、228GB/s 内存带宽、128GB 统一内存的配置，已经不再是「能跑 AI 的笔记本」，而是「为 AI 设计的笔记本」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Hexagon-NPU.jpg)\n\n比芯片本身更值得关注的是高通的系统级布局，6 月 17 日的 AWE 大会上推出的骁龙 START 计划，把芯片、AI 软件栈、合作伙伴网络打包成模块化方案，让品牌和企业能像搭乐高一样推出个人 AI 终端。首批落地的品类是智能眼镜，后续扩展到更多形态。高通管这个愿景叫 The Ecosystem of You」——不是你在不同设备上打开不同的 AI，而是同一个 AI 追着你走。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/AMD.jpg)\n\n苹果的牌打得更激进，根据彭博社 Mark Gurman 爆料，苹果正在做出自 2020 年 Apple Silicon 发布以来最大的一次路线图调整，跳过 M6 Pro 和 M6 Max，直接押注 2027 年的 AI-focused M7。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Mark.png)\n\n苹果的 M 系列从 2020 年至今，路线图像瑞士铁路一样准时——每年一代，每代三种配置（基础、Pro、Max）。突然跳过整整一个高端代际，意味着苹果内部判断端侧 AI 的需求已经紧迫到等不及按常规节奏迭代了。\n\nM6 基础版的内存带宽预计 200GB/s（M5 是 153GB/s），M7 目标 240GB/s。统一内存架构让 CPU、GPU 和 Neural Engine 共享同一个内存池，天然适合大模型推理。M5 开始在每个 GPU 核心内置了 Neural Accelerator，AI 不再是一个独立的协处理器功能，而是分布在整个芯片的每一处计算单元里。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/apple.png)\n\n在 Gurman 看来，这是苹果正在「加速推进」，因为 M7 拥有「支持端侧 AI 和 GPU 密集型软件的技术」——不是「支持 AI 功能」，是「支持端侧 AI」。这是一个芯片设计目标的转向。\n\n当苹果和高通在笔记本和手机上布局时，英伟达从另一个方向杀进来了。售价 4699 美元的桌面设备 DGX Spark，搭载 Grace Blackwell 超级芯片，128GB 统一内存，1 PFLOP 的 FP4 AI 算力。  \n![](https://s3.ifanr.com/wp-content/uploads/2026/07/DGX-Spark.png)\n\n英伟达把它定位为「个人 AI 超级计算机」。今年 6 月的 GTC 台北上，老黄又发布了 RTX Spark，更轻量的超芯片，目标是把 AI 原生 PC 推向更薄的笔记本形态。这条线跟英伟达的工作站策略也在汇合，RTX PRO Blackwell 系列已经在 Dell、HP、Lenovo 的新款工作站上落地。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/RTX-Spark.jpeg)\n\nNemoClaw 项目让用户可以在本地工作站上运行安全、始终在线的 AI 助手。DGX Spark 负责桌面级重度推理，RTX Spark 负责轻薄本，RTX PRO 负责专业创作，全方位出击，把本地 AI 从极客玩具变成了可量产、可定价的硬件品类。\n\n### 向设备弯腰\n\n硬件在追 AI，模型也在反过来适应硬件。过去一年，几款关键模型的出现正在改变「端侧 AI 能做什么」的答案。最明显的动作来自于 Google DeepMind，发布了 Gemma 4。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Gemma-4.png)\n\n这是来自 Gemini 3 研究、Apache 2.0 许可的开放模型家族。五个参数规格一字排开，从只有 5GB 内存就能跑的 E2B，到对标 70B 级能力的 31B 密集模型，构成了一条从手机到个人电脑的完整产品线。\n\n最让人兴奋的是那几颗「小」模型，E2B 和 E4B 在 4-bit 量化下只需要 4-5GB 内存，可以在没有 GPU 的普通笔记本甚至手机上跑；12B 模型在 8GB 内存设备上就能运行，同时支持文本、图像和音频多模态输入；26B-A4B 是 MoE 架构，30GB 内存就能跑到 30+tokens/s。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Gemma.png)\n\nGoogle AI Edge 团队专门写了一篇博客来展示如何把 Gemma 4 12B 部署到日常笔记本上做 agentic 工作流，「Google 免费的 Gemma 4 模型跑在你可能已经拥有的硬件上。」\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Gemma-4-2.png)\n\n当「可能已经拥有」成为一篇评测的卖点，说明端侧模型的硬件门槛正在快速塌缩。\n\n作为开源模型的典范，阿里 Qwen3.6 也在想方设法让更大的模型变得对本地更友好。Qwen3.6-27B 是一个 27B 参数的密集模型，100 万 token 上下文窗口，MindStudio 的评测把它评为 2026 年最佳开源 agentic coding 模型。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/Qwen-3.6.png)\n\nReddit 上已经有开发者搭建了「Qwen3.6 35B + llama.cpp + RTX 5090」的本地 agentic coding 方案。Qwen 的策略不是在参数规模上跟云端模型硬拼，是用 MoE 和架构优化，把接近前沿的能力塞进本地可承受的硬件边界里。它不是「小模型」，是「被压缩的前沿模型」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/5090.png)\n\n如果说 Gemma 和 Qwen 是在做模型能力的降维适配，面壁智能的 MiniCPM 系列走得更底层——直接为手机和边缘设备设计模型。MiniCPM-V 4.6 只有 1.3B 参数，专为端侧多模态设计，能处理单图、多图和视频理解，可以在 iPhone、Android 和鸿蒙手机上直接运行，Apache 2.0 开源，支持 Ollama 和 llama.cpp。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/MiniCPM.png)\n\n1.3B 的参数数字放在云端模型旁边几乎可以忽略，但它在 OCR、文档理解和视觉推理上的表现已经可以跟 7B 级的模型竞争。MiniCPM5-1B 则更激进——1B 级的密集模型，搭配部署和微调 Agent Skills，**把目标用户从「AI 开发者」扩展到了「普通消费者」**。Nature Communications 上发表的论文给了它一个很重的评价：「迈向在边缘设备上部署 GPT-4V 级多模态能力的关键一步。」\n\n这些模型现在到底有多强，并不是重点，重点是它们正在证明一件事：**端侧 AI 不是「云端模型的缩水版」，它是一个独立的模型品类，有自己的设计目标、优化路径和使用场景。而这个品类正在以极快的速度成熟。**\n\n### 代价？不再是订阅费那么简单\n\n如果上面这些让你觉得端侧 AI 的未来一片光明——你是对的，但账单也来了。\n\n本地 AI 不是免费的，可能你省掉了订阅费，但要为高内存带宽、大容量统一内存和高算力 NPU 支付更高的硬件溢价。\n\nM5 Max 从 36GB 到 128GB 内存的差价是数千元人民币，而这条价格曲线在「本地 AI」时代只会更陡。过去买电脑是选 CPU 型号和 SSD 大小，以后要多问一句：「我买的这台，能跑多大的模型？」\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/apple-price.jpeg)\n\n端侧推理的功耗墙也远比显存更硬。骁龙 X2 Elite 的 NPU 可以持续跑几十 TOPS，但满负荷 80 TOPS 时，无风扇轻薄本的体验会明显打折。英伟达的 DGX Spark 本身就是一台需要主动散热的桌面设备。未来「能跑大模型」和「续航不崩」之间，大概率是一个二选一。\n\n硬件溢价和功耗之外，**厂商已经在用产品和本地模型的绑定，建立壁垒。**苹果的 Neural Engine 只能在 macOS 生态内发挥最大效能，Windows AI PC 的 Copilot+ 绑定了骁龙 NPU 和安全芯片，Google 的 AI Edge Gallery 是 Gemma 在安卓上的最佳路径，英伟达的 RTX Spark 跟微软的 Windows agent 生态深度锁定。每一家都在用硬件能力筑自己的围墙。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/NPU.jpg)\n\n这是端侧模型必须面对的又一个问题，**更新也会比云端慢**。**云端模型迭代已经是月级，本地部署依赖推理框架适配、量化工具链成熟以及用户主动更新。**否则，你买回家的设备跑的可能是上个季度的模型。\n\n还有一条最容易被忽略：本地 AI 意味着一个系统级的模型能读到你的文件、照片、屏幕、日程和邮件，不用上传到云端了，但它在你的设备上，拥有更高清的视野。当 AI 从云端的匿名请求变成你设备上那个「什么都能看见」的常住程序，「本地 = 安全」这个等式就不再自动成立。权限管理的复杂度，会比隐私本身更早撞上消费者。\n\nAI 的使用成本不会因为端侧模型而消失，它只是从订阅费变成了硬件溢价、生态锁仓、功耗散热和权限管理。**过去买手机是在选 App 生态，未来买设备可能是在选你的 AI 记忆住在哪里。**\n\n### 所以，2028 年消费者可能真正得到什么\n\n把上面所有的变量放在一起，我们能做出一组分层预测。\n\n高端电脑本地运行强写作、代码、文档和图片理解模型，将成为常态而不是尝鲜。本地 RAG、会议摘要、文件搜索和私有知识库真正可用，成为日常工具。手机端的多模态助手在相册搜索、语音翻译、智能摘要上明显变强。高端创作者、开发者和敏捷小团队会更愿意部署本地 AI，因为数据不外泄、延迟更低、按需使用边际成本为零。AI PC、Mac 和本地 AI 盒子将形成新的硬件分层，**「这台设备能跑什么模型」会成为和「这台设备屏幕多大」一样自然的购机参数。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/benefit.jpeg)\n\n再往远看一步，接近 GPT-5 或 Claude 4 水平的开放模型，有可能通过量化、MoE 和推理优化，在高端个人设备上达到可用水平。但这取决于推理框架（llama.cpp、MLX、vLLM）的演进、KV cache 压缩技术的成熟，以及模型厂商是否愿意针对本地部署做专门的训练路线优化。**本地多模态实时助手有可能在部分设备上达到「日常可用」，但自然度和低延迟离云端旗舰还有一段距离。**\n\n至于普通手机或普通笔记本完整运行 Mythos **本体，短期内不可能。万亿级参数的推理即使最激进的量化方案也需要数十** GB 显存，**远超消费电子设备的极限。**本地 AI 在长程 agent、百万 token 上下文、多模态实时推理和安全能力上全面等价于云端旗舰，2028 年大概率做不到。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/running-on-laptop.png)\n\n但方向已经不会回头了。苹果不惜打乱最稳定的芯片节奏，高通把「个人 AI 终端」写进了公司级战略，英伟达在量产桌面 AI 超级计算机，Google 和阿里的开源模型正在以月级速度降低本地部署门槛。\n\n端侧 AI 不再是一个「会不会来」的问题，是谁先跑通硬件成本、模型能力和用户体验之间那个精确的平衡点。而当这个问题从产业链上游一路烧到消费者的搜索框里，这件事已经比任何参数和路线图都更能说明，端侧 AI 的时代，已经不在远处。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "Fable 5",
+        "端侧AI",
+        "高通骁龙X2"
+      ],
+      "score": 75,
+      "summary": "讨论Fable 5模型端侧运行前景及高通、苹果等芯片进展。",
+      "fetched_at": "2026-07-08T18:29:21.656018+08:00"
+    },
+    {
+      "title": "别让AI一上来就“进厂打螺丝”：智源悟界·Orca要先教模型理解世界如何变化",
+      "link": "https://www.qbitai.com/2026/07/446075.html",
+      "published": "2026-07-08T17:08:31+08:00",
+      "source": "量子位",
+      "content": "Hugging Face论文月榜第一",
+      "tags": [
+        "智源悟界·Orca",
+        "世界模型",
+        "Hugging Face第一"
+      ],
+      "score": 80,
+      "summary": "智源发布悟界·Orca模型，旨在教模型理解世界变化，获Hugging Face论文月榜第一。",
+      "fetched_at": "2026-07-08T18:29:21.656022+08:00"
+    },
+    {
+      "title": "翁荔新博客提出「自进化先从Harness开始」，DeepSeek崔添翼转发附议",
+      "link": "https://www.qbitai.com/2026/07/446076.html",
+      "published": "2026-07-08T16:55:30+08:00",
+      "source": "量子位",
+      "content": "崔添翼：这个方向很容易出成果",
+      "tags": [
+        "翁荔",
+        "自进化",
+        "Harness"
+      ],
+      "score": 75,
+      "summary": "翁荔提出自进化从Harness开始，DeepSeek崔添翼转发附议。",
+      "fetched_at": "2026-07-08T18:29:21.656025+08:00"
+    },
+    {
+      "title": "为什么硅谷开始重新定义「AI 记忆」| S10E20",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a4e1cdda75176d0203cfb1b",
+      "published": "2026-07-08T17:45:00+08:00",
+      "source": "What's Next｜科技早知道",
+      "content": "就在一个多月前，黄仁勋在 Computex 2026 上发布了英伟达 RTX Spark——第一个面向消费级 PC 的 AI 超算芯片，1 Petaflop 算力、128GB 统一内存，能在笔记本本地跑 120B 甚至 200B 参数的大模型。几乎同一时间，苹果 M5 系列也将端侧 AI 推到了前所未有的高度。硬件就位了，但一个老问题依然存在：如果 AI 助理不记得你是谁、不记得你三年前说过什么，再强的算力也只是个聪明的失忆者。\n\n这期节目的嘉宾是 Clipto.AI 的创始人兼 CEO 康洪文（Henry Kang），他在做一款在端侧本地运行的多模态 AI 产品，能读懂你所有的音视频、图片和文档，并在此基础上构建个人记忆系统。我们一起聊了聊大模型做记忆（memory）的天花板在哪里，为什么端侧比云端更适合承载个人记忆；把云上成熟的 AI 架构搬到端侧，都会遇到什么挑战；以及当苹果、谷歌这样的 OS 巨头自己做记忆层（memory layer）时，一家创业公司凭什么不被碾压。\n\n**本期人物**\n\n康洪文 Henry， Clipto.AI 创始人兼 CEO\n\nYaxian，「科技早知道」主播\n\n**时间轴**\n\n02:12 英伟达 RTX Spark 的突破是什么？\n\n* 算力与内存双重突破，让本地跑百亿参数模型成为可能\n* OpenAI 就是大型机，端侧助理就像个人PC\n\n04:58 大模型的万亿参数是公域知识的最大似然估计（MLE）\n\n* 大模型的生态位应是存储世界共识与通识\n* 用万亿参数去做个人知识是“杀鸡用牛刀”\n* 生态中缺一个专门记录和存储个人记忆的 player\n\n09:35 Clipto 在做什么：端侧多模态记忆系统\n\n* 本地 100% 运行，10 个模型协同将裸数据结构化\n* 上层构建时空对齐的知识记忆系统，支持文本和语音查找\n\n18:16 大模型做记忆的三条路径与共同天花板\n\n* Context Window、RAG、LoRA 微调都在尝试让模型记住用户\n* 共同问题：都没跳出大模型 MLE 框架，只能提供概率性记忆\n* 无法精确定位到“三年前某天下午和谁聊了什么”这种事实记忆\n\n22:14 数据不等于记忆：坐在金矿上的穷人\n\n* 每个人都是 data rich 但 memory poor，数据没有被结构化就不叫记忆\n* 只有可查找、可复用、可执行的记忆才是真正的记忆\n\n36:58 云上架构搬到端侧：垂直整合怎么做？\n\n* 带着云上思维框架看端侧“完全不 work”\n* 从芯片算子优化到算力调度到模型优化到 Agent 搭建，每一步都需要攻克\n\n41:48 Memory layer 苹果和 Google 能做吗？创业公司的机会在哪里？\n\n* 苹果是硬件设备公司基因，更应搭建好 macOS 生态与第三方合作\n* 集齐“芯片+算力+模型+独立产品运营”，大公司极难发生\n* 谷歌、Meta 诞生第一天都是应用公司，终局是 memory layer 平台\n\n52:06 两年前的预判：算力涨、模型小，两件事必然发生\n\n* 苹果 M1 已具备 AI 推理能力，摩尔定律指向算力指数级增长\n* 第一个模型最复杂，后续一定有办法优化——模型变小是必然\n* 以终局看可能只做了 1/10，但完整记忆系统已搭建起来\n\n**幕后制作**\n\n监制：Yaxian\n\n后期：迪卡\n\n运营：George\n\n设计：饭团\n\n**商业合作**\n\n声动活泼商业化小队，点击链接直达**[声动商务会客厅](https://sourl.cn/9h28kj)**，也可发送邮件至 [business@shengfm.cn](mailto:business@shengfm.cn) 联系我们。\n\n**加入声动活泼**\n\n声动活泼正在招聘全职商务运营经理、早咖啡内容实习生和社群实习生，如果你也对播客行业的内容制作感兴趣，欢迎[点击招聘入口](https://www.xiaoyuzhoufm.com/episode/[eg76rdcl6g.feishu.cn\\](https:/eg76rdcl6g.feishu.cn/docx/XO6bd12aGoI4j0xmAMoc4vS7nBh?from=from_copylink%5C))\n\n**关于声动活泼**\n\n「用声音碰撞世界」，声动活泼致力于为人们提供源源不断的思考养料。\n\n我们还有这些播客：[声动早咖啡](https://www.xiaoyuzhoufm.com/podcast/60de7c003dd577b40d5a40f3)、[声东击西](https://etw.fm/episodes)、[吃喝玩乐了不起](https://www.xiaoyuzhoufm.com/podcast/644b94c494d78eb3f7ae8640)、[反潮流俱乐部](https://www.xiaoyuzhoufm.com/podcast/5e284c37418a84a0462634a4)、[泡腾 VC](https://www.xiaoyuzhoufm.com/podcast/5f445cdb9504bbdb77f092e9)、[商业WHY酱](https://www.xiaoyuzhoufm.com/podcast/61315abc73105e8f15080b8a)、[跳进兔子洞](https://therabbithole.fireside.fm/) 、[不止金钱](https://www.xiaoyuzhoufm.com/podcast/65a625966d045a7f5e0b5640)\n\n欢迎在[即刻](https://okjk.co/Qd43ia)、微博等社交媒体上与我们互动，搜索 **声动活泼** 即可找到我们。\n\n期待你给我们写邮件，邮箱地址是：[ting@sheng.fm](mailto:ting@sheng.fm)\n\n![科技早知道](https://media24.fireside.fm/file/fireside-uploads-2024/images/4/4931937e-0184-4c61-a658-6b03c254754d/81NaqVaT.jpg)\n\n**欢迎扫码添加声小音，在节目之外和我们保持联系。**\n\nSpecial Guest: 康洪文 Henry.",
+      "tags": [
+        "AI记忆",
+        "端侧",
+        "Clipto.AI"
+      ],
+      "score": 75,
+      "summary": "播客讨论AI记忆系统，端侧比云端更适合承载个人记忆。",
+      "fetched_at": "2026-07-08T18:29:21.656027+08:00"
+    },
+    {
+      "title": "以上就是全部，原作者 @minchoi\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/Qm44cxKFLV",
+      "link": "https://x.com/FinanceYF5/status/2074791994023657918",
+      "published": "2026-07-08T17:45:33+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部，原作者 [@minchoi](https://x.com/minchoi)  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2074790903324242395)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n几天前，Anthropic 让 Claude Fable 5 回归了。  \n  \n所有人都被震撼到了，而且大家已经开始想出各种疯狂的用法。  \n  \n10 个例子：\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2074790903324242395)\n\n💬0🔄0❤️0👀299",
+      "tags": [
+        "Claude Fable 5",
+        "案例汇总"
+      ],
+      "score": 30,
+      "summary": "KOL汇总Claude Fable 5的10个疯狂用法，非原创。",
+      "fetched_at": "2026-07-08T18:29:21.656030+08:00"
+    },
+    {
+      "title": "10、Claude 的 3D 建模能力突然变得非常强\n\n只需简单提示词，就能生成可直接用于游戏的 Blender 资产。\nhttps://t.co/hoWUwrgpZh",
+      "link": "https://x.com/FinanceYF5/status/2074791025638543819",
+      "published": "2026-07-08T17:41:42+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "10、Claude 的 3D 建模能力突然变得非常强  \n  \n只需简单提示词，就能生成可直接用于游戏的 Blender 资产。  \n[x.com/bunkaich/statu…](https://x.com/bunkaich/status/2073364348626669585)\n\n![ぶんかい@AIで遊ぶ人](https://pbs.twimg.com/profile_images/1674833409569619968/JeYmQkJT_normal.jpg)\n\nぶんかい@AIで遊ぶ人@bunkaich\n\nなんでFableこんなにBlenderの操作上手いんだ？  \n  \nBlender MCP繋いでゲームで使えるローポリなオブジェクト作ってくらいの依頼しかしていないのに。  \n屋根とか帽子とか曲げてるの普通にすごいと思うのだけど。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HMYR4nIbIAAV-iZ.jpg)![Tweet Image](https://pbs.twimg.com/media/HMYR4nJaAAASPAW.jpg)![Tweet Image](https://pbs.twimg.com/media/HMYR4nTaUAAhYsM.jpg)![Tweet Image](https://pbs.twimg.com/media/HMYR4nIaYAAxk05.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/bunkaich/status/2073364348626669585)\n\n💬1🔄0❤️0👀421📊1",
+      "tags": [
+        "Claude Fable 5",
+        "3D建模",
+        "Blender"
+      ],
+      "score": 60,
+      "summary": "KOL转述Claude Fable 5的3D建模能力，可生成游戏资产。",
+      "fetched_at": "2026-07-08T18:29:21.656033+08:00"
+    },
+    {
+      "title": "几天前，Anthropic 让 Claude Fable 5 回归了。\n\n所有人都被震撼到了，而且大家已经开始想出各种疯狂的用法。\n\n10 个例子：",
+      "link": "https://x.com/FinanceYF5/status/2074790903324242395",
+      "published": "2026-07-08T17:41:13+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "几天前，Anthropic 让 Claude Fable 5 回归了。  \n  \n所有人都被震撼到了，而且大家已经开始想出各种疯狂的用法。  \n  \n10 个例子：\n\n💬1🔄0❤️0👀1303📊1",
+      "tags": [
+        "Claude Fable 5",
+        "回归"
+      ],
+      "score": 30,
+      "summary": "KOL宣布Anthropic让Claude Fable 5回归，无新信息。",
+      "fetched_at": "2026-07-08T18:29:21.656035+08:00"
+    },
+    {
+      "title": "When I say I want more people to be founders, now you know it's because I want everyone to be happy....",
+      "link": "https://x.com/antonosika/status/2074780161904697446",
+      "published": "2026-07-08T16:58:32+08:00",
+      "source": "Anton Osika – eu/acc(@antonosika)",
+      "content": "When I say I want more people to be founders, now you know it's because I want everyone to be happy. :)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nFounders are the happiest people in tech\n\n![Tweet Image](https://pbs.twimg.com/media/HMpbxKhbgAAMFZM.png)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2074574721337991197)\n\n💬7🔄6❤️48👀4598📊14",
+      "tags": [
+        "创始人",
+        "幸福感"
+      ],
+      "score": 20,
+      "summary": "非AI主题，讨论创始人幸福感。",
+      "fetched_at": "2026-07-08T18:29:21.656038+08:00"
+    },
+    {
+      "title": "Congrats to the @zml_ai team on the release of LLMD \n\nOne thing I absolutely love is that the model ...",
+      "link": "https://x.com/julien_c/status/2074797039473381451",
+      "published": "2026-07-08T18:05:36+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Congrats to the [@zml\\_ai](https://x.com/zml_ai) team on the release of LLMD   \n  \nOne thing I absolutely love is that the model layers are loaded directly from the network (from [@huggingface](https://x.com/huggingface) OFC), in streaming mode (no local file) which makes a lot of sense for production deployment  \n  \n[x.com/zml\\_ai/status/…](https://x.com/zml_ai/status/2074770878458417195)\n\n![Tweet Image](https://pbs.twimg.com/media/HMsooU-WkAAAoC8.jpg)\n\n![ZML](https://pbs.twimg.com/profile_images/1764648158758346752/B_XangS9_normal.jpg)\n\nZML@zml\\_ai\n\n[x.com/i/article/2074…](http://x.com/i/article/2074768591900098560)\n\n[🔗 View Quoted Tweet](https://x.com/zml_ai/status/2074770878458417195)\n\n💬0🔄0❤️1👀516",
+      "tags": [
+        "ZML",
+        "LLMD",
+        "流式加载"
+      ],
+      "score": 80,
+      "summary": "Hugging Face CTO祝贺ZML发布LLMD，模型层直接从网络流式加载。",
+      "fetched_at": "2026-07-08T18:29:21.656040+08:00"
+    },
+    {
+      "title": "The test of a description of a product is how much closer I am after hearing it to being able to rep...",
+      "link": "https://x.com/paulg/status/2074786313908162679",
+      "published": "2026-07-08T17:22:59+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "The test of a description of a product is how much closer I am after hearing it to being able to reproduce it. So e.g. \"transform the way people interact with images\" has almost zero descriptive value. If I had to make this, where would I even start?\n\n💬52🔄15❤️321👀27146📊76",
+      "tags": [
+        "产品描述",
+        "测试"
+      ],
+      "score": 20,
+      "summary": "非AI主题，Paul Graham讨论产品描述的有效性。",
+      "fetched_at": "2026-07-08T18:29:21.656043+08:00"
+    },
+    {
+      "title": "Qdrant is heading to WeAreDevelopers World Congress!\n\nIf you’re joining us in Berlin, here’s where y...",
+      "link": "https://x.com/qdrant_engine/status/2074788078418633029",
+      "published": "2026-07-08T17:30:00+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "Qdrant is heading to WeAreDevelopers World Congress!  \n  \nIf you’re joining us in Berlin, here’s where you can find the team:  \n  \nJuly 9 - The Retrieval Layer for Edge AI  \n  \nChadha Sridi and Sasha Denisov will explore how retrieval powers edge AI applications, featuring a live demo of Qdrant Edge running on smart glasses.  \n  \nJuly 10 - Workshop: Retrieval Layer in Context Engineering – From Intuition to Production  \n  \nJoin [@krotenWanderung](https://x.com/krotenWanderung) for a hands-on workshop where you’ll build the context-engineering layer for a medical AI copilot while learning:  \n→ Semantic vs. lexical search  \n→ Hybrid retrieval  \n→ Knowledge graphs & GraphRAG  \n→ Context engineering patterns for production AI  \n  \nJuly 9–11 - Visit the Qdrant Booth  \nStop by throughout the event for live Qdrant Edge demos, chat with the team, and see how lightweight, privacy-first vector search enables modern AI applications.  \n  \nSee you at WeAreDevelopers World Congress! 👋\n\n![Tweet Image](https://pbs.twimg.com/media/HMrrfDObwAA24HE.jpg)![Tweet Image](https://pbs.twimg.com/media/HMrrfDRagAA_UvM.jpg)\n\n💬1🔄0❤️2👀116📊1",
+      "tags": [
+        "Qdrant",
+        "Edge AI",
+        "WeAreDevelopers"
+      ],
+      "score": 70,
+      "summary": "Qdrant参加WeAreDevelopers大会，展示Edge AI检索方案。",
+      "fetched_at": "2026-07-08T18:29:21.656046+08:00"
+    },
+    {
+      "title": "我看大聪明分享小程序开发者能申请混元3\n我寻思申请点儿给NewMax用户玩呗\n结果发现必须要在小程序AI生态里调用……",
+      "link": "https://x.com/yangyi/status/2074788828418892163",
+      "published": "2026-07-08T17:32:59+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "我看大聪明分享小程序开发者能申请混元3  \n我寻思申请点儿给NewMax用户玩呗  \n结果发现必须要在小程序AI生态里调用……\n\n💬1🔄0❤️1👀659📊1",
+      "tags": [
+        "混元3",
+        "小程序",
+        "调用限制"
+      ],
+      "score": 60,
+      "summary": "开发者发现混元3模型仅限小程序AI生态调用。",
+      "fetched_at": "2026-07-08T18:29:21.656048+08:00"
+    },
+    {
+      "title": "是骡子是马明天试试就知道了",
+      "link": "https://x.com/FuSheng_0306/status/2074786988637790303",
+      "published": "2026-07-08T17:25:40+08:00",
+      "source": "傅盛(@FuSheng_0306)",
+      "content": "是骡子是马明天试试就知道了\n\n![Ethan Mollick](https://pbs.twimg.com/profile_images/1601382188712398850/3AAOlqrX_normal.jpg)\n\nEthan Mollick@emollick\n\nI was an early tester of GPT-5.6 Sol. I was asked to not share demos until after launch but it is a very good model.  \n  \nIt is of similar ability, but quite different feel, than Fable. Fable wants to go off and do work on its own pace, Sol is faster but works with you in steps more.\n\n[🔗 View Quoted Tweet](https://x.com/emollick/status/2074712677755035907)\n\n💬2🔄0❤️3👀945📊2",
+      "tags": [
+        "GPT-5.6 Sol",
+        "Ethan Mollick",
+        "早期测试"
+      ],
+      "score": 85,
+      "summary": "傅盛转发Ethan Mollick对GPT-5.6 Sol的早期测试评价，称其与Fable能力相似但感觉不同。",
+      "fetched_at": "2026-07-08T18:29:21.656051+08:00"
+    },
+    {
+      "title": "腾讯 Hy3 模型正式发布，MoE构架，295B参数，Apache协议，可商用。\n\n相比 Preview，正式版在推理、智能体、长上下文等任务上都有显著进步。\n\n尺寸比较小，但能力已经超过700多B的...",
+      "link": "https://x.com/vista8/status/2074787452779401526",
+      "published": "2026-07-08T17:27:31+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "腾讯 Hy3 模型正式发布，MoE构架，295B参数，Apache协议，可商用。  \n  \n相比 Preview，正式版在推理、智能体、长上下文等任务上都有显著进步。  \n  \n尺寸比较小，但能力已经超过700多B的 GLM 5.1，后训练上应该下了不少功夫。下一个版本值得期待。  \n  \n另外，Hy3 模型已上线 OpenRouter，这两周可以免费用。  \n  \n刚把模型配到自己的博客里，测试生成标题、标签， SEO Friendly URL，效果都还不错。  \n  \n怪不得最近腾讯股价涨了。\n\n![Tweet Image](https://pbs.twimg.com/media/HMsfw9wbYAAoVL4.jpg)![Tweet Image](https://pbs.twimg.com/media/HMsgBRBbgAAeKS7.jpg)![Tweet Image](https://pbs.twimg.com/media/HMsgFJla8AASOeR.jpg)![Tweet Image](https://pbs.twimg.com/media/HMsgJGBaQAA2k3e.jpg)\n\n![Tencent Hy](https://pbs.twimg.com/profile_images/1810934469769195520/kKSVenHW_normal.jpg)\n\nTencent Hy@TencentHunyuan\n\n🚀Hy3 is here.  \n  \n295B MoE. Best in its size class. Rivals trillion-scale flagships.  \nReliable and affordable for most agentic usecases.   \nApache 2.0. Friendly for commercial use.  \nFREE API for 2 weeks →[openrouter.ai/tencent/hy3:fr…](https://openrouter.ai/tencent/hy3:free)i  \n  \n�[huggingface.co/tencent/Hy3](https://huggingface.co/tencent/Hy3)SL  \n[hy.tencent.com/research/hy3](https://hy.tencent.com/research/hy3)cW4\n\n![Tweet Image](https://pbs.twimg.com/media/HMjapAiaoAAvV8D.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/TencentHunyuan/status/2074148098876768478)\n\n💬2🔄0❤️2👀1573📊2",
+      "tags": [
+        "腾讯Hy3",
+        "295B MoE",
+        "Apache 2.0"
+      ],
+      "score": 85,
+      "summary": "腾讯Hy3模型正式发布，295B MoE架构，Apache协议可商用，能力超GLM 5.1。",
+      "fetched_at": "2026-07-08T18:29:21.656053+08:00"
+    },
+    {
+      "title": "网站上线3天已经开始盈利了😂\n\n本网站100%由Claude Code开发\n\n90%的部分由Claude Code运行并维护\n\n网站没有数据库，没有内容管理后台，所有内容都由Claude Code自...",
+      "link": "https://x.com/xiaohu/status/2074793907070906767",
+      "published": "2026-07-08T17:53:09+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "网站上线3天已经开始盈利了😂  \n  \n本网站100%由Claude Code开发  \n  \n90%的部分由Claude Code运行并维护  \n  \n网站没有数据库，没有内容管理后台，所有内容都由Claude Code自动完成，我只负责内容素材的提供和上线审核...  \n  \n力争打造一个99%脱离人类管理的内容网站，而且还能赚钱...🫡\n\n![Tweet Image](https://pbs.twimg.com/media/HMslSS1b0AAtAmY.jpg)\n\n![小互](https://pbs.twimg.com/profile_images/1765404718959095808/BX7VN1hS_normal.jpg)\n\n小互@xiaohu\n\n新内容站上线：[Best.XiaoHu.AI](http://Best.XiaoHu.AI)  \n  \n解决目前AI生成文章泛滥  \n  \n大家不知道该看什么的问题，精挑细选！  \n  \n专门针对希望能节约时间四处寻找好内容的人...  \n  \n欢迎提提意见😊\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074314520143810560/vid/avc1/1920x1080/C1LMlZOizgO4Hrqj.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2074315299634250059/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/xiaohu/status/2074315299634250059)\n\n💬6🔄1❤️14👀2283📊6",
+      "tags": [
+        "Claude Code",
+        "自动建站",
+        "盈利"
+      ],
+      "score": 60,
+      "summary": "KOL分享用Claude Code开发的网站上线3天盈利。",
+      "fetched_at": "2026-07-08T18:29:21.656056+08:00"
+    },
+    {
+      "title": "我 opus 用量快用完了，90%了\n\n周六才会重置用量\n\n我不得不用 sonet 5 来节省用量，我发现sonet 5的质量出奇的好，和我用opus 4.8的效果几乎没什么差别...\n\n你们也可以试...",
+      "link": "https://x.com/xiaohu/status/2074773060713120032",
+      "published": "2026-07-08T16:30:19+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "我 opus 用量快用完了，90%了  \n  \n周六才会重置用量  \n  \n我不得不用 sonet 5 来节省用量，我发现sonet 5的质量出奇的好，和我用opus 4.8的效果几乎没什么差别...  \n  \n你们也可以试试...\n\n💬12🔄0❤️28👀9304📊13",
+      "tags": [
+        "Sonet 5",
+        "Opus 4.8",
+        "质量对比"
+      ],
+      "score": 40,
+      "summary": "KOL个人体验称Sonet 5质量与Opus 4.8几乎无差别。",
+      "fetched_at": "2026-07-08T18:29:21.656059+08:00"
+    },
+    {
+      "title": "周六下午6点才重置，最后fable 5的这一点额度，突然不知道该干个啥好了。\n后面这几天，我又要变回一个废物了。😭",
+      "link": "https://x.com/Khazix0918/status/2074773201364885865",
+      "published": "2026-07-08T16:30:53+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "周六下午6点才重置，最后fable 5的这一点额度，突然不知道该干个啥好了。  \n后面这几天，我又要变回一个废物了。😭\n\n![Tweet Image](https://pbs.twimg.com/media/HMsSx99aoAAJIcY.png)\n\n💬16🔄0❤️15👀3251📊18",
+      "tags": [
+        "Fable 5",
+        "额度",
+        "个人感慨"
+      ],
+      "score": 30,
+      "summary": "KOL感慨Fable 5额度即将用完。",
+      "fetched_at": "2026-07-08T18:29:21.656061+08:00"
+    },
+    {
+      "title": "详情：https://t.co/ZwfqBa5bwr",
+      "link": "https://x.com/op7418/status/2074797902036427217",
+      "published": "2026-07-08T18:09:02+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "详情：[github.com/op7418/guizang…](https://github.com/op7418/guizang-material-illustration)\n\n💬0🔄0❤️1👀220📊1",
+      "tags": [
+        "归藏",
+        "素材插图"
+      ],
+      "score": 30,
+      "summary": "KOL分享个人项目链接，无具体内容。",
+      "fetched_at": "2026-07-08T18:29:21.656064+08:00"
     }
   ]
 }
