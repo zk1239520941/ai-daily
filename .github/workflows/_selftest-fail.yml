@@ -1,11 +1,10 @@
-# 临时自检 workflow：用于验证 Cursor Automation「失败自动修」能否被 PR check 失败触发。
-# 仅在本文件被改动的 PR 上运行，故意失败。验证完成后删除本文件。
+# 临时自检 workflow：用于验证 Cursor Automation「失败自动修」能否被 main 上的失败触发。
+# 仅手动触发（workflow_dispatch），合并到 main 不会自动运行；需手动 dispatch 才会故意失败。
+# 验证完成后删除本文件。
 name: _selftest-fail
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/_selftest-fail.yml"
+  workflow_dispatch:
 
 jobs:
   selftest:
