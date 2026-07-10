@@ -21,6 +21,7 @@
 - **LLM 相关流程**（`check` / `fetch` / `push` / `daily` / `loop` / `rss` / `github` / `hackernews`）**必须**有真实 `LLM_API_KEY`（兼容旧名 `DEEPSEEK_API_KEY`）。`.env.example` 内为占位 key，`check` 会以 401 认证失败。
 - 无密钥时可跑：`uv run pytest tests/pytest/`（全程 mock，无需任何 key）与 **Pages 静态站点构建**（见下）。
 - 企微推送需 `WECOM_WEBHOOK_URL`；`push --dry-run` / `--defer-wecom` 可跳过真实发送。
+- **危险坑**：`fetch` **没有** dry-run,且热点分 ≥ `filter.hot_threshold`（默认 90）会**真往企微群即时推送**。在已配置 `WECOM_WEBHOOK_URL` 的环境里想验证 LLM 流水线又不打扰群,**不要跑 `fetch`**;改用 `uv run python -m src.main push --dry-run --defer-wecom --force`——它只调 LLM 从当日已抓取数据生成 digest,`--dry-run` 全局禁用 webhook 发送、也不 git push,`--force` 忽略当日已存在的 digest 以强制重新生成。
 
 ### Pages 静态站点（无需任何密钥即可端到端验证核心功能）
 
