@@ -215,30 +215,40 @@ def extract_push_time(filepath: str) -> Optional[datetime]:
         return None
 
 
+def _load_json_object(path: Path, default: Optional[Dict] = None) -> Dict:
+    """安全读取 JSON 对象；损坏或含冲突标记时返回 default。"""
+    fallback = default if default is not None else {}
+    if not path.exists() or path.stat().st_size == 0:
+        return dict(fallback)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"⚠️ 读取失败 {path}: {exc}")
+        return dict(fallback)
+    if "<<<<<<<" in text or ">>>>>>>" in text:
+        print(f"⚠️ 检测到 git 冲突标记，跳过损坏文件: {path}")
+        return dict(fallback)
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        print(f"⚠️ JSON 解析失败，跳过损坏文件 {path}: {exc}")
+        return dict(fallback)
+    return data if isinstance(data, dict) else dict(fallback)
+
+
 def read_entries(filepath: str) -> List[Dict]:
     """读取fetch文件，返回entries列表"""
-    path = Path(filepath)
-    if not path.exists():
-        return []
-
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return data.get("entries", [])
+    data = read_fetch_data(filepath)
+    entries = data.get("entries", [])
+    return entries if isinstance(entries, list) else []
 
 
 def read_fetch_data(filepath: str) -> Dict:
     """读取完整的fetch文件数据（包含meta和entries）"""
-    path = Path(filepath)
-    if not path.exists():
-        return {"meta": {}, "entries": []}
-
-    # 检查文件是否为空
-    if path.stat().st_size == 0:
-        return {"meta": {}, "entries": []}
-
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_object(
+        Path(filepath),
+        default={"meta": {}, "entries": []},
+    )
 
 
 def save_fetch_file(filepath: str, meta: Dict, entries: List[Dict]):
