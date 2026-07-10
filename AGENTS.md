@@ -11,6 +11,12 @@
 - 本项目**没有常驻服务/数据库**。所谓「服务」即一次性 CLI 调用（`uv run python -m src.main <子命令>`）加外部网络 API。
 - 生产环境由 GitHub Actions 调度，本地/Cloud 仅用于调试与验证。
 
+### uv / PATH（Automations 与非交互 shell 的坑）
+
+- `uv` 默认装在 `~/.local/bin`，其 PATH 靠 `.bashrc` 里的 `. "$HOME/.local/bin/env"` 注入。**非交互 shell（如 Cursor Automations 的 agent、`sh -c` 脚本、CI）不 source `.bashrc`，可能报 `uv: command not found`。**
+- update script 已把 uv 软链到 `/usr/local/bin`（各类 shell 默认 PATH 都含它）以缓解此问题。
+- 若在 automation / 脚本里仍遇到找不到 uv：命令前加 `export PATH="$HOME/.local/bin:$PATH"`，或 `command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh`。
+
 ### 本地配置（每次新环境需自行准备，均被 .gitignore 忽略）
 
 - `load_config()` 硬编码读取 `config.json`（缺失即 `FileNotFoundError`）。新环境需 `cp config.user.json.example config.json`。
