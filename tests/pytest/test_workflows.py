@@ -60,6 +60,13 @@ def test_fetch_ensure_digest_can_dispatch_daily():
     assert "wecom_only" in fetch
 
 
+def test_fetch_does_not_cache_overwrite_news_data():
+    """news-data 以 git 为真源，不得用 actions/cache 覆盖 checkout 结果。"""
+    fetch = (WORKFLOW_DIR / "fetch.yml").read_text(encoding="utf-8")
+    assert "path: news-data" not in fetch
+    assert "ai-daily-news-data" not in fetch
+
+
 def test_health_check_alert_only():
     """health-check 仅告警，不再负责补触发。"""
     health = (WORKFLOW_DIR / "health-check.yml").read_text(encoding="utf-8")
