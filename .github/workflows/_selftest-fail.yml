@@ -1,10 +1,11 @@
-# 临时自检 workflow：用于验证 Cursor Automation「失败自动修」能否被 main 上的失败触发。
-# 仅手动触发（workflow_dispatch），合并到 main 不会自动运行；需手动 dispatch 才会故意失败。
-# 验证完成后删除本文件。
+# 临时自检 workflow：验证 Cursor Automation「失败自动修」能否被 main 上 push 触发的失败唤起。
+# 仅在本文件被改动的 push 上运行（paths 过滤），故意失败。验证完成后删除本文件。
 name: _selftest-fail
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/_selftest-fail.yml"
 
 jobs:
   selftest:
@@ -12,7 +13,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: 故意失败以触发自动修复自测
+      - name: 故意失败以触发自动修复自测（push 触发）
         run: |
-          echo "Cursor Automation 自检：此步故意以退出码 1 失败"
+          echo "Cursor Automation 自检：push 触发，此步故意以退出码 1 失败"
           exit 1
