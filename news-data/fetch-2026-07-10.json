@@ -1630,6 +1630,274 @@
       "score": 75,
       "summary": "Datadog工程师分享使用Claude和Cursor进行生产系统迁移的经验。",
       "fetched_at": "2026-07-10T16:34:45.323763+08:00"
+    },
+    {
+      "title": "从 Vibe Coding 到 Harness Engineering： JDK 升级中可控演进的 AI 工程实践",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzUxMDQxMDMyNg==&mid=2247519825&idx=1&sn=955f06302a8b11467024254492c249b3",
+      "published": "2026-07-10T18:20:00+08:00",
+      "source": "小米技术",
+      "content": "小米技术 2026-07-10 18:20 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=36f2f80a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FrPSwicFZNl4YsQwcxiafCS2ta5whyn1JiaCkgLdCxONHzUayH73RwDicOjMXkkOPKvun1IGHadial6ybicGMmDiaujiaP8VTX4A6CiaFRYDngL5ibS4Os%2F0%3Fwx_fmt%3Djpeg)\n\n> 过去一年，AI Coding 从代码补全工具逐渐发展为能理解项目、规划任务并执行开发的工程助手。但在真实软件工程中，它更多仍用于新功能开发。\n>\n> 实践中我们发现，真正消耗工程时间的并不是“写新代码”，而是框架迁移、版本升级、安全修复等维护性工程。这类工作的核心难点，也不在生成代码，而在于如何把系统安全、稳定地改正确。\n>\n> 本文结合一次 JDK21 升级实践，分享我们在 AI 辅助维护性工程中的工程化思路，如何通过 Harness Engineering，让 AI 在复杂约束下稳定完成系统升级。\n\n**01**\n\nAI 擅长写代码，工程却不止是写代码\n\n**如果只看新功能开发，AI Coding 已经足够优秀。\n\n无论是生成一个模块、补全一个函数，还是快速完成原型验证，如今的大模型都已经能够胜任。Vibe Coding 之所以曾流行，也正是因为这种“边想边写、快速迭代”的开发方式，在探索性开发中拥有极高效率。\n\n**但真正的软件工程，很少只有新代码。**\n\n工程团队的大部分时间，其实并不花在开发新功能，而是花在框架迁移、安全补丁、版本升级、依赖治理、代码重构等维护性工程。而这类工作的特点，恰恰不是“写出来”，而是“改得对”。\n\nJDK 升级就是其中最典型的一类。从 旧版本升级到 JDK 21，看起来只是改一个版本号，实际上往往牵一发而动全身：Spring 框架兼容性、第三方依赖、编译插件、JVM 参数、启动脚本、测试用例，任何一个环节出问题，都可能导致服务无法启动。\n\n一个典型的场景是：团队每季度都会讨论一次 JDK 升级，它几乎每个季度都会被提上技术规划，但真正启动的次数却很少。不是不知道该做，而是投入与风险之间的账始终很难算清。两三个开发者投入数周时间，承担升级风险，换来的只是版本号更新。\n\n维护性工程真正困难的地方，也正在这里。**写代码关注的是“能不能实现”，维护工程关注的是“能不能安全实现”。**一个修改不仅要满足需求，还要遵守项目规范，通过编译、能够启动、通过测试，并且不破坏已有系统。这些约束，往往都藏在项目历史和开发经验里，而不是代码本身。\n\n开始先尝试直接用 Vibe Coding 的方式完成这类工作。AI 确实能够完成部分修改，但在面对复杂依赖关系和长链路验证时，很容易逐渐偏离目标，出现如下问题：\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=930069b1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FrPSwicFZNl4ZIOicZuJ0fsDleqLUD8rKz0kEhkbtSW1iaibHBVOibu7KYzSdbyiaxkfjbgnqJNoRYs6xX5u2D3FWlPHLstJ04CCuky6oWRSSg4IBE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nJDK 升级是一个 系统工程 ，涉及：\n\n* 依赖版本联动（传递依赖、内部 SDK）\n* 配置多层级（父 POM、子模块、启动脚本、配置文件）\n* 运行期行为变化（GC 策略、模块系统、日志框架）\n\nAI 缺少一套能够约束工程执行过程的方法，最终导致修改范围失控、依赖关系混乱、配置相互冲突，只能终止升级。于是，我们开始思考：如何让 AI 在复杂工程中，也能像成熟工程团队一样稳定工作？**\n\n**02**\n\nHarness Engineering\n\n用工程约束 AI\n\n答案不在模型能力上，在系统设计上。我们实践使用 Harness Engineering 的方式，它的解决思路是**：**不过分依赖模型能力，而是通过系统设计约束 AI 的行为。如果把开发过程比作装修，Vibe Coding 更像告诉施工人员“你看着办”；Harness Engineering 则先给出施工图，把边界、规范和流程提前定义清楚，让执行过程尽可能减少猜测。\n\n这套体系主要包括三部分：首先构建执行约束，让 AI 在明确边界内工作；随后沉淀工程经验，将一次实践转化为长期可复用能力；最后建立反馈闭环，让系统在实践中持续进化。三者串起来，就是一条“约束执行 → 经验复用 → 反馈进化”的链路。\n\n**********▍**************构建执行约束：让 AI 在正确的边界内工作****\n\n**********项目上下文构建**********\n\n回顾 Vibe Coding 的失败，我们发现，第一个急需解决的问题，并不是 AI 不知道如何升级 JDK，而是 AI 在不了解项目约束的情况下，就已经开始修改代码。\n\n它不知道哪些文件由 Thrift 自动生成不能修改，不知道本地编译需加 -Plocal 参数，不知道 JVM 启动参数需要从`start.sh` 脚本中提取。这些原本散落在资深开发者经验中的隐性知识，对 AI 来说就是看不见的暗礁。我们的第一步，就是把这些知识变成 AI 可消费的结构化规范——这就是 Harness Engineering 的起点：上下文工程。\n\n核心是动态组装 Agent 每步所需的精确信息，避免过多或过少。我们构建了知识规范层，它们在其他场景也是通用的：\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=72ced9f9&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FrPSwicFZNl4YLibSULFCxIRhdukcBJG21Z5XQaicXbmZAC5CpEoLvzZg5uIeLlfA5Kg3hicvicK2ibu8cLibMibBC2ga5Uf5O7XW4Xb8PUVVxOTyTiaE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n#### 工程工具编排\n\n有了上下文，AI 知道了项目边界。但紧接着第二个问题就来了：JDK 升级涉及的工程动作非常多样——扫描依赖树、解析冲突链路、执行集成测试、读取测试结果——如果每一项都让 AI 临场发挥，结果仍然不可控。于是我们构建了**工具编排**层：把工程动作封装成输入输出明确、失败路径清晰的可调用工具，让 AI 只需要视情况决定“调用哪个工具”，保证对固定问题表现稳定。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=799d3fae&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FrPSwicFZNl4Z9hX4vXOYdc6pGHG5j0AR8juL7Zn7MLFhE1Hh0PujibuLXTiaRN1umYh7HSnibgJOoODiadGAicYAuHx0lkGqFMWt5yR3TiammjOMGk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=51c85976&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FrPSwicFZNl4Zdn3bzQUlpBwrbA6L1VPAfwNj5IhlxKTrAlFh4hQv8fBgTZzSs2WxHBDNLVVticKIDIDxjnPWpB0aXQibP30To0RTHNt2MwuQgo%2F640%3Fwx_fmt%3Djpeg)\n\n▍沉淀工程经验：把一次升级变成长期能力\n\n每次升级，AI 都像从零开始，升级经验散落在对话、文档和开发者脑中，没有被结构化为 AI 能用的格式。因此，我们把执行过程中积累的工程经验沉淀成可复用的 Skill：**jdk-upgrade**。它**是输入输出明确、可以长期复用的能力模块。** 它回答以下问题：什么时候使用、任务的专家知识、不能做什么，按什么步骤做，什么时候结束。\n\n#### 明确能力边界\n\n首先，明确定义了升级过程的核心约束：禁止修改业务逻辑代码、禁止优化或重构业务方法、禁止添加新功能、禁止删除原有功能、仅进行必要的兼容性修改。这些约束明确了 Skill 的能力边界，避免了 AI 在升级过程中“顺手优化”或“重构代码”，导致修改范围失控。SKILL 示例：\n\n```\n## 【核心约束规范】  \n> **所有升级操作必须严格遵守以下约束，违反任一条均属超出升级范围。**  \n1. **禁止修改业务逻辑代码**。  \n2. **禁止优化或重构业务方法**。  \n3. **禁止添加新的业务功能**。  \n4. **禁止删除或废弃原有功能**。  \n5. **禁止修改接口的输入输出格式**。  \n6. **仅进行必要的兼容性修改**，确保代码在 JDK 21 + Spring Boot 3.5.3 环境下正常编译和运行。\n```\n\n#### 渐进式组织知识\n\n其次，我们不会把所有的升级知识塞进一个文件里。`SKILL.md` 作为入口和导航，详细的参考资料渐进式披露方式查阅，SKILL 示例：\n\n```\njdk-upgrade/  \n├── SKILL.md                    # 主技能文档（概览 + 约束 + 执行步骤）  \n└── references/  \n    ├── maven.md                # Maven 插件升级详细配置  \n    ├── dependency.md           # Pom 依赖处理详细列表  \n    ├── jvm.md                  # JVM 参数调整详细方案  \n    └── code.md                 # 代码兼容修改详细映射\n```\n\n#### 标准化执行流程\n\n最后，JDK 升级操作脆弱且易错，一致性至关重要。因此 Skill 不能是概括性描述，而必须是指令式的具体动作。我们将升级过程拆分为 5 个清晰步骤，关键步骤末尾包含反馈闭环。SKILL 示例：\n\n```\n### Step 1 — Maven 插件升级  \n**目标**：使构建工具链支持 JDK 21 编译和 JUnit 5 测试。  \n操作要点示例：  \n- `maven-compiler-plugin` 升级至 `3.12.1+`，设置 `source/target=21`  \n- `spring-boot-maven-plugin` 升级至 `3.5.3`  \n- `maven-surefire-plugin` 升级至 `3.2.5+`  \n### Step 2 — Pom 依赖处理  \n**目标**：清除 javax 时代依赖，迁移至 Jakarta EE 体系。  \n操作要点示例：  \n- **移除**：`javax.annotation-api`、`javax.validation:validation-api`、`junit:junit`  \n- **替换**：`javax.*` → `jakarta.*`  \n- **升级**：`spring-boot-starter` → `3.5.3`、`lombok` → `1.18.32+`  \n### Step 3 — JVM 参数调整  \n**目标**：移除已废弃参数，适配模块系统和新 GC 体系。  \n操作要点示例：  \n- **移除**：所有 CMS 相关参数、旧版 GC 日志参数、PermGen 参数  \n- **新增**：`--add-opens` 模块权限参数组、G1GC 或 ZGC 参数  \n### Step 4 — 代码兼容修改  \n**目标**：消除所有 `javax.*` 引用，迁移测试框架至 JUnit 5。  \n操作要点示例：  \n- **包名替换**：`javax.annotation` → `jakarta.annotation` 等  \n- **JUnit 4 → JUnit 5 迁移**：`@Before/@After` → `@BeforeEach/@AfterEach`  \n-(反馈闭环) 若编译失败，排查Step1到Step4可能存在的错误。  \n### Step 5 — 验证  \n- mvn clean compile -pl <module>  \n- mvn test -pl <module>  \n(反馈闭环) 若测试结论为不通过，基于测试报告的分析结果进行排查处理。\n```\n\n#### Skill 解决了“应该怎样做”的问题，但真正决定执行质量的，还在于每一步是否能够被验证。\n\n### **建立反馈闭环：让系统持续提升**\n\n**![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8b6ab01d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FrPSwicFZNl4Z3fIxoWSeOsqhIj7G0IjecR6Kpmw8DBiaH2Mqia1qB8krfBYPPL1eGggle7GrYgJ2V1Fuegh9sSam7J28Ncw9dCBWPWjJ1lpiatY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)**\n\n验证反馈循环是 Harness Engineering 中 ROI 最高的机制。它的核心是：每步操作后进行检查，防止错误传播。实践表明，验证循环可显著提升任务完成率，无需改模型或提示词。\n\n在 JDK 升级场景中，我们采用了**测试前置****驱动**的验证策略。\n\n**升级前：撰写集成测试****。**\n\n我们要求 AI 针对项目的主要功能组件撰写集成测试，具体覆盖：\n\n* 核心业务逻辑的链路验证。\n* 关键依赖的兼容性验证。\n* 关键组件的功能可用性验证。\n\n测试撰写遵循严格的规范：\n\n* 每个测试方法必须配置 `@Timeout`注解，防止测试挂起。\n* 每个测试必须真实完整加载 Spring 上下文，避免 mock 导致的假性通过。\n* 每个测试必须能结构化的输出通过/不通过，和不通过时的错误原因，便于 AI 分析排查。\n\n**升级后：重新执行测试**\n\n升级完毕后，再次执行相同的测试集。如果测试通过，说明升级没有破坏已有功能；如果测试失败，AI 需要根据失败信息定位问题并修复。这种“测试前置 + 升级后验证”的循环，确保了升级的可验证性。AI 不再能够“谎报结果”——编译通过不代表升级成功，必须通过测试验证。\n\n验证循环的另一个关键作用是**防止错误传播**。在升级过程中，AI 可能会做出错误的修改（如注释掉某个组件的注册）。如果没有验证循环，这些错误会一直累积，直到部署时才暴露。通过测试前置，我们能够在升级过程中及时发现并纠正这些错误。更重要的是，这套验证机制并不限于 JDK 升级，而是适用于绝大多数软件工程任务。一旦建立，便能够持续复用。\n\n#### 经验回流机制\n\n验证循环保证了一次升级能够顺利完成，但 Harness Engineering 并不止于完成当前任务。更重要的是，如何把这次升级过程中积累的经验，转化为下一次升级可以直接复用的能力。\n\n`jdk-upgrade`解决了“如何执行升级”的问题，但还有一个问题：如何让每次升级的经验都能反哺下一次升级？因此设计了`jdk-upgrade-lessons` Skill，这是一个经验沉淀 Hook。当 JDK 升级任务完成后，它会主动触发，总结升级过程中遇到的问题，生成结构化的经验文档，并基于这些经验生成新版本的升级 Skill。\n\n1. **触发时机****：**当用户完成 JDK 升级任务后，Skill 会主动询问：JDK 升级已完成，是否需要回顾本次升级过程中遇到的问题，沉淀经验供后续参考？\n2. **执行流程****：**Skill 自动按照 5 个步骤引导经验沉淀：\n\n* 收集升级上下文：总结升级目标版本、项目类型、升级范围、升级耗时\n* 引导经验回顾：按 5 个维度逐一整理——阻断性问题、隐蔽陷阱、配置遗漏、依赖冲突、代码迁移\n* 生成经验文档：将收集到的经验整理为结构化文档，保存到项目目录\n* 生成新版本技能：基于本次升级经验，生成优化后的新版本技能（如 `jdk-upgrade-21`）\n* 确认与归档：向用户展示生成的经验文档，确认后归档\n\n* SKILL 示例：\n\n```\n# JDK升级经验总结  \n## 升级概况  \n- **项目**：[项目名]  \n- **升级路径**：JDK X → JDK Y  \n- **升级日期**：YYYY-MM-DD  \n- **耗时**：X小时  \n## 阻断性问题  \n[记录升级过程中遇到的无法继续的问题及解决方案]  \n## 隐蔽陷阱  \n[记录看似通过但实际隐藏问题的情况]  \n## 配置遗漏  \n[记录配置项遗漏导致返工的情况]  \n## 依赖冲突  \n[记录传递依赖冲突及排查方法]  \n## 代码迁移经验  \n[记录代码迁移过程中的意外情况]  \n## 升级前检查清单  \n[根据本次经验，补充到升级前摸底排查清单]\n```\n\n**********▍**************效果验证：从工程实践到业务收益****\n\n上述方法并非理论设计，而是在真实项目中持续验证。下面以一次典型的 JDK 升级为例。目标：从一个旧的 JDK 版本升级到 JDK 21+Spring Boot 3.5.3。\n\n单个项目整体涉及 30+ 个文件修改、50+ 个依赖升级/新增/移除和大量的配置、启动参数修改。AI 承担了绝大部分工作：从项目分析、任务规划，到代码修改、编译调试和自动修复大部分启动错误。人工只需最终代码 Review 核验变更质量。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=aa0f7bad&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FrPSwicFZNl4Zibz8V2vObiciaLYstE9wZZUqMJ2oEGIBChxzAYGAW1R99EJ2UnOZDDFyXnVuibx4Drh4Mk29vowd0xv3vG18Dt1FfwXErXMl4p8Q%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n一轮对话完成升级比例”指在无人工介入的情况下，AI 单次对话即完成整个升级任务的比例。70% 的项目可一轮完成，剩余 30% 超过循环次数需要在关键节点人工介入。\n\n升级完成后，多个服务的 CPU 使用率平均降幅约 22.5%；同等负载下堆内存平均下降约 23%。GC 改善尤为显著——每分钟 GC 停顿时间降至 1ms 以下，业务几乎无感。接口延迟方面，P99 平均降幅 18.1%，尾部延迟最大降幅达到 47%（548ms→288ms）。在 60% CPU 负载下，主要 Web 服务峰值 QPS 提升超过 30%（以上数据基于内部多个项目升级前后的生产环境监控对比）。\n\n对于 JDK 升级这类长期积压的技术债，Harness Engineering 改变的不只是执行效率，更是成本结构。过去需要投入大量人力、反复评估 ROI，如今 AI 已经能够承担绝大部分工程工作，团队只需在关键节点进行决策和审查。这意味着，许多过去“知道应该做、却一直没有时间做”的工程优化，可以进入常态化执行。AI 的价值也从一次性的编码助手，真正演进为可持续的工程生产力。\n\n**03**\n\n### **从写代码，到定义约束**\n\n这次实践最大的收获，不是升级快了多少，而是我们对 AI 在工程中的位置有了新的认识。\n\n1. **规范正在成为比代码更重要的资产。** 项目约束、升级经验、排查方案、执行流程——这些原本存在于开发者经验中的知识，一旦结构化沉淀下来，就能够持续被 AI 复用。代码反而变成了产物。\n2. **文档的首要读者正在从人转变为****AI****。** 这些工程知识不是为了约束人，而是为了约束 AI。当我们定义项目规范时，目标不是写一份“人类可读的文档”，而是构建一份“AI 可执行的约束”。\n3. **开发者的角色正在从代码编写者转变为约束设计者。** 当 AI 承担执行层工作后，人的核心价值变成了定义“什么能做、什么不能做、做到什么程度”。\n\n这些变化共同指向一点：工程的重心正在从“写代码”转向“定义约束”。JDK 升级只是第一块试验田，框架迁移、安全修复、依赖治理，都能用同一套方法。真正提升工程效率的，不是让 AI 更聪明，而是让工程体系能够持续约束、复用和进化 AI 的能力。\n\nEND\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=80cb40e8&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_gif%2FRe4KW51oYRqJrvH5RZd2V4sK9DCdkxS7WSW2Bl5VTGNByEyZPDcHelD82lG5BkaypIW8TDKzYYPOdRQPVvsJjA%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26randomid%3D6i9lwfdj%26tp%3Dwxpic%23imgIndex%3D13)\n\n![图片](https://mp.weixin.qq.com/s?__biz=MzUxMDQxMDMyNg==&mid=2247519825&idx=1&sn=955f06302a8b11467024254492c249b3)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=c7ed44b8&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzUxMDQxMDMyNg%3D%3D%26mid%3D2247519825%26idx%3D1%26sn%3D955f06302a8b11467024254492c249b3)",
+      "tags": [
+        "Harness Engineering",
+        "JDK21升级",
+        "AI工程实践"
+      ],
+      "score": 75,
+      "summary": "小米技术分享AI辅助JDK21升级的工程实践，提出Harness Engineering方法。",
+      "fetched_at": "2026-07-10T20:07:26.316231+08:00"
+    },
+    {
+      "title": "意识 × Loop：让 Loop 跨 Session 自进化的最佳实践",
+      "link": "https://mp.weixin.qq.com/s?__biz=Mzg4NTczNzg2OA==&mid=2247510011&idx=1&sn=dde47100c92c8264e667c27d7d52f41a",
+      "published": "2026-07-10T18:18:00+08:00",
+      "source": "阿里技术",
+      "content": "原创 张心翮 2026-07-10 18:18 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c9748911&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FkN3t5R6pdz78o7jJvIaia7hXxHH3KG1OfJjJkRhQlYbaZBVGr68KGrFXOhXZwRpAG9r9Y22jEQmXEbshicbnic8XeUgstxEnLtPPjPf0fP5e7E%2F0%3Fwx_fmt%3Djpeg)\n\n关于 Agent Loop 跨会话自进化与对齐，本文或许可以提供一些实践样本和参考\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ac6d1751&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FkN3t5R6pdz7Qm0eD7BdnR3n6aDZpPOApicHZKI2yMM6ucMcAIEiah3TytuHj9L1eGgzpb1oSWaib6ssKtxJPJRlTFsDcYpH9NOSmzDZpXOsNOs%2F640%3Fwx_fmt%3Dpng)\n\n这是2026年的第 34 篇文章\n\n（ 本文阅读时间：约20分钟 ）\n\n> 本文提到的意识指 QoderWork 内的意识功能，包括但不限于长短期记忆、用户画像、工作手册等，但本最佳实践适用于任何市面主流的 Agent 。\n\n# 01\n\n开篇\n\nLoop Engineering 这个月的讨论度很高。大家都在讲，如何让 Agent 在一次会话里自动跑，配好 Automations、Skills、Sub-agents，Loop 就转起来了。\n\n但 Loop 有一个很少被讨论的致命问题：一次会话结束，Loop 就“死了”。\n\n你花一下午调试好 evals，Agent 终于不犯某个错；关掉窗口，下次会话这个“不犯错”的经验却不在了。又或者，你手动纠正了三次判断偏差，关掉窗口，下次 Agent 依然会重蹈覆辙。Loop 转得再顺，也是一次性的。\n\n你永远在重复教学同一件事。Loop 不自进化，就只是一个更花哨的 prompt。\n\n就好比老板每天都在训练新员工，但 ta 每天失忆。所谓的“跨 Session 自进化”，就是让 ta 终于有了笔记本，而且每天上班自动翻开上次写到的地方。\n\n为什么用调研做实践场景？主要出于两个原因。\n\n第一，调研天然是长时任务。这次的对象是FDE（Forward Deployed Engineering）公司的横向深度调研，按 3C 框架（Company / Customer / Competitor）展开。如果 Loop 不能跨 Session 积累，每次开新 Session 都从零开始教 Agent “数字要三源交叉”、“不能只信官方 PR 稿”，效率比不用 Loop 还低。\n\n第二，调研有硬标准。数字要可溯源、判断要区分严口径和宽口径、获客来源要拆到通道级而不是一句“销售外拓”糊弄。简单 Loop 跑出来的调研报告看着流畅，让 Agent 自己回过头 check 真实性，大面积返工。简单 Loop 不是效率问题，是产出可信度问题。\n\n所以才需要让 Loop 自进化。下文贯穿的案例是本次 FDE 调研，但方法论对任何长时任务都成立。\n\n1. 怎么让教训跨 Session 自动加载\n2. 怎么把对齐拆成三层不互相污染\n3. 哪个位置必须人守着不能让 Agent 自己动\n\n# 02\n\n先看效果：产出到什么程度才叫「不需要返工」\n\n结论前置：单人 1 天跑完 FDE 方向 61 家公司的 3C 深度调研 + 横向汇总，总计 12 万字。但速度不是本文重点，产出质量不过关的话，速度快只是“快速生产垃圾”。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=0f5b2895&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FkN3t5R6pdz6HP8gSvOJfotlvEZGt9jtlA73dO0y21FJhBmGI3z1Dov94LD7I6iaHl29s7X2YVGtNL2y6uMvmgAfUWdyt4cuDdhrH91oCP62U%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n拿 Palantir 那篇为例。\n\n每家公司的深度分析严格按 Company / Customer / Competitor 三个维度展开：\n\n* Company 部分包括商业模式核心、提供的产品/服务、核心竞争力、融资/估值/盈利、关键节点。\n* Customer 部分把获客通道拆到四类：自上而下 CEO 直连、政府关系网络、AIP Bootcamp 导流漏斗、投资者叙事拉动，每类给占比定性估算。\n* Competitor 部分给出“FDE×自营产品×政府牌照三位一体”的差异化定位判断，不是列一堆竞品名字。\n\n数字方面，每个硬数字都挂了来源链接。“FY2024 总收入 $2.87B（YoY +29%）”后面跟的是 Captide Q4 2024 Earnings Summary，“FDE 平均 TC ~$665K”后面跟的是 Perspective AI 2026 FDE 薪酬报告。\n\n61 家汇总后，做到了深度横行对比：五种定价模式各给成立条件；拉一条估值倍数横线得出“FDE 含量与估值倍数反相关：偏产品型 53x，偏服务型 15x”；给出“中国 FDE 公司的最大威胁不是同行而是云厂商”。做过技术选型的都知道，“先给轴再挂组件”和“逐个组件写报告”的决策价值差在哪。\n\n这些产出能直接进入团队对齐文档、架构评审或 OKR 立项决策。调研最大的时间黑洞从来不是“写”，是“返工”，是写完一版被打回来补数据、补视角、补结论。意识×Loop 版从第一版就卡住了质量红线，在“数据来源是否可追溯、结论是否有支撑”这两条硬标准上一版过。\n\n最后一层价值，在稿子背后的意识文件里。这次沉淀下来的 AGENTS.md、MEMORY.md、USER.md 和一个 Skill 是可复利的。下一次做别的方向调研，启动那一刻这套意识层已经全部到位。实际测试下，第二个方向的调研（不同行业）启动 Session 的第一篇产出即满足 evals 全部硬标准。\n\n行业知识不迁移，换一个全新领域，第一篇仍然需要人校准判断标准。迁移的是流程骨架和质量红线，不是行业认知本身。\n\n# 03\n\nLoop Engineering 的六大框架，这次是怎么落的\n\nAddy Osmani 在《Loop Engineering》里提了六个框架：Automations、Worktrees、Skills、Plugins & Connectors、Sub-agents、State，让 Agent 自动循环工作的六种基础设施。\n\n这次调研六个框架都找到了对应动作。其中三个映射比较直觉：Skills 对应调研框架的复用，Connectors 对应钉钉文档和内部技术社区的打通，Automations 对应会话结束时自动触发总结子任务、把踩过的坑追加到 MEMORY.md。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=06021ca5&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FkN3t5R6pdz5nnmDdsvrsEvuf2V9y0qXuP5nnmDCHQM4knbYcVVdMO5P8dXtzGRknrs4908Fxj4XfvUYQyeWctzorCcTibIgFibh712Xa5DReI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n下面只展开两个跑完才有特殊发现的框架，以及一个被我大幅重定义、直接催生了下一节“意识层”的框架。\n\nWorktrees：隔离的收益不是快，是防偏见污染。\n\n严格来说，Addy 讲的 Worktrees 解决的是多 Agent 并行改同一仓库的 Git 文件冲突。调研场景没有这个原始问题，但底层逻辑相通：并行任务共享状态就会互相污染，隔离是解法。我把它映射为上下文隔离。\n\n六份深度报告并行跑，每份一个隔离上下文，中间状态不共享，写完再合流。我最初以为这只是并行加速。跑完发现真正的收益是：调研完 A 公司之后满脑子它的商业模式，再看 B 公司时下意识把 B 也套进 A 的框里。隔离上下文强制每份分析从原点起步，避免了“先入为主”的偏见在公司之间传染。你不会拿着上一个 PR 的 review 心智去审下一个无关 PR，但 Agent 如果共享上下文就会这样做。\n\nSub-agents：最有效的用法不是分头干活，是正反对抗。\n\n有一条方向感很强但证据不够的判断，我派两个子 Agent 并行去找：一个专门找支持证据，一个专门找反例。两边都拿全之后证据比是 3:17，硬结论落下来了。这种做法比让一个 Agent 自己权衡靠得多。任何 Agent 单独跑都会被自己写过的话带偏——先给了一个方向，后面的搜索就会确认偏差。最终稿的审校也是同理：另起独立子 Agent，只发标准不发历史，避开自我确认偏差。\n\nState：从进度记录到行为塑造。\n\n标准定义里 State 只解决一个问题：追踪哪些事做完了。但跑完这次调研我发现，光记进度远远不够。我真正需要的是“上次犯的错下次自动避开”、“我的判断偏好每次自动加载”、“被纠正过的认知跨 Session 延续”。这些是行为塑造，不是进度记录。我把 State 扩展成了三个文件：AGENTS.md、MEMORY.md、USER.md，由他们构成一套意识层。\n\n# 04\n\n意识×Loop：为什么必须结合，\n\n以及 Loop 自进化的具体机制\n\nLoop Engineering 讲的是“一次会话里怎么让 Agent 转起来”。六大框架搭好，Agent 就能跑。但一次会话结束之后，Loop 本身留下来的痕迹在哪里？\n\n如果什么都不留，下次做同类工作，Loop 从零搭起，实属浪费。\n\n那么，如果把 Loop 沉淀到 Skill 里呢？Skill 的定位是“稳定动作骨架”，承载不了全部沉淀。使用侧的细颗粒经验，比如“文档 API 一次不能落太多字节”、“某类判断容易在特定行业翻车”、全部塞进 Skill 会把 Skill 拖臃肿，而且很多经验是我个人独有的，根本不适合塞进跨用户共享的 Skill。\n\n所以我们可以把 Loop 里沉淀不进 Skill 的那部分，放进意识层。意识层有三个文件：\n\n* AGENTS.md：proactive rules / evals。规定 Agent 每次输出前要主动做什么、要自查什么、什么表达一定要用或一定不能用。\n* MEMORY.md：passive lessons / state。记录这次会话踩过的坑、被纠正的判断、能力使用中的注意事项，以及跨会话需要延续的进度状态。\n* USER.md：judge preferences。记录“我”这个人的判断标准、我喜欢的输出味道、我厌恶的表达。\n\n三个文件的共同点是每次会话开启时 Agent 自动加载，每次会话中自动沉淀更新。这就带来了 Loop 自进化的能力。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=b828d13b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FkN3t5R6pdz6gDCODLSY3cTrXgf1Uv41ic27GdXLzRRwmWBvqVcACsicSGsdhDyyl9pVEV8dSru78VBlX0APSYK5mI2TewE8lIibwkHNznTA2CA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n举一个这次调研里的真实例子。\n\n第一次 Session，我让 Agent 分析一家 AI 应用公司。Agent 写“客户从哪来”那段，简单归为“销售外拓 + 大厂合作”。我读得皱眉：这家真实的模式是“存量老客户升级 + 大厂生态挂靠”双轮驱动，纯外拓做不出来那个客单价。纠正、重写、并且让 Agent 把这条教训同步写进 MEMORY.md：\n\n> 判断中国 AI 应用公司的客户来源时，不能只看销售动作，必须区分“存量客户升级”、“投资人圈层”、“大厂生态”、“公开演讲 IP”四类通道，并各自给出比例的定性估算。\n\nMEMORY.md 更新之后，Session 结束。\n\n第二次 Session 我开始分析另一家 RPA 转 Agent 的公司。会话一开局，Agent 自动加载 MEMORY.md，那条教训就在意识里。它主动把“客户从哪来”拆成了“存量老客户升级”、“新场景客户”、“大厂生态挂靠”三条通道来讲，我没有再说一遍，Agent 自己带上来了。写出来的段落质量比第一次 Session 稳定得多。\n\nLoop 自进化在这里变得可观测：上一次的教训通过意识文件跨 Session 传递，成为下一次 Loop 的一部分。\n\n顺便把 MEMORY.md 里当前真实沉淀的几条列出来：\n\n* 用文档 API 写入长文档时，一次落入字节量有阈值上限，超阈必须分批切片写入并复核。\n* 判断某类公司的客户来源时，必须拆成“存量客户升级/投资人圈层/大厂生态/公开演讲 IP”四类通道并给比例定性估算。\n* 涉及外部披露的关键数字，必须走三源交叉反推（官方口径 + 高管公开发言 + 第三方数据），不能只信官方 PR 稿。\n* 上游平台方是否亲自下场做同类产品，是判断该赛道独立公司威胁的第一位信号；连续三家公司出现同一信号，可考虑升格进 AGENTS。\n\n再举一个 AGENTS 层的例子。这次调研过程中，Agent 反复出现同一个问题：写完深度分析的分段结构之后，喜欢追加一个“综合评价”段落，那段话往往很虚，全是套话。我把这条写进 AGENTS.md：\n\n> 深度分析在结构化分段之后，禁止追加“综合评价/整体评估”这类总结段。硬结论必须落在具体证据里，不再另起段落。\n\n从此之后，Agent 每次做深度调研都不会再画蛇添足写虚的总结段。AGENTS.md 是 evals 的载体，Agent 每次输出前自查的清单。这份清单会随着我的积累越来越厚，Loop 也就越来越稳。\n\nAGENTS 和 MEMORY 的分工区别是，AGENTS 承载“以后都要主动做什么”，是主动规则；MEMORY 承载“这次学到了什么、这个能力用起来要小心什么”，是被动经验。当 MEMORY 里某条经验反复复现、稳定命中之后，我会把它升格进 AGENTS，从“这次学到”变成“以后都要”。这个升格动作是我人肉做的，为什么不让 Agent 自己做？下文单独解释。\n\n# 05\n\n对齐：Loop Engineering 最难的地方，\n\n我的三层解法\n\n「对齐」其实是 Loop Engineering 里最难的一件事，因为对齐很容易被简化成“Prompt 调好就行”。但真实场景里的对齐至少有三层，每一层的难度和方法都各不相同。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=050bcb12&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FkN3t5R6pdz4F4gD4HZElCSUvicRKqZHk7SvEKObpheWdaIrgd8W5uO9O3YakUCicaGCmwM9xIkW1SM1ortNHrpz1MFdDticibE3LVW8XSVq3wf0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n第一层是 evals 对齐，Agent 该主动做什么。我用 AGENTS.md 来承载。当前 AGENTS.md 约 15 条规则，经验上超过 20 条时 Agent 遵从率会下降，所以不是无限堆叠，是精简到每条都高频命中。具体做法是先写反面清单、再写正面清单。\n\n这次调研 AGENTS.md 里真实生效的几条：\n\n反面清单（绝不能出现）：\n\n* 任何数字后必须有来源，缺来源的数字禁止入稿。\n* 定性判断没有直接证据支撑时，必须显式标注“定性推断”。\n* 禁止出现“综合来看”、“整体而言”、“值得关注”、“深度赋能”这类正确废话。\n* 结构化分段之后禁止追加“综合评价/整体评估”段，硬结论必须落在具体证据里。\n\n正面清单（每次必须做）：\n\n* 每份深度分析严格按预设结构分段，缺一段视为未完成。\n* 涉及外部融资/迭代节奏时必须给时间线（时间点 + 关键动作 + 参与方）。\n* 涉及独立公司/独立模块时必须单独讨论上游平台威胁（大平台是否已下场做同类）。\n* 判断必须显式区分口径（严格定义 vs 宽泛定义），两个口径的结论不能混着用。\n\nevals 对齐的关键不是一次写全的，是随着 MEMORY 的积累慢慢升格的。比如“上游平台威胁必须单独讨论”这一条，最早只是 MEMORY.md 里一条经验，连续三家出现同样的模式之后，我把它升格进 AGENTS。这层的核心通道就是“MEMORY 上升为 AGENTS”。\n\n第二层是场景对齐。Loop 跑出来的东西给谁看、以什么方式被消费、读者读完要做什么决策。我把这三件事叫“三要素”，每次调研启动先给 Agent。三要素说清楚，Agent 的语气、深度、结构就都对了。\n\n第三层最微妙：judge 偏好。同样是“合格的稿子”，我和另一个 judge 的判断可能完全不同。比如我不支持“综合来看”、“整体而言”这类正确的废话，他人可能觉得这样很稳妥。这一层不是 evals（不是客观正确），也不是场景（不是给谁看），是 judge 本人的偏好，我用 USER.md 承载。\n\n下面这几条就是我 USER.md 里当前真实生效的原条目：\n\n* 厌恶 AI 味表达：破折号连用、“值得关注”、“重要意义”、“综合来看”、“深度赋能”，一律禁用。\n* 偏好短句、白话、口语转书面语；段落之间允许跳跃，默认读者是聪明人。\n* 拒绝“客气话”：不要“这个观点非常有价值”、“感谢您的深入思考”这类元评论。\n* 每段结尾必须敢下判断，不允许“两面都有道理”。\n\nUSER.md 一旦写好，每次会话 Agent 自动加载，输出「就像我写的」。\n\n三层对齐必须分层承载，绝不能混在一起。我看过很多同事在一个 Prompt 里既写 evals 又写场景又写 judge 偏好，Prompt 又长又乱，Agent 抓不住重点。分层承载、各归各的文件，这一步做不到 Loop 跑不久。\n\n文件之间出现张力怎么办？AGENTS.md 是硬约束（客观正确性），USER.md 是软偏好（味道），硬约束永远优先。实际操作中冲突不常见，因为 USER 写的是“怎么表达”，AGENTS 写的是“表达什么”。但一旦出现，这个优先级规则让 Agent 不用纠结。\n\n# 06\n\n为什么这次没上「全自动 Loop」\n\n这次调研有几个环节我特地没让 Agent 全自动，比如“MEMORY 升格 AGENTS”这个动作、“总报告六条硬结论”这个下判动作，都是我人肉在做。\n\n原因不是不信任 Agent，是这几个位置的判断权重太重，一错就把整条 Loop 带偏。\n\nMEMORY 升格 AGENTS 是一个“松变紧”的动作。MEMORY 允许试探性表达（“这次学到”），AGENTS 是硬约束（“以后都要”）。如果 Agent 自己判断升格，一旦把偶发情况当成通用规律，那条错误规则会在之后每一次会话里污染 Loop。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=72d5b8c4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FkN3t5R6pdz7jNDpv2iaFzukDibj4j8kuvpiaZYJicf4lX1smozHX0swFDhx3el2n0Via7rveKQpAJUAX598Sa9Lfa7KmvFAVYwj978WZ3og8ic6Ig%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n这次做到第 14 家公司时，Agent 尝试自动升格过一次：它把“该行业的客户普遍在乎 ROI 可量化”写进 AGENTS，但事实上这只是前几家公司的特征，后面几家的客户在乎的是合规认证而非 ROI。如果我没拦住，后续 7 家公司的分析全部会被这条伪规则带偏。这就是自动升格的典型翻车：样本量不够时概括出的“规律”是噪声不是信号。如果错误升格已经写入，我的做法是 AGENTS.md 用 git 做版本控制，发现污染后 git revert 回上一个干净版本。\n\n总报告六条硬结论是“下判”动作。硬结论意味着“我敢挂名字担这个判断”，会被同事拿去做架构选型、拿去做 PRD 立项判断。这不是“稿子好不好”的问题，是“我个人信用”的问题。这一步我一定亲自过。\n\n换句话说，Loop 可以自转，judge 不能自动。整套体系里我保留了两个人的位置：MEMORY 升格 AGENTS 的手动阀门，最终硬结论的亲自过稿。其他地方，Agent 都自转。\n\n# 07\n\n人人都可以搭建的 loop 自进化步骤\n\n第一步，建 AGENTS.md。把你这类工作的“绝不能出现”和“必须做到”写下来，哪怕只有 5 条。这一步立刻带来一档提效，因为 Agent 每次输出前会自查。第二步，同步开始积累 MEMORY.md：每次会话结束前花 2 分钟，让 Agent 把这次的教训写进去，关键动作是主动纠错，你觉得 Agent 写错了别只纠正当下输出，务必让它把教训写进 MEMORY，跨 Session 才能受益。第三步，补 USER.md，把你个人的偏好写出来（“我厌恶什么”往往比“我喜欢什么”更好写），让 Agent 的输出味道对起来。\n\n想不出前5条写什么？打开你最近被打回/返工的3份产出，每份问自己“如果 Agent 一开始就检查了 X，这次就不会被打回”，那个 X 就是一条 AGENTS 规则。另一个入口是回忆你最近3次纠正 Agent 时说的话，你骂它的内容就是规则。\n\n启动成本：第一次建三件套大约多花 30 分钟，前两三个 Session 比不用意识文件反而慢 10-15%（因为要停下来纠正并写 MEMORY），但从第四个 Session 开始明显加速，该踩的坑已经记住了，Agent 不再重复犯同类错误。\n\n意识文件三件套跑稳之后再动 Skill 和 Automation。顺序反了会痛苦：先上 Skill 而不建意识文件，Skill 里的偏好和你不一致，你会反复推倒重来。\n\n最后说一个容易被忽略的成本：MEMORY.md 不是只增不减的。随着条目增多，Agent 的上下文窗口被占满，甚至出现“太多规则互相打架”的情况。我的做法是每周扫一遍 MEMORY，把已升格进 AGENTS 的条目删掉、把不再复现的经验归档到日期文件。保持 MEMORY 精简是让意识层长期可用的必要维护动作。\n\n# 08\n\n写在最后\n\ntaste 是 Loop 的准备动作，不是产出。很多人以为搭好 Loop，Agent 就能替他有品味，这是幻觉。Loop 只放大你已有的 taste，不生产 taste。如果我对这个 topic 没有阅读积累，我根本写不出 AGENTS.md 里“必须区分严格定义/宽泛定义”、“必须单独讨论上游平台威胁”这些规则。没有 taste，你连 evals 都写不出来。“Loop 让工作变轻松”是真的，“Loop 让新手变专家”是幻觉，这两件事必须分开讲。\n\n另一个值得讲的判断：loop engineering 目前 90% 讨论集中在 AI Coding，但跑完这次调研我觉得正好反过来。Coding 场景的 eval 天然存在（能跑、通过测试、性能达标），调研的 eval 得你自己设计。eval 越难写的场景，搭 loop 的边际收益越大，因为那里连“什么叫好”都没人替你定义过。\n\n最后一个小彩蛋：本文的创作也是有在用 loop engineering，我使用了三个 subAgent，分别扮演“技术社区普通读者”、“不懂 loop 的技术读者”、“懂 loop 的实践读者”。让他们按不同维度（术语门槛、节奏、可迁移性等）对文章打分，提出问题，基于问题再继续优化，通过阈值设在 9 分，不到继续 loop，直到都过线。\n\n（下图为过程中产物）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=86463b60&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FkN3t5R6pdz4VO75QVOPCtlVKfETrcteCw9Yo8JJicK5csSPgQUD3icI7WtIrhHx34ibCkfGibrIHnptB6pliaSwz1no99Jre6OT2Qdp4xBSPO2fw%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n---\n\n\\*注：本文为作者个人技术思考与经验分享，不代表公司的官方立场或观点。文中部分论述涉及对技术趋势和发展方向的前瞻性判断，基于作者写作时的实践、认知与经验，所有内容仅供交流参考，读者应结合自身场景独立评估。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=5a4871a0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FOmCbZ5JK30GbpbpADRYqgC6MMvNfRPY8cGySPF2f9miavJibvCOiaUelcS2LX6uSMGEic1ztD9ECCvN2rcupEseySg%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26tp%3Dwebp)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=fd319dfb&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FOmCbZ5JK30GMpsz1kdxGBRiclB5yjhBh5iamZLYrF2BOK4YNhXbjibibx63B6o5ubgOvYGRyUa0DK6gpI9YibkKUUCQ%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26tp%3Dwebp)\n\n欢迎留言一起参与讨论~\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=40e1eb4f&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzg4NTczNzg2OA%3D%3D%26mid%3D2247510011%26idx%3D1%26sn%3Ddde47100c92c8264e667c27d7d52f41a)",
+      "tags": [
+        "Agent Loop",
+        "跨Session自进化",
+        "QoderWork"
+      ],
+      "score": 75,
+      "summary": "阿里技术分享Agent Loop跨会话自进化实践，以FDE调研为例。",
+      "fetched_at": "2026-07-10T20:07:26.316246+08:00"
+    },
+    {
+      "title": "Dify is heading to AWS Summit Taipei 2026!\n\nJuly 15–16 at TICC, our team will be on-site talking ent...",
+      "link": "https://x.com/dify_ai/status/2075530260674912734",
+      "published": "2026-07-10T18:39:10+08:00",
+      "source": "Dify(@dify_ai)",
+      "content": "Dify is heading to AWS Summit Taipei 2026!  \n  \nJuly 15–16 at TICC, our team will be on-site talking enterprise AI adoption, from knowledge bases to self-hosting and compliance.  \n  \nIf you're exploring how to bring generative AI into your organization, stop by the Dify booth (Booth P25).  \n  \nSee you there!  \n  \n#AWSSummitTaipei2026#Dify#EnterpriseAI#GenerativeAI\n\n![Tweet Image](https://pbs.twimg.com/media/HM3DC6lb0AAZxBt.jpg)\n\n💬0🔄0❤️0👀276",
+      "tags": [
+        "Dify",
+        "AWS Summit Taipei",
+        "企业AI"
+      ],
+      "score": 70,
+      "summary": "Dify将参加AWS Summit Taipei 2026，展示企业AI解决方案。",
+      "fetched_at": "2026-07-10T20:07:26.316251+08:00"
+    },
+    {
+      "title": "才发现昨天上线的洛杉矶节点只是 AS3 的，我之前抢了 4 台 AN5 的已经是绝版了。",
+      "link": "https://x.com/dingyi/status/2075526456302772566",
+      "published": "2026-07-10T18:24:03+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "才发现昨天上线的洛杉矶节点只是 AS3 的，我之前抢了 4 台 AN5 的已经是绝版了。\n\n![Tweet Image](https://pbs.twimg.com/media/HM3APjoaQAAGUYy.jpg)\n\n![Ding](https://pbs.twimg.com/profile_images/2000755831135191040/s6Pf_wjc_normal.jpg)\n\nDing@dingyi\n\nDMIT 终于又补货了！香港和日本的都有，最便宜的只要 36.9 刀/年。但想要最好的线路还是得买贵的。  \n  \n[dmit.io/aff.php?aff=20…](https://www.dmit.io/aff.php?aff=20681)\n\n![Tweet Image](https://pbs.twimg.com/media/HMMsUieboAAEEsV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dingyi/status/2072549128987693536)\n\n💬4🔄0❤️3👀2115📊3",
+      "tags": [
+        "DMIT",
+        "VPS补货"
+      ],
+      "score": 20,
+      "summary": "用户讨论DMIT VPS补货及节点配置。",
+      "fetched_at": "2026-07-10T20:07:26.316254+08:00"
+    },
+    {
+      "title": "GPT 5.6 + Grok 4.5 + GLM 5.2 能不能&gt; Claude Fable 5",
+      "link": "https://x.com/geekbb/status/2075539529906204761",
+      "published": "2026-07-10T19:16:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "GPT 5.6 + Grok 4.5 + GLM 5.2 能不能> Claude Fable 5\n\n![Tweet Image](https://pbs.twimg.com/media/HM2cX_8bIAANKOL.png)\n\n💬2🔄0❤️1👀1599📊2",
+      "tags": [
+        "GPT-5.6",
+        "Grok 4.5",
+        "GLM 5.2"
+      ],
+      "score": 30,
+      "summary": "用户提问多个模型组合能否超越Claude Fable 5。",
+      "fetched_at": "2026-07-10T20:07:26.316257+08:00"
+    },
+    {
+      "title": "直到今天，我站在 AI 浪潮下，看着大数据时代，短视频创作，流量运营，比特币虚拟货币，黄金暴涨、出海，新能源，机器人算力一轮轮的爆发，我明明看得见机会，却依然抓不住、摸不透、不知道从哪下手。\n\n这一刻...",
+      "link": "https://x.com/geekbb/status/2075532986653557056",
+      "published": "2026-07-10T18:50:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "直到今天，我站在 AI 浪潮下，看着大数据时代，短视频创作，流量运营，比特币虚拟货币，黄金暴涨、出海，新能源，机器人算力一轮轮的爆发，我明明看得见机会，却依然抓不住、摸不透、不知道从哪下手。  \n  \n这一刻我突然懂了：我们终究是普通人啊。\n\n![Tweet Image](https://pbs.twimg.com/media/HM08yMUasAAQvC5.jpg)\n\n💬3🔄0❤️6👀1887📊4",
+      "tags": [
+        "个人感慨"
+      ],
+      "score": 10,
+      "summary": "用户表达对AI浪潮中机会的迷茫。",
+      "fetched_at": "2026-07-10T20:07:26.316260+08:00"
+    },
+    {
+      "title": "2023-2024",
+      "link": "https://x.com/pmarca/status/2075548953056346422",
+      "published": "2026-07-10T19:53:26+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "2023-2024\n\n![Rowland Manthorpe](https://pbs.twimg.com/profile_images/1234467900708270080/-5oIBtj1_normal.jpg)\n\nRowland Manthorpe@rowlsmanthorpe\n\nLiz Kendall has made her Substack debut with a strong argument for the importance of AI sovereignty  \n  \nShe says the UK has two years\\* left to secure a meaningful place in AI or risk missing out altogether   \n  \n\\*Why two? She doesn't say\n\n![Tweet Image](https://pbs.twimg.com/media/HM2z3mDWQAAm8EL.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rowlsmanthorpe/status/2075512772897415338)\n\n💬0🔄0❤️1👀4046",
+      "tags": [
+        "AI主权",
+        "英国"
+      ],
+      "score": 65,
+      "summary": "Marc Andreessen转发关于英国AI主权重要性的文章。",
+      "fetched_at": "2026-07-10T20:07:26.316262+08:00"
+    },
+    {
+      "title": "Interesting.",
+      "link": "https://x.com/pmarca/status/2075547533963907300",
+      "published": "2026-07-10T19:47:48+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Interesting.\n\n![Brian Chau](https://pbs.twimg.com/profile_images/1921514033414279168/eW4fWnTQ_normal.jpg)\n\nBrian Chau@brianchau57\n\nAll 'analyses' of China's technocratic wins boils down to America banning the steel factory because some boomer environmentalist said so, not having 200 iq mathematicians calculate optimal railroad funding for 2020-2025\n\n[🔗 View Quoted Tweet](https://x.com/brianchau57/status/2075544327145849238)\n\n💬8🔄4❤️25👀9820📊7",
+      "tags": [
+        "中国技术",
+        "美国政策"
+      ],
+      "score": 40,
+      "summary": "Marc Andreessen转发关于中国技术优势的分析。",
+      "fetched_at": "2026-07-10T20:07:26.316265+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/pmarca/status/2075530317285474481",
+      "published": "2026-07-10T18:39:23+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HM3D0wAawAAzZNJ.jpg)\n\n💬17🔄10❤️92👀16583📊23",
+      "tags": [
+        "图片"
+      ],
+      "score": 10,
+      "summary": "Marc Andreessen发布无文字图片。",
+      "fetched_at": "2026-07-10T20:07:26.316267+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/pmarca/status/2075526348731503044",
+      "published": "2026-07-10T18:23:37+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HM3ANw1bgAAyGVI.jpg)\n\n![Reuben Rodriguez](https://pbs.twimg.com/profile_images/1125912842258006017/QUa6A3B__normal.png)\n\nReuben Rodriguez@ReubenR80027912\n\nExplain it to me like I’m 10; why can’t you build more? I get there are DoD approved vendors etc but…this shit was designed in \\*1969\\*  \n  \nHow can Anduril not be able leverage the 100,000% increase in computing power to churn out 1,000/month? A diff but equally effective system?\n\n[🔗 View Quoted Tweet](https://x.com/ReubenR80027912/status/2075297107410378818)\n\n💬18🔄15❤️142👀40030📊23",
+      "tags": [
+        "Anduril",
+        "国防生产"
+      ],
+      "score": 40,
+      "summary": "Marc Andreessen转发关于Anduril产能的讨论。",
+      "fetched_at": "2026-07-10T20:07:26.316270+08:00"
+    },
+    {
+      "title": "17 yo says his policy for hugs is to stop short of Paraguayan defenders during a corner kick.",
+      "link": "https://x.com/paulg/status/2075531922302816371",
+      "published": "2026-07-10T18:45:46+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "17 yo says his policy for hugs is to stop short of Paraguayan defenders during a corner kick.\n\n💬19🔄0❤️178👀27966📊27",
+      "tags": [
+        "个人趣事"
+      ],
+      "score": 5,
+      "summary": "Paul Graham分享关于拥抱的趣事。",
+      "fetched_at": "2026-07-10T20:07:26.316273+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/uVLYXlE9SM",
+      "link": "https://x.com/TheRundownAI/status/2075528129569779903",
+      "published": "2026-07-10T18:30:42+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [therundown.ai/p/openai-sends…](https://www.therundown.ai/p/openai-sends-gpt-5-6-to-work)\n\n💬0🔄0❤️0👀1069",
+      "tags": [
+        "AI新闻汇总"
+      ],
+      "score": 30,
+      "summary": "The Rundown AI分享AI新闻汇总链接。",
+      "fetched_at": "2026-07-10T20:07:26.316275+08:00"
+    },
+    {
+      "title": "Top stories in AI today:\n\n- OpenAI takes GPT-5.6 public, adds ChatGPT Work\n- Rowan’s Corner: The top...",
+      "link": "https://x.com/TheRundownAI/status/2075528122976317872",
+      "published": "2026-07-10T18:30:40+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in AI today:  \n  \n- OpenAI takes GPT-5.6 public, adds ChatGPT Work  \n- Rowan’s Corner: The top 1% economy  \n- Use 60% less Fable tokens with this setup  \n- Meta continues shipping with Muse Spark 1.1   \n- 4 new AI tools, community workflows, and more\n\n![Tweet Image](https://pbs.twimg.com/media/HM3B0oTWEAE7yBV.jpg)\n\n💬3🔄0❤️8👀3359📊3",
+      "tags": [
+        "GPT-5.6",
+        "ChatGPT Work",
+        "Muse Spark 1.1"
+      ],
+      "score": 70,
+      "summary": "The Rundown AI汇总今日AI新闻，包括GPT-5.6公开、ChatGPT Work等。",
+      "fetched_at": "2026-07-10T20:07:26.316277+08:00"
+    },
+    {
+      "title": "下午开始用 ChatGPT Codex，体感额度跑的比之前快了？可能是因为我跑了两次 Sites 的测试。\n\n另外单次任务接近和触发「额度限制」时，不会像之前一样先跑完再提示额度，并从下个 5 小时扣...",
+      "link": "https://x.com/shao__meng/status/2075541716304843060",
+      "published": "2026-07-10T19:24:41+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "下午开始用 ChatGPT Codex，体感额度跑的比之前快了？可能是因为我跑了两次 Sites 的测试。  \n  \n另外单次任务接近和触发「额度限制」时，不会像之前一样先跑完再提示额度，并从下个 5 小时扣；现在是会直接在一个可继续的节点停下来，但会告诉我发生了什么，什么时候能重置，重置后会帮我继续完成。\n\n![Tweet Image](https://pbs.twimg.com/media/HM3NmCRaoAA7ga2.jpg)\n\n💬0🔄0❤️0👀248",
+      "tags": [
+        "ChatGPT Codex",
+        "额度限制"
+      ],
+      "score": 50,
+      "summary": "用户反馈ChatGPT Codex额度消耗变快及限制机制变化。",
+      "fetched_at": "2026-07-10T20:07:26.316280+08:00"
+    },
+    {
+      "title": "gpt 5.6 这个审美，我也是震惊了，怎么能这么丑\nbenchmark 飞升，审美一直停留在原地。。。",
+      "link": "https://x.com/oran_ge/status/2075540048947404842",
+      "published": "2026-07-10T19:18:03+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "gpt 5.6 这个审美，我也是震惊了，怎么能这么丑  \nbenchmark 飞升，审美一直停留在原地。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HM3MMagboAAGMn4.jpg)\n\n💬1🔄0❤️2👀541📊1",
+      "tags": [
+        "GPT-5.6",
+        "审美"
+      ],
+      "score": 30,
+      "summary": "用户吐槽GPT-5.6的审美糟糕。",
+      "fetched_at": "2026-07-10T20:07:26.316282+08:00"
+    },
+    {
+      "title": "如果还觉得 context 越多就是越好 \n那就没有真正理解 context 是什么",
+      "link": "https://x.com/oran_ge/status/2075532040385237165",
+      "published": "2026-07-10T18:46:14+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "如果还觉得 context 越多就是越好   \n那就没有真正理解 context 是什么\n\n💬2🔄0❤️1👀1099📊2",
+      "tags": [
+        "context理解"
+      ],
+      "score": 20,
+      "summary": "用户发表对context的理解观点。",
+      "fetched_at": "2026-07-10T20:07:26.316284+08:00"
+    },
+    {
+      "title": "我也提前拿到了测试资格，做了一个叫“人生成就生成器”的东西，可以在这儿体验。需要 App 打开，网页不行。\n\nhttps://t.co/QZvbW0pIzo",
+      "link": "https://x.com/op7418/status/2075535883743511005",
+      "published": "2026-07-10T19:01:30+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "我也提前拿到了测试资格，做了一个叫“人生成就生成器”的东西，可以在这儿体验。需要 App 打开，网页不行。  \n  \n[xiaohongshu.com/explore/6a50cb…](https://www.xiaohongshu.com/explore/6a50cbfc000000001c027ed7?xsec_token=ABsZAvwovr9eSLO9f1MgmlCyVT0-fDyha4q0DpqdT9lBc=&xsec_source=pc_user)\n\n![Tweet Image](https://pbs.twimg.com/media/HM3I4Qta4AEcy7m.jpg)\n\n💬0🔄0❤️3👀722",
+      "tags": [
+        "人生成就生成器",
+        "测试资格"
+      ],
+      "score": 40,
+      "summary": "用户分享提前获得测试资格并制作人生成就生成器。",
+      "fetched_at": "2026-07-10T20:07:26.316287+08:00"
+    },
+    {
+      "title": "小红书最近动作挺多呀，上线了新的 AI 周边，就叫“小工具”\n\n你可以把你 vibe Coding 的一些网页之类的当做一个小程序发布到小红书，然后你在发视频或者发图文的时候就可以挂载这个小工具，让其...",
+      "link": "https://x.com/op7418/status/2075535634375082364",
+      "published": "2026-07-10T19:00:31+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "小红书最近动作挺多呀，上线了新的 AI 周边，就叫“小工具”  \n  \n你可以把你 vibe Coding 的一些网页之类的当做一个小程序发布到小红书，然后你在发视频或者发图文的时候就可以挂载这个小工具，让其他人在小红书内部直接使用。  \n  \n我感觉这挺有意思的，大家终于有了一个把自己 vibe Coding 的一些小东西发出来的地方，尤其是在这种封闭的社区里。  \n  \n其他家也有类似的东西，但其他家的问题在于什么都想做——他们想把生成和发布一起做。而小红书就想得很明白，只做 ROI 很高的发布，不做生成。毕竟生成这事，你确实很难做好。\n\n![Tweet Image](https://pbs.twimg.com/media/HM3IX4ragAAsz1o.jpg)\n\n💬4🔄0❤️2👀1562📊4",
+      "tags": [
+        "小红书",
+        "小工具",
+        "AI周边"
+      ],
+      "score": 70,
+      "summary": "小红书上线AI周边“小工具”，支持发布Vibe Coding网页。",
+      "fetched_at": "2026-07-10T20:07:26.316289+08:00"
+    },
+    {
+      "title": "Linux Foundation Launches Akrites to Protect Critical Open Source Software from AI-Powered  Threats",
+      "link": "https://www.infoq.com/news/2026/07/akrites-open-source-ai-threats/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-10T20:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/akrites-open-source-ai-threats/en/headerimage/generatedHeaderImage-1783328525989.jpg)\n\nThe Linux Foundation has launched Akrites, a new industry-wide initiative aimed at defending the world's most critical open source software against a rapidly evolving generation of AI-enabled cyber threats.\n\n*By Craig Risi*",
+      "tags": [
+        "Linux Foundation",
+        "Akrites",
+        "AI安全"
+      ],
+      "score": 75,
+      "summary": "Linux Foundation启动Akrites项目，保护开源软件免受AI威胁。",
+      "fetched_at": "2026-07-10T20:07:26.316291+08:00"
     }
   ]
 }
