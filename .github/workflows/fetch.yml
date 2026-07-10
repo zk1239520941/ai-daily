@@ -25,14 +25,7 @@ jobs:
       - name: 同步远端 news-data（git 为唯一真源）
         run: git pull --rebase origin ${{ github.ref_name }} || true
 
-      - name: 恢复 news-data 缓存
-        uses: actions/cache@v4
-        with:
-          path: news-data
-          key: ai-daily-news-data-v3
-          restore-keys: |
-            ai-daily-news-data-v3
-            ai-daily-news-data-v2
+      # 不再 cache 覆盖 news-data：git 才是真源；cache 曾把冲突标记文件盖回工作区
 
       - uses: astral-sh/setup-uv@v5
         with:

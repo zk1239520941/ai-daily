@@ -100,6 +100,25 @@ class TestReadWriteEntries:
         assert "entries" in data
         assert len(data["entries"]) == 3
 
+    def test_read_fetch_data_with_conflict_markers(self, temp_dir):
+        """含 git 冲突标记的 fetch 文件应降级为空，而不是抛异常。"""
+        filepath = temp_dir / "fetch-conflict.json"
+        filepath.write_text(
+            '{\n  "meta": {},\n  "entries": [\n<<<<<<< Updated upstream\n'
+            '    {"title": "a"}\n=======\n    {"title": "b"}\n'
+            ">>>>>>> Stashed changes\n  ]\n}\n",
+            encoding="utf-8",
+        )
+        data = read_fetch_data(str(filepath))
+        assert data == {"meta": {}, "entries": []}
+        assert read_entries(str(filepath)) == []
+
+    def test_read_fetch_data_invalid_json(self, temp_dir):
+        filepath = temp_dir / "fetch-bad.json"
+        filepath.write_text("{not-json", encoding="utf-8")
+        data = read_fetch_data(str(filepath))
+        assert data == {"meta": {}, "entries": []}
+
 
 class TestSaveFetchFile:
     """测试保存fetch文件"""

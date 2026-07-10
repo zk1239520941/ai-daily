@@ -35,6 +35,24 @@ def _ensure_git_identity() -> None:
         )
 
 
+def _has_conflict_markers(path: Path) -> bool:
+    """检查文本文件是否残留未解决的 git 冲突标记。"""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return "<<<<<<<" in text or ">>>>>>>" in text
+
+
+def _assert_no_conflict_markers(root: Path, paths: list[Path]) -> None:
+    """若待提交文件含冲突标记则抛错，避免污染远端真源。"""
+    bad = [p for p in paths if p.is_file() and _has_conflict_markers(p)]
+    if not bad:
+        return
+    names = ", ".join(str(p.relative_to(root)) for p in bad)
+    raise RuntimeError(f"拒绝提交含 git 冲突标记的文件: {names}")
+
+
 def _git_pull_rebase(root: Path) -> bool:
     """push 前拉取远端，降低并发 commit 冲突概率。"""
     result = subprocess.run(
@@ -46,6 +64,18 @@ def _git_pull_rebase(root: Path) -> bool:
     if result.returncode != 0:
         print(f"[warn] git pull --rebase 失败: {result.stderr.strip()}")
         return False
+    # autostash 应用失败时 git 可能仍返回 0，但工作区会留下冲突标记
+    data_dir = root / "news-data"
+    if data_dir.exists():
+        marked = [
+            p
+            for p in data_dir.rglob("*")
+            if p.is_file() and p.suffix in {".json", ".md", ".html"} and _has_conflict_markers(p)
+        ]
+        if marked:
+            names = ", ".join(str(p.relative_to(root)) for p in marked[:5])
+            print(f"[warn] pull --rebase 后发现冲突标记: {names}")
+            return False
     return True
 
 
@@ -284,10 +314,17 @@ def publish_pages_to_github(
         subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
     for f in push_html_files:
         subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
+    staged_paths: list[Path] = []
     for pattern in ("run-state.json", "push-skip-*.json"):
         for f in Path(data_dir).glob(pattern):
+            staged_paths.append(f)
             subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
+    for f in push_files:
+        staged_paths.append(f)
+    for f in push_html_files:
+        staged_paths.append(f)
     subprocess.run(["git", "add", "-u", data_dir], cwd=str(root), check=False)
+    _assert_no_conflict_markers(root, staged_paths)
 
     staged = subprocess.run(
         ["git", "diff", "--staged", "--quiet"],
@@ -323,6 +360,7 @@ def commit_fetch_to_github(
     _git_pull_rebase(root)
     data_path = Path(data_dir)
 
+    staged_paths: list[Path] = []
     for pattern in (
         "fetch-*.json",
         "trending-history.json",
@@ -331,7 +369,9 @@ def commit_fetch_to_github(
         "push-skip-*.json",
     ):
         for f in data_path.glob(pattern):
+            staged_paths.append(f)
             subprocess.run(["git", "add", "-f", str(f)], cwd=str(root), check=False)
+    _assert_no_conflict_markers(root, staged_paths)
 
     staged = subprocess.run(
         ["git", "diff", "--staged", "--quiet"],
