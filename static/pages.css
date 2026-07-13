@@ -79,6 +79,12 @@ body.article-page .site-shell {
   transform: translateY(0);
 }
 
+/* 整栏过高时 IntersectionObserver 达不到阈值，父级 opacity:0 会把子卡片全藏掉 */
+.board-section.reveal {
+  opacity: 1;
+  transform: none;
+}
+
 /* —— 导航 —— */
 .site-nav {
   display: flex;

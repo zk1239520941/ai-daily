@@ -357,7 +357,7 @@ def _render_article_body(body: str, entry_images: Dict[str, str]) -> str:
         if key == "hackernews":
             inner_html = _collapse_hn_discussions(inner_html)
         parts.append(
-            f'<section class="board-section board-{html.escape(key)} reveal" '
+            f'<section class="board-section board-{html.escape(key)}" '
             f'id="board-{html.escape(key)}">'
             f'<header class="board-section__head">'
             f'<h2 class="board-section__title">{html.escape(label)}</h2>'

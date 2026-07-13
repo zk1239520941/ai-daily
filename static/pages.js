@@ -29,11 +29,28 @@
             }
           });
         },
-        { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+        /* 手机上栏目标题区很高，阈值过严会导致整栏永远不显现 */
+        { threshold: 0.01, rootMargin: "0px 0px -4% 0px" }
       );
 
       revealItems.forEach(function (el) {
         observer.observe(el);
+      });
+
+      /* 兜底：首屏已在视口内的元素若未触发，强制显现 */
+      window.setTimeout(function () {
+        revealItems.forEach(function (el) {
+          if (el.classList.contains("is-visible")) return;
+          var rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            el.classList.add("is-visible");
+            observer.unobserve(el);
+          }
+        });
+      }, 400);
+    } else {
+      revealItems.forEach(function (el) {
+        el.classList.add("is-visible");
       });
     }
   }
