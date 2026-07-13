@@ -1141,6 +1141,194 @@
       "score": 20,
       "summary": "用户庆祝 Codex 用户数增长并请求更多赠送。",
       "fetched_at": "2026-07-14T04:21:39.623255+08:00"
+    },
+    {
+      "title": "OpenAI GPT-5.6 Sol, Terra, and Luna are now generally available on Amazon Bedrock",
+      "link": "https://aws.amazon.com/blogs/machine-learning/openai-gpt-5-6-sol-terra-and-luna-are-now-generally-available-on-amazon-bedrock/",
+      "published": "2026-07-14T05:01:20+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "*Build with the smartest family of models from OpenAI yet, on Amazon Bedrock’s next-generation inference engine.*\n\nOrganizations scaling autonomous agents and AI-powered products need frontier intelligence that performs reliably across hundreds of steps, from coding agents shipping production code to cyber security research probing novel attack surfaces to genomics workflows analyzing entire gene sequences end-to-end. These workloads run on sensitive data, demand consistent throughput under unpredictable load, and operate in environments where data residency and security are non-negotiable.\n\nToday, GPT-5.6 Sol, Terra, and Luna from OpenAI are generally available on [Amazon Bedrock](https://aws.amazon.com/bedrock/), bringing the smartest family of models from OpenAI yet to Amazon Bedrock’s next-generation inference engine built for high-performance, security and reliability. GPT-5.6 sets a new standard for intelligence and efficiency, so you can solve harder problems in less time and with more intelligence per token. Pricing matches OpenAI first-party rates, and usage counts toward your existing AWS commitments.\n\n## Frontier intelligence from flagship reasoning to fast inference\n\n[GPT-5.6](https://openai.com/index/gpt-5-6/) introduces a new naming system from OpenAI: the number identifies the generation, while Sol, Terra, and Luna identify durable capability tiers that can advance on their own cadence.\n\n* **GPT-5.6 Sol** is the flagship reasoning model and the most powerful from OpenAI to date. According to OpenAI, Sol sets a new state of the art on the Artificial Analysis Coding Agent Index at 80 points (2.8 above the next-best model) while using less than half the output tokens, taking less than half the time, and costing about one-third less, and scores 73.5% on ExploitBench for cybersecurity research versus 47.9% for GPT-5.5 at a comparable output-token budget. On Agents’ Last Exam, an evaluation of long-running professional workflows across 55 fields, Sol sets a new high of 53.6, outperforming the next-best model by 13.1 points. At medium reasoning effort, it still leads by 11.4 points at roughly one-quarter the estimated cost. Sol also introduces max reasoning effort, which lets you dial up compute for complex work. Use Sol for autonomous coding agents, vulnerability research, drug discovery workflows, and tasks that require deep multi-step reasoning.\n* **GPT-5.6 Terra** is the balanced model for everyday production work. It delivers superior performance to GPT-5.5 at a lower cost. Use Terra for code generation, content workflows, structured data extraction, and general-purpose agentic tasks that need strong reasoning without flagship pricing.\n* **GPT-5.6 Luna** is the fast and affordable model. Use Luna for high-volume inference tasks like classification, summarization, routing, and real-time applications where latency and cost per token matter most.\n\nWith the three tiers, you can right-size model capability and cost to each workload. GPT-5.6 models complete tasks with fewer output tokens than their predecessors, delivering stronger performance per dollar.\n\n## An inference engine built for scale\n\nAgent traffic is often bursty: one user request can trigger hundreds of model calls, and demand can change quickly as usage grows. Amazon Bedrock’s next-generation inference engine pools capacity to absorb demand spikes while isolating each customer’s throughput. This reduces the need to choose between shared capacity and predictable application performance. In-Region inference keeps requests within the AWS Region that you specify, helping teams meet strict data-residency requirements.\n\nAgentic and multi-step workloads also repeat much of their context between calls. System instructions, tool definitions, and reference files often stay the same while only the latest input changes. GPT-5.6 on Amazon Bedrock introduces prompt caching with explicit cache breakpoints to take advantage of that repetition. You mark the reusable part of a prompt with a cache breakpoint, and Amazon Bedrock reuses the processed context on subsequent requests that share it, so each call pays only for the new work. Cached input is billed at a 90 percent discount and stays available for reuse for at least 30 minutes. This is long enough to cover the burst of calls a single agent run generates without compounding cost as workloads scale.\n\n## Robust safety meets hardware-enforced security\n\nMore capable models require stronger safeguards. GPT-5.6 features OpenAI’s most robust safety stack to date, shaped by their most extensive evaluation period yet, combining human red teaming with large-scale automated testing. The safety stack includes model-level refusals for prohibited activity, real-time misuse classifiers, continuous monitoring, and account-level enforcement for persistent patterns.\n\nOn Amazon Bedrock, these protections sit on top of hardware-level security. Amazon Bedrock uses a zero-operator access (ZOA) security model enforced at the chip, so no AWS operators can access your prompts or completions. Every model call runs under your AWS Identity and Access Management (IAM) policies, inside your virtual private cloud (VPC), and is logged in AWS CloudTrail. Data perimeter policies prevent exfiltration across account and network boundaries. As required by the model-provider, classifier-flagged traffic data will be retained for up to 30 days for [automated abuse detection](https://docs.aws.amazon.com/bedrock/latest/userguide/abuse-detection.html).\n\n## More ways to put GPT-5.6 on Amazon Bedrock to work\n\nAlongside GPT‑5.6, OpenAI launched ChatGPT Work, an agent in ChatGPT for larger, multi-step tasks. The updated ChatGPT desktop app for Mac and Windows brings Chat, Work, and Codex together in one experience, with two dedicated agents for different kinds of work:\n\n* **Work:** The new Work agent is built for bigger, multi-step tasks. It can gather information across apps and files, use the web, create finished materials such as sheets, slides, docs, and Sites, and stay with complex projects for hours. Users can follow its progress, change direction, and approve important actions.\n* **Codex:** Codex remains the powerful coding agent for developers and technical professionals. It can work with local files, repositories, terminals, developer tools, and development environments to write features, fix bugs, run tests, and open pull requests.\n\nUsers can configure the app to use GPT-5.6 through the Responses API on Amazon Bedrock. Run the smartest family of models from OpenAI on Amazon Bedrock and get frontier intelligence with the security and scale of AWS.\n\n## Get started today\n\nGPT-5.6 Sol is available in the following [AWS Regions](https://docs.aws.amazon.com/bedrock/latest/userguide/models-region-compatibility.html): US East (N. Virginia) and US East (Ohio). GPT-5.6 Terra and Luna are available in US East (N. Virginia), US East (Ohio), and US West (Oregon).\n\nGet started with Sol, Terra, and Luna in the [Amazon Bedrock Console](https://us-east-1.console.aws.amazon.com/bedrock-mantle/home?region=us-east-1) or programmatically through the Responses API. To learn more, see the [Amazon Bedrock documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-openai.html) and visit the [Amazon Bedrock product page](https://aws.amazon.com/bedrock/).\n\n---\n\n## About the authors\n\n![Tanvi Girinath](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21359-1.png)\n\n### Tanvi Girinath\n\nTanvi is a Product Marketing Manager for Amazon Bedrock at Amazon Web Services (AWS), where she helps customers adopt and scale AI applications and agents with Amazon Bedrock.\n\n![Saurabh Trikande](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21359-2.jpg)\n\n### Saurabh Trikande\n\nSaurabh is Senior Product Manager for Amazon Bedrock at Amazon Web Services (AWS). He leads efforts to make inference with frontier models from leading providers performant, secure, and cost-efficient for customers at any scale.\n\n![Chris Dickens](https://d2908q01vomqb2.cloudfront.net/artifacts/DBSBlogs/ML-21359/ML-21359-3.jpg)\n\n### Chris Dickens\n\nChris is a Member of Product Staff at OpenAI focused on the OpenAI APIs. His work includes collaboration with AWS on Amazon Bedrock to make OpenAI’s frontier models widely accessible to developers.",
+      "tags": [
+        "GPT-5.6",
+        "Amazon Bedrock",
+        "Sol Terra Luna"
+      ],
+      "score": 90,
+      "summary": "OpenAI GPT-5.6 Sol, Terra, Luna 在 Amazon Bedrock 上正式可用。",
+      "fetched_at": "2026-07-14T06:03:29.908782+08:00"
+    },
+    {
+      "title": "datasette code-frequency chart on GitHub",
+      "link": "https://simonwillison.net/2026/Jul/13/datasette-code-frequency/#atom-everything",
+      "published": "2026-07-14T05:45:27+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[datasette code-frequency chart on GitHub](https://github.com/simonw/datasette/graphs/code-frequency)**\n\nOut of curiosity I decided to see if I could find a useful illustration of the impact of coding agents and Opus 4.5 class models on my own output. The best I've found so far is this GitHub chart of frequency of code changes to my [Datasette](https://datasette.io/) open source project:\n\n![Screenshot of a GitHub \"Code frequency\" bar chart, subtitled \"Additions and deletions per week\", showing green addition bars and red deletion bars per week from 2018 through 2026, with a y-axis labeled Frequency ranging from -20k to 30k. Activity comes in sporadic bursts: the largest spike is 37,022 additions with -9,528 deletions in 2026, followed by 14,638 additions with -6,584 deletions in late 2025, 15,998 additions in early 2018, and a standout deletion spike of -10,658 in mid-2020, with quieter periods of smaller weekly changes in between.](https://static.simonwillison.net/static/2026/datasette-code-frequency.png)\n\nThe big spike in activity at the end aligns with Opus 4.8, GPT-5.5, Fable 5 and GPT-5.6 Sol.\n\nTags: [github](https://simonwillison.net/tags/github), [ai](https://simonwillison.net/tags/ai), [datasette](https://simonwillison.net/tags/datasette), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [ai-assisted-programming](https://simonwillison.net/tags/ai-assisted-programming), [coding-agents](https://simonwillison.net/tags/coding-agents)",
+      "tags": [
+        "Datasette",
+        "代码频率",
+        "AI辅助编程"
+      ],
+      "score": 60,
+      "summary": "Simon Willison 展示 Datasette 项目代码频率图，反映 AI 模型对开发效率的影响。",
+      "fetched_at": "2026-07-14T06:03:29.908797+08:00"
+    },
+    {
+      "title": "Getting realtime progress updates on my model training runs. \n\nThis feels like early vibe coding exc...",
+      "link": "https://x.com/amasad/status/2076776737074184661",
+      "published": "2026-07-14T05:12:13+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "Getting realtime progress updates on my model training runs.   \n  \nThis feels like early vibe coding except it’s making personal models.\n\n![Tweet Image](https://pbs.twimg.com/media/HNIxb7Qa0AATEi4.jpg)\n\n💬0🔄0❤️1👀498",
+      "tags": [
+        "个人模型",
+        "实时训练"
+      ],
+      "score": 65,
+      "summary": "Amjad Masad 分享个人模型训练实时进度更新，类比早期 vibe coding。",
+      "fetched_at": "2026-07-14T06:03:29.908802+08:00"
+    },
+    {
+      "title": "Is Oracle the canary in a coal mine?",
+      "link": "https://x.com/GaryMarcus/status/2076770964512157953",
+      "published": "2026-07-14T04:49:17+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Is Oracle the canary in a coal mine?\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\n$ORCL is down 57% since my September essay “Peak Bubble”:\n\n![Tweet Image](https://pbs.twimg.com/media/HNImcuyWUAAwCYy.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2076765087335940168)\n\n💬4🔄4❤️11👀2836📊5",
+      "tags": [
+        "Oracle",
+        "股价下跌"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus 称 Oracle 股价自其“Peak Bubble”文章以来下跌 57%。",
+      "fetched_at": "2026-07-14T06:03:29.908806+08:00"
+    },
+    {
+      "title": "$ORCL is down 57% since my September essay “Peak Bubble”:",
+      "link": "https://x.com/GaryMarcus/status/2076765087335940168",
+      "published": "2026-07-14T04:25:55+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "$ORCL is down 57% since my September essay “Peak Bubble”:\n\n![Tweet Image](https://pbs.twimg.com/media/HNImcuyWUAAwCYy.jpg)\n\n💬5🔄6❤️43👀8952📊11",
+      "tags": [
+        "Oracle",
+        "股价下跌"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus 重申 Oracle 股价自其文章以来下跌 57%。",
+      "fetched_at": "2026-07-14T06:03:29.908809+08:00"
+    },
+    {
+      "title": "sol for debugging laptop power issues:",
+      "link": "https://x.com/gdb/status/2076764438225621277",
+      "published": "2026-07-14T04:23:21+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "sol for debugging laptop power issues:\n\n![vogel](https://pbs.twimg.com/profile_images/2070959207273082880/HZoVBuA2_normal.jpg)\n\nvogel@ryanvogel\n\ngpt 5.6 sol story of the day:   \n  \ni have a macbook connected and powered by a caldigit TS5  \n  \nit kept reconnecting randomly and it was pissing me off, i told sol to investigate and it found out that it would disconnect when power heavy GPU loads and the caldigit couldn't supply enough power  \n  \nsol created the hypothesis and proved it to me  \n  \nthen it told me to plugin the 120W power cable, then it did the reproductions again and they were fixed  \n  \nthis would have taken me an entire day\n\n[🔗 View Quoted Tweet](https://x.com/ryanvogel/status/2076369787249111167)\n\n💬14🔄6❤️175👀26791📊21",
+      "tags": [
+        "GPT-5.6 Sol",
+        "调试",
+        "用户案例"
+      ],
+      "score": 70,
+      "summary": "Greg Brockman 转发用户用 GPT-5.6 Sol 调试 MacBook 电源问题的案例。",
+      "fetched_at": "2026-07-14T06:03:29.908812+08:00"
+    },
+    {
+      "title": "Parse any PDF into agent-ready context. Fully local, free desktop app. No model / internet connectio...",
+      "link": "https://x.com/jerryjliu0/status/2076767574474502393",
+      "published": "2026-07-14T04:35:48+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "Parse any PDF into agent-ready context. Fully local, free desktop app. No model / internet connection required!\n\n![LlamaIndex 🦙](https://pbs.twimg.com/profile_images/1967920417760251904/0ytfduMQ_normal.png)\n\nLlamaIndex 🦙@llama\\_index\n\nEver wanted to quickly turn a PDF into clean text to paste into your favorite AI agent, without having use CLIs or open the browser?  \n  \nWe built exactly that.  \n  \nUsing [@TauriAp](https://x.com/TauriAp) ps, with a Rust backend powered by LiteParse and a React frontend, we created a cross-platform desktop app that lets you:  \n  \n• Drag and drop PDFs  \n• Convert them into clean Markdown  \n• Preview page screenshots with extracted bounding boxes overlaid for easy inspection  \n  \nIt's a simple way to understand your document's structure and verify the parsing results before handing them off to an LLM.  \n  \nCheck out the demo below! 👇  \n  \nGitHub:[github.com/run-llama/lite…](https://github.com/run-llama/liteparse-desktop)W  \nGet started with LiteParse:[developers.llamaindex.ai/liteparse/](https://developers.llamaindex.ai/liteparse/)S\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2076700184197652480/pu/vid/avc1/1196x720/kZ-43IHeZgyLABhN.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/llama_index/status/2076700217210966048/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/llama_index/status/2076700217210966048)\n\n💬1🔄1❤️3👀776📊2",
+      "tags": [
+        "LiteParse",
+        "PDF解析",
+        "桌面应用"
+      ],
+      "score": 75,
+      "summary": "LlamaIndex 发布 LiteParse 桌面应用，可本地将 PDF 转为 Markdown。",
+      "fetched_at": "2026-07-14T06:03:29.908815+08:00"
+    },
+    {
+      "title": "Big things are brewing 😉 To whet your appetite while you wait, here are a few features that have dr...",
+      "link": "https://x.com/NotebookLM/status/2076774628626968715",
+      "published": "2026-07-14T05:03:50+08:00",
+      "source": "NotebookLM(@NotebookLM)",
+      "content": "Big things are brewing 😉 To whet your appetite while you wait, here are a few features that have dropped recently:  \n  \n📃Any of your sources uploaded from [@googledrive](https://x.com/googledrive) will automatically sync when you make changes to them  \n📌 Pin your notebooks to the top of your homepage for easy access (web only for now!)  \n🛝Reorder or delete slides in your new or existing Slide Decks (web only for now!)  \n📲 Share specific artifacts from your phone or on the web  \n⬇️ Download slide decks on mobile  \n🔎 Search for notebooks on mobile\n\n💬5🔄3❤️33👀3058📊8",
+      "tags": [
+        "NotebookLM",
+        "功能更新"
+      ],
+      "score": 70,
+      "summary": "NotebookLM 预告重大更新，并列出近期新增功能如 Google Drive 同步、固定笔记本等。",
+      "fetched_at": "2026-07-14T06:03:29.908817+08:00"
+    },
+    {
+      "title": "In the latest Codex/ChatGPT app, if you have some app authenticated in a Chrome tab, Codex won't be ...",
+      "link": "https://x.com/petergyang/status/2076778427793985733",
+      "published": "2026-07-14T05:18:56+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "In the latest Codex/ChatGPT app, if you have some app authenticated in a Chrome tab, Codex won't be able to easily find it and will instead try to authenticate via the Codex browser instead.  \n  \nFeels like a bug - it should be smart enough to know when you're already auth'ed in Chrome.\n\n💬1🔄0❤️13👀1716📊2",
+      "tags": [
+        "Codex",
+        "认证问题"
+      ],
+      "score": 60,
+      "summary": "Peter Yang 反馈 Codex 无法识别 Chrome 已认证状态，需重新认证。",
+      "fetched_at": "2026-07-14T06:03:29.908820+08:00"
+    },
+    {
+      "title": "When a better AI model gets released, the first thing you should try is to REMOVE instructions.\n\nFro...",
+      "link": "https://x.com/petergyang/status/2076774909079142859",
+      "published": "2026-07-14T05:04:57+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "When a better AI model gets released, the first thing you should try is to REMOVE instructions.  \n  \nFrom [@imjaredz](https://x.com/imjaredz) (Builder-in-Residence at Cognition):  \n  \n\"Let the model cook instead of trying to push it in certain directions.  \n  \nYou're going to need less scaffolding around your agent as the models get better.\"  \n  \n📌 Watch the full episode here:[youtu.be/0YeeJHYy-Vc](https://youtu.be/0YeeJHYy-Vc)X\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076774422535684096/vid/avc1/1280x720/TJI2u-nmyo3MElNb.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2076774909079142859/video/1)\n\n![Peter Yang](https://pbs.twimg.com/profile_images/1454103621516206083/_klMwpkk_normal.jpg)\n\nPeter Yang@petergyang\n\n\"If you want to build great agents, you have to let the model cook.\"  \n  \nHere’s my new episode with [@imjaredz](https://x.com/imjaredz) (Builder in Residence at [@cognition](https://x.com/cognition)), where he shared what he learned from watching the best engineers build with AI agents, including:  \n  \n→ Why fewer rules make agents work better  \n→ How to get agents to check their own work  \n→ Live demo: Build one agent to manage an agent team  \n  \nSome quotes from Jared:  \n  \n“Our goal is not for you to token max. Our goal is for you to ROI max.”  \n  \n“The trick is to break up the work to keep the context window small for each sub-agent.”  \n  \n“More Devin sessions now start from other Devins than directly from humans.”  \n  \n📌 Watch now:[youtu.be/0YeeJHYy-Vc](https://youtu.be/0YeeJHYy-Vc)X  \n  \nThanks to our sponsors:  \n  \n[@RiversidedotFM](https://x.com/RiversidedotFM): All-in-one AI studio for podcasts and video[creators.riverside.com/PeterYang](https://creators.riverside.com/PeterYang)E  \n  \n[@WisprFlow](https://x.com/WisprFlow): 4x faster than typing with your voice[ref.wisprflow.ai/peteryang](https://ref.wisprflow.ai/peteryang)l\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076309354660388864/vid/avc1/1280x720/F3q6dszFw14p0sml.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2076309444909277326/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/petergyang/status/2076309444909277326)\n\n💬1🔄2❤️14👀2831📊3",
+      "tags": [
+        "AI Agent",
+        "指令简化"
+      ],
+      "score": 65,
+      "summary": "Peter Yang 分享观点：更好的 AI 模型应减少指令，让模型自主发挥。",
+      "fetched_at": "2026-07-14T06:03:29.908823+08:00"
+    },
+    {
+      "title": "Big unlock for open-source AI inference: Hugging Face Transformers models can now run in vLLM at nat...",
+      "link": "https://x.com/ClementDelangue/status/2076763231788339669",
+      "published": "2026-07-14T04:18:33+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Big unlock for open-source AI inference: Hugging Face Transformers models can now run in vLLM at native speed, often matching or beating hand-written implementations.  \n  \nUntil now, every new architecture often needed to be built twice:  \n- Once in Transformers for training and research  \n- Again in vLLM for fast production inference  \n  \nThat duplication slowed down new models, added maintenance, and created room for implementations to diverge. Now, model authors can implement an architecture once in Transformers and immediately benefit from vLLM’s optimized inference stack.  \n  \nIn our benchmarks, the Transformers backend matched or beat native vLLM throughput across models from 4B to 235B parameters, including tensor parallel and MoE setups. One readable model implementation can now power training, fine-tuning, evaluation, RL rollouts, and production inference.  \n  \nThe conventional wisdom is that abstractions make systems slower. The best abstractions make the whole ecosystem faster.  \n  \nWrite the model once. Deploy it everywhere.  \n  \n[huggingface.co/blog/native-sp…](https://huggingface.co/blog/native-speed-vllm-transformers-backend)\n\n![Tweet Image](https://pbs.twimg.com/media/HNIk1Z9WsAACvuN.jpg)\n\n💬21🔄26❤️132👀13614📊46",
+      "tags": [
+        "Hugging Face",
+        "vLLM",
+        "推理加速"
+      ],
+      "score": 85,
+      "summary": "Hugging Face Transformers 模型现可在 vLLM 中以原生速度运行，性能匹配或超越手写实现。",
+      "fetched_at": "2026-07-14T06:03:29.908826+08:00"
+    },
+    {
+      "title": "@hyperagentapp I just got the skill approved. You can try it here: https://t.co/6qCBjrCYb0\n\nThe team...",
+      "link": "https://x.com/omarsar0/status/2076770988490920287",
+      "published": "2026-07-14T04:49:22+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "[@hyperagentapp](https://x.com/hyperagentapp) I just got the skill approved. You can try it here: [hyperagent.com/elvis](https://www.hyperagent.com/elvis)  \n  \nThe team told me this offers a $200 promo credit to try out the skill. It should be more than enough to test it.\n\n💬0🔄1❤️5👀521📊1",
+      "tags": [
+        "HyperAgent",
+        "技能"
+      ],
+      "score": 55,
+      "summary": "Elvis 在 HyperAgent 上获得技能批准，提供 $200 试用额度。",
+      "fetched_at": "2026-07-14T06:03:29.908829+08:00"
+    },
+    {
+      "title": "Ollama's @jmorgan is live on Yahoo Finance to talk about open models. \n\nhttps://t.co/5lbJeMHf1L",
+      "link": "https://x.com/ollama/status/2076766300769263848",
+      "published": "2026-07-14T04:30:45+08:00",
+      "source": "ollama(@ollama)",
+      "content": "Ollama's [@jmorgan](https://x.com/jmorgan) is live on Yahoo Finance to talk about open models.   \n  \n[finance.yahoo.com/live/](https://finance.yahoo.com/live/)\n\n💬5🔄4❤️28👀2997📊8",
+      "tags": [
+        "Ollama",
+        "Yahoo Finance",
+        "开放模型"
+      ],
+      "score": 65,
+      "summary": "Ollama 的 jmorgan 在 Yahoo Finance 谈论开放模型。",
+      "fetched_at": "2026-07-14T06:03:29.908832+08:00"
     }
   ]
 }
