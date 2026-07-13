@@ -1090,6 +1090,470 @@
       "score": 60,
       "summary": "InfoQ报道AT Protocol用于构建弹性本地优先应用，非AI主题。",
       "fetched_at": "2026-07-13T16:24:01.577266+08:00"
+    },
+    {
+      "title": "What’s New in ReSharper 2026.2 for VS Code-compatible editors",
+      "link": "https://blog.jetbrains.com/dotnet/2026/07/13/rs-vsc-2026-2/",
+      "published": "2026-07-13T18:40:13+08:00",
+      "source": "The JetBrains Blog",
+      "content": "The last couple of months have been busy ones for ReSharper across VS Code and compatible editors. Between the 2026.1 and 2026.2 releases, we’ve been steadily sharpening the everyday .NET experience – from tracing how your data flows, to navigating call chains, to keeping your project structure front and center.\n\nThis post is a tour of those improvements. And yes, they all work across every VS Code-compatible editor, including VS Code, Cursor, Google Antigravity IDE, Devin Desktop, and Kiro.\n\n[Install ReSharper](https://www.jetbrains.com/resharper/download/?product=vsc)\n\n## Debugging has arrived\n\nBefore we get into the day-to-day refinements, there’s one release note that deserves its own spotlight. With 2026.2, the most requested feature is finally live: **debugging**.\n\n[](https://blog.jetbrains.com/wp-content/uploads/2026/07/dbg-optimized.mp4)\n\nBuilt on the same core debugging engine that powers JetBrains Rider, the initial debugger lets you set breakpoints, inspect variables and expressions in real time, step through your code, and launch or attach to .NET processes – all without leaving your editor.\n\nBecause it’s a big topic in its own right, we’ve given it a dedicated write-up. If debugging is what you came for, head straight there:\n\n[Read the full debugging announcement →](https://blog.jetbrains.com/dotnet/2026/07/13/rs-vsc-debugging/)\n\nFor everything else we shipped in this release cycle, read on.\n\n## Trace how data actually moves\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/2026-07-09_09-56-19.png)\n\nWe introduced *value tracking*, a feature that helps you stop guessing where a value comes from or where it goes. Instead of manually tracing assignments through constructors, properties, and async boundaries, you now get a live visualization of value flow directly in this view. Use **Show Value Origin** to instantly see where a value comes from, and **Show Value Destinations** to understand where a value is used further.\n\nThis feature is particularly useful for resolving NullReferenceException and unexpected state changes right at design time, without even launching a debugger.\n\n## Navigate call chains and inheritance like a pro\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/2026-07-09_09-53-24.png)\n\nThe *Call Hierarchy* and *Type Hierarchy* views are now fully populated by the ReSharper engine. Whether you’re tracing how a method invocation ripples through a codebase or exploring which classes inherit from a base type, you can now:\n\n* Toggle between incoming/outgoing calls or supertypes/subtypes.\n* Navigate directly with a single click.\n\n## Project structure improvements\n\nUnlike the [recent changes](https://github.com/microsoft/vscode-dotnettools/issues/3067) in the C# Dev Kit extension, we retained and continued enhancing the solution explorer to keep your project structure front and center:\n\n* *NuGet package versions:* Installed NuGet package versions are now displayed inline in the tree, making dependency audits and version conflicts impossible to miss.\n* *Service folders*: Service folders like *Properties* and *wwwroot* are automatically pinned above standard folders, giving you visual priority exactly where you need it.\n* *Faster project integration*: The new *Add Existing Project* context menu option eliminates the friction of bringing external code into your solution.\n\nThese aren’t cosmetic tweaks. They sharpen one of the most important views in your .NET workflow.\n\n[Install ReSharper](https://www.jetbrains.com/resharper/download/?product=vsc)\n\n## New to ReSharper?\n\nIf this is your first time hearing about ReSharper for VS Code-compatible editors, the original announcement [post](https://blog.jetbrains.com/dotnet/2026/03/05/resharper-for-visual-studio-code-cursor-and-compatible-editors-is-out/) covers the basics.\n\n## Share your thoughts!\n\nWe’re excited to bring these new features to you and look forward to your feedback! Please leave any questions, comments, or other feedback below this post. If you encounter any issues, please report them directly to our [YouTrack tracker](https://youtrack.jetbrains.com/issues/VSRS).\n\nIf you find this update valuable, we would greatly appreciate it if you could take a moment to leave a review on the marketplace. Your feedback helps other members of the .NET community make informed decisions and ensures that we continue to improve based on user needs.\n\n* [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=JetBrains.resharper-code)\n* [Open VSX Registry](https://open-vsx.org/extension/JetBrains/resharper-code) (for Cursor, Google Antigravity IDE, Devin Desktop, Kiro, and other compatible editors)\n\nThank you for your support!",
+      "tags": [
+        "ReSharper",
+        "VS Code",
+        ".NET"
+      ],
+      "score": 70,
+      "summary": "JetBrains发布ReSharper 2026.2，新增调试、值追踪等功能，支持VS Code及兼容编辑器。",
+      "fetched_at": "2026-07-13T20:16:33.735896+08:00"
+    },
+    {
+      "title": "Debugging for .NET in VS Code and Cursor: The #1 Requested Feature Is Here",
+      "link": "https://blog.jetbrains.com/dotnet/2026/07/13/rs-vsc-debugging/",
+      "published": "2026-07-13T18:39:07+08:00",
+      "source": "The JetBrains Blog",
+      "content": "For over a year, the most consistent question from our users and community has been clear:\n\n> When will the ReSharper extension support debugging?\n\nWe heard you. And with the 2026.2 release, the first version of the debugger is now live. Built on the same core debugging engine that powers JetBrains Rider, this implementation is optimized for VS Code-compatible environments, including VS Code, Cursor, Google Antigravity IDE, Devin Desktop, and Kiro.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/RS-social-BlogFeatured-1280x720-1.png)\n\n[Install ReSharper](https://www.jetbrains.com/resharper/download/?product=vsc)\n\n## Why it matters\n\nDebugging isn’t just a feature – it’s the backbone of your development workflow, whether you’re writing code manually or iterating with AI.\n\n### For VS Code users: everything you need for professional C# development\n\nWith the addition of debugging, ReSharper now completes the picture for professional .NET development in VS Code. It unifies inspections, *Solution Explorer*, refactorings, navigation, unit testing, and now debugging for C#, Razor, Blazor, and XAML, all backed by the engine that .NET developers know from Rider. If you’re currently using Microsoft’s C# extensions, ReSharper is the JetBrains alternative that brings the full stack together into a single extension.\n\n### For Cursor, Antigravity IDE, Devin Desktop, and Kiro: the most complete .NET tooling on your editor\n\nIf you’re a .NET developer working in Cursor or another VS Code-compatible editor, this release matters more than the headline suggests.\n\nMicrosoft’s C# Dev Kit and the official C# extensions are licensed for use only in genuine Visual Studio Code – they don’t run on Cursor or other compatible editors. Until now, that left .NET developers on those editors without a first-party debugger or a full-featured C# extension from a trusted vendor.\n\nAs of 2026.2, ReSharper is the most complete .NET option available on Cursor, Antigravity, Devin, and Kiro – and that includes debugging. If you’ve been using a code editor tailored to AI-assisted workflows while keeping a separate IDE open for serious .NET work, that round-trip isn’t necessary for the basics anymore. You can review, refactor, navigate, and now debug from a single editor.\n\n## What you get\n\n[](https://blog.jetbrains.com/wp-content/uploads/2026/07/dbg-optimized.mp4)\n\nThe initial implementation of the debugger brings the following capabilities:\n\n* ***Breakpoint management***: Set, enable, disable, and configure breakpoints directly in the editor gutter, including c*onditional*, *hit count, and dependent breakpoints,* as well as *logpoints.*\n* ***Real-time variable and expression inspection***: View real-time values, watch expressions, and call stacks through the VS Code Debug View.\n* ***Full step navigation***: Control execution flow with `Step Over`, `Step Into`, and `Step Out`, fully aligned with VS Code’s debug adapter protocol.\n* ***Launch-and-attach support***: Start new .NET/.NET Framework/Mono debugging sessions or attach to running processes directly from the code editor. **Hint**: Legacy .NET Framework launches can fail (e.g. WPF). Workaround: run the app first, and then attach the debugger to the process.\n* ***Debugging unit tests***: Set breakpoints in your unit tests and run them under the debugger directly from the editor.\n\n[](https://blog.jetbrains.com/wp-content/uploads/2026/07/ut-debug-optimized.mp4)\n\n### Configuration and migration support\n\nThe extension automatically creates debugger configurations for your runnable projects and reads settings from `launchSettings.json`.\n\nYou can directly reuse existing `launch.json` files from other debugging solutions (including Microsoft C# Dev Kit and NetCoreDbg), so no manual JSON editing is required.\n\nIf you prefer to set up run/debug configurations manually, you can do so by editing `launch.json`. ReSharper provides snippets with predefined configuration templates: attach to a process, launch executables for .NET, .NET Framework, Mono, and web applications, or launch a .NET project. Once you unfold a template, ReSharper offers code completion to help you fill in the essential parameters, such as the path to a binary or the project you want to launch.\n\n[](https://blog.jetbrains.com/wp-content/uploads/2026/07/launch-json-optimized.mp4)\n\n### Compatibility note: other C# debugging extensions\n\nVS Code allows only one extension to be registered as the debug engine for a given language. If another extension that provides C# debugging capabilities – for example, Microsoft’s C# Dev Kit – is installed alongside ReSharper, the ReSharper debugger cannot take over debugging sessions. To use the ReSharper debugger, disable or uninstall any other C# debugging extensions, and then reload your code editor.\n\n[Install ReSharper](https://www.jetbrains.com/resharper/download/?product=vsc)\n\n## New to ReSharper?\n\nIf this is your first time hearing about ReSharper for VS Code-compatible editors, the original announcement [post](https://blog.jetbrains.com/dotnet/2026/03/05/resharper-for-visual-studio-code-cursor-and-compatible-editors-is-out/) covers the basics.\n\n## Share your thoughts!\n\nThis is just the beginning. We brought the core functionality and would love to hear your feedback and requests on where to move next. Help us shape the debugger’s future by sharing your feedback in the comments or [our issue tracker](https://youtrack.jetbrains.com/issues/VSRS). If you encounter any issues, please report them directly to the [tracker](https://youtrack.jetbrains.com/issues/VSRS), as well.\n\nIf you find this update valuable, we would greatly appreciate it if you could take a moment to leave a review on the marketplace. Your feedback helps other members of the .NET community make informed decisions and ensures that we continue to improve based on user needs.\n\n* [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=JetBrains.resharper-code)\n* [Open VSX Registry](https://open-vsx.org/extension/JetBrains/resharper-code) (for Cursor, Google Antigravity IDE, Devin Desktop, Kiro, and other compatible editors)\n\nThank you for your support!",
+      "tags": [
+        "ReSharper",
+        "调试",
+        ".NET"
+      ],
+      "score": 70,
+      "summary": "JetBrains为VS Code及Cursor等编辑器推出.NET调试功能，基于Rider引擎。",
+      "fetched_at": "2026-07-13T20:16:33.735909+08:00"
+    },
+    {
+      "title": "Control the ideas, not the code",
+      "link": "http://antirez.com/news/169",
+      "published": "2026-07-13T19:39:52+08:00",
+      "source": "antirez",
+      "content": "Look at the past history of this blog. There are many blog posts about programming with AI, a few of them date back to January 2024 (like this: https://antirez.com/news/140). I’m a relatively well regarded programmer, after all. I don’t have the need to still be in the “loop” as a old man that seeks for relevance, I recently rejoined Redis, and now I also am developing a new open source software for local LLM inference that received a good welcome in the community. Why I keep doing this, of saying what people don’t want to hear? Why I keep announcing how future programming will be by default? Because I feel the urge of lowering the impact for people less prepared to the change than me, often younger than me, and that, unlikely me, didn’t see many of those things coming (In 2022 I published, before ChatGPT existed, a book preannouncing many things that now happened and other things that I believe \\*will\\* happen, so I feel like I can say this without sounding egocentric).\n  \n  \nSo mine is a trick. People feel more and more programming is completely modified by AI and don’t know what they should do, if they can really start coding in a completely different way, without looking much at the code as their main output. They feel like they are betraying their own field. So my intention is to arrive and say “look at me, In can write code, you know, I’m not hiding behind AI: yet, things changed, it’s not your weakness, it’s not that you are AI-pilled. It is just that our field is evolving in an incredible \\*and\\* painful (but also joyful) direction”.\n  \n  \nThis is why yesterday, on X, I said that I believe many programmers at this point have less impact they could have because they look at the code. I truly believe into that. And note that this does not mean to vibe code something just asking for the final product. The point is: if you control the ideas of your software, looking at the code itself is suboptimal and often pointless. For the following reasons:\n  \n  \n1. You can now generate a lot of code, even \\*not\\* accounting for the LLM code verbosity (that is also effect of not being able to instruct them well, for most of the part). How are you supposed to review 5k lines of code every day?\n  \n  \n2. LLMs are very good at writing locally optimal code, and are worse (but improving) with big ideas. What’s the point of scanning function by function, line by line? Instead you should prompt the design you have in mind, sometimes ask “how is exactly the design of that part? How does it work?”, and evaluate if it is the right model. It is much faster.\n  \n  \n3. The working day is 8 hours. If you read the code, it is a tradeoff. You are doing less of what today is the most important part of your job, that is, asking yourself: what I’m doing with this software? What are the new directions I want to take? And also, think at new ideas, features, optimizations tricks. And doing a lot of QA.\n  \n  \nControlling the ideas. Do you remember this phrasing from the Mythical Man Month? Well, a book from the 70s tells us more things about the current software era than many of the things that were said from 2000 to 2020. Why people that now protest against AI were not horrified by the state of software in the last decade? The level of slop we touched during recent years, before AI, is unbelievable. I’ll say you another thing. What is slop? With DwarfStar I implemented an inference for two LLMs (DeepSeek v4 and GLM 5.2) in a completely automated way, but: try it yourself, you will discover you can’t just say “implement XYZ” and see it working. You have to understand how things work, what is the best design, how to reach a certain level of performance. Then I compared the implementation, for correctness, to other systems, finding that other implementations sometimes contained more errors. I researched more, and found that the local inference world is full of subtle errors that accumulate and damage the model output, issues in the attention implementation causing performance slopes after the context is over a certain limit because indexed attention implementations are broken (do more work than they should, for instance), and so forth. This is the result of a domain that is very complicated to handle, fast changing, with models that are slightly different one from the other in the inference graph being released every day. It’s an unfair game for developers. Well: AI helps a lot with that. There are many domains where rigorous engineering (in the design side) and testing is \\*far\\* better than writing a GPU kernel by hand (or reading it). So are we sure most of that resistance it is not ideological?\n  \n  \nMatteo Collina yesterday asked me, in reply to my tweet: but didn’t you say that you check all the AI generated code for Redis? And this is a good question indeed. Yes, I do, but this is, at this point, something I \\*need\\* to do but that I believe to be mostly pointless, partially once GPT 5.5 was released, but now with Fable and GPT 5.6 Sol even more. Yes: I identify things that I don’t like how they are coded, but if I open other Redis files written by other Redis contributors there is \\*far worse\\*, and not since they are not good coders, but because it is a matter of taste. I write very clean code since I want it to be readable, so during the implementation of Redis Arrays I operated changes. I’m doing it again for the 50% memory saving optimization of Redis sorted sets, a PR that I’ll submit soon. But I do not feel this is useful anymore. Nobody should anymore look at this code, but only at the ideas the code contains. I continued to do it out of respect for users. Redis is at this point a commonly useful thing, and many programmers will open files and modify stuff by hand. But if I had my hands free, you know what I would do, instead? Use all the time that the review is taking me to do more QA, to think at the next optimization idea and apply it, and to use LLMs to write a DESIGN.md file where each data structure is described in human language, with the ideas it contains, the implementation tricks, the design. That, in the future, is going to be much more useful. Do you want to modify sorted sets? You open the file, read the design, then you own the ideas. You can open your agent and ask it what to do with the right mental model. This is a lot more useful than reviewing the code.\n  \n  \nFable and GPT 5.6 reviews to the sorted sets memory saving are going to spot ways more errors and subtle race conditions that my review is going to uncover. Yet I’ll do it. But for the majority of software projects, all this does not make sense anymore. Focus on controlling the ideas, instead. Focus on quality, testing, and having an idea of the software you want to ship. The world changed and it is painful, but also full of opportunities to improve a software world that was already completely rotten.\n  \n  \nI have a doubt only regarding young programmers that don't have enough experience, and can't build a mental model. We don't know, yet, if they will require or not to understand very well how a given piece of code works, but I believe they should learn how to write programs. Yet, I'm not sure checking the LLM output is the right thing they should do. It may be a lot more useful if they learn some programming language and implement a small interpreter, a small database, an hash table and so forth. Reviewing some Javascript stuff of some web site for a customer? Hell, no, don't lose time with that shit.\n[Comments](http://antirez.com/news/169)",
+      "tags": [
+        "antirez",
+        "AI编程",
+        "思想控制"
+      ],
+      "score": 80,
+      "summary": "antirez发文称程序员应控制思想而非代码，AI时代编程方式已改变。",
+      "fetched_at": "2026-07-13T20:16:33.735914+08:00"
+    },
+    {
+      "title": "是时候该给Token算算ROI的账了",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzkyNTY1MjE2OA==&mid=2247494096&idx=1&sn=f80d6edac951ffe07ab907fe571a2603",
+      "published": "2026-07-13T19:00:00+08:00",
+      "source": "乌鸦智能说",
+      "content": "原创 硅基君 2026-07-13 19:00 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=3347b9f8&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F598Tr639EmOaDVbmnTX5H8XgbLuRIFUnXjpOUKOiaHP0ic9Wia0gvXMcQAItFgn0RGzcHsThBQOZOwx98BwsXSibBTfibwOzbhGFuxM3MLdGy9OU%2F0%3Fwx_fmt%3Djpeg)\n\nToken狂欢之后，企业开始算账了\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5b88ac46&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F598Tr639EmMRMxCuYibK6jQzSSIVn68mrg4MfOI5ick7quiaQKJE4nvLwyFXqny91mvat54iaq1x0K9dvIG4G7XO4HQJjfSgho9pBFn2icJxluNg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n谁能想到，AI时代最先爆炸的，不是员工的生产力，而是老板的账单。\n\n去年，Token 消耗还是企业拥抱 AI、代表创新能力的指标。结果到了今年，风向全变了。\n\n腾讯开始收紧 AI 预算，Palantir CEO 开始公开吐槽模型厂商收费太贵。AI 还没把员工替代，老板已经先开始研究怎么省 Token 了。\n\n原因很简单，Token这个玩意儿，是真的贵啊！\n\n德勤测算，一家年收入约 130 亿美元的企业，每年 AI 投入可能高达 7 亿美元。而且，这还只是开始。\n\n根据国外研发管理平台Jellyfish的数据，在过去9个月内，每位开发者的人工智能支出增长了约 18.6 倍。\n\n但老板的钱，向来不是白花的。既然钱花这么多，但产出呢？\n\nJellyfish数据显示，使用 Token 最多的工程师，生产力大约是低使用者的2倍，但消耗的 Token 却高达后者的10倍。\n\n也就是说，Token 的增长速度，已经开始跑赢价值的增长速度。\n\n或许，在奔向 AI 的星辰大海之前，企业也该给Token算算账了。\n\n********/ 01 /********\n\n**从“Token最大化”，转向“Token纪律”**\n\n去年，硅谷有很流行一个词，叫Tokenmaxxing。\n\n意思很简单：鼓励员工尽可能多地使用 AI，甚至很多公司把 Token 消耗，当成 AI 采用程度和创新能力的代理指标。\n\n但到了今年，画风突然变化，越来越多的企业开始算Token账了。\n\n最近，Palo Alto Networks CEO Nikesh Arora最近接受CNBC采访时表示：Token价格还需要再下降90%，企业才能真正大规模部署。\n\nPalantir CEO Alex Karp的表达更直接。他批评OpenAI、Anthropic等公司的Token收费模式“完全错了”：企业付出大笔费用，买到的却可能是一堆没有创造价值的Token。\n\n按照Karp的逻辑，如果AI真能帮助一家企业多赚10亿美元，模型公司完全可以拿走其中30%，而不是按 Token 收费。\n\n类似的故事，今年屡屡上演。\n\n一位Priceline员工透露，一次例行的Cursor合同续签费用竟然翻了4到5倍。Uber 更是在今年 4 月之前，就已经花光了全年 AI 编码预算。\n\nAI 花钱的速度，可能远超你的想象。\n\n据九派财经此前报道，今年 6 月之前，腾讯部分部门给员工的 AI 使用额度一度达到每人每月约 2000 美元，折合人民币约 1.3 万至 1.4 万元，几乎相当于一线城市一名正式员工的月薪。\n\n即使 6 月调整后，不少员工每月仍有 1000 至 5000 元 的 Token 预算。\n\n腾讯《2025 研发大数据报告》显示，截至 2025 年底，公司本部及直接管理全资子公司共有员工约 8.74 万人，其中产研人员占 76%，约 6.64 万人。\n\n如果按每名产研人员每月 3000 元额度计算，仅名义上的年度 Token 预算，就接近 24 亿元。\n\n企业整体投入更惊人。\n\n德勤此前调研了 548 家大型企业，74% 的企业过去一年已经投资 AI，其中超过一半企业，AI 支出占整个数字化预算的 36%。\n\n按德勤测算，一家年收入约130亿美元的企业，每年投入 AI 的预算可能高达7亿美元。\n\n钱越花越多，收益呢？\n\n国外研发管理平台 Jellyfish 曾做过一项调查，使用 Token 最多的工程师，生产力大约是低使用者的2倍，但消耗的 Token 却高达后者的10倍。\n\n换句话说，AI的投入远远赶不上产出。\n\n为什么 AI 会这么烧钱？\n\n原因在于，Agent 和传统软件的运行方式完全不同。\n\n传统软件的执行路径基本固定，成本也相对可预测；而 Agent 会自主搜索、调用工具、反思、重试，并不断携带上下文，整个执行过程具有很强的不确定性。\n\n很多企业直到月底收到云账单，才知道一个工作流到底循环了多少次，又烧掉了多少 Token。\n\n去年一项针对 Agent 编程任务的研究发现，一个 Agent 完成同类任务，消耗的 Token 可能是普通代码问答的 1000 倍。即便是同一个模型、同一个任务，不同运行之间的 Token 消耗，最多也可能相差 30 倍。\n\n更重要的是，Token 越多，并不意味着效果越好。研究发现，模型准确率通常会在中等 Token 消耗区间达到峰值，之后便进入明显的收益递减阶段。\n\n就这样，去年还是创新指标的 Token，如今成了企业的成本中心。\n\n****/ 02 /****\n\n**Token效率最高，才是大模型的赢家**\n\n当Token的ROI摆在了所有人面前，模型分层几乎成为一种必然。\n\n简单来说，Claude Fable 5 这样的 SOTA 模型在少数高价值场景中依然不可替代，但对于绝大多数普通任务而言，性能已经出现了“过剩”，ROI很低，而这部分用户正在被便宜的开源模型分流。\n\n这一趋势已经开始显现。\n\n今年年初，a16z对100家大企业做了一个调研，2025年已有37%的企业同时使用5个以上模型。到2026年，81%的受访企业已经在测试或生产环境中使用三个以上模型家族，高于不到一年前的68%。\n\n后来，a16z总结了企业的模型使用规律：对外、可见度高、性能敏感的任务，通常交给领先模型；而对内、标准化、重复性的任务，模型选择更多由成本决定。\n\n当然，从目前企业实际支出来看，闭源前沿模型仍然占据绝对优势。\n\n根据 The Information 今年5月报道，在其追踪的34家领先AI创业公司中，OpenAI 和 Anthropic 两家公司拿走了89%的收入。\n\n逻辑很简单，在编程等前沿用途上，用户对价格并不特别敏感，愿意为了性能支付更高价格。\n\n但并不是所有人都认为，这种格局会长期持续。AI投资人 Gavin Baker 最近提出了一个观点：\n\n虽然目前绝大部分经济价值仍然集中在最智能的模型上，但未来市场份额可能逐渐向性价比更高的模型迁移。\n\n但也有人并不这么认为。AI领域知名投资人Gavin Baker今天就提到一个观点：\n\n尽管目前开源与低价模型处理了绝大部分Token，但大部分经济价值仍然集中在最智能的模型上。未来这种情况可能会发生变化，大模型市场份额将从头部模型转移到性价比更高的模型。\n\n背后的逻辑很简单，模型价格下降，意味着单位智能成本降低。同样的预算，可以调用更多 Token，也可以让更多业务接入 AI，最终提升企业的ROI。\n\n说白了，最终模型层的赢家将属于Token效率最高的玩家。\n\nAltimeter Capital 合伙人 Freda Duan 对此总结得非常直接：未来只有两种模型能够活下来——要么足够出色，要么足够便宜。\n\n前者代表任务效率，后者代表成本效率。\n\n未来最可能的场景是，企业开始通过智能路由进行任务的精准拆分：将最高价值的复杂推理交由前沿模型，将海量基础任务交由高性价比模型，从而实现单位成本下的产出最大化。\n\n如果说，美国今天最大的优势仍然在于最前沿模型，那么中国最大的优势，则越来越体现在成本效率。\n\n某种程度上说，DeepSeek就是大模型行业的“生死线”。\n\n如果一个模型只比 DeepSeek 强一点，但价格贵很多，它就没有长期存在的理由。对于企业和开发者而言，为微弱的能力溢价支付不成比例的成本，显然不符合基本的商业常识。\n\n这种分层机制的存在，就是中美AI竞争最底层的逻辑。中国 AI 对海外生态的挤压，未必表现为中国模型公司在前台直接击溃美国巨头，而是一场更为隐秘的“底层平替”。\n\n越来越多的美国 AI 应用公司，为了压降履约成本，开始将底层基础设施悄悄切换为 Kimi、Qwen 或 DeepSeek，再于前台封装自身的产品体验与工作流。比如，Perplexity刚刚发布了其计算机应用产品的新系统，就采用了中国 Z.ai 开源的 GLM 5.2 作为底层模型之一。\n\n很多人觉得，大模型的终局是谁做出最聪明的模型。\n\n但汽车产业的历史给出了另一个答案：法拉利定义了速度，丰田定义了产业效率。\n\nAI或许也是如此。美国模型继续刷新智能的上限，而中国模型正在不断刷新智能的成本下限。当越来越多企业开始计算Token的ROI，真正决定产业格局的，未必是谁最强，而是谁能把智能做成一种人人都用得起的工业品。\n\n这恰恰是中国模型最有机会的地方。\n\n文/阿奇\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ff7d7382&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F598Tr639EmNJ1wqYia2xjjWMsAiao0liclbr9VAqN4ZuNeUGb6Upn7pKlCA93ArwejLPbuRfajKhiaEPQbf5UzHs3NNFADjP6AgmkDQd4o65DF4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=f9173eda&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzkyNTY1MjE2OA%3D%3D%26mid%3D2247494096%26idx%3D1%26sn%3Df80d6edac951ffe07ab907fe571a2603)",
+      "tags": [
+        "Token成本",
+        "企业AI",
+        "ROI"
+      ],
+      "score": 75,
+      "summary": "文章分析企业AI Token成本激增，呼吁从Token最大化转向Token纪律。",
+      "fetched_at": "2026-07-13T20:16:33.735917+08:00"
+    },
+    {
+      "title": "英伟达 AIPC 中国首秀，笔记本里装下一座「曼哈顿」",
+      "link": "https://www.ifanr.com/1671945?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-13T18:19:45+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/07/RTXSpark122.png)\n\n今年 5 月底，英伟达发布了 RTX Spark——这是首款英伟达 CPU，黄仁勋说是为 AIPC 时代而生。\n\n一个多月后，我们在上海 Bilibili World 见到了它的全国首秀。\n\n现场运行 Demo 的展示机是一台基于 RTX Spark 的联想 YOGA Pro 15。黑色机身，重量不到 1.5kg，接口也比较完整。它没有传统高性能笔记本的厚重感，外形依然是一台熟悉的 YOGA。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/af46e5cc-4b3f-4ffd-96cd-d435854b172c.png)\n\nRTX Spark 的变化藏在机身内部。\n\n它将最高 20 核 Grace CPU、Blackwell RTX GPU 和最高 128GB 统一内存整合进同一套平台，FP4 AI 算力最高达到 1 Petaflop。\n\n它运行 Windows on Arm，相较 Linux 有着更好的兼容性，但和传统 Windows PC 相比，这又是一台专门围绕 GPU、本地模型和 AI 创作设计的 AIPC。\n\n过去几年我们谈 AI PC，常常从具体的功能谈起——会议总结、文档整理、图片生成云云。但 RTX Spark 则展示了 AIPC 更本质的一面：\n\n> 一台从芯片开始围绕 AI 设计的 PC，会是什么样子？\n\n### 是轻薄本，是游戏本，也是 AI 工作站\n\n现场演示的第一组 demo，是拿这台笔记本电脑跑一个虚幻 5 的游戏场景工程文件。\n\n这是一座以曼哈顿为原型构建的大型城市场景，工程文件超过 100GB，楼宇、街道和大量场景对象被完整加载在编辑器中，并且支持光线追踪效果。\n\n我们可以自由缩放和拖动城市，也能选中节点进行编辑。镜头在街道和建筑之间移动时相当跟手，没有出现明显的卡顿。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/RTX-Spark1.gif)\n\n据介绍，像英伟达的光线追踪技术、DLSS 技术都能加载到这个场景里，使其在超分、帧生成以及光追方面都能有较好的表现，便于游戏开发者们进行调试。\n\n值得一提的是，RTX Spark 的离电表现相当出众。在拔掉电源以后，体验也没有发生肉眼可见的断崖式变化，软件整体运行仍然相当流畅。可以判断，RTX Spark 插电与供电的性能表现接近，这也是近两年高端 CPU 的设计思路，保证无论在什么条件下都能有不错的能效比。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/bf199509-b26c-4bd1-9f67-bf7b4d7468c9.jpeg)\n\n像 UE5 这类大型工程会同时占用处理器、显卡和大量内存。以往想顺畅打开类似项目，往往需要一台配备大内存和专业显卡的工作站。\n\n现在，一台不到 1.5kg 的笔记本已经可以直接进入工程，并在离电状态下继续操作，这让初露锋芒的 RTX Spark 有了跟苹果、英特尔、高通等老牌 SoC 厂商一较高下的底气。\n\n**据爱范儿了解，RTX Spark 的平台功耗可以达到约 80W，最终量产机仍会由各家 OEM 厂商分别调校，但从这台 YOGA Pro 15 的体积和表现来看，已经有不俗的表现。**\n\n让轻薄本开始接手过去属于专业工作站的任务，是 RTX Spark 尤为想突出的场景。这也解释了 128GB 统一内存的价值。\n\n传统笔记本的系统内存和显存彼此分开，大型场景和 AI 模型很容易先碰到显存上限。RTX Spark 让 CPU 与 GPU 共用同一个内存池，为复杂工程和本地模型留出更大的空间。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/bc25b9ed-4f7c-49cc-a6e2-50371ef1f35d.png)\n\n现场演示的第二组 Demo 是《永劫无间》——这是网易游戏出品的动作游戏。\n\n现场运行的是**针对 RTX Spark 提前适配的原生 arm 版本。**\n\n在 2.5K 分辨率和高画质下，人物移动、镜头旋转和战斗过程都很流畅，整体处在明显的高帧率区间。\n\n画面仍能看出 DLSS 介入的痕迹，角色快速移动时，树荫边缘会出现轻微闪烁，但整体不影响游戏观感，而 DLSS 加持也确实让游戏有着稳定的高帧数表现。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/RTX-Spark2.gif)\n\n高性能轻薄本，是今年各大芯片平台主推的产品形态，而游戏无疑是最直给的娱乐场景。\n\n在之前的发布会上，英伟达宣称 RTX Spark 的游戏性能可以媲美 RTX 5070 显卡，并且展示了《心灵杀手 2》《赛博朋克 2077》《极限竞速 地平线 6》等高性能游戏。\n\n而国内首秀则选择了《永劫无间》，更多是对外释放一种信号：**那些我们翘首以盼的国产游戏大作，也会陆续支持 RTX Spark 平台。**\n\n事实上，英伟达已经是高规格国产游戏背后的一大推手——无论是《鸣潮》《异环》《终末地》，还是《黑神话》《影之刃》，都是英伟达游戏技术秀肌肉的舞台。\n\n在 BW 展台现场，英伟达展台秀出了不少和国产游戏合作的定制显卡，而非公版 RTX 5080 显卡的抢购活动更是火热，足以见其在游戏厂商和玩家心目中的地位。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/df420fa2-5b1a-4e5e-84fa-df889cfc26b3.png)\n\n或许再过不久，我们就能看到搭载 RTX Spark 的轻薄游戏本了。\n\n在现场，英伟达还展示了华硕 ProArt、惠普工作站、MSI 的笔记本，以及华硕和 MSI 的迷你主机。\n\n从某种程度上看，RTX Spark 已经表现出一定的形态弹性。\n\n它可以进入轻薄本，也能放进迷你主机，甚至拿来做游戏机也并非难事——首批 RTX Spark 产品预计会在今年秋季上市，届时，我们将会看到关于这个新平台的更多可能性。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/fe7ba65f-4783-47b8-9163-80da29132e3e.png)\n\n### 英伟达盯上的， 是 AIPC 的定义权\n\n**RTX Spark 的意义，最终还要回到它的芯片结构。**\n\n过去几年的 AI PC，大多在原有处理器里加入一块 NPU，用来处理相对轻量的 AI 任务。\n\nRTX Spark 则从更底层开始调整——Grace CPU、Blackwell GPU 和大容量统一内存被放进同一套设计，CUDA 和 TensorRT 也直接进入 Windows 平台。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/8d3eb1c8-08b6-4ef0-b257-8ac8bc1c1981.png)\n\n过去，英伟达的主要业务，是为个人电脑里提供一张显卡，但 CPU、内存和操作系统则由其他厂商决定。\n\n到了 RTX Spark，英伟达开始同时定义处理器、图形计算和内存分配方式。\n\n英伟达做 CPU，**是为了掌握 AI PC 的底层规则。**\n\n这颗 CPU 未必需要在所有传统跑分里击败 Intel 或 AMD。它更重要的任务，是服务 Blackwell GPU，让大型模型和创作任务获得完整的运行环境。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/e0a03811-6c0e-4a93-8cfb-4fbaad036561.png)\n\n针对 AIPC，英伟达目前也形成了两条产品路线。\n\nDGX Spark 运行 Linux，更偏向模型开发、推理和 AI 平台搭建，服务的是专业开发者。\n\nRTX Spark 运行 Windows，需要同时面对创作软件、游戏和电池供电，目标是进入个人 AI PC 和移动工作站市场。\n\n两者面向不同人群，技术思路却相当接近——**大容量共享内存和 GPU 计算被放在系统中心，CPU 负责承接日常任务。**\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/f6e70844-aafb-48a5-a4cb-0c7ce1adf342.png)\n\n过去存在于服务器和专业工作站里的架构，开始向桌面和移动设备下沉。\n\n这也是 RTX Spark 最有意思的地方。\n\n它没有把 AI PC 做成一台陌生的新设备。仍然是我们熟悉的 Windows 界面，很多游戏也可以顺利运行，创作软件也能接入。\n\n质变发生在底层，电脑开始为本地模型和 AI 工作流预留更多的空间。\n\n目前，这套设想还有不少问题没有回答——Windows on Arm 的软件兼容性怎么样？未来会有哪些原生 AI 游戏和软件支持？以及最终的价格——这些都是影响用户购买的决定性因素。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/e8fb2804-4835-42ef-9993-4e4ed3613b54.jpg)\n\n人们会像买英伟达显卡一样买英伟达的 AI 电脑吗？\n\n**显然，现在下定论为时尚早。**\n\n与其说 RTX Spark 重新定义了 AI PC，不如说英伟达终于迈出了关键一步。这是面向 AI 时代个人消费者的关键，更是比显卡更能博得用户选票的需求：\n\n> 一台能够随身携带，运行本地 AI，承接专业工作，满足游戏娱乐需求的 Windows 电脑。\n\n![](https://s3.ifanr.com/images/ep/uploads/RTX_Spark/aafc397d-8fe4-4d41-9735-1790bcd7b12e.png)\n\n过去，英伟达通过显卡参与到 PC 的发展进程。\n\n现在，它想通过定义 AIPC 本身，来切走未来更大的那块蛋糕。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "RTX Spark",
+        "AIPC",
+        "英伟达"
+      ],
+      "score": 70,
+      "summary": "英伟达RTX Spark AIPC在中国首秀，轻薄本可运行虚幻5大型场景。",
+      "fetched_at": "2026-07-13T20:16:33.735920+08:00"
+    },
+    {
+      "title": "小米澎程 4 款新车公布，纯电续航最高 380km，N90 露营版要做成房车平替",
+      "link": "https://www.ifanr.com/1671928?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-13T18:18:54+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/07/fenminmi.jpeg)\n\n小米终于不演了。\n\n什么不做增程，什么运动基因，在这一次的小米澎程 SkyNomad 上，都被抛在了脑后。取而代之的是「落后」的增程动力，是外观线条为车内空间让路，是不再以驾驶员为核心的设计理念。\n\n小米澎程，改变了小米基因。\n\n以上当然是对小米的无恶意揶揄。相反，在 SU7、YU7 这两台「非标准答案」的车之后，小米终于正式切入了中国汽车市场最为主流的核心赛道，却依然想带来一个和市场不太一样的，但依然非常小米的答案。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/f2c9838cly1ieyq9nhlh2j23342bcb2b.jpg)\n\n按小米官方的说法，澎程并非小米汽车的子品牌，而是小米汽车旗下的智能可变大空间 SUV 系列，解决关于「人在车里面怎么生活更自在」的问题。尽管尚未公布发布时间，但靠目前的已知信息，我们也已经能拼凑出小米澎程 SkyNomad 这一新系列的大致面貌，看出小米「人车家」的终极野心。\n\n### 四款增程 SUV 与小米的房地产野心\n\n根据工信部最新一批申报信息，小米澎程首批带来了两种尺寸、四款车型，分别是：\n\n* 小米澎程 N70\n* 小米澎程 N70 Max\n* 小米澎程 N90 Max\n* 小米澎程 N90 Max 露营版\n\n其中，N70 的长宽高为 4960 × 1998 × 1785mm，轴距 2950mm，采用 5 座布局；尺寸更大的 N90 长宽高为 5285 × 1998 × 1825mm，轴距达到 3080mm，提供 5 座和 7 座版本。作为参照，2026 款理想 L9 的车长为 5255mm，这意味着 N90 的车身还要再长 30mm。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/N70.jpg)\n\n▲小米澎程 N70\n\nN90 Max 露营版则更特别一些。它在工信部的申报名称是「插电式增程混合动力文化生活服务车」，车高也因为升顶机构增加至 1925mm。翻译一下就是，这是一台把升顶车顶、床板和露营设施一起写进申报资料的原厂露营车。\n\n动力方面，4 个申报版本都搭载东安动力提供的 1.5L 增程器，最大净功率 112kW。N70 采用单电机，峰值功率 210kW，搭配欣旺达提供的 52kWh 磷酸铁锂电池；N70 Max 换成双电机四驱，前后电机峰值功率分别为 210kW 和 100kW，电池也升级为中创新航提供的 76 kWh 三元锂电池。N90 Max 与 N90 露营版则沿用相同的双电机四驱系统和 76kWh 中创新航三元锂电池。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/houshijiao.jpg)\n\n按照工信部目录，52kWh 版本 N70 的 WLTC 纯电续航为 265～270km，亏电油耗为 5.7～5.8L/100km；76kWh 版本 N70 Max 的纯电续航达到 375～380km，亏电油耗为 6.1～6.2L/100km。\n\n体型更大的 N90 Max 整备质量达到 2800kg，纯电续航为 370km，亏电油耗 6.26 L/100km；N90 露营版增加升顶机构后，整备质量进一步来到 2840kg，但仍有 363km 的 WLTC 纯电续航，亏电油耗为 6.28L/100 km。小米另外给出的口径是，澎程系列在 CLTC 工况下的纯电续航最高超过 500km。\n\n按照小米的产品逻辑，增程并不是用来掩盖小电池的补丁，而是以足够长的纯电续航覆盖日常通勤，再让汽油承担低频长途出行。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/huwaiceshi.jpg)\n\n此外，小米澎程系列的路测在 2024 年 10 月就已经开始，截至 2026 年 6 月 30 日，小米澎程已经累计投入 566 台测试车，路测里程超过 428 万公里，测试温度从 -41℃ 至 53℃，最高海拔达到西藏阿里的 5380m，并完成了结构耐久、动力总成耐久和综合耐久等专项测试。\n\n不过，动力形式还不是澎程最想强调的地方。\n\n整个澎程系列建立在小米从 2023 年开始研发的昆仑架构上，纯平地板与长滑轨构成了车内空间变化的基础。目前小米官方展示的 N90，前排座椅可以向后旋转，中央扶手能够沿滑轨向后移动，在三排座椅全部使用的情况下，后备厢仍然能够放入至少 7 件行李。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/cheni.jpg)\n\n最受关注的 N90 露营版，则在这套可变空间之上增加了升降车顶、车顶床板、侧柜和侧帐接口，按照申报要求，升顶机构只能在停车状态和非公共道路环境下使用。在外观方面，我们还能看到小米提供了银色和黑色的车标选项，多达五种轮毂样式，电动踏板也在选装范围内。\n\n和低趴修长的 SU7、YU7 相比，N70 与 N90 都放弃了运动化的车身比例：车头更厚，车顶更平，尾部接近垂直，原本可以留给姿态和曲线的部分，几乎都被换成了车内净空间。尤其是体长超过五米二的 N90，方正轮廓进一步放大了整台车的视觉体量。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/neishi.jpg)\n\n尽管澎程系列仍然保留了一些小米汽车的家族特征，包括近似「米」字结构的头灯，以及中间带缺口的环形尾灯，但它们更像是用来证明这仍然是一台小米，而非让用户仅凭外观便掏钱的理由。没想到有一天，小米也成了「肉埋在饭里」的一份子。\n\n小米汽车首席设计师李田原在解释澎程的设计时，将 SU7 和 YU7 概括为「给驾驶者设计的车」，而澎程则是为了人会一直喜欢呆在里面。他说：\n\n> 这是一个充满想象力的，活的空间。\n\n从空间的角度来看，N90 露营版确实有房子的部分基本思维：纯平地板相当于尽量减少公摊，长滑轨负责重新划分功能区，旋转座椅让客厅随时出现，升降车顶和侧帐则把纵向和横向空间也纳入计算。\n\n这很难不让人想起雷军与房地产的旧事。2014 年，房地产如火如荼之际，有不少网友呼吁雷军入场把房价打下来，雷军在微博表示「小米精力和能力有限，做不了房地产」。\n\n现在好了，雷军把房子装上了四个轮子拿出来卖，非得说这叫 N90 露营版。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/chenei.jpg)\n\n### 主打家庭的产品已经够拥挤了，但小米不在乎\n\n过去几年，小米汽车一直是一家纯电车企，直到澎程出现。\n\n按照小米官方的说法，这个系列在 2023 年初立项时，就已经确定采用增程动力，小米希望澎程系列「尽可能地多用电、偶尔用油也很省，自在远行不焦虑」。\n\n实际上，增程、大空间与家庭用户的组合并不新鲜，甚至已经成为过去几年中国新能源汽车市场最标准的答案之一。理想靠这套逻辑起家，从 L6 一直铺到 L9；问界 M 系列则把增程、华为座舱、辅助驾驶与豪华感放在一起，从 20 多万元一路覆盖到 50 万元以上。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/xiazaim9.jpg)\n\n▲N90 实拍，视觉上相比问界 M9 更大\n\n冰箱彩电大沙发既是妙诀，也是魔咒，标准答案的背面是后来者很难只靠增加一块屏幕或换一张零重力座椅就让用户轻易买账。澎程正式亮相之前，外界的普遍判断是增程大 SUV 的产品形态几乎被穷举，小米进来，只会让一个本就拥挤的市场变得更加拥挤。\n\n但小米不在乎。\n\n小米汽车最擅长的事情，是闯进一个看似已经定型的品类，再用自己的产品定义、品牌号召力乃至生态能力，把一批原本不在场的人拉进来。SU7 面对的是不被外界看好的纯电轿车领域，YU7 进入的是特斯拉 Model Y 把守的纯电 SUV 市场，而这两款车型都吸引了一批此前未必急着买车或认真考虑同类产品的人，为小米而下单。换句话说，小米瞄准的是增量市场，而非与当前的现有产品抢占份额。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/cheshitu.jpg)\n\n澎程同样需要这种号召力，而 N90 露营版就是小米立在这个系列最前面的一面旗帜，引导着大家关注小米式的车内功能性定义。这种能力在 SU7 和 YU7 上早已显现出来，诸如车内标准化扩展接口、1/4 英寸螺纹接口、集成供电的磁吸轨道、散落在车内各处的收纳空间，以及与米家生态的交互等等，都展现出小米在车内空间定义上的能力。而在澎程系列上，这些创新只会更多。\n\n当然，概念成立不等于产品已经成功，澎程系列能否在「想象力」上给我们足够的惊喜，乃至吸引更多的增量用户入手，而非掉入与其他主打增程+家庭的大型 SUV 贴身肉搏的境地，还有待检验。\n\n但我们没有道理对一台有着升顶机构的小米汽车没有信心。\n\n**[陈世琛](https://www.ifanr.com/author/chenshichen)**\n\n在赛博世界扮演一个普通人。\n\n[邮箱](mailto:shchean@outlook.com)\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "小米澎程",
+        "增程SUV",
+        "N90"
+      ],
+      "score": 60,
+      "summary": "小米发布澎程系列四款增程SUV，纯电续航最高380km，含露营版。",
+      "fetched_at": "2026-07-13T20:16:33.735923+08:00"
+    },
+    {
+      "title": "“沪签”到手，礼拜五碰头！",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzI5NzUyMzM1Mg==&mid=2247669464&idx=1&sn=b4c332d94ab931bc3c79be7af9ae2e17",
+      "published": "2026-07-13T18:44:36+08:00",
+      "source": "百度AI",
+      "content": "百度文心  北京\n\nrtDesc\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=3555158a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FcIBqLYh6ScbRG7V6zPgiayKXyO4AUyy6j9CA1nJVu9aNGH6L4w84icVFb65kHqXB5tv78yR8JDfjelEiaPNSLWBv1YPIicLJcewYn4aRYOYn25A%2F0%3Fwx_fmt%3Dpng)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=598803ba&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FcIBqLYh6ScZPnicnJiaTBrPiclvB4yuun6leKMAU9lPKwicw9sgzWKQFE4bymu1icH4zRKgdPOZF3jg5NnhTaOQNhzeBh9FRAlrcLlozJoSYhQxs%2F0%3Fwx_fmt%3Djpeg)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=d0cd0b8b&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzI5NzUyMzM1Mg%3D%3D%26mid%3D2247669464%26idx%3D1%26sn%3Db4c332d94ab931bc3c79be7af9ae2e17)",
+      "tags": [
+        "百度AI",
+        "活动"
+      ],
+      "score": 40,
+      "summary": "百度AI发布活动预告，内容不明确。",
+      "fetched_at": "2026-07-13T20:16:33.735926+08:00"
+    },
+    {
+      "title": "训推全开源：HyOCR-1.5 让端到端 OCR 大模型跑得更快、看得更准、功能更全",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzkwODU2OTQyNQ==&mid=2247498015&idx=1&sn=aa97c2dd942e4c50d2553cf922bc61bd",
+      "published": "2026-07-13T19:13:00+08:00",
+      "source": "腾讯混元",
+      "content": "腾讯混元 2026-07-13 19:13 广东\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=af8adf5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F7avdgR0YVzKKCFy98Z27IY2kN3G0XhC5hoicouVicKeU5W2ASjjvmMGezTribbtecibofXicq3daGiaicM79LqKl6NDo7bE7TChNQCIwaCRdiaNdZws%2F0%3Fwx_fmt%3Djpeg)\n\n1B 的身板，打出越级的成绩\n\nVLM 端到端 OCR 专家模型全栈式开源，仅 1 B 参数覆盖 8 种以上 text-centric 任务，推理最高提速 6.37 倍，OmniDocBench v1.6 以 94.74 高分稳居端到端第一。\n\n用大模型处理一份合同、一张发票、一篇 PDF 论文时，人们会本能地期待它“又快又准”——既能把密密麻麻的表格、公式、多栏版面一字不差地还原成结构化文本，又能在一两秒内出结果。但现实往往是——越是长、越是结构化复杂的文档，自回归大模型解码越慢；越是想跑得快，就越要牺牲精度或换上更好的显卡。\n\n在 HyOCR-1.0 已经验证“轻量端到端 OCR 专家模型”这条路走得通之后，HyOCR-1.5 把目标又推进了一步：如何让它同时变得更快、更强、更全面？\n\nHyOCR-1.5 是端到端 OCR 大模型领域首个将训练、推理、模型权重完整开源的 OCR 专家大模型：从数据构造方法、训练配方到推理加速框架均对外公开，任何人都可以在此基础上复现、微调与二次开发。\n\n更重要的是，它足够轻量——不仅能部署在服务器上，还能通过 llama.cpp 跑在 CPU、消费级显卡乃至普通笔记本上，让强大的 OCR 能力真正走进个人电脑；同时足够全能——不仅支持传统的文字检测识别与文档解析任务，还一次性囊括了信息抽取、拍照翻译、图表解析、古文字识别、视频字幕提取、多页文档问答等多种能力。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=15f39d0f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F7avdgR0YVzIGhwicXzh4KqALJ497gYcbwMGOeBqTGcricuJO3n4HTkwOHCNzUtbkBmfPtvwxnx3fartYtrMhFWAaPhLTq3YhEficWObrOR2WbI%2F640%3Fwx_fmt%3Dpng)\n\n图1：HyOCR-1.5 网络结构图\n\nHyOCR-1.5 真正想做的，是为广大 B 端与 C 端用户提供一套最优的 OCR 解决方案——用尽可能低的部署与使用成本，精准满足各类定制化的 OCR 需求。\n\n下面就结合这份最新发布的技术报告，看看这个只有 1 B 参数的小模型，是如何在「速度」与「能力」两条战线上同时取得突破的。\n\n* 项目主页：<https://github.com/Tencent-H>unyuan/HunyuanOCR\n* 论文地址：<https://arxiv.org/pdf/2607.04884>\n* 模型权重：<https://huggingface.co/tencent/H>unyuanOCR\n\n**一、Faster：把长文档解码的「慢」，交给 DFlash 来解**\n\n端到端 OCR 有一个绕不开的痛点：长自回归解码。文档越密、表格越大、公式越长，模型就要一个 token 接一个 token 地往外「吐」，解码延迟随之线性膨胀，成为真实部署中最大的瓶颈之一。\n\n为此，HyOCR-1.5 引入了基于 DFlash 的投机解码（speculative decoding）框架：一个仅约 90.7M 参数的轻量级 block-diffusion 草稿模型，一次并行前向就能「猜」出一整块候选 token，再交给目标模型一次性验证、接受最长的正确前缀。整个过程严格保持目标模型的输出分布——也就是说，快，但结果不变。\n\n在我们的评测中，DFlash 让 HyOCR-1.5 在 Transformers 下取得 6.37× 加速、在 vLLM 下取得 2.14× 加速，成为所有 OCR VLMs 中推理最快的一个。\n\n整体速度：一次并行验证，多推进好几个 token\n\n采用权威文档解析基准 OmniDocBench 测试，在单请求推理配置下，DFlash 的效果立竿见影：\n\n●vLLM：平均延迟从 3.032s 降到 1.408s，吞吐从 466.9 提升到 1002.3 token/s，页速从 0.330 提到 0.706 page/s，整体 2.14×；\n\n●Transformers：由于 Autoregressive(AR)  基线更接近逐 token 朴素解码，收益更大，整体加速高达 6.37×。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d053c205&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F7avdgR0YVzKEibdHic4uSGmKpwh1V29XlCnzW92K9iaE8dFkLiabEruGEGGuCLEBld8M4eueUwvXKWCy3EDrerRM5OBvbkNibibVCJicfXh7cvHegY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n表 1：AR 解码 vs. DFlash 解码（OmniDocBench，batch size = 1）\n\n越长越结构化，速度越快\n\n投机解码的天然特性是：输出越长，加速越明显。在 vLLM 下，加速比从 0–256 token 的 1.31× 一路提升到 2048+ token 的 2.30×；Transformers 下更是从 4.56× 提升到 6.67×。按内容类型看，表格页加速最大（vLLM 2.39×、Transformers 7.81×），其次是公式页、纯文本页——因为 HTML 表格这类高度规整的结构，未来 token 更容易被「猜中」，有效接受长度也更长。\n\n端到端速度对比：比两阶段级联方案更快\n\n更值得一提的是横向对比。我们在 OmniDocBench 测试集、同等算力下，把适配了DFlash 的 HyOCR-1.5 与主流 OCR VLM 放在一起比拼——它是所有参评方案中端到端推理最快的一个，达到每页 1.408s、0.706 page/s，甚至比 GLM-OCR、PaddleOCR-VL-1.6 这类两阶段级联方案还要快，同时保持着「无需版面切分、无需分区级联」的统一端到端形态。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c59766e3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F7avdgR0YVzJ97D6zvToYDj5PNOntyjwgGe6dHTibEtuu5ibKuFVrEgdnJ0MEOcVwodqxrnfZAAFYLfe0LFovVENRCY5SkRNRagqicBkxJKF6Qw%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n表 2：与代表性 OCR 系统的端到端速度对比（OmniDocBench）\n\n从服务器到笔记本：还能装进你的电脑\n\n除了面向服务器的 vLLM 部署，HyOCR-1.5 还支持通过 llama.cpp 进行 PC 端推理，可以跑在 CPU、消费级显卡乃至普通笔记本上——让轻量 OCR 真正做到「随处可部署」。\n\n**二、Better：巧用Agent参与模型自进化，把「短板」变成「能力」**\n\n如果说 DFlash 解决的是「快」，那么 HyOCR-1.5 的「强」，靠的是一套全新的数据构造哲学——Agentic Data Flow（智能体驱动的数据流）。\n\n传统数据管线，几乎全靠人工写脚本、人工搜集素材、人工标注数据。而 Agentic Data Flow 的思路是：把模型的具体短板（比如低资源语种覆盖不足、古文字感知薄弱、缺乏多图理解），直接翻译成可执行的数据需求，再交给 Agent 去闭环完成。 算法工程师只需用自然语言提出目标能力，Agent 就会自主拆解任务、搜集素材、调用工具验证、开发数据管线，并与工程师持续迭代，最终沉淀成一套可复用的数据生产流程。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7ec1ab40&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F7avdgR0YVzKgg7jrM0Tqo6ZKVuwHUbFt6tbK2ekAAicaRAm3JRgwPOhoWxgnU6ftZQiaSrxVCIo2wlou9tVLEogocicoPFn4cy8D1sJaxTSgGU%2F640%3Fwx_fmt%3Dpng)\n\n图2：智能体驱动的数据构造系统，面向低资源语种 OCR、古文字识别、多图问答三类能力扩展任务。\n\nAgent 在做三件关键的事\n\n●素材搜索与整理：自主调用网络搜索等工具，为低资源 OCR 搜集多语种语料、TTF 字体与渲染背景；为古文字搜集七体相关字体与古籍风格背景；为多图问答整理多页 PDF 并抽取页级文本与结构。\n\n●工具辅助的清洗与质检：调用 HyOCR-1.0 等服务对背景图做多模型交叉验证，过滤含干扰文字或质量不稳的素材；测试字体渲染兼容性；批量跑推理挖掘漏识、结构错乱、表格解析失败等难例。\n\n●面向短板的数据管线开发与迭代：自主创建数据项目、编写渲染/问答生成脚本，从单模板原型逐步演化为支持多版式、多增强、多任务格式的数据生产系统。\n\n三个能力扩展的真实落地\n\n这套系统在 HyOCR-1.5 中被实例化到三个代表性方向：\n\n●低资源 OCR：借鉴 SynthText / SynthDoG 思路构建多语种合成管线，最终维护了覆盖 331 种语言的解析数据；\n\n●古文字 OCR：面向汉字「七体之变」，按历史文档的书写方向、版式、视觉风格合成解析数据，补齐罕见历史字形；\n\n●多图问答：基于多页 PDF 生成跨页检索、多页比对、证据聚合类问答，并过滤掉单页即可作答的样本，确保「真的需要多图理解」。\n\n**三、训练配方升级：4K 分辨率 + 128K 上下文 + RL Recipe**\n\n在训练侧，HyOCR-1.5 沿用 HyOCR 的分阶段训练范式，但把目标从「构建通用 OCR 能力」转向「扩展能力边界、提升任务上限」，形成预训练 → SFT → RL 的完整链路。\n\n●预训练（重规划 Stage 3）：注入 Agentic Data Flow 产出的新能力数据、多图数据与历史 OCR 数据；同时把最大图像分辨率提升到 4K、上下文窗口扩展到 128K，让模型稳健适配高分辨率文档、长上下文与多页多图输入。\n\n●SFT：从 1.0 的后训练数据出发彻底清洗，去除标注错误、格式不一致、图文不匹配等问题，并统一各任务的 prompt 接口，为 RL 打好干净、结构化的地基。\n\n●RL（精心设计的强化Recipe）：采用 IcePop（GRPO 风格）优化，设计三类互补奖励——面向文档解析的事实性奖励、面向通用问答的一致性评判奖励、以及抑制超长/重复输出的退化抑制奖励，共同把模型推向「更忠实、更强、更全面」。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=6f27dd87&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F7avdgR0YVzJwUPecXd8dACd2tHicWPticGebINgnJvIzrBMZJ62zA5PgFBFpU76Mu56saic1o1GDn4glOtMnUKn5MJiaVeUx2dscU2WQcd6ibTC4%2F640%3Fwx_fmt%3Dpng)\n\n图3：HyOCR-1.5 RL 框架概览。通过三个互补的奖励组件进行优化，旨在使通用 OCR 模型展现出更忠实、更强大且更全面的行为表现。\n\n**四、1B 的身板，打出越级的成绩**\n\n我们没有依赖单一 benchmark，而是构建了一棵能力导向的评测树，既检验从 1.0 继承的核心能力是否被进一步强化，也考察新拓展的边界能力是否真正被纳入模型。\n\n① 文档解析：OmniDocBench v1.6 端到端第一梯队\n\n在 OmniDocBench v1.6 上，HyOCR-1.5 取得 94.74 的 Overall 分数，在端到端 OCR 专家模型中达到 SOTA，尤其在表格（TEDS 93.67 / TEDS-S 94.71）与阅读顺序上表现突出——而这一切，是在保持轻量端到端架构的前提下实现的。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=80a9ee1e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F7avdgR0YVzJNvUibNO0lEwyWicWx2TTroAOU8dr8OnunAwOcLhkuxj19aGdibkq4ejXASvDiaTExH4VQkb4xw3KTxib5oMEdtmlibzzHOIjGllyUE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n表 3：OmniDocBench v1.6 文档解析对比（节选）\n\n② 古文字 OCR：Chronicles-OCR 上 1B 内 SOTA\n\n在覆盖汉字「七体之变」的 Chronicles-OCR 上，HyOCR-1.5 在古早字体（甲骨/金文/篆书）平均分 0.54、成熟字体（隶/楷/行/草）平均分 0.79，大幅领先包括 GPT-5、Gemini 3.1 Pro、Kimi K2.5 在内的众多大模型，验证了古文字数据构造与训练策略的有效性。\n\n③ 图表解析：1B 打出 8B 级水准\n\n在细粒度图表解析基准 ChartArena 上，HyOCR-1.5 以 1B 的体量，取得 EN 48.9 / ZH 64.1 的平均分，达到甚至超越 8B 级模型的水平。\n\n④ 多语种、多图、复杂表格：全面开花\n\n●MORE（149 语种低资源解析）：Overall 91.90，OCR 专家模型中 SOTA；\n\n●TableVerse-5K（复杂表格）：TEDS 78.23 / TEDS-S 84.84，专家 OCR 模型中最佳；\n\n●DUDE（文档级多图问答）：54.64，逼近通用多模态模型 Qwen3.5-0.8B 的 56.41；\n\n●文本图像翻译（MMTIT / DoTA）：多语种、多场景翻译能力进一步优化。\n\n⑤ 幻觉抑制：更「忠于所见」\n\n我们还特别提出了 CHAOS-Bench，专门评估模型是否「所见即所得」——在图像中把选定词改成无意义的扰动词，检验模型是否会忠实保留这些视觉上真实存在的字。HyOCR-1.5 以 14.15 的页均召回率取得最佳，说明它比现有模型更少被语言先验带偏；但绝对值仍偏低，也坦诚地指出了「忠实生成」这一方向仍待攻坚。\n\n⑥ 不遗忘：核心能力稳中有升\n\n在文本检测识别、信息抽取、视频字幕、OCRBench 等继承能力上，HyOCR-1.5相较HyOCR-1.0均稳定保持甚至提升。特别地，它新增了负样本处理能力：面对无文字图像，在 1000 张无文字内部测试集上的正确处理率达到 99.8%（1.0 版本为 78.1%），有效避免「凭空幻觉出检测框」。\n\n**五、为什么这件事重要？**\n\nHyOCR-1.5 想证明的，不是「把模型堆大就能更强」，而是一条更务实的路径：\n\n●对部署者：一个 1B以内 的端到端模型，既能在服务器上以最快速度批量处理，也能装进个人电脑本地运行——「又快、又强、又轻」不再是三选二。\n\n●对研究者：DFlash 证明了投机解码在长结构化 OCR 生成上的巨大价值；Agentic Data Flow 则提供了一种「以模型短板驱动数据生产」的可复用范式，进一步指向了未来由 Agent 主导的数据闭环与模型自进化路径。\n\n●对应用侧：从密集文档、复杂表格图表，到多语种、古文字、多图问答与幻觉抑制，能力边界被系统性地向长尾场景推进。\n\n一个真正实用的 OCR 模型，不该只是「更大的文档解析器」，而应是一个又快、又准、又能覆盖多元任务的统一端到端专家。\n\n我们开源了全套模型权重与训练、推理代码，为社区提供可复现、可微调、可扩展的基础设施，推动 OCR 感知、文档理解与多任务建模的下一步。\n\n**The end**\n\n让 OCR 大模型「跑得更快、看得更准、功能更全」，从来不是单点优化，而是速度、能力与部署三者的协同。HyOCR-1.5 用 1B 的小身板，把这三条线同时向前推了一步——我们希望它能成为轻量端到端 OCR 走向真实世界的一块坚实基石。\n\n📌 项目主页：<https://github.com/Tencent-H>unyuan/HunyuanOCR\n\n📌 论文：<https://arxiv.org/pdf/2607.04884>\n\n📌 模型权重：<https://huggingface.co/tencent/H>unyuanOCR\n\n欢迎学界、产业界共同推动轻量 OCR 与文档智能的下一步。\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=ed3cb82c&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzkwODU2OTQyNQ%3D%3D%26mid%3D2247498015%26idx%3D1%26sn%3Daa97c2dd942e4c50d2553cf922bc61bd)",
+      "tags": [
+        "HyOCR-1.5",
+        "OCR",
+        "腾讯混元"
+      ],
+      "score": 85,
+      "summary": "腾讯混元开源HyOCR-1.5端到端OCR大模型，1B参数，推理提速6.37倍。",
+      "fetched_at": "2026-07-13T20:16:33.735929+08:00"
+    },
+    {
+      "title": "超越 Vision Banana！商汤开源 SenseNova-Vision：视觉任务大统一，经典视觉并入大模型",
+      "link": "https://mp.weixin.qq.com/s?__biz=Mzk3NTc1NTU0Mw==&mid=2247510661&idx=1&sn=ab8e4817b7d8adceed914cd36c17ed74",
+      "published": "2026-07-13T18:38:00+08:00",
+      "source": "魔搭ModelScope社区",
+      "content": "魔搭ModelScope社区 2026-07-13 18:38 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=6844ce4a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2Fia2awwZLWFZT4dZATM3uyrtSw2yvVKVkyutdXxefibzyn4Klwe6NyGN2OqbHSQ9pKPZIyUqPGLic8jatQ9vlbU0cFVaedl2YYMrpvVFm3FFKBw%2F0%3Fwx_fmt%3Djpeg)\n\n首次将检测、分割、3D重建等经典视觉任务原生融入多模态底座，以全面超越Vision Banana的性能实现从“执行工具”到“世界理解模型”的跨越式进化\n\n今天，商汤科技正式发布并全面开源**日日新 SenseNova-Vision****理解生成统一视觉大模型**，这是商汤日日新大模型体系的重要视觉能力升级。\n\n行业以往的 \"统一视觉\" 多是把检测、分割、深度预测等多个专家模型打包封装，本质还是割裂的。\n\nSenseNova-Vision 的核心变革是：**让视觉成为通用基础模型的原生能力，彻底融入大模型体系。**所有经典视觉任务如目标检测、图像分割、深度预测、3D重建等，由此都实现了原生统一。\n\nGitHub:\n\n<https://github.com/OpenSenseNova/SenseNova-Vision>\n\n这种 \"原生融入\" 带来了双向增益：\n\n* **数据反哺：**视觉领域几十年的高质量数据直接提升大模型底座的视觉理解能力。\n* **思维赋能：**大语言模型的推理能力反过来让视觉任务融会贯通，甚至能用语言直接定义新视觉任务。\n\n在视觉 AI 领域，**商汤已连续十年蝉联中国视觉AI市场份额第一，并在2025年首次登顶视频分析赛道全球市场份额第一，及亚太地区市场份额第一**。SenseNova-Vision将这种行业领先的视觉能力，融入统一多模态大模型体系，代表了视觉 AI 能力的跨越式演进。依托原生统一的技术路线，模型实现了从“执行工具”向“世界理解模型”的本质蜕变，不仅真正看懂物理世界的逻辑，更为AI在物理世界的广泛应用与深度交互构建全新的通用底座。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=2400c07e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FWdyVrOG9iattXFjD4GdAFwbClCTYBkceq5AsvXBJPvBNIel8o9cmNwfsdiaHmHic9cGibPAEh0gpiba6CvOpf91wgyiaWgTticr7iawIbSwkX9HSs9E%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D0)\n\n商汤日日新SenseNova-Vision能够原生统一地实现结构化视觉理解、稠密几何预测、图像分割以及多视角视觉几何等多项核心任务能力。\n\n**01**\n\n复杂场景实测：自由指令下的“视觉读心术”\n\n传统的视觉模型往往只能“各司其职”，而且遇到复杂、有干扰的场景就会“抓瞎”。得益于原生通用底座带来的智能涌现，SenseNova-Vision在面对人类视觉都容易犯错的极端场景时，展现出了惊人的泛化能力：\n\n**1、零样本****泛化****：未知游戏“一秒读懂”。**\n\n面对训练集中从未出现过的游戏画面，模型展现出了强悍的跨域适应力。在语言推理与原生视觉能力的交织下，它无需任何针对性重训，就能在一瞬间同时对画面中的表面法向、实例分割以及角色关键点检测进行无缝且精细化的处理。影视、游戏和数字内容创作者可以直接将其投入工作流。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=5f4c6309&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iattbB5I60zkEKy3VzwIlXxXicowtDmsH9bwnhDOt0rSP0HMYzuqVGR4IP5muNC7XYfibv3KP1l1qq6OWFwynxTaN4FWfp1fR8bmIE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D1)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=90a46377&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatv1mZLoba5ctFic2cWiaacJvtfqL34pBZWIzicHIOnKr3eJ1BXeFk9EZ57MZ5KgZ8u6gGVLjOtb8vx3KWrSseufQ4l8HoH098hY2M%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D2)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=7e553789&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatuWtOsibZTNbq7wHowkuufc8ba6V8ofU8iccMCoHlsPm9aXka8cozYOBediaEz07nfxHPwnGmwRG5A80YgZNIZjGSvXVdBfic9yaa8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D3)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=0885b86c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatupick64cAqFJ6iaeib8fsJzVMh9dFKnYWCJaTsq7wtuJ502oMpxshUHgK96h0BibufGUyoMlHicUff2Hvda6MUT7cbJ3n4AnMOt2OM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D4)\n\n以游戏《黑神话：悟空》的一张场景图为例，模型能对法向、分割、关键点等进行较好的处理（可点击查看大图）\n\n**2、超稠密物体分割：重叠鱼群各显其形**\n\n面对密密麻麻、高度重叠的鱼群、羊群，或是货架商品、俯拍车辆等极度稠密的场景，模型能够像外科手术般精准地将每个独立个体剥离出来。即使颜色极度相近、边缘深度交织，也能准确区分。这为工业计数、智慧仓储等场景提供了全新的解法。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=04952378&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatsvGibcJzZicNMMHia1Kiaibjza8016QiaSTIzSqlSDXpCNv0SUMdQibYuqlFBW7Whvj2GzJgicXXRP5h7FbDcqiaTicffhe3DGYqU5TrQYA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D5)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=b221a8fb&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatu3UIWQe9w7WRxrWP3ua9hjzf1oTP8uMRp5M2KicNicDnnFfFuLSfW6fiaU57yibY9z1vVkjGPW4sJ22IVLfb3aMKlPQ0ZAhenQiboI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D6)\n\n以颜色重叠的鱼群、货架上东倒西歪的商品为例，模型能进行清晰、准确的分割\n\n**3、看穿镜面反射：正确还原空间几何**\n\n在包含镜子、玻璃的复杂室内环境中，传统视觉模型极易被镜中的倒影误导。而SenseNova-Vision能够自动过滤反射影像的迷局，准确估计出镜中物体的真实空间方向与深度关系。它不被虚拟的反射所欺骗，展现出对三维空间几何本质的深刻理解。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=d69d26aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatv6ia2nLWBYAQnZhdwO0rOQmKibbibM1ACef9XG8hbkZOGW8XLIcrkrziaxlhjYxicHoepZrV8R9QKV3icCcCNYVIoLOMpyqmEmUXyaY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D7)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=ff2c8168&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FWdyVrOG9iattLicyd1RAIAiaLGtpkvAdQemice9ricu3RjqyuQyJFJGRbicYg0VycOHEiaS01M85J655tibSrlFSQibusJvwPwcDPbZ9iawT2DH7THDWE%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D8)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=e8f76006&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iats3rBAbBgoxic17jdSkfGLn9NYfKNfZvh9xFTWn1qws9yFI8mXojCp4ordicickpjicSCibibR2HCukW6OKfxbsyptegUC5C4ibBAYAIY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D9)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=0a780f66&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iats0WkWz0Nn83861UBoialELsnOib4s5oJIZLhqnwgPXVWA2U1GcV1W2WOJKRicflbpmIN48cqoy5ZEe1ZnRAXBNnPxIqb6NzmdH5M%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D10)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=758826d0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FWdyVrOG9iatvbicL5RT8H37lnCvMLgIqaibctSEIAD91Cgac6XibZpfjTqoeTCE5SpG7nqunVyZeSrUZ6C5dr9EDYs5ic2MAywPDlvm76EGrIJibQ%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D11)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=ed950476&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatspKEZRcYFfmdGBlCvHVDIBwQD5QOht40XIoCgjVvqYiclpODwESYn9v37DXIa8bLrcZD8hsCuSU6f9W8HHDBg9JdKvjYtK06L0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D12)\n\n以镜面为例，模型能准确估计镜子里人的方向和深度\n\n**4、突破视觉错觉：不看表象，洞察空间本质**\n\n在充斥着视觉错觉干扰的图像中（例如经典的借位摄影），模型不仅能准确抠出被遮挡物体的完整轮廓，还能输出完全正确的表面法向估计。它不被图案和借位欺骗，正是语言模型的推理能力与稠密几何预测完美融合、看懂物理世界的具象体现。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=ba875ecd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatt3X6PVDaLibjPHdaibaXZiatu25PyrReRauy97S29yajAWOAHeT5U6LsL2J1ufiazfKTRcBDyt9jOcyDhWIa8juAmuI7GrLlW7AJs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D13)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=3f3c2d29&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatuJF3c1eic3cb8PGjk3Ro16d9zY0iacRWJUPG4ia5tlzUgZxf3xohE0Lrp5icHpaYbqKLibIx2eAIx71lud4ZWbdyKhyabGyBmALS94%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D14)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=dc35053f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatvib9Ua7ImIdv9A28Tayx0n0bOlCUVEkkBc0SddnH1f1nDmicBjwia3QJibM5kUSibKPiagUtMwoYem4nXPoFBI4ngjZ5VTdJfUZTCSc%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D15)\n\n模型能正确判断纹理形成的视觉欺骗\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=d5a2cc05&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iattHh4xsLQ9z4CkEaI6icGckQmBwVCLwdIu45NLa0qUItTT89PFG1WrI4rjEa71lRlHHW4KHnJcmzpNwiaBFBibekUGMXXMqF2VPss%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D16)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=480d5935&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatvwI3PxXPlOsHw0KfHEO3NvCBtv1NNDNshk0JxW77sMnOGK2kNut4JdTggZ3zbo82JhVh052vrWqkJyTiak6gicpNic7IlkcIboXo%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D17)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=f88cbc81&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatuyT0UXUkfHX1TCRbsVkakjibc0ERcFbuBLgTSkFdEnCIgR1Dytvs3dW3WQmick8U8rzLe3LcwBJ6lrQ83ibJzVuiaTkqLibFqJR9iaw%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D18)\n\n模型对于透视成像的近大远小现象领悟的非常透彻，完全没有被误导\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=8e8b8878&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iattzIXS0jnTss5PuicOicJEezg3F6rU9z7gx8fSd6iaW9Jbl7peh433dGqRHtuTpNaQJpn7Bic1C3Jfag6iaYxcQtBlUk0o3wWQFTIRw%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D19)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=03431033&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatvYiaMjN3XvlkeVFEgn8p8kkHKuylCVpucXM5EZfhayOagShGibQrI3V4tYgIxyPP0O3cesTFKIOe2bSPSb4CVherdKIUhIXjXQE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D20)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=3d346887&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iatuN1YNw1p2dAkb7EyiahNty8ba0bafCyQkOVClJQxtNxibT0nDFPmUNiaZcZnBSogibribuSGVUa3icx59A8aynrIkNP5ufnJ1N9RibB0%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D21)\n\n前景棉花人物和后景云朵成功分离\n\n**02**\n\n核心人物领跑：多项指标比肩专用专家模型\n\n当视觉任务融入通用多模态生成后，不仅没有削弱专项能力，反而通过跨任务知识互补实现了性能飞跃。在多项权威评测中，SenseNova-Vision以“单模型”在四大核心视觉领域大范围领跑，比肩甚至超越了各领域的专用“专家模型”：\n\n* **结构化视觉理解：**在目标检测、指代检测（Referring）、OCR、关键点定位等任务上全面领先同类型通用模型。在稠密小目标检测、长尾类别识别等复杂场景下表现尤为突出。\n* **稠密几何预测：**深度估计、表面法向（Surface Normal）估计精度达到几何专用模型水准，在室内外多场景下均能保持极高的稳定性。\n* **分割能力：**涵盖通用分割、推理分割、交互式分割等。得益于强大的多模态理解力，其在推理分割（Reasoning Segmentation）与对话式分割（GCG）表现上惊艳。\n* **多视角3D几何：**仅通过单模型即可高质量完成多视角点云重建与相机位姿估计，性能在通用视觉路线中处于领先位置。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=039c575e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWdyVrOG9iattpOC7SRTCxoib4fwIXvRTWGcHkYwJiahFicHpMdL4mC2Mic8DcicAGKqUQqlV4ictMGBTj61l9sNXRwXnMhz1gh5CyfOq6q99KChYCM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D22)\n\n核心指标评测：SenseNova-Vision（深紫色柱状）在各项视觉任务中均处于领跑地位\n\n**横向相比优势显著：**\n\n* 对比语义导向模型（如*Youtu-VL*等）：SenseNova-Vision在检测、分割、深度等对细节要求极高的视觉任务上实现**全面领先**。\n* 对比生成导向模型（如*Vision Banana*等）：展现出全面的**代际优势**。\n\n  **a. 核心指标超越：**在各项权威评测的硬核对决中，SenseNova-Vision 在绝大多数指标上均实现了对 Vision Banana 的超越与领跑。 \n\n  **b.任务能力倍增，且全面开源：**展现出更强的多任务泛化实力。如 Vision Banana 仅能勉强应对四大核心板块中的“两类”问题，而 SenseNova-Vision 却能同时将结构化理解、稠密几何、全景分割、多视角 3D 等全任务一网打尽。在此基础上SenseNova-Vision还做到模型、数据全面开源。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=0a28baf1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWdyVrOG9iatszGUw6TibtD0ksAxT6FHszgxibTOFhicrJUkelxQicqVDGdicPY7GIZWdcTavKmIOZoxIeR3fso8YR4AxTib7hSCW746ICxtgnSmBhI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D23)\n\n**03**\n\n重构底层逻辑：从拼接到原生统一\n\n长期以来，视觉AI沿着“一个任务对应一个模型”的路径演进，各个任务是彼此割裂的孤岛。\n\n**SenseNova-Vision彻底打破了这种结构性瓶颈，首次将全部视觉任务，统一表述为通用基础模型可理解的多模态生成问题。**它不需要为不同任务设计专属预测头，而是直接在同一个共享的表征空间内，对文本、像素、语义信息和几何特征进行统一建模。 \n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=7a5d84e6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FWdyVrOG9iattDmh2dS5WyWAkG9t7UfXuhXibbZibkcRlXucZcAJ1ssBxrmBb19VKuZEyXDAZQc693cMWqNrO443fwQt6XibKsDGfic9R8xbJlEIk%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D24)\n\n这种“大一统”的设计，带来了颠覆性的变化：\n\n* **跨任务知识互补，实现1+1>2。**模型联合训练，激活了不同任务间的内在互补。深度估计的知识能强化语义分割的空间理解，分割能力又能辅助检测任务的边界判断，从而获得了单任务模型难以企及的抽象推理能力，从容应对未见过的任务与场景。\n* **从“工具执行者”升级为“通用理解者”。**统一范式重新定义了视觉智能的形态。模型不再是只能执行特定指令的工具，而是作为大模型的原生能力，成长为对视觉世界拥有通用、深刻认知的基础多模态底座。\n\n商汤SenseNova-Vision的发布和开源，成功验证了“统一多模态生成”这一全新技术路线的巨大潜能。它显著降低了视觉AI的应用门槛，开发者无需再为不同任务维护多套模型体系，单个模型即可覆盖高频视觉需求，从而大幅缩短研发周期、降低部署成本，尤其适合复杂图像、开放场景下的视觉应用开发。\n\n同时，商汤也同步开源了包含5000万条高质量样本的视觉指令语料库 **SenseNova-Vision Corpus-50M**，为全球AI生态注入强劲动力。\n\n未来，商汤将把SenseNova-Vision的核心技术全面融入日日新U系列大模型中，持续探索构建更加强大的统一多模态基座模型，迈向能够更深刻感知、推理和交互物理世界的通用人工智能（AGI）与世界模型。\n\n**模型开源地址：**\n\n* 魔搭社区:\n\n  <https://modelscope.cn/models/SenseNova/SenseNova-Vision-7B-MoT>\n* GitHub: \n\n  <https://github.com/OpenSenseNova/SenseNova-Vision>\n\n---\n\n```\n```\n👇点击关注ModelScope公众号获取\n\n更多技术信息~\n```\n```\n\n[阅读原文](https://modelscope.cn/models/SenseNova/SenseNova-Vision-7B-MoT)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=d57f1f7e&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzk3NTc1NTU0Mw%3D%3D%26mid%3D2247510661%26idx%3D1%26sn%3Dab8e4817b7d8adceed914cd36c17ed74)",
+      "tags": [
+        "SenseNova-Vision",
+        "商汤",
+        "视觉大模型"
+      ],
+      "score": 85,
+      "summary": "商汤开源SenseNova-Vision视觉大模型，原生统一检测、分割、3D重建等任务。",
+      "fetched_at": "2026-07-13T20:16:33.735932+08:00"
+    },
+    {
+      "title": "“中国云谷·高校训练营”OtterMind AI Agent项目实战营开启招募！",
+      "link": "https://mp.weixin.qq.com/s?__biz=Mzk3NTc1NTU0Mw==&mid=2247510661&idx=2&sn=cf4c269d28cfe0275dee27f20d670df4",
+      "published": "2026-07-13T18:38:00+08:00",
+      "source": "魔搭ModelScope社区",
+      "content": "魔搭ModelScope社区 2026-07-13 18:38 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5a56e0f9&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2Fia2awwZLWFZRmQuOps7vEW6iaVGGmBJ9nfibDH6ClqMoKYdOGW2GcnEwYsFicGCrWeCf2SZFBnntHD0QubhWm9MRJH9f6xkFib0vfJCNbib19APmU%2F0%3Fwx_fmt%3Djpeg)\n\n爱獭科技联合云谷中心、魔搭社区推出2天AI Agent实战训练营，带你亲手打造可展示项目，实现从“你问它答”到“替你去做”的生产力跃迁。\n\n# 当 AI 从「会聊天」进化到「会办事」，你准备好加入了吗？\n\n2026 年，AI Agent 已从概念词汇变成了真实的生产力工具。从自动化办公到智能创作，从数据分析到用户运营，AI 正在从「你问它答」的工具，演变为「替你去做」的助手。这场变革不是发生在未来——它正在此刻发生。\n\n本次训练营由爱獭科技 OtterMind、云谷中心、魔搭社区联合主办，邀请广大高校学生、初阶职场人和 AI 实践者，用两天时间亲手完成一个可展示的 AI Agent 项目，一起开启一场从想法到原型的实战演练。\n\n活动信息\n\n🕐时间：\n\n2026 年 7 月 25 日 — 7 月 26 日（周六 — 周日）\n\n🎯地点：\n\n杭州市西湖区灯彩街1009号云谷中心· B1栋魔搭社区（杭州）开发者中心路演厅\n\n🧩主办：\n\n爱獭科技 OtterMind · 云谷中心 · 魔搭社区\n\n👋🏻招募对象：\n\n高校学生、初阶职场人、AI 实践者\n\n## 为什么是现在？Agent 时代的机会窗口正在打开\n\n大模型的「大脑」已经足够强大，但把它变成真正能用的工具，仍然需要一套方法论——如何设计 Agent 的工作流？如何让它调用工具、链接用户、完成任务闭环？如何让一个想法在两天内变成可演示的原型？\n\n大多数人在从灵感到落地之间卡住了：有了想法，不知道从哪里开始；跑通了 Demo，不知道怎么讲清楚价值。\n\n这次训练营，就是为了解决这个卡点。\n\n## 实战招募：两天，从 0 到 1 打造你的专属 AI Agent 项目\n\n7 月 25 日 — 7 月 26 日，杭州云谷中心，为期两天的「中国云谷·高校训练营」OtterMind AI Agent 项目实战营即将开启。两天里，你将围绕真实问题，完成从选题、构思、搭建到展示的全流程：\n\n### Day 01 — 认知构建与实战入门\n\n上午\n\n* 主题分享《AI Agent 时代，个人发展需要哪些长期竞争力》，建立对 Agent 的系统认知\n* 从灵感到落地，用 OtterMind 完成 AI 项目的 0-1 闭环\n* Vibe Coding 实战：用自然语言驱动代码，亲手做出你的第一个 AI 工具\n\n下午\n\n* OtterMind 内容制作与关键用户发现，理解如何找到真实的用户需求\n* 15 分钟 Pitch 演练，由外籍运营专家英文分享如何向全球用户讲清楚你的 AI 项目\n* 路演创意主题脑暴 + 现场分组实操，组好队，定好题\n\n### Day 02 — Demo 搭建与路演评比\n\n上午\n\n* Demo Day 实操规则与路演评选标准说明\n* 学员组队 Demo 搭建与项目实操\n* 助教现场答疑与交流\n\n下午\n\n* Demo 搭建继续\n* 路演评比正式开始——材料提交、登台路演、评委打分与现场点评\n* 颁奖典礼，公布优秀项目与学员并颁奖\n* 合影留念，交流互动，结营\n\n## 适合谁来参加？\n\n本期训练营以高校学生为主要招募对象，不卡专业，不卡年级，但希望你能对 AI 有动手的冲动。如果你是——\n\n* 正在读研或即将读研的理工科学生。你已经熟悉跑模型、写代码，但感觉学术研究和真实产品之间隔着一层看不见的墙。来这里，看看你的技术能不能变成一个别人用得上、甚至愿意为它掏钱的东西。\n* 计算机、软件、数据相关专业的大三大四学生。你学过 JavaScript/Python，刷过 LeetCode，也许简历上除了课程作业，还想有一些更精彩的项目。两天内产出一个可演示的 AI 项目，写进简历，面试时有东西可讲。\n* 经管、新媒体、设计、文史哲等非技术专业，但对 AI 有强烈好奇的同学。你可能完全不会写代码，但有一个很想解决的生活问题——比如「自动整理文献」「做一场社团活动宣传」「做一个自己的 AI 新媒体账号」「做一个趣味 AI 问答机器人」。OtterMind 的自然语言交互方式，让你不写一行代码也能做出可用的原型。\n* 正在找暑期实习或秋招的应届生。你想在面试时展示一个真实的项目经历，而不是只靠一张嘴讲「我了解 AI Agent」。两天时间，从零开始，和陌生人组队，在压力下完成项目并登台路演，这就是最好的经历。\n* 准备留学申请或参与国内外竞赛的同学。一个可展示的 AI 项目，加上完整的项目文档和展示材料，放进作品集或申请材料，为你的申请增添一次鲜明的经历。\n* 刚刚进入职场的同学。如果你今年刚毕业或刚入职不久，想在 AI 浪潮中找到自己的位置，这是一个难得的起点。训练营的强度和节奏接近真实工作场景——有压力、有协作、有 deadline，是一次检验自己适应能力的好机会。\n\n我们希望你：\n\n* 高校在读学生（本科、硕士、博士均可）或毕业三年内的职场新人，不限年级与专业\n* 对 AI Agent 有好奇心，愿意在周末两天高强度投入\n* 想把一个想法变成真实可演示的成果，而非停在脑子里或笔记本上\n\n## 关于 OtterMind：为真实工作而生的 Agent 平台\n\nOtterMind 是面向工作者、创作者和团队的 AI Agent 工作平台，一个平台涵盖多端操作、自动化流程、Agent 编排、云盘与集成能力。训练营全程使用 OtterMind 作为核心工具，带你上手多端操作、Agent 编排、内容制作与项目管理。无需深厚开发经验，OtterMind 帮你降低从想法到落地的门槛。\n\n## 你将收获什么？\n\n* 一个可展示的 AI Agent 项目原型，从 0 到 1 完成交付\n* 一份项目说明和用户使用流程文档\n* 一份 5 页以内的项目展示稿\n* 一次在评委和同行面前路演的机会\n* TOP 项目将获得现金奖励、OtterMind 积分、精美周边、官方展示\n* 优秀学员后续实习与共创机会\n* 与来自全国的优秀同学同行，组队、交流、碰撞\n\n## 参与准备\n\n> 建议提前想好一个感兴趣的问题或项目想法，现场将围绕真实需求完成选题、组队、搭建与展示。\n>\n> 请自备电脑。现场开发与调试全程在个人设备上完成，Mac 或 Windows 均可。\n\n---\n\n带上你的电脑和创意，其余的，我们线下见！\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e46c24ad&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2Fia2awwZLWFZScho0PicBicYf5uiaCmpWhaTicc27rL4AQShIXwJiaV0xgG1hH0u88ME34gngy5pR4gDHlHsxdVpnNRneBze1iaeCR3u8FMRykq2V1g%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n---\n\n```\n```\n👇点击关注ModelScope公众号获取\n\n更多技术信息~\n```\n```\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=ab69473c&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzk3NTc1NTU0Mw%3D%3D%26mid%3D2247510661%26idx%3D2%26sn%3Dcf4c269d28cfe0275dee27f20d670df4)",
+      "tags": [
+        "AI Agent",
+        "训练营",
+        "OtterMind"
+      ],
+      "score": 50,
+      "summary": "爱獭科技等联合举办AI Agent实战训练营，招募高校学生。",
+      "fetched_at": "2026-07-13T20:16:33.735934+08:00"
+    },
+    {
+      "title": "源：https://t.co/TVOFsUf3n0",
+      "link": "https://x.com/FinanceYF5/status/2076631157115085167",
+      "published": "2026-07-13T19:33:44+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/DilumSanjaya/s…](https://x.com/DilumSanjaya/status/2049894393159770586)\n\n![Dilum Sanjaya](https://pbs.twimg.com/profile_images/1959500812910026752/hkaFydvL_normal.jpg)\n\nDilum Sanjaya@DilumSanjaya\n\nVibe coded another game UI, generated with GPT Images 2  \n  \nUI  \nGPT Images 2 → Gemini 3.1 Pro  \n3D assets  \nGPT Images 2 → Tripo\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2049893457863593984/vid/avc1/3024x1714/TfK4varyoE4_o7FG.mp4?tag=27)\n\n[🔗 View on Twitter](https://x.com/DilumSanjaya/status/2049894393159770586/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/DilumSanjaya/status/2049894393159770586)\n\n💬0🔄0❤️0👀266",
+      "tags": [
+        "Vibe Coding",
+        "GPT Images 2",
+        "游戏UI"
+      ],
+      "score": 40,
+      "summary": "用户用GPT Images 2和Gemini 3.1 Pro制作游戏UI。",
+      "fetched_at": "2026-07-13T20:16:33.735937+08:00"
+    },
+    {
+      "title": "还有一个项目，则是用 Nano Banana 做的\nhttps://t.co/F9FCXV0TSo",
+      "link": "https://x.com/FinanceYF5/status/2076631144943263918",
+      "published": "2026-07-13T19:33:41+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "还有一个项目，则是用 Nano Banana 做的  \n[x.com/DilumSanjaya/s…](https://x.com/DilumSanjaya/status/2016193959408836932)\n\n![Dilum Sanjaya](https://pbs.twimg.com/profile_images/1959500812910026752/hkaFydvL_normal.jpg)\n\nDilum Sanjaya@DilumSanjaya\n\nVibe coded a ship selection UI for a space exploration game  \n  \n3D assets  \nNano Banana + Midjourney → Hunyuan3D  \nUI  \nNano Banana → Gemini Pro  \n  \nMore details ↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2016190674216026112/vid/avc1/3024x1714/b7MOr3aOeK2gqFO8.mp4?tag=21)\n\n[🔗 View on Twitter](https://x.com/DilumSanjaya/status/2016193959408836932/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/DilumSanjaya/status/2016193959408836932)\n\n💬1🔄0❤️0👀331📊1",
+      "tags": [
+        "Nano Banana",
+        "游戏UI",
+        "Vibe Coding"
+      ],
+      "score": 40,
+      "summary": "用户用Nano Banana和Midjourney制作游戏UI。",
+      "fetched_at": "2026-07-13T20:16:33.735940+08:00"
+    },
+    {
+      "title": "有人用 GPT Images 2做了一套“Vibe Coding”风格的游戏 UI\n\n制作流程：\nUI：GPT Images 2 → Gemini 3.1 Pro\n3D 资产：GPT Images 2...",
+      "link": "https://x.com/FinanceYF5/status/2076631120331035004",
+      "published": "2026-07-13T19:33:35+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有人用 GPT Images 2做了一套“Vibe Coding”风格的游戏 UI  \n  \n制作流程：  \nUI：GPT Images 2 → Gemini 3.1 Pro  \n3D 资产：GPT Images 2 → Tripo\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076631062197964801/vid/avc1/1270x720/xCOQwSLXzG4hwoV9.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2076631120331035004/video/1)\n\n💬2🔄0❤️0👀696📊2",
+      "tags": [
+        "GPT Images 2",
+        "Vibe Coding",
+        "游戏UI"
+      ],
+      "score": 40,
+      "summary": "用户用GPT Images 2和Tripo制作游戏UI。",
+      "fetched_at": "2026-07-13T20:16:33.735943+08:00"
+    },
+    {
+      "title": "以上就是全部，原作者 @lukas_m_ziegler\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/3X140Pt5Ek",
+      "link": "https://x.com/FinanceYF5/status/2076628000800641441",
+      "published": "2026-07-13T19:21:11+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部，原作者 [@lukas\\_m\\_ziegler](https://x.com/lukas_m_ziegler)  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2076627649531982266)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\nLukas Ziegler 表示，硅谷就是机器人产业之都。🌁  \n  \n硅谷聚集了太多 Physical AI 公司。哪怕花一个月去拜访，也看不完其中 10%。  \n  \n他说，自己试过，所以很清楚。  \n  \n这张机器人公司地图，制作时间是他做其他地图的 3 倍。  \n  \n而且真实情况是：这张图仍然不完整👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNGp16takAA_e6K.png)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2076627649531982266)\n\n💬0🔄0❤️0👀314",
+      "tags": [
+        "机器人",
+        "硅谷",
+        "地图"
+      ],
+      "score": 30,
+      "summary": "转发Lukas Ziegler的硅谷机器人公司地图。",
+      "fetched_at": "2026-07-13T20:16:33.735946+08:00"
+    },
+    {
+      "title": "需要注意的是，湾区有超过 300 家机器人公司、研究实验室和创新中心。\n\n所以这张图只是对重要产品型公司的精选，并不是完整名单。\nhttps://t.co/VxjvO02nhj",
+      "link": "https://x.com/FinanceYF5/status/2076627757631672674",
+      "published": "2026-07-13T19:20:13+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "需要注意的是，湾区有超过 300 家机器人公司、研究实验室和创新中心。  \n  \n所以这张图只是对重要产品型公司的精选，并不是完整名单。  \n[x.com/lukas\\_m\\_ziegle…](https://x.com/lukas_m_ziegler/status/2076352945470185967)\n\n![Lukas Ziegler](https://pbs.twimg.com/profile_images/2076008715522568192/dUB1oyiU_normal.jpg)\n\nLukas Ziegler@lukas\\_m\\_ziegler\n\nThis is the capital of robotics! 🌁  \n  \nSilicon Valley is home to so many physical AI companies that you could spend a month visiting them and still not see even 10% of them (trust me, I tried).  \n  \nIt took me 3x to create this map as it did to create any other. And the truth is, it's still incomplete.  \n  \nLet’s see why this is the case.   \n  \nSo, the Bay Area is the world's leading ecosystem for robotics startups, bringing together top AI talent, top universities, experienced founders, and unmatched access to capital.  \n  \nThe region is anchored by Stanford University and University of California, Berkeley, two of the world's top universities for AI and robotics. They produce a constant stream of researchers, founders, and breakthrough technologies.  \n  \nThe Bay Area is also home to many of the companies shaping the future of robotics and AI, including [@Figure\\_robot](https://x.com/Figure_robot), [@physical\\_int](https://x.com/physical_int) , and major AI labs such as [@OpenAI](https://x.com/OpenAI).   \n  \nThis concentration of talent makes it easy for startups to recruit experienced engineers and collaborate with leaders in embodied AI.  \n  \nNot mentioning that it  is also home to leaders such as [@NVIDIARobotics](https://x.com/NVIDIARobotics) , whose headquarters and leadership in AI chips power much of today's robotics revolution, and [@Tesla](https://x.com/Tesla), whose work on autonomous driving and humanoid robots has created a deep pool of robotics, AI, and manufacturing talent.  \n  \nPerhaps its biggest advantage is access to capital and ambition.   \n  \nThe Bay Area has the world's deepest network of venture capital firms, serial entrepreneurs, and technical leaders who are willing to fund bold, long-term robotics companies.  \n  \nIn the comments I'll post the companies from the ecosystem.  \n  \n‼️ Note that Bay Area has >300 robotics companies, research labs, and innovation hubs, so this is a curated selection of the notable product companies, not an exhaustive census!  \n  \nP.S. I'm constantly working on improving these maps, so if your company is missing, please DM me with basic info about the co, and I will include it in the next release.  \n  \n~~   \n  \n♻️ Join the weekly robotics newsletter, and never miss any news →[ziegler.substack.com](http://ziegler.substack.com)B\n\n![Tweet Image](https://pbs.twimg.com/media/HNCvFjJWkAAofQd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lukas_m_ziegler/status/2076352945470185967)\n\n💬1🔄0❤️0👀368📊1",
+      "tags": [
+        "机器人",
+        "硅谷",
+        "地图"
+      ],
+      "score": 30,
+      "summary": "转发Lukas Ziegler关于硅谷机器人公司地图的说明。",
+      "fetched_at": "2026-07-13T20:16:33.735949+08:00"
+    },
+    {
+      "title": "Lukas Ziegler 表示，硅谷就是机器人产业之都。🌁\n\n硅谷聚集了太多 Physical AI 公司。哪怕花一个月去拜访，也看不完其中 10%。\n\n他说，自己试过，所以很清楚。\n\n这张机器人...",
+      "link": "https://x.com/FinanceYF5/status/2076627649531982266",
+      "published": "2026-07-13T19:19:48+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Lukas Ziegler 表示，硅谷就是机器人产业之都。🌁  \n  \n硅谷聚集了太多 Physical AI 公司。哪怕花一个月去拜访，也看不完其中 10%。  \n  \n他说，自己试过，所以很清楚。  \n  \n这张机器人公司地图，制作时间是他做其他地图的 3 倍。  \n  \n而且真实情况是：这张图仍然不完整👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNGp16takAA_e6K.png)\n\n💬3🔄0❤️1👀1041📊3",
+      "tags": [
+        "机器人",
+        "硅谷",
+        "Physical AI"
+      ],
+      "score": 30,
+      "summary": "Lukas Ziegler称硅谷为机器人产业之都，发布机器人公司地图。",
+      "fetched_at": "2026-07-13T20:16:33.735951+08:00"
+    },
+    {
+      "title": "ouch. more accounts of things gone haywire w GPT 5.6 Sol.",
+      "link": "https://x.com/GaryMarcus/status/2076637010480025650",
+      "published": "2026-07-13T19:57:00+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "ouch. more accounts of things gone haywire w GPT 5.6 Sol.\n\n![Matthew Miller](https://pbs.twimg.com/profile_images/2068104409414791168/vFUbp5Bi_normal.jpg)\n\nMatthew Miller@matthewmillerai\n\nI do not trust GPT 5.6 Sol.  \n  \nIt wrote code that cancelled every single active subscription in my Stripe account.\n\n[🔗 View Quoted Tweet](https://x.com/matthewmillerai/status/2076633638259523886)\n\n💬3🔄0❤️3👀1254📊2",
+      "tags": [
+        "GPT-5.6 Sol",
+        "可靠性",
+        "故障"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus转发用户报告GPT-5.6 Sol代码导致Stripe订阅全部取消。",
+      "fetched_at": "2026-07-13T20:16:33.735954+08:00"
+    },
+    {
+      "title": "Not good: “There is less dry powder available to catch a selloff, relative to market size, than at a...",
+      "link": "https://x.com/GaryMarcus/status/2076636108335591762",
+      "published": "2026-07-13T19:53:24+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Not good: “There is less dry powder available to catch a selloff, relative to market size, than at almost any point in modern history.”\n\n![Hedgie](https://pbs.twimg.com/profile_images/1905120369104625664/ir817Ix-_normal.jpg)\n\nHedgie@HedgieMarkets\n\n🦔Bloomberg data shows total US cash (money market funds plus bank deposits) as a percentage of S&P 500 market cap has fallen to 0.42. That is near the lowest level ever recorded, matching where it sat right before the dot-com crash. Money market funds are at a record $7.95 trillion in absolute dollars, but the S&P 500's market cap has ballooned to roughly $69 trillion. The cash pile looks massive until you measure it against how big the market has gotten. There is less dry powder available to catch a selloff, relative to market size, than at almost any point in modern history.  \n  \nMy Take  \nI think this is one of those charts people will point to after the fact. $7.95 trillion in money markets sounds like a wall of cash ready to buy any dip. But at a 0.42 ratio to S&P market cap, it's thinner than it was before the dot-com bust. Households have 45.8% of their financial assets in equities (Q1 2026 Fed data), the personal savings rate is around 3%, and retail investors are buying every single dip with record options volume. Citadel's own H1 2026 report says retail bought 3.5x their average daily amount on every down day this year.  \n  \nThe \"cash on the sidelines\" story is how everyone explains why dips keep getting bought. And in absolute dollars it looks true. But relative to how large the market has become, the available cash to absorb a real selloff is about where it was in 1999. I'm not calling a crash. I'm saying the cushion is a lot thinner than the headline number makes it look.  \n  \nHedgie🤗\n\n![Tweet Image](https://pbs.twimg.com/media/HNEHnvjXMAADxAg.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/HedgieMarkets/status/2076474691951481140)\n\n💬2🔄2❤️9👀1662📊3",
+      "tags": [
+        "市场",
+        "现金",
+        "风险"
+      ],
+      "score": 30,
+      "summary": "Gary Marcus转发市场现金储备与市值比例接近历史低点。",
+      "fetched_at": "2026-07-13T20:16:33.735957+08:00"
+    },
+    {
+      "title": "一个 Rust 写的终端掷骰器，骰子会真的在屏幕上弹跳滚动，声音当场合成，还能写 d20+5 vs 15 这种带判定的一行式子，既能手玩也能塞进脚本。\n\nhttps://t.co/5H25l3ZwMI",
+      "link": "https://x.com/geekbb/status/2076621911774069165",
+      "published": "2026-07-13T18:57:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "一个 Rust 写的终端掷骰器，骰子会真的在屏幕上弹跳滚动，声音当场合成，还能写 d20+5 vs 15 这种带判定的一行式子，既能手玩也能塞进脚本。  \n  \n[github.com/puradox/tinhorn](https://github.com/puradox/tinhorn)\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNF7btgaIAAKouk.jpg)](https://video.twimg.com/tweet_video/HNF7btgaIAAKouk.mp4)\n\n💬3🔄0❤️0👀1208📊3",
+      "tags": [
+        "Rust",
+        "掷骰器",
+        "终端"
+      ],
+      "score": 30,
+      "summary": "Rust编写的终端掷骰器，骰子弹跳滚动并合成声音。",
+      "fetched_at": "2026-07-13T20:16:33.735960+08:00"
+    },
+    {
+      "title": "I still remember life before chain-of-thought reasoning models",
+      "link": "https://x.com/julien_c/status/2076616654021161319",
+      "published": "2026-07-13T18:36:06+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "I still remember life before chain-of-thought reasoning models\n\n💬7🔄2❤️25👀1211📊11",
+      "tags": [
+        "思维链",
+        "推理模型",
+        "回忆"
+      ],
+      "score": 40,
+      "summary": "Julien Chaumond回忆思维链推理模型出现之前的生活。",
+      "fetched_at": "2026-07-13T20:16:33.735962+08:00"
+    },
+    {
+      "title": "Every paycheck you get is evidence that someone else figured out how to monetize your skills better ...",
+      "link": "https://x.com/thejustinwelsh/status/2076638371280031943",
+      "published": "2026-07-13T20:02:24+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Every paycheck you get is evidence that someone else figured out how to monetize your skills better than you did.\n\n💬8🔄1❤️6👀1707📊7",
+      "tags": [
+        "薪资",
+        "技能",
+        "变现"
+      ],
+      "score": 20,
+      "summary": "Justin Welsh称每张工资单证明他人更好地变现了你的技能。",
+      "fetched_at": "2026-07-13T20:16:33.735965+08:00"
+    },
+    {
+      "title": "Cat by day. Boxer by night.",
+      "link": "https://x.com/Kling_ai/status/2076637773214486759",
+      "published": "2026-07-13T20:00:01+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "Cat by day. Boxer by night.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076601278353035264/vid/avc1/1920x1080/k5dLeXr6OjqqHHwg.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2076637773214486759/video/1)\n\n💬2🔄1❤️4👀971📊3",
+      "tags": [
+        "Kling AI",
+        "视频生成",
+        "猫"
+      ],
+      "score": 40,
+      "summary": "Kling AI发布猫变拳击手的视频。",
+      "fetched_at": "2026-07-13T20:16:33.735968+08:00"
+    },
+    {
+      "title": "Our next Qdrant Office Hours is coming up, and we’ve got a great lineup of community demos and discu...",
+      "link": "https://x.com/qdrant_engine/status/2076634157565046793",
+      "published": "2026-07-13T19:45:39+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "Our next Qdrant Office Hours is coming up, and we’ve got a great lineup of community demos and discussions!  \n  \nDate: July 16  \nTime: 9:30 PM IST | 6:00 PM CEST | 9:00 AM PDT  \n  \nHere’s what’s on the agenda:  \n- Qdrant Edge – updates, demos, and discussions.  \n  \n- How to Implement Multitenant Search in Qdrant  \nOur Star Kameshwara Pavan kumar Mantha will walk us through building efficient multitenant search with Qdrant.  \n  \n- Semantic AI Bookmarking with Qdrant  \nOur Star Mohammed Arbi Nsibi will showcase a Chrome extension he’s been using daily to save and semantically search AI resources.  \n  \nWe’ll also have an open discussion on benchmarking, retrieval quality, and whatever questions the community brings.  \n  \nLink to register: [discord.gg/pVDGNpjuB?even…](https://discord.gg/pVDGNpjuB?event=1447644759677079732)  \n  \nSee you on July 16!\n\n![Tweet Image](https://pbs.twimg.com/media/HNGt7R9bAAEAGZV.jpg)\n\n💬2🔄0❤️3👀65📊3",
+      "tags": [
+        "Qdrant",
+        "Office Hours",
+        "向量搜索"
+      ],
+      "score": 40,
+      "summary": "Qdrant宣布7月16日Office Hours，讨论多租户搜索和语义书签。",
+      "fetched_at": "2026-07-13T20:16:33.735970+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/s8YbMC2AfZ",
+      "link": "https://x.com/TheRundownAI/status/2076615200229187603",
+      "published": "2026-07-13T18:30:20+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [therundown.ai/p/apple-takes-…](https://www.therundown.ai/p/apple-takes-openai-to-court)\n\n💬0🔄0❤️2👀1217",
+      "tags": [
+        "Apple",
+        "OpenAI",
+        "诉讼"
+      ],
+      "score": 40,
+      "summary": "The Rundown AI报道苹果起诉OpenAI硬件推广。",
+      "fetched_at": "2026-07-13T20:16:33.735973+08:00"
+    },
+    {
+      "title": "Top stories in AI today:\n\n- Apple takes OpenAI's hardware push to court \n- The Rundown Roundtable: O...",
+      "link": "https://x.com/TheRundownAI/status/2076615193753239837",
+      "published": "2026-07-13T18:30:18+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in AI today:  \n  \n- Apple takes OpenAI's hardware push to court   \n- The Rundown Roundtable: Our AI use cases  \n- Go from idea to website with ChatGPT Work + Codex  \n- AI 2027 team drafts humanity's Plan A  \n- 4 new AI tools, community workflows, and more\n\n![Tweet Image](https://pbs.twimg.com/media/HNGegjFWwAAKsFw.jpg)\n\n💬5🔄0❤️11👀3607📊6",
+      "tags": [
+        "AI新闻",
+        "Apple",
+        "OpenAI"
+      ],
+      "score": 40,
+      "summary": "The Rundown AI汇总今日AI新闻，包括苹果起诉OpenAI等。",
+      "fetched_at": "2026-07-13T20:16:33.735976+08:00"
+    },
+    {
+      "title": "OpenAI 官方最新提示词指南，覆盖 Chat、ChatGPT Work 和 Codex 三个场景\nhttps://t.co/WAieuClbqu\n\n作者是创建 @RepoPrompt 的 @pvn...",
+      "link": "https://x.com/shao__meng/status/2076629505159180761",
+      "published": "2026-07-13T19:27:10+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "OpenAI 官方最新提示词指南，覆盖 Chat、ChatGPT Work 和 Codex 三个场景  \n[learn.chatgpt.com/docs/prompting](https://learn.chatgpt.com/docs/prompting)  \n  \n作者是创建 [@RepoPrompt](https://x.com/RepoPrompt) 的 [@pvncher](https://x.com/pvncher)，现在也在 OpenAI Codex DX 团队了！  \n  \n开篇就纠正了一个观点：提示词需要\"公式\"吗？不需要！  \n给出可选的四要素框架，但反复强调\"只用有帮助的部分\"：  \n· 目标（Goal）：要 ChatGPT 做什么  \n· 上下文（Context）：哪些信息或来源有帮助  \n· 输出（Output）：需要什么格式、长度、详细程度  \n· 边界（Boundaries）：什么必须保持不变、什么需要先征求确认  \n  \n这背后的方法论转变值得注意：从\"控制过程\"转向\"描述结果\"。文档明确建议先说你要的结果，而不是罗列步骤——只有当过程本身重要时才描述过程，其余留给模型自己搜索、比较、调整。  \n  \n几个容易被忽视的关键原则  \n1. 边界要\"少而准\"。 文档对边界的定义很克制：只写那一两条能防止真实问题的指令，比如\"保持已批准的日期和预算数字不变\"\"只用提供的来源，缺信息就标注而不是猜\"\"写成草稿，不要发送\"。不需要控制每一步——过多约束反而降低效果。  \n2. 上下文是\"筛选\"而不是\"堆料\"。 只附加真正影响结果的来源，并说明每个来源该取什么。用连接的数据源（Drive、Slack 等）时，指明去哪找、找什么即可，不必描述每一次搜索。  \n3. 说明用途，而不只是格式。 \"让主管会前一页扫完\"\"转成带负责人和截止日期的跟进邮件\"——告诉模型结果将如何被使用，它才能选对长度和组织方式。  \n4. 首个提示不必完美。 用追问来修正方向、补充来源、调整详略，不用推倒重来。配套机制是 Steering（插入当前运行，即时改方向）和 Queuing（排队到下一轮），Codex CLI 中分别对应 Enter 和 Tab。  \n5. 对重要工作，要求\"自检 + 人工复核\"。 让模型收尾前确认\"每个行动项都有负责人和日期\"、标注无法核实的信息，然后自己再审一遍。  \n  \n三个场景的分工  \nChat：快速问答、改写、头脑风暴、轻量草稿。例子都很短——解释复合利息、写婉拒邮件、对比手机套餐、规划一周晚餐。  \nWork：跨来源、多步骤、产出文件的任务（如从季报生成简报和幻灯片、调研采购决策、协调产品发布）。因为消耗额度，文档强调效率策略：一次只要一个可审阅的结果、区分必需与可选、方法重要时先要计划、发布前需你批准、跑偏了及时收窄。跑通后可以把工作流沉淀为定时任务复用。  \nCodex：代码类任务。好的 Codex 提示要包含四件事——想要的行为、相关代码或复现步骤、必须保留的约束、如何验证。  \n  \nCodex 部分的实践要点  \n这是文档篇幅最大、最工程化的部分，给出了多个工作流模板，共同模式是\"上下文 + 约束 + 验证\"三段式：  \n· 上下文来源不同：IDE 扩展自动包含打开的文件；CLI 需要显式用 [@路径](https://x.com/路径) 或 /mention 附加。这是选择工作面的重要依据。  \n· 修 Bug 的最佳实践是给出可执行的复现步骤（比高层描述有用得多）+ 约束（\"不改 API 形状，改动最小化\"）+ 要求先复现再修、修完重跑复现和最小测试集。  \n· 从截图做原型：图片提供视觉要求，但技术栈、路由、图上看不到的行为（hover、校验、键盘交互）仍需文字说明。  \n· 云端委托重构：本地（有完整代码上下文）先用 /plan 出计划并协商修改，然后分里程碑委托到云端并行执行，逐个审 diff。注意云端 agent 阶段默认无网络。  \n· UI 迭代：另开终端跑 dev server，用小而具体的提示逐步改；如果你手动回退了某个改动，要告诉 Codex，避免下一轮被覆盖。  \n· 代码审查：本地用 /review（可加聚焦指令），GitHub PR 上用 @ codex review 评论触发。\n\n![Tweet Image](https://pbs.twimg.com/media/HNGrhSkaMAA4U9B.jpg)\n\n![eric provencher](https://pbs.twimg.com/profile_images/1904963988590411776/khTUwno4_normal.jpg)\n\neric provencher@pvncher\n\nWith 5.6 Sol, a lot of people are still prompting the model exactly as they did 5.5   \n  \nIt's important to note that 5.6 Sol is a lot more tenacious and thorough than previously models.  \n  \nCheck out the guide I wrote here to get better outcomes  \n[learn.chatgpt.com/docs/prompting](https://learn.chatgpt.com/docs/prompting)\n\n[🔗 View Quoted Tweet](https://x.com/pvncher/status/2075663535544135935)\n\n💬1🔄0❤️1👀397📊1",
+      "tags": [
+        "OpenAI",
+        "提示词指南",
+        "Codex"
+      ],
+      "score": 80,
+      "summary": "OpenAI发布官方提示词指南，覆盖Chat、Work和Codex场景。",
+      "fetched_at": "2026-07-13T20:16:33.735979+08:00"
+    },
+    {
+      "title": "关于 Codex 剪视频，我们 team 最近有一些独特的心得\n正在做一个视频，我今天看了倒数第二版，比今天 tl 上的都要好个几倍吧 😂\n顺利的话，明天发\n如果比较受欢迎的话\n就把 skill/p...",
+      "link": "https://x.com/oran_ge/status/2076634161901920294",
+      "published": "2026-07-13T19:45:40+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "关于 Codex 剪视频，我们 team 最近有一些独特的心得  \n正在做一个视频，我今天看了倒数第二版，比今天 tl 上的都要好个几倍吧 😂  \n顺利的话，明天发  \n如果比较受欢迎的话  \n就把 skill/plugin 开源出来\n\n💬5🔄0❤️12👀1213📊6",
+      "tags": [
+        "Codex",
+        "剪视频",
+        "开源"
+      ],
+      "score": 40,
+      "summary": "orange.ai称团队用Codex剪视频有心得，计划开源。",
+      "fetched_at": "2026-07-13T20:16:33.735982+08:00"
+    },
+    {
+      "title": "你和你的竞争同时变强3倍，你们的收入差距：\n1. 缩小了 \n2. 扩大了 \n3. 没变化\n\n如果你的答案是2...再加上原来你是比较弱的那一方，就不是什么好消息了。。。\n这不就是大模型提效给竞争带来的...",
+      "link": "https://x.com/oran_ge/status/2076629364507033914",
+      "published": "2026-07-13T19:26:37+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "你和你的竞争同时变强3倍，你们的收入差距：  \n1. 缩小了   \n2. 扩大了   \n3. 没变化  \n  \n如果你的答案是2...再加上原来你是比较弱的那一方，就不是什么好消息了。。。  \n这不就是大模型提效给竞争带来的结果吗   \n实际是，你努力各种拥抱 ai ，结果只是被拉开更大的差距  \n除非你的竞争对手对 ai 无动于衷（这可能吗？），或者你的行业不依赖 ai coding 作为核心竞争力\n\n💬1🔄0❤️2👀1770📊1",
+      "tags": [
+        "AI提效",
+        "竞争",
+        "收入差距"
+      ],
+      "score": 40,
+      "summary": "orange.ai讨论AI提效导致竞争双方收入差距扩大。",
+      "fetched_at": "2026-07-13T20:16:33.735984+08:00"
+    },
+    {
+      "title": "今晚 Claude 用量，可能会重置一次\n\n因为我已经用光了一周的用量了，周六才到我的重置时间\n\n今晚必须要给我重置一次\n\n@CuiMao",
+      "link": "https://x.com/xiaohu/status/2076622165584248945",
+      "published": "2026-07-13T18:58:00+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "今晚 Claude 用量，可能会重置一次  \n  \n因为我已经用光了一周的用量了，周六才到我的重置时间  \n  \n今晚必须要给我重置一次  \n  \n[@CuiMao](https://x.com/CuiMao)\n\n💬17🔄0❤️27👀8385📊16",
+      "tags": [
+        "Claude",
+        "用量",
+        "重置"
+      ],
+      "score": 20,
+      "summary": "小互称Claude用量已用完，希望重置。",
+      "fetched_at": "2026-07-13T20:16:33.735987+08:00"
+    },
+    {
+      "title": "Article: Removing a Hidden Round Trip from a Multi-Region AWS API",
+      "link": "https://www.infoq.com/articles/aws-multi-region-signing/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-13T19:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/articles/aws-multi-region-signing/en/headerimage/aws-multi-region-signing-header-1783602485181.jpg)\n\nWhen a series of regional outages forced a rethink of a multi-region AWS API, the team discovered that an obstacle to global failover was hiding in plain sight: a pre-flight discovery call baked into every client session years earlier as the only available option. This article describes what it took to remove it, and what the rollout actually cost.\n\n*By Suresh Gururajan*",
+      "tags": [
+        "AWS",
+        "多区域",
+        "API"
+      ],
+      "score": 60,
+      "summary": "InfoQ文章介绍如何移除多区域AWS API中的隐藏往返调用。",
+      "fetched_at": "2026-07-13T20:16:33.735990+08:00"
+    },
+    {
+      "title": "Podcast: Governance in the Age of AI: A Conversation with Sarah Wells",
+      "link": "https://www.infoq.com/podcasts/governance-age-ai/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-13T19:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/podcasts/governance-age-ai/en/smallimage/the-infoq-podcast-logo-thumbnail-1783430790261.jpg)\n\nIn this podcast, Michael Stiefel spoke to Sarah Wells about the relationship of governance to software architecture. Governance enables teams to work effectively by establishing procedures that minimize system complexity, improve security, and reduce repetitive tasks. Targeted checklists help engineers by reducing the stress over these procedures.\n\n*By Sarah Wells*",
+      "tags": [
+        "AI治理",
+        "软件架构",
+        "Sarah Wells"
+      ],
+      "score": 60,
+      "summary": "InfoQ播客讨论AI时代的治理与软件架构关系。",
+      "fetched_at": "2026-07-13T20:16:33.735992+08:00"
     }
   ]
 }
