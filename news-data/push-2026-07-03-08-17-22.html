@@ -39,7 +39,7 @@
       <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">10</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
 
       <div class="article-body">
-        <section class="board-section board-rss reveal" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>[持续跟踪] Fable 5 回归后能力遭质疑：安全过滤过严，调试能力暴跌 70%</h3>
+        <section class="board-section board-rss" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>[持续跟踪] Fable 5 回归后能力遭质疑：安全过滤过严，调试能力暴跌 70%</h3>
 <ul>
 <li><strong>前情提要</strong>：Anthropic 的旗舰模型 Fable 5 在因美国政府出口管制消失 19 天后，于昨日全球恢复上线，并配备了新的安全分类器。</li>
 <li><strong>最新进展</strong>：回归后的 Fable 5 遭遇社区强烈反弹。BridgeBench 测试结果显示，新版本在调试能力上从 86.2 暴跌至 25.9（降幅 70%），重构能力从 73.6 降至 38.4（降幅 48%）。用户反馈称，正常的编程任务甚至简单的问候（如 "HI FABLE I MISSED YOU"）都会被误判为高风险，回退到 Opus 4.8。</li>
@@ -109,7 +109,7 @@
 <li><strong>行业意义</strong>：随着推理计算扩展成为提升模型能力的主要手段，如何高效利用算力成为关键问题。QuasiMoTTo 提供了一种新的思路：通过样本间的相关性来提升效率，而非简单地增加独立采样数量。<br>
  🔗 <a href="https://x.com/StanfordAILab/status/2072738185751224784">斯坦福 AI Lab 推文</a> | <a href="https://x.com/michaelyli_/status/2072737069894689007">Michael Y. Li 推文</a></li>
 </ul></section></div></section>
-<section class="board-section board-hackernews reveal" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>The short leash AI coding method for beating Fable</h3>
+<section class="board-section board-hackernews" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>The short leash AI coding method for beating Fable</h3>
 <p>54 pts · 53 comments · <a href="okturtles.org">site</a></p>
 <p><strong>📌 内容总结</strong></p>
 <ul>
@@ -179,7 +179,7 @@
 <li><strong>商业现实</strong>：有评论指出，MCP 市场（ChatGPT Apps Store、Claude Connectors）的发现机制仍不成熟，用户是否真的在浏览和搜索 MCP 应用存疑。</li>
 </ul>
 <p>🔗 <a href="https://manufact.com">原文</a> · <a href="https://news.ycombinator.com/item?id=48762862">HN 讨论页</a></p></div></details></section></div></section>
-<section class="board-section board-insights reveal" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p>Fable 5 回归后的能力暴跌，暴露了一个被 PR 包装掩盖的工程现实：安全分类器对模型能力的侵蚀，远比社区预期的更严重。BridgeBench 调试能力从 86.2 跌至 25.9，这不是微调回退，而是分类器直接拦截了模型的核心推理路径。Anthropic 承认“生物和化学分类器覆盖范围偏宽”，但问题在于——当安全机制以“宁可错杀”为原则时，模型在编程任务上的可用性会系统性下降。T3 Chat CEO 建议用户仅在 high effort 模式下使用 Fable 5，这本质上是在说：前沿模型已经无法作为默认选项，多模型编排从“优化策略”变成了“生存策略”。</p>
+<section class="board-section board-insights" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p>Fable 5 回归后的能力暴跌，暴露了一个被 PR 包装掩盖的工程现实：安全分类器对模型能力的侵蚀，远比社区预期的更严重。BridgeBench 调试能力从 86.2 跌至 25.9，这不是微调回退，而是分类器直接拦截了模型的核心推理路径。Anthropic 承认“生物和化学分类器覆盖范围偏宽”，但问题在于——当安全机制以“宁可错杀”为原则时，模型在编程任务上的可用性会系统性下降。T3 Chat CEO 建议用户仅在 high effort 模式下使用 Fable 5，这本质上是在说：前沿模型已经无法作为默认选项，多模型编排从“优化策略”变成了“生存策略”。</p>
 <p>HN 上关于“短 leash”方法的讨论，与 Fable 5 的困境形成了有趣的对照。作者主张开发者全程审查 AI 的每一步代码生成，反对让 AI 自主运行。但评论区的分歧点在于：当模型能力足够强时，短 leash 是 crutch 还是必要保障？Fable 5 的暴跌给出了一个反直觉的答案——模型能力的波动性，反而让短 leash 方法变得更有价值。因为即使是最好的模型，也可能在下次更新后突然“变笨”，而人类对代码库的理解是唯一稳定的锚点。这解释了为什么 Vercel AI Gateway 的动态路由规则在同一天发布：模型退役和性能波动已经成为生产环境的常态，基础设施层必须为此做好准备。</p>
 <p>Microsoft 的 Frontier Co. 和 Sam Altman 的政府持股提议，则从另一个维度揭示了行业的结构性变化。Frontier Co. 的定位是“让每个组织将其知识、工作流和判断转化为持续改进的 AI 系统”，这与 Palantir CEO 抨击 Token 计费模式、呼吁企业掌握“生产资料所有权”的立场一致。当企业开始自建 AI 能力，模型提供商的角色将从“唯一供应商”退化为“基础设施层”——这与 Fable 5 的可靠性问题形成闭环：企业不愿意将自己的核心业务绑定在一个随时可能“变笨”的模型上。</p></div></section>
       </div>

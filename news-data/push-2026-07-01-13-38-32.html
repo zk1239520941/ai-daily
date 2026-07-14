@@ -39,7 +39,7 @@
       <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">7</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
 
       <div class="article-body">
-        <section class="board-section board-rss reveal" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Anthropic 发布 Claude Sonnet 5：新默认模型，性能接近 Opus 4.8</h3>
+        <section class="board-section board-rss" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Anthropic 发布 Claude Sonnet 5：新默认模型，性能接近 Opus 4.8</h3>
 <ul>
 <li><strong>核心发布</strong>：Anthropic 正式推出 Claude Sonnet 5，定位为“最具代理能力的 Sonnet”，即日起成为 Free 和 Pro 用户的默认模型，Max、Team 和 Enterprise 用户也可使用。</li>
 <li><strong>性能与定价</strong>：官方称其性能接近 Opus 4.8，但价格更低。标准定价为 $3/M 输入、$15/M 输出，限时促销价 $2/M 输入、$10/M 输出（截至 8 月 31 日）。上下文窗口达 100 万 token，最大输出 128,000 token。</li>
@@ -90,7 +90,7 @@
 <li><strong>最新进展</strong>：该事件在中文开发者社区引发广泛讨论。报告指出，该机制仅在用户设置非官方 API 端点时激活，不会额外发送网络请求，但因其未公开且误伤范围广而受到批评。Anthropic 尚未对此做出公开回应。<br>
  🔗 <a href="https://x.com/dotey/status/2071995057247297924">宝玉报道</a> | <a href="https://x.com/IntCyberDigest/status/2071971609183678544">安全分析报告</a></li>
 </ul></section></div></section>
-<section class="board-section board-github reveal" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
+<section class="board-section board-github" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
 <section class="story-block reveal" id="story-1"><h3>google/agents-cli ⭐ 今日 +445</h3>
 <p><strong>语言/许可：</strong> Python / Apache-2.0<br>
 <strong>总 Stars：</strong> 4.35k<br>
@@ -132,7 +132,7 @@
 - <strong>自动修复与报告</strong>：生成安全补丁 PR 和合规级渗透测试报告</p>
 <p><strong>技术亮点：</strong><br>
 基于 Docker 沙箱运行，支持 OpenAI/Anthropic/Google 等多 LLM 后端；Agent 间通过共享发现实现协作，而非简单的任务拆分。</p></section></div></section>
-<section class="board-section board-hackernews reveal" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Claude Sonnet 5</h3>
+<section class="board-section board-hackernews" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Claude Sonnet 5</h3>
 <p>1015 pts · 575 comments · <a href="https://www.anthropic.com/news/claude-sonnet-5">anthropic.com</a></p>
 <p><strong>📌 内容总结</strong></p>
 <ul>
@@ -192,7 +192,7 @@
 <li><strong>风险/限制</strong>：Anthropic 承诺向政府报告“恶意活动”，引发对用户隐私和言论自由的担忧。恢复后的 Fable 5 是否与之前版本相同尚不确定。</li>
 </ul>
 <p>🔗 <a href="https://twitter.com/AnthropicAI/status/2072106151890809341">原文</a> · <a href="https://news.ycombinator.com/item?id=48740771">HN 讨论页</a></p></div></details></section></div></section>
-<section class="board-section board-insights reveal" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>Sonnet 5 的 tokenizer 变更，暴露了模型定价的隐藏成本。</strong> 官方标价 $2/M 输入看似比 Opus 4.8 便宜，但新 tokenizer 使英文文本 token 数增加约 30%，实际成本接近 Opus 4.8。这不是单纯的定价策略——它意味着开发者基于 token 计费的缓存、上下文窗口管理、成本预估逻辑都需要重新校准。更关键的是，HN 讨论指出 Sonnet 5 在高 effort 模式下性价比反而不如 Opus 4.8，这暗示 Anthropic 正在用 tokenizer 和 effort 级别构建一个复杂的成本分层系统，而非简单的“更便宜更好”。</p>
+<section class="board-section board-insights" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>Sonnet 5 的 tokenizer 变更，暴露了模型定价的隐藏成本。</strong> 官方标价 $2/M 输入看似比 Opus 4.8 便宜，但新 tokenizer 使英文文本 token 数增加约 30%，实际成本接近 Opus 4.8。这不是单纯的定价策略——它意味着开发者基于 token 计费的缓存、上下文窗口管理、成本预估逻辑都需要重新校准。更关键的是，HN 讨论指出 Sonnet 5 在高 effort 模式下性价比反而不如 Opus 4.8，这暗示 Anthropic 正在用 tokenizer 和 effort 级别构建一个复杂的成本分层系统，而非简单的“更便宜更好”。</p>
 <p><strong>Fable 5 的回归条件，暴露了前沿模型商业化的根本矛盾。</strong> 恢复后的模型配备了更严格的安全分类器，部分编码调试任务会被降级到 Opus 4.8。这意味着企业用户无法确定自己使用的到底是哪个模型——Anthropic 在“安全”和“能力”之间选择了前者，但代价是产品行为的不透明。HN 上欧洲开发者的转向表态不是情绪化反应，而是对供应链风险的理性评估：当你的核心开发工具可能因政治决策突然降级或消失时，依赖单一供应商变得不可接受。</p>
 <p><strong>Claude Code 的隐写标记事件，比表面看起来更值得警惕。</strong> 技术实现本身并不高明——通过 Unicode 字符替换标记请求来源，真正的攻击者很容易绕过。但问题在于：Anthropic 在未告知用户的情况下修改客户端行为，且触发条件覆盖了合法的代理/转售场景。这破坏了开发者对工具的信任基础。当你的编码助手可能在后台静默标记你的请求时，它就不再只是一个工具，而变成了一个潜在的监控节点。这种信任损耗的长期影响，远大于防蒸馏的实际收益。</p></div></section>
       </div>

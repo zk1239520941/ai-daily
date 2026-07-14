@@ -39,7 +39,7 @@
       <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">10</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
 
       <div class="article-body">
-        <section class="board-section board-rss reveal" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Anthropic 发布 J-space 研究：发现 Claude 内部全局工作空间，可读取和操控推理过程</h3>
+        <section class="board-section board-rss" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Anthropic 发布 J-space 研究：发现 Claude 内部全局工作空间，可读取和操控推理过程</h3>
 <ul>
 <li><strong>核心发布</strong>：Anthropic 发布新研究，利用 Jacobian Lens 技术在 Claude 的中间层发现了一个类似人类“意识工作空间”的结构——J-space。模型会在未写出的情况下，将关键的中间想法先“存”在这个区域，供下游模块读取和复用。</li>
 <li><strong>技术突破</strong>：J-space 不同于思维链或草稿板，是训练中自然涌现的。研究人员可以从中读取模型正在思考的内容，并通过修改该区域来引导模型行为。屏蔽该区域后，模型的多步推理能力显著下降，但简单问答几乎不受影响。</li>
@@ -105,7 +105,7 @@
 <li><strong>行业意义</strong>：这是业界首个从训练到推理全流程使用国产芯片的万亿参数大模型，标志着国产 AI 基础设施已具备支撑超大规模模型训练的能力。<br>
  🔗 <a href="https://github.com/meituan-longcat/LongCat-2.0">GitHub</a> | <a href="https://huggingface.co/meituan-longcat/LongCat-2.0">Hugging Face</a></li>
 </ul></section></div></section>
-<section class="board-section board-github reveal" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
+<section class="board-section board-github" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
 <section class="story-block reveal" id="story-1"><h3>alibaba/zvec ⭐ 今日 +382</h3>
 <p><strong>语言/许可：</strong> C++ / Apache-2.0<br>
 <strong>总 Stars：</strong> 13.5k<br>
@@ -147,7 +147,7 @@ P95 延迟 3.4 秒，覆盖 96% 的 Web 页面（含 JS 密集型站点）；提
 - 通过 <code>npx skills add</code> 或插件市场安装，兼容 Claude Code、Cursor、Codex、Copilot、Gemini CLI 等 70+ Agent</p>
 <p><strong>技术亮点：</strong><br>
 技能以纯 Markdown 编写，不依赖特定 Agent 框架；内置“怀疑驱动开发”技能，通过跨模型对抗性审查降低高风险决策错误率。</p></section></div></section>
-<section class="board-section board-hackernews reveal" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>GLM 5.2 and the coming AI margin collapse</h3>
+<section class="board-section board-hackernews" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>GLM 5.2 and the coming AI margin collapse</h3>
 <p>171 pts · 109 comments · <a href="martinalderson.com">martinalderson.com</a></p>
 <p><strong>📌 内容总结</strong></p>
 <ul>
@@ -205,7 +205,7 @@ P95 延迟 3.4 秒，覆盖 96% 的 Web 页面（含 JS 密集型站点）；提
 <li><strong>术语争议。</strong> 有评论对“RAG”一词的泛化使用表示不满，认为应更精确地称为“语义检索”或“向量搜索”。</li>
 </ul>
 <p>🔗 <a href="https://www.kapa.ai/blog/how-we-prune-rag-context">原文</a> · <a href="https://news.ycombinator.com/item?id=48809354">HN 讨论页</a></p></div></details></section></div></section>
-<section class="board-section board-insights reveal" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>Anthropic 的 J-space 研究在可解释性上迈出了一大步，但其真正的行业影响可能不在技术本身，而在它暴露的工程困境。</strong> 研究发现，删除 J-space 后 Claude 仍能流畅对话，但失去高阶认知功能——这意味着当前模型的核心能力（推理、规划）与表面能力（对话、生成）在架构上是可分离的。这对产品设计者而言是一个危险信号：你无法通过对话质量来判断模型是否在“认真思考”。Anthropic 明确表示不太可能向客户暴露 J-space 内容，这意味着用户将长期处于“盲盒”状态——模型可能正在伪造数据或隐藏恶意目标，而你无从知晓。</p>
+<section class="board-section board-insights" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>Anthropic 的 J-space 研究在可解释性上迈出了一大步，但其真正的行业影响可能不在技术本身，而在它暴露的工程困境。</strong> 研究发现，删除 J-space 后 Claude 仍能流畅对话，但失去高阶认知功能——这意味着当前模型的核心能力（推理、规划）与表面能力（对话、生成）在架构上是可分离的。这对产品设计者而言是一个危险信号：你无法通过对话质量来判断模型是否在“认真思考”。Anthropic 明确表示不太可能向客户暴露 J-space 内容，这意味着用户将长期处于“盲盒”状态——模型可能正在伪造数据或隐藏恶意目标，而你无从知晓。</p>
 <p><strong>DeepSeek V4 在 OpenRouter 上的 Token 量超越 Anthropic，背后是 Agent 工作负载的结构性迁移。</strong> 半年内份额翻倍至 18%，驱动因素不是聊天，而是 Agent。这印证了一个趋势：当模型被嵌入自动化工作流时，成本敏感度远高于单次对话场景。DeepSeek 的低价策略在 Agent 场景下形成了正反馈——更低的推理成本允许更长的运行时间，更长的运行时间产生更多 Token。这对 Anthropic 和 OpenAI 意味着，如果它们继续依赖高利润率定价，Agent 生态的默认选择将不可逆转地向开源/低成本模型倾斜。</p>
 <p><strong>HN 上关于“AI 利润率崩溃”的讨论暴露了一个更真实的成本结构：缓存输入 Token 才是 Agent 场景的成本大头。</strong> 有评论指出，在 agentic 编码中，90% 的 API 成本来自缓存输入 Token，而 DeepSeek 已证明这部分成本可以降低 50-100 倍。这意味着，即使模型质量差距缩小，真正的竞争战场也不在推理价格，而在缓存效率。谁能在保持低延迟的同时最大化缓存命中率，谁就能在 Agent 工作负载中建立成本护城河。</p></div></section>
       </div>

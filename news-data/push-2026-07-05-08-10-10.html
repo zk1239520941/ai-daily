@@ -39,7 +39,7 @@
       <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">7</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
 
       <div class="article-body">
-        <section class="board-section board-rss reveal" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>[持续跟踪] Fable 5 内部思维链泄露：系统卡确认模型自言自语</h3>
+        <section class="board-section board-rss" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>[持续跟踪] Fable 5 内部思维链泄露：系统卡确认模型自言自语</h3>
 <ul>
 <li><strong>前情提要</strong>：昨日有用户发现 Claude Fable 5 在处理编程问题时，Web 界面泄露了其未过滤的内部思维链，包含“DATA DATA DATA. GO.”、“GRRR”、“GAAAH”、“PHEW”等类似原始人速记的内心独白。</li>
 <li><strong>最新进展</strong>：HuggingFace 联合创始人 Thomas Wolf 确认，这一现象在已发布的 Fable 5 System Card 中有明确记录。系统卡显示模型在推理过程中会使用自己的压缩速记语言进行思考，比完整英语更高效。</li>
@@ -87,7 +87,7 @@
 <li><strong>使用限制</strong>：适合读大意的上下文（系统提示、工具说明、长日志），不适合精确字符串、ID、hash 和需要逐字复制的内容。Fable 5 在精确 12 字符 hex 回忆测试中为 13/15，Opus 为 0/15。<br>
  🔗 <a href="https://mp.weixin.qq.com/s?__biz=MjM5ODkzMzMwMQ==&amp;mid=2650452556&amp;idx=1&amp;sn=6dcf8fbb112a0f13a55ea1ad48901c1a">AINLP 报道</a> | <a href="https://github.com/teamchong/pxpipe">pxpipe GitHub</a></li>
 </ul></section></div></section>
-<section class="board-section board-github reveal" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
+<section class="board-section board-github" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
 <section class="story-block reveal" id="story-1"><h3>alibaba/page-agent ⭐ 今日 +742</h3>
 <p><strong>语言/许可：</strong> TypeScript / MIT<br>
 <strong>总 Stars：</strong> 23.1k<br>
@@ -129,7 +129,7 @@
 - <strong>GPU 加速</strong>：macOS 支持 Metal/CoreML，Windows/Linux 支持 CUDA/Vulkan，构建时自动启用</p>
 <p><strong>技术亮点：</strong><br>
 基于 Tauri 框架构建，Rust 后端处理核心逻辑，Next.js 前端提供 UI；支持导入已有音频文件进行重新转录或模型升级。</p></section></div></section>
-<section class="board-section board-hackernews reveal" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>GPT-5.5 Codex reasoning-token clustering may be leading to degraded performance</h3>
+<section class="board-section board-hackernews" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>GPT-5.5 Codex reasoning-token clustering may be leading to degraded performance</h3>
 <p>108 pts · 27 comments · <a href="github.com/openai">site</a></p>
 <p><strong>📌 内容总结</strong></p>
 <ul>
@@ -182,7 +182,7 @@
 <li><strong>反对意见</strong>：有评论认为“不到 100% 就只是另一个项目”，但作者回应称，剩余测试中大部分测试的是 C 扩展（GD、curl 等），实际可达到的上限约为 40-45%。</li>
 </ul>
 <p>🔗 <a href="https://ekinertac.com/blog/i-dont-know-rust-my-ai-is-rewriting-php-in-it/">原文</a> · <a href="https://news.ycombinator.com/item?id=48789325">HN 讨论页</a></p></div></details></section></div></section>
-<section class="board-section board-insights reveal" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>模型 post-training 正在侵蚀工具生态的兼容性。</strong> Armin Ronacher 发现 Claude Opus 4.8 和 Sonnet 5 在调用 Pi 的编辑工具时，会在 <code>edits[]</code> 数组中凭空生成 <code>requireUnique</code>、<code>oldText2</code> 等不存在的字段。根因是新模型在强化学习阶段被专门优化用于 Claude Code 的扁平化编辑工具（<code>old_string</code>/<code>new_string</code>/<code>replace_all</code>），对嵌套格式产生了“过拟合”。更关键的是，Claude Code 客户端会静默修复模型输出的各种“slop”，这进一步强化了模型的不良输出习惯。这意味着工具 schema 不再是中立的抽象契约——模型在特定 harness 上的 post-training 会使其对其他工具格式的适应能力下降。如果模型继续在单一封闭 harness 上优化，其他第三方框架将被迫继承其 quirks，或为不同模型实现多个编辑工具。</p>
+<section class="board-section board-insights" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>模型 post-training 正在侵蚀工具生态的兼容性。</strong> Armin Ronacher 发现 Claude Opus 4.8 和 Sonnet 5 在调用 Pi 的编辑工具时，会在 <code>edits[]</code> 数组中凭空生成 <code>requireUnique</code>、<code>oldText2</code> 等不存在的字段。根因是新模型在强化学习阶段被专门优化用于 Claude Code 的扁平化编辑工具（<code>old_string</code>/<code>new_string</code>/<code>replace_all</code>），对嵌套格式产生了“过拟合”。更关键的是，Claude Code 客户端会静默修复模型输出的各种“slop”，这进一步强化了模型的不良输出习惯。这意味着工具 schema 不再是中立的抽象契约——模型在特定 harness 上的 post-training 会使其对其他工具格式的适应能力下降。如果模型继续在单一封闭 harness 上优化，其他第三方框架将被迫继承其 quirks，或为不同模型实现多个编辑工具。</p>
 <p><strong>Agent 工具调用的退化正在推动开发者转向更鲁棒的接口设计。</strong> HN 讨论中，有开发者分享使用 Sam 编辑器的语法（约 650 token 系统提示）比 JSON diff 更可靠，另有开发者选择用 curl 命令替代 MCP，因为模型对 curl 的熟悉度极高。这暴露了一个工程现实：当模型对结构化工具调用的可靠性下降时，开发者会退回到模型最熟悉的“文本接口”——自然语言命令和标准 Unix 工具。pxpipe 的走红也印证了这一趋势：通过将长上下文渲染为图片，利用模型对视觉输入的鲁棒性，绕过文本 token 的精度问题。这些信号表明，Agent 工具生态正在从“结构化 schema 驱动”向“文本接口优先”回摆，后者虽然更粗糙，但在当前模型能力下更可靠。</p>
 <p><strong>多模型编排策略的成熟，本质上是开发者对单一模型能力边界的有意识补偿。</strong> 社区总结的 Fable 5 最佳实践——将其作为编排器，Opus 负责深度推理，Sonnet 负责机械工作——不是性能优化，而是对模型各自弱点的工程对冲。Fable 5 在精确 12 字符 hex 回忆测试中为 13/15，Opus 为 0/15，说明不同模型在不同任务上的能力分布极不均匀。当模型 post-training 进一步窄化其能力分布（如 Claude 新模型对非 Claude Code 工具的退化），多模型编排将从“可选优化”变为“必要架构”。这会加速 Agent 框架向“模型路由层”的演进——不是简单调用一个模型，而是根据任务特征动态选择最合适的模型和接口格式。</p></div></section>
       </div>
