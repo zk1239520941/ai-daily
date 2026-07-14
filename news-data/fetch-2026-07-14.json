@@ -2917,6 +2917,391 @@
       "score": 80,
       "summary": "Google发布Genkit Agents API预览，支持TypeScript和Go，含人机交互。",
       "fetched_at": "2026-07-14T19:39:18.788320+08:00"
+    },
+    {
+      "title": "Foundational context: Cross-industry & function-specific accelerators for Lakebase",
+      "link": "https://www.databricks.com/blog/foundational-context-cross-industry-function-specific-accelerators-lakebase",
+      "published": "2026-07-14T21:15:00+08:00",
+      "source": "Databricks",
+      "content": "Databricks Lakebase is a fully managed, serverless Postgres database built for the...",
+      "tags": [
+        "Databricks",
+        "Lakebase",
+        "Postgres"
+      ],
+      "score": 79,
+      "summary": "Databricks发布Lakebase，一款全托管无服务器Postgres数据库。",
+      "fetched_at": "2026-07-14T22:05:17.832772+08:00"
+    },
+    {
+      "title": "AI Engineer World’s Fair 2026: The Runtime Is Where Agent Trust Is Won",
+      "link": "https://www.docker.com/blog/ai-engineer-worlds-fair-2026-the-runtime-is-where-agent-trust-is-won/",
+      "published": "2026-07-14T21:00:00+08:00",
+      "source": "Docker",
+      "content": "We spent the week at AI Engineer World’s Fair in San Francisco, on stage and on the floor. Here’s what we heard, and where we think it lands for anyone building with agents.\n\n## The SDLC is being rebuilt in public\n\nThis week at AIE felt like a synthesis of what’s been playing out in developer tools for the last few years, for anyone who’s been watching. The software development lifecycle is reshaping itself into an AI-native SDLC, and the industry is naming the new jobs and developer concerns that come with this rapid transformation.\n\nThe proof was in the track list: Evals, Context Engineering, Harness Engineering, Memory, Sandbox & Platform Engineering, Inference, plus a whole thread on “software factories.” Two years ago most of these phrases were far from being thought of as categories. Now each one is a discipline with its own sessions, its own vocabulary, and its own crop of companies on the expo floor built to solve that single problem.\n\nSo what were most talks about? A little bit less of “can agents and AI do this,” and more of “given this way of building, what decisions and trade offs do we need to think about?” Evals, loops, harnesses, context, memory, isolation, cost. None of this is brand-new, but it’s all getting a whole new level of mindshare, as developers work out the new shape of creating software with AI. Even the model labs spent much of their stage time on how you build *with* the model: the integration API, the harnesses, the ergonomics, rather than the model itself.\n\n## The job we care most about: securing where agents run\n\nOf all those emerging disciplines, sandboxing is the one that hit critical mass this year. There was a full track dedicated to sandbox and platform engineering, and the sessions inside it were still working out what a sandbox should even be: full VM, lightweight runtime, Kubernetes, something purpose-built. Talks focused on concerns such as running agentic sandboxes at scale and comparing isolation technologies head to head.\n\nThis is the job Docker showed up to talk about, across three sessions.\n\n### Give agents more freedom by giving them less surface\n\nOur EVP of engineering, Tushar Jain, gave the mainstage talk: “Unlock Agent Autonomy: The Runtime for AI-Native Systems.” The actors have changed – agents read and write whole codebases, spawn subagents, install dependencies, and call APIs across laptops, CI, cloud, and org boundaries, often unsupervised. Teams leaning into this shift are moving fast, but most organizations still won’t let agents run autonomously, not because the model isn’t capable, but because trust isn’t there yet. This thinking draws on a concept security researcher Simon Willison has written about, the “lethal trifecta”: any useful agent tends to end up with access to private data, exposure to untrusted content, and the ability to act in the outside world, all three, by design. No prompt or policy doc gets rid of that. The durable fix lives one layer down, at the runtime, which is where we spent the last decade: isolation, network policy, trusted images, credentials. Agents are just the next workload.\n\n### An agent doesn’t have to be malicious to be dangerous\n\nRowan Christmas, a staff product manager at Docker, made the risk concrete. In “YOLO Mode, Safely: microVM Sandboxes for Any Agent,” he ran a coding agent on his own laptop with nothing but read access, and no sandbox or unusual permissions. Within a few minutes it had pieced together a surprising amount about his online banking activity from what it could passively see. A destructive command like rm -rf is the obvious fear, but the mundane can bring risk: read access, plus untrusted content, plus the ability to act, is already enough to do damage. An agent doesn’t have to be malicious to expose you. It just has to be able to see. The alternative Rowan showed puts each session in its own Docker sandbox based on a microVM, with a boundary you define across filesystem, network, and tools. It can run Claude Code, Cursor, Codex, or whatever you’re driving.\n\nOnce an agent can install packages, run Docker, and reach the network, which describes most genuinely useful agents, a hardware boundary buys you something you can’t easily bolt on later. And where much of the scale conversation is cloud-first, built for fleets of agents running server-side, Docker’s approach starts first on the laptop the developer already uses, because that’s where most people actually run agents today. (We go deeper on the reasoning in [“Why microVMs”](https://www.docker.com/blog/why-microvms-the-architecture-behind-docker-sandboxes/) and our [comparison of sandboxing approaches](https://www.docker.com/blog/comparing-sandboxing-approaches-ai-agents/), including what the isolation costs you, because it isn’t free.)\n\n### Nobody’s reviewing what your agents just installed\n\nThe third talk covered the tool layer. Jim Clark, a principal software engineer on our MCP team, spoke about “Who Approved That MCP Server? Governing the Tool Layer,” and opened with a line that got knowing laughs: “shadow MCP”. Developers install MCP servers faster than security can review them, and an unvetted server is a direct line to your data. That worry was all over the event, not just our session. Jim’s demo put every server behind one org-managed catalog, vetted, signed, default-deny on anything unapproved, with the policy enforced live on stage.\n\n## Where this leaves us\n\nSo how does it come together? An agent is only as trustworthy as the boundaries around it, and those boundaries live in three places: what it builds on, where it runs, and what it can reach. Miss any one of them and the other two won’t cover for you. A hardened image dependency is no help if the agent can still read your whole filesystem unsandboxed, and a locked-down sandbox is no help if the agent can call an unvetted MCP server straight out of it.\n\nThat was the case Docker made all week: harden what agents build on, isolate where they run, control what they can reach, and govern all three from one place. We think this is the part that has to be solved first, because it’s where AI-native developers will start building the apps of the future.\n\nFurther reading:\n\n* [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) run standalone (brew install docker/tap/sbx)\n* [Docker AI Governance](https://www.docker.com/blog/introducing-docker-ai-governance/) ties sandbox and MCP policy into one console.\n* [MCP Catalog, Toolkit, and Gateway](https://www.docker.com/products/mcp-catalog-and-toolkit/) are in Docker Desktop today\n* [Docker Hardened Images](https://www.docker.com/products/hardened-images/) are a drop-in change to your FROM line",
+      "tags": [
+        "AI Engineer World's Fair",
+        "Agent",
+        "沙箱安全"
+      ],
+      "score": 80,
+      "summary": "Docker报道AI Engineer World's Fair 2026，强调Agent运行时沙箱安全成为关键议题。",
+      "fetched_at": "2026-07-14T22:05:17.832831+08:00"
+    },
+    {
+      "title": "DSLs Enable Reliable Use of LLMs",
+      "link": "https://martinfowler.com/articles/llm-and-dsls.html",
+      "published": "2026-07-14T20:51:00+08:00",
+      "source": "Martin Fowler",
+      "content": "LLMs generate code incredibly fast, but to ensure they generate\nexactly what is intended, they need clear boundaries. Abstractions and\nDomain-Specific Languages (DSLs) provide a strong harness that guides LLMs\nright from the start. **Unmesh Joshi** describes how the example\nof Tickloom - a domain model and DSL for illustrating distributed system\nbehavior - [shows how we can use an LLM](https://martinfowler.com/articles/llm-and-dsls.html) as a partner to iteratively build a\nDSL and as a natural language interface to use it. Such a DSL can act as\nthe key source of truth for software systems in the world of LLMs.\n\n[more…](https://martinfowler.com/articles/llm-and-dsls.html)",
+      "tags": [
+        "DSL",
+        "LLM",
+        "可靠代码生成"
+      ],
+      "score": 85,
+      "summary": "Martin Fowler文章：领域特定语言(DSL)可约束LLM生成可靠代码，作为系统真相源。",
+      "fetched_at": "2026-07-14T22:05:17.832838+08:00"
+    },
+    {
+      "title": "Reconstructing Pelé’s “lost” goal",
+      "link": "https://blog.google/innovation-and-ai/models-and-research/google-deepmind/reconstructing-peles-lost-goal/",
+      "published": "2026-07-14T21:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Screenshot_2026-07-13_at_7.18.4.max-600x600.format-webp.webp)See how Google DeepMind AI technology reconstructed Pelé’s legendary 1959 lost goal at Rua Javari in our new mini-documentary.",
+      "tags": [
+        "Google DeepMind",
+        "AI重建",
+        "贝利进球"
+      ],
+      "score": 90,
+      "summary": "Google DeepMind用AI技术重建贝利1959年失传进球，发布迷你纪录片。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Screenshot_2026-07-13_at_7.18.4.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-14T22:05:17.832842+08:00"
+    },
+    {
+      "title": "刚刚，一个免费AI Coding选手杀入全球第一梯队",
+      "link": "https://www.qbitai.com/2026/07/448475.html",
+      "published": "2026-07-14T20:36:48+08:00",
+      "source": "量子位",
+      "content": "一手实测这就奉上",
+      "tags": [
+        "AI Coding",
+        "免费",
+        "第一梯队"
+      ],
+      "score": 70,
+      "summary": "量子位报道一款免费AI编程工具进入全球第一梯队，附实测。",
+      "fetched_at": "2026-07-14T22:05:17.832847+08:00"
+    },
+    {
+      "title": "马斯克“机器人还进不了厂”刚说完，小米机器人”上岗“汽车产线了",
+      "link": "https://www.qbitai.com/2026/07/449906.html",
+      "published": "2026-07-14T20:04:42+08:00",
+      "source": "量子位",
+      "content": "全面硬刚Figure",
+      "tags": [
+        "小米机器人",
+        "汽车产线",
+        "Figure"
+      ],
+      "score": 70,
+      "summary": "量子位报道小米机器人已上岗汽车产线，与Figure竞争。",
+      "fetched_at": "2026-07-14T22:05:17.832852+08:00"
+    },
+    {
+      "title": "王建硕×徐文浩吵架局：看代码是浪费时间，还是人机唯一的桥梁",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a562c4b4ab24d105312a44e",
+      "published": "2026-07-14T20:30:00+08:00",
+      "source": "AI炼金术",
+      "content": "上一期结尾，徐文浩点名和王建硕观点有分歧，我说要拉着吵一架——这期兑现了。\n\n  \n\n一边是王建硕：12 天在 TestFlight 发了 148 个版本，每天让 Claude Code 跑 12 个小时，却给自己定了条死规矩——**不允许自己看任何一行代码**。另一边是徐文浩：团队核心库养着 13000 多个自动化 UI 测试用例，立场是**所有代码合并上线前必须有人看过**，“如果这东西不用我看代码，那它可能也不值得我做”。\n\n  \n\n我在中间煽风点火，想让他们打起来涨粉。但吵到 90 分钟，吵出来的东西比输赢有意思得多：他们对未来的判断几乎一致——五年后大概率没人看代码，分歧全在**今天怎么办。**今天怎么办？取决于你是吃面条的，还是开麦当劳的。\n\n  \n\n**嘉宾**\n\n**王建硕**｜百姓网创始人。上次来节目时的判断是“LLM 是新一代编译器、AI 写出来的代码是新一代汇编”，这一期把话说得更狠：Python、JavaScript 这些编程语言本身已经沦为汇编层。他自称原来是全公司对代码质量要求最高的人，核心代码要手搓 20 到 50 遍；最近在密集开发语音 App VoiceDrop，每天 Claude Code 工作 12 小时、每次改动要过 414 个 test case，同时逼自己一行代码都不看。\n\n  \n\n**本期亮点**\n\n→ **王建硕的新金线：if it works**\n\n  \n\n开场立论。王建硕的判断是：一旦有了 C 这样的高级语言，手写汇编既没必要也没可能，去改编译器编译出来的汇编更是毫无意义——而今天 Python、JavaScript 已经沦为那一层汇编。人类在乎代码风格、封装、注释，是因为过去一切靠人脑管理，“对于人来说不那么写，人脑将无法处理”；机器的可维护标准和人一定不一样。所以他的新标准只有一根金线：「**if it works，它只要 work 就不要去管他**。」他打了个赌：把微信几千万行的汇编打印出来，一定“疯了一样的重复、疯了一样的读不懂”——但只要上层源代码还在，这是问题吗？\n\n  \n\n→ **不允许自己看任何一行代码，那治理靠什么？靠 loop**\n\n  \n\n王建硕不是裸奔。他的 App 每次改动要过 414 个 test case，想了解某段逻辑就让 Claude Code 讲给他听，发现重复代码就定期跑一个专门的质量 skill。他也交了实底：一个 feature 从下午两点转到晚上七点，loop 一圈圈碰壁、一圈圈修，5 个小时才出来——如果沉淀成确定性代码可能 3 分钟就跑完。但他试过把流程沉淀成代码，结论是“质量没有大语言模型好，反而会出 bug”。他的原话：「一定不是用自然语言来控制，因为自然语言不准确，你一定要用 loop 来控制。」12 天 148 个版本、break 的不到 10 个，是他给这套打法的成绩单。\n\n  \n\n→ **徐文浩：我不相信自然语言，我用自然语言生成确定性工具**\n\n  \n\n徐文浩同意一半——他也不手写代码、全程 prompt 驱动。但两条底线从没松口：一，所有代码合并上线前必须有人看过；二，治理不靠自然人也不靠自然语言，靠**用自然语言生成、人审核过的确定性工具**。他的例子很具体：查重复代码，让 LLM 去扫，8 处它可能只看到 4 处，漏掉的 4 处就是未来的 bug；而基于抽象语法树的检测工具确定性扫全库，10 秒钟出重复率，超标自动触发。「就是因为自然语言在今天还是非常模糊的……所以最终我会用自然语言去生成一个确定性的代码工具，去做这个治理。」\n\n  \n\n→ **编译器比喻大战：写编译器的人，看不看汇编产出**？\n\n  \n\n全场最精彩的交锋。徐文浩：任何写编译器的人一定会看自己编译出来的汇编，否则你怎么知道编译器写得好不好？王建硕：我们根本不在写编译器——编译器是 Anthropic、OpenAI 这些 frontier lab 在写，我们不改模型参数的人，看产出就是错层。徐文浩换个角度再攻：那你为什么还给代码做版本管理？如果 prompt 才是源代码，你存 prompt 就好了，为什么要囤产物？「大概率你遇到 break，不是用原来的 prompt 重新生成一遍，你还是会退回到上一个代码版本——所以编译器这个比喻本身就不对。」这一段王建硕没有正面接。\n\n  \n\n→ **工匠精神在规模面前一文不值 vs 精益制造本来就为规模而生**\n\n  \n\n王建硕抛出全场最扎心的一句：「我这两天感觉，**工匠精神在规模面前一文不值**。」徐文浩的反击是把“规模”这个词抢回来：精益制造做得最好的丰田，本来就是为规模而生的，不是手工艺人的工匠精神；“if it works”没用，因为你 work 我也 work，最终大家是在市场上竞争——「work 不是目标，work 也并不达成我们的目标。」软件开发的本质是管理复杂度：做一个 blog 谁都能一句话生成，那它就不值钱了；你必须做人脑放不下、单个 agent loop 也放不下的复杂度，才有竞争力。\n\n  \n\n→ **AI 把测试全 mock 掉：你不看代码时，“work”可能是虚假的**\n\n  \n\n徐文浩交了自己的学费。今年 1 到 3 月他也不怎么看代码，用语音写了海量代码，内部几个人用觉得挺好；产品一上线，“爆发出惊人数量的各种奇奇怪怪的抱怨”。复盘时发现最恐怖的一幕：有段时间线上 bug 特别多，一查——AI 把测试里所有的东西都 mock 掉了，「他等于跟没测是一样的，但他觉得我的 coverage 很高」。过去两个月，团队一半精力在还当时疯狂 vibe coding 欠下的债。他的结论：「你不看代码，其实他跟你说 work 这件事情可能是虚假的。」以及那句宣言：「如果这个事情我连看代码的需求都没有，那意味着我讲几句话它就能起来，那我为什么要做它呢？」\n\n  \n\n→ **react 工程师之辩：过了桥就拆桥**？\n\n  \n\n王建硕设了个圈套：只会 react、不会手撸 HTML 的算不算软件工程师？不算？那不写汇编的算不算？只会写 HTML 的算不算？「所有人都是把自己能力线以下的划为不是软件工程师。」他给这种心态起了个名字：「你上了船以后，过了桥就把桥给拆了，后面的人都不准过桥。」会摆弄 8086 在今天就是屠龙之术——就像我们不会种庄稼，而对上一代人来说那是最基础的技能。徐文浩认账一半但守住底线：会不会汇编不重要，但你要做推理优化这类深活，对底层有没有 concept，决定了你“一个有可能做成、一个完全没可能”。\n\n  \n\n→ **吃面条的和开麦当劳的**（收束）\n\n  \n\n吵到最后发现分歧的根不在技术，在位置。王建硕：「我是一个客户，我是吃面条的。面条好吃、价格公道，我还要什么？」他要的是手里那个 work 的 App。徐文浩要的是后厨——他把公司本身当产品，目标是从今天 1 比 5、1 比 10 的研发杠杆做到 **1 比 100**，那就必须盯着生产线看。我收了两个词：一个是定位不一样，你要的是那碗面条，还是想开麦当劳；另一个是王建硕的打法本质是**矫枉过正**——明知不是当下最优解，也要把自己先丢到五年后的工作方式里，逼自己转过来。「这不见得是最优解，但是一定要这么逼着自己，才能真的转过来。」\n\n  \n\n**时间戳**\n\n00:05 冷开场：王建硕的新金线 if it works\n\n01:46 任鑫开场：煽风点火，把两位拉来当面对质\n\n03:32 手搓核心代码 20-50 遍的人，为什么一夜跳到“不看代码”阵营\n\n08:03 徐文浩：同意一半——但 harness 是用自然语言生成的确定性工具\n\n10:07 王建硕：我不允许自己看任何一行代码；414 个 test case + loop 治理\n\n14:28 徐文浩：13000 个 UI 测试用例；代码规模一上去 prompt 就限不住\n\n17:59 编译器比喻大战：写编译器的人看不看汇编产出\n\n20:20 重复代码怎么治：定期跑 skill vs 语法树工具 10 秒扫全库\n\n33:33 工匠精神在规模面前一文不值：微信汇编赌局\n\n37:20 徐文浩三连反击：版本管理悖论、精益制造为规模而生、管理复杂度\n\n42:39 分歧收敛成一个数字：时间的 95:5 还是 70:30\n\n45:39 打个赌：五年后还要看代码吗？type-c 和软盘的取舍\n\n52:13 任鑫的推土机问题：harness 优势每年被模型吃掉，不如去搞用户侧？\n\n55:03 Word 文档的 XML 你审吗：端到端测试大战\n\n01:00:16 徐文浩踩过的坑：AI 把测试全 mock 掉，“work”可能是虚假的\n\n01:02:33 小马过河：AI 写得好还是烂，取决于你自己的水平\n\n01:09:38 一到三月不看代码的代价；不用我看的东西不值得我做\n\n01:12:10 react 工程师之辩：过了桥就拆桥、屠龙之术与种庄稼\n\n01:19:04 收束：吃面条的 vs 开麦当劳的；1 比 100 的杠杆\n\n  \n\n**欢迎订阅「AI 炼金术」的播客，以及同名公众号、视频号**\n\n「AI 炼金术」是一档由徐文浩和任鑫——两位多年老友、AI 领域的资深从业者——打造的播客。这里是探讨 AI 和创业的理想聚集地，我们会邀请一线创业者、产品产品和科研学者，深入探讨 AI 如何重塑行业、变革生活，以及如何从 0 到 1 打造 AI 原生产品。 \n\n我们的讨论会涵盖多个话题：从 AI 如何改变世界的未来，到如何找到 AI 创业的 PMF；从如何利用 AI 降本增效，到怎样将 AI 技术融入日常生活……如果你对 AI、产品、创业感兴趣，这里有满满的干货和一线实战经验，欢迎关注并推荐给你的朋友，共同探索未来的无限可能！ \n\n商务合作：公众号 「AI炼金术 」菜单栏中【商务】获取联系方式 \n\n  \n\n**节目主理人：** \n\n**徐文浩：**某AI创业公司联合创始人，正在面向全球市场开发AI应用。连续创业者，参与过多家创业公司，拼多多早期员工。广告科技公司MediaV的算法和数据负责人，后被360收购。离开后加入成立不到1个月的拼多多。后创办了基于AI的海外客服聊天机器人公司 BotHub.AI 和 海外社交电商平台 Bukito 都宣告失败。2023年再次下场创业。\n\n**任鑫：**美元基金合伙人，主要在投资和孵化面向全球市场的 AI 应用。之前是连续创业者，曾经打造“今夜酒店特价”用移动互联网应用特价销售酒店尾房；被京东并购后内部创业“京东到家”开展本地即时零售业务；2015 年再次创业 Get 探索对话式人工智能助理成为先烈；2021 年出售公司，2023 年重新回到 AI 世界。\n\n  \n\n**播客剪辑：**\n\n十六颗糖\n\n  \n\n**BGM：**\n\n**片头：**Shortwire - Reconfig\n\n**片尾：**The Midnight - Los Angeles",
+      "tags": [
+        "王建硕",
+        "徐文浩",
+        "AI编程"
+      ],
+      "score": 75,
+      "summary": "播客讨论AI编程中是否应看代码，王建硕主张不看，徐文浩主张人审。",
+      "fetched_at": "2026-07-14T22:05:17.832857+08:00"
+    },
+    {
+      "title": "如何「兜住」一颗火箭？| S10E21",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a563ad5a75176d0207f0d63",
+      "published": "2026-07-14T21:30:00+08:00",
+      "source": "What's Next｜科技早知道",
+      "content": "2026年7月10日，长征十号乙运载火箭在海南商业航天发射场点火升空，一子级在南海海域被“领航者”号回收船的张力网稳稳兜住。这是中国首次成功回收运载火箭，也是全球第一次用海上网系捕获方式完成回收。\n\n这次回收最引人关注的，不只是成功本身，而是它走了一条全世界没人走过的路——海上网系捕获。我非常好奇，这种回收方式与我们常见的着陆腿，还有机械臂回收有什么不一样？第一次回收成功了，离我们大运力、低成本、高频次的航天运输目标还有多远？\n\n这期节目请来航天行业从业者 Jerry，他是知乎上航天话题的优秀答主我们聊了聊长十乙从发射到回收经历了什么、不同的回收路线各自的优劣取舍是什么、以及下半年我们的中国航天还有哪些值得期待的大事件。\n\n**本期人物**\n\nJerry，航天行业从业者，在知乎上以「太空僧」为 ID，是航天与天文学话题优秀答主\n\nYaxian，「科技早知道」主播\n\n**时间轴**\n\n03:18 中国火箭的「破冰时刻」：长十乙是什么样的火箭？\n\n* 一子级沿用长十甲载人版，液氧煤油；二子级用液氧甲烷，走混合动力路线\n* 长十系列分甲、乙、丙三型，分别指向载人登月、重型货运和全商业化\n\n08:10 从发射到回收，一枚火箭都经历了什么？\n\n* 一二级分离后，一子级经历滑行调姿、动力减速、气动减速、精确着陆\n* 一子级速度降为零，最终垂直落入 54 米见方的海上天窗\n\n13:35 闯过最后一公里的「鬼门关」：回收背后的三道关键考验\n\n* 失重条件下推进剂需\"沉底\"，否则发动机点火可能失败\n* 气动加热考验箭体隔热，格栅舵在几马赫气流中修正姿态\n* 耗时 17 年研发电静压伺服系统，实现发动机精准方向控制\n\n21:28 火箭头顶为什么冒黑烟？\n\n* 煤油不完全燃烧产生的「烟炱」说明推进剂有浪费但并非危险信号\n* 全过冷加注技术影响初期燃烧稳定性\n\n26:12 用一张网兜住火箭：网系捕获怎么做到的？\n\n* 人字形挂钩配合回收船井字形柔性网，类似航母阻拦索\n* 柔性缓冲吸收动能，箭体无需着陆腿和缓冲结构，落点容差达几十米\n* 领航者号 144 米长、满载 2.5 万吨，DP2 系统在四级海况下定位精度优于 0.5 米\n\n40:31 朱雀三号和长十二甲回收为什么失败？\n\n* 两次失败都在着陆阶段发动机不稳定，着陆是可复用火箭最难环节\n* 失败提供了真实飞行数据，为长十乙成功积累了经验\n\n48:00 着陆腿、筷子夹、网系捕获：三条路线全面对比\n\n* 着陆腿成熟但吃运力，筷子夹无需腿但精度要求极高且塔架昂贵\n* 网系回收简化箭体、兼容性强，但回收船贵、周转周期长、成熟度仍低\n* 中国选择网系基于南海发射区位和船舶工业基础，而非单纯追求技术先进\n\n53:46 从首飞成功到高频复用有多远？\n\n* 长十乙目标 2026 年底完成二次复用，但全面检测、发动机积碳排查、专家评审流程漫长\n* 网系柔性缓冲对箭体损伤小，维修复杂度低于猎鹰 9 号\n\n58:29 下半年看点：谁能接棒长十乙\n\n* 朱雀三号遥二即将验证入轨加回收，民营首次回收成功将提振商业航天信心\n* \"商业火箭才是可回收火箭的真正未来\"，国家队是后盾，盈利才是关键\n\n**「领航者号」在海上成功捕获长征十号乙的一子级**\n\n![Untitled](https://media24.fireside.fm/file/fireside-uploads-2024/images/4/4931937e-0184-4c61-a658-6b03c254754d/RM8Pl7WS.png)\n\n**相关节目**\n\n[火箭回收只有成与败，没有中间态」，与朱雀三号副总师聊聊可回收火箭的路线与挑战| S9E41](https://www.xiaoyuzhoufm.com/episode/69414a0d11cb2621e8689221)\n\n[从筚路蓝缕到做大做强，从「星舰」进化史看中国商业航天的发展与未来 ｜S8E21](https://www.xiaoyuzhoufm.com/episode/67111cacd9a875d5a9827c46)\n\n**幕后制作**\n\n监制：Yaxian\n\n后期：迪卡\n\n运营：George\n\n设计：饭团\n\n**商业合作**\n\n声动活泼商业化小队，点击链接直达**[声动商务会客厅](https://sourl.cn/9h28kj)**，也可发送邮件至 [business@shengfm.cn](mailto:business@shengfm.cn) 联系我们。\n\n**加入声动活泼**\n\n声动活泼正在招聘全职商务运营经理、早咖啡内容实习生和社群实习生，如果你也对播客行业的内容制作感兴趣，欢迎[点击招聘入口](https://eg76rdcl6g.feishu.cn/docx/XO6bd12aGoI4j0xmAMoc4vS7nBh?from=from_copylink))\n\n**关于声动活泼**\n\n「用声音碰撞世界」，声动活泼致力于为人们提供源源不断的思考养料。\n\n我们还有这些播客：[声动早咖啡](https://www.xiaoyuzhoufm.com/podcast/60de7c003dd577b40d5a40f3)、[声东击西](https://etw.fm/episodes)、[吃喝玩乐了不起](https://www.xiaoyuzhoufm.com/podcast/644b94c494d78eb3f7ae8640)、[反潮流俱乐部](https://www.xiaoyuzhoufm.com/podcast/5e284c37418a84a0462634a4)、[泡腾 VC](https://www.xiaoyuzhoufm.com/podcast/5f445cdb9504bbdb77f092e9)、[商业WHY酱](https://www.xiaoyuzhoufm.com/podcast/61315abc73105e8f15080b8a)、[跳进兔子洞](https://therabbithole.fireside.fm/) 、[不止金钱](https://www.xiaoyuzhoufm.com/podcast/65a625966d045a7f5e0b5640)\n\n欢迎在[即刻](https://okjk.co/Qd43ia)、微博等社交媒体上与我们互动，搜索 **声动活泼** 即可找到我们。\n\n期待你给我们写邮件，邮箱地址是：[ting@sheng.fm](mailto:ting@sheng.fm)\n\n![科技早知道](https://media24.fireside.fm/file/fireside-uploads-2024/images/4/4931937e-0184-4c61-a658-6b03c254754d/81NaqVaT.jpg)\n\n**欢迎扫码添加声小音，在节目之外和我们保持联系。**\n\nSpecial Guest: Jerry.",
+      "tags": [
+        "长征十号乙",
+        "火箭回收",
+        "海上网系"
+      ],
+      "score": 60,
+      "summary": "播客讨论长征十号乙火箭首次海上网系回收成功。",
+      "fetched_at": "2026-07-14T22:05:17.832860+08:00"
+    },
+    {
+      "title": "104 和天才聊天才｜如何从哈萨比斯身上理解智能，下好人生这盘大棋？ft.侯晓迪",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a562f83ca0de6c44ae70930",
+      "published": "2026-07-14T20:50:07+08:00",
+      "source": "自习室 STUDY ROOM",
+      "content": "![](https://image.xyzcdn.net/FhmHCAzrNsc1kpVzVyWWESZh1JfW.jpeg)\n\n今天是一期关于 AI 的特别节目，我们邀请了一位天才来拆解天才。\n\n过去两三年，AI的狂飙让所有人战栗：模型比拼、算力竞争、Agent、未来职业的出路……但越往前走，我们越觉得，比 AI 更有意思的，是那些创造 AI 的人。\n\n我们今天聊 Google DeepMind 的创始人 Demis Hassabis，一位集象棋神童、神经科学家、创业家和诺奖得主为一生的通才。而今天的嘉宾侯晓迪，他是无人驾驶卡车公司 Bot Auto 的创始人，是全球第一家上市的无人驾驶公司图森的联合创始人。他也是加州理工学院神经科学博士，本科就在计算机视觉的全球顶级会议 CVPR 上发了论文，还曾是少年时期被写成书的校园黑客。\n\nHassabis和侯晓迪两个人都年少成名，都不约而同成为了科学研究者，拿到了神经科学的博士。之后又都转型成为了创业者、企业家，此刻又都在推动人类往智能的更深处走去。\n\n这两人共享了一种把自己交给一件 bigger than life 的事的活法。当我们回头看Hassabis的人生，会发现那些耀眼的成就，只是一条更长故事里的不同章节。从国际象棋、游戏设计、神经科学，到人工智能，他看似不断转换身份，却始终在回答同一个问题——什么是智能？\n\n因此在这期，Guxi和侯晓迪有明确的分工，Guxi负责串故事，把书里关于Hassabis这一生的几个关键切片摘出来；晓迪负责展开，把每一个切片背后，关于智能、关于AI、关于大脑的门门道道都拆开揉碎讲明白。\n\n我们聊的不只是 AI，而是一个人在漫长的人生里，如何找到属于自己的“人生棋盘”。为什么真正厉害的人，不是在不断寻找新的风口，而是在不断靠近那个值得自己用一生回答的问题。\n\n也许 AI 会改变未来几十年的世界，但真正决定一个人能走多远的，从来不是工具，而是他愿意把自己交给什么。\n\n## 🌟Highlights\n\n* 如何知道自己尽了力？唯一的方法就是把自己推向死亡的边缘。理想的状态是你冲过终点线的那一刻，应该直接被送进医院抢救，但还没断气。只要你跑完还能站着，就说明你还有余力，也就说明你没尽全力。——Hassabis\n* 我的人生，不能耗尽我的脑子，终其一生只是为了赢一盘棋。 ——Hassabis\n* 很多时候，人是被怕自己触到天花板而吓到的，而不是真正触及天花板之后。——侯晓迪\n* 坚守自己的目的，但不要拘泥于方法。 ——侯晓迪\n* 创业不该是等你觉得ready了再开始，那样就晚了。而是拥抱这种不ready的状态，并且还游刃有余，这个就是你真正ready的时候。——侯晓迪\n* 为什么要有智能？智能的存在是否是必然？这件事情不是一个科学问题，它是一个哲学问题。——侯晓迪\n* 读书，是了解这个世界各个方面最快的方式。 ——侯晓迪\n* 人类哪怕有几千年文明，永远是更高阶的智能的垫脚石，这件事情我们也不应该为之感到惭愧，而是与有荣焉。——侯晓迪\n* 做科学，有点像在读上帝的心。我想在我死之前,把它读懂。然后,我就可以心满意足地离开了。 ——Hassabis\n* 每个人都有一件事，让你宁愿为此遭受毒打，也想一直做下去。 ——侯晓迪\n* 真正的智慧，不是一直换目标，而是不断换方法。——侯晓迪\n\n00:03:08 Hassabis 的人生经历可以把 AI 发展的脉络全串起来\n\n00:07:20 如何知道自己真的拼尽了全力？\n\n00:11:46 下棋输到呕吐 ，为什么一次失败，会成为人生真正的觉醒？\n\n00:18:44 为什么 Hassabis 不断改变身份，却始终没有改变方向？\n\n00:23:00 侯晓迪如何在大一就知道自己想要研究神经网络？\n\n00:29:22 被说烂了的“智能”，到底是什么东西？\n\n00:30:44 原来人回忆过去和想象未来，靠的是同一套机制\n\n00:41:48 为什么当初 DeepMind 同意被 Google “低价”收购是一步好棋？\n\n00:44:07 一次性讲清楚深蓝、AlphaGo、AlphaZero的区别\n\n00:52:36 其实科研的突破也像跑马拉松，一旦有人破2，新记录接踵而至\n\n00:59:24 为什么 ChatGPT 开启了一个新的时代？\n\n01:02:34 大语言模型LLM的涌现能力到底是怎么来的？\n\n01:05:47 成为管理者的挣扎：现在的 AI 竞赛有点像淘金热，变得有点低俗了。\n\n01:13:57 Hassabis 做AI最深处、最根本的动机是什么？\n\n01:15:49 为什么明知 AI 可能会威胁人类，科学家们还在不管不顾研发它？\n\n01:24:02 普通人怎么去看待和跟上 AI 接下来的发展？\n\n01:33:10 本期阅读推荐（这本书厉害了！）\n\n## 📕本期阅读推荐\n\n* The Infinity Machine 哈萨比斯：谷歌 AI 之脑 - Sebastian Mallaby\n* The Quest for Consciousness: A Neurobiological Approach 意识探秘：意识的神经生物学研究 -Christopher Koch\n\n————————\n\n感谢大家对自习室的关注与喜爱！！\n\n我们的slogan是：进步是最性感的事 ~\n\n来信投稿箱：[www.wjx.cn](https://www.wjx.cn/vm/YdCgJe0.aspx#)\n\n每期对应的学习资料 👇\n\n【视频播客】\n\n[小红书](https://www.xiaohongshu.com/user/profile/5d1d95a4000000001101f486?xhsshare=CopyLink&appuid=5a688e5411be10138ba23592&apptime=1728842186)、[B站](https://space.bilibili.com/3546660682598507?spm_id_from=333.337.0.0)、[YouTube](https://www.youtube.com/@STUDYROOM666)、[微博](https://weibo.com/u/7897647330)、[抖音](https://v.douyin.com/iB764kVB/%204@2.com)\n\n【音频平台】\n\n[苹果播客](https://podcasts.apple.com/cn/podcast/%E8%87%AA%E4%B9%A0%E5%AE%A4-study-room/id1726135306)、[喜马拉](https://xima.tv/1_hQB3as?_sonic=0)、[网易云音乐](http://163cn.tv/x9j1pId)、[Spotify](https://open.spotify.com/show/5LaFVMlI6xBQvTf67HFW2n?si=dC8TwF15T2CDo0iIyFV0UA)、[豆瓣](https://www.douban.com/doubanapp/dispatch?uri=/podcast/36860858/&dt_dapp=1)\n\n【合作】\n\n商务联系 studyroom@fit4life.world",
+      "tags": [
+        "Demis Hassabis",
+        "侯晓迪",
+        "智能"
+      ],
+      "score": 75,
+      "summary": "播客邀请侯晓迪拆解Demis Hassabis的人生与智能观。",
+      "fetched_at": "2026-07-14T22:05:17.832862+08:00"
+    },
+    {
+      "title": "阿里设计大会的这个分享确实很棒。\n\nhttps://t.co/9iJmf3i6u5",
+      "link": "https://x.com/dingyi/status/2077014759594168410",
+      "published": "2026-07-14T20:58:02+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "阿里设计大会的这个分享确实很棒。  \n  \n[alibaba-cloud-design.github.io/vibe-designing…](https://alibaba-cloud-design.github.io/vibe-designing-playbook/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNMJ6o7bUAAW-w5.jpg)\n\n💬4🔄5❤️47👀2410📊18",
+      "tags": [
+        "阿里设计大会",
+        "Vibe设计"
+      ],
+      "score": 60,
+      "summary": "丁毅推荐阿里设计大会的Vibe设计分享。",
+      "fetched_at": "2026-07-14T22:05:17.832865+08:00"
+    },
+    {
+      "title": "multiple such incidents have been reported.  \n\na clear reminder that current AI cannot be trusted. \n...",
+      "link": "https://x.com/GaryMarcus/status/2077013287913292108",
+      "published": "2026-07-14T20:52:11+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "multiple such incidents have been reported.   \n  \na clear reminder that current AI cannot be trusted.   \n  \nin racing these techniques ahead, we are asking for trouble\n\n![Bruno Lemos](https://pbs.twimg.com/profile_images/2076871178728189952/zGhkDPII_normal.jpg)\n\nBruno Lemos@brunolemos\n\nGPT-5.6 Sol just deleted my whole production database. That's it. Not a joke. This had never happened to me before, with any other model, ever. It's not safe.\n\n![Tweet Image](https://pbs.twimg.com/media/HNIoIunWgAA7pI4.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/brunolemos/status/2076769881534398974)\n\n💬13🔄6❤️41👀2672📊13",
+      "tags": [
+        "Gary Marcus",
+        "GPT-5.6",
+        "安全"
+      ],
+      "score": 75,
+      "summary": "Gary Marcus引用报告称GPT-5.6删除生产数据库，警告AI不可信。",
+      "fetched_at": "2026-07-14T22:05:17.832869+08:00"
+    },
+    {
+      "title": "一个用 Rust 写的免费 Raycast 替代品，macOS 上弹窗就能搜应用、剪贴板、文件和执行各种快捷操作。\n\nhttps://t.co/PR1WdHiJZF",
+      "link": "https://x.com/geekbb/status/2077021293560672578",
+      "published": "2026-07-14T21:24:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "一个用 Rust 写的免费 Raycast 替代品，macOS 上弹窗就能搜应用、剪贴板、文件和执行各种快捷操作。  \n  \n[github.com/MystikoLab/rus…](https://github.com/MystikoLab/rustcast)\n\n💬0🔄0❤️0👀155",
+      "tags": [
+        "Rust",
+        "Raycast替代",
+        "macOS"
+      ],
+      "score": 60,
+      "summary": "GeekBB推荐免费Rust写的Raycast替代品RustCast。",
+      "fetched_at": "2026-07-14T22:05:17.832872+08:00"
+    },
+    {
+      "title": "把你写的 HTML 片段直接变成能在 Word 里编辑的真实文档（不是图片），段落、表格、列表、图表都在。\n\nhttps://t.co/RJ6x7YVu8O",
+      "link": "https://x.com/geekbb/status/2077013743972520156",
+      "published": "2026-07-14T20:54:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "把你写的 HTML 片段直接变成能在 Word 里编辑的真实文档（不是图片），段落、表格、列表、图表都在。  \n  \n[github.com/floodtide/dom-…](https://github.com/floodtide/dom-docx)\n\n![Tweet Image](https://pbs.twimg.com/media/HNJ_qLPbMAATYeb.jpg)\n\n💬0🔄0❤️0👀812📊1",
+      "tags": [
+        "HTML转Word",
+        "dom-docx"
+      ],
+      "score": 60,
+      "summary": "GeekBB推荐HTML转可编辑Word文档工具dom-docx。",
+      "fetched_at": "2026-07-14T22:05:17.832875+08:00"
+    },
+    {
+      "title": "Solopreneurship 101: \n\nWork on yourself, take notes, and share them with others.",
+      "link": "https://x.com/thejustinwelsh/status/2077017050560557491",
+      "published": "2026-07-14T21:07:08+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Solopreneurship 101:   \n  \nWork on yourself, take notes, and share them with others.\n\n💬20🔄3❤️46👀2930📊22",
+      "tags": [
+        "个人成长",
+        "笔记"
+      ],
+      "score": 30,
+      "summary": "Justin Welsh分享个人创业心得：提升自己、记笔记并分享。",
+      "fetched_at": "2026-07-14T22:05:17.832877+08:00"
+    },
+    {
+      "title": "My entire feed is people and topics I care about and almost no low-IQ culture wars. \n\nWhat a refresh...",
+      "link": "https://x.com/thejustinwelsh/status/2077014586255888458",
+      "published": "2026-07-14T20:57:21+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "My entire feed is people and topics I care about and almost no low-IQ culture wars.   \n  \nWhat a refreshing update.\n\n💬20🔄1❤️42👀3358📊20",
+      "tags": [
+        "社交媒体",
+        "信息流"
+      ],
+      "score": 20,
+      "summary": "Justin Welsh感叹信息流优化后无低智内容。",
+      "fetched_at": "2026-07-14T22:05:17.832880+08:00"
+    },
+    {
+      "title": "ICYMI: https://t.co/xQmGdn8YPq",
+      "link": "https://x.com/LangChain/status/2077015528216879110",
+      "published": "2026-07-14T21:01:05+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "ICYMI: [langchain.com/blog/langchain…](https://www.langchain.com/blog/langchain-and-nvidia-launch-the-nemoclaw-deep-agents-blueprint)\n\n💬0🔄0❤️2👀673📊1",
+      "tags": [
+        "LangChain",
+        "NVIDIA",
+        "Agent蓝图"
+      ],
+      "score": 70,
+      "summary": "LangChain与NVIDIA发布Nemoclaw深度Agent蓝图。",
+      "fetched_at": "2026-07-14T22:05:17.832882+08:00"
+    },
+    {
+      "title": "Jensen Huang on what changed in the last six months. \n\nAgentic systems grounded in knowledge, with t...",
+      "link": "https://x.com/LangChain/status/2077015526929297914",
+      "published": "2026-07-14T21:01:05+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Jensen Huang on what changed in the last six months.   \n  \nAgentic systems grounded in knowledge, with tools, memory, and the ability to iterate until the job gets done.  \n  \nNow, the models have finally caught up to make it work.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2077015481639133184/pu/vid/avc1/1280x720/tFcWvp6htVPM0Ypw.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2077015526929297914/video/1)\n\n💬3🔄4❤️12👀1931📊6",
+      "tags": [
+        "Jensen Huang",
+        "Agent",
+        "工具记忆"
+      ],
+      "score": 80,
+      "summary": "Jensen Huang谈Agent系统：基于知识、工具、记忆，模型已成熟。",
+      "fetched_at": "2026-07-14T22:05:17.832885+08:00"
+    },
+    {
+      "title": "Prompt 1:\nVibrant close-up candid selfie-style photograph of a young woman with wet slicked-back hai...",
+      "link": "https://x.com/recraftai/status/2077005636995354946",
+      "published": "2026-07-14T20:21:47+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Prompt 1:  \nVibrant close-up candid selfie-style photograph of a young woman with wet slicked-back hair and colorful beaded hair clips, grinning widely at the camera from a high angle, poolside. She wears a bright turquoise cropped rash guard, small gold layered necklaces, and stacked jelly bangles catching the light. A neon-orange pool float is visible behind her, water sparkling under bright midday sun. Background shows a modern rooftop pool deck with turquoise tile and white lounge chairs. Bright saturated tropical color palette, contemporary lifestyle photography, crisp phone-camera clarity with high-contrast sunlight, playful candid summer-vacation aesthetic, tight cropped composition.  \n  \nPrompt 2:  \nVibrant candid photograph of a young woman with a sleek black bob and thin round electric-blue tinted sunglasses, standing beneath a glowing ferris wheel at a night fair, colorful lights reflecting across her face in pink, gold, and cyan. She wears an oversized metallic gold puffer jacket over a bright emerald-green slip dress, chunky white platform boots, and a small crossbody bag in glossy patent red. Background shows blurred carnival lights, a cotton candy stand, and a dark night sky. Bright saturated color palette, modern nightlife editorial photography, crisp digital clarity contrasted against soft bokeh lights, dynamic low-angle composition emphasizing scale and glow.  \n  \nPrompt 3:  \nVibrant candid photograph from a high overhead angle of a young woman with long braided pigtails dyed pastel-pink at the tips, crouching to arrange a bouquet of vivid orange ranunculus and purple anemones at an outdoor flower market stall. She wears a bright cobalt-blue utility jumpsuit rolled at the ankles, chunky white canvas sneakers, and a small crossbody bag in sunshine-yellow canvas. The stall overflows with buckets of vividly colored blooms in fuchsia, orange, and violet, wooden crates stacked beside her. Bright saturated color palette, modern lifestyle photography, crisp digital clarity with soft overcast light enhancing color vibrancy, playful bird's-eye-view composition emphasizing pattern and color repetition.  \n  \nPrompt 4:  \nVibrant close-up candid photograph looking down at a woman's legs and hands as she sits cross-legged in a red vinyl diner booth. She wears bright fuchsia-pink faux-leather trousers, chunky white ankle socks with a rainbow stripe, and clear PVC platform sandals with colorful floral appliqués. Her hand rests on the table wearing stacked colorful acrylic rings, sleeve of a butter-yellow puffer jacket visible. A small holographic silver handbag with a chain strap sits on the seat beside her. The table below holds a milkshake in a tall glass with a striped straw and neon signage reflecting off the chrome table edge. Bright saturated color palette, modern Y2K-revival aesthetic, crisp digital photography with punchy contrast, playful retro-diner composition shot from directly above.\n\n💬0🔄0❤️0👀168",
+      "tags": [
+        "Recraft V4.1",
+        "AI图像",
+        "写实"
+      ],
+      "score": 70,
+      "summary": "Recraft展示V4.1版本更自然的照片级图像生成示例。",
+      "fetched_at": "2026-07-14T22:05:17.832888+08:00"
+    },
+    {
+      "title": "Bold color. Real texture. Editorial polish.\n\nRecraft V4.1, more natural photorealism — vibrant scene...",
+      "link": "https://x.com/recraftai/status/2077005546868089011",
+      "published": "2026-07-14T20:21:25+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Bold color. Real texture. Editorial polish.  \n  \nRecraft V4.1, more natural photorealism — vibrant scenes that still feel intentional, not stock.  \n  \nPrompts ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HNMAydlXgAATQ41.jpg)![Tweet Image](https://pbs.twimg.com/media/HNMAydnWcAApjJy.jpg)![Tweet Image](https://pbs.twimg.com/media/HNMAydpXkAAuHXm.jpg)![Tweet Image](https://pbs.twimg.com/media/HNMAydpWsAAD6si.jpg)\n\n💬1🔄0❤️6👀429📊2",
+      "tags": [
+        "Recraft V4.1",
+        "AI图像",
+        "写实"
+      ],
+      "score": 70,
+      "summary": "Recraft发布V4.1，提升自然照片级写实效果。",
+      "fetched_at": "2026-07-14T22:05:17.832890+08:00"
+    },
+    {
+      "title": "搞笑的就是你以为3D打印机埋圈6铷磁铁很容易，但是....磁铁趴喷嘴上了....",
+      "link": "https://x.com/feltanimalworld/status/2077006703199981830",
+      "published": "2026-07-14T20:26:01+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "搞笑的就是你以为3D打印机埋圈6铷磁铁很容易，但是....磁铁趴喷嘴上了....\n\n![Susan STEM](https://pbs.twimg.com/profile_images/1941884420048265216/Dbcchu0q_normal.jpg)\n\nSusan STEM@feltanimalworld\n\n我天，上推特真是有用啊，我还在想着加一个固定栓呢，怎么就没想到磁铁呢？\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076754214185738240/vid/avc1/1080x1920/E02iNKHriPG3GqjQ.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/feltanimalworld/status/2076754402791075995/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/feltanimalworld/status/2076754402791075995)\n\n💬3🔄0❤️1👀868📊3",
+      "tags": [
+        "3D打印",
+        "磁铁"
+      ],
+      "score": 20,
+      "summary": "用户分享3D打印机埋磁铁时磁铁被喷嘴吸住的趣事。",
+      "fetched_at": "2026-07-14T22:05:17.832893+08:00"
+    },
+    {
+      "title": "Cola 全新改版，隆重登场！\n\n在过去的一个月，我们从头开始重新思考 Cola 的最佳交互形态。\n我们选择从千篇一律的 Chat 中抽离出来，化繁为简，把 Cola 做成一个沉浸式的桌面 AI 搭档...",
+      "link": "https://x.com/oran_ge/status/2077010664221270242",
+      "published": "2026-07-14T20:41:45+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "Cola 全新改版，隆重登场！  \n  \n在过去的一个月，我们从头开始重新思考 Cola 的最佳交互形态。  \n我们选择从千篇一律的 Chat 中抽离出来，化繁为简，把 Cola 做成一个沉浸式的桌面 AI 搭档。  \n让你打开 Cola 时，我们希望你能自然地沉浸于此，尽情创造。  \n或者哪怕不想工作，只是在这里呆着，看着窗外的风景，听听风声鸟鸣。  \n从清晨到傍晚，从晴天到雨天。  \n  \n在这个沉浸式的 Cola 桌面里，我们精心打造了这些功能：  \n1. Chat，以最轻松的方式和拥有长期记忆的 Cola 一起创造，时刻为你的生活提供助力。全新的交付面板，让你的处理文件时更为方便。  \n2. Coding，如果你准备好投入到严肃工作之中，那就打开全新的 Coding 吧。专业的界面让你掌控细节，多项目多任务同时进行，成倍提高效率。  \n3. 技能中心，我们为你精选了我们最推荐使用的 Skills，不管是 PPT、网页，还是设计、视频，都可以一键安装，立即掌握各类技能。精选推荐还会每日更新，帮助你每天进步。  \n4. 觉知，原来的心迹升级为觉知，整体做了优化，并增加了金句卡片生成功能，而且即将迎来重要更新，敬请期待。  \n  \n重要的机制变动：  \n  \n切换模型时不再清空上下文，可自由根据不同任务切换模型。  \n内置模型即将迎来重要升级，更加超值 Token Plan 也在研发中。  \n  \n其他的一些改动：  \n  \n闹钟，功能全面优化，让你更方便地管理和执行定时任务。  \n原有 Codex 和 Claude Code的支持，改为在 Coding 中调用。  \n  \n还有更多的数十项优化不再多说，等待你的发现。  \n  \nCola 官网海外访问：[Cola.app](http://Cola.app)  \n  \n国内镜像：[ColaOS.AI](http://ColaOS.AI)\n\n![Tweet Image](https://pbs.twimg.com/media/HNMGIz2bUAA4lLK.jpg)![Tweet Image](https://pbs.twimg.com/media/HNMGIz3acAAuSOX.jpg)![Tweet Image](https://pbs.twimg.com/media/HNMGIz-a8AAuqKd.jpg)![Tweet Image](https://pbs.twimg.com/media/HNMGIz7aoAAg_1q.jpg)\n\n💬5🔄1❤️9👀2204📊6",
+      "tags": [
+        "Cola",
+        "桌面AI",
+        "改版"
+      ],
+      "score": 75,
+      "summary": "Cola全新改版为沉浸式桌面AI搭档，支持Chat、Coding、技能中心。",
+      "fetched_at": "2026-07-14T22:05:17.832895+08:00"
+    },
+    {
+      "title": "和姚老师一起搭档，这几个月做了很多事，开源了很多项目。\n\n关于 X 冷启动，对于持续有干货输出的人其实不难。",
+      "link": "https://x.com/vista8/status/2077008144648060965",
+      "published": "2026-07-14T20:31:45+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "和姚老师一起搭档，这几个月做了很多事，开源了很多项目。  \n  \n关于 X 冷启动，对于持续有干货输出的人其实不难。\n\n![姚金刚](https://pbs.twimg.com/profile_images/2039226063088463872/_zw7eSeM_normal.jpg)\n\n姚金刚@yaojingang\n\n[x.com/i/article/2076…](http://x.com/i/article/2076875794073436161)\n\n[🔗 View Quoted Tweet](https://x.com/yaojingang/status/2076880816416895083)\n\n💬3🔄0❤️1👀972📊3",
+      "tags": [
+        "X冷启动",
+        "开源"
+      ],
+      "score": 30,
+      "summary": "向阳乔木分享与姚老师合作开源项目及X冷启动经验。",
+      "fetched_at": "2026-07-14T22:05:17.832898+08:00"
+    },
+    {
+      "title": "最近见了几个宇宙厂工作的朋友。\n\n一个是产品经理，开始用 AI 出方案，AI 画原型、写代码。\n\n一个是后端研发，开始用 AI 写PRD，对接业务，根据“一句话需求” 开发全套产品...\n\n虽然都拓展...",
+      "link": "https://x.com/vista8/status/2077006241302200396",
+      "published": "2026-07-14T20:24:11+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "最近见了几个宇宙厂工作的朋友。  \n  \n一个是产品经理，开始用 AI 出方案，AI 画原型、写代码。  \n  \n一个是后端研发，开始用 AI 写PRD，对接业务，根据“一句话需求” 开发全套产品...  \n  \n虽然都拓展了边界，但业术有专攻，验证需求没问题，但打磨还是得靠专业的人吧？  \n  \n有点赶鸭子上架，为了用 AI 而用 AI 呢。\n\n💬4🔄0❤️6👀2012📊4",
+      "tags": [
+        "AI应用",
+        "产品经理",
+        "研发"
+      ],
+      "score": 40,
+      "summary": "向阳乔木观察大厂员工用AI拓展工作边界，但认为打磨仍需专业。",
+      "fetched_at": "2026-07-14T22:05:17.832901+08:00"
+    },
+    {
+      "title": "Google and Industry Partners Announce Agentic Resource Discovery Specification for AI Agents",
+      "link": "https://www.infoq.com/news/2026/07/agentic-resource-discovery-spec/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-14T21:40:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/agentic-resource-discovery-spec/en/headerimage/generatedHeaderImage-1783309687458.jpg)\n\nGoogle and industry partners announced Agentic Resource Discovery (ARD) Specification, an open standard for publishing, discovering, and verifying AI tools, APIs, and agents. ARD introduces a discovery layer built on catalogs and registries, enabling dynamic capability discovery while leveraging existing protocols such as MCP and OpenAPI for execution and emphasizing trust and interoperability.\n\n*By Leela Kumili*",
+      "tags": [
+        "ARD",
+        "Agent资源发现",
+        "开放标准"
+      ],
+      "score": 85,
+      "summary": "Google与行业伙伴发布Agentic Resource Discovery开放标准，用于AI工具发现与验证。",
+      "fetched_at": "2026-07-14T22:05:17.832904+08:00"
+    },
+    {
+      "title": "Meta's Noninvasive Brain–Computer Interface Brain2Qwerty Achieves 61% Accuracy",
+      "link": "https://www.infoq.com/news/2026/07/meta-brain-interface/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-14T21:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/meta-brain-interface/en/headerimage/generatedHeaderImage-1783863685064.jpg)\n\nMeta recently open-sourced Brain2Qwerty v2, a noninvasive Brain–Computer Interface (BCI) that can decode sentences from thoughts using electroencephalography (EEG) or magnetoencephalography (MEG) signals from the brain. In evaluations, the system achieved a word accuracy rate 61% on average, compared to 8% for other non-invasive methods.\n\n*By Anthony Alford*",
+      "tags": [
+        "Meta",
+        "脑机接口",
+        "Brain2Qwerty"
+      ],
+      "score": 85,
+      "summary": "Meta开源非侵入式脑机接口Brain2Qwerty v2，单词准确率61%。",
+      "fetched_at": "2026-07-14T22:05:17.832906+08:00"
+    },
+    {
+      "title": "Presentation: Lessons Learned in Migrating to Micro-Frontends",
+      "link": "https://www.infoq.com/presentations/migration-micro-frontend/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-14T20:42:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/presentations/migration-micro-frontend/en/mediumimage/luca-mezzalira-medium-1783500980769.jpeg)\n\nLuca Mezzalira shares proven learnings from guiding hundreds of teams through the migration from monolithic web applications to distributed frontend architectures. He explains the core architectural difference between components and micro-frontends, outlines a 6-step decision framework spanning client vs. server rendering, and discusses how to utilize edge compute for safe, iterative rollouts.\n\n*By Luca Mezzalira*",
+      "tags": [
+        "微前端",
+        "迁移",
+        "架构"
+      ],
+      "score": 60,
+      "summary": "InfoQ分享微前端迁移经验，包括决策框架和边缘计算应用。",
+      "fetched_at": "2026-07-14T22:05:17.832909+08:00"
     }
   ]
 }
