@@ -1329,6 +1329,316 @@
       "score": 65,
       "summary": "Ollama 的 jmorgan 在 Yahoo Finance 谈论开放模型。",
       "fetched_at": "2026-07-14T06:03:29.908832+08:00"
+    },
+    {
+      "title": "How Unity Catalog managed tables bring interoperability, performance, and unified governance to the Lakehouse",
+      "link": "https://www.databricks.com/blog/how-unity-catalog-managed-tables-bring-interoperability-performance-and-unified-governance",
+      "published": "2026-07-14T06:30:00+08:00",
+      "source": "Databricks",
+      "content": "Unity Catalog was designed for interoperability at scale. Enterprises have the flexibility...",
+      "tags": [
+        "Unity Catalog",
+        "Databricks",
+        "Lakehouse"
+      ],
+      "score": 70,
+      "summary": "Databricks介绍Unity Catalog托管表如何实现互操作性、性能和统一治理。",
+      "fetched_at": "2026-07-14T08:00:56.758153+08:00"
+    },
+    {
+      "title": "DOOMQL",
+      "link": "https://simonwillison.net/2026/Jul/13/doomql/#atom-everything",
+      "published": "2026-07-14T06:34:41+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[DOOMQL](https://github.com/petergpt/doomql)**\n\nPeter Gostev built this using GPT-5.6 Sol. This is a *lot* of fun: \n> DOOMQL started with a deliberately unreasonable question: what if SQLite were the game engine, not merely the place where a game stores data?\n>\n> The result is a small, original Doom-like game in which SQL owns movement, collision, enemies, combat, progression and every RGB pixel on screen.\n\nIt's implemented as a Python terminal script - I tried it out like this:\n\n```\ncd /tmp\ngit clone https://github.com/petergpt/doomql\ncd doomql\nuv run host/doomql.py\n```\n\n![Screenshot of a macOS terminal window titled \"doomql — python3.14 ◂ uv run host/doomql.py — 134×31\" showing a retro Doom-style game rendered as text-mode pixel art. The scene is a pixelated first-person corridor with gray paneled walls, dark red doors on the far left and right, a floating cyan-and-gold coin pickup on the right side, a white crosshair near the center, and a dark weapon barrel rising from the bottom center. A status bar below the scene reads \"HP 100/100 AMMO 037 SCORE 00225 INDEX MISSING TICK 0028450\", followed by an orange line \"FIND THE INDEX TOKEN\" and a cyan controls line \"WASD MOVE J/L OR ARROWS TURN SPACE FIRE E USE P PAUSE CTRL-C EXIT\".](https://static.simonwillison.net/static/2026/doomql-window.png)\n\nHere's [the huge SQL query](https://github.com/petergpt/doomql/blob/main/sql/003_render.sql) that implements a full ray tracer in SQLite using a recursive CTE.\n\nRunning the above script creates a `/tmp/doomql/.doomql/doomql.sqlite` SQLite database, which you can explore using Datasette like this:\n\n```\nuvx --prerelease=allow  --with datasette-apps datasette \\\n  /tmp/doomql/.doomql/doomql.sqlite \\\n  -p 4444 --root --secret 1 --internal internal.db\n```\n\nThe `--with datasette-apps` option installs the new [Datasette Apps](https://simonwillison.net/2026/Jun/18/datasette-apps/) plugin, which supports creating custom HTML+JavaScript apps that can run SQL queries directly within the Datasette interface.\n\nI created a new app, pasted the copy-paste prompt into Claude chat (Fable 5) [and told it](https://claude.ai/share/c793280c-2ef1-4555-a7c2-31281abfdf78):\n\n> `Build an app that displays the current state of the screen using the frame_pixels view with its x, y, r, g, b columns. have it refresh once a second.`\n\nThis got me a working HTML+JavaScript app inside Datasette that could reflect the current state while I played the game in my terminal. Then I added:\n\n> `add a minimap`\n\nAnd now my Datasette App looks like this:\n\n![Screenshot of a dark-themed web app running a retro Doom-style game rendered from SQL queries. The page header reads \"DOOMQL\" with buttons \"All apps\", \"Edit app\", \"Pin\", and \"Full screen\". Inside the game panel, the title \"DOOMQL\" sits above the subtitle \"auto-refreshing once a second · frame and tactical map straight from SQL\". The left side shows a pixelated first-person corridor view with gray walls, dark red doors, a floating cyan-and-gold coin pickup, a white crosshair, and a weapon barrel at bottom center. A status bar below reads \"HP 100/100 AMMO 037 SCORE 00225 INDEX MISSING TICK 0027847\". On the right, a panel titled \"TACTICAL MAP\" shows a top-down grid map with a player triangle, a red enemy circle, yellow pickup dots, red wall markers, and a green exit square, with a legend reading \"you\", \"enemy\", \"pickup\", \"locked door\", \"door\", \"exit\". Below the game view, an orange banner reads \"FIND THE INDEX TOKEN\", followed by the cyan line \"READ-ONLY VIEWER · SELECT x, y, r, g, b FROM frame_pixels\". At the bottom, a green \"RUNNING\" badge appears beside the stats \"160×54 · 8,640 pixels · 3 hostiles · query 89 ms · refreshing every 1 s\".](https://static.simonwillison.net/static/2026/doomql-datasette-app.png)\n\nHere's [the HTML app code](https://gist.github.com/simonw/7c78184476fccd4b70b02f7f9048dffa) - paste that into your own Datasette instance (using the `uvx --with datasette-apps` recipe from above) to try it yourself.\n\nVia [@petergostev](https://twitter.com/petergostev/status/2076692164310884468)\n\nTags: [games](https://simonwillison.net/tags/games), [sql](https://simonwillison.net/tags/sql), [sqlite](https://simonwillison.net/tags/sqlite), [ai](https://simonwillison.net/tags/ai), [datasette](https://simonwillison.net/tags/datasette), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [ai-assisted-programming](https://simonwillison.net/tags/ai-assisted-programming), [gpt](https://simonwillison.net/tags/gpt), [datasette-apps](https://simonwillison.net/tags/datasette-apps)",
+      "tags": [
+        "DOOMQL",
+        "GPT-5.6 Sol",
+        "SQLite射线追踪"
+      ],
+      "score": 80,
+      "summary": "开发者用GPT-5.6 Sol构建DOOMQL，在SQLite中实现类Doom游戏引擎。",
+      "fetched_at": "2026-07-14T08:00:56.758168+08:00"
+    },
+    {
+      "title": "Chat SDK adds X adapter support",
+      "link": "https://vercel.com/changelog/chat-sdk-adds-x-adapter-support",
+      "published": "2026-07-14T08:00:00+08:00",
+      "source": "Vercel News",
+      "content": "Chat SDK now supports X (Twitter), extending its single-codebase approach to Slack, Discord, GitHub, Teams, Telegram, and WhatsApp with the new [X adapter](https://chat-sdk.dev/adapters/official/x).\n\nTeams can build bots that reply to public mentions and hold direct message conversations through the X API v2 and the [X Activity API](https://docs.x.com/x-api/activity/introduction). The adapter handles CRC verification and webhook signature checks automatically and can manage OAuth token refresh for long-running bots.\n\nLikes are the only supported reaction, and responses post once on completion since X has no native streaming. X's [automation rules](https://docs.x.com/developer-terms/policy) apply to automated messages.\n\nRead the [documentation](https://chat-sdk.dev/adapters/official/x) to get started, browse the [directory](https://chat-sdk.dev/adapters), or [build your own](https://chat-sdk.dev/docs/contributing/building).\n\n[Read more](https://vercel.com/changelog/chat-sdk-adds-x-adapter-support)",
+      "tags": [
+        "Chat SDK",
+        "X适配器",
+        "Vercel"
+      ],
+      "score": 70,
+      "summary": "Vercel Chat SDK新增X（Twitter）适配器，支持构建多平台聊天机器人。",
+      "fetched_at": "2026-07-14T08:00:56.758175+08:00"
+    },
+    {
+      "title": "The Visual Studio Dev/Test Benefit: Freedom to Build, Test, and Experiment in Azure",
+      "link": "https://devblogs.microsoft.com/visualstudio/the-visual-studio-dev-test-benefit-freedom-to-build-test-and-experiment-in-azure/",
+      "published": "2026-07-14T06:21:36+08:00",
+      "source": "Visual Studio Blog",
+      "content": "[![DevTest blog tile 800x200 v2 image](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/DevTest-blog-tile_800x200_v2-scaled.webp)](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/DevTest-blog-tile_800x200_v2-scaled.webp)\n\nOne of the best parts of a Visual Studio Subscription is discovering benefits that can make your day-to-day development work easier and more cost effective. One benefit that deserves more attention is Azure Dev/Test pricing. In fact, it’s one of the most valuable benefits included with a Visual Studio Subscription. \n\nIf you’re building cloud applications, testing new ideas, or maintaining multiple development environments, cloud costs can sometimes influence how often you experiment or how closely your development environment matches production. Azure Dev/Test pricing helps remove that barrier by giving eligible Visual Studio subscribers access to discounted Azure pricing for non-production workloads. \n\nWhether you’re an individual developer exploring a new idea or part of a team building complex cloud applications, this benefit gives you the flexibility to experiment, validate, and iterate without letting cloud costs slow you down. \n\n## **Why developers should care**\n\nDevelopers thrive when they have the freedom to experiment. \n\nWhether you’re evaluating a new architecture, validating performance, testing deployment pipelines, or exploring AI and cloud services, you shouldn’t have to second guess spinning up the resources you need. Azure Dev/Test pricing makes it easier to create, test, and tear down environments without worrying about unnecessary development costs. \n\nImagine your team is preparing a major feature release. Instead of sharing a single test environment or delaying validation because of cloud costs, developers can quickly provision a dedicated Azure environment, run performance and integration tests, gather feedback, and remove the resources when testing is complete. That faster feedback cycle helps teams identify issues earlier and move confidently toward production. \n\nThis flexibility helps teams iterate faster, shorten feedback loops, and support agile DevOps practices while keeping non-production environments cost effective. \n\n## **Build and test with production-like Azure services**\n\nOne of the biggest advantages of Azure Dev/Test pricing is that you’re working with the same Azure services you’ll use in production, rather than a limited sandbox environment. \n\nThat means you can: \n\n* Test application performance and behavior in environments that closely resemble production.\n\n* Create temporary environments for feature development, testing, and validation.\n\n* Shut down idle resources when they’re no longer needed and avoid overprovisioning.\n\n* Experiment with new Azure capabilities without unnecessary cost concerns.\n\n* Support continuous integration and delivery workflows with realistic testing environments.\n\nThis is where the benefit really stands out. You’re not just reducing costs. You’re giving your team the flexibility to learn, experiment, and build with greater confidence before deploying to production. \n\nIt’s important to note that Azure Dev/Test pricing is designed specifically for development and testing workloads, not production environments. Using separate environments both helps organizations take advantage of Dev/Test pricing and supports sound engineering practices for more predictable deployments. \n\n## **Choose the Dev/Test option that’s right for your organization**\n\nVisual Studio subscribers can take advantage of Azure Dev/Test pricing through three purchasing options, depending on how their organization purchases Azure. \n\n[**Enterprise Dev/Test**](https://azure.microsoft.com/en-us/pricing/offers/ms-azr-0148p/) \n\nDesigned for organizations using an Enterprise Agreement (EA), this option provides centralized billing and comprehensive management capabilities for teams running multiple non-production environments. \n\n[**Azure Plan for Dev/Test**](https://azure.microsoft.com/pricing/offers/ms-azr-0148g/) \n\nAvailable for organizations using a Microsoft Customer Agreement (MCA), Azure Plan for Dev/Test offers modern billing flexibility as customers transition from legacy purchasing agreements. \n\n[**Pay-As-You-Go Dev/Test**](https://azure.microsoft.com/pricing/offers/ms-azr-0023p/) \n\nIdeal for individual developers and smaller teams with Visual Studio Professional or Enterprise Subscriptions who are not covered by an Enterprise Agreement, this option provides an easy way to access Dev/Test pricing while maintaining billing flexibility. \n\n## **Start using Azure Dev/Test pricing today**\n\nIf you’re a Visual Studio Professional or Enterprise subscriber, sign in to [**my.visualstudio.com**](https://aka.ms/myvs) to learn more about Azure Dev/Test pricing and choose the option that best fits your organization. \n\nIt’s an easy way to reduce development cost friction, accelerate your projects, and get even more value from your Visual Studio Subscription. \n\n[Learn More](https://aka.ms/myvs)\n\nThe post [The Visual Studio Dev/Test Benefit: Freedom to Build, Test, and Experiment in Azure](https://devblogs.microsoft.com/visualstudio/the-visual-studio-dev-test-benefit-freedom-to-build-test-and-experiment-in-azure/) appeared first on [Visual Studio Blog](https://devblogs.microsoft.com/visualstudio).",
+      "tags": [
+        "Visual Studio",
+        "Azure Dev/Test"
+      ],
+      "score": 60,
+      "summary": "Visual Studio订阅用户可享受Azure Dev/Test折扣定价，降低开发测试成本。",
+      "fetched_at": "2026-07-14T08:00:56.758179+08:00"
+    },
+    {
+      "title": "#626.僭越、身体与虚拟之镜：Jordan Wolfson 的两场深度对话",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a55315a27a4eec16c4028f3",
+      "published": "2026-07-14T07:00:00+08:00",
+      "source": "跨国串门儿计划",
+      "content": "🎙️ 僭越、身体与虚拟之镜：Jordan Wolfson 的两场深度对话\n\n🧩 双集合辑来源\n\n这次带来的是一份由两段彼此独立的对谈按顺序拼接而成的特别合集。\n\n第一部分：David Zwirner｜Jordan Wolfson and Jeremy O. Harris | S2, E1 | DIALOGUES\n\n原内容更新时间：2023-05-25\n\n原始链接：[www.youtube.com](https://www.youtube.com/watch?v=muQelxBbwQ8)\n\n第二部分：FondationBeyeler｜Artist Talk with Jordan Wolfson and Beatrix Ruf\n\n原内容更新时间：2025-08-18\n\n原始链接：[www.youtube.com](https://www.youtube.com/watch?v=DzJebnZXA-c)\n\n📝 合集简介\n\n这组合集将两场跨越不同时空的对话并置，共同展现了美国艺术家 Jordan Wolfson 激进、坦诚且充满智识挑战的创作世界。第一部分录制于 2023 年，Wolfson 与剧作家 Jeremy O. Harris 在 David Zwirner 的播客中对谈，两位挚友从流行文化谈到种族、僭越与创作中的身体性，火花四溅。第二部分则跳跃到 2025 年，Wolfson 在 Fondation Beyeler 与策展人 Beatrix Ruf 深入剖析其 VR 新作《Little Room》，探讨技术、幻觉与人类境况的永恒主题。将这两段内容放在一起，既能感受到 Wolfson 与同道中人碰撞时的幽默与锋利，也能看到他面对自身作品时冷静、深邃的哲学思辨。\n\n⏱️ 时间戳\n\n第一部分：Jordan Wolfson 与 Jeremy O. Harris 的对谈\n\n02:14 相识与共鸣：从《Real Violence》到《Daddy》的震撼\n\n14:38 流行文化作为激进的形式装置：音乐、色情片与互联网思维\n\n26:29 身体、再现与早期影响：从《巴黎最后的探戈》到个人性向探索\n\n38:46 观众、种族与艺术圈的保守：为戏剧重新注入酷感\n\n51:46 无意义、愤怒与《Slave Play》的百老汇之路\n\n01:03:33 新作动向：电子动画、全息雕塑与抽走野心的意图\n\n第二部分：Jordan Wolfson 与 Beatrix Ruf 的对谈\n\n01:03:35 二十年合作回溯：从早期影像到对互动性的批判\n\n01:11:12 《Little Room》的技术内核：扫描、AI 拼合与反幻觉美学\n\n01:18:06 创作哲学：作为“接收型”艺术家，接纳技术的不完美与人类境况\n\n01:25:45 致谢与展览缘起：从《Body Sculpture》的取消到新作的诞生\n\n🌟 精彩内容\n\n- **暴力的虚构性**：Jeremy O. Harris 指出，Jordan Wolfson 的《Real Violence》之所以令人兴奋，在于它将暴力呈现为一种纯粹的虚构，迫使观众直面自身的不适，这种严谨性在当代文化中极为罕见。\n\n- **流行文化的激进引入**：Wolfson 认为，对流行文化素材改动越少，其引入就越激进。不赋予其额外的形式价值，反而能将它推向另一种频率，从主流文化中抽离出抽象。\n\n- **色情片的地域政治**：Harris 观察到柏林 Pornhub 的内容更暴力，并将其解读为欧洲对中东情欲化的恐惧，一种通过性来消化排外情绪的机制，并将此与《Slave Play》中美国白人与黑人身体间未被承认的精神情欲关系相联系。\n\n- **“行不通反而行得通”**：Wolfson 将自己的创作方法描述为“引入见证”，通过剪辑消解讯息，创造一种格式塔态度，甚至追求一种自然主义的漠然，让作品在逻辑失效处产生力量。\n\n- **身体作为判断真实性的标准**：Harris 引用剧作家 Annie Baker 的观点，强调写作时身体的即时反应（鸡皮疙瘩、哭泣）是判断作品真实性的唯一标准，这与 Wolfson 所说的“相信自己的观看方式”形成共鸣。\n\n- **对互动性的批判**：Wolfson 认为艺术的核心在于观看者与物体间的被动性，而 VR 的原生互动性会破坏这种沟通桥梁，使作品沦为说教工具。因此，他在《Little Room》中通过排队、扫描等环节，层层剥夺观众的自主权。\n\n- **接纳而非选择**：Wolfson 自称是“接收型”艺术家，作品来自直觉的“下载”。他区分了“选择”与“接受”，认为接受的东西往往更深刻，并以沃霍尔的《最后的晚餐》为例，说明接纳如何让作品升华。\n\n- **技术的不完美即当代写照**：他坦然接受《Little Room》的视觉“像屎一样”，并认为作品会随时间老化。这种对实时渲染技术限制的接纳，本身就是对当代技术状况的真实写照，他真正关注的是爱、性、死亡等永恒主题。\n\n🌐 播客信息补充\n\n本播客采用原有人声声线进行播客音频制作，也可能会有一些地方听起来怪怪的\n\n使用 AI 进行翻译，因此可能会有一些地方不通顺；\n\n如果有后续想要听中文版的其他外文播客，也欢迎联系微信：iEvenight",
+      "tags": [
+        "Jordan Wolfson",
+        "艺术对话",
+        "VR作品"
+      ],
+      "score": 50,
+      "summary": "播客收录艺术家Jordan Wolfson两场深度对谈，涉及VR新作《Little Room》。",
+      "fetched_at": "2026-07-14T08:00:56.758182+08:00"
+    },
+    {
+      "title": "AI 越来越牛逼，却没人想重新发明一个框架颠覆 react 了。",
+      "link": "https://x.com/dingyi/status/2076789944732078447",
+      "published": "2026-07-14T06:04:42+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "AI 越来越牛逼，却没人想重新发明一个框架颠覆 react 了。\n\n💬1🔄0❤️1👀1042📊1",
+      "tags": [
+        "React",
+        "框架创新"
+      ],
+      "score": 40,
+      "summary": "网友感叹AI进步但无人试图颠覆React框架。",
+      "fetched_at": "2026-07-14T08:00:56.758186+08:00"
+    },
+    {
+      "title": "ChatGPT Work has gotten less attention, but it's really cool. Love using it from my phone:",
+      "link": "https://x.com/gdb/status/2076804767163285954",
+      "published": "2026-07-14T07:03:36+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "ChatGPT Work has gotten less attention, but it's really cool. Love using it from my phone:\n\n![Haider.](https://pbs.twimg.com/profile_images/2047286007003848704/u2mzg86I_normal.jpg)\n\nHaider.@haider1\n\ni really like openai's new chatgpt \"Work\" feature  \n  \nnot everything involves programming, as sometimes you need help with project planning, content review, research, PDFs, or spreadsheets  \n  \nso i'd summarize this:  \n  \nneed an answer? chat  \nneed to code? codex  \nneed to plan, research, or review? work\n\n[🔗 View Quoted Tweet](https://x.com/haider1/status/2076796311563862067)\n\n💬16🔄3❤️60👀8000📊14",
+      "tags": [
+        "ChatGPT Work",
+        "OpenAI",
+        "Greg Brockman"
+      ],
+      "score": 85,
+      "summary": "Greg Brockman推荐ChatGPT Work功能，用于项目规划、研究等非编程任务。",
+      "fetched_at": "2026-07-14T08:00:56.758189+08:00"
+    },
+    {
+      "title": "Sol Ultra for solving Erdős problems:",
+      "link": "https://x.com/gdb/status/2076799732736041284",
+      "published": "2026-07-14T06:43:36+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "Sol Ultra for solving Erdős problems:\n\n![Przemek Chojecki | PC](https://pbs.twimg.com/profile_images/1595909528045977601/g_y0_WO7_normal.jpg)\n\nPrzemek Chojecki | PC@prz\\_chojecki\n\nGPT-5.6 Sol Ultra found me a solution to another Erdos problem not long after this one.  \n  \nProblem #793 asks about asymptotic of a 2-primitive set. GPT again came up with an extremely short and elegant construction that enhances original Erdos method used to prove a weaker result.\n\n[🔗 View Quoted Tweet](https://x.com/prz_chojecki/status/2076749164067565872)\n\n💬19🔄4❤️154👀16067📊22",
+      "tags": [
+        "GPT-5.6 Sol Ultra",
+        "Erdos问题",
+        "数学证明"
+      ],
+      "score": 85,
+      "summary": "GPT-5.6 Sol Ultra解决Erdos问题#793，给出简洁构造。",
+      "fetched_at": "2026-07-14T08:00:56.758192+08:00"
+    },
+    {
+      "title": "Try out ChatGPT Sites, makes it way more fun to communicate things within a company:",
+      "link": "https://x.com/gdb/status/2076797035945308364",
+      "published": "2026-07-14T06:32:53+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "Try out ChatGPT Sites, makes it way more fun to communicate things within a company:\n\n![jason](https://pbs.twimg.com/profile_images/2057561784047816704/5Su5xy1d_normal.jpg)\n\njason@jxnlco\n\nChatGPT Sites is now in public beta.  \n  \nYou can turn a prompt, file, or rough idea into a dashboard, project tracker, report, prototype, or lightweight app:  \n  \nbuild and edit directly in ChatGPT Work or Codex  \ntest in a private preview publish and share with a URL  \n  \nRolling out across paid plans. Enterprise admins can control public publishing.\n\n[🔗 View Quoted Tweet](https://x.com/jxnlco/status/2076511474600857950)\n\n💬13🔄7❤️150👀20747📊21",
+      "tags": [
+        "ChatGPT Sites",
+        "OpenAI",
+        "公共测试版"
+      ],
+      "score": 85,
+      "summary": "ChatGPT Sites进入公开测试，可将提示/文件转为仪表盘等轻量应用。",
+      "fetched_at": "2026-07-14T08:00:56.758195+08:00"
+    },
+    {
+      "title": "GPT-Live is a new level of experience:",
+      "link": "https://x.com/gdb/status/2076788812072820885",
+      "published": "2026-07-14T06:00:12+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "GPT-Live is a new level of experience:\n\n![Kevin Lee](https://pbs.twimg.com/profile_images/1282461303840202752/2R6089Rz_normal.jpg)\n\nKevin Lee@kevinleeme\n\nNew OpenAI GPT-live voice model feels light years ahead of the previous voice experience. Ran through a test exec coaching session during my morning workout and it was shockingly good. Listened intently, never cut me off, and responded within milliseconds.\n\n[🔗 View Quoted Tweet](https://x.com/kevinleeme/status/2076721279437279247)\n\n💬29🔄6❤️144👀18537📊27",
+      "tags": [
+        "GPT-Live",
+        "OpenAI",
+        "语音模型"
+      ],
+      "score": 85,
+      "summary": "OpenAI GPT-Live语音模型体验大幅提升，响应毫秒级且不打断用户。",
+      "fetched_at": "2026-07-14T08:00:56.758198+08:00"
+    },
+    {
+      "title": "OpenAI is absolutely cooking this week",
+      "link": "https://x.com/jerryjliu0/status/2076794185836052830",
+      "published": "2026-07-14T06:21:33+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "OpenAI is absolutely cooking this week\n\n![Sam Altman](https://pbs.twimg.com/profile_images/2046764873200394240/r7BxVezs_normal.jpg)\n\nSam Altman@sama\n\ncome for the best model, stay because we don’t treat you with contempt\n\n[🔗 View Quoted Tweet](https://x.com/sama/status/2076780425280954658)\n\n💬0🔄0❤️10👀1055📊1",
+      "tags": [
+        "OpenAI",
+        "Sam Altman"
+      ],
+      "score": 70,
+      "summary": "Jerry Liu称赞OpenAI本周动作频繁，Sam Altman回应称提供最佳模型且尊重用户。",
+      "fetched_at": "2026-07-14T08:00:56.758202+08:00"
+    },
+    {
+      "title": "There is a massive opportunity for any startup to build specialized, domain-specific workflows that ...",
+      "link": "https://x.com/jerryjliu0/status/2076791319893328089",
+      "published": "2026-07-14T06:10:10+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "There is a massive opportunity for any startup to build specialized, domain-specific workflows that are at the Pareto frontier in accuracy, cost, and latency.  \n  \nIt is clear that not every task requires frontier intelligence (e.g. 5.6 Sol xhigh). Every single task has an optimal model+harness configuration in order to solve that task in an accurate, cheap, fast manner. This holds true even as frontier models get better!  \n  \nWe see this as being especially true for document OCR. We think there will always be a massive gap in the Pareto frontier for document OCR vs. frontier model capabilities for visual understanding.  \n  \nOver the past year, we’ve invested massive amounts of research efforts in building auto-routing harnesses, fine-tuned layout models, and specialized models for specific elements within the document distribution - tables, charts, handwriting, and more.  \n  \nAll this applied research makes its way towards making LlamaParse the best document processing service out there. Come check it out: [cloud.llamaindex.ai](https://cloud.llamaindex.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNI-pfobUAEXTJD.jpg)\n\n💬1🔄1❤️19👀1312📊7",
+      "tags": [
+        "LlamaParse",
+        "文档OCR",
+        "LlamaIndex"
+      ],
+      "score": 80,
+      "summary": "Jerry Liu认为专业领域工作流有巨大机会，LlamaParse专注文档OCR优化。",
+      "fetched_at": "2026-07-14T08:00:56.758205+08:00"
+    },
+    {
+      "title": "As AI models continue to grow in scale and capability, shaping a model matters just as much as its s...",
+      "link": "https://x.com/NVIDIAAI/status/2076803865366642805",
+      "published": "2026-07-14T07:00:01+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "As AI models continue to grow in scale and capability, shaping a model matters just as much as its size.   \n  \nWe're introducing a new series on AI Model Co-Design exploring the synergy between models and hardware. The first post focuses on how model dimensions influence GPU performance, and how the right design choices improve both system throughput and per-user responsiveness.   \n  \nYou can read it here: [nvda.ws/452Idiy](https://nvda.ws/452Idiy)\n\n![Tweet Image](https://pbs.twimg.com/media/HNJKG_IW8AAlLuw.jpg)\n\n💬1🔄6❤️19👀1377📊4",
+      "tags": [
+        "NVIDIA",
+        "AI模型协同设计",
+        "GPU性能"
+      ],
+      "score": 80,
+      "summary": "NVIDIA推出AI模型协同设计系列，首篇探讨模型维度如何影响GPU性能。",
+      "fetched_at": "2026-07-14T08:00:56.758208+08:00"
+    },
+    {
+      "title": "Braveheart Sake Originals is Singapore’s first dedicated sake-cocktail bar.\n\nAfter visiting Sake Mat...",
+      "link": "https://x.com/NotionHQ/status/2076788695345332439",
+      "published": "2026-07-14T05:59:44+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Braveheart Sake Originals is Singapore’s first dedicated sake-cocktail bar.  \n  \nAfter visiting Sake Matsuri, one of Southeast Asia’s largest sake festivals, co-founders James and JQ saw a potential for bringing sake in cocktails.  \n  \nThey began by inventing a recipe book from scratch – first manually, until they created a simple workaround with Notion AI:  \n  \n1. Upload their cocktail menu  \n2. Use Notion AI to auto-tag every drink  \n3. Categorized by flavor, style, pricing, base spirit, etc.  \n  \nBraveheart operates with a highly customized menu – JQ threw out the standard vocabulary and built out his own flavor map like “fruity,” “umami,” “cereal,” “milky.”  \n  \nHaving each drink mapped out by ingredients and simple description, James says it’s been a “much better way for [new bartenders] to understand what we’re trying to do and get up to speed.”  \n  \nTwo founders. One bar. And a menu that evolves with them on Notion.\n\n![Tweet Image](https://pbs.twimg.com/media/HNI7Hv1bMAAaTZW.jpg)\n\n💬0🔄0❤️4👀1330📊1",
+      "tags": [
+        "Notion AI",
+        "鸡尾酒吧",
+        "案例"
+      ],
+      "score": 60,
+      "summary": "Notion展示新加坡鸡尾酒吧使用Notion AI自动标记饮品菜单的案例。",
+      "fetched_at": "2026-07-14T08:00:56.758211+08:00"
+    },
+    {
+      "title": "Kara’s Home Cafe started with a simple gathering of friends, originally named after founder Alec’s c...",
+      "link": "https://x.com/NotionHQ/status/2076788692937764988",
+      "published": "2026-07-14T05:59:43+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Kara’s Home Cafe started with a simple gathering of friends, originally named after founder Alec’s cat.  \n  \nNow, it’s become one of Sydney’s most creative community spaces, an event series for hundreds – from Mahjong events, cat yoga, to matcha markets.  \n  \nAs it grows, Notion gives him a space to store everything he needs to keep track:  \n  \n1. Expenses Tracker: For heavier calculations, Alec feeds Square POS reports (a digital summary of how much a business is making) to have AI automatically work out expenses and profits. He calls this “a lifesaver.”  \n  \n2. Receipts-to-Notion: Alec would take a picture of a receipt and using Notion API, Claude reads and extracts the items and adds it into the expenses database. A receipt image is also stored as a backup.  \n  \nWhenever there would be a new event to prepare, Alec doesn’t start anew.  \n  \nHe’s built a repeatable event template that connects with notes, meetings, campaign board, and expenses so he can find all the information he needs in one place.  \n  \nNotion allows a solo founder to do the work of a 5-person team.\n\n![Tweet Image](https://pbs.twimg.com/media/HNI6_JmbUAARHu4.jpg)\n\n💬2🔄0❤️5👀1862📊2",
+      "tags": [
+        "Notion",
+        "咖啡馆",
+        "案例"
+      ],
+      "score": 60,
+      "summary": "Notion展示悉尼社区咖啡馆使用Notion管理支出、收据和活动模板的案例。",
+      "fetched_at": "2026-07-14T08:00:56.758214+08:00"
+    },
+    {
+      "title": "Skincare. Matcha. Sake.\n\nThree small businesses doing their life’s work in Notion 🧵",
+      "link": "https://x.com/NotionHQ/status/2076788687522951474",
+      "published": "2026-07-14T05:59:42+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Skincare. Matcha. Sake.  \n  \nThree small businesses doing their life’s work in Notion 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HNI6o5bbkAEAhFO.jpg)\n\n💬4🔄1❤️21👀5465📊7",
+      "tags": [
+        "Notion",
+        "小企业"
+      ],
+      "score": 50,
+      "summary": "Notion预告将分享三个小企业使用Notion的案例。",
+      "fetched_at": "2026-07-14T08:00:56.758217+08:00"
+    },
+    {
+      "title": "Something's wrong when people start making McKinsey 2x2 charts to try to understand what model and e...",
+      "link": "https://x.com/petergyang/status/2076803888276213764",
+      "published": "2026-07-14T07:00:06+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Something's wrong when people start making McKinsey 2x2 charts to try to understand what model and effort to use. Hope all of this can be simplified for regular users.\n\n![0xSero](https://pbs.twimg.com/profile_images/1976266803211890688/JZffMMYs_normal.jpg)\n\n0xSero@0xSero\n\nGPT-5.6-Sol (medium) is the optimal configuration.\n\n![Tweet Image](https://pbs.twimg.com/media/HNGz9glXAAA_p7r.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/0xSero/status/2076638844263231640)\n\n💬6🔄1❤️14👀2559📊6",
+      "tags": [
+        "GPT-5.6 Sol",
+        "模型选择",
+        "用户体验"
+      ],
+      "score": 60,
+      "summary": "Peter Yang批评模型选择过于复杂，希望简化用户体验。",
+      "fetched_at": "2026-07-14T08:00:56.758220+08:00"
+    },
+    {
+      "title": "More on how my HTML+JS UI for this works on my blog - I used Datasette Apps, a new plugin for Datase...",
+      "link": "https://x.com/simonw/status/2076798157950955821",
+      "published": "2026-07-14T06:37:20+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "More on how my HTML+JS UI for this works on my blog - I used Datasette Apps, a new plugin for Datasette that lets it host custom HTML+JS apps that can Execute SQL queries against SQLite [simonwillison.net/2026/Jul/13/do…](https://simonwillison.net/2026/Jul/13/doomql/)\n\n💬0🔄0❤️11👀1691📊2",
+      "tags": [
+        "Datasette Apps",
+        "SQLite",
+        "Simon Willison"
+      ],
+      "score": 70,
+      "summary": "Simon Willison介绍使用Datasette Apps插件构建HTML+JS UI，可对SQLite执行SQL查询。",
+      "fetched_at": "2026-07-14T08:00:56.758223+08:00"
+    },
+    {
+      "title": "This is really cool! It renders frames using a ray tracer implemented as a SQLite recursive CTE\n\nSin...",
+      "link": "https://x.com/simonw/status/2076797976027210174",
+      "published": "2026-07-14T06:36:37+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "This is really cool! It renders frames using a ray tracer implemented as a SQLite recursive CTE  \n  \nSince state is stored in a SQLite database on-disk you can have other tools query it while you are playing - I rolled this custom HTML+JS view that adds a minimap\n\n![Tweet Image](https://pbs.twimg.com/media/HNJEugebUAAN6qF.jpg)\n\n![Peter Gostev](https://pbs.twimg.com/profile_images/1934694573797670912/1gnGJwlr_normal.jpg)\n\nPeter Gostev@petergostev\n\nGPT-5.6-Sol-Ultra built a Doom-like game in SQL: the game is running in the terminal on the left, while the SQL powering the game in the terminal on the right.  \n  \nHow it works:  \nDOOMQL is a game engine implemented in 2,000+ lines of SQL. Every frame, SQL raycasts the scene, calculates every RGB pixel, and encodes those pixels as coloured terminal characters. The same SQL then handles controls, movement, collision, enemy AI and combat, while Python connects SQLite to the keyboard, clock and terminal.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076692071428038656/vid/avc1/3840x2108/bHBRvmI1qyyHuODg.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/petergostev/status/2076692164310884468/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/petergostev/status/2076692164310884468)\n\n💬6🔄4❤️32👀5553📊8",
+      "tags": [
+        "DOOMQL",
+        "SQLite射线追踪",
+        "GPT-5.6 Sol Ultra"
+      ],
+      "score": 80,
+      "summary": "DOOMQL使用SQLite递归CTE实现射线追踪渲染，状态存储在数据库中。",
+      "fetched_at": "2026-07-14T08:00:56.758226+08:00"
+    },
+    {
+      "title": "It's been about six months since OpenClaw burst onto the scene - are you still using yours? Did it b...",
+      "link": "https://x.com/simonw/status/2076792187753504808",
+      "published": "2026-07-14T06:13:37+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "It's been about six months since OpenClaw burst onto the scene - are you still using yours? Did it become a daily driver? Any interesting lessons or anecdotes you can share?\n\n💬53🔄7❤️144👀17138📊63",
+      "tags": [
+        "OpenClaw",
+        "日常使用"
+      ],
+      "score": 60,
+      "summary": "Simon Willison询问OpenClaw发布六个月后的使用情况。",
+      "fetched_at": "2026-07-14T08:00:56.758229+08:00"
+    },
+    {
+      "title": "a16z GP Anish Acharya on AI being the first technology built to extend our emotions, not just our in...",
+      "link": "https://x.com/a16z/status/2076803842621297000",
+      "published": "2026-07-14T06:59:55+08:00",
+      "source": "a16z(@a16z)",
+      "content": "a16z GP Anish Acharya on AI being the first technology built to extend our emotions, not just our intellect:  \n  \n\"We've had 40 years of technology that extended our intellect and our minds. But most of the human experience is actually emotional and it's subjective.\"  \n  \n\"Now we have a technology that extends our emotions, our subjective experience, and it can address that.\"  \n  \n\"Let's start to really address the human experience through this next new technology. And I think that's where all this goes.\"  \n  \n[@illscience](https://x.com/illscience) with [@kevinrose](https://x.com/kevinrose)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076803777269829632/vid/avc1/1280x720/zosCN8roBLQjVTKT.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2076803842621297000/video/1)\n\n![Anish Acharya](https://pbs.twimg.com/profile_images/1754574715363241986/3QOB64HZ_normal.jpg)\n\nAnish Acharya@illscience\n\n[x.com/i/article/2076…](http://x.com/i/article/2076706424143650819)\n\n[🔗 View Quoted Tweet](https://x.com/illscience/status/2076714595994206358)\n\n💬0🔄1❤️13👀3816📊1",
+      "tags": [
+        "a16z",
+        "Anish Acharya",
+        "情感AI"
+      ],
+      "score": 70,
+      "summary": "a16z GP Anish Acharya称AI是首个扩展情感而非智力的技术。",
+      "fetched_at": "2026-07-14T08:00:56.758233+08:00"
     }
   ]
 }
