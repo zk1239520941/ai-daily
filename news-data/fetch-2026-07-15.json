@@ -1,0 +1,897 @@
+{
+  "meta": {
+    "date": "2026-07-15"
+  },
+  "entries": [
+    {
+      "title": "How LLMs Learn to Be Helpful (RLHF vs DPO)",
+      "link": "https://blog.bytebytego.com/p/how-llms-learn-to-be-helpful-rlhf",
+      "published": "2026-07-14T23:30:53+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [AWS Guide to Cloud Architecture Diagrams (Sponsored)](https://go.bytebytego.com/Datadog_071426)\n\n[![](https://substackcdn.com/image/fetch/$s_!jbLz!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2fb191c5-0313-4f95-a762-afff178bfa4d_2400x2400.png)](https://go.bytebytego.com/Datadog_071426)\n\nEnhance visibility into your cloud architecture with expert insights from AWS + Datadog. In this ebook, AWS Solutions Architects Jason Mimick and James Wenzel guide you through best practices for creating professional and impactful diagrams.\n\n[Get the eBook](https://go.bytebytego.com/Datadog_071426)\n\n---\n\nAsk a model the same question twice, phrased two different ways, and watch how it decides what to give you. It might offer a terse one-liner or a careful walk-through. It might sound fully confident, or it might hedge. Somewhere in training, the model learned which version you would rather have, even though both answers are correct.\n\nThat points to a harder question. How do you teach a model to be helpful when helpfulness changes with every request?\n\nFor a quick factual query, helpful means brevity. For a debugging problem, it means thoroughness. For a medical worry, it means caution paired with clarity. Each case requires a different direction with underlying trade-offs.\n\nThe model learned to handle those trade-offs from people comparing answers thousands of times over. This idea of learning from comparison rather than from a fixed answer key sits beneath every popular model you have used.\n\nIn this article, we will look at how that learning actually happens, starting with why instruction-following alone falls short, then walking through the two main methods for teaching preferences (RLHF and DPO).\n\n## Pipeline\n\nA useful model gets built in three stages, as shown in the diagram below:\n\n[![](https://substackcdn.com/image/fetch/$s_!dbfI!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd72766d2-c766-4b0c-935c-e74bf3d6948b_2650x1382.png)](https://substackcdn.com/image/fetch/$s_!dbfI!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd72766d2-c766-4b0c-935c-e74bf3d6948b_2650x1382.png)\n\nLet’s look at each stage in a bit more detail:\n\n* The first stage is pretraining. The model reads an enormous amount of text and learns to predict the next word. In other words, it builds a broad sense of how language works and soaks up world knowledge along the way. What it gains is raw capability. What it still lacks is direction, because predicting the next word and answering your question are two different goals.\n* The second stage is supervised fine-tuning, or SFT. We show the model thousands of example pairs, each an instruction together with a good response, and train it to imitate them. After this stage, the model follows instructions instead of continuing text. For example, if we ask a model to summarize a paragraph, it writes a proper summary. A raw model without SFT would have rambled on.\n* The third stage teaches preferences, which will be the focus of the rest of this article.\n\nWhy does a model that already follows instructions need a third stage at all?\n\nThis is because SFT works through imitation. The model sees a correct answer and learns to copy its shape, which holds up well when a question has one good answer, but runs into problems when a question has many possible answers.\n\nConsider a request like “explain how a hash map works”. A short answer and a long answer can both be excellent, and which one helps depends on who is asking. An example dataset can show one of those answers, while the trade-off between them stays invisible. Imitation teaches the model what a good answer looks like, but struggles to teach it how to weigh two good answers against each other.\n\nThe payoff is larger than it might appear at first. For example, when OpenAI built InstructGPT in 2022, human raters preferred answers from a 1.3 billion parameter aligned model over answers from the 175 billion parameter GPT-3, a model roughly a hundred times larger. The alignment stage mattered more than a hundredfold jump in size.\n\nNevertheless, the line between pretraining and SFT is cleaner in the example than in practice. Some recipes blend the two, but the three-stage view is the right place to start.\n\nNext up, we need a signal that captures the trade-off directly. That signal is comparison.\n\n---\n\n## [Introducing Attio: the agentic CRM. (Sponsored)](https://go.bytebytego.com/Attio_071426)\n\n[![](https://substackcdn.com/image/fetch/$s_!47nM!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa99590e6-cb09-4389-b5e3-4e0bb5c62a2c_2870x1091.png)](https://go.bytebytego.com/Attio_071426)\n\nAttio, the agentic CRM, makes it incredibly easy for anyone to run workflows for any GTM play they need.\n\nDescribe what you want, and Attio builds it. I just built a workflow that runs every morning, surfaces the deals that need my attention today, like anything with a stage change or a new signal in the last 24 hours.\n\nHundreds of thousands of automations already run on Attio every day. Ready to try now?\n\n[Try it today](https://go.bytebytego.com/Attio_071426)\n\n---\n\n## Preferences\n\nComparison turns a judgment call into something a model can learn.\n\nA preference example is simple. We take one prompt, generate two responses, and ask a person which is better. The result is a small piece of data, a prompt with a winner and a loser. If we collect enough of these, a pattern emerges that captures the trade-offs accurately.\n\nSee the diagram below:\n\n[![](https://substackcdn.com/image/fetch/$s_!LJnD!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F51464bbf-5bcd-4ab0-aaf9-081aba1535e0_2490x1330.png)](https://substackcdn.com/image/fetch/$s_!LJnD!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F51464bbf-5bcd-4ab0-aaf9-081aba1535e0_2490x1330.png)\n\nThe reason this works comes down to what people are good at. Writing the single ideal response to a tricky prompt is hard, and two skilled people would produce different versions. Judging which of two responses is better is far easier, and people agree with each other more often when they compare than when they create. This is why labeling teams compare outputs instead of writing perfect ones from scratch, which makes the data trustworthy enough to train on.\n\nThis is the same comparison data InstructGPT collected, and the starting point for both methods we are about to compare. They differ in what they do with it, while the comparisons stay the same.\n\nTo clarify, the comparisons can come from another AI model in place of a person, an approach used in RLAIF and Constitutional AI. The overall mechanics stay the same.\n\nLet us now look at the two different methods.\n\n## RLHF\n\nRLHF, short for Reinforcement Learning from Human Feedback, learns from comparisons by training a separate scorer and then coaching the model to score well against it.\n\nSee the below diagram that shows the basic RLHF flow:\n\n[![](https://substackcdn.com/image/fetch/$s_!7YkP!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F26014789-0519-40ea-b6f4-99b601046a6a_2334x1562.png)](https://substackcdn.com/image/fetch/$s_!7YkP!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F26014789-0519-40ea-b6f4-99b601046a6a_2334x1562.png)\n\nIt works in two moves once the comparisons are collected.\n\n* First, we train a reward model. We take those prompt-with-a-winner examples and train a separate model to score any response, high for the kind people preferred and lower for the kind they passed over. The reward model turns scattered human judgments into a single function that grades fresh responses on its own.\n* Second, we use that scorer to improve the main model, which here we call the policy. The policy writes a response, the reward model scores it, and a reinforcement learning algorithm called PPO nudges the policy toward higher-scoring responses.\n\nReinforcement learning, in plain terms, means learning from a reward signal through trial and error in place of labeled examples. Run the loop many times, and the policy drifts toward the answers people prefer.\n\nLeft to chase a score freely, a model will discover strange, degenerate text that games the scorer while reading badly. To guard against that, we keep a frozen copy of the starting model, the reference, and penalize the policy whenever it strays too far from it. This penalty, the KL term, lets the policy improve while staying close enough to fluent language to stay useful.\n\nThe reward model, the policy, the frozen reference, and a value model that PPO uses internally add up to four models in play during training.\n\nThat is the source of RLHF’s reputation for being expensive, fiddly, and slow to get right. However, this is also the pipeline behind the first version of ChatGPT, and it produced the first generation of genuinely helpful assistants at considerable cost.\n\nRunning a separate reward model and a full RL loop is a lot of moving parts. In 2023, a study from Stanford showed that much of it can collapse into a single step.\n\n## DPO\n\nDPO reaches the same goal with the same data, replacing the reward model and the RL loop with one training step.\n\nDPO stands for Direct Preference Optimization, and the name fits. Rather than train a scorer and then optimize against it, the method tunes the model directly on the comparison pairs.\n\nThe mechanics sit close to ordinary supervised learning.\n\nFor each comparison, DPO adjusts the model to raise the probability of the preferred response and lower the probability of the rejected one, measured against that same frozen reference from before. The whole thing becomes a single loss that would train the way you would train a classifier. This is far simpler and steadier than an RL loop.\n\nA common idea is that DPO removes the reward model, but what actually happens is subtler. The Stanford paper that introduced DPO carries the idea in its title that a language model is secretly a reward model. The reward signal is still present, but it now lives inside the policy itself rather than in a separate network.\n\n[![](https://substackcdn.com/image/fetch/$s_!U7RG!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5a06e3e9-fcdc-4b7c-ad06-96f448bb8231_2490x1480.png)](https://substackcdn.com/image/fetch/$s_!U7RG!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5a06e3e9-fcdc-4b7c-ad06-96f448bb8231_2490x1480.png)\n\nThe approach proved itself quickly.\n\nZephyr, a 7 billion parameter model trained with DPO on machine-generated comparisons, beat Llama 2 Chat 70B, the strongest open RLHF model at the time, on a standard chat benchmark. Since then, DPO has become a staple in the industry.\n\nBy folding the reward into a single training step, DPO put alignment within reach of a small team on a modest budget, far from any large research cluster. A family of variants, such as SimPO, KTO, and ORPO, adjusts the objective in different ways. They share DPO’s core approach.\n\nOn cost and simplicity, DPO looks like a clear win. The catch is one it shares with RLHF, and it sits in the signal both methods trust.\n\n## Reward Hacking\n\nBoth methods rely on a signal that only approximates human judgment, and leaning too hard on it can also backfire at times.\n\nThe reward model, whether trained explicitly in RLHF or folded into the policy in DPO, is a proxy. It approximates what people prefer. Like any approximation, it also has gaps. Optimize the model hard against that proxy, and it can start to exploit those gaps. In other words, the score climbs while the answers get worse.\n\nResearchers at OpenAI measured this directly.\n\nAs the model optimizes against the proxy, true quality rises for a while, then peaks and slides backward even as the proxy score keeps climbing. They tied it to Goodhart’s law, the old observation that a measure stops being a good measure once it becomes the target.\n\n[![](https://substackcdn.com/image/fetch/$s_!e4_k!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd916e76f-8edf-4969-b936-cab2a9ec8466_2418x1454.png)](https://substackcdn.com/image/fetch/$s_!e4_k!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd916e76f-8edf-4969-b936-cab2a9ec8466_2418x1454.png)\n\nThe everyday symptoms of this are familiar.\n\nModels pad answers with length because longer responses tend to score well, and they learn to agree with whatever view you express. This behavior is called sycophancy. Anthropic found that most of the time, both human raters and reward models prefer a confident, agreeable answer over a correct one, which sometimes means flattery in place of truth.\n\nThe important part is that this trouble follows the data rather than the algorithm.\n\nDPO inherits it just as RLHF does, because both learn from the same imperfect human judgments. Simpler training buys you a great deal, and this particular problem comes along for the ride. This is why your model sometimes agrees with you when you are clearly wrong. It learned that agreement tends to score well.\n\nThe KL penalty we discussed earlier softens this by holding the model near its starting point, though it shrinks the problem rather than completely erasing it.\n\nIf the root trouble is an imperfect human signal, a natural question follows. Could we replace it with a signal that is exact? For a certain class of tasks, we can.\n\n## Verifiable Rewards\n\nWhen a program can check the answer, the human reward becomes optional, and that single fact reshaped the final training stages across 2025 and 2026.\n\nSome tasks have a checkable answer:\n\n* A math problem is right or wrong.\n* A piece of code passes its tests or fails them.\n\nFor these, we can replace the human-derived reward model with a verifier, a program that grades the result directly. The signal becomes exact and effectively free, clearing the proxy problem at its root for that work.\n\nDeepSeek pushed this idea furthest.\n\nThey introduced an RL method called GRPO that drops one of the extra models PPO needs, and they trained their R1 reasoning model largely by rewarding correct final answers on math and code. The results matched the strongest closed reasoning models of the time. The model learned to reason by checking its own work, guided by a reward a calculator could supply.\n\nThe limit is that a verifier can grade a math proof. However, it stays silent on whether an answer is honest, kind, or appropriately cautious. Those qualities take many acceptable forms and resist any automatic test, the territory preference learning was built for. DeepSeek themselves kept reward models for the helpfulness and safety parts of R1, while verifiable rewards drove the reasoning.\n\nThis gives us the rule for the whole landscape.\n\nWhen a machine can check the answer, reach for verifiable rewards. When the answer is a matter of judgment, reach for preference learning, whether RLHF or DPO. The method follows the signal.\n\nSee the diagram below:\n\n[![](https://substackcdn.com/image/fetch/$s_!PvwW!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff189de82-9bcd-48b8-96a7-0818c4ee1886_2100x1246.png)](https://substackcdn.com/image/fetch/$s_!PvwW!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff189de82-9bcd-48b8-96a7-0818c4ee1886_2100x1246.png)\n\nThis is why reasoning models improved so quickly, and why even the best of them still rely on preference methods to stay pleasant and safe. Newer methods, such as DAPO and RLVR, extend the verifiable-reward idea, and they make up much of the active frontier in 2026.\n\n## Conclusion\n\nWe can retrace the path in a sentence each:\n\n* A raw model learns language and knowledge from pretraining.\n* Supervised fine-tuning teaches it to follow instructions by imitation.\n* A third stage teaches preferences, because the questions that matter most often have several good answers and a real trade-off between them.\n\nComparison is the signal that captures that trade-off, and the two main methods both run on it.\n\nRLHF trains a separate reward model and optimizes against it with reinforcement learning, which is powerful and costly. On the other hand, DPO folds the same signal into a single training step, which is simpler and steadier while keeping the reward implicit rather than absent.\n\nBoth inherit the same catch, that a human signal is a proxy, and pushing on it too hard breeds sycophancy and quiet failures. And when a task has a checkable answer, verifiable rewards now sidestep the proxy entirely.\n\n**References:**\n\n* [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155)\n* [Direct Preference Optimization: Your Language Model is Secretly a Reward Model](https://arxiv.org/abs/2305.18290)\n* [Zephyr: Direct Distillation of LM Alignment](https://arxiv.org/abs/2310.16944)\n* [Scaling Laws for Reward Model Overoptimization](https://arxiv.org/abs/2210.10760)\n* [Towards Understanding Sycophancy in Language Models](https://arxiv.org/abs/2310.13548)\n* [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)\n* [DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning](https://www.nature.com/articles/s41586-025-09422-z)",
+      "tags": [
+        "RLHF",
+        "DPO",
+        "偏好对齐"
+      ],
+      "score": 70,
+      "summary": "ByteByteGo 文章讲解 LLM 通过 RLHF 和 DPO 学习帮助性的技术原理。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!dbfI!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd72766d2-c766-4b0c-935c-e74bf3d6948b_2650x1382.png",
+      "fetched_at": "2026-07-15T00:23:06.641428+08:00"
+    },
+    {
+      "title": "How Retail Finance teams are using Agentic AI to protect omni-channel margins",
+      "link": "https://www.databricks.com/blog/how-retail-finance-teams-are-using-agentic-ai-protect-omni-channel-margins",
+      "published": "2026-07-14T23:00:00+08:00",
+      "source": "Databricks",
+      "content": "Ask a retail CFO where the quarter's margin is landing and you will always get a hard-won answer...",
+      "tags": [
+        "Agentic AI",
+        "零售金融",
+        "Databricks"
+      ],
+      "score": 70,
+      "summary": "Databricks 博客介绍零售金融团队如何使用 Agentic AI 保护全渠道利润。",
+      "fetched_at": "2026-07-15T00:23:06.641436+08:00"
+    },
+    {
+      "title": "Claude at scale on Google Cloud: Frontier AI, built for enterprise production",
+      "link": "https://cloud.google.com/blog/products/ai-machine-learning/claude-at-scale-on-google-cloud-frontier-ai-built-for-enterprise-production/",
+      "published": "2026-07-15T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Running frontier AI in production is demanding — accelerators to manage, latency to hold steady across continents, regulated data to keep in-region, and long-context requests to serve reliably. Claude on Google Cloud is built for exactly this. \n\nLike [Monet and water lilies](https://en.wikipedia.org/wiki/Water_Lilies_(Monet_series)), frontier models and the enterprise platforms are often better together. In our case, Claude brings the reasoning, and Google Cloud brings the managed infrastructure, global reach, and compliance posture that enterprises already run on. Calling Claude becomes operationally identical to calling any other Google Cloud service — same [Identity and Access Management](https://cloud.google.com/products/iam?hl=en) (IAM), same [VPC Service controls](https://cloud.google.com/security/vpc-service-controls?hl=en), same observability — so teams are able to spend their time building features instead of running inference infrastructure.\n\nThis post walks through what [Claude on Google Cloud](https://code.claude.com/docs/en/google-vertex-ai) delivers in production across four areas: \n\n1. Managed infrastructure that gives engineers their time back\n2. Global endpoints that hold latency low, and uptime high for a worldwide user base\n3. Security and data-sovereignty controls inherited straight from Google Cloud\n4. Serving-layer features that keep cost and performance optimized at scale.\n\n### **Managed infrastructure that frees engineering time**\n\nClaude on Google Cloud runs on fully managed infrastructure, so enterprise teams ship features instead of building clusters. Compute provisioning, auto-scaling logic, load balancing, and failover at frontier-model scale are handled by the platform — work that would otherwise occupy multiple teams full-time. \n\nClaude is available through [Agent Platform's](https://console.cloud.google.com/agent-platform/overview?project=genai-demos) [Model Garden](https://cloud.google.com/model-garden) as a Model-as-a-Service offering, ready to use over standard REST / JSON over HTTP/1.1 or HTTP/2 endpoints. Invoking Claude is operationally identical to invoking any other Google Cloud service: the same [IAM policies](https://docs.cloud.google.com/iam/docs/reference/rest/v1/Policy), the same VPC controls, and the same observability stack via [Cloud Logging](https://cloud.google.com/logging?utm_source=google&utm_medium=cpc&utm_campaign=Cloud-SS-DR-GCP-1713658-GCP-DR-NA-US-en-Google-SKWS-BRO-logging&utm_content=c-Hybrid+%7C+SKWS+-+BRO+%7C+Txt-AppMod-Ops+Tools-Cloud+Logging-328043335084&utm_term=cloud+logging&gclsrc=aw.ds&gad_source=1&gad_campaignid=23757224319&gclid=CjwKCAjwxb7RBhA5EiwAQ-AAdLQuFQ2mYRO7NCYspPzeGRvI-CmYLLx-Sb0bBHOyw4PsIoIKGuAR1BoCTacQAvD_BwE&hl=en) and [Cloud Monitoring](https://cloud.google.com/monitoring?hl=en). \n\nServing Claude takes a few lines of Python using the `AnthropicVertex` client:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'from anthropic import AnthropicVertex\\r\\n\\r\\nclient = AnthropicVertex(\\r\\n project\\_id=\"your-project-id\",\\r\\n region=\"us\"\\r\\n)\\r\\n\\r\\nmessage = client.messages.create(\\r\\n model=\"claude-opus-4-8\",\\r\\n max\\_tokens=1024,\\r\\n messages=[{\"role\": \"user\", \"content\": \"Analyze this system architecture.\"}]\\r\\n)'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f467a590be0>)])]>\n\nThe same [AnthropicVertex](https://github.com/anthropics/anthropic-sdk-python) client handles prompt caching, tool use, structured outputs, streaming, and adaptive thinking; for batch inference, use [Vertex AI Batch Prediction](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/partner-models/claude/batch#request_a_batch_prediction). Authentication uses Application Default Credentials; requests automatically inherit your project's IAM and [VPC](https://cloud.google.com/vpc) configuration. \n\n### **Global reach with consistent latency and built-in failover**\n\nServing a worldwide user base from a single endpoint produces high tail latency and a single point of failure. Most enterprises can't replicate inference infrastructure across continents while keeping performance consistent.\n\nAgent Platform exposes three endpoint types for Claude, each solving a different production requirement:\n\n1. [**Global endpoints**](https://cloud.google.com/blog/products/ai-machine-learning/global-endpoint-for-claude-models-generally-available-on-vertex-ai) route requests to a region with available AI compute capacity. For example, if us-central1 is capacity-constrained, traffic redirects to europe-west1 or another region with available capacity. That’s automatic failover and geographic load balancing without application-side routing logic. Global endpoints are ideal for maximum availability and lowest cost.\n2. **Regional endpoints** like us-east5 or europe-west1 keep prompts, completions, and intermediate state inside a specific geographical boundary, making it ideal for low latency and data-residency requirements.\n3. [**Multi-region endpoints**](https://cloud.google.com/blog/products/ai-machine-learning/multi-region-endpoints-for-claude-available-on-vertex-ai) give U.S. or EU data residency without single-region dependency. They dynamically route across regional endpoints  providing built-in resilience against regional outages and capacity constraints.\n\nThe diagram below shows how applications reach Claude through these endpoint types, and how the Agent Platform serving layer routes traffic to the Compute AI clusters across regions:\n\n![1 _GC_BlogGraphics_Anthropic](https://storage.googleapis.com/gweb-cloudblog-publish/images/1__GC_BlogGraphics_Anthropic.max-1000x1000.jpg)\n\nServing Claude Models From Regional & Global Endpoints\n\n![2_GC_BlogGraphics_Anthropic](https://storage.googleapis.com/gweb-cloudblog-publish/images/2_GC_BlogGraphics_Anthropic.max-1000x1000.jpg)\n\nServing Claude Models From Multi-Region Endpoints\n\n![3_GC_BlogGraphics_Anthropic](https://storage.googleapis.com/gweb-cloudblog-publish/images/3_GC_BlogGraphics_Anthropic.max-1000x1000.jpg)\n\nServing Claude Models From Regional Endpoints\n\n### **Enterprise security and data sovereignty built in**\n\nRegulated workloads — financial services, healthcare, and government — get enterprise-grade security and data sovereignty without trading compliance for convenience, and without re-engineering the hardest layer to control: inference, where prompts, completions, and intermediate state all flow through the serving stack.\n\nClaude on Agent Platform inherits Google Cloud's full security posture. FedRAMP High and HIPAA compliance enable deployment in government, healthcare, and financial services environments. VPC Service Controls let organizations define a perimeter around Agent Platform resources, preventing data exfiltration. IAM-native access control governs Claude endpoints with the same roles and policies that protect every other Google Cloud resource — no separate API keys to manage or rotate. Cloud Logging and Cloud Monitoring provide near real-time visibility into token usage, error rates, latency, and quota consumption.\n\nCombined with the regional and multi-region endpoints above, this gives regulated customers a path to running frontier AI in production without re-auditing their compliance posture.\n\n### **Optimized for cost and performance at scale**\n\nIn production, cost and performance drive every architectural decision. Getting both right requires capabilities from two layers: Claude's native model features, and Google Cloud's serving infrastructure. Agent Platform supports both, so teams can optimize across the stack without managing them separately.\n\n**Claude-native capabilities, fully supported on Agent Platform**\n\nThese features are built into Claude and available on Agent Platform without any additional configuration:\n\n* [**Prompt caching**](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/prompt-caching) stores and reuses shared prefixes — long system prompts, legal documents, codebases — reducing request latency by up to 80% and cost by up to 90%.\n* **Streaming responses** over server-sent events deliver tokens as they are generated, critical for chat interfaces and coding assistants where perceived latency matters.\n* **Extended and**[**adaptive thinking**](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking) lets Claude dynamically determine when and how much to reason through complex, multi-step problems — and allows users to dial the thinking effort directly, for example to control cost. Optimized for use cases like advanced code generation, mathematical reasoning, and multi-document analysis.\n* **Extended context windows up to 1M tokens** (for Claude Opus 4.6,Sonnet 4.6 and newer models) enable long-document analysis, large codebase reasoning, and multi-turn conversations at depth.\n\n**Google Cloud serving infrastructure**\n\nAgent Platform adds its own serving-layer capabilities on top of Claude's native features:\n\n* [**Batch prediction**](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/partner-models/claude/batch) handles large-scale offline workloads — document classification, content moderation, bulk summarization — asynchronously at lower priority and reduced cost.\n* [**Provisioned throughput**](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/provisioned-throughput/overview) reserves dedicated inference capacity for mission-critical workloads, isolating them from public traffic and ensuring predictable performance during peak demand.\n* **Memory management and scheduling** for long-context requests is handled at the infrastructure layer,.\n\nTogether, these two layers give teams the full range of optimization levers — from model-level efficiency to infrastructure-level capacity control — on a single, unified platform.\n\n### **From inference to agents**\n\nThe same infrastructure that serves Claude inference powers the agent layer of Agent Platform on Google Cloud. The build-and-register flow has three steps:\n\n1. **Build with Claude.** Claude is well-suited as an orchestration backbone — its extended context window, native tool use, and adaptive thinking make it effective at planning multi-step tasks and delegating to sub-agents. Pick Claude Opus, Sonnet, or Haiku from the Model Garden, then build with the [Agent Development Kit](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk) (ADK) — code-first in Python, Go, Java, or TypeScript — deploy to Agent Runtime, Cloud Run or Google Kubernetes Engine.\n2. **Deploy the Agent to a Runtime.** Depending on your use case, select Agent Runtime, Google Kubernetes Engine or GKE Agent Sandbox to run your deployed agents.\n3. **Interoperate over A2A.** The [Agent2Agent](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/) protocol runs at 150+ organizations, letting a registered Claude-powered agent delegate tasks to agents from SaaS and other service providers.\n\nThe result: a planning agent built on Claude can orchestrate sub-tasks across the broader agent ecosystem, under unified IAM, fully auditable, on the same infrastructure that serves the underlying inference.\n\n### **Start building**\n\nOpen the [Agent Platform console](https://console.cloud.google.com/agent-platform/model-garden?pageState=(%22galleryStateKey%22:(%22f%22:(%22g%22:%5B%22providers%22%5D,%22o%22:%5B%22ANTHROPIC%22%5D),%22s%22:%22%22))&pli=1), enable Claude in the Model Garden, and make your first API call with the AnthropicVertex SDK. Add prompt caching, provisioned throughput, and other features as your workload demands. When you're ready to go agentic, learn more about [Claude on Agent Platform](https://cloud.google.com/products/model-garden/claude?hl=en#learn-more-about-claude-on-agent-platform).\n\nReach out to your Google Cloud sales representative to discuss bringing Claude into your production environment at scale.",
+      "tags": [
+        "Claude",
+        "Google Cloud",
+        "企业级AI"
+      ],
+      "score": 85,
+      "summary": "Google Cloud 博客介绍 Claude 在 Google Cloud 上的企业级生产部署能力。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/claude-enterprise-scale-with-google-cloud.max-600x600.png",
+      "fetched_at": "2026-07-15T00:23:06.641441+08:00"
+    },
+    {
+      "title": "Our largest solar and battery storage project ever",
+      "link": "https://blog.google/innovation-and-ai/infrastructure-and-cloud/global-network/steel-river-arkansas/",
+      "published": "2026-07-15T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Solar_Steel_hero.max-600x600.format-webp.webp)Google will both invest in and purchase energy and storage from Steel River Energy Center in Mississippi County, Arkansas.",
+      "tags": [
+        "太阳能",
+        "储能",
+        "Google"
+      ],
+      "score": 70,
+      "summary": "Google 宣布在阿肯色州建设其最大的太阳能和电池储能项目。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Solar_Steel_hero.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-15T00:23:06.641444+08:00"
+    },
+    {
+      "title": "Celebrating 25 years of visual search innovation",
+      "link": "https://blog.google/products-and-platforms/products/search/google-images-25th-anniversary/",
+      "published": "2026-07-15T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Google_Images_25th_hero.max-600x600.format-webp.webp)Google Images is turning 25. Here’s a look back at some major milestones — and new ways to explore and create visual content.",
+      "tags": [
+        "Google Images",
+        "25周年"
+      ],
+      "score": 60,
+      "summary": "Google Images 庆祝25周年，回顾视觉搜索创新里程碑。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Google_Images_25th_hero.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-15T00:23:06.641446+08:00"
+    },
+    {
+      "title": "正式开源！美团 LongCat-2.0 同步开放国产卡推理代码",
+      "link": "https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "**本周，美团万亿参数大模型 LongCat-2.0 正式开源！**\n\n[HuggingFace](https://huggingface.co/meituan-longcat/LongCat-2.0) | [GitHub](https://github.com/meituan-longcat/LongCat-2.0) | [ModelScope](https://www.modelscope.cn/collections/meituan-longcat/LongCat-20)\n\n作为业界首个在五万卡国产算力集群上完成推理的万亿参数模型，LongCat-2.0 已全面开源。**针对显存与带宽受限的国产算力芯片，我们在模型架构、芯片适配到部署策略上进行了深度协同优化，让万亿参数模型在存量卡上同样跑得稳、跑得快。** 我们希望以真实 Agentic Coding 任务中的稳定表现为依托，通过开源将模型能力与推理优化成果完整开放，盘活更多存量国产算力，释放国产算力生态的长期价值。\n\n美团 LongCat-2.0 总参数 1.6T，平均激活约 48B，为真实的 Agentic Coding 任务而生，架构上创新性引入 LongCat 稀疏注意力和 N-gram Embedding，提升长上下文处理效率与 Token 级表示能力的同时，结合动态激活进一步强化了代码理解、生成以及执行的表现。\n\n## 01 模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理\n\n面对显存、带宽和互联的多重限制，LongCat-2.0 结合国产芯片特性，**从模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理：**\n\n* **模型层面：** Attention 通过 absorb 计算模式、Indexer 与 MLA prolog 并行处理以及 KVP 切分 KV-cache，有效缓解了超长上下文的 I/O 与显存压力。ScMoE 则利用国产芯片的控核能力，让 Dense 与 MoE 分支实现物理核心级并行执行，进一步压缩端到端延迟，实现了百万上下文在国产芯片上的高效推理；\n* **芯片适配层面：** 通过 Super Kernel 减少算子数量以降低启动开销，并以 Weight Prefetch 将 I/O 延迟隐藏在前序计算中；同时基于高速片间互联完成 layer-wise 的 KV-cache 传输，TP/SP/KVP 均在 scale-up 互联域内完成，在受限的显存和带宽条件下将硬件利用率最大化；\n* **部署策略层面：** 采用 PD 分离部署兼顾 TTFT 与 TPOT：Prefill 端通过缩小 Expert-Parallel 域与序列并行分担长序列计算压力，Decode 端以 KV-cache 切分与高并行度降低单卡显存占用，配合异步化 Expert-Parallel Load Balancing 解决大 EP 度下的负载不均。上述并行方案均已适配 constrained decoding、multi-step scheduling 和 MTP 等推理优化特性，实现了万亿参数模型在国产算力上的稳定服务。\n\nLongCat-2.0 验证了国产芯片承载复杂大模型任务的成熟能力，并希望通过开源为行业提供一条可复现的技术路径，推动存量算力在真实场景中的应用价值。\n\n## 02 模型全面升级，会执行、会推理、懂交互\n\nLongCat-2.0 沿用了 LongCat-Flash 的整体设计，并围绕 LongCat-2.0 在长上下文、代码任务和智能体场景中的进一步升级，做了三项关键优化：\n\n### 2.1 LongCat 稀疏注意力机制，提升上下文处理效率\n\n面向智能体任务中的长输入场景，LongCat-2.0 引入 LongCat 稀疏注意力机制（LSA），通过流感知索引、跨层索引和层级化索引三项策略减少碎片化访存和重复索引计算，在保持模型质量的前提下，加速百万级长上下文的训练与推理。\n\n![](https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png)\n\n### 2.2 引入 N-gram Embedding，提升参数利用效率\n\nLongCat-2.0 在 MoE 专家之外引入 N-gram Embedding 作为新的参数扩展路径。在 MoE 稀疏度已接近 97% 的情况下，将 135B 参数投入 N-gram Embedding 的收益远超继续扩充专家。该模块占比控制在总参数 10% 以内，兼顾了参数收益与结构稳定性。\n\n![](https://p1.meituan.net/meituantechblog/84d46b968d89efb8fd1bb66d3005680c29580.png)\n\n### 2.3 通过 MOPD 架构在国产算力集群上无缝融合，让模型会执行、会推理、懂交互\n\n后训练阶段，LongCat-2.0 采用多教师在线蒸馏，将专家分为 Agent、推理和交互三类，分别聚焦自主执行、自适应推理和安全对齐等核心能力。最终通过 MOPD 架构在国产算力集群上无缝融合，使模型兼具深度推理、自主执行与精准交互的综合表现。\n\n![](https://p0.meituan.net/meituantechblog/7e5f64947ed21d4b1c24d3e94d855844154812.png)\n\n## 03 开源开放\n\nLongCat-2.0 的开源，是一次技术路径的公开，也是一次生态邀约。\n\n本次开源同步提供 BF16、FP8 以及 INT8 等多精度版本，全面覆盖不同算力平台的部署需求。同时，我们深度拥抱开源社区，将针对国产算力极致优化的推理成果同步开源。这意味着，即使手上没有最新算力，也能基于现有硬件将 LongCat-2.0 稳定跑起来。\n\n我们希望通过这套开箱即用的推理栈，让更多的国产卡包括老卡，都能流畅部署万亿大模型推理服务，在真实生产力场景发挥更大价值。\n\n### 🚀 开源链接\n\n**Tech Blog：** <https://longcat.ai/blog/longcat-2.0/>\n\n**Model Weights：**\n\n* HuggingFace: <https://huggingface.co/meituan-longcat/LongCat-2.0>\n* GitHub: <https://github.com/meituan-longcat/LongCat-2.0>\n* ModelScope: <https://www.modelscope.cn/collections/meituan-longcat/LongCat-20>\n\n**Inference Code:**\n\n* GPU: <https://github.com/sgl-project/sglang/pull/30042>\n* NPU: <https://github.com/meituan-longcat/SGLang-FluentLLM/tree/npu>\n\n**API Platform：**\n\n* <https://longcat.chat/platform/product>",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团正式开源万亿参数大模型 LongCat-2.0，同步开放国产卡推理代码。",
+      "image_url": "https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png",
+      "fetched_at": "2026-07-15T00:23:06.641449+08:00"
+    },
+    {
+      "title": "直播回放·含 ACL&apos;26 杰出论文 | 美团 AI 顶会论文 32 篇精讲",
+      "link": "https://tech.meituan.com/2026/07/11/2026-meituan-32-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "🏆 近日，ACL 2026 杰出论文奖在圣地亚哥揭晓，全球仅 18 篇入选，美团履约技术团队的《GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR》上榜啦，一键直达视频回放👉🏻 [小红书](https://www.xiaohongshu.com/discovery/item/6a3b54740000000006030031?source=webshare&xhsshare=pc_web&xsec_token=ABh2ziW0cX7XYIsQ1VpYHUl5aZzXTt2-o0yyamYge4z-4=&xsec_source=pc_share) | [B站](https://www.bilibili.com/video/BV1v7jc6BENd/?spm_id_from=333.1387.upload.video_card.click&vd_source=8dac43659650af56650d7a9bc5f083d3)\n\n![图2](https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png)\n\n如果你正在关注 AI 前沿，这篇内容值得收藏。\n\n2026 年，美团技术团队数十篇论文被 ACL、SIGIR、ICML、KDD 等顶会收录。我们精选 32 篇，进行了 5 大专场直播。\n\n内容涵盖了大模型推理、智能体记忆与自进化、代码智能、多模态交互、超高清视频生成、本地生活搜索等方向——既有底层能力的突破，也有贴近生活服务的落地探索。\n\n如果你错过了直播，或者想再看一遍👇 五场回放都在这里啦，找到你感兴趣的议题，随时开始。\n\n特别感谢所有讲师与筹备团队的倾力支持！也感谢每一位关注美团技术成长的你！❤️\n\n## 专场一：ACL'26 综合专场\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b729b0de8000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783330950&share_id=e51dd478f4b34506aed7a49ca74b9113) ｜ [B站](https://space.bilibili.com/18937923/lists/8321546?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&sn=77c72b469a871b499a46fe06be73225f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/fe16b3191f6276cdf692c76bb2b04308356559.png)\n\n## 专场二：ACL'26 履约团队前沿技术专场\n\n**出品人｜** Jichong Gao 美团高级技术专家、Jun Xu 美团高级技术专家\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72d90de6000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783331038&share_id=ca3358c821584b34a480efd8350ed035) ｜ [B站](https://space.bilibili.com/18937923/lists/8370607?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782810&idx=2&sn=aeb92a7c0c0bcf2befa7a201f1d4ece9&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/87835a72dafb62eb0c93a17fdab075ca674240.png)\n\n## 专场三：搜推 ASX 团队专场\n\n**出品人｜** Guojun Yin 美团研究员\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72f50e97000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783478239&share_id=196398bf22d742bda21e83ee981f6615) ｜ [B站](https://space.bilibili.com/18937923/lists/8427999?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782896&idx=2&sn=ce2cb30b2d2b0e9ea12d03561124dd05&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/6498214ebe581bcea5541619c1cd145d359417.png)\n\n## 专场四：ICML'26 通用 Agent 前沿技术专场\n\n**出品人｜** Qi Gu 美团研究员\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8471639?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/247700c227d0b4f4c7f88bb02adecdbe344171.png)\n\n## 专场五：ICML'26 综合专场\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8485771?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/cbd47f8df818779808c61e614f6087f7351215.png)",
+      "tags": [
+        "ACL 2026",
+        "美团",
+        "顶会论文"
+      ],
+      "score": 75,
+      "summary": "美团技术团队精选32篇顶会论文进行5大专场直播精讲。",
+      "image_url": "https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png",
+      "fetched_at": "2026-07-15T00:23:06.641452+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团发布万亿参数大模型 LongCat-2.0，在五万卡国产算力集群上完成全流程训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-15T00:23:06.641454+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "美团",
+        "搜索推荐",
+        "Agent"
+      ],
+      "score": 75,
+      "summary": "美团搜推 ASX 团队精选6篇顶会论文进行解读。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-15T00:23:06.641457+08:00"
+    },
+    {
+      "title": "ACL 2026 精选论文分享：美团履约团队前沿技术专场",
+      "link": "https://tech.meituan.com/2026/06/11/ACL-2026-Agent.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "## 团队介绍\n\n美团业务研发平台/履约 AI 算法团队，聚焦构建大模型为基础的 Agent 技术体系，用 AI 赋能美团履约业务， 构建 Agent 自进化的运营系统。在大模型 CPT、Post-training、Agentic RL 以及多模态理解等核心前沿方向持续深耕，已在 ACL、EMNLP 等AI领域的国际顶会发表数十篇高质量研究成果。本文分享了美团履约团队专场聚焦 ACL 会议论文以及前沿技术实践。\n\n## 01 GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR\n\n**低秩高效：冻结残差分量，高效稠密计算**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2601.09361)\n\n![](https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png)\n\n**论文简介**：基于可验证奖励的强化学习（RLVR）是提升大规模推理模型能力的关键范式。与监督微调（SFT）不同，RLVR 展现出截然不同的优化动力学，其对预训练几何结构的保持高度敏感。然而，现有的参数高效方法在这一范式下面临着关键的局限性。一方面，像 PiSSA 和 MiLoRA 这样的低秩适配方法主要面向监督微调设计，未能考虑到 RLVR 独特的优化动力学与几何结构；直接将它们应用于 RLVR 往往会导致谱塌缩和训练不稳定。另一方面，直接去微调那些受 RLVR 青睐的非结构化稀疏参数子空间，又会在现代硬件上遭遇效率瓶颈。\n\n为解决这些挑战，我们提出了 GeoRA（几何感知低秩适配），一种专为 RLVR 定制的低秩适配方法。具体而言，GeoRA 利用了 RL 更新子空间的各向异性与可压缩结构，并通过奇异值分解（SVD）提取其主方向来初始化低秩适配器。在 RLVR 训练期间，残差分量被冻结作为结构锚点。该设计既保留了预训练结构，又实现了高效的稠密计算。在参数规模从 1.5B 到 32B 的 Qwen 和 Llama 模型上的实验表明，GeoRA 在数学、医学和代码等 RLVR 场景中持续优于强有力的低秩基线方法，同时在域外任务上展现出更强的泛化能力和更少的遗忘。\n\n## 02 Efficient Paths and Dense Rewards: Probabilistic Flow Reasoning for Large Language Models\n\n**Infra的引擎是数学：离散推理步骤建模为连续概率流，推动推理过程是逼近目标的“速度向量”**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09260)\n\n![](https://p1.meituan.net/meituantechblog/1437e163c0cfec3bb322c2ebc0704ff6492492.png)\n\n**论文简介**：高质量的思维链（CoT）在激发大语言模型推理能力方面展现出了巨大的潜力 。然而，现有的推理范式通常将推理过程视为不可分割的序列，缺乏量化每一步信息增益的内在机制 。这种细粒度的缺失导致了两个关键瓶颈：一是在缺乏明确引导的情况下，模型容易进行冗余探索，造成推理效率低下；二是由于结果监督信号稀疏或外部验证器成本高昂，导致模型优化困难 。\n\n为解决上述问题，本论文提出了一种名为 CoT-Flow 的全新理论框架，将离散的推理步骤重新概念化为连续的概率流 。受整流流（Rectified Flow）理论的启发，该框架将推理过程建模为将模型的信息状态从初始问题平滑传输到真实答案的连续过程 。在此视角下，每一个推理步骤都被视为一个推动推理过程逼近目标的“速度向量”，以严格量化每一步对生成最终正确答案的瞬时信息增益 。基于这样的量化指标，实现了一种基于对比解码的贪心解码策略，回答长度平均减少 10% ~ 15%，并且在 AIME24 上能够获得高达 15.9% 的准确率提升。同一框架下导出的 RL loss，和 GRPO, VeriFree 等 baseline 相比，在 AIME24, GPQA 等 benchmark 上取得接近或更高的准确率，同时实现 11% ~ 37% 的长度压缩，训练加速 32%。\n\n## 03 UserLM-R1: Modeling Human Reasoning in User Language Models with Multi-Reward Reinforcement Learning\n\n**可以进化的RL环境：像人一样思考的用户模拟器**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09215)\n\n![](https://p0.meituan.net/meituantechblog/7b56191c592435d903f4775d86c9cf18488821.png)\n\n**论文简介**：用户模拟器是智能体后训练的核心交互环境，理想的用户模拟器应具备跨领域泛化能力，并能主动通过质疑或议价等方式参与协商。然而，现有方法存在两个问题：其一，依赖静态且缺乏上下文感知的用户画像，在面对新场景时需要大量人工重新设计，泛化能力有限；其二，忽视人类的策略性思维，导致智能体易于对用户模拟器进行操控。\n\n为此，我们提出UserLM-R1——一种具备推理能力的新型用户语言模型。具体而言，我们首先构建兼顾静态角色与动态场景目标的综合用户画像，以适应多样化场景；进而提出目标驱动的决策策略，在生成回复前先产生高质量的推理链，并通过监督微调与多奖励强化学习进一步提升推理能力与策略水平。大量实验结果表明，UserLM-R1显著优于各竞争基线方法，在更具挑战性的对抗测试集上尤为突出。\n\n## 04 Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management\n\n**自进化的心脏：基于因果反馈对齐的通用Agent记忆管理系统**\n\n论文下载：[PDF](https://arxiv.org/abs/2601.08435)\n\n![](https://p0.meituan.net/meituantechblog/1c5c09ef9ebab017268bdf9aa478b4ac210795.png)\n\n**论文简介**：有效的内存管理对于大型语言模型代理执行长期任务至关重要。近期研究探索了使用强化学习来开发专门的内存管理器代理。然而，现有方法主要依赖最终任务性能作为主要奖励，这导致奖励稀疏且信用分配无效，无法为单个内存操作提供足够的指导。\n\n为此，我们提出了Fine-Mem，一个专为细粒度反馈对齐设计的统一框架。首先，我们引入了“块级步骤奖励”，通过辅助的特定块问题回答任务提供即时的步骤级监督。其次，我们设计了“基于证据的奖励归因”，通过将信用锚定到关键记忆操作，基于推理中用作证据的特定记忆项，重新分配全局奖励。这些组件共同实现了稳定的策略优化，并将局部记忆操作与记忆的长期效用相统一。在Memalpha和MemoryAgentBench上的实验表明，Fine-Mem在各种子任务中均优于强大的基线模型，取得了更高的成功率。进一步分析揭示了其在不同模型配置和主干网络中的适应性和强大的泛化能力。\n\n## 05 DuplexOmni: Real-Time Listening, Seeing, Thinking, and Speaking for Full-Duplex Interaction\n\n**不止像人：神奇的看、听、说、想、做并行推理全模态大模型**\n\n**论文下载**：[PDF](http://arxiv.org/abs/2606.09186)\n\n![](https://p0.meituan.net/meituantechblog/4780307ea3e0765e53b012b45976b4a8741349.png)\n\n**论文简介**：人类交互本质上是连续、多模态和全双工的。尽管近期通用模型在语音、视觉和文本建模方面取得了实质性进展，但在统一系统中将低延迟实时交互与复杂推理和工具使用相结合仍然具有挑战性。\n\n我们提出了DuplexOmni，一种用于实时多模态全双工交互的方法。DuplexOmni将模型能力划分为交互层和思考层，并通过异步并行协作将它们连接起来。交互层由DuplexOmni模型实现，该模型接收流式音频和视频输入，并实时生成文本和语音响应。思考层作为可插拔的外部模块，提供复杂推理和工具使用功能。为了支持这种交互范式，我们进一步研发了一个Writer-Director数据管道，用于构建连续交互训练数据。实验表明，DuplexOmni在多个公开基准测试上表现出色，并展现出自然的双工交互能力。",
+      "tags": [
+        "ACL 2026",
+        "美团",
+        "Agent"
+      ],
+      "score": 75,
+      "summary": "美团履约团队在 ACL 2026 精选论文分享，聚焦 Agent 技术。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png",
+      "fetched_at": "2026-07-15T00:23:06.641459+08:00"
+    },
+    {
+      "title": "I’m usually skeptical of “AI workspace” products, but @Bloome_im has a few ideas I actually like:\n\nY...",
+      "link": "https://x.com/AiBreakfast/status/2077053042143420502",
+      "published": "2026-07-14T23:30:09+08:00",
+      "source": "AI Breakfast(@AiBreakfast)",
+      "content": "I’m usually skeptical of “AI workspace” products, but [@Bloome\\_im](https://x.com/Bloome_im) has a few ideas I actually like:  \n  \nYou can put humans + multiple agents in the same conversation.  \n  \nOne agent can draft something, another can poke holes in it, and another can clean up the final version.  \n  \nYou can also bring in different agents/models like Claude, ChatGPT, DeepSeek, etc. instead of constantly bouncing between tabs.  \n  \nAnd because the whole conversation stays in context, teammates can join later and still understand how the work got to the final output.  \n  \nIt also works across web, desktop, and mobile, though if you’re using it for real work, I’d especially recommend trying the desktop app.  \n  \nFeels closer to how real teams actually work.  \n  \n[aisecret.co/Bloome](http://aisecret.co/Bloome)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077052698378346496/vid/avc1/3932x2160/vIQvw81E1F4CXryz.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/AiBreakfast/status/2077053042143420502/video/1)\n\n💬5🔄1❤️6👀3552📊8",
+      "tags": [
+        "Bloome",
+        "AI工作空间",
+        "多Agent"
+      ],
+      "score": 65,
+      "summary": "AI Breakfast 推荐 Bloome AI 工作空间，支持多 Agent 协作。",
+      "fetched_at": "2026-07-15T00:23:06.641462+08:00"
+    },
+    {
+      "title": "Demis posting his first X article! Very few execs doing this right now.",
+      "link": "https://x.com/aaditsh/status/2077045339853361649",
+      "published": "2026-07-14T22:59:33+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "Demis posting his first X article! Very few execs doing this right now.\n\n![Demis Hassabis](https://pbs.twimg.com/profile_images/1990472620614053888/xrAu0wQL_normal.jpg)\n\nDemis Hassabis@demishassabis\n\n[x.com/i/article/2076…](http://x.com/i/article/2076946210397552640)\n\n[🔗 View Quoted Tweet](https://x.com/demishassabis/status/2076957440109625718)\n\n💬0🔄0❤️6👀3778📊1",
+      "tags": [
+        "Demis Hassabis",
+        "X文章"
+      ],
+      "score": 60,
+      "summary": "Aadit Sheth 评论 Demis Hassabis 发布首篇 X 文章。",
+      "fetched_at": "2026-07-15T00:23:06.641464+08:00"
+    },
+    {
+      "title": "Claude for Teachers is built for K-12 privacy. We never train our models on your conversations, and ...",
+      "link": "https://x.com/claudeai/status/2077047280767488218",
+      "published": "2026-07-14T23:07:16+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Claude for Teachers is built for K-12 privacy. We never train our models on your conversations, and student information is protected by a data processing agreement written to comply with FERPA.\n\n💬9🔄7❤️227👀50935📊26",
+      "tags": [
+        "Claude for Teachers",
+        "K-12",
+        "隐私"
+      ],
+      "score": 85,
+      "summary": "Claude 官方宣布 Claude for Teachers 符合 K-12 隐私标准，不训练模型。",
+      "fetched_at": "2026-07-15T00:23:06.641467+08:00"
+    },
+    {
+      "title": "Read more about how Claude for Teachers works: https://t.co/mRTR2WJx54",
+      "link": "https://x.com/claudeai/status/2077047282109714488",
+      "published": "2026-07-14T23:07:16+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "Read more about how Claude for Teachers works: [anthropic.com/news/claude-fo…](https://www.anthropic.com/news/claude-for-teachers)\n\n💬11🔄9❤️107👀35055📊20",
+      "tags": [
+        "Claude for Teachers",
+        "K-12"
+      ],
+      "score": 85,
+      "summary": "Claude 官方提供 Claude for Teachers 的详细信息链接。",
+      "fetched_at": "2026-07-15T00:23:06.641470+08:00"
+    },
+    {
+      "title": "We're introducing Claude for Teachers: free access to premium Claude capabilities for verified K-12 ...",
+      "link": "https://x.com/claudeai/status/2077047278078931243",
+      "published": "2026-07-14T23:07:15+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "We're introducing Claude for Teachers: free access to premium Claude capabilities for verified K-12 educators in the US, with a library of teaching skills and a direct connection to evidence-based curricula, mapped to academic standards in all 50 states.  \n  \n[claude.com/solutions/teac…](https://claude.com/solutions/teachers)\n\n![Tweet Image](https://pbs.twimg.com/media/HNMmWvKW4AAju32.jpg)\n\n💬462🔄448❤️6270👀495592📊1104",
+      "tags": [
+        "Claude for Teachers",
+        "K-12",
+        "免费"
+      ],
+      "score": 95,
+      "summary": "Anthropic 推出 Claude for Teachers，为美国 K-12 教师提供免费高级功能。",
+      "fetched_at": "2026-07-15T00:23:06.641472+08:00"
+    },
+    {
+      "title": "我靠，之前特别喜欢的笔记软件 Reflect 开源改成本地版了，当年我可是花钱订阅了好久。它和 Logseq 类似，我一直认为这种模式的笔记写作体验比 Obsidian 舒服多了。\n\nhttps://...",
+      "link": "https://x.com/dingyi/status/2077046461477597254",
+      "published": "2026-07-14T23:04:00+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "我靠，之前特别喜欢的笔记软件 Reflect 开源改成本地版了，当年我可是花钱订阅了好久。它和 Logseq 类似，我一直认为这种模式的笔记写作体验比 Obsidian 舒服多了。  \n  \n[github.com/team-reflect/r…](https://github.com/team-reflect/reflect-open)\n\n💬2🔄0❤️10👀1531📊6",
+      "tags": [
+        "Reflect",
+        "开源",
+        "笔记软件"
+      ],
+      "score": 60,
+      "summary": "Ding 分享笔记软件 Reflect 开源改成本地版的消息。",
+      "fetched_at": "2026-07-15T00:23:06.641475+08:00"
+    },
+    {
+      "title": "ICYMI: @LangChain Deep Agents on @nvidia Nemotron 3 Ultra. frontier open-model agents at ~10x lower ...",
+      "link": "https://x.com/FireworksAI_HQ/status/2077043349194940535",
+      "published": "2026-07-14T22:51:38+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "ICYMI: [@LangChain](https://x.com/LangChain) Deep Agents on [@nvidia](https://x.com/nvidia) Nemotron 3 Ultra. frontier open-model agents at ~10x lower cost than closed.   \n  \nRun on Fireworks, then post-train it into specialized intelligence you own.  \n  \n[fireworks.ai/blog/Open-fron…](https://fireworks.ai/blog/Open-frontier-and-yours-LangChain-Deep-Agents-on-NVIDIA)\n\n![Tweet Image](https://pbs.twimg.com/media/HNMh0nlbAAAXxAi.jpg)\n\n💬0🔄0❤️6👀472📊1",
+      "tags": [
+        "LangChain",
+        "Nemotron 3 Ultra",
+        "Agent"
+      ],
+      "score": 80,
+      "summary": "Fireworks AI 介绍 LangChain Deep Agents 在 NVIDIA Nemotron 3 Ultra 上以10倍低成本运行。",
+      "fetched_at": "2026-07-15T00:23:06.641477+08:00"
+    },
+    {
+      "title": "这套 PPT Skill 非常漂亮\n强烈推荐\n\n在 YouMind Skills 里搜索东方山水\n可免费获得",
+      "link": "https://x.com/lifesinger/status/2077051734481141969",
+      "published": "2026-07-14T23:24:57+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "这套 PPT Skill 非常漂亮  \n强烈推荐  \n  \n在 YouMind Skills 里搜索东方山水  \n可免费获得\n\n![Tweet Image](https://pbs.twimg.com/media/HNMrieebcAExHbU.jpg)\n\n![YouMind](https://pbs.twimg.com/profile_images/1848213973658943488/NfCQg7Dr_normal.jpg)\n\nYouMind@YouMind\\_AI\n\nRun a wellness studio, a tea house, a retreat — and need a brochure that doesn't look like coming from generic slide template?   \n  \nThis skill turns your business into a full, presentable deck.   \n  \nNo designer. No deck agency. No crazy budget spent.   \n  \nYou describe your space. The skill paints it in the time it takes to finish your tea. Try for FREE: [youmind.com/skills/orienta…](https://youmind.com/skills/oriental-shanshui-ppt-UIxTrGrdr5XHze)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076933656602611712/vid/avc1/2668x1302/0cT3caXi17_2-Rr5.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/YouMind_AI/status/2077025068907974789/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/YouMind_AI/status/2077025068907974789)\n\n💬4🔄0❤️5👀411📊4",
+      "tags": [
+        "YouMind",
+        "PPT技能"
+      ],
+      "score": 60,
+      "summary": "玉伯推荐 YouMind 的东方山水 PPT 技能。",
+      "fetched_at": "2026-07-15T00:23:06.641480+08:00"
+    },
+    {
+      "title": "海外，AI Coding  从混战到双雄争霸了\n国内，AI Coding 还不知道最终是哪家\n\n海外，AI Office 如火如荼拼杀中\n国内，AI Office 反而有点直接双雄争霸了\n\n有意思",
+      "link": "https://x.com/lifesinger/status/2077038245553246411",
+      "published": "2026-07-14T22:31:21+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "海外，AI Coding 从混战到双雄争霸了  \n国内，AI Coding 还不知道最终是哪家  \n  \n海外，AI Office 如火如荼拼杀中  \n国内，AI Office 反而有点直接双雄争霸了  \n  \n有意思\n\n💬4🔄0❤️3👀687📊5",
+      "tags": [
+        "AI Coding",
+        "AI Office"
+      ],
+      "score": 60,
+      "summary": "玉伯评论国内外 AI Coding 和 AI Office 竞争格局。",
+      "fetched_at": "2026-07-15T00:23:06.641482+08:00"
+    },
+    {
+      "title": "WorkBuddy 和 Coze 大战\n最难受的可能是 WPS",
+      "link": "https://x.com/lifesinger/status/2077036935034667294",
+      "published": "2026-07-14T22:26:09+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "WorkBuddy 和 Coze 大战  \n最难受的可能是 WPS\n\n💬2🔄0❤️6👀786📊3",
+      "tags": [
+        "WorkBuddy",
+        "Coze",
+        "WPS"
+      ],
+      "score": 60,
+      "summary": "玉伯评论 WorkBuddy 和 Coze 大战对 WPS 的影响。",
+      "fetched_at": "2026-07-15T00:23:06.641485+08:00"
+    },
+    {
+      "title": "做交易的人每天在各个平台下单，想把 IBKR、Tradovate、Bybit 这些平台的成交记录统一收进 Obsidian 做复盘，还得保证数据在自己手里\n\nJournalit 就是干这个的👇\nht...",
+      "link": "https://x.com/geekbb/status/2077049479354855899",
+      "published": "2026-07-14T23:16:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "做交易的人每天在各个平台下单，想把 IBKR、Tradovate、Bybit 这些平台的成交记录统一收进 Obsidian 做复盘，还得保证数据在自己手里  \n  \nJournalit 就是干这个的👇[github.com/Cursivez/journ…](https://github.com/Cursivez/journalit)x\n\n![Tweet Image](https://pbs.twimg.com/media/HNLC7ZAbQAAaI9i.jpg)\n\n💬1🔄0❤️3👀571📊2",
+      "tags": [
+        "Journalit",
+        "交易记录",
+        "Obsidian"
+      ],
+      "score": 60,
+      "summary": "Geek 介绍 Journalit 工具，用于将交易记录导入 Obsidian。",
+      "fetched_at": "2026-07-15T00:23:06.641487+08:00"
+    },
+    {
+      "title": "pkgui 一个用 Go 编写的终端界面工具，用来在多个包管理器里集中查看和管理已安装的软件包。\n\n目前支持 Homebrew（formulae）和 npm 两种包管理器，能列出已安装包并展示版本、描...",
+      "link": "https://x.com/geekbb/status/2077040671630741624",
+      "published": "2026-07-14T22:41:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "pkgui 一个用 Go 编写的终端界面工具，用来在多个包管理器里集中查看和管理已安装的软件包。  \n  \n目前支持 Homebrew（formulae）和 npm 两种包管理器，能列出已安装包并展示版本、描述、主页、许可证、依赖、安装路径和二进制体积等详情。  \n  \n[github.com/bhavya-dang/pk…](https://github.com/bhavya-dang/pkgui)\n\n![Tweet Image](https://pbs.twimg.com/media/HNLBWN_boAA7hUY.jpg)\n\n💬1🔄0❤️1👀1183📊1",
+      "tags": [
+        "pkgui",
+        "包管理器",
+        "Go"
+      ],
+      "score": 60,
+      "summary": "Geek 介绍 pkgui 终端工具，用于管理 Homebrew 和 npm 包。",
+      "fetched_at": "2026-07-15T00:23:06.641489+08:00"
+    },
+    {
+      "title": "https://t.co/twD0fseFUl",
+      "link": "https://x.com/googleaidevs/status/2077049898059354565",
+      "published": "2026-07-14T23:17:40+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "[x.com/i/article/2067…](http://x.com/i/article/2067347903761485824)\n\n💬1🔄3❤️34👀7189📊6",
+      "tags": [
+        "Google AI"
+      ],
+      "score": 60,
+      "summary": "Google AI Developers 分享一篇文章链接。",
+      "fetched_at": "2026-07-15T00:23:06.641492+08:00"
+    },
+    {
+      "title": "A month ago, Fountain 0 made history at Tribeca with the premiere of Dreams of Violets, the first-ev...",
+      "link": "https://x.com/Kling_ai/status/2077045456417501265",
+      "published": "2026-07-14T23:00:01+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "A month ago, Fountain 0 made history at Tribeca with the premiere of Dreams of Violets, the first-ever AI feature film accepted into a major film festival.   \n  \nNow they're back — the trailer for their latest feature film ODYSEEUS: The Fall just dropped, directed by Ash Koosha and powered by Kling AI!  \n  \nHuge congrats to the team at Fountain 0 [@Fountain0Zero](https://x.com/Fountain0Zero) — Ash Koosha [@AshKoosha](https://x.com/AshKoosha), Pooya Koosha [@pooya\\_koosha](https://x.com/pooya_koosha), and Tom Rogers. Can't wait for the full release later this year!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077014627490332673/vid/avc1/1920x1080/MB3X9w3Hm5FQfbIV.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2077045456417501265/video/1)\n\n💬1🔄1❤️11👀1535📊2",
+      "tags": [
+        "Kling AI",
+        "AI电影",
+        "ODYSEEUS"
+      ],
+      "score": 80,
+      "summary": "Kling AI 宣布其技术驱动的 AI 电影 ODYSEEUS: The Fall 预告片发布。",
+      "fetched_at": "2026-07-15T00:23:06.641494+08:00"
+    },
+    {
+      "title": "We built a tracing plugin for every Codex session into LangSmith. Now every turn (tool calls, token ...",
+      "link": "https://x.com/LangChain/status/2077045458917052492",
+      "published": "2026-07-14T23:00:01+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We built a tracing plugin for every Codex session into LangSmith. Now every turn (tool calls, token usage, subagent threads) lands in LangSmith as a real trace you can dig into.  \n  \nTwo config blocks and one flag, and it's live.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077011582886772736/vid/avc1/3840x2160/StVDuPphJuLmDPLn.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2077045458917052492/video/1)\n\n💬5🔄5❤️20👀4125📊10",
+      "tags": [
+        "LangSmith",
+        "Codex",
+        "追踪"
+      ],
+      "score": 80,
+      "summary": "LangChain 为 Codex 会话构建追踪插件，集成到 LangSmith。",
+      "fetched_at": "2026-07-15T00:23:06.641497+08:00"
+    },
+    {
+      "title": "We eat docs🫢",
+      "link": "https://x.com/llama_index/status/2077040473433378844",
+      "published": "2026-07-14T22:40:13+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "We eat docs🫢\n\n![Tweet Image](https://pbs.twimg.com/media/HNMhSevagAANNNd.jpg)\n\n💬0🔄1❤️6👀1372📊1",
+      "tags": [
+        "LlamaIndex"
+      ],
+      "score": 60,
+      "summary": "LlamaIndex 发布一条无实质内容的推文。",
+      "fetched_at": "2026-07-15T00:23:06.641499+08:00"
+    },
+    {
+      "title": "Introducing PowerPoint Slides on Manus.\n\nBefore: Manus generated slides and converted them to .pptx....",
+      "link": "https://x.com/ManusAI/status/2077046819918676210",
+      "published": "2026-07-14T23:05:26+08:00",
+      "source": "ManusAI(@ManusAI_HQ)",
+      "content": "Introducing PowerPoint Slides on Manus.  \n  \nBefore: Manus generated slides and converted them to .pptx.  \n  \nNow: Manus generates .pptx directly.  \n  \n• Editable charts that redraw when you change a value  \n• Toggle labels, gridlines, legend on/off  \n• Download and open in PowerPoint\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077046753996754944/vid/avc1/1920x1080/-ZgHl5TR9LjDtbdr.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/ManusAI/status/2077046819918676210/video/1)\n\n💬10🔄17❤️127👀13949📊30",
+      "tags": [
+        "Manus",
+        "PowerPoint",
+        "PPT生成"
+      ],
+      "score": 85,
+      "summary": "ManusAI 推出直接生成可编辑 .pptx 文件的功能。",
+      "fetched_at": "2026-07-15T00:23:06.641501+08:00"
+    },
+    {
+      "title": "Check out the blog here:\nhttps://t.co/nsU9egcUeA",
+      "link": "https://x.com/ManusAI/status/2077046822355579092",
+      "published": "2026-07-14T23:05:26+08:00",
+      "source": "ManusAI(@ManusAI_HQ)",
+      "content": "Check out the blog here:  \n[manus.im/blog/manus-ppt…](https://manus.im/blog/manus-ppt-slides)\n\n💬0🔄0❤️2👀2024📊1",
+      "tags": [
+        "Manus",
+        "PPT",
+        "博客"
+      ],
+      "score": 80,
+      "summary": "ManusAI 提供 PPT 功能的博客链接。",
+      "fetched_at": "2026-07-15T00:23:06.641504+08:00"
+    },
+    {
+      "title": "Using a demo to estimate the real production cost of a vector database is where cost planning goes w...",
+      "link": "https://x.com/milvusio/status/2077045460452434397",
+      "published": "2026-07-14T23:00:02+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "Using a demo to estimate the real production cost of a vector database is where cost planning goes wrong for many teams.  \n  \nThe demo phase can give you a reasonable answer on two things:  \n• Storage: embeddings, raw content, metadata, scalar fields, and index files.  \n• Online serving: the compute needed for the current query volume and latency target.  \n  \nBut a demo usually cannot answer three other cost questions:  \n• Updates: how often data is added, deleted, re-embedded, re-indexed, or checked for recall regressions.  \n• Workload mismatch: whether offline analysis, evaluation, or batch jobs are running on always-on infrastructure.  \n• Duplication: how many copies of the same AI data end up across vector search, lakehouse, training, evaluation, and governance systems.  \n  \nDifferent data scales and usage frequencies require different resource models.  \nFor example, one autonomous driving workload needed vector search over a 1B-row collection for analysis.  \n𝗔 𝗱𝗲𝗱𝗶𝗰𝗮𝘁𝗲𝗱 𝗰𝗹𝘂𝘀𝘁𝗲𝗿 was estimated at about $7,000 per month. 𝗦𝗲𝗿𝘃𝗲𝗿𝗹𝗲𝘀𝘀 was about $10,800 per month. But the workload only ran for a few hours each month. With 𝗭𝗶𝗹𝗹𝗶𝘇 𝗖𝗹𝗼𝘂𝗱 𝗢𝗻-𝗗𝗲𝗺𝗮𝗻𝗱 𝗦𝗲𝗮𝗿𝗰𝗵, the cost came in under $500 per month.  \n  \nIn enterprise environments, however, these workload patterns usually coexist. A single system may have steady online traffic, offline batch processing, evaluation jobs, and sudden demand spikes.  \nThe goal is not to choose one resource model for everything. It is to accurately identify each workload and match it to the right instance type.  \nUse dedicated capacity for steady, latency-sensitive traffic; serverless for unpredictable or spiky online demand; and on-demand compute for low-frequency analysis, evaluation, and batch jobs.\n\n![Tweet Image](https://pbs.twimg.com/media/HNLqz2pa0AAcNum.jpg)\n\n💬0🔄0❤️0👀27",
+      "tags": [
+        "Milvus",
+        "向量数据库",
+        "成本优化"
+      ],
+      "score": 70,
+      "summary": "Milvus 讨论向量数据库生产成本的估算与优化。",
+      "fetched_at": "2026-07-15T00:23:06.641506+08:00"
+    },
+    {
+      "title": "If you want to try it out for yourself, check out the video below or follow along here: https://t.co...",
+      "link": "https://x.com/NVIDIAAI/status/2077061749820285192",
+      "published": "2026-07-15T00:04:45+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "If you want to try it out for yourself, check out the video below or follow along here: [nvda.ws/4wIdgMz](https://nvda.ws/4wIdgMz)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077061482873778176/vid/avc1/1280x720/QRwbFTUEGEbYYvYP.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/NVIDIAAI/status/2077061749820285192/video/1)\n\n💬0🔄0❤️4👀775📊1",
+      "tags": [
+        "NVIDIA",
+        "AI",
+        "教程"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI 提供尝试其技术的视频教程链接。",
+      "fetched_at": "2026-07-15T00:23:06.641509+08:00"
+    },
+    {
+      "title": "We gave a coding agent a goal and a time budget: build a training environment and teach a vision mod...",
+      "link": "https://x.com/NVIDIAAI/status/2077061428998013279",
+      "published": "2026-07-15T00:03:29+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "We gave a coding agent a goal and a time budget: build a training environment and teach a vision model to count colored stars.   \n  \nUsing autoresearch with NeMo RL, NeMo Gym, and reusable skills, the agent set up, trained and evaluated the model while the researcher steered the work.  \n  \nQwen3-VL-2B went from 25% to 96.9% accuracy, and the agent even proposed the next experiment on its own.\n\n![Tweet Image](https://pbs.twimg.com/media/HNM0XJNX0AAxSd0.jpg)\n\n💬11🔄5❤️51👀2695📊19",
+      "tags": [
+        "NVIDIA",
+        "NeMo RL",
+        "自主研究"
+      ],
+      "score": 85,
+      "summary": "NVIDIA AI 展示编码代理使用 NeMo RL 自主训练视觉模型，准确率从25%提升至96.9%。",
+      "fetched_at": "2026-07-15T00:23:06.641511+08:00"
+    },
+    {
+      "title": "This often happens with technology. Probably more often than not. It's as if the system as a whole h...",
+      "link": "https://x.com/paulg/status/2077048016037679104",
+      "published": "2026-07-14T23:10:11+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "This often happens with technology. Probably more often than not. It's as if the system as a whole has some kind of foresight that individual participants in it don't have.\n\n💬17🔄5❤️65👀10272📊19",
+      "tags": [
+        "Paul Graham",
+        "技术"
+      ],
+      "score": 60,
+      "summary": "Paul Graham 评论技术发展中的系统预见性。",
+      "fetched_at": "2026-07-15T00:23:06.641514+08:00"
+    },
+    {
+      "title": "It's interesting in this case how well AI fits into existing trends. Programming wasn't evolving in ...",
+      "link": "https://x.com/paulg/status/2077046994917560356",
+      "published": "2026-07-14T23:06:07+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "It's interesting in this case how well AI fits into existing trends. Programming wasn't evolving in this direction because AI was coming. No one knew it was. And yet we end up with what looks like a smooth acceleration along much the same path.\n\n💬12🔄1❤️130👀15126📊19",
+      "tags": [
+        "Paul Graham",
+        "AI",
+        "编程"
+      ],
+      "score": 60,
+      "summary": "Paul Graham 评论 AI 如何平滑融入现有编程趋势。",
+      "fetched_at": "2026-07-15T00:23:06.641516+08:00"
+    },
+    {
+      "title": "Before vibe coding became a thing, programming was already evolving in that direction. It already in...",
+      "link": "https://x.com/paulg/status/2077043707799588996",
+      "published": "2026-07-14T22:53:04+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Before vibe coding became a thing, programming was already evolving in that direction. It already increasingly consisted of installing and configuring stuff other people wrote, without reading the source.\n\n💬121🔄83❤️1601👀65388📊244",
+      "tags": [
+        "Paul Graham",
+        "vibe coding"
+      ],
+      "score": 60,
+      "summary": "Paul Graham 评论编程已向 vibe coding 方向演变。",
+      "fetched_at": "2026-07-15T00:23:06.641519+08:00"
+    },
+    {
+      "title": "I get podcast outreach from various PR agencies and I have to say almost 100% of the time they're pi...",
+      "link": "https://x.com/petergyang/status/2077047201889747096",
+      "published": "2026-07-14T23:06:57+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "I get podcast outreach from various PR agencies and I have to say almost 100% of the time they're pitching a CEO or exec to promote their product (which makes for bad episodes).   \n  \nThe best CEO and exec episodes show real workflows with no agenda.\n\n💬5🔄0❤️13👀1755📊6",
+      "tags": [
+        "播客",
+        "CEO"
+      ],
+      "score": 60,
+      "summary": "Peter Yang 评论播客推广中 CEO 应展示真实工作流程。",
+      "fetched_at": "2026-07-15T00:23:06.641521+08:00"
+    },
+    {
+      "title": "In order to be successful, you have to do five things. There’s a sequence to it.\n\n1. Have (audacious...",
+      "link": "https://x.com/RayDalio/status/2077037670987895028",
+      "published": "2026-07-14T22:29:04+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "In order to be successful, you have to do five things. There’s a sequence to it.  \n  \n1. Have (audacious) goals.  \n2. Identify and don't tolerate problems.  \n3. Diagnose the problems to get at their root causes.  \n4. Design a path to fix those things.  \n5. Push through to results.  \n  \nThis is what I call looping. Go for your goals, identify your problems, get to the root cause, design a path, and push through. Life is basically just doing that over and over again. If you do that, you'll make the advances.  \n  \n#Principles#RayDalio#PersonalGrowth\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077037417941409792/vid/avc1/1080x1920/SQ0o-HPJgDdL9avW.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/RayDalio/status/2077037670987895028/video/1)\n\n💬17🔄54❤️300👀36620📊77",
+      "tags": [
+        "Ray Dalio",
+        "成功原则"
+      ],
+      "score": 60,
+      "summary": "Ray Dalio 分享成功的五个步骤。",
+      "fetched_at": "2026-07-15T00:23:06.641523+08:00"
+    },
+    {
+      "title": "Learn how to use Runway Agent to create your own cinematic short films, like Flicker. No big budgets...",
+      "link": "https://x.com/runwayml/status/2077051670316396744",
+      "published": "2026-07-14T23:24:42+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Learn how to use Runway Agent to create your own cinematic short films, like Flicker. No big budgets, no studio notes, just an easy way to bring your ideas into the world.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077050236917215234/vid/avc1/1920x1080/f4m4SvHlRaqDK-VP.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2077051670316396744/video/1)\n\n💬7🔄1❤️10👀1379📊7",
+      "tags": [
+        "Runway Agent",
+        "短片制作"
+      ],
+      "score": 80,
+      "summary": "Runway 展示如何使用 Runway Agent 创作电影短片。",
+      "fetched_at": "2026-07-15T00:23:06.641526+08:00"
+    },
+    {
+      "title": "some of us are building agents. some of us are buying landlines.",
+      "link": "https://x.com/ryolu_/status/2077060449837990399",
+      "published": "2026-07-14T23:59:35+08:00",
+      "source": "Ryo Lu(@ryolu_)",
+      "content": "some of us are building agents. some of us are buying landlines.\n\n![Tweet Image](https://pbs.twimg.com/media/HNMzdTDaAAEr-Fx.jpg)\n\n💬0🔄0❤️4👀389📊1",
+      "tags": [],
+      "score": 50,
+      "summary": "Ryo Lu 发布无实质内容的推文。",
+      "fetched_at": "2026-07-15T00:23:06.641528+08:00"
+    },
+    {
+      "title": "also, a reason to favor open-source harnesses.",
+      "link": "https://x.com/sama/status/2077053226080436235",
+      "published": "2026-07-14T23:30:53+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "also, a reason to favor open-source harnesses.\n\n💬157🔄48❤️1380👀68398📊231",
+      "tags": [
+        "Sam Altman",
+        "开源"
+      ],
+      "score": 70,
+      "summary": "Sam Altman 表示支持开源 harnesses。",
+      "fetched_at": "2026-07-15T00:23:06.641531+08:00"
+    },
+    {
+      "title": "Concerning.",
+      "link": "https://x.com/sama/status/2077053140508266710",
+      "published": "2026-07-14T23:30:33+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "Concerning.\n\n![Hari](https://pbs.twimg.com/profile_images/1998567419829207040/9WpM1eFY_normal.png)\n\nHari@hrkrshnn\n\nSpaceXAI was caught uploading your code to its cloud.  \n  \nI reversed xAI's official Grok Build binary. In a controlled session with zero tool-calls, it uploaded the complete codebase to xAI's storage  \n  \nIt ships a malware-like background code collector.\n\n[🔗 View Quoted Tweet](https://x.com/hrkrshnn/status/2076716354754015368)\n\n💬436🔄274❤️5204👀339088📊632",
+      "tags": [
+        "SpaceXAI",
+        "代码上传",
+        "安全"
+      ],
+      "score": 80,
+      "summary": "Sam Altman 评论 SpaceXAI 被曝上传用户代码至云端事件，表示担忧。",
+      "fetched_at": "2026-07-15T00:23:06.641533+08:00"
+    },
+    {
+      "title": "this is a thoughtful proposal from demis:",
+      "link": "https://x.com/sama/status/2077042528906527225",
+      "published": "2026-07-14T22:48:23+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "this is a thoughtful proposal from demis:\n\n![Demis Hassabis](https://pbs.twimg.com/profile_images/1990472620614053888/xrAu0wQL_normal.jpg)\n\nDemis Hassabis@demishassabis\n\n[x.com/i/article/2076…](http://x.com/i/article/2076946210397552640)\n\n[🔗 View Quoted Tweet](https://x.com/demishassabis/status/2076957440109625718)\n\n💬198🔄120❤️2046👀317256📊368",
+      "tags": [
+        "Sam Altman",
+        "Demis Hassabis"
+      ],
+      "score": 70,
+      "summary": "Sam Altman 称赞 Demis Hassabis 的提案 thoughtful。",
+      "fetched_at": "2026-07-15T00:23:06.641535+08:00"
+    },
+    {
+      "title": "this would have been a whole startup not too long ago",
+      "link": "https://x.com/sama/status/2077037818824843719",
+      "published": "2026-07-14T22:29:40+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "this would have been a whole startup not too long ago\n\n![Thijs](https://pbs.twimg.com/profile_images/1998987745956605956/XtQZbbwz_normal.jpg)\n\nThijs@cdngdev\n\ni gave 5.6 sol access to my camera roll and had it extract pictures of every piece of clothing i own from my photos  \n  \nthen, told it to find new outfits for me and render them on me with gpt-image!  \n  \nits kinda cool to see your entire wardrobe in a collection like this\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2076811852571693056/vid/avc1/1722x1080/7LMhCx-Au6qMUEL7.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/cdngdev/status/2076812846793650485/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/cdngdev/status/2076812846793650485)\n\n💬277🔄293❤️7786👀847013📊901",
+      "tags": [
+        "Sam Altman",
+        "AI应用"
+      ],
+      "score": 70,
+      "summary": "Sam Altman 评论一个 AI 应用，称其过去可成为一家初创公司。",
+      "fetched_at": "2026-07-15T00:23:06.641538+08:00"
+    },
+    {
+      "title": "GPT-5.6 sol is half the price and ~twice as token efficient as fable in many cases for accomplishing...",
+      "link": "https://x.com/sama/status/2077036999303999910",
+      "published": "2026-07-14T22:26:24+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "GPT-5.6 sol is half the price and ~twice as token efficient as fable in many cases for accomplishing the same task.  \n  \nhappy to deliver at one-quarter of the price.\n\n💬835🔄357❤️9253👀541624📊1428",
+      "tags": [
+        "GPT-5.6",
+        "价格",
+        "效率"
+      ],
+      "score": 90,
+      "summary": "Sam Altman 宣布 GPT-5.6 sol 价格减半，token 效率翻倍。",
+      "fetched_at": "2026-07-15T00:23:06.641540+08:00"
+    },
+    {
+      "title": "So I guess Codex has a little robot now?\n\n(It's not as cute as the Claw'd crab)",
+      "link": "https://x.com/simonw/status/2077048987350343965",
+      "published": "2026-07-14T23:14:02+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "So I guess Codex has a little robot now?  \n  \n(It's not as cute as the Claw'd crab)\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNMo5-vbgAEsoBr.jpg)](https://video.twimg.com/tweet_video/HNMo5-vbgAEsoBr.mp4)\n\n💬11🔄0❤️15👀2834📊10",
+      "tags": [
+        "Codex",
+        "机器人"
+      ],
+      "score": 60,
+      "summary": "Simon Willison 评论 Codex 新增机器人图标。",
+      "fetched_at": "2026-07-15T00:23:06.641543+08:00"
+    },
+    {
+      "title": ".",
+      "link": "https://x.com/Suhail/status/2077052501984165901",
+      "published": "2026-07-14T23:28:00+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": ".\n\n💬1🔄0❤️0👀353📊1",
+      "tags": [],
+      "score": 50,
+      "summary": "Suhail 发布空推文。",
+      "fetched_at": "2026-07-15T00:23:06.641545+08:00"
+    },
+    {
+      "title": "乍一看这俩人长得怎么那么像？天才面相？",
+      "link": "https://x.com/feltanimalworld/status/2077062567973859409",
+      "published": "2026-07-15T00:08:00+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "乍一看这俩人长得怎么那么像？天才面相？\n\n![Phoenix Yin](https://pbs.twimg.com/profile_images/2028337523773038592/1kSOtKBU_normal.jpg)\n\nPhoenix Yin@Phoenixyin13\n\n最近知晓了一件有意思的事，冯诺伊曼和钱学森晚年其实撞到了同一堵墙。  \n  \n钱学森 1954 年在美国软禁期间写了《工程控制论》，这是他学术上最有野心的东西，钱试图把控制信息系统作为一门普遍科学。  \n而冯·诺伊曼最后想做的自动机理论，动机几乎完全一致：找到一门介于逻辑与热力学之间的、能同时描述机器与生命的中间数学。  \n  \n但最近，两人都失败了，但失败的方式不同。  \n  \n冯·诺伊曼死得太早，留下的是一个未完成的、极其锋利的纲领。  \n钱学森活了很久，而他的系统科学越到晚年越向外扩张，从工程控制论到系统工程再到开放的复杂巨系统，最后延伸到人体科学和对特异功能的支持。  \n这一段是钱晚年最受争议的部分。  \n一个顶级的工程科学家，在失去了严格的可证伪约束后让一个宏大框架吞掉了经验纪律。  \n  \n这个对比其实比谁更聪明有意思得多。  \n当一个人拥有极强的形式化、系统化本能，却不再有硬约束来否证他时，会发生什么？  \n冯·诺伊曼的约束是数学证明和核弹当量都是不讲情面的。  \n钱学森晚年的约束是政治权威和自己的声望。  \n  \n两人，都深度卷入国家暴力机器。  \n冯·诺伊曼是内爆透镜的设计者，是核威慑理论的骨架，晚年立场鹰派到主张过对苏联的预防性打击。而钱学森是中国导弹之父，也在文革中为亩产万斤提供过理论计算的背书。千秋功过，何以评说？\n\n![Tweet Image](https://pbs.twimg.com/media/HNJbQZPWkAAqLpw.jpg)![Tweet Image](https://pbs.twimg.com/media/HNJbQZFXoAAWLjT.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Phoenixyin13/status/2076822719023255808)\n\n💬3🔄0❤️4👀292📊3",
+      "tags": [
+        "冯诺伊曼",
+        "钱学森"
+      ],
+      "score": 60,
+      "summary": "Susan STEM 评论冯诺伊曼和钱学森的外貌相似性。",
+      "fetched_at": "2026-07-15T00:23:06.641548+08:00"
+    },
+    {
+      "title": "按照我现在的想法，我认为AI真正开始落地的标准不是生成式视频，而是真正做到两个方面：\n\n这个博主的前几个帖子说的是工业界的落地，就是他能切实改变物理生产流程，我举的例子就是text-to-CAD, 目...",
+      "link": "https://x.com/feltanimalworld/status/2077053598714700194",
+      "published": "2026-07-14T23:32:22+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "按照我现在的想法，我认为AI真正开始落地的标准不是生成式视频，而是真正做到两个方面：  \n  \n这个博主的前几个帖子说的是工业界的落地，就是他能切实改变物理生产流程，我举的例子就是text-to-CAD, 目前我认为是距离AI最近的物理生产流程改变。具体生产的specs, 散落在各种机加工的碎片中，这个集合，需要按10年几十年计算，下一个就是text-to-circuit, design-to-CAM这一类的。这里最大的障碍不一定是模型能力，而是工业知识没有形成完整、统一、机器可验证的表示体系；  \n  \n第二种就是看上去智力型的高价值行业，包括法律的reasoning， 医疗的 reasoning, 这里IR欠缺，方法论欠缺，落地也只能从什么病例，法律文书，病例证据的梳理，超声影象这类阶段流程开始，也不是完整的reasoning, 这个也是10年几十年；  \n  \n第三种就是这个帖子说的，彻底嵌入企业流程，改变企业核心运营模式。现在最边缘的也就是客服而已（这段时间接触的比较多，比如诊所的客服），但是这种没有深度嵌入企业流程的体验是很有限的。下一步肯定是会计，会计大部分流程在整个企业组织里面距离AI最近。这个我前几天也发了一份我认为可以参考的图。什么业务离AI最近，什么业务相对远一些。  \n  \nAI 真正落地的标志，不是它能生成多逼真的内容，而是它能否通过可验证的中间层，进入真实世界的执行闭环，并对物理状态、专业判断或企业状态产生可追责的改变。  \n  \n否则这轮AI肯定撑不起这个估值。\n\n![IndenScale](https://pbs.twimg.com/profile_images/1926187983050244096/Z8p0KXq3_normal.png)\n\nIndenScale@david0520782123\n\n从 OpenClaw 直写数据库，看 AI 时代企业架构的真正缺口  \n  \n最近关于 OpenClaw 这类 Agent 直接操作企业系统的讨论，很多集中在一个问题：  \n  \n一个 AI Agent 是否应该拥有生产数据库写权限？  \n  \n从安全工程角度，这个问题当然成立。  \n  \n未经充分约束的 Agent 直接写入生产环境，会带来：  \n  \n数据错误；  \n状态污染；  \n权限滥用；  \n不可逆操作；  \n审计困难。  \n  \n因此很多人的第一反应是：  \n  \n「应该增加审批。」  \n  \n「应该采用 HITP（Human In The Process）。」  \n  \n「应该让人类最终确认。」  \n  \n但这其实只解决了最表层的问题。  \n  \n更深的问题是：  \n  \n即使有人审批，我们真的知道这个变化是否正确吗？  \n  \n一、直写数据库真正危险的地方  \n  \n假设一个 Agent 修改了一条订单状态。  \n  \n表面看，这是一次数据变更。  \n  \n但在企业系统中，一个状态变化往往不是孤立的。  \n  \n它可能触发：  \n  \n财务确认；  \n库存调整；  \n供应链动作；  \n客户通知；  \n销售指标变化；  \n绩效计算；  \n后续自动化流程。  \n  \n所以真正的问题不是：  \n  \n「Agent 修改了一条记录。」  \n  \n而是：  \n  \n「企业是否理解这条记录变化会导致什么？」  \n  \n传统企业系统有一个隐藏假设：  \n  \n变化是局部的。  \n  \n所以我们设计了：  \n  \n权限；  \n审批；  \n流程；  \n审计。  \n  \n这些机制回答：  \n  \n谁可以改变系统？  \n  \n改变是否符合流程？  \n  \n但它们无法回答：  \n  \n这个改变是否正确？  \n  \n二、HITP 为什么不是最终答案  \n  \n很多人认为：  \n  \n现在 Agent 并不是自治系统。  \n  \n它仍然有人参与。  \n  \nHuman In The Process 可以解决问题。  \n  \n但是 HITP 有一个隐含前提：  \n  \n人类拥有足够的理解能力，可以判断 Agent 提议是否正确。  \n  \n现实中，这个前提经常不成立。  \n  \n因为企业变化越来越复杂。  \n  \n一个经理可能知道自己的业务。  \n  \n一个架构师可能知道系统依赖。  \n  \n一个数据团队可能知道模型。  \n  \n但很少有人真正理解：  \n  \n一个业务策略变化，在整个组织中的长期传播路径。  \n  \n事实上，即使没有 AI，企业本身就存在这个问题。  \n  \n很多企业能够保证：  \n  \n「这个变更符合流程。」  \n  \n但不能保证：  \n  \n「这个变更符合企业长期利益。」  \n  \n为什么？  \n  \n因为很多企业实际上依赖的是：  \n  \n资深员工经验；  \n部门之间的沟通；  \n非正式反馈；  \n组织记忆；  \n员工的责任感。  \n  \n也就是所谓：  \n  \n运营摩擦。  \n  \n很多看似低效的流程，实际上承担了企业认知校验的作用。  \n  \n一个员工发现：  \n  \n「这个流程虽然系统允许，但业务上不合理。」  \n  \n一个主管发现：  \n  \n「这个指标优化会伤害客户体验。」  \n  \n一个老员工提醒：  \n  \n「过去这样做失败过。」  \n  \n这些都是企业没有显式建模的控制机制。  \n  \n而 Agent 的问题在于：  \n  \n它会消除大量这种摩擦。  \n  \n它不会疲惫。  \n  \n不会犹豫。  \n  \n不会因为感觉不对而停下来问一句。  \n  \n它会高效执行。  \n  \n但是：  \n  \n如果企业没有自己的认知模型，  \n  \n更高效的执行可能只是更高效地产生错误。  \n  \n三、企业缺少的不是数据库，而是 System of Truth  \n  \n今天绝大多数企业 IT，是 System of Record。  \n  \n它们记录事实：  \n  \n订单是什么。  \n  \n客户是谁。  \n  \n员工是谁。  \n  \n交易是什么。  \n  \n但是：  \n  \nRecord ≠ Truth。  \n  \n记录的是结果。  \n  \n不是现实。  \n  \nSystem of Truth 需要回答：  \n  \n企业当前真实状态是什么？  \n  \n例如：  \n  \nCRM 中有客户等级。  \n  \n但真正的客户价值状态是什么？  \n  \nERP 中有库存数字。  \n  \n但真正的供应链健康状态是什么？  \n  \n财务系统有收入。  \n  \n但真正的经营质量是什么？  \n  \n没有 System of Truth，企业无法判断变化影响。  \n  \n因为它甚至不知道：  \n  \n自己现在在哪里。  \n  \n四、System of Truth 仍然不够，需要 System of Mechanism  \n  \n知道现在是什么，还不足以推演未来。  \n  \n企业需要知道：  \n  \n为什么现在如此。  \n  \n如果改变一个变量，会发生什么。  \n  \n这就是 System of Mechanism。  \n  \n它描述：  \n  \n业务因果；  \n流程机制；  \n组织激励；  \n数据传播；  \n技术依赖；  \n约束条件。  \n  \n它回答：  \n  \n如果修改价格策略，会影响什么？  \n  \n如果改变销售激励，会导致什么行为？  \n  \n如果自动化一个流程，会破坏什么隐性机制？  \n  \n没有 System of Mechanism，企业只能观察过去。  \n  \n无法模拟未来。  \n  \n这也是为什么 Agent 时代会迫使企业重新思考架构。  \n  \nAgent 最大的问题不是：  \n  \n它能不能执行动作。  \n  \n而是：  \n  \n它执行动作之前，企业有没有能力预测后果。  \n  \n五、业务策略必须从事务变成代码  \n  \n过去企业把很多业务变化理解为：  \n  \n一次交易。  \n  \n修改一个参数。  \n  \n调整一个配置。  \n  \n执行一次操作。  \n  \n但 AI Agent 时代，这种理解会失效。  \n  \n因为业务策略本身就是企业运行逻辑。  \n  \n例如：  \n  \n客户信用规则。  \n  \n定价策略。  \n  \n供应链决策。  \n  \n销售激励。  \n  \n风险判断。  \n  \n这些不是数据。  \n  \n它们是：  \n  \n企业行为的代码。  \n  \n因此未来业务策略变更应该类似软件工程：  \n  \n不是：  \n  \n「修改一个配置。」  \n  \n而是：  \n  \n「提交一个企业行为变更。」  \n  \n它需要：  \n  \nadd；  \ncommit；  \nPR；  \nreview；  \nCI；  \n灰度发布；  \nrollback。  \n  \n一些优秀 SaaS 已经包含类似能力。  \n  \n它们提供：  \n  \nworkflow versioning；  \napproval flow；  \naudit trail；  \npolicy management；  \nfeature rollout。  \n  \n但问题是：  \n  \n很多企业没有真正利用这些能力。  \n  \n原因有两个：  \n  \n第一，过去没有动力。  \n  \n因为人类操作速度有限。  \n  \n很多错误最终被组织经验修正。  \n  \n第二，通用 SaaS 的抽象无法覆盖企业特殊性。  \n  \n企业真正的业务机制：  \n  \n往往存在于：  \n  \nExcel；  \n邮件；  \n会议；  \n员工经验；  \n部门约定。  \n  \n而不是 SaaS 配置项里。  \n  \n所以 AI Agent 的出现，不是简单增加了一种自动化能力。  \n  \n它暴露了一个长期存在的问题：  \n  \n企业一直在运行。  \n  \n但是没有真正建立一个理解自身运行机制的系统。  \n  \n未来企业需要的不只是：  \n  \nAI + SaaS。  \n  \n而是：  \n  \nSystem of Record  \n+  \nSystem of Truth  \n+  \nSystem of Mechanism  \n+  \nDecision Engineering Platform  \n让每一次企业变化，都像代码变化一样：  \n可描述。  \n可验证。  \n可模拟。  \n可发布。  \n可回滚。  \n  \nOpenClaw 直写数据库真正提醒我们的，不是：  \n  \n「AI 不应该碰数据库。」  \n  \n而是：  \n  \n如果一个企业只能通过阻止变化来保证安全，说明它还没有建立理解变化的能力。  \n  \nAI 时代最大的企业能力，不是更快地执行。  \n  \n而是：  \n  \n在更快地改变自己之前，知道自己正在变成什么。\\*\\*\n\n[🔗 View Quoted Tweet](https://x.com/david0520782123/status/2076905984996544659)\n\n💬3🔄0❤️6👀681📊4",
+      "tags": [
+        "AI落地",
+        "工业",
+        "企业流程"
+      ],
+      "score": 70,
+      "summary": "Susan STEM 讨论 AI 真正落地的标准，强调嵌入企业流程。",
+      "fetched_at": "2026-07-15T00:23:06.641550+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/EacToKXfSM",
+      "link": "https://x.com/TheRundownAI/status/2077038210916442603",
+      "published": "2026-07-14T22:31:13+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [tech.therundown.ai/p/meta-louisia…](https://tech.therundown.ai/p/meta-louisiana-data-center-hits-50b)\n\n💬0🔄0❤️2👀821",
+      "tags": [
+        "Meta",
+        "数据中心"
+      ],
+      "score": 60,
+      "summary": "The Rundown AI 提供 Meta 路易斯安那数据中心文章链接。",
+      "fetched_at": "2026-07-15T00:23:06.641553+08:00"
+    },
+    {
+      "title": "Top stories in tech today:\n\n- Meta’s Louisiana data center hits $50B\n- China lands its first reusabl...",
+      "link": "https://x.com/TheRundownAI/status/2077038205027651973",
+      "published": "2026-07-14T22:31:12+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in tech today:  \n  \n- Meta’s Louisiana data center hits $50B  \n- China lands its first reusable rocket — in a net  \n- EU moves to get kids off social media  \n- This wearable paints onto your skin  \n- Quick hits on other tech news\n\n![Tweet Image](https://pbs.twimg.com/media/HNMfOvPXoAArpAk.jpg)\n\n💬3🔄2❤️6👀2772📊4",
+      "tags": [
+        "科技新闻"
+      ],
+      "score": 60,
+      "summary": "The Rundown AI 汇总当日科技新闻。",
+      "fetched_at": "2026-07-15T00:23:06.641555+08:00"
+    },
+    {
+      "title": "Most AI agents get 𝗱𝘂𝗺𝗯𝗲𝗿 as they learn more.\n\n(There's a better way)\n\nWe just released a demo...",
+      "link": "https://x.com/weaviate_io/status/2077045594988724264",
+      "published": "2026-07-14T23:00:34+08:00",
+      "source": "Weaviate • vector database(@weaviate_io)",
+      "content": "Most AI agents get 𝗱𝘂𝗺𝗯𝗲𝗿 as they learn more.  \n  \n(There's a better way)  \n  \nWe just released a demo of 𝗘𝗻𝗴𝗿𝗮𝗺 that shows exactly how intelligent memory management should work.  \n  \nT[engram.playground.weaviate.io/?utm\\_source=x&…](https://engram.playground.weaviate.io/?utm_source=x&utm_medium=w_social&utm_campaign=builderroom_engram_demo&utm_content=video_post_68081900)o/GwVlXXb7Bo  \n  \nMost agentic chatbots handle memory in one of two broken ways:  \n• Dump the 𝗲𝗻𝘁𝗶𝗿𝗲 𝗰𝗼𝗻𝘃𝗲𝗿𝘀𝗮𝘁𝗶𝗼𝗻 𝗶𝗻𝘁𝗼 𝗰𝗼𝗻𝘁𝗲𝘅𝘁 every time (problems: cost, degraded performance, no consistency across conversations)  \n• 𝗦𝘁𝗼𝗿𝗲 𝗲𝘃𝗲𝗿𝘆 𝗺𝗲𝘀𝘀𝗮𝗴𝗲 for retrieval (problems: noise, contradictions, and facts that changed over time)  \n  \n𝗘𝗻𝗴𝗿𝗮𝗺 takes a completely different approach: 𝗮𝗰𝘁𝗶𝘃𝗲𝗹𝘆 𝗺𝗮𝗶𝗻𝘁𝗮𝗶𝗻𝗶𝗻𝗴 𝗺𝗲𝗺𝗼𝗿𝗶𝗲𝘀 instead of just piling them up.  \n  \nAs conversations happen, Engram runs asynchronous pipelines in the background that:  \n  \n1. Extract relevant information matching your configured topics  \n2. Reconcile new memories with existing ones (handling duplicates, preference changes, evolving facts)  \n3. Store structured, scoped memories in Weaviate for semantic retrieval  \n  \nThis solves the core problem with naive approaches. Rather than cramming ever-growing context into your LLM (causing degradation, latency, and cost issues) or storing raw conversations (which are noisy and contradictory), Engram actively maintains clean, structured memories that can update or be deleted over time.  \n  \nThe result is agentic chatbots that 𝘢𝘤𝘵𝘶𝘢𝘭𝘭𝘺 improve with each interaction, learning from experience without context pollution.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2077045559328645120/pu/vid/avc1/1330x720/MLpUGL6-rWbTaDeu.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/weaviate_io/status/2077045594988724264/video/1)\n\n💬0🔄0❤️0👀99",
+      "tags": [
+        "Engram",
+        "记忆管理",
+        "Weaviate"
+      ],
+      "score": 80,
+      "summary": "Weaviate 发布 Engram 演示，展示智能记忆管理如何避免 AI 代理变笨。",
+      "fetched_at": "2026-07-15T00:23:06.641557+08:00"
+    },
+    {
+      "title": "Aligned with @matanSF's intuition that in the next 12 months, 90% of tokens could be going to open m...",
+      "link": "https://x.com/ClementDelangue/status/2077049508882489794",
+      "published": "2026-07-14T23:16:07+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Aligned with [@matanSF](https://x.com/matanSF)'s intuition that in the next 12 months, 90% of tokens could be going to open models.   \n  \nWe're seeing more and more companies using frontier APIs for experimenting and open-source or private models for production and larger workloads!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077048846052433921/vid/avc1/640x360/DcMiiKPsy0Ja_kN8.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/ClementDelangue/status/2077049508882489794/video/1)\n\n💬2🔄4❤️12👀1778📊4",
+      "tags": [
+        "开源模型",
+        "token",
+        "Hugging Face"
+      ],
+      "score": 80,
+      "summary": "Clement Delangue 预测12个月内90% token 将流向开源模型。",
+      "fetched_at": "2026-07-15T00:23:06.641560+08:00"
+    },
+    {
+      "title": "This is the first model in the paper's own comparison to pair hour-scale, real-time, high-fidelity g...",
+      "link": "https://x.com/omarsar0/status/2077058241561850337",
+      "published": "2026-07-14T23:50:49+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "This is the first model in the paper's own comparison to pair hour-scale, real-time, high-fidelity generation with a fully open release. It is an open research model with no long-term memory, still short of a game engine, so an area you leave is regenerated rather than remembered.  \n  \nFrom [@robbyant\\_brain](https://x.com/robbyant_brain), an embodied AI company under Ant Group building one brain for all robots.  \n  \nCode: [github.com/Robbyant/lingb…](https://github.com/Robbyant/lingbot-world-v2)  \nPaper: [arxiv.org/abs/2607.07534](https://arxiv.org/abs/2607.07534)  \nProject: [technology.robbyant.com/lingbot-world-…](https://technology.robbyant.com/lingbot-world-v2)  \nWeights: [huggingface.co/collections/ro…](https://huggingface.co/collections/robbyant/lingbot-world-v2)  \nDemo (partner-hosted): [reactor.inc/lingbot-world-…](https://reactor.inc/lingbot-world-v2)\n\n💬0🔄0❤️5👀486📊1",
+      "tags": [
+        "LingBot-World 2.0",
+        "世界模型",
+        "开源"
+      ],
+      "score": 85,
+      "summary": "elvis 介绍 Robbyant 的 LingBot-World 2.0，首个小时级实时高保真生成并完全开源的世界模型。",
+      "fetched_at": "2026-07-15T00:23:06.641562+08:00"
+    },
+    {
+      "title": "The released model currently includes the 14B causal-fast model. The paper also describes a 1.3B lig...",
+      "link": "https://x.com/omarsar0/status/2077058239384973454",
+      "published": "2026-07-14T23:50:48+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "The released model currently includes the 14B causal-fast model. The paper also describes a 1.3B lightweight counterpart designed for single-GPU deployment.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077056311754178560/vid/avc1/1920x1164/_sHXcw4pdhpvhga0.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2077058239384973454/video/1)\n\n💬1🔄0❤️5👀522📊2",
+      "tags": [
+        "LingBot-World 2.0",
+        "14B",
+        "单GPU"
+      ],
+      "score": 80,
+      "summary": "elvis 补充 LingBot-World 2.0 包含14B因果快速模型和1.3B轻量版。",
+      "fetched_at": "2026-07-15T00:23:06.641565+08:00"
+    },
+    {
+      "title": "Most world models fall apart after a few seconds.\n\nCommon failure modes include texture smearing, wa...",
+      "link": "https://x.com/omarsar0/status/2077058222339338748",
+      "published": "2026-07-14T23:50:44+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Most world models fall apart after a few seconds.  \n  \nCommon failure modes include texture smearing, warped geometry, and scenes that no longer look real.  \n  \nLingBot-World 2.0 from [@robbyant\\_brain](https://x.com/robbyant_brain) seems to hold 720p at 60 fps for a full hour of interaction.  \n  \nThat’s impressive.  \n  \nHere is what makes that possible.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077055567361630208/vid/avc1/1920x1164/g1KOGKs9j4n3gzWl.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2077058222339338748/video/1)\n\n💬2🔄1❤️14👀3256📊5",
+      "tags": [
+        "LingBot-World 2.0",
+        "世界模型",
+        "720p"
+      ],
+      "score": 80,
+      "summary": "elvis 介绍 LingBot-World 2.0 可保持720p 60fps 一小时交互。",
+      "fetched_at": "2026-07-15T00:23:06.641567+08:00"
+    },
+    {
+      "title": "Great paper from DeepMind on effective model routing strategies.",
+      "link": "https://x.com/omarsar0/status/2077052984731619773",
+      "published": "2026-07-14T23:29:55+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Great paper from DeepMind on effective model routing strategies.\n\n![DAIR.AI](https://pbs.twimg.com/profile_images/1643277398522187778/31dedbLo_normal.jpg)\n\nDAIR.AI@dair\\_ai\n\nNew research from Google DeepMind on effective model routing.  \n  \nLLM routers get judged on accuracy and cost.  \n  \nBoth can look great while the router is meaningless. If every model in your society responds the same way, routing is vacuous, you get the same answers no matter where queries land. And if paraphrases of one query get sent to different experts, the router is unstable, so its assignments carry no real signal.  \n  \nThe argument is that two properties decide whether routing means anything. Namely, behavioural differentiation of the actors and stability under surface-form rewrites. And they both are orthogonal to task accuracy.  \n  \nWhat's the practical take here?  \n  \nIf you use mixture-of-agents or model routing, your overall accuracy can hide a router that operates over a redundant society or assigns queries inconsistently. These two checks catch the routers that look good and do nothing.  \n  \nPaper: [arxiv.org/abs/2607.09197](https://arxiv.org/abs/2607.09197)  \n  \nLearn to build effective AI agents in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNMpCyZbUAAM8DL.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dair_ai/status/2077048984812896677)\n\n💬3🔄0❤️17👀3444📊6",
+      "tags": [
+        "DeepMind",
+        "模型路由"
+      ],
+      "score": 80,
+      "summary": "elvis 推荐 DeepMind 关于有效模型路由策略的论文。",
+      "fetched_at": "2026-07-15T00:23:06.641570+08:00"
+    },
+    {
+      "title": "Highly recommended reading. \n\n\"We need to get the technical foundations right by coordinating around...",
+      "link": "https://x.com/omarsar0/status/2077051747613180243",
+      "published": "2026-07-14T23:25:01+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Highly recommended reading.   \n  \n\"We need to get the technical foundations right by coordinating around a shared global framework, using the most rigorous scientific methods.\"  \n  \nBetter than current fear-mongering frameworks. Proceeding with cautious optimism is a sensible strategy.\n\n![Demis Hassabis](https://pbs.twimg.com/profile_images/1990472620614053888/xrAu0wQL_normal.jpg)\n\nDemis Hassabis@demishassabis\n\n[x.com/i/article/2076…](http://x.com/i/article/2076946210397552640)\n\n[🔗 View Quoted Tweet](https://x.com/demishassabis/status/2076957440109625718)\n\n💬7🔄1❤️9👀3195📊8",
+      "tags": [
+        "Demis Hassabis",
+        "技术基础"
+      ],
+      "score": 70,
+      "summary": "elvis 推荐 Demis Hassabis 关于技术基础协调的文章。",
+      "fetched_at": "2026-07-15T00:23:06.641572+08:00"
+    },
+    {
+      "title": "Highly-recommended overview of metacognition in LLMs.\n\n(bookmark it)\n\nInteresting behaviors in LLMs ...",
+      "link": "https://x.com/omarsar0/status/2077045732268560738",
+      "published": "2026-07-14T23:01:06+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Highly-recommended overview of metacognition in LLMs.  \n  \n(bookmark it)  \n  \nInteresting behaviors in LLMs like confidence calibration, self-verification, knowing when to stop, and knowing what you do not know have mostly been studied in isolation.  \n  \nThis survey argues they are facets of one thing, metacognition, and proposes a comprehensive map of it.  \n  \nThe authors taxonomize methods and benchmarks for measuring and evaluating metacognitive abilities in LLMs, then connect those abilities to capability, reliability, and transparency.  \n  \nAs agents take on longer horizons, the ability to monitor and regulate their own reasoning becomes an important way to measure reliability.  \n  \nPaper: [arxiv.org/abs/2607.11881](https://arxiv.org/abs/2607.11881)  \n  \nLearn to build effective AI agents in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNMmFcvaEAAZ-3J.jpg)\n\n💬8🔄11❤️58👀4149📊27",
+      "tags": [
+        "元认知",
+        "LLM",
+        "综述"
+      ],
+      "score": 80,
+      "summary": "elvis 推荐 LLM 元认知综述论文。",
+      "fetched_at": "2026-07-15T00:23:06.641574+08:00"
+    },
+    {
+      "title": "Mem0 is now an official Anthropic connector. \nNo CLI, no config file, no npx mcp-add\n\nJust search \"M...",
+      "link": "https://x.com/mem0ai/status/2077049190014996933",
+      "published": "2026-07-14T23:14:51+08:00",
+      "source": "mem0(@mem0ai)",
+      "content": "Mem0 is now an official Anthropic connector.   \nNo CLI, no config file, no npx mcp-add  \n  \nJust search \"Mem0\" in Claude's Connectors directory, connect your account, and every chat on [claude.ai](http://claude.ai), Desktop, or Cowork remembers context across weeks, not just one session.  \n  \nClaude Code + API devs already had this. Now everyone else does too. 🧠  \n  \nTry it out:[claude.ai](http://claude.ai)4 → \"+\" → Connectors → search \"Mem0\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077049085622988801/vid/avc1/1920x1080/npHBcWjNb1SRC6EH.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/mem0ai/status/2077049190014996933/video/1)\n\n💬4🔄2❤️16👀830📊10",
+      "tags": [
+        "Mem0",
+        "Anthropic",
+        "记忆"
+      ],
+      "score": 85,
+      "summary": "Mem0 成为 Anthropic 官方连接器，为 Claude 提供跨会话记忆。",
+      "fetched_at": "2026-07-15T00:23:06.641577+08:00"
+    },
+    {
+      "title": "Cloudflare 工程经理 Kate Reznykova 加入 OpenAI，负责 ChatGPT 网络基础设施研发\n\n如果你觉得 Cloudflare 工程经理，这个职位没什么特别，再看看 Ka...",
+      "link": "https://x.com/shao__meng/status/2077042342645649455",
+      "published": "2026-07-14T22:47:38+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Cloudflare 工程经理 Kate Reznykova 加入 OpenAI，负责 ChatGPT 网络基础设施研发  \n  \n如果你觉得 Cloudflare 工程经理，这个职位没什么特别，再看看 Kate 带领负责的方向：  \nCloudflare Agents  \nCloudflare Sandbox SDK  \n  \n看完是不是就清楚了，ChatGPT Work and Codex 的基础设施，特别是 Sandbox，又要有大幅提升了，期待！\n\n![Tweet Image](https://pbs.twimg.com/media/HNMiTJpaUAIpT56.jpg)\n\n![kate](https://pbs.twimg.com/profile_images/1935442738066923520/x07BUeuA_normal.jpg)\n\nkate@whoiskatrin\n\nSome exciting news: I’m joining [@OpenAI](https://x.com/OpenAI) to work on ChatGPT’s web infrastructure.  \n  \nChatGPT has become part of how millions of people think, work, and build, and I’m really looking forward to helping shape what comes next alongside the remarkable team behind it.  \n  \nCan’t wait to get started!\n\n![Tweet Image](https://pbs.twimg.com/media/HNGb1kNa0AAfynG.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/whoiskatrin/status/2076612250941727158)\n\n💬2🔄0❤️0👀463📊2",
+      "tags": [
+        "OpenAI",
+        "Cloudflare",
+        "Kate Reznykova"
+      ],
+      "score": 75,
+      "summary": "Cloudflare 工程经理 Kate Reznykova 加入 OpenAI 负责 ChatGPT 网络基础设施。",
+      "fetched_at": "2026-07-15T00:23:06.641579+08:00"
+    },
+    {
+      "title": "Kimi K3 马上到！\n\n这应该是 Kimi 运营团队配置充值活动后，不留神把状态设置为发布后，虽然很快活动就下架隐藏了，不过 Google 搜索还是爬到了信息。\n\n限时充值活动 07.15 开始，...",
+      "link": "https://x.com/shao__meng/status/2077040009853747598",
+      "published": "2026-07-14T22:38:22+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Kimi K3 马上到！  \n  \n这应该是 Kimi 运营团队配置充值活动后，不留神把状态设置为发布后，虽然很快活动就下架隐藏了，不过 Google 搜索还是爬到了信息。  \n  \n限时充值活动 07.15 开始，看起来模型发布，也就是今明两天的事儿了，期待！\n\n![Tweet Image](https://pbs.twimg.com/media/HNMgIfAasAAjCnJ.jpg)\n\n💬2🔄0❤️2👀528📊2",
+      "tags": [
+        "Kimi K3",
+        "发布"
+      ],
+      "score": 70,
+      "summary": "meng shao 爆料 Kimi K3 模型即将发布，充值活动泄露。",
+      "fetched_at": "2026-07-15T00:23:06.641582+08:00"
+    },
+    {
+      "title": "严重怀疑 ChatGPT （Codex）的客户端现在已经由AI接管了\n\nCodex 应该是自己在升级自己\n\n自己发现问题和收到反馈进行自我迭代修复和升级，然后发布\n\n因为每隔几小时它就会有新版本提醒你...",
+      "link": "https://x.com/xiaohu/status/2077039297463775423",
+      "published": "2026-07-14T22:35:32+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "严重怀疑 ChatGPT （Codex）的客户端现在已经由AI接管了  \n  \nCodex 应该是自己在升级自己  \n  \n自己发现问题和收到反馈进行自我迭代修复和升级，然后发布  \n  \n因为每隔几小时它就会有新版本提醒你更新...\n\n💬25🔄0❤️70👀22558📊27",
+      "tags": [
+        "Codex",
+        "AI自我升级"
+      ],
+      "score": 60,
+      "summary": "小互怀疑 Codex 客户端已由 AI 自我升级。",
+      "fetched_at": "2026-07-15T00:23:06.641584+08:00"
+    }
+  ]
+}
