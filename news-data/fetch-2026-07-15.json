@@ -1351,6 +1351,506 @@
       "score": 80,
       "summary": "数字生命卡兹克分享Seedance视频生成实用心得，强调提示词应简洁聚焦主体、场景、音乐和镜头。",
       "fetched_at": "2026-07-15T02:12:21.144473+08:00"
+    },
+    {
+      "title": "Multi-agent social intelligence with Strands Agents and Amazon Bedrock",
+      "link": "https://aws.amazon.com/blogs/machine-learning/multi-agent-social-intelligence-with-strands-agents-and-amazon-bedrock/",
+      "published": "2026-07-15T02:44:26+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Your prospects leave trails across multiple sources: a founder asks “What should I use for X?” in r/SaaS while their product launches on Hacker News. Stack Overflow questions spike. A GitHub repo crosses 2,400 stars. Each signal alone is noise, but correlated across sources, they reveal a prospect ready to buy. Multi-agent systems built with [Strands Agents](https://strandsagents.com/) and [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/) can automate this social intelligence at scale.\n\n[Thrad.ai](https://thrad.ai/) is building the advertising infrastructure for AI, introducing paid ads in LLMs. Their platform lets chat interfaces monetize through ads and lets brands advertise in them. They faced an especially signal-rich version of this problem. Tracking these patterns manually doesn’t scale, and generic outreach lacks the context that makes email worth opening. Thrad.ai’s sales team spent 30 to 45 minutes researching each lead across six sources before writing one outreach email.\n\nA single AI agent can’t solve this: the signal diversity is too broad, the source APIs too varied, and the analysis too nuanced for one model to handle well. With multi-agent orchestration, you assign each source to a specialist agent, then fuse results through a dedicated analysis agent that spots cross-source patterns.\n\nThis post shows how Thrad.ai deployed a multi-agent system with [Strands Agents](https://strandsagents.com/) and [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/) that automates the pipeline from prospect discovery through personalized email generation. The post compares two orchestration patterns (Swarm and Graph) with head-to-head benchmarks on latency, cost, and email quality. You’ll also learn how the system scores prospects using weighted criteria, intent classification, and temporal decay, plus governance controls for production deployment.\n\nYou can apply these patterns to competitive intelligence, candidate sourcing, and market research. A [companion repository](https://github.com/aws-samples/sample-multi-agent-social-intelligence-strands-agentcore) is available to help you follow along.\n\n## Prerequisites\n\nThis post assumes familiarity with Python, AWS Cloud Development Kit (AWS CDK) basics, and large language model (LLM) concepts.\n\n* AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access (Claude Sonnet 4.6 model enabled) and Amazon Bedrock AgentCore.\n* Permissions for Amazon DynamoDB, [AWS Lambda](https://aws.amazon.com/lambda/), AWS Secrets Manager, and [AWS CDK](https://aws.amazon.com/cdk/).\n* Python 3.12+, Node.js 18+\n* `strands-agents>=1.25.0`, `bedrock-agentcore[strands-agents]>=1.2.1`, `pydantic>=2.12.5`\n* Approximately 60 minutes for hands-on deployment, approximately $3 to $5 (Amazon Bedrock model invocations).\n* **Important:** Deployed resources (DynamoDB tables, Lambda functions, AgentCore services) incur charges while running. Complete the Clean up steps after finishing the tutorial to avoid ongoing costs.\n\n**Note:** You can follow this post conceptually without deploying. To run the code yourself, you’ll need the preceding prerequisites.\n\n```\n# Clone the companion repository\ngit clone https://github.com/aws-samples/sample-multi-agent-social-intelligence-strands-agentcore\ncd sample-multi-agent-social-intelligence-strands-agentcore\n\n# Install dependencies with uv\nuv sync\n\n# Deploy infrastructure\ncd infra && cdk deploy --all\n```\n\n> Full setup guide: [README.md](https://github.com/aws-samples/sample-multi-agent-social-intelligence-strands-agentcore)\n\n## Solution overview\n\nWith this architecture illustrated in Figure 1, you can turn raw social signals into personalized outreach automatically. Four specialized agents handle discovery, enrichment, scoring, and email generation, each with its own tools and strict output validation.\n\n![Four agents in a left-to-right flow: Trend Research and Search Specialist feed into Analysis, then Email Generation, with Amazon Bedrock AgentCore services](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/24/ML-19617-1.png)\n\nFour-agent pipeline with Amazon Bedrock AgentCore Runtime, Gateway, Memory, and Observability\n\nThe following table describes each agent’s role, tools, and the AgentCore services it uses.\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| **Agent** | **Role** | **Tools** | **AgentCore Services** |\n| **Trend Research** | Discovers trending launches and buying-intent signals | Hacker News, YouTube, dev.to, ProductHunt, Reddit, Stack Overflow APIs | Runtime, Gateway |\n| **Search Specialist** | Enriches prospect profiles with context | Wikipedia, GitHub, Lobste.rs, Stack Overflow APIs | Runtime, Gateway |\n| **Analysis** | Scores prospect-trend pairs (0-100) | Scoring engine, ICP matcher | Runtime, Memory |\n| **Email Generation** | Drafts personalized outreach | Brand knowledge retrieval, lead storage | Runtime, Gateway, Memory |\n\nTwo agents start data collection in parallel. The **Trend Research Agent** queries six sources (Hacker News, YouTube, dev.to, ProductHunt, Reddit, Stack Overflow) for trending launches and buying-intent signals. Meanwhile, the **Search Specialist Agent** enriches each prospect via Wikipedia, GitHub, Lobste.rs, and Stack Overflow.\n\nAfter both agents finish, the **Analysis Agent** scores each prospect-trend pair from 0 to 100 using Claude Sonnet 4.6 on [Amazon Bedrock](https://aws.amazon.com/bedrock/). The agents use a [global inference profile](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html) (`global.anthropic.claude-sonnet-4-6`), which routes requests to the nearest available Region. This avoids region-specific model ARNs in IAM policies and streamlines multi-Region deployment. High-scoring prospects flow to the **Email Generation Agent**, which drafts personalized email messages tied to specific trends and validates each draft against brand guidelines.\n\nEach agent owns one responsibility, one set of tools, and one [Pydantic](https://docs.pydantic.dev/latest/)-validated output contract. Pydantic is a Python data validation library that enforces type-safe schemas at runtime. If an agent returns data in the wrong shape, the system catches it before the next agent sees it.\n\nThe Reddit tool scans five subreddits (r/SaaS, r/startups, r/devtools, r/selfhosted, r/Entrepreneur) and uses keyword pattern matching to classify posts into four intent categories: recommendation-seeking, competitor frustration, product launch, and purchase intent. When a Hacker News launch also appears in a Reddit “what tool should I use?” thread, that prospect scores higher.\n\nThe scoring relies on signal triangulation: a prospect needs correlated evidence from at least two independent sources. The Trend Research Agent first calls `check_existing_leads` to skip prospects already in the pipeline. A trending Hacker News post with no Reddit discussion, no Stack Overflow activity, and zero GitHub stars likely reflects a promotional push. The system filters it before spending tokens on analysis.\n\nThe Analysis Agent applies five weighted criteria: topical alignment (25%), timing relevance (20%), engagement potential (20%), intent signals (20%), and data quality (15%). Ideal customer profile (ICP) matching adds up to 10 bonus points for developer tools with open source presence and B2B focus. Temporal decay sharpens the score: signals under 24 hours old get 1.5x weight, signals over 7 days get 0.5x.\n\n## Strands orchestration: Swarm vs. Graph\n\nNow comes the central design decision: how do four agents coordinate? [Strands Agents](https://strandsagents.com/latest/) provides two orchestration patterns. Thrad.ai built both and compared them against the same 50-prospect workload. The following sections walk through each pattern, then present benchmark results.\n\n### Swarm: Autonomous handoffs\n\nFigure 2 illustrates how agents are passing control via the handoff\\_to\\_agent tool with shared context. In Swarm orchestration, agents pass control dynamically using a handoff\\_to\\_agent tool. The Trend Research Agent discovers prospects and hands off to Search Specialist for enrichment. Search Specialist passes to Analysis for scoring. If data is sparse, Analysis can hand back to Trend Research for additional context. Agents share a common working memory.\n\n![Swarm orchestration diagram showing four agents passing control through handoffs with a shared working memory](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/24/ML-19617-2.png)\n\nDynamic agent-to-agent transfers with shared working memory\n\nSwarm agents act as self-organizing peers with shared context, where each agent decides when to hand off to a specialist. Trend Research discovers a prospect and hands off to Search Specialist for enrichment, and Search Specialist passes to Analysis for scoring.\n\nIf data is thin, Analysis hands *back* to Trend Research to receive more context. This bidirectional handoff lets agents request additional context when needed.\n\nThe following code shows how to configure a Swarm with safety bounds:\n\n```\nswarm = Swarm(\n    agents=[trend_agent, search_agent, analysis_agent, email_agent],\n    entry_point=trend_agent,\n    max_handoffs=15,\n    execution_timeout=1200.0,\n    repetitive_handoff_detection_window=8,\n    repetitive_handoff_min_unique_agents=3,\n)\n```\n\nThe repetitive handoff parameters matter. Without them, two agents can ping-pong across each other indefinitely. A window of 8 with a minimum of 3 unique agents forces forward progress.\n\nSwarm works best when prospect complexity varies and agents benefit from re-engaging earlier stages. However, execution paths are harder to predict, and token consumption runs higher from handoff-reasoning overhead.\n\n### Graph: Structured workflow\n\nFigure 3 illustrates how a directed graph starts with parallel research and search entry points, then converges at analysis, with a conditional edge to email. In Graph orchestration, agents follow a fixed directed workflow. Trend Research and Search Specialist run in parallel as entry points. Analysis waits for both to finish before running. A conditional edge gates Email Generation, which only runs if the prospect scores 60 or higher.\n\n![Graph orchestration diagram with parallel research and search entry points converging at analysis, then a conditional edge to email generation](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/24/ML-19617-3.png)\n\nParallel entry, all-dependencies-complete gating, and conditional score threshold\n\nThe Graph pattern wires agents into a fixed workflow with explicit, one-way edges. Trend Research and Search Specialist run in parallel, cutting data-gathering time in half. Analysis waits for both to finish. Email runs only if the prospect scores 60 or higher, acting as a policy gate.\n\nThe following code shows how to define a Graph with parallel entry points and conditional edges:\n\n```\nbuilder = GraphBuilder()\nbuilder.add_node(trend_agent, \"research\")\nbuilder.add_node(search_agent, \"search\")\nbuilder.add_node(analysis_agent, \"analysis\")\nbuilder.add_node(email_agent, \"email\")\n\nbuilder.set_entry_point(\"research\")\nbuilder.set_entry_point(\"search\")\n\nwait_for_both = _all_dependencies_complete([\"research\", \"search\"])\nbuilder.add_edge(\"research\", \"analysis\", condition=wait_for_both)\nbuilder.add_edge(\"search\", \"analysis\", condition=wait_for_both)\nbuilder.add_edge(\"analysis\", \"email\", condition=_score_above_threshold)\n```\n\nGraph shines when the workflow is repeatable and auditability matters. Every run follows the same path, so you can reproduce failures by replaying the same input. The limitation is that it can’t dynamically loop back without explicit feedback edges. If an agent needs more context, you’ll need to add a dedicated feedback edge in the directed acyclic graph (DAG) definition.\n\n### Head-to-head results\n\nBoth patterns ran three times against 50 Hacker News prospects. Two reviewers scored email relevance on a 1 to 10 rubric (specificity, tone, accuracy).\n\n|  |  |  |\n| --- | --- | --- |\n| **Metric** | **Swarm** | **Graph** |\n| Avg latency per prospect | 45s | 32s |\n| P95 latency | 78s | 38s |\n| Avg tokens per prospect | ~12,000 | ~8,500 |\n| Email relevance (human-rated) | 8.2 | 7.6 |\n| Cost per prospect (est.) | ~$0.08 | ~$0.06 |\n\n**Business impact**: For a 1,000-prospect batch, Graph saves approximately 3.6 hours of processing time and $20 in token costs compared to Swarm.\n\nSwarm produced higher-quality email messages (8.2 vs. 7.6) because agents looped back for more context when data was sparse, while Graph cost 25% less per prospect with tighter latency bounds. Thrad.ai chose Graph for nightly batch processing and Swarm for weekly deep-dives on high-value prospects.\n\n**How to decide:** Choose Graph when the workflow is repeatable and you need predictable latency. Choose Swarm when input quality varies and agents need to adapt. You can run both in the same code base, switched by a configuration flag.\n\n## Deploying on Amazon Bedrock AgentCore\n\nProduction workloads need session isolation, capacity management, and observability that go beyond local prototyping. [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/) handles these as managed services. The CDK stack (client-side orchestration code that defines your infrastructure) deploys four services using `aws-cdk-lib/aws-bedrock-agentcore-alpha` L2 constructs:\n\n* **Runtime** hosts agents in isolated microVMs (lightweight virtual machines) with AWS Identity and Access Management (IAM) authentication and lifecycle controls (15-min idle timeout, 8-hour max lifetime).\n* **Gateway** provides a single [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) endpoint for the nine tools. MCP is a standard protocol for LLM-tool communication. Agents discover tools dynamically at startup via the Strands `MCPClient`.\n* **Memory** stores short-term context within sessions and long-term semantic data across sessions. Optional; agents degrade gracefully without it.\n* **Observability** captures distributed traces via OpenTelemetry (an open standard for telemetry data) with span-level latency and token counts. Integrates with [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) and third-party services.\n\nThrad.ai found that YouTube API calls accounted for 40% of total latency. The trace data led the team to add `get_with_retry` with exponential backoff to HTTP calls.\n\n> The [companion README](https://github.com/aws-samples/sample-multi-agent-social-intelligence-strands-agentcore) for this blog post and [AgentCore documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-get-started-toolkit.html) provides the full CDK stack, Gateway setup, and deployment walkthrough.\n\n## Walkthrough: A real run\n\nHere’s what a Graph run produces against the current Hacker News feed:\n\n```\n[Graph] Starting nodes: research, search (parallel)\n[research] 12 trending HN posts + 4 Reddit intent signals, filtered to 3 AI launches\n[search] Enriched 3 prospects: GitHub stars, Wikipedia context, Lobste.rs discussions\n[Graph] All dependencies complete → starting: analysis\n[analysis] Scored 3 prospects:\n  - Prospect A (AI code review tool): 88/100, intent: recommendation_seeking\n  - Prospect B (ML monitoring dashboard): 61/100, no intent signal\n  - Prospect C (LLM fine-tuning CLI): 45/100, below threshold, skipped\n[Graph] Conditional edge: score >= 60 → starting: email (Prospects A, B)\n[email] Generated 2 personalized emails, persisted to DynamoDB\n```\n\nHere’s an example email generated for Prospect A:\n\n```\nSubject: Saw your AI code review launch trending on HN\n\nHi [Name],\n\nCongrats on crossing 2,400 stars on GitHub this week—impressive\ntraction for an AI code review tool. I noticed the r/SaaS thread\nwhere developers are asking for alternatives to [Competitor]; your\napproach to contextual suggestions seems to address exactly what\nthey're frustrated about.\n\nWe're building Thrad for teams scaling developer outreach. Our\ncustomers use it to turn signals like yours into qualified\nconversations. Would love 15 minutes to share how similar\ndev-tool founders shortened their sales cycle.\n\nBest,\n[Sender]\n```\n\n**Prospect A scored 88** because of cross-source signals (HN + Reddit + dev.to), 2,400 GitHub stars matching ICP criteria, and all signals under 48 hours old (1.5x temporal weight). Prospect C scored below 60 and was skipped, saving ~3,000 tokens. The Graph pattern processed all 50 prospects in under 30 minutes.\n\n## What we learned\n\nBuilding and benchmarking both orchestration patterns revealed several insights for production multi-agent systems.\n\n**Intent signals beat passive trends:** Adding Reddit intent detection increased prospects scoring above 80 by 22% in our tests. A prospect asking “What tool should I use for X?” converts at higher rates than one trending passively.\n\n**Temporal decay helps prevent stale outreach:** Signals under 24 hours old get 1.5x weight, while signals over 7 days get 0.5x. A Stack Overflow surge from yesterday starts a conversation. One from last month is noise.\n\n**Pick the pattern based on the job:** Swarm wins on quality when data is sparse. Graph wins on cost and predictability for batch work. Running both in the same system, switched by a configuration flag, gives you flexibility without maintaining separate code bases.\n\n## Governance and human-in-the-loop\n\nWhen agents take on more decision-making, you’ll need guardrails. The system implements controls at three levels:\n\n1. **Policy gates via conditional edges:** The Analysis-to-Email edge checks the relevance score. The system logs prospects below 60 but skips email generation. You can extend this pattern to require human approval before email generation by adding a review node.\n2. **Scoped tool access:** Each agent receives only the tools it needs. The Email Agent gets `store_lead` and `retrieve_brand_knowledge`. Trend Research gets `check_existing_leads` plus discovery tools. An agent can’t invoke tools outside its scope.\n3. **Swarm safety bounds:** Repetitive handoff detection stops loops. `max_handoffs` and `execution_timeout` cap autonomous behavior. These guardrails help prevent runaway token spend.\n\n## Conclusion\n\nYou now have a blueprint for building multi-agent social intelligence systems with [Strands Agents](https://strandsagents.com/latest/) and [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/). With the Swarm and Graph patterns, you can match your orchestration strategy to your workload’s needs. These techniques extend beyond sales intelligence:\n\n* **Competitive intelligence:** Replace discovery tools with competitor monitoring. The same multi-signal fusion detects launches and economic shifts.\n* **Candidate sourcing:** Replace sales outreach with recruiting. GitHub contributions, Stack Overflow activity, and dev.to articles are strong candidate signals.\n* **Content curation:** Replace email generation with content recommendation. Intent signals identify what your audience cares about right now.\n\n> *“Working with the AWS PACE team helped us turn what was honestly a messy, multi-source problem into something we could actually run in production. With Strands Agents and Amazon Bedrock AgentCore, we’ve reduced a lot of the manual research while improving the timing and relevance of our outreach.*\n>\n> *What’s been especially useful in practice is being able to use both Graph and Swarm depending on the job. Graph lets us process large batches quickly and cheaply, while Swarm helps us go deeper on higher-value leads where extra context actually makes a difference.”*\n\n— Marco Visentin, Co-founder & CTO of Thrad.ai\n\n### Next steps\n\n**To deploy and customize:**\n\n1. Clone the [companion repository](https://github.com/aws-samples/sample-multi-agent-social-intelligence-strands-agentcore).\n2. Deploy the infrastructure with `cdk deploy --all`.\n3. Configure API keys in AWS Secrets Manager.\n4. Swap data sources by registering new Lambda targets in `infra/gateway_stack.py`.\n\n**To evaluate Swarm vs. Graph:**\n\n1. Run `python scripts/benchmark.py --prospects 50`.\n2. Compare trace outputs in CloudWatch against your latency and quality requirements.\n\n### Clean up\n\nTo avoid ongoing charges, delete the deployed resources when you are done experimenting:\n\n```\ncd infra\ncdk destroy --all\n```\n\nConfirm the deletion when prompted. This removes DynamoDB tables, Lambda functions, Secrets Manager secrets, and AgentCore services. **Warning:** This action permanently deletes all stored lead data in DynamoDB. Export any data you need to retain before running the destroy command. Verify deletion in the AWS CloudFormation console by confirming all stacks are removed.\n\n### Related resources\n\n* [Multi-Agent collaboration patterns with Strands Agents and Amazon Nova](https://aws.amazon.com/blogs/machine-learning/multi-agent-collaboration-patterns-with-strands-agents-and-amazon-nova/).\n* [AI agents in enterprises: Best practices with Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/machine-learning/ai-agents-in-enterprises-best-practices-with-amazon-bedrock-agentcore/).\n* [Customize agent workflows with advanced orchestration techniques using Strands Agents](https://aws.amazon.com/blogs/machine-learning/customize-agent-workflows-with-advanced-orchestration-techniques-using-strands-agents/).\n* [Amazon Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-get-started-toolkit.html).\n* [GitHub: Companion repository](https://github.com/aws-samples/sample-social-intelligence-agents).\n\n---\n\n## About the authors\n\n![Amit Deol](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/24/ML-19617-4.jpeg)\n\n### Amit Deol\n\nAmit is a Senior AI Engineer with AWS Prototyping and AI Customer Engineering. He partners with AWS customers to experiment with new ideas and build production-ready solutions across generative AI, data and analytics, and real-time streaming.\n\n![Hin Yee Liu](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/24/ML-19617-5.jpeg)\n\n### Hin Yee Liu\n\nHin Yee is a Senior AI Engagement Manager with AWS Prototyping and AI Customer Engineering. She leads customer engagements that take generative AI from prototype to production, focusing on the architecture, operational, and team practices that make these workloads dependable at scale.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-19617-6-1.jpeg)\n\n### Andrea Tortella\n\nAndrea is the Co-founder & CEO of Thrad.ai. Prior to Thrad, he worked in growth marketing at Perplexity.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/ML-19617-7-1.jpeg)\n\n### Marco Visentin\n\nMarco is the Co-founder & CTO of Thrad.ai. He was a PhD candidate in Machine Learning at Imperial College London before dropping out to build Thrad.ai.",
+      "tags": [
+        "Strands Agents",
+        "Amazon Bedrock",
+        "多Agent系统"
+      ],
+      "score": 82,
+      "summary": "AWS博客介绍使用Strands Agents和Amazon Bedrock构建多Agent社交智能系统，自动化销售线索挖掘。",
+      "fetched_at": "2026-07-15T04:20:22.499967+08:00"
+    },
+    {
+      "title": "lobste.rs is now running on SQLite",
+      "link": "https://simonwillison.net/2026/Jul/14/lobsters-sqlite/#atom-everything",
+      "published": "2026-07-15T03:44:11+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[lobste.rs is now running on SQLite](https://lobste.rs/s/ko1ji1/lobste_rs_is_now_running_on_sqlite)**\n\nCommunity site [Lobsters](https://lobste.rs) has been planning a migration away from MariaDB [since August 2018](https://github.com/lobsters/lobsters/issues/539#issuecomment-4959857588) - originally targeting PostgreSQL, but last year they decided to [investigate SQLite](https://github.com/lobsters/lobsters/issues/539#issuecomment-2964114295) instead.\n\nThis weekend they completed the migration, and now consider it stable enough that it looks like this is the permanent architecture for the site going forward:\n\n> SQLite seems to have passed with flying colors: cpu usage is down, memory usage is down, site seems to be snappier at least for me, 1/2 the vps cost once mariadb vps is taken down\n\nThe Lobsters Rails application now runs on a single VPS, with a primary content SQLite database file that's around 3.8GB. [There's also](https://lobste.rs/s/ko1ji1/lobste_rs_is_now_running_on_sqlite#c_c9ydhs) a 1.1GB cache database, a 218MB queue database, and a still growing 555MB rack\\_attack database used by the [Rack::Attack](https://github.com/rack/rack-attack) middleware for blocking and throttling abusive requests.\n\nThere are plenty more details in both the linked thread and this [SQLite migration PR](https://github.com/lobsters/lobsters/pull/1927) by Thomas Dziedzic, which added 735 lines and removed 593 lines across 30 commits and 188 files. That PR built on top of previous PRs [#1705](https://github.com/lobsters/lobsters/pull/1705), [#1871](https://github.com/lobsters/lobsters/pull/1871), and [#1924](https://github.com/lobsters/lobsters/pull/1924).\n\nThis is a really useful case study, and a great reminder that you can get a whole lot done with a single server and SQLite in 2026.\n\nTags: [migrations](https://simonwillison.net/tags/migrations), [ops](https://simonwillison.net/tags/ops), [rails](https://simonwillison.net/tags/rails), [sqlite](https://simonwillison.net/tags/sqlite), [lobsters](https://simonwillison.net/tags/lobsters)",
+      "tags": [
+        "Lobsters",
+        "SQLite迁移",
+        "Rails"
+      ],
+      "score": 70,
+      "summary": "Lobsters社区从MariaDB迁移到SQLite，CPU和内存使用下降，成本减半。",
+      "fetched_at": "2026-07-15T04:20:22.499981+08:00"
+    },
+    {
+      "title": "The Met and Google Arts & Culture celebrate 15 years of innovation",
+      "link": "https://blog.google/company-news/outreach-and-initiatives/arts-culture/the-met-ai-initiatives/",
+      "published": "2026-07-15T04:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/The_Met_Keyword_Asset_2.max-600x600.format-webp.webp)The Metropolitan Museum of Art unveils two new generative AI initiatives with Google Arts & Culture.",
+      "tags": [
+        "Google Arts & Culture",
+        "大都会博物馆",
+        "生成式AI"
+      ],
+      "score": 79,
+      "summary": "大都会博物馆与Google Arts & Culture合作推出两项生成式AI新举措。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/The_Met_Keyword_Asset_2.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-15T04:20:22.499985+08:00"
+    },
+    {
+      "title": "阶跃入局，重构智能体时代操作系统",
+      "link": "https://www.qbitai.com/2026/07/449979.html",
+      "published": "2026-07-15T02:43:55+08:00",
+      "source": "量子位",
+      "content": "董事长印奇称“未来的OS一定是跨端的”",
+      "tags": [
+        "阶跃星辰",
+        "跨端OS",
+        "智能体"
+      ],
+      "score": 75,
+      "summary": "阶跃星辰董事长印奇称未来操作系统一定是跨端的，公司入局智能体时代。",
+      "fetched_at": "2026-07-15T04:20:22.499989+08:00"
+    },
+    {
+      "title": "Script conversations between a user and assistant using @​shadcn/helpers and AI SDK UI.",
+      "link": "https://x.com/aisdk/status/2077103218384060859",
+      "published": "2026-07-15T02:49:32+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "Script conversations between a user and assistant using @​shadcn/helpers and AI SDK UI.\n\n![shadcn](https://pbs.twimg.com/profile_images/1593304942210478080/TUYae5z7_normal.jpg)\n\nshadcn@shadcn\n\nWe’re open sourcing @​shadcn/helpers, a new package for small, focused utils to help you build and test components faster.  \n  \nStarting with `createChat` for AI SDK and TanStack AI. It lets you script a conversation between a user & assistant then run it through `useChat`.  \n  \nYour components receive native messages through the framework’s real streaming lifecycle. createChat supports reasoning, tool calls, data, files, sources and parts.  \n  \nUse it to build components, previews, scripted demos and deterministic tests.\n\n![Tweet Image](https://pbs.twimg.com/media/HNM26a2WwAAafOq.jpg)![Tweet Image](https://pbs.twimg.com/media/HNM27dYX0AAsEki.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/shadcn/status/2077070695465443707)\n\n💬0🔄3❤️8👀870📊2",
+      "tags": [
+        "shadcn/helpers",
+        "AI SDK",
+        "createChat"
+      ],
+      "score": 80,
+      "summary": "shadcn开源@shadcn/helpers包，包含createChat工具用于AI对话脚本化。",
+      "fetched_at": "2026-07-15T04:20:22.499992+08:00"
+    },
+    {
+      "title": "Perplexity has the best (both on cost and performance) deep and wide research harness in Computer. O...",
+      "link": "https://x.com/AravSrinivas/status/2077105849638728118",
+      "published": "2026-07-15T02:59:59+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "Perplexity has the best (both on cost and performance) deep and wide research harness in Computer. One of the contributing factors is strong internal evals and benchmarks. Today, we're open-sourcing WANDR, the benchmark we use internally for measuring research capabilities.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNcDi7aMAA9rai.jpg)\n\n![Perplexity](https://pbs.twimg.com/profile_images/2009310641165660160/XArF3_Ib_normal.jpg)\n\nPerplexity@perplexity\\_ai\n\nWe’re open sourcing WANDR.  \n  \nWANDR is an internal benchmark we built and used for building deep and wide research capabilities inside Perplexity Computer.  \n  \n[research.perplexity.ai/articles/wandr…](https://research.perplexity.ai/articles/wandr-benchmark-evaluating-research-agents-that-must-search-wide-and-deep)\n\n[🔗 View Quoted Tweet](https://x.com/perplexity_ai/status/2077099503723946121)\n\n💬16🔄6❤️75👀7385📊19",
+      "tags": [
+        "Perplexity",
+        "WANDR基准",
+        "开源"
+      ],
+      "score": 85,
+      "summary": "Perplexity CEO宣布开源内部研究基准WANDR，用于评估深度和广度研究能力。",
+      "fetched_at": "2026-07-15T04:20:22.499994+08:00"
+    },
+    {
+      "title": "Stay connected to your Copilot CLI sessions from anywhere.\n\nGitHub Mobile now supports live notifica...",
+      "link": "https://x.com/github/status/2077096014977311174",
+      "published": "2026-07-15T02:20:55+08:00",
+      "source": "GitHub(@github)",
+      "content": "Stay connected to your Copilot CLI sessions from anywhere.  \n  \nGitHub Mobile now supports live notifications for remote Copilot CLI sessions. Track progress, know when input is needed, and jump back into session logs to unblock right from your phone.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNTlNub0AA_iFN.jpg)\n\n💬3🔄2❤️31👀12207📊5",
+      "tags": [
+        "GitHub Mobile",
+        "Copilot CLI",
+        "实时通知"
+      ],
+      "score": 75,
+      "summary": "GitHub Mobile支持远程Copilot CLI会话的实时通知，可跟踪进度并查看日志。",
+      "fetched_at": "2026-07-15T04:20:22.499997+08:00"
+    },
+    {
+      "title": "Download the app ⬇️\nhttps://t.co/o1zE2uk9n2",
+      "link": "https://x.com/github/status/2077096017246531987",
+      "published": "2026-07-15T02:20:55+08:00",
+      "source": "GitHub(@github)",
+      "content": "Download the app ⬇️  \n[github.com/mobile?utm\\_sou…](https://github.com/mobile?utm_source=x-mobile-live-notifications-remote-cli&utm_medium=social&utm_campaign=dev-pod-copilot-cli-2026)\n\n💬1🔄1❤️1👀4642📊1",
+      "tags": [
+        "GitHub Mobile",
+        "下载"
+      ],
+      "score": 60,
+      "summary": "GitHub推广其移动应用下载链接。",
+      "fetched_at": "2026-07-15T04:20:22.500000+08:00"
+    },
+    {
+      "title": "The semifinals get an avatar broadcast from the center circle. Luis Omar Tapia's Digital Twin, calli...",
+      "link": "https://x.com/HeyGen/status/2077108977033474365",
+      "published": "2026-07-15T03:12:25+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "The semifinals get an avatar broadcast from the center circle. Luis Omar Tapia's Digital Twin, calling from the field in Dallas.  \n  \nThis is what broadcast is starting to look like.\n\n![Telemundo Deportes](https://pbs.twimg.com/profile_images/1986872566288384000/nIl_kOr9_normal.jpg)\n\nTelemundo Deportes@TelemundoSports\n\n🏟️🎙️ ¡LUIS OMAR TAPIA DESDE EL CENTRO DEL CAMPO DEL ESTADIO DALLAS!  \n  \n🤖 A través de su avatar generado con la IA de [@HeyGen](https://x.com/HeyGen) y desde el círculo central, el narrador nos invita a disfrutar de los 90 minutos más hermosos del mundo… y de todos los que hagan falta en las semifinales de la Copa Mundial de la FIFA. ⚽✨  \n  \n🤔 ¿Te las vas a perder? 🔥  \n  \n📺 Sigue toda la cobertura de la Copa Mundial de la FIFA 2026 por Telemundo y Peac#MundialTelemundoe#Somos26o#FIFAWorldCupr#FranciaVsEspañaEspaña\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077099921820311552/vid/avc1/1920x1080/ddkqjdVJxNUn5Pwg.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/TelemundoSports/status/2077100065890378154/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/TelemundoSports/status/2077100065890378154)\n\n💬1🔄0❤️3👀621📊1",
+      "tags": [
+        "HeyGen",
+        "数字孪生",
+        "世界杯转播"
+      ],
+      "score": 80,
+      "summary": "HeyGen为Telemundo世界杯半决赛提供数字孪生解说员，从球场中心进行广播。",
+      "fetched_at": "2026-07-15T04:20:22.500002+08:00"
+    },
+    {
+      "title": "Build more with LangSmith this summer.\n\nJoin our Summer AMA Series for practical walkthroughs + live...",
+      "link": "https://x.com/LangChain/status/2077106008996929881",
+      "published": "2026-07-15T03:00:37+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Build more with LangSmith this summer.  \n  \nJoin our Summer AMA Series for practical walkthroughs + live Q&A with the LangChain team.   \n  \n <https://t.co/wXl1Sk2PnX>\n\n![Tweet Image](https://pbs.twimg.com/media/HNNc6GmW0AAm2q0.jpg)![Tweet Image](https://pbs.twimg.com/media/HNNc6FsWAAAGPW-.jpg)![Tweet Image](https://pbs.twimg.com/media/HNNc6BsWUAAeAg5.jpg)![Tweet Image](https://pbs.twimg.com/media/HNNc6DpWoAAMb6c.jpg)\n\n💬2🔄1❤️1👀1450📊2",
+      "tags": [
+        "LangSmith",
+        "AMA系列"
+      ],
+      "score": 65,
+      "summary": "LangChain举办夏季AMA系列，提供LangSmith实践演示和问答。",
+      "fetched_at": "2026-07-15T04:20:22.500005+08:00"
+    },
+    {
+      "title": "Here is the link to apply, my DM's are also open: https://t.co/5XDsMpqjoI",
+      "link": "https://x.com/OfficialLoganK/status/2077106597084758517",
+      "published": "2026-07-15T03:02:58+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "Here is the link to apply, my DM's are also open: [google.com/about/careers/…](https://www.google.com/about/careers/applications/jobs/results/102991020152496838-technical-program-management-lead-ai-studio-deepmind?e=72477625)\n\n💬3🔄0❤️26👀3451📊5",
+      "tags": [
+        "Google AI Studio",
+        "TPM Lead",
+        "招聘"
+      ],
+      "score": 70,
+      "summary": "Logan Kilpatrick为Google AI Studio招聘TPM Lead，附申请链接。",
+      "fetched_at": "2026-07-15T04:20:22.500008+08:00"
+    },
+    {
+      "title": "I am hiring a TPM lead for @GoogleAIStudio, the job is to accelerate our progress in every way possi...",
+      "link": "https://x.com/OfficialLoganK/status/2077106462648860739",
+      "published": "2026-07-15T03:02:26+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "I am hiring a TPM lead for [@GoogleAIStudio](https://x.com/GoogleAIStudio), the job is to accelerate our progress in every way possible across product, GTM, engineering, and more. If you are AI pilled, high agency, and want to push the frontier in Google DeepMind, consider working with us : )\n\n💬30🔄7❤️207👀11757📊48",
+      "tags": [
+        "Google AI Studio",
+        "TPM Lead",
+        "DeepMind"
+      ],
+      "score": 75,
+      "summary": "Logan Kilpatrick宣布为Google AI Studio招聘TPM Lead，推动产品、GTM和工程进展。",
+      "fetched_at": "2026-07-15T04:20:22.500010+08:00"
+    },
+    {
+      "title": ".md, meet Notion 👋\n\nYou can now open Markdown files in Notion as a read-only preview, then import t...",
+      "link": "https://x.com/NotionHQ/status/2077111491065766144",
+      "published": "2026-07-15T03:22:24+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": ".md, meet Notion 👋  \n  \nYou can now open Markdown files in Notion as a read-only preview, then import them as Notion pages.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077111105525264384/vid/avc1/3024x1912/ruRh1nf-qrxX_sXz.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/NotionHQ/status/2077111491065766144/video/1)\n\n💬4🔄2❤️25👀1914📊7",
+      "tags": [
+        "Notion",
+        "Markdown预览",
+        "导入"
+      ],
+      "score": 75,
+      "summary": "Notion支持在应用中预览Markdown文件并导入为页面。",
+      "fetched_at": "2026-07-15T04:20:22.500013+08:00"
+    },
+    {
+      "title": "Command-line tools for evaluating new models on @NotionHQ’s architecture were built from start to fi...",
+      "link": "https://x.com/OpenAIDevs/status/2077102893665320983",
+      "published": "2026-07-15T02:48:15+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Command-line tools for evaluating new models on [@NotionHQ](https://x.com/NotionHQ)’s architecture were built from start to finish with GPT‑5.6.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077102797124988928/vid/avc1/1280x720/FZ-noqQkgFvC46IB.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenAIDevs/status/2077102893665320983/video/1)\n\n💬7🔄2❤️84👀12145📊16",
+      "tags": [
+        "GPT-5.6",
+        "Notion",
+        "命令行工具"
+      ],
+      "score": 80,
+      "summary": "OpenAI开发者展示使用GPT-5.6为Notion架构构建命令行评估工具。",
+      "fetched_at": "2026-07-15T04:20:22.500016+08:00"
+    },
+    {
+      "title": "Soft scores give partial credit. Hard scores require every component for a member to be complete and...",
+      "link": "https://x.com/perplexity_ai/status/2077099597466583129",
+      "published": "2026-07-15T02:35:09+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Soft scores give partial credit. Hard scores require every component for a member to be complete and correct.  \n  \nThe benchmark tasks and evaluation harness are available at: [github.com/perplexityai/w…](https://github.com/perplexityai/wandr)\n\n💬1🔄4❤️9👀1795📊3",
+      "tags": [
+        "WANDR",
+        "评分机制",
+        "开源"
+      ],
+      "score": 75,
+      "summary": "Perplexity解释WANDR基准的软硬评分机制，并开源任务和评估工具。",
+      "fetched_at": "2026-07-15T04:20:22.500019+08:00"
+    },
+    {
+      "title": "Instead of grading against a gold solution, WANDR re-fetches every cited page and checks each claim ...",
+      "link": "https://x.com/perplexity_ai/status/2077099585051517005",
+      "published": "2026-07-15T02:35:06+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Instead of grading against a gold solution, WANDR re-fetches every cited page and checks each claim against the underlying evidence.  \n  \nThis allows certain tasks to contain time-varying facts.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNXEK9aoAAiu3_.jpg)\n\n💬3🔄1❤️8👀1597📊4",
+      "tags": [
+        "WANDR",
+        "证据验证",
+        "时间敏感"
+      ],
+      "score": 75,
+      "summary": "WANDR通过重新获取引用页面并检查声明来评分，支持时间变化的事实。",
+      "fetched_at": "2026-07-15T04:20:22.500021+08:00"
+    },
+    {
+      "title": "WANDR is constructed from de-identified production use cases covering people’s day-to-day research t...",
+      "link": "https://x.com/perplexity_ai/status/2077099568446181579",
+      "published": "2026-07-15T02:35:02+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "WANDR is constructed from de-identified production use cases covering people’s day-to-day research tasks like competitive research, due diligence, literature review, market analysis, product comparison, talent sourcing, and more.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNXDKWaMAE54nH.png)\n\n💬1🔄0❤️5👀1546📊2",
+      "tags": [
+        "WANDR",
+        "生产用例",
+        "研究任务"
+      ],
+      "score": 75,
+      "summary": "WANDR基于去标识化的生产用例构建，涵盖竞争研究、尽职调查等日常研究任务。",
+      "fetched_at": "2026-07-15T04:20:22.500024+08:00"
+    },
+    {
+      "title": "WANDR tests how well agents discover large sets of entities and verify specific facts about each one...",
+      "link": "https://x.com/perplexity_ai/status/2077099552247881877",
+      "published": "2026-07-15T02:34:58+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "WANDR tests how well agents discover large sets of entities and verify specific facts about each one. It provides a dense, interpretable eval signal that reveals whether an agent fails, and where.  \n  \nThe pipeline also doubles as a semi-automated factory for training data.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNXCRzbYAAPQEl.jpg)\n\n💬1🔄1❤️5👀1487📊2",
+      "tags": [
+        "WANDR",
+        "实体发现",
+        "训练数据"
+      ],
+      "score": 75,
+      "summary": "WANDR测试代理发现实体集和验证事实的能力，同时可作为训练数据工厂。",
+      "fetched_at": "2026-07-15T04:20:22.500027+08:00"
+    },
+    {
+      "title": "WANDR represents these requirements as hierarchical, independently verifiable records.\n\nIt consists ...",
+      "link": "https://x.com/perplexity_ai/status/2077099536804458766",
+      "published": "2026-07-15T02:34:54+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "WANDR represents these requirements as hierarchical, independently verifiable records.  \n  \nIt consists of 500 research tasks that require 170,495 source-backed records across three tiers of difficulty.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNXBX6a8AA5C6y.jpg)\n\n💬2🔄0❤️14👀2384📊3",
+      "tags": [
+        "WANDR",
+        "500任务",
+        "三级难度"
+      ],
+      "score": 75,
+      "summary": "WANDR包含500个研究任务，需170495个源支持记录，分三级难度。",
+      "fetched_at": "2026-07-15T04:20:22.500029+08:00"
+    },
+    {
+      "title": "Wide-and-deep research requires two capabilities.\n\n1) Agents must search broadly enough to find all ...",
+      "link": "https://x.com/perplexity_ai/status/2077099521017012426",
+      "published": "2026-07-15T02:34:51+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Wide-and-deep research requires two capabilities.  \n  \n1) Agents must search broadly enough to find all qualifying entities  \n  \n2) Agents must investigate deep enough to support every claim with evidence.\n\n![Tweet Image](https://pbs.twimg.com/media/HNNXAcWbAAAXKVj.jpg)\n\n💬2🔄0❤️16👀2771📊4",
+      "tags": [
+        "WANDR",
+        "广度搜索",
+        "深度验证"
+      ],
+      "score": 75,
+      "summary": "WANDR要求代理具备广泛搜索和深度验证两种能力。",
+      "fetched_at": "2026-07-15T04:20:22.500032+08:00"
+    },
+    {
+      "title": "We’re open sourcing WANDR.\n\nWANDR is an internal benchmark we built and used for building deep and w...",
+      "link": "https://x.com/perplexity_ai/status/2077099503723946121",
+      "published": "2026-07-15T02:34:46+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "We’re open sourcing WANDR.  \n  \nWANDR is an internal benchmark we built and used for building deep and wide research capabilities inside Perplexity Computer.  \n  \n[research.perplexity.ai/articles/wandr…](https://research.perplexity.ai/articles/wandr-benchmark-evaluating-research-agents-that-must-search-wide-and-deep)\n\n💬14🔄17❤️158👀18421📊39",
+      "tags": [
+        "Perplexity",
+        "WANDR",
+        "开源基准"
+      ],
+      "score": 85,
+      "summary": "Perplexity开源内部基准WANDR，用于构建深度和广度研究能力。",
+      "fetched_at": "2026-07-15T04:20:22.500035+08:00"
+    },
+    {
+      "title": "So...these two teams seem to play alot better than Argentina or England 😅",
+      "link": "https://x.com/petergyang/status/2077118932952264800",
+      "published": "2026-07-15T03:51:59+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "So...these two teams seem to play alot better than Argentina or England 😅\n\n💬5🔄0❤️10👀2259📊5",
+      "tags": [
+        "足球评论"
+      ],
+      "score": 30,
+      "summary": "Peter Yang评论两支球队表现优于阿根廷或英格兰。",
+      "fetched_at": "2026-07-15T04:20:22.500038+08:00"
+    },
+    {
+      "title": "Viva España!",
+      "link": "https://x.com/petergyang/status/2077115676893057233",
+      "published": "2026-07-15T03:39:02+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Viva España!\n\n💬4🔄0❤️7👀1554📊4",
+      "tags": [
+        "西班牙",
+        "足球"
+      ],
+      "score": 20,
+      "summary": "Peter Yang表达对西班牙队的支持。",
+      "fetched_at": "2026-07-15T04:20:22.500041+08:00"
+    },
+    {
+      "title": "For making html slides and videos (e.g., using @HyperFrames_ ) Fable is still significantly better t...",
+      "link": "https://x.com/petergyang/status/2077103041397084269",
+      "published": "2026-07-15T02:48:50+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "For making html slides and videos (e.g., using [@HyperFrames\\_](https://x.com/HyperFrames_) ) Fable is still significantly better than GPT 5.6 Sol. The stuff that Sol makes is unusable.  \n  \nFor landing pages, 5.6 Sol has caught up.\n\n💬1🔄0❤️11👀1976📊3",
+      "tags": [
+        "Fable",
+        "GPT-5.6 Sol",
+        "HTML幻灯片"
+      ],
+      "score": 70,
+      "summary": "Peter Yang比较Fable和GPT-5.6 Sol在HTML幻灯片和视频制作上的表现。",
+      "fetched_at": "2026-07-15T04:20:22.500043+08:00"
+    },
+    {
+      "title": "Your free custom domain is still up for grabs, but only for a few more days. ⏰\n\nReplit Core and Pro ...",
+      "link": "https://x.com/Replit/status/2077106145743761669",
+      "published": "2026-07-15T03:01:10+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Your free custom domain is still up for grabs, but only for a few more days. ⏰  \n  \nReplit Core and Pro members get their first year of an eligible domain free, with zero DNS setup. Offer ends Friday, July 17 at 11:59 PM PT.  \n  \nOpen the Domains tool and claim yours before it's gone.  \n  \nLearn more here: [docs.replit.com/promotions/fre…](http://docs.replit.com/promotions/free-domain-july)\n\n💬1🔄1❤️7👀1647📊2",
+      "tags": [
+        "Replit",
+        "免费域名",
+        "促销"
+      ],
+      "score": 65,
+      "summary": "Replit为Core和Pro会员提供一年免费自定义域名，截止7月17日。",
+      "fetched_at": "2026-07-15T04:20:22.500046+08:00"
+    },
+    {
+      "title": "assembling the best design team\n(looking for design engs, too)",
+      "link": "https://x.com/ryolu_/status/2077108336844210352",
+      "published": "2026-07-15T03:09:52+08:00",
+      "source": "Ryo Lu(@ryolu_)",
+      "content": "assembling the best design team  \n(looking for design engs, too)\n\n![Tyler Howarth](https://pbs.twimg.com/profile_images/1501969542393708544/VDfzrGQg_normal.jpg)\n\nTyler Howarth@tylr\n\nnew job this week\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNNEKF3aoAAR4aW.jpg)](https://video.twimg.com/tweet_video/HNNEKF3aoAAR4aW.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/tylr/status/2077078827520700454)\n\n💬19🔄3❤️302👀11486📊45",
+      "tags": [
+        "招聘",
+        "设计团队"
+      ],
+      "score": 40,
+      "summary": "Ryo Lu正在组建设计团队，寻找设计工程师。",
+      "fetched_at": "2026-07-15T04:20:22.500049+08:00"
+    },
+    {
+      "title": "💛",
+      "link": "https://x.com/ryolu_/status/2077107655894860137",
+      "published": "2026-07-15T03:07:10+08:00",
+      "source": "Ryo Lu(@ryolu_)",
+      "content": "💛\n\n![Manuel Muñoz Solera](https://pbs.twimg.com/profile_images/1657160289106935808/akr8siGS_normal.jpg)\n\nManuel Muñoz Solera@mamuso\n\nExcited to share I've joined [@cursor\\_ai](https://x.com/cursor_ai)!  \n  \nOne thing that stood out to me was how much this design team cares about building excellent products. Looking forward to contributing and learning from everyone here.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077081034336964608/vid/avc1/1280x720/AJWaabrVwYUtS2nI.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/mamuso/status/2077081103475900591/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/mamuso/status/2077081103475900591)\n\n💬1🔄1❤️67👀4638📊7",
+      "tags": [
+        "Cursor",
+        "设计团队"
+      ],
+      "score": 40,
+      "summary": "Manuel Muñoz Solera加入Cursor AI，Ryo Lu表示祝贺。",
+      "fetched_at": "2026-07-15T04:20:22.500051+08:00"
+    },
+    {
+      "title": "5.6 sol growth is insane.\n\nthe inference team has done heroic work to be able to support demand.\n\nwe...",
+      "link": "https://x.com/sama/status/2077106587307798989",
+      "published": "2026-07-15T03:02:55+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "5.6 sol growth is insane.  \n  \nthe inference team has done heroic work to be able to support demand.  \n  \nwe are going to move mountains to continue to scale, but it is possible there are some hiccups soon.\n\n💬421🔄105❤️3813👀251730📊628",
+      "tags": [
+        "GPT-5.6 Sol",
+        "推理团队",
+        "需求激增"
+      ],
+      "score": 90,
+      "summary": "Sam Altman称GPT-5.6 Sol增长惊人，推理团队全力支持需求，可能很快出现小问题。",
+      "fetched_at": "2026-07-15T04:20:22.500054+08:00"
+    },
+    {
+      "title": "I shared all of the sprites and prompts it used here https://t.co/k0yYhwPqgB",
+      "link": "https://x.com/simonw/status/2077111625145053589",
+      "published": "2026-07-15T03:22:56+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I shared all of the sprites and prompts it used here [github.com/simonw/pedalic…](https://github.com/simonw/pedalican-pet)\n\n💬1🔄0❤️3👀796📊1",
+      "tags": [
+        "Codex",
+        "精灵图",
+        "提示"
+      ],
+      "score": 60,
+      "summary": "Simon Willison分享他使用Codex生成自定义宠物精灵图的提示和资源。",
+      "fetched_at": "2026-07-15T04:20:22.500057+08:00"
+    },
+    {
+      "title": "Huh, you really can just tell Codex to make you a custom one - it generates the sprites using gpt-im...",
+      "link": "https://x.com/simonw/status/2077111515044532520",
+      "published": "2026-07-15T03:22:30+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Huh, you really can just tell Codex to make you a custom one - it generates the sprites using gpt-image-2\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNNh0IubQAArznW.jpg)](https://video.twimg.com/tweet_video/HNNh0IubQAArznW.mp4)\n\n💬2🔄0❤️9👀911📊3",
+      "tags": [
+        "Codex",
+        "gpt-image-2",
+        "精灵生成"
+      ],
+      "score": 65,
+      "summary": "Simon Willison演示使用Codex和gpt-image-2生成自定义精灵图。",
+      "fetched_at": "2026-07-15T04:20:22.500059+08:00"
+    },
+    {
+      "title": "You guys are way too focused on Brian Chesky. Build your god damn company.",
+      "link": "https://x.com/Suhail/status/2077113818619224565",
+      "published": "2026-07-15T03:31:39+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "You guys are way too focused on Brian Chesky. Build your god damn company.\n\n💬1🔄0❤️0👀262📊1",
+      "tags": [
+        "创业建议"
+      ],
+      "score": 30,
+      "summary": "Suhail建议创业者专注建设自己的公司，不要过度关注Brian Chesky。",
+      "fetched_at": "2026-07-15T04:20:22.500062+08:00"
+    },
+    {
+      "title": "Dom is byfar the most innovative consumer thinker we have in AI. This is like some Twitch meets Vibe...",
+      "link": "https://x.com/Suhail/status/2077105679475904908",
+      "published": "2026-07-15T02:59:19+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Dom is byfar the most innovative consumer thinker we have in AI. This is like some Twitch meets Vibe coded app/game thing?\n\n![dom hofmann](https://pbs.twimg.com/profile_images/1674449931476643840/YkY54CfX_normal.jpg)\n\ndom hofmann@dhof\n\nexcited to share a new toy called bash. it’s a multiplayer coding agent with social built around it  \n  \nstarting with invites and a waitlist, and we’ll open it up as quickly as possible  \n  \n[bash.tv](https://bash.tv)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077091633674272768/vid/avc1/2888x1618/sU9Y6uIemdYamXIm.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/dhof/status/2077093424809881952/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/dhof/status/2077093424809881952)\n\n💬1🔄1❤️8👀1712📊2",
+      "tags": [
+        "bash",
+        "多人在线编程",
+        "社交"
+      ],
+      "score": 70,
+      "summary": "Suhail评论dom hofmann的新产品bash，称其为Twitch与Vibe coding的结合。",
+      "fetched_at": "2026-07-15T04:20:22.500065+08:00"
+    },
+    {
+      "title": "当然，我觉得最大的思想差距在于我不知道 “胸有大志”是怎么生活的。比如我们这种，就是从装机时代开始玩硬件软件，自己开发个app,到现在自己整个homelab，觉得好了不起了。有点兴趣爱好，整个花园，去...",
+      "link": "https://x.com/feltanimalworld/status/2077106165612478739",
+      "published": "2026-07-15T03:01:15+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "当然，我觉得最大的思想差距在于我不知道 “胸有大志”是怎么生活的。比如我们这种，就是从装机时代开始玩硬件软件，自己开发个app,到现在自己整个homelab，觉得好了不起了。有点兴趣爱好，整个花园，去拼个乐团，已经精疲力尽了。上个班，能把基本生活维持在一个不难受的水平。所以，“大志”简直就是个神仙般的存在，这还是我们自认在同龄人中各方面都混的还可以的前提下。\n\n![徒步的骑手·刘宗坤](https://pbs.twimg.com/profile_images/2069572054978859009/SBiiSAsE_normal.jpg)\n\n徒步的骑手·刘宗坤@CaminoTexas\n\n我们这些到海外谋生活的中国人，谋生永远是第一位的。一家人不用为生活发愁了，多娱乐消遣旅行，结交值得结交的朋友，活得快乐，才是王道。如果有余力，再做些喜欢做的事。每个人的爱好不一样，像我胸无大志，就是骑骑车、写写字、做做播客，臧否一下大人物，还有创造大人物的乌合之众。偶尔想起几十年前读过的哪句古话，找来书重读，发现记忆错得一塌糊涂，也不像以前那么沮丧了。记忆本来就不好，年龄一大，更差了。在这方面，一旦认命，豁然开朗。\n\n[🔗 View Quoted Tweet](https://x.com/CaminoTexas/status/2077086304685142221)\n\n💬4🔄0❤️2👀276📊4",
+      "tags": [
+        "生活感悟"
+      ],
+      "score": 20,
+      "summary": "Susan STEM分享关于胸有大志与普通人生活的个人感悟。",
+      "fetched_at": "2026-07-15T04:20:22.500067+08:00"
+    },
+    {
+      "title": "\"Humans are cheaper than tokens on average, but good tokens are cheaper at scale.\"\n\nFor median firms...",
+      "link": "https://x.com/a16z/status/2077111266934653273",
+      "published": "2026-07-15T03:21:31+08:00",
+      "source": "a16z(@a16z)",
+      "content": "\"Humans are cheaper than tokens on average, but good tokens are cheaper at scale.\"  \n  \nFor median firms, agent costs sit near $80/hour, roughly in line with a software engineer.  \n  \nBut at the tails, an agent can cost $4/hour or $7,000/hour depending on how it's managed.  \n  \nHebbia CEO George Sivulka on why 100X tokens are the new 10X engineers: [a16z.news/p/the-next-ai-…](https://a16z.news/p/the-next-ai-goldrush-tokens-loops)\n\n![Tweet Image](https://pbs.twimg.com/media/HNNhsIkbAAAOsIy.jpg)\n\n![George Sivulka](https://pbs.twimg.com/profile_images/1983215737561841664/dpDuL3B0_normal.jpg)\n\nGeorge Sivulka@gsivulka\n\n[x.com/i/article/2075…](http://x.com/i/article/2075263689125400576)\n\n[🔗 View Quoted Tweet](https://x.com/gsivulka/status/2077070925154161101)\n\n💬1🔄1❤️10👀3379📊2",
+      "tags": [
+        "AI代理成本",
+        "Hebbia",
+        "100X tokens"
+      ],
+      "score": 82,
+      "summary": "a16z引用Hebbia CEO观点：人类比token便宜，但好token在规模上更便宜，代理成本中位数约80美元/小时。",
+      "fetched_at": "2026-07-15T04:20:22.500070+08:00"
     }
   ]
 }
