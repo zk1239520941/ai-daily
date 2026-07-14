@@ -1851,6 +1851,315 @@
       "score": 82,
       "summary": "a16z引用Hebbia CEO观点：人类比token便宜，但好token在规模上更便宜，代理成本中位数约80美元/小时。",
       "fetched_at": "2026-07-15T04:20:22.500070+08:00"
+    },
+    {
+      "title": "How Mapfre USA modernized fraud claims with Amazon EMR Serverless",
+      "link": "https://aws.amazon.com/blogs/architecture/how-mapfre-usa-modernized-fraud-claims-with-amazon-emr-serverless/",
+      "published": "2026-07-15T05:47:35+08:00",
+      "source": "AWS Architecture Blog",
+      "content": "Insurance fraud remains a significant challenge for the insurance industry because fraudulent claims can increase loss costs, reduce trust, and consume investigation capacity that could otherwise be focused on serving customers. Traditional fraud detection approaches typically rely on rules-based controls, manual investigation triggers, historical claim patterns, and structured-data-only analysis. These approaches are useful for known fraud patterns, but they can struggle to detect sophisticated fraud rings or hidden relationships across claimants, policies, vehicles, providers, addresses, and prior suspicious activities.\n\n[Mapfre USA](https://www.mapfreinsurance.com/) is the number one auto and home insurer in Massachusetts, serving customers in 11 states nationwide. Our coverage includes auto, home, motorcycle, watercraft, business insurance, and more. As part of Mapfre Group, we’re a worldwide leader serving over 31.1 million customers in more than 100 countries with a team of 31,000 employees. In collaboration with AWS and Neo4j, Mapfre USA modernized its fraud prevention capabilities by combining graph-based features with machine learning (ML) models deployed on AWS. This initiative, focused initially on Massachusetts Auto insurance and later expanded to Home (HO), has delivered significant business impact, exceeding $5 million Net Present Value (NPV), with realized savings already outperforming projections.\n\nIn this post, we share how Mapfre USA designed and implemented this solution, highlight the technical architecture running on AWS specifically on the Mapfre Data Platform called Atenea, and explore lessons learned that can apply to other industries facing complex fraud challenges.\n\n## Business challenge\n\nFraudulent claims aren’t always isolated events. They often involve hidden networks of policyholders, vehicles, providers, and prior suspicious activities. Detecting these complex relationships requires going beyond traditional structured data analysis.\n\nMapfre set out with a clear goal:\n\n* **Goal:** Improve fraud detection accuracy and claims handling efficiency.\n* **Key KPI:** Identify fraudulent claims missed by traditional methods.\n* **Approach:** Develop several ML models that use both traditional structured data and graph-based features derived from claim relationships.\n* **Deployment:** Integrate seamlessly with Guidewire Claims, so front-line adjusters automatically receive fraud alerts with explanations.\n\nEach flagged claim exposure generates a Guidewire activity showing the top three model drivers, helping investigators understand why the claim was identified and act quickly.\n\n## Technical solution on AWS (Atenea Data Platform)\n\nThe fraud detection platform is built on a modern data architecture on AWS, designed to scale efficiently and provide long-term governance.\n\nAt its core, the solution uses [Apache Iceberg](https://iceberg.apache.org/) tables stored on Amazon Simple Storage Service ([Amazon S3](https://aws.amazon.com/s3/)), with metadata managed through the [AWS Glue Data Catalog](https://docs.aws.amazon.com/glue/latest/dg/components-overview.html#data-catalog-intro) and access governed through [AWS Lake Formation](https://aws.amazon.com/lake-formation/) as part of the Atenea lakehouse governance model. The platform feature store is implemented through feature-store-managed Iceberg tables that manage model features, predictions, and Guidewire activities. The implementation is structured across three logical layers:\n\n* **Silver Layer** – Iceberg tables that contain source data from each of the sources, used as the initial consumption point of the platform.\n* **Gold Layer** – Iceberg tables storing intermediate data, such as unified Guidewire activity logs, Auto features, and Home features.\n* **Platinum Layer** – Feature Store-managed Iceberg tables containing encoded features and model predictions, making them reusable across models and ensuring strong metadata governance.\n\nProcessing pipelines are executed on [Amazon EMR Serverless](https://aws.amazon.com/emr/serverless/), with orchestration managed by Apache Airflow operators running on [Amazon Managed Workflows for Apache Airflow (Amazon MWAA)](https://aws.amazon.com/managed-workflows-for-apache-airflow/). This provides elastic, cost-efficient compute for both batch processing and fast-time scoring, while keeping orchestration, monitoring, and recovery centralized.\n\nFor graph enrichment, the platform connects to Neo4j using a dedicated driver, enabling advanced network-based features like suspicious claim linkages, provider fraud ratios, and centrality metrics.\n\nThis architecture supports efficient, reliable, and transparent production execution through repeatable Airflow orchestration, environment-based continuous integration and delivery (CI/CD) promotion, centralized monitoring, failure notifications, retry mechanisms, dead-letter queue handling for Guidewire integration, and controlled secret management. At the same time, the layered lakehouse design keeps the platform flexible enough to evolve with new business needs and fraud detection use cases.\n\n![Architecture diagram showing the Mapfre USA fraud detection platform on AWS, including data ingestion, graph enrichment, model scoring, and Guidewire integration](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/06/30/ARCHBLOG-1452-1.png)\n\nThe data sources are policy, claims, vehicles, and notes (from AS400 and Guidewire), which include structured data and derived features capturing entity relationships (graph data).\n\nThe following list describes the architecture overview:\n\n1. **Data ingestion** – Claim batch data uploaded to Amazon S3. Data gets standardized and materialized in Iceberg tables within the Silver layer.\n2. **Graph enrichment** – Data processed to update Neo4j graph database hosted on AWS.\n3. **Model training and scoring** – Batch scoring for several ML models.\n4. **Model orchestration** – Unified orchestration for ingestion, training, and inference using Apache Airflow operators. CI/CD pipelines for promotion across environments.\n5. **Execution platform** – Amazon EMR Serverless for cost-efficient Spark processing. Migration to Apache Iceberg plus AWS Glue Data Catalog for scalable metadata handling.\n6. **Integration with claims systems** – Fraud predictions automatically create Guidewire activities, enriched with a description for investigators.\n7. **Secrets and security** – [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) securely stores credentials and tokens for Guidewire API integration, with environment-specific and Region-specific access controls.\n8. **Monitoring and reliability** – [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) and [Amazon Simple Notification Service (Amazon SNS)](https://aws.amazon.com/sns/) provide visibility into pipeline health and notify teams on failures. Data quality checks are executed at key stages of the pipeline to validate data availability, schema consistency, completeness, and business-rule expectations before outputs are consumed by models or sent to Guidewire.\n\n## Guidewire integration with MLOps on AWS\n\nOne of the most important parts of Mapfre’s solution was closing the loop between ML predictions and the claims handling system. This required a resilient integration between the Atenea data platform on AWS and Guidewire Claims.\n\nThe following describes the integration flow:\n\n1. When an ML use case finishes scoring, the results are written as JSON files into the S3 path: `<bucket_name>/guidewire/`.\n2. An S3 event notification triggers an [AWS Lambda](https://aws.amazon.com/lambda/) function.\n3. This Lambda function:\n   * Reads the JSON file.\n   * Calls the Guidewire Predictive Model API.\n   * Because Guidewire doesn’t support batch requests, the Lambda function sends each JSON payload individually. This keeps the integration compatible with Guidewire and isolates failures at the individual activity level, but it increases the number of API calls and makes retry, throttling, DLQ handling, and monitoring controls important.\n4. If successful, the API responds with HTTP 201 (activity created).\n   * If not, the Lambda function retries up to two times.\n   * Failed requests are sent to an Amazon Simple Queue Service (Amazon SQS) dead-letter queue (DLQ), and an Amazon SNS notification is published for monitoring.\n5. Secrets are stored in AWS Secrets Manager and injected as Lambda environment variables, along with AWS Region-specific URLs for token retrieval and API endpoints.\n6. The following JSON shows the example structure for Guidewire integration:\n\n```\n{\n  \"method\": \"createPredictiveActivity\",\n  \"params\": [\n    {\n      \"claimNumber\": \"AUXXXXXXX\",\n      \"exposureNumber\": 1,\n      \"subject\": \"Fraud alert from ML model\",\n      \"description\": \"Claim flagged as potential fraud based on graph + ML features\",\n      \"shortSubject\": \"ML_Fraud_Flag\",\n      \"priority\": \"high\",\n      \"availableForClosedClaim\": true,\n      \"autoCloseOnExposureClosure\": false,\n      \"targetDays\": 4,\n      \"escalationDays\": 6\n    }\n  ]\n}\n```\n\n![Diagram showing the Guidewire integration flow with AWS Lambda, Amazon SQS dead-letter queue, and AWS Secrets Manager](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/06/30/ARCHBLOG-1452-2.png)\n\nKey benefits of this integration:\n\n* **Real-time actionability** – Fraud predictions automatically create Guidewire activities for front-line adjusters.\n* **Resilience** – Built-in retries, DLQ handling, and Amazon SNS alerts make sure failed events aren’t lost.\n* **Security** – Secrets and tokens are managed using AWS Secrets Manager, with strict environment separation (dev, pre, pro).\n* **Scalability** – Any new MLOps use case writes results into the S3 output path, automatically flowing into Guidewire.\n\nThis integration shows that fraud models don’t exist in isolation but actively augment daily claim workflows in production. It connects Atenea’s MLOps pipelines on AWS directly with business decisioning systems, which is critical to realizing the fraud savings impact.\n\n## Data quality and resilience\n\nFor robustness, data quality checks are applied on ingestion pipelines and graph features. Automated validation detects anomalies early, monitoring dashboards track KPIs and model performance, and standardized recovery and promotion processes operate across environments.\n\n## Visualization and investigative tools\n\nNeo4j Bloom supports SIU workflows by visually exploring entity relationships, such as a provider linked across multiple suspicious claims, accelerating fraud ring identification.\n\n## Conclusion\n\nThe fraud detection model in auto claims has enhanced Mapfre USA’s ability to identify fraudulent activity, driving significant savings and improving overall claims efficiency.\n\nDuring the pilot phase alone, savings exceeded projections, and in production the initiative has proven a Net Present Value (NPV) of more than $5M. These results confirm the business case and highlight the strength of combining structured data with graph-based features to uncover fraud networks that traditional approaches miss.\n\nThe results have been compelling:\n\n* **Accuracy gains** – Detection improved by 50–135 percent compared to baseline methods.\n* **Substantial realized value** – Both during the pilot and in production.\n* **Cross-functional success** – The initiative brought together Claims, IT Data, Advanced Analytics, and Neo4j teams in an agile, collaborative model.\n\nBeyond the financial outcomes, several lessons have emerged. First, cross-functional collaboration between groups like Claims, Data Engineering, Advanced Analytics, and technology partners like AWS and Neo4j was critical to success. Second, explainability proved essential. By presenting adjusters with the top model drivers directly in Guidewire, trust and adoption of the system increased substantially. Finally, building resilience into the architecture through monitoring, retries, and data quality processes helped the models operate reliably in production.\n\nLooking ahead, the platform is well-positioned to expand beyond fraud detection. New use cases such as underwriting anomaly detection and customer entity resolution are already on the roadmap. With robust architecture built on AWS using Amazon EMR Serverless, Apache Iceberg on Amazon S3 supported by AWS Glue Data Catalog and Lake Formation, a custom-built Feature Store, and Neo4j, Mapfre now has a scalable foundation to continue driving innovation and business impact.\n\nTo learn more about [Amazon EMR Serverless](https://aws.amazon.com/emr/serverless/), see the [Amazon EMR Serverless documentation](https://docs.aws.amazon.com/emr/latest/EMR-Serverless-UserGuide/emr-serverless.html).",
+      "tags": [
+        "Mapfre USA",
+        "Amazon EMR",
+        "欺诈检测"
+      ],
+      "score": 70,
+      "summary": "Mapfre USA使用Amazon EMR Serverless和ML现代化保险欺诈检测，节省超500万美元。",
+      "fetched_at": "2026-07-15T06:07:03.212403+08:00"
+    },
+    {
+      "title": "Take insights anywhere with Genie One on mobile",
+      "link": "https://www.databricks.com/blog/take-insights-anywhere-genie-one-mobile",
+      "published": "2026-07-15T06:00:00+08:00",
+      "source": "Databricks",
+      "content": "We recently announced Genie One, the data-smart AI coworker for business users. Today,...",
+      "tags": [
+        "Genie One",
+        "移动端",
+        "AI助手"
+      ],
+      "score": 75,
+      "summary": "Databricks发布Genie One移动端，面向业务用户的数据智能AI助手。",
+      "fetched_at": "2026-07-15T06:07:03.212417+08:00"
+    },
+    {
+      "title": "It's not too late to get Pixel Care+ for your Pixel 9 or 10.",
+      "link": "https://blog.google/products-and-platforms/devices/pixel/pixel-care-plus-open-enrollment-2026/",
+      "published": "2026-07-15T06:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/PixelCare.max-600x600.format-webp.webp)From July 13 to August 2, sign up for Pixel Care+ to get accidental damage coverage and $0 battery and screen repairs.",
+      "tags": [
+        "Pixel Care+",
+        "保险服务"
+      ],
+      "score": 30,
+      "summary": "Google Pixel Care+开放注册，提供意外损坏和电池屏幕维修。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/PixelCare.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-15T06:07:03.212422+08:00"
+    },
+    {
+      "title": "To demonstrate Meta AI's advanced reasoning and multimodal capabilities, we submitted a model to par...",
+      "link": "https://x.com/AIatMeta/status/2077138553210028042",
+      "published": "2026-07-15T05:09:57+08:00",
+      "source": "AI at Meta(@AIatMeta)",
+      "content": "To demonstrate Meta AI's advanced reasoning and multimodal capabilities, we submitted a model to participate in the Asian Physics Olympiad’s theoretical exam. We’re happy to share that our model achieved a perfect score of 30/30, tying with the top 3 student contestants.  \n  \nWe appreciate the APhO committee for letting our model participate in the competition: [apho2026.kr/en/index.html](https://apho2026.kr/en/index.html)\n\n![Tweet Image](https://pbs.twimg.com/media/HNN5af4WIAIcYqG.jpg)\n\n💬14🔄15❤️89👀21393📊25",
+      "tags": [
+        "Meta AI",
+        "亚洲物理奥赛",
+        "满分30/30"
+      ],
+      "score": 95,
+      "summary": "Meta AI模型在亚洲物理奥赛理论考试中获得满分30/30，与前三名学生并列。",
+      "fetched_at": "2026-07-15T06:07:03.212425+08:00"
+    },
+    {
+      "title": "ICYMI, you can now build and ship full web apps with ChatGPT. \n\n@coreyching shows you how.",
+      "link": "https://x.com/ChatGPTapp/status/2077123809677906328",
+      "published": "2026-07-15T04:11:21+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "ICYMI, you can now build and ship full web apps with ChatGPT.   \n  \n[@coreyching](https://x.com/coreyching) shows you how.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077108272335921152/vid/avc1/3840x2160/kRxAfD1jfFqLar2D.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/ChatGPTapp/status/2077123809677906328/video/1)\n\n💬37🔄46❤️774👀51028📊165",
+      "tags": [
+        "ChatGPT",
+        "构建Web应用"
+      ],
+      "score": 85,
+      "summary": "ChatGPT官方宣布用户现可用ChatGPT构建和发布完整Web应用。",
+      "fetched_at": "2026-07-15T06:07:03.212428+08:00"
+    },
+    {
+      "title": "Open source coding harness!",
+      "link": "https://x.com/hwchase17/status/2077125815083606116",
+      "published": "2026-07-15T04:19:20+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Open source coding harness!\n\n![Sure (e/acc)](https://pbs.twimg.com/profile_images/2017564622937571329/HaATziq5_normal.jpg)\n\nSure (e/acc)@SureCapital\n\n[@LangChain](https://x.com/LangChain) really outdid themselves with dcode. It’s currently one of my favourite harnesses for coding. 🙌🏽\n\n[🔗 View Quoted Tweet](https://x.com/SureCapital/status/2077098533501489413)\n\n💬6🔄1❤️19👀3662📊7",
+      "tags": [
+        "LangChain",
+        "dcode",
+        "开源编码工具"
+      ],
+      "score": 65,
+      "summary": "Harrison Chase转发称LangChain的dcode是开源编码工具。",
+      "fetched_at": "2026-07-15T06:07:03.212430+08:00"
+    },
+    {
+      "title": "Is this a good or a bad thing?",
+      "link": "https://x.com/julien_c/status/2077132945651810429",
+      "published": "2026-07-15T04:47:40+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Is this a good or a bad thing?\n\n![Sam Altman](https://pbs.twimg.com/profile_images/2046764873200394240/r7BxVezs_normal.jpg)\n\nSam Altman@sama\n\nthis would have been a whole startup not too long ago\n\n[🔗 View Quoted Tweet](https://x.com/sama/status/2077037818824843719)\n\n💬2🔄0❤️10👀2282📊3",
+      "tags": [
+        "Sam Altman",
+        "创业评论"
+      ],
+      "score": 40,
+      "summary": "Julien Chaumond评论Sam Altman推文，讨论AI时代创业规模变化。",
+      "fetched_at": "2026-07-15T06:07:03.212433+08:00"
+    },
+    {
+      "title": "The most searched questions about agents, answered by the LangChain team.",
+      "link": "https://x.com/LangChain/status/2077136051605262776",
+      "published": "2026-07-15T05:00:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "The most searched questions about agents, answered by the LangChain team.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077022251447152640/vid/avc1/1920x1080/jWUejxTibChPHUQm.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2077136051605262776/video/1)\n\n💬0🔄1❤️13👀2476📊3",
+      "tags": [
+        "LangChain",
+        "Agent问答"
+      ],
+      "score": 70,
+      "summary": "LangChain团队回答关于Agent的常见问题。",
+      "fetched_at": "2026-07-15T06:07:03.212435+08:00"
+    },
+    {
+      "title": "Plus: docs search now runs on @mintlify, read-only tools no longer trigger permission prompts, and e...",
+      "link": "https://x.com/OpenRouter/status/2077131774589833664",
+      "published": "2026-07-15T04:43:00+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Plus: docs search now runs on [@mintlify](https://x.com/mintlify), read-only tools no longer trigger permission prompts, and every tool renamed to a clean verb-noun format. Get started in 30 seconds: [openrouter.ai/mcp](http://openrouter.ai/mcp)\n\n💬0🔄0❤️1👀876",
+      "tags": [
+        "OpenRouter",
+        "MCP更新",
+        "文档搜索"
+      ],
+      "score": 75,
+      "summary": "OpenRouter MCP更新：文档搜索迁移至Mintlify，只读工具免权限提示。",
+      "fetched_at": "2026-07-15T06:07:03.212438+08:00"
+    },
+    {
+      "title": "Two new tools: generate-image (works on Desktop apps that can view images, billed to your key) and s...",
+      "link": "https://x.com/OpenRouter/status/2077131762719916348",
+      "published": "2026-07-15T04:42:58+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Two new tools: generate-image (works on Desktop apps that can view images, billed to your key) and send-feedback (report a bad generation straight to the OpenRouter team, no support form).\n\n💬1🔄0❤️0👀886📊1",
+      "tags": [
+        "OpenRouter",
+        "MCP工具",
+        "图像生成"
+      ],
+      "score": 75,
+      "summary": "OpenRouter MCP新增generate-image和send-feedback工具。",
+      "fetched_at": "2026-07-15T06:07:03.212441+08:00"
+    },
+    {
+      "title": "We just shipped a number of updates to the OpenRouter MCP - 2 weeks of OpenRouter MCP updates in one...",
+      "link": "https://x.com/OpenRouter/status/2077131714678435994",
+      "published": "2026-07-15T04:42:46+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "We just shipped a number of updates to the OpenRouter MCP - 2 weeks of OpenRouter MCP updates in one thread + demo.  \n  \nYour agent can now discover, rank, test, and report on models without leaving your editor 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077131598357729280/vid/avc1/1280x720/Gb3VJsm_TiZFnp9H.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenRouter/status/2077131714678435994/video/1)\n\n💬4🔄5❤️57👀4102📊12",
+      "tags": [
+        "OpenRouter",
+        "MCP更新",
+        "模型发现"
+      ],
+      "score": 80,
+      "summary": "OpenRouter发布MCP更新，Agent可在编辑器内发现、排名、测试和报告模型。",
+      "fetched_at": "2026-07-15T06:07:03.212443+08:00"
+    },
+    {
+      "title": "Best player from Spain",
+      "link": "https://x.com/petergyang/status/2077139905692799065",
+      "published": "2026-07-15T05:15:19+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Best player from Spain\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2075694778793025536/vid/avc1/480x552/cFXOGlQB-WfpFv3m.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/fcblau2/status/2075694829497987579/video/1)\n\n💬2🔄0❤️3👀357📊2",
+      "tags": [
+        "西班牙",
+        "足球"
+      ],
+      "score": 10,
+      "summary": "Peter Yang评论西班牙足球运动员。",
+      "fetched_at": "2026-07-15T06:07:03.212446+08:00"
+    },
+    {
+      "title": "Honestly the way Spain is playing it’ll be a huge upset if they’re not the champions",
+      "link": "https://x.com/petergyang/status/2077132606798442817",
+      "published": "2026-07-15T04:46:19+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Honestly the way Spain is playing it’ll be a huge upset if they’re not the champions\n\n💬6🔄1❤️32👀2359📊8",
+      "tags": [
+        "西班牙",
+        "足球"
+      ],
+      "score": 10,
+      "summary": "Peter Yang认为西班牙队表现强劲。",
+      "fetched_at": "2026-07-15T06:07:03.212448+08:00"
+    },
+    {
+      "title": "Wow spain is so good",
+      "link": "https://x.com/petergyang/status/2077126117497151573",
+      "published": "2026-07-15T04:20:32+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Wow spain is so good\n\n💬2🔄0❤️6👀1230📊2",
+      "tags": [
+        "西班牙",
+        "足球"
+      ],
+      "score": 10,
+      "summary": "Peter Yang称赞西班牙队表现。",
+      "fetched_at": "2026-07-15T06:07:03.212451+08:00"
+    },
+    {
+      "title": "NEW: Bloomberg reporting that OpenAI's first hardware  device will be a \"mobile, screen-free smart s...",
+      "link": "https://x.com/TheRundownAI/status/2077135739054149814",
+      "published": "2026-07-15T04:58:46+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "NEW: Bloomberg reporting that OpenAI's first hardware device will be a \"mobile, screen-free smart speaker\".  \n  \nThe release is \"designed to be a new type of home computer for the AI era\" and act as \"a humanlike AI companion that lives in the home\".\n\n![Tweet Image](https://pbs.twimg.com/media/HNN2ut2XkAAsMi0.png)\n\n💬2🔄0❤️3👀3467📊2",
+      "tags": [
+        "OpenAI",
+        "硬件设备",
+        "智能音箱"
+      ],
+      "score": 85,
+      "summary": "彭博社报道OpenAI首款硬件将是移动无屏智能音箱，定位AI伴侣。",
+      "fetched_at": "2026-07-15T06:07:03.212453+08:00"
+    },
+    {
+      "title": "https://t.co/NmmJ79oEQs",
+      "link": "https://x.com/TheRundownAI/status/2077135741113500016",
+      "published": "2026-07-15T04:58:46+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "[bloomberg.com/news/articles/…](https://www.bloomberg.com/news/articles/2026-07-14/openai-s-first-device-will-be-moveable-screenless-speaker-built-as-ai-companion)\n\n💬0🔄0❤️0👀835",
+      "tags": [
+        "OpenAI",
+        "硬件设备",
+        "彭博社"
+      ],
+      "score": 85,
+      "summary": "彭博社报道OpenAI首款设备为无屏智能音箱，作为AI伴侣。",
+      "fetched_at": "2026-07-15T06:07:03.212456+08:00"
+    },
+    {
+      "title": "You can now use Claude inside After Effects.\n\nHiggsfield's new MCP connector lets Claude work inside...",
+      "link": "https://x.com/omarsar0/status/2077132773031088571",
+      "published": "2026-07-15T04:46:59+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "You can now use Claude inside After Effects.  \n  \nHiggsfield's new MCP connector lets Claude work inside your actual AE project.  \n  \nIt can build compositions, set keyframes, write expressions, and run the repetitive ExtendScript work for you, and everything it makes becomes an editable AE scene.  \n  \nMore creative tools should work this way: an assistant that does the routine work while you keep full manual control.  \n  \nTry it here: [higgsfield.ai/plugins/after-…](http://higgsfield.ai/plugins/after-effects)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077132475508150272/vid/avc1/1580x1116/QPD_f452zEOMDboZ.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2077132773031088571/video/1)\n\n![Higgsfield AI 🧩](https://pbs.twimg.com/profile_images/2029949430317637632/6qPl4MTS_normal.jpg)\n\nHiggsfield AI 🧩@higgsfield\n\nHiggsfield MCP/Plugin for After Effects just got upgraded.  \nPowered by Fable 5.  \n  \n1. Build your own AE plugins  \n2. Drop in your reference and it decomposes into editable vector layers you can animate  \n3. AI assistant that answers or does it for you  \n4. Localize a project seamlessly\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077016462657798145/vid/avc1/1920x1080/GBqzV__Uwe2n51IO.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/higgsfield/status/2077016770939122149/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/higgsfield/status/2077016770939122149)\n\n💬3🔄3❤️9👀4103📊5",
+      "tags": [
+        "Claude",
+        "After Effects",
+        "MCP连接器"
+      ],
+      "score": 80,
+      "summary": "Higgsfield发布MCP连接器，使Claude能在After Effects中操作项目。",
+      "fetched_at": "2026-07-15T06:07:03.212459+08:00"
+    },
+    {
+      "title": "Meta’s Muse Spark 1.1 ranks at #17, above Gemini 3.1 Pro and Qwen-3.7 Plus, but lower than Grok 4.5 ...",
+      "link": "https://x.com/arena/status/2077133557336846568",
+      "published": "2026-07-15T04:50:06+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Meta’s Muse Spark 1.1 ranks at #17, above Gemini 3.1 Pro and Qwen-3.7 Plus, but lower than Grok 4.5 or GLM 5.2.\n\n![Tweet Image](https://pbs.twimg.com/media/HNN1k7maYAE4BgV.jpg)\n\n💬2🔄1❤️10👀1779📊3",
+      "tags": [
+        "Muse Spark 1.1",
+        "Agent Arena",
+        "排名"
+      ],
+      "score": 85,
+      "summary": "Meta Muse Spark 1.1在Agent Arena排名第17，高于Gemini 3.1 Pro和Qwen-3.7 Plus。",
+      "fetched_at": "2026-07-15T06:07:03.212461+08:00"
+    },
+    {
+      "title": "Check out the Agent Arena leaderboard to see the details: https://t.co/qNgm4b5vwT\n\nIn Agent Arena, w...",
+      "link": "https://x.com/arena/status/2077133560805470224",
+      "published": "2026-07-15T04:50:06+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Check out the Agent Arena leaderboard to see the details: [arena.ai/leaderboard/ag…](https://arena.ai/leaderboard/agent)  \n  \nIn Agent Arena, we measure models on millions of real-world, long-horizon agentic tasks from a global community of users. Models can access web search, filesystem, and terminal tools to complete complex workflows. The leaderboard measures model performance on outcomes relative to the average model using a causal tracing methodology.\n\n💬1🔄0❤️5👀1308📊1",
+      "tags": [
+        "Agent Arena",
+        "模型评测",
+        "排行榜"
+      ],
+      "score": 80,
+      "summary": "Agent Arena通过数百万真实任务评测模型，支持Web搜索、文件系统和终端工具。",
+      "fetched_at": "2026-07-15T06:07:03.212464+08:00"
+    },
+    {
+      "title": "Muse Spark 1.1 by @AIatMeta lands in the Agent Arena, marking the introduction of Meta to the leader...",
+      "link": "https://x.com/arena/status/2077133555290009729",
+      "published": "2026-07-15T04:50:05+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Muse Spark 1.1 by [@AIatMeta](https://x.com/AIatMeta) lands in the Agent Arena, marking the introduction of Meta to the leaderboard at #5 across all labs (and #17 on the model leaderboard).   \n  \nCongrats to [@AIatMeta](https://x.com/AIatMeta) on its initial entry into Agent Arena!\n\n![Tweet Image](https://pbs.twimg.com/media/HNN1VmbbIAAgng0.jpg)\n\n![AI at Meta](https://pbs.twimg.com/profile_images/1454145678075117568/2qXqM_Cu_normal.png)\n\nAI at Meta@AIatMeta\n\nWe’re excited to introduce Muse Spark 1.1, a significant upgrade from the first Muse Spark model we released earlier this year.  \n  \nAlong with this release, we are launching a public preview of the new Meta Model API where developers can access Muse Spark 1.1.  \n  \nThe model is also available now in \"Thinking\" mode in the Meta AI app and on [meta.ai](http://meta.ai).  \n  \nLearn more: [go.meta.me/ff8e2c](https://go.meta.me/ff8e2c)\n\n![Tweet Image](https://pbs.twimg.com/media/HMynMisbMAAntmz.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/AIatMeta/status/2075221088821518394)\n\n💬4🔄3❤️49👀6908📊7",
+      "tags": [
+        "Muse Spark 1.1",
+        "Meta",
+        "Agent Arena"
+      ],
+      "score": 85,
+      "summary": "Meta Muse Spark 1.1进入Agent Arena排行榜，位列实验室第5、模型第17。",
+      "fetched_at": "2026-07-15T06:07:03.212466+08:00"
+    },
+    {
+      "title": "Google Cloud Workbench Notebooks Extension Connects VS Code to Google Cloud's Jupyter Notebooks",
+      "link": "https://www.infoq.com/news/2026/07/cloud-workbench-vscode-extension/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-15T06:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://www.infoq.com/styles/static/images/logo/logo_bigger.jpg)\n\nThe Google Cloud Workbench Notebooks extension for VS Code is a new tool that enables developers to connect their local IDE directly to managed Jupyter notebook environments on Google Cloud.\n\n*By Sergio De Simone*",
+      "tags": [
+        "Google Cloud",
+        "VS Code扩展",
+        "Jupyter Notebook"
+      ],
+      "score": 70,
+      "summary": "Google Cloud Workbench Notebooks扩展让VS Code连接Google Cloud的Jupyter环境。",
+      "fetched_at": "2026-07-15T06:07:03.212468+08:00"
     }
   ]
 }
