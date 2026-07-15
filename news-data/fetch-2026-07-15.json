@@ -3129,6 +3129,196 @@
       "score": 30,
       "summary": "用户分享了一个链接，内容未显示，无法评估。",
       "fetched_at": "2026-07-15T14:24:26.612519+08:00"
+    },
+    {
+      "title": "机器人也开始修炼「见闻色」，星尘智能发布具身基座模型 Lumo-2，让动作更快更准了",
+      "link": "https://www.ifanr.com/1672067?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-15T15:58:21+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-T.jpg)\n\n7 月 15 日，具身智能创业企业星尘智能发布第二代具身基座模型 Lumo-2，以及面向长期人机共处的物理 AI 智能体 Philia。\n\n在星尘智能的技术框架中，这两项发布分别对应「AI 模型」与「具身 OS」，再与其绳驱机器人本体结合，构成公司所强调的「AI 模型—具身 OS—绳驱本体」三层体系。在这个体系中，具身基座模型 Lumo-2 试图改善机器人理解物理变化、预测未来并生成动作的能力，物理 AI 智能体 Philia 则负责把模型、记忆、交互、导航和多个机器人组织成一套长期运行的系统。\n\n鉴于具身智能技术多少有点晦涩，这里不妨打个比方：在动漫作品《海贼王》里，有一项能力叫「见闻色霸气」，这种能力可以帮助使用者感知其他的存在、情绪与行动意图；更高级的使用者甚至可以看到短暂的未来。\n\nLumo-2 这个模型的核心不同，有点类似于「见闻色」，能够根据当前的视觉观察，机器人自身状态，语言指令和过去一段时间的动作历史，来推测动作目标最可能出现的物理变化，做概率性的短期物理预测，进而帮助动作的执行。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-7.jpg)\n\n### 在行动之前，先预测世界会怎样变化\n\n星尘智能将 Lumo-2 称为「家庭隐式世界—动作模型」，英文为 Latent World-Action Model。\n\n从实际展示来看，Lumo-2 覆盖了超过 22 项家庭任务，包括接住滚落的球、将杯子放到旋转杯架上、煎鸡蛋并颠锅翻面、称取 500 克小米、磨粉制作咖啡、调制饮品、给礼盒打蝴蝶结、整理行李箱并拉上拉链、熨烫和悬挂衣服等。\n\n这些任务看起来都属于「家务」，对机器人能力的要求却并不相同。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-1.jpg)\n\n接球和抓取滚动鸡蛋需要理解物体运动趋势；倒水、煎蛋和洗碗要求判断任务进行到了哪个阶段；行李装箱和制作咖啡包含较长的动作链条；蝴蝶结、拉链、茶包等任务，则对双手协调和精细控制提出了更高要求。\n\n传统 VLA 模型（视觉–语言–动作模型）通常根据视觉观察和语言指令直接输出动作。机器人看到杯子，收到「把水倒进茶壶」的指令，模型便生成机械臂接下来的一段轨迹。\n\n这种技术方案也比较成熟，不过也容易产生一种「反射式」局限：模型学习了某种视觉输入通常对应什么动作，却不一定明确理解，这个动作将令环境发生怎样的变化。\n\nLumo-2 会在观察与动作之间加入了一层「潜在世界动态」，模型先在压缩的隐空间中预测与任务有关的未来变化，再根据这份未来变化生成动作。\n\n这个预测并非生成一段完整视频，因为完整的视频预测需要重建大量像素，其中包括背景、光线、纹理等与控制关系有限的信息，需要的算力成本也相对较高。Lumo-2 试图保留的预测是与行动有关的物理变化，例如物体将向哪里移动、容器是否仍在倾倒、手与物体将发生怎样的接触，以及任务即将进入哪个阶段。\n\n可以把它理解为一份面向行动的「未来草稿」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-5.jpg)\n\n这让 Lumo-2 位于 VLA 和完整视频世界模型之间：它保留了世界模型「先预测后行动」的思路，又将预测限制在更轻量、更接近控制需求的潜在空间里，星尘智能发表的论文将这一过程称为 latent reasoning 隐式推理。\n\n星尘智能的上一代 Lumo-1 更多依赖显式文本推理，将复杂任务拆成文字步骤。文本规划便于解释，不过文字有自身的局限性，很多信息无法通过文字精准描述，面对快速连续控制时却存在推理延迟和表达容量上的限制。Lumo-2 将这部分推理转移到隐空间，希望在减少 token 生成的同时，捕捉更加连续的时空变化。\n\n在倒水任务中，Lumo-2 的优势可以直观体现，因为透明的水倒出之前和倒完之后，单帧图像可能非常相似；机器人只看当前画面，很难判断应该继续倾倒，还是将容器放回桌面。\n\nLumo-2 因此引入一段短期动作历史，让模型结合此前做过什么，判断当前处于哪个阶段。这相当于为策略增加一种紧凑的「动作记忆」，避免单帧观察造成的状态混淆。\n\nLumo-2 的另一项关键变化，是重新处理动作表征。机器人动作通常是一组连续信号，例如机械臂位姿、旋转角度、速度和夹爪开合程度。过去不少模型会将这些信号压缩成动作 token，训练目标主要是尽可能准确地还原原始轨迹。\n\n但星尘智能认为，动作还原得准确，并不必然意味着实际控制效果更好。\n\n一个动作编码器可能非常擅长保存低层信号细节，却没有理解动作与物体、任务和语言之间的关系。模型在训练集上的重建误差很低，真正进入新环境后仍可能表现不稳定。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-8.jpg)\n\n这就是为什么一些具身智能机器人在实验室或者固定场景的演示里表现优异，但进入到了真实家庭或者工厂场景就不知所措的原因。  \n为此，Lumo-2 采用三阶段渐进式训练。\n\n第一阶段先让动作与视觉世界变化对齐。模型同时观察前后两个时刻的画面和对应动作，从视觉变化中筛选与物理运动有关的信息，并用动作反过来约束视觉表示。这样可以减少光照变化、背景扰动等无关因素对世界动态表示的影响。\n\n第二阶段将动作进一步与视觉和语言对齐。动作 token 除了记录位移、旋转和夹爪状态，还需要逐渐具有「拿起杯子」「继续倾倒」「将物品放入背包」等语义关系。训练任务包括动作描述、动作预测、世界动态预测，以及判断动作与当前视觉和指令是否匹配。\n\n第三阶段再把视觉语言数据、互联网视频、第一人称人类视频和机器人数据放在一起联合训练，让模型同时学习世界知识、物理变化和动作生成。\n\n这套流程背后的判断逻辑是：动作应当和图像、语言一样，被当作基座模型中的一种核心模态，而不是在视觉语言模型末端临时增加的输出接口。\n\n为满足实时控制需要，Lumo-2 还采用分块自回归生成，一次预测一组动作 token，而非逐个生成。Lumo-2 的技术论文显示，在单张 RTX 5090 上，其端到端延迟由约 253.66 ms 降至 93.53 ms。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-3.jpg)\n\n在实验中，团队将真实任务划分为时序推理、物理理解、动态场景、长流程、高精度和灵巧操作等类别。根据论文数据，Lumo-2 在这些任务中整体优于 π0.5 和 Fast-WAM 等基线；在未见语言指令和未见物体条件下，也表现出更高的任务成功率。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-4.jpg)\n\n### 具身智能开始进入「系统工程」阶段\n\n具身基座模型 Lumo-2 解决的是机器人怎样完成任务，物理 AI 智能体 Philia 关注的点是用户在使用具身智能机器人时怎么获得良好的体验。  \n虽然具身智能技术还在探索期，几乎没有什么 C 端用户，考虑用户体验还为时过早，但未雨绸缪嘛，先考虑的有先发优势。\n\n目前多数机器人仍然围绕单次技能调用设计，用户通过特定 App 或控制台下发命令，一台机器人对应一套软件和账户，执行结束后，系统对用户偏好、历史任务和其他机器人通常没有连续认知。\n\nPhilia 希望将机器人重新定义为一个智能助理能够调用的「物理执行者」。\n\n用户可以触达的最上层是飞书、微信、语音和网页等用户界面；中间层是 Agent 控制平面，负责理解意图、调用记忆、拆解任务、选择机器人和匹配能力；底层则是每台机器人的本地运行时，负责感知、导航、模型推理、轨迹执行和安全控制。\n\n在这个结构中，Agent 决定「做什么」，机器人本地系统负责「怎样做」。\n\n连接两者的关键，是 Robot Gateway，也就是机器人网关。每台机器人通过网关公开一组标准能力，例如观察场景、执行操作、导航、播报、查询状态和取消任务。\n\n这种设计与软件 API 类似：底层实现可以持续替换，只要对外接口保持稳定，上层交互、记忆和任务系统便不需要重新开发。  \n例如，用户在飞书中说「把玩具装进书包」，智能体 Philia 可以先确定哪台机器人具备对应能力，再调用本地部署的 Lumo-2 背包装填策略。未来\n\n模型升级后，只需替换底层策略，用户面对的助理身份和交互方式仍然保持连续。\n\n长期记忆是 Philia 与普通机器人控制系统的重要区别。比如说，用户此前告诉系统，自己早餐通常吃三明治和浓缩咖啡，之后用户只需说「把我平时早餐吃的食物放进托盘」，Philia 便可以从记忆中找到相关偏好，再结合机器人当前看到的桌面，选择三明治作为目标。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/XC-T.jpg)\n\nPhilia 还支持将多台机器人组织在同一个助手身份下。用户可以同时下达「Alice 整理桌面，Bob 提起垃圾袋」这样的命令，系统分别解析机器人名称、能力和任务，将指令发送给不同网关，并独立追踪执行状态。\n\n从用户视角看，自己始终在和同一个助理交流；多台机器人相当于这个助理能够调用的不同身体。这种统一身份和多本体设计，比「每台机器人拥有一个独立 App」更接近未来家庭设备生态，也意味着智能体可能逐渐从单个硬件中脱离出来，成为跨设备存在的服务层。\n\nLumo-2 与 Philia 同时发布，呈现了两条相互补充的技术路线。\n\nLumo-2 继续向下深入：研究机器人如何通过隐式世界动态理解物理变化，利用更多数据，并生成更稳定的动作。\n\nPhilia 则向上扩展：研究怎样将操作模型、导航、记忆、交互和多台机器人整合为一个能够长期服务用户的系统。\n\n如果以智能手机为例的话，一部智能手机的使用体验，一方面是硬件水平，性能好不好，屏幕靓不靓，影像强不强；另一方面是系统优化，流畅与否，省不省电，聪不聪明等等。\n\n星尘智能发布的两个技术成果大概就是分别对应模型能力与系统体验，也就是说，起码在技术上，具身智能开始进入「系统工程」阶段，机器人进入家庭，一段漂亮的演示视频已经远远不够打动人了，一套可以持续升级、可以被打断、能够记忆，也能够对真实世界负责的完整系统才是准入门槛。\n\n**[刘学文](https://www.ifanr.com/author/owen)**\n\n稳中向好。\n\n[邮箱](mailto:owenliu@ifanr.com)\n[新浪微博](http://weibo.com/u/1731822990)\n[1](https://www.ifanr.com/5)\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "星尘智能",
+        "Lumo-2",
+        "具身基座模型"
+      ],
+      "score": 85,
+      "summary": "星尘智能发布第二代具身基座模型Lumo-2，引入隐式世界-动作模型，提升机器人物理预测与动作能力。",
+      "fetched_at": "2026-07-15T17:18:11.988146+08:00"
+    },
+    {
+      "title": "我和「二次元老公」约上会了！全球首个可以玩的实时交互模型，Xmax X2.0发布",
+      "link": "https://www.qbitai.com/2026/07/450130.html",
+      "published": "2026-07-15T16:09:57+08:00",
+      "source": "量子位",
+      "content": "世界就是你的画布",
+      "tags": [
+        "Xmax X2.0",
+        "实时交互模型"
+      ],
+      "score": 70,
+      "summary": "全球首个可玩的实时交互模型Xmax X2.0发布。",
+      "fetched_at": "2026-07-15T17:18:11.988161+08:00"
+    },
+    {
+      "title": "马斯克也开始L4降维L2了！FSD正式进入反转时刻",
+      "link": "https://www.qbitai.com/2026/07/450657.html",
+      "published": "2026-07-15T15:22:26+08:00",
+      "source": "量子位",
+      "content": "FSD、Robotaxi共用一套模型",
+      "tags": [
+        "FSD",
+        "L4降维L2",
+        "Robotaxi"
+      ],
+      "score": 75,
+      "summary": "马斯克宣布FSD与Robotaxi共用同一套模型，进入反转时刻。",
+      "fetched_at": "2026-07-15T17:18:11.988164+08:00"
+    },
+    {
+      "title": "Scott Wu 表示，他很感谢过去这一年，也很期待继续和团队一起构建软件工程的未来\n\n源：https://t.co/Pr3OSOfiix",
+      "link": "https://x.com/FinanceYF5/status/2077305823030850030",
+      "published": "2026-07-15T16:14:37+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Scott Wu 表示，他很感谢过去这一年，也很期待继续和团队一起构建软件工程的未来  \n  \n源：[x.com/ScottWu46/stat…](https://x.com/ScottWu46/status/2077078038744109398)\n\n![Scott Wu](https://pbs.twimg.com/profile_images/1767334743207555072/Fpfh4MWg_normal.jpg)\n\nScott Wu@ScottWu46\n\nOne year ago today, Cognition acquired Windsurf, capping off one of the crazier weekends in our company's history.  \n  \nThe outline has been told many times: the first call on Friday evening, the rush through Saturday and Sunday to figure out the plan together, and then the signed agreement by Monday morning. On the Cognition side, we knew we had to move fast — Windsurf had millions of users, a brand developers loved, and a great team. We printed an LOI and headed to their offices on Saturday morning ready to sign on the spot. When we got in a room with Jeff and Graham, things clicked: they had built one of the best GTM orgs in Silicon Valley and needed engineering; we had the engineering org that needed GTM. They were building an IDE, we were building a cloud agent. Everything lined up.  \n  \nWhen we welcomed the team, we said “there's only one boat and we're all in it together.” Then we got to work. Three days after close, we shipped Wave 11: \"Just Keep Shipping\" – and that set the tone for everything to come. In the year since, we’ve launched our own models (including SWE1.7 just last week), Devin Review, Devin CLI, and unified everything into one brand with Devin Desktop. Along the way our team wrote 20M+ lines of code and grew revenue run rate from $73M to >$500M.  \n  \nThankful for the last year and excited to keep building the future of software engineering together!\n\n[🔗 View Quoted Tweet](https://x.com/ScottWu46/status/2077078038744109398)\n\n💬0🔄0❤️0👀247",
+      "tags": [
+        "Scott Wu",
+        "Cognition",
+        "Windsurf收购"
+      ],
+      "score": 60,
+      "summary": "Scott Wu回顾Cognition收购Windsurf一周年，感谢团队并展望未来。",
+      "fetched_at": "2026-07-15T17:18:11.988167+08:00"
+    },
+    {
+      "title": "在欢迎 Windsurf 团队加入时，Cognition 说了一句话：\n\n“这里只有一条船，我们都在同一条船上。”\n\n然后他们马上开始干活。\n\n交易完成 3 天后，他们发布了 Wave 11：\n\n“J...",
+      "link": "https://x.com/FinanceYF5/status/2077305811056148986",
+      "published": "2026-07-15T16:14:34+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "在欢迎 Windsurf 团队加入时，Cognition 说了一句话：  \n  \n“这里只有一条船，我们都在同一条船上。”  \n  \n然后他们马上开始干活。  \n  \n交易完成 3 天后，他们发布了 Wave 11：  \n  \n“Just Keep Shipping”。  \n  \n这也定下了之后一整年的基调。  \n  \n过去一年里，Cognition 发布了自己的模型，包括上周刚发布的 SWE1.7。  \n  \n还推出了 Devin Review、Devin CLI，并通过 Devin Desktop 把所有产品统一到一个品牌下。  \n  \n这一年里，团队写了超过 2000 万行代码。  \n  \n收入 run rate 从 7300 万美元增长到超过 5 亿美元。\n\n💬2🔄0❤️1👀205📊2",
+      "tags": [
+        "Cognition",
+        "Windsurf",
+        "收入增长"
+      ],
+      "score": 60,
+      "summary": "Cognition收购Windsurf后发布Wave 11，收入从7300万增至5亿美元。",
+      "fetched_at": "2026-07-15T17:18:11.988169+08:00"
+    },
+    {
+      "title": "Cognition 的 Scott Wu 回顾了一年前收购 Windsurf 的那段经历。\n\n他说，一年前的今天，Cognition 完成了对 Windsurf 的收购，也结束了公司历史上最疯狂的一个...",
+      "link": "https://x.com/FinanceYF5/status/2077305786263576752",
+      "published": "2026-07-15T16:14:28+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Cognition 的 Scott Wu 回顾了一年前收购 Windsurf 的那段经历。  \n  \n他说，一年前的今天，Cognition 完成了对 Windsurf 的收购，也结束了公司历史上最疯狂的一个周末。  \n  \n这件事的大致过程已经被讲过很多次：\n\n![Tweet Image](https://pbs.twimg.com/media/HNQSmmWaoAEeXbt.jpg)\n\n💬4🔄0❤️1👀518📊3",
+      "tags": [
+        "Cognition",
+        "Windsurf收购"
+      ],
+      "score": 55,
+      "summary": "Scott Wu回顾Cognition收购Windsurf的疯狂周末。",
+      "fetched_at": "2026-07-15T17:18:11.988171+08:00"
+    },
+    {
+      "title": "Apple 苹果这一波大的是不是”真的要来了“？\niPhone 手机已经在进行了Apple 智能手机的备案工作。",
+      "link": "https://x.com/berryxia/status/2077309011008110963",
+      "published": "2026-07-15T16:27:17+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "Apple 苹果这一波大的是不是”真的要来了“？  \niPhone 手机已经在进行了Apple 智能手机的备案工作。\n\n![Tweet Image](https://pbs.twimg.com/media/HNQVW49aYAAsahS.jpg)\n\n💬1🔄0❤️0👀145📊1",
+      "tags": [
+        "Apple智能",
+        "备案"
+      ],
+      "score": 65,
+      "summary": "Apple智能大模型已获手机端侧AI服务备案，国行Siri或将到来。",
+      "fetched_at": "2026-07-15T17:18:11.988173+08:00"
+    },
+    {
+      "title": "“one 80% price cut ends OpenAI and Anthropic”  \n\npossibly overstated but directionally correct.",
+      "link": "https://x.com/GaryMarcus/status/2077303938412429505",
+      "published": "2026-07-15T16:07:08+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "“one 80% price cut ends OpenAI and Anthropic”   \n  \npossibly overstated but directionally correct.\n\n![Darren](https://pbs.twimg.com/profile_images/1630961153928044545/3lkjilVz_normal.jpg)\n\nDarren@letsgoelsewhere\n\nEveryone is debating the price of tokens.  \n  \nThe bigger question is why they keep getting cheaper.  \n  \nAs AI systems become more coherent, they waste less computation reaching the same answer.  \n  \nThe long-term competitive advantage may not belong to whoever owns the most compute.  \n  \nIt may belong to whoever extracts the most intelligence from every watt.  \n  \n[@GaryMarcus](https://x.com/GaryMarcus)[@grok](https://x.com/grok) 👀\n\n![Tweet Image](https://pbs.twimg.com/media/HNQP8vhW0AAML6m.jpg)![Tweet Image](https://pbs.twimg.com/media/HNQP8vaWgAAdSeO.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/letsgoelsewhere/status/2077302875126976986)\n\n💬7🔄2❤️21👀3258📊7",
+      "tags": [
+        "Gary Marcus",
+        "AI降价",
+        "竞争"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus评论称80%降价可能终结OpenAI和Anthropic，方向正确。",
+      "fetched_at": "2026-07-15T17:18:11.988175+08:00"
+    },
+    {
+      "title": "很好的文章啊，FactoryAI 先是先是 ban 了 useEffect，现在又要 ban SDKs。\n\n已经把各种第三方服务的官方 SDK 都迁移掉了，转而让 AI Agent 为具体使用的 AP...",
+      "link": "https://x.com/vikingmute/status/2077298994674532711",
+      "published": "2026-07-15T15:47:29+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "很好的文章啊，FactoryAI 先是先是 ban 了 useEffect，现在又要 ban SDKs。  \n  \n已经把各种第三方服务的官方 SDK 都迁移掉了，转而让 AI Agent 为具体使用的 API endpoints，国内好多 SDK 的水平超差无比，更新速度滞后，代码质量也很差，Agent 能力足够强的时候，自己造轮子而且造得更好，使用 wrapper 直接调用 REST API 感觉挺好的。  \n  \n这也是未来的趋势，之前说的现在前端发布任何框架和基础架构的内容都提没有什么影响，未来真的有可能回归 html + js 一把梭了。\n\n![Alvin Sng](https://pbs.twimg.com/profile_images/1633939103124451328/Z57AZpU7_normal.jpg)\n\nAlvin Sng@alvinsng\n\n[x.com/i/article/2077…](http://x.com/i/article/2077106065959989248)\n\n[🔗 View Quoted Tweet](https://x.com/alvinsng/status/2077114275412512868)\n\n💬2🔄0❤️1👀1145📊2",
+      "tags": [
+        "FactoryAI",
+        "ban SDKs",
+        "AI Agent"
+      ],
+      "score": 65,
+      "summary": "FactoryAI迁移官方SDK，让AI Agent直接调用API，引发趋势讨论。",
+      "fetched_at": "2026-07-15T17:18:11.988177+08:00"
+    },
+    {
+      "title": "今天在 ChatGPT 里面找 Codex 没找到，原来改名叫 Remote 了",
+      "link": "https://x.com/dotey/status/2077294450645107051",
+      "published": "2026-07-15T15:29:25+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "今天在 ChatGPT 里面找 Codex 没找到，原来改名叫 Remote 了\n\n![Thomas Ricouard](https://pbs.twimg.com/profile_images/1983517942378536960/M04vxP2O_normal.jpg)\n\nThomas Ricouard@Dimillian\n\nHere is the latest update to Codex Remote on iOS!   \n  \nAs I posted, we now support the new visualisation feature, but there is also a ton of other improvements and fixes!   \n  \n[learn.chatgpt.com/docs/changelog…](https://learn.chatgpt.com/docs/changelog?type=codex-mobile)\n\n![Tweet Image](https://pbs.twimg.com/media/HNLftklXQAAhnAh.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Dimillian/status/2076968653019300283)\n\n💬6🔄1❤️12👀6535📊5",
+      "tags": [
+        "Codex",
+        "改名",
+        "Remote"
+      ],
+      "score": 60,
+      "summary": "ChatGPT中的Codex已改名为Remote。",
+      "fetched_at": "2026-07-15T17:18:11.988179+08:00"
+    },
+    {
+      "title": "“Apple智能”大模型已获手机端侧AI服务备案\n\n国行 Siri 要来了…\n\n网信办发布7款提供手机端侧生成式人工智能服务已备案信息的公告\n\n为促进生成式人工智能服务创新发展和规范应用，网信部门会同...",
+      "link": "https://x.com/xiaohu/status/2077304425153175987",
+      "published": "2026-07-15T16:09:04+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "“Apple智能”大模型已获手机端侧AI服务备案  \n  \n国行 Siri 要来了…  \n  \n网信办发布7款提供手机端侧生成式人工智能服务已备案信息的公告  \n  \n为促进生成式人工智能服务创新发展和规范应用，网信部门会同有关部门按照《生成式人工智能服务管理暂行办法》要求，有序开展生成式人工智能服务备案工作  \n  \n现将新增的“Apple智能”等7款提供手机端侧生成式人工智能服务备案信息予以公告。  \n  \n其中包括，苹果智能、华为小艺、vivo蓝心、小米澎湃及努比亚豆包大模型。\n\n![Tweet Image](https://pbs.twimg.com/media/HNQRXPzaAAAxVIf.jpg)\n\n💬2🔄0❤️3👀1292📊2",
+      "tags": [
+        "Apple智能",
+        "备案",
+        "端侧AI"
+      ],
+      "score": 75,
+      "summary": "网信办公告Apple智能等7款手机端侧AI服务已备案。",
+      "fetched_at": "2026-07-15T17:18:11.988181+08:00"
+    },
+    {
+      "title": "发推文：夸赞GPT 5.6\n\n就能获得100美金用量\n\n发完，在点这里填上你的账号和推文链接即可：https://t.co/hiyzSp65OA",
+      "link": "https://x.com/xiaohu/status/2077295892135334247",
+      "published": "2026-07-15T15:35:09+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "发推文：夸赞GPT 5.6  \n  \n就能获得100美金用量  \n  \n发完，在点这里填上你的账号和推文链接即可：[switch-to-codex.openai.chatgpt.site](https://switch-to-codex.openai.chatgpt.site/)\n\n![Tibo](https://pbs.twimg.com/profile_images/2075819673263001600/pj1vyX6I_normal.jpg)\n\nTibo@thsottiaux\n\nOr… what if we gave you $100 in Codex credits if you tell us what you love about GPT-5.6 Sol or why you switched?  \n  \nTweet it, claim your gift, enjoy more usage. First 10k get the free tokens!  \n  \n[switch-to-codex.openai.chatgpt.site](https://switch-to-codex.openai.chatgpt.site/)\n\n[🔗 View Quoted Tweet](https://x.com/thsottiaux/status/2077248807533003257)\n\n💬5🔄3❤️15👀9773📊8",
+      "tags": [
+        "GPT-5.6",
+        "推广活动"
+      ],
+      "score": 40,
+      "summary": "OpenAI推广活动：发推夸赞GPT-5.6可获100美元Codex额度。",
+      "fetched_at": "2026-07-15T17:18:11.988183+08:00"
+    },
+    {
+      "title": "给宝老打 call！",
+      "link": "https://x.com/dongxi_nlp/status/2077303533418717482",
+      "published": "2026-07-15T16:05:31+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "给宝老打 call！\n\n![宝玉](https://pbs.twimg.com/profile_images/561086911561736192/6_g58vEs_normal.jpeg)\n\n宝玉@dotey\n\n字幕转录翻译剪辑 Skill —— BaoCut（仅支持 Mac）  \n  \n借助 Agent Skill，可以转录视频、对转录结果识别 Speaker、润色（纠正错别字口癖等）、也可以根据转录结果对视频进行简单的剪辑，比如删除口癖、重复等。  \n  \n这次尝试解决一个问题就是 Agent 对字幕转录翻译后，无法通过一个友好的操作界面二次编辑的问题。  \n  \n现在的做法是为 Agent 提供一个 cli，配合 Skill 的说明，Agent 可以借助 cli 去转录，获取转录结果润色、翻译，并实时同步进度到 GUI。后续可以在 GUI 进行预览和人工编辑。  \n  \n安装了 Skill 和 App 后，后续只要从 Codex 或者 Claude Code 这种 Agent，触发 Skill 即可执行，比如：  \n> /baocut 转录并翻译视频：<视频 url 或路径>  \n  \n已知问题：  \n- 仅支持 Mac  \n- 翻译速度略慢，但质量会不错  \n  \n下载地址：[baocut.app](https://baocut.app/)  \n  \nSkill 从 App 内可以安装，或者 Skill 地址：[github.com/jimliu/baocut](https://github.com/jimliu/baocut)\n\n![Tweet Image](https://pbs.twimg.com/media/HNM7GB4XgAAvh7C.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dotey/status/2077074912435433901)\n\n💬2🔄0❤️1👀737📊2",
+      "tags": [
+        "BaoCut",
+        "字幕工具"
+      ],
+      "score": 30,
+      "summary": "宝玉发布BaoCut字幕转录翻译剪辑Skill，仅支持Mac。",
+      "fetched_at": "2026-07-15T17:18:11.988184+08:00"
     }
   ]
 }
