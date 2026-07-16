@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#F5F5F2"/>
+  <title>Thinking Machines 发布 975B MoE 模型 Inkling，xAI 因隐私争议开源 Grok Build，NVIDIA 推出 RoboTTT 机器人策略 · AI Daily</title>
+  <meta property="og:image" content="http://files.smashing.media/articles/people-dont-want-more-ai/people-dont-want-more-ai.jpg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../static/pages.css"/>
+</head>
+<body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+  <div class="site-shell">
+    <nav class="site-nav site-nav--compact">
+      <div class="site-brand">
+        <a href="../index.html">AI Daily</a>
+      </div>
+      
+      <a class="back-link" href="../index.html">← 返回首页</a>
+    </nav>
+
+    <article class="article-main">
+      <header class="article-hero reveal">
+        <div class="article-hero__top">
+          <time datetime="2026年07月16日 · 08:07">2026年07月16日 · 08:07</time>
+          <span class="article-edition">早报</span>
+        </div>
+        <figure class="article-cover"><img src="http://files.smashing.media/articles/people-dont-want-more-ai/people-dont-want-more-ai.jpg" alt="" loading="eager" referrerpolicy="no-referrer" decoding="async"/></figure>
+        <h1>Thinking Machines 发布 Inkling 模型，xAI 开源 Grok Build</h1>
+        <p class="article-lead">Thinking Machines Lab 发布首个开放权重模型 Inkling，975B 参数 MoE 架构，Apache 2.0 许可；xAI 因 Grok Build 隐私争议宣布删除已保留数据并全面开源全部代码；NVIDIA GEAR Lab 推出 RoboTTT，将机器人策略上下文窗口扩展至 8000 个时间步。</p>
+        <div class="highlight-tags"><span><i>1</i>Thinking Machines 发布 975B MoE 开源模型 Inkling</span><span><i>2</i>xAI 因隐私争议开源 Grok Build 全部代码</span><span><i>3</i>NVIDIA RoboTTT 将机器人策略上下文扩展至 8000 步</span></div>
+        <div class="article-stats"><span>10 个来源</span><span>10 条精选</span></div><div class="article-sections">RSS 精选 10 · GitHub 趋势 2 · Hacker News 3 · 今日洞察</div>
+      </header>
+
+      <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">10</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">2</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
+
+      <div class="article-body">
+        <section class="board-section board-rss" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Thinking Machines Lab 发布 Inkling：975B MoE 开放权重多模态模型</h3>
+<ul>
+<li><strong>核心发布</strong>：由 Lilian Weng 等人创立的 Thinking Machines Lab 正式发布其首个开放权重模型 Inkling。该模型为 975B 参数 MoE 架构（41B 活跃参数），支持文本、图像和音频多模态推理，提供 64K 和 256K 上下文窗口，Apache 2.0 许可。</li>
+<li><strong>性能与定位</strong>：官方称 Inkling 并非最强模型，但旨在作为可定制的坚实基础。社区评测显示其在 Design Arena 上与 GPT-5.6 Sol 竞争，被部分开发者称为“最佳西方开源模型”。模型权重已在 Hugging Face 发布，并可通过 Fireworks AI、Databricks 等平台使用。</li>
+<li><strong>生态整合</strong>：Inkling 已进入 lmarena.ai 的 Agent Arena、Text、Vision 和 Code Arena 进行评测。Fireworks AI 和 Databricks 均作为首发合作伙伴提供推理服务。Thinking Machines 还提供 Tinker 平台用于微调。<br>
+ 🔗 <a href="https://thinkingmachines.ai/news/introducing-inkling/">Thinking Machines 官方公告</a> | <a href="https://huggingface.co/thinkingmachines/Inkling">Hugging Face 模型页</a> | <a href="https://fireworks.ai/models/fireworks/inkling">Fireworks AI 集成</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-2"><h3>[持续跟踪] Grok Build 隐私争议后全面开源，xAI 删除已保留数据</h3>
+<ul>
+<li><strong>前情提要</strong>：昨日 xAI 的 Grok Build CLI 工具被曝在运行时会上传用户整个目录至 Google Cloud 存储桶，包括 SSH 密钥、密码管理器数据库等敏感文件，引发严重隐私争议。</li>
+<li><strong>最新进展</strong>：xAI 官方今日宣布已删除所有此前保留的编码数据，自 7 月 12 日起默认关闭数据保留功能。同时，xAI 将 Grok Build 全部代码（约 84.5 万行 Rust）以 Apache 2.0 许可开源至 GitHub，并重置了所有用户的使用额度。马斯克此前承诺将 X 平台全部代码开源并接受第三方审查。</li>
+<li><strong>行业意义</strong>：这一事件暴露了 AI 编码 Agent 在权限管理和数据隐私上的系统性风险——当 Agent 获得文件系统全权限时，单点故障的破坏半径极大。xAI 的快速开源回应试图通过透明化重建信任，但也凸显了行业在 Agent 安全治理上的普遍短板。<br>
+ 🔗 <a href="https://x.com/SpaceXAI/status/2077494536788664782">xAI 官方声明</a> | <a href="https://github.com/xai-org/grok-build">GitHub 仓库</a> | <a href="https://simonwillison.net/2026/Jul/15/grok-build/#atom-everything">Simon Willison 分析</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-3"><h3>NVIDIA GEAR Lab 发布 RoboTTT：机器人策略上下文扩展至 8000 步</h3>
+<ul>
+<li><strong>核心发布</strong>：NVIDIA GEAR Lab 与 Stanford SVL 合作推出 RoboTTT，将机器人策略的原生上下文窗口扩展至 8000 个时间步（约 5 分钟），推理成本恒定。相比此前 SOTA 的不足 0.1 秒上下文，提升了三个数量级。</li>
+<li><strong>技术原理</strong>：RoboTTT 采用“测试时训练”（Test-Time Training）范式，在模型内部嵌入一个微型神经网络作为隐藏状态。每次传感器读数触发一次梯度更新，将历史信息持续压缩进该微型网络的权重中，实现固定大小的“肌肉记忆”。</li>
+<li><strong>能力展示</strong>：机器人可通过人类视频进行一次性模仿学习；能在部署过程中自我改进，从自身错误中恢复；在电路板组装等长流程任务中，8K 上下文预训练比 1K 性能提升 62%。上下文缩放曲线显示性能随上下文长度稳步提升，无饱和迹象。<br>
+ 🔗 <a href="https://x.com/DrJimFan/status/2077414142340988962">Jim Fan 推文</a> | <a href="https://research.nvidia.com/labs/gear/robottt/">NVIDIA 研究页面</a> | <a href="https://x.com/drfeifei/status/2077497317255737422">李飞飞转发</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-4"><h3>OpenAI 发布 GPT-Red：自动化红队测试提示注入漏洞</h3>
+<ul>
+<li><strong>核心发布</strong>：OpenAI 正式发布 GPT-Red，一个内部自动化红队测试系统，专门用于大规模发现模型的提示注入漏洞。该系统帮助 OpenAI 在更广泛部署前建立更强的防御机制。</li>
+<li><strong>行业意义</strong>：随着 AI Agent 获得更多系统权限（文件访问、代码执行、网络操作），提示注入攻击的潜在危害急剧放大。GPT-Red 的自动化红队能力标志着安全测试从人工驱动向规模化自动化的转变，是 Agent 安全治理的关键基础设施。<br>
+ 🔗 <a href="https://openai.com/index/unlocking-self-improvement-gpt-red/">OpenAI 官方公告</a> | <a href="https://x.com/gdb/status/2077464463251554327">Greg Brockman 转发</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-5"><h3>Perplexity 自建沙箱平台 SPACE：尾延迟降低 5 倍，100% 承载生产流量</h3>
+<ul>
+<li><strong>核心发布</strong>：Perplexity 正式介绍其自建的沙箱生命周期管理平台 SPACE，自 6 月起已 100% 承载 Perplexity Computer 的生产流量。SPACE 将会话与运行沙箱分离，每个任务使用可销毁的 Firecracker 微VM，滚动快照支持会话暂停、恢复和分支。</li>
+<li><strong>性能数据</strong>：在相同生产流量下，SPACE 将沙箱创建中位延迟从 185ms 降至 60ms，P90 从 447ms 降至 89ms。上周处理了数百万次沙箱创建和数千万次重连。</li>
+<li><strong>安全设计</strong>：SPACE 运行时从不直接存储凭证，确保 Agent 在长时间运行轨迹中访问敏感文件时的安全性。CEO Aravind Srinivas 强调这是 Agent 基础设施的核心要求。<br>
+ 🔗 <a href="https://x.com/perplexity_ai/status/2077432535718793272">Perplexity 官方推文</a> | <a href="https://research.perplexity.ai/articles/making-space-secure-and-efficient-runtimes-for-long-running-agents">研究博客</a> | <a href="https://x.com/AravSrinivas/status/2077439693420163352">CEO 评论</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-6"><h3>LangChain Fleet Agent 一键集成 Slack，支持自定义身份和文件交接</h3>
+<ul>
+<li><strong>核心发布</strong>：LangChain 宣布 Fleet Agent 现可一键集成至 Slack。用户可为 Agent 设置自定义身份，在频道和线程中使用，支持文件交接、操作审批，所有上下文保留在 Slack 中。</li>
+<li><strong>行业意义</strong>：这标志着 AI Agent 从独立工具向团队协作基础设施的演进——将 Agent 嵌入团队已有的沟通平台，而非要求用户切换到新界面，是提高 Agent 采用率的关键设计决策。Harrison Chase 称 Slack 是 Agent 的理想接口。<br>
+ 🔗 <a href="https://x.com/LangChain/status/2077437626965971059">LangChain 官方推文</a> | <a href="https://www.langchain.com/blog/new-in-langsmith-fleet-bring-agents-into-slack-in-one-click">博客</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-7"><h3>OpenAI 与 Work Louder 合作发布 Codex Micro 编程键盘</h3>
+<ul>
+<li><strong>核心发布</strong>：OpenAI 与 Work Louder 合作推出 kbd-1.0-codex-micro 键盘，售价 $230。该键盘专为 Codex Agent 工作流设计：RGB 键显示实时 Agent 状态、摇杆启动 PR 审查和调试等工作流、专用键接受/拒绝/通话/新建聊天、旋钮调节推理级别。</li>
+<li><strong>行业意义</strong>：这是 AI 公司首次推出专为 AI 编程 Agent 设计的硬件外设，反映了 Agentic 开发从纯软件交互向物理交互扩展的趋势。Sam Altman 对用户想要“静音版本”表示惊讶。<br>
+ 🔗 <a href="https://x.com/OpenAIDevs/status/2077529895052493038">OpenAI Developers 推文</a> | <a href="https://openai.com/supply/co-lab/work-louder/">购买链接</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-8"><h3>lmarena.ai 引入事实性权重排行，GPT-5.5 升至搜索榜首</h3>
+<ul>
+<li><strong>核心发布</strong>：lmarena.ai 正式引入事实性（Factuality）权重排行，模型排名现可根据人类偏好与事实性的加权组合查看。团队已标注超过 200 万条 LLM 在真实对话中做出的声明（Text Arena 130 万+，Search Arena 70 万+）。</li>
+<li><strong>排行变化</strong>：在 Text Arena 中，Claude Fable 5 因事实性权重下降至第 2 位，GPT-5.5 上升 13 位至第 7。在 Search Arena 中，GPT-5.5-search 升至事实性榜首。按实验室看，Anthropic 整体保持第 1，Meta 从第 2 跌至第 5。</li>
+<li><strong>行业意义</strong>：事实性权重的引入使模型评测从单纯的“用户偏好”转向“准确性与偏好的平衡”，为模型选择提供了更全面的参考维度，尤其对搜索和知识密集型应用至关重要。<br>
+ 🔗 <a href="https://x.com/arena/status/2077432293023678685">lmarena.ai 推文</a> | <a href="https://arena.ai/blog/factuality-in-arena/">博客</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-9"><h3>GitHub Copilot for Jira 正式可用</h3>
+<ul>
+<li><strong>核心发布</strong>：GitHub 宣布 GitHub Copilot for Jira 正式可用。新功能包括：将 Agent 进度流式传输至 Jira、在 Jira 聊天面板中直接提供跟进指令、简化 GitHub 组织和仓库与 Jira 应用的连接流程。</li>
+<li><strong>行业意义</strong>：这标志着 AI 编码助手从 IDE 向项目管理工具的扩展，使 Agent 的工作进度和上下文能够无缝融入团队的项目管理流程，减少了开发者在不同工具间切换的摩擦。<br>
+ 🔗 <a href="https://x.com/github/status/2077498593426985056">GitHub 官方推文</a> | <a href="https://github.blog/changelog/2026-06-25-github-copilot-for-jira-is-now-generally-available/">Changelog</a></li>
+</ul></section>
+<section class="story-block reveal" id="story-10"><h3>🔟 DoorDash 发布 CLI 工具，Agent 可直接点外卖</h3>
+<ul>
+<li><strong>核心发布</strong>：DoorDash 正式发布 dd-cli 命令行工具（限量测试版），允许用户和 AI Agent 直接通过终端搜索商店、查找优惠、下单等。Paul Graham 评论称“sudo make me a sandwich 终于成真了”。</li>
+<li><strong>行业意义</strong>：这展示了 AI Agent 与物理世界服务交互的新范式——通过 CLI 接口，Agent 可以直接调用现实世界的服务（外卖、出行等），将 Agent 的能力边界从数字世界扩展至物理世界。<br>
+ 🔗 <a href="https://x.com/andyfang/status/2077516962515599799">DoorDash 推文</a> | <a href="https://x.com/paulg/status/2077522510116000125">Paul Graham 评论</a></li>
+</ul></section></div></section>
+<section class="board-section board-github" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><hr>
+<section class="story-block reveal" id="story-1"><h3>openinterpreter/openinterpreter ⭐ 今日 +299</h3>
+<p><strong>语言/许可：</strong> Rust / Apache-2.0<br>
+<strong>总 Stars：</strong> 65.5k<br>
+<strong>仓库：</strong> <a href="https://github.com/openinterpreter/openinterpreter">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向开发者的低成本模型代码智能体。通过模拟 OpenAI Codex 的 Agent 执行框架，在本地终端中实现代码生成、执行与调试，并针对 DeepSeek、Qwen、Kimi 等低成本模型优化性能。</p>
+<p><strong>核心功能：</strong><br>
+- 多 Harness 切换：支持 <code>native</code>、<code>claude-code</code>、<code>kimi-cli</code>、<code>qwen-code</code>、<code>deepseek-tui</code> 等 9 种 Agent 执行框架，通过 <code>/harness</code> 命令实时切换<br>
+- 原生沙箱执行：在 macOS、Linux、Windows 上通过系统级沙箱隔离运行命令，支持权限审批与安全策略<br>
+- 计算机使用能力：内置 QA Skill，可驱动真实浏览器（agent-browser）或原生应用（trycua）进行界面操作与测试<br>
+- Agent Client Protocol 支持：可作为 ACP Agent 接入编辑器，支持 MCP 工具、Skills、Hooks 扩展</p>
+<p><strong>技术亮点：</strong><br>
+基于 Rust 重写，替代原 Python 版本，显著降低内存占用与启动延迟；通过 Harness 抽象层解耦模型调用与执行逻辑，支持低成本模型的高效代码生成。</p>
+<hr></section>
+<section class="story-block reveal" id="story-2"><h3>HKUDS/DeepTutor ⭐ 今日 +172</h3>
+<p><strong>语言/许可：</strong> Python / Apache-2.0<br>
+<strong>总 Stars：</strong> 26.2k<br>
+<strong>仓库：</strong> <a href="https://github.com/HKUDS/DeepTutor">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向教育场景的终身个性化 AI 辅导系统。基于多智能体架构与 RAG 技术，提供自适应学习路径、知识库管理与实时辅导能力，支持个人部署与社区技能扩展。</p>
+<p><strong>核心功能：</strong><br>
+- 三层记忆系统（L1/L2/L3）：短期对话记忆、长期用户画像记忆与知识库记忆，实现个性化学习路径推荐<br>
+- 多智能体协作：支持创建自定义“伙伴”（Partner）Agent，每个伙伴拥有独立人格、知识库与技能，可在聊天中实时调用<br>
+- 深度研究/解题/出题：Agent 驱动的 Deep Research、自动解题与智能出题，支持 LaTeX 公式与多模态内容<br>
+- 知识中心：集成 GraphRAG、LightRAG、FAISS 向量检索、PyMuPDF4LLM 解析引擎，支持 DOCX/XLSX 预览与增量文档管理</p>
+<p><strong>技术亮点：</strong><br>
+基于 LlamaIndex 重构 RAG 管线，支持 FAISS 向量后端实现大规模知识库快速检索；内置 LightRAG Server 作为可选检索引擎；支持 MCP 工具调用与 OpenAI 兼容 API 的本地/云端模型接入。</p></section></div></section>
+<section class="board-section board-hackernews" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Inkling: Our Open-Weights Model</h3>
+<p>586 pts · 144 comments · <a href="https://thinkingmachines.ai/news/introducing-inkling/">thinkingmachines.ai</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>Thinking Machines 发布 Inkling，一个 975B 总参数（41B 活跃参数）的 MoE 模型，支持文本、图像、音频多模态，上下文窗口达 1M tokens。预训练数据 45T tokens。同时预告了 276B 总参数（12B 活跃）的 Inkling-Small。</li>
+<li>HN 关注点:</li>
+<li>这是美国目前最强的开源权重模型，但整体性能不如 GLM 5.2 等中国竞品。</li>
+<li>模型定位不是最强通用模型，而是“适合微调的基础模型”，与 Tinker 微调平台深度绑定。</li>
+<li>多模态（尤其是音频）是差异化优势，但 Vision 和 Audio 基准测试仍落后于闭源模型。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识：美国开源权重模型的重要一步。</strong> 多数评论认为这是自 Llama 3 以来美国最值得关注的开源模型，但性能上不如 GLM 5.2、Kimi K2.6 等中国模型。评论者普遍认为“竞争是好事”，尤其是对 OpenAI 等闭源厂商形成压力。</li>
+<li><strong>工程经验：基准测试不能代表真实表现。</strong> 多位评论者指出，GLM 5.2 在基准测试上领先，但在实际编码任务中表现不如 Kimi K2.7。Inkling 的“真实表现可能超出基准测试”。</li>
+<li><strong>商业现实：开源权重模型的商业模式是什么？</strong> 核心讨论围绕 Thinking Machines 的策略：通过开源模型吸引用户使用 Tinker 微调平台。评论者认为这是“合理的商业模式”，但质疑“为什么开源权重模型在微调上更有优势”——LoRA/QLoRA 对任何基础模型都适用。</li>
+<li><strong>风险/限制：Inkling-Small 尚未发布。</strong> 12B 活跃参数的版本被认为更有实用价值（可运行在消费级硬件上），但权重尚未开放。多位评论者表示“等 Inkling-Small 发布后再评估”。</li>
+<li><strong>反对意见：性能与规模不成正比。</strong> 有评论指出 Inkling 比 Nemotron 3 Ultra 大 30%，但性能提升有限。也有评论认为“2B 美元估值 12B 美元，却只排在第 41 位”，质疑投资回报。</li>
+</ul>
+<p>🔗 <a href="https://thinkingmachines.ai/news/introducing-inkling/">原文</a> · <a href="https://news.ycombinator.com/item?id=48924912">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-2"><h3>Grok Build is open source</h3>
+<p>198 pts · 235 comments · <a href="https://github.com/xai-org/grok-build">github.com/xai-org</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>xAI 开源了 Grok Build——一个基于终端的 AI 编码代理，支持全屏 TUI、文件编辑、Shell 命令执行、网页搜索和长时间运行任务。使用 Rust 编写，支持 macOS、Linux、Windows。</li>
+<li>HN 关注点:</li>
+<li>开源时机与“数据泄露”事件高度相关：几天前 Grok Build 被曝将用户整个代码仓库上传到云端，Elon Musk 承诺删除数据。</li>
+<li>代码质量争议：仓库包含 130 万行 Rust 代码和 182 个顶级外部依赖，被批评为“slop”。</li>
+<li>与 Cursor 的关系：xAI 此前以 600 亿美元收购 Cursor，开源 Grok Build 被解读为“修复声誉”的战术动作。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识：开源是声誉修复的战术动作。</strong> 多数评论认为，xAI 在数据泄露丑闻后开源 Grok Build 是“唯一能做的正确事”。评论者普遍不信任 xAI，认为“没有独立机构认证数据已删除”。</li>
+<li><strong>工程经验：代码质量争议。</strong> 多位 Rust 开发者指出仓库结构混乱：130 万行代码、大量 vendored 依赖、混合了“应该使用包管理器”和“应该 vendored”的策略。有评论认为“这不是有意设计的”。</li>
+<li><strong>历史背景：数据泄露事件。</strong> 评论反复提及 Grok Build 此前将用户整个代码仓库（包括 .env 文件）上传到云存储。xAI 声称已停止上传并删除数据，但评论者普遍不相信。</li>
+<li><strong>商业现实：与 Cursor 的关系。</strong> 有评论指出 xAI 已收购 Cursor，开源 Grok Build 是为了让用户使用 xAI 的模型（Grok 4.5），而非与 Cursor 竞争。</li>
+<li><strong>反对意见：模型本身不错。</strong> 少数评论认为 Grok 4.5 模型“比 Opus 4.8 更好”，但被多数人反驳。也有评论认为“开源是好事，无论动机如何”。</li>
+</ul>
+<p>🔗 <a href="https://github.com/xai-org/grok-build">原文</a> · <a href="https://news.ycombinator.com/item?id=48926590">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-3"><h3>Running Gemma 4 26B at 5 tokens/sec on a 13-year-old Xeon with no GPU</h3>
+<p>219 pts · 140 comments · <a href="https://www.neomindlabs.com/2026/06/08/running-gemma-4-26b-at-5-tokens-sec-on-a-13-year-old-xeon-with-no-gpu/">neomindlabs.com</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>作者在 2013 年的双路 Xeon E5-2690 v2（Ivy Bridge，无 AVX2）上成功运行 Gemma 4 26B MoE 模型，解码速度约 5.2 tok/s。关键在于修复了 ik_llama.cpp 中两个 MoE 图操作在非 AVX2 构建下的无声错误。</li>
+<li>HN 关注点:</li>
+<li>真正的技术贡献：发现并修复了 MoE 图操作在缺少 AVX2 时的静默失败（输出未初始化内存，产生“流畅的多语言乱码”）。</li>
+<li>修复已提交为 PR #2138，等待上游合并。</li>
+<li>作者坦诚使用 Claude 编写了大部分补丁代码，引发关于“AI 生成内容”的讨论。</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li><strong>共识：技术含量高，但实用性有限。</strong> 多数评论认可作者的技术能力，但指出“5 tok/s 太慢，实际用途有限”。有评论计算电费成本：在德国，本地推理成本是 API 调用的 30 倍。</li>
+<li><strong>工程经验：无声错误的诊断方法。</strong> 作者通过检查 logits 分布（均值 +16，80% 词汇表为正 logits）定位到“隐藏状态被未初始化内存污染”。评论者认为这是“教科书级别的调试案例”。</li>
+<li><strong>历史背景：基于另一篇 HN 热帖。</strong> 此前有帖子“A 10 year old Xeon is all you need”在 2016 年 Xeon 上运行 Gemma 4，作者在此基础上适配了更老的 2013 年硬件。</li>
+<li><strong>反对意见：AI 写作争议。</strong> 多位评论者指出文章本身“明显是 AI 生成的”，违反 HN 指南。作者回应称“补丁由 Claude 编写，文章是 AI 辅助写作”。</li>
+<li><strong>风险/限制：上下文窗口问题。</strong> 有评论指出“5 tok/s 的生成速度在长上下文场景下不可用”，Gemma 4 支持 256K 上下文，但实际推理时性能会随上下文增长而下降。</li>
+</ul>
+<p>🔗 <a href="https://www.neomindlabs.com/2026/06/08/running-gemma-4-26b-at-5-tokens-sec-on-a-13-year-old-xeon-with-no-gpu/">原文</a> · <a href="https://news.ycombinator.com/item?id=48922434">HN 讨论页</a></p></div></details></section></div></section>
+<section class="board-section board-insights" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p><strong>Inkling 的发布揭示了一个关键信号：美国开源权重模型的竞争焦点已从“最强性能”转向“可定制性”。</strong> Thinking Machines 明确将 Inkling 定位为“适合微调的基础模型”，而非最强通用模型。HN 讨论中，开发者普遍认为 Inkling 在基准测试上不如 GLM 5.2 等中国竞品，但更关注其与 Tinker 微调平台的深度绑定。这暗示着开源模型的商业模式正在从“卖模型”转向“卖平台”——通过开放权重吸引用户使用微调基础设施，而非直接竞争通用能力。对于开发者而言，这意味着选择开源模型时，微调生态的成熟度可能比基准分数更重要。</p>
+<p><strong>Grok Build 的开源本质上是信任修复的战术动作，但暴露了 AI Agent 安全治理的系统性短板。</strong> xAI 在数据泄露丑闻后迅速开源全部代码并删除数据，HN 评论普遍认为这是“唯一能做的正确事”，但多数用户仍不信任。更深层的问题是：当 Agent 获得文件系统全权限时，单点故障的破坏半径极大——Grok Build 曾上传整个代码仓库包括 SSH 密钥。Perplexity 同日发布的 SPACE 沙箱平台（凭证从不直接存储）和 OpenAI 的 GPT-Red 自动化红队系统，恰恰是对这一问题的工程回应。Agent 安全正在从“事后补救”转向“架构级设计”，这将成为 Agent 基础设施的核心竞争力。</p>
+<p><strong>NVIDIA 的 RoboTTT 将机器人策略上下文从不足 0.1 秒扩展到 5 分钟，但真正的变化在于“测试时训练”范式的工程化落地。</strong> RoboTTT 在模型内部嵌入微型神经网络作为隐藏状态，每次传感器读数触发梯度更新，将历史信息压缩进权重。这本质上是将“训练”和“推理”的边界模糊化——模型在运行时持续学习。对于机器人领域，这意味着长流程任务（如电路板组装）的 8K 上下文预训练比 1K 性能提升 62%。但更值得关注的是，这种范式是否会被移植到语言模型 Agent 中——如果 Agent 也能在运行时持续压缩上下文，当前对长上下文窗口的依赖可能会被重新定义。</p></div></section>
+      </div>
+    </article>
+
+
+
+    <footer class="site-footer">
+      AI Daily
+    </footer>
+  </div>
+  <script src="../static/pages.js" defer></script>
+</body>
+</html>
