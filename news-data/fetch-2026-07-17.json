@@ -1830,6 +1830,246 @@
       "score": 40,
       "summary": "马东锡NLP评论Kimi K3开源模型超越Opus。",
       "fetched_at": "2026-07-17T05:12:06.028064+08:00"
+    },
+    {
+      "title": "Build enterprise search for agents with Amazon Bedrock Managed Knowledge Base",
+      "link": "https://aws.amazon.com/blogs/machine-learning/build-enterprise-search-for-agents-with-amazon-bedrock-managed-knowledge-base/",
+      "published": "2026-07-17T05:29:14+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Knowledge bases that ground agents and generative AI applications over your enterprise data are hard to build at scale. Teams typically stitch together connectors, parsers, vector stores, knowledge graphs, and retrieval logic, then operationalize all of it for production. Each piece brings its own challenges. You must decide which data sources to connect and how to parse multimodal document types. You must choose between graph and vector databases, then provision and scale them. You must also handle complex queries that reason across diverse content, and layer on the document-level access control, observability, and security that production demands.\n\n[Amazon Bedrock](https://aws.amazon.com/bedrock/) now offers [Managed Knowledge Base](https://aws.amazon.com/bedrock/knowledge-bases/) in general availability, a fully managed agentic retrieval solution that handles scaling, high-accuracy retrieval, and document access control on your behalf. You can connect your enterprise data sources or crawl the web and start ingesting. Getting started through the [AWS Management Console](https://console.aws.amazon.com/) requires no model selection. Sensible defaults take you from zero to your first retrieval in minutes, compared to the days or weeks typically needed to assemble a comparable pipeline from scratch. When you’re ready to customize, you have control over embedding models, rerankers, chunking strategies, and more.\n\nIn this post, we walk through the three pillars that make this possible: simplified setup, smarter retrieval, and production readiness. We also show you [code examples](https://github.com/aws-samples/amazon-bedrock-samples/blob/main/rag/managed-knowledge-bases/03-use-case-example/01-end-to-end-example-with-ac-gateway/01-bmkb-with-agentcore-gateway.ipynb) for setting up a knowledge base and retrieving from it.\n\n## Simplified setup\n\nDevelopers today typically procure and build data ingestion pipelines, vector or graph storage, and retrieval infrastructure separately. This means managing separate infrastructure, separate billing models, separate rate limits, and the complexity of piecing it all together into a coherent pipeline.\n\nManaged Knowledge Base abstracts this complexity away. You configure a knowledge base, and the service handles everything downstream, from ingesting enterprise data through native connectors to managing vector stores on your behalf.\n\n### Native enterprise connectors with ACL support\n\nManaged Knowledge Base includes six native connectors ([Amazon Simple Storage Service](https://aws.amazon.com/s3/) (Amazon S3), [Microsoft SharePoint](https://www.microsoft.com/en-us/microsoft-365/sharepoint/collaboration), [Atlassian Confluence](https://www.atlassian.com/software/confluence), [Google Drive](https://workspace.google.com/products/drive/), [Microsoft OneDrive](https://www.microsoft.com/en-us/microsoft-365/onedrive/online-cloud-storage), and Web Crawler). It also includes a direct ingestion API for documents that don’t live in a supported source. On subsequent syncs, the service processes only modified or new documents, reducing time, cost, and staleness.\n\n![Diagram showing the native enterprise connectors and real-time ACL checks feeding documents into Managed Knowledge Base](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/19/ML-20588-1.png)\n\nManaged Knowledge Base uses real-time access control list (ACL) checks as an additional layer of security on top of existing pre-retrieval ACL filtering. The pre-filtered documents are transient for the life of the API call and are not visible to large language models (LLMs) or users. This maintains current access controls by checking permissions directly with the authoritative source at query time, rather than relying on potentially stale or incorrectly mapped ACL data.\n\n> ***Syngenta Group** uses Bedrock Managed Knowledge Bases to enable employees to create knowledge bases on demand, syncing data from SharePoint and Confluence for internal knowledge search and agentic RAG applications.*  \n>  *– Jason Krohn, Head of Data and AI Technology*\n>\n> ***MRH Trowe** is using Bedrock Managed Knowledge Bases to power an internal AI Copilot that gives employees instant, grounded answers from across our corporate knowledge base — spanning thousands of documents in Confluence and SharePoint, in both English and German. With native connectors and built-in access controls, our teams can search across policies, client documentation, and operational content without building custom retrieval pipelines — accelerating how our employees access the knowledge they need to serve clients.  \n>  – Dr. Malte Polley, Teamleader Data Analytics & AI*\n\n### Parsing across multimodal data\n\nYour data fragments across many formats: machine-readable content in web applications, digital files containing embedded images like PDFs, PPTX, and DOCX, scanned documents, and media content such as audio and video. Rather than building separate pipelines for each format, Managed Knowledge Base provides fully managed parsing that automatically selects the right strategy per content type. It handles tables, charts, diagrams, mixed layouts, and media without configuration from you. The service supports visual content documents (PDFs, PPT/PPTX, DOCX) up to 500 MB, audio files up to 2 GB, and video files up to 10 GB.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/Picture1.png)\n\nAfter the service parses content, it splits the content into segments for retrieval. By default, Managed Knowledge Base decides on the most suitable chunking strategy on your behalf. If you understand your data and want more control, you can choose a custom strategy like fixed-size chunking, where you set the approximate token size, or no chunking, for documents that are already pre-processed or pre-split.\n\n### Service-managed data storage\n\nChoosing a semantic retrieval database is one of the most complex decisions in a knowledge retrieval pipeline. Each option has different performance profiles, pricing models, scaling characteristics, and feature sets. After you choose, you must still provision capacity, configure indices, manage backups, and tune performance over time.\n\nManaged Knowledge Base removes that work entirely with a unified storage layer. The service auto-provisions storage so you don’t decide on vector dimensions or similarity metrics, and it auto scales from gigabytes to terabytes without intervention. Hybrid search combining keyword and semantic retrieval is continuously on, with no separate index configuration to manage. Data is encrypted at rest and in transit using AWS Key Management Service (AWS KMS) keys, either AWS managed or customer managed.\n\nYou don’t interact with the underlying storage. Your AWS services handle monitoring, tuning, backups, patching, and capacity management for you.\n\n> ***OpenAI** is using Bedrock Managed Knowledge Bases’ RAG capabilities to ground inference and model responses, reliably and at scale for millions of users, with the right customer context.*  \n>  *– Lavanya Singh, Member of Technical Staff, OpenAI*\n\n### Setup in three steps\n\nLet’s look at how to set up a managed knowledge base programmatically. Three API calls are all it takes: create the knowledge base, add a data source, and start ingestion. The following example uses Amazon S3 as the data source with a fully managed embedding model, with no model Amazon Resource Name (ARN), vector store, or chunking configuration required.\n\n```\nimport boto3\n\nbedrock_agent = boto3.client('bedrock-agent', region_name='us-west-2')\n\n# Step 1: Create a fully managed knowledge base (zero-config)\nkb_response = bedrock_agent.create_knowledge_base(\n    name='my-managed-kb',\n    description='Product documentation knowledge base',\n    roleArn='arn:aws:iam::123456789012:role/BedrockKBRole',\n    knowledgeBaseConfiguration={\n        'type': 'MANAGED',\n        'managedKnowledgeBaseConfiguration': {\n            'embeddingModelType': 'MANAGED'\n        }\n    }\n)\nkb_id = kb_response['knowledgeBase']['knowledgeBaseId']\n\n# Step 2: Add an S3 data source\nds_response = bedrock_agent.create_data_source(\n    knowledgeBaseId=kb_id,\n    name='my-s3-docs',\n    dataSourceConfiguration={\n        'type': 'S3',\n        's3Configuration': {\n            'bucketArn': 'arn:aws:s3:::amzn-s3-demo-bucket',\n            'inclusionPrefixes': ['documents/']\n        }\n    }\n)\ndata_source_id = ds_response['dataSource']['dataSourceId']\n\n# Step 3: Start ingestion\nbedrock_agent.start_ingestion_job(\n    knowledgeBaseId=kb_id,\n    dataSourceId=data_source_id\n)\n```\n\n## Smarter retrieval\n\nA single retrieval step can’t answer every question. Direct lookups work fine on their own, but comparative analysis, multi-hop reasoning, and research queries need more. Managed Knowledge Base offers two retrieval APIs, each designed for different complexity levels:\n\n* **Retrieve** returns ranked source chunks with relevance scores and metadata. Use it for direct lookups, FAQ-style questions, and scenarios where low latency is critical. You control the number of results and can apply metadata filters to narrow the search.\n* **Agentic Retrieval** uses a foundation model (FM) to decompose complex queries into sub-queries. It retrieves iteratively across one or more knowledge bases and evaluates whether the results are sufficient before returning them. Agentic Retrieval can also generate a synthesized response using the managed orchestration LLM or a model available on Amazon Bedrock. Use it for comparative analysis, multi-hop questions, research queries, and scenarios that require synthesizing information from multiple sources or documents.\n\n### How Agentic Retrieval works\n\nComparing two products, tracing a decision across multiple documents, or synthesizing research from different sources requires multiple retrieval steps. You also need to evaluate intermediate results and recognize when you have enough information.\n\nAgentic Retrieval handles this automatically, across one or more knowledge bases. When a query comes in, the service:\n\n1. **Plans** by analyzing the query and decomposing it into sub-queries, each targeting a specific retriever across your configured knowledge bases.\n2. **Retrieves** by executing sub-queries in parallel against one or multiple knowledge bases.\n3. **Evaluates** whether the results are sufficient. If not, it plans and executes additional retrieval rounds (up to five by default).\n4. **Returns** deduplicated chunks from all iterations, with trace events streaming throughout for full observability.\n\nYou can balance accuracy and latency for your use case. The `maxAgentIteration` parameter controls how many rounds the model performs, and you select the foundation model used for planning and evaluation.\n\nThe following code shows an example of invoking Agentic Retrieval and processing its streaming response. The request specifies the user’s query, the knowledge base to search, the foundation model to use for planning and evaluation, and the maximum number of retrieval iterations. As the service runs, it streams trace events that show each planning step and sub-query being executed, followed by the final retrieval results:\n\n```\nbedrock_runtime = boto3.client('bedrock-agent-runtime', region_name='us-west-2')\n\nresponse = bedrock_runtime.agentic_retrieve_stream(\n    messages=[{\n        'role': 'user',\n        'content': [{'text': 'Compare the pricing tiers of Product A and Product B'}]\n    }],\n    retrievers=[{\n        'knowledgeBaseRetriever': {\n            'knowledgeBaseId': kb_id,\n            'maxResults': 10\n        }\n    }],\n    agenticRetrieveConfiguration={\n        'foundationModel': {\n            'modelArn': 'arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-20250514'\n        },\n        'maxAgentIteration': 5  # 1-10, default 5\n    }\n)\n\n# Trace events stream in real time, then final results arrive\nfor event in response['stream']:\n    if 'trace' in event:\n        trace = event['trace']\n        if 'planning' in trace:\n            print(f\"Planning: {len(trace['planning'].get('actions', []))} sub-queries\")\n        elif 'retrieval' in trace:\n            print(f\"Retrieving: {trace['retrieval'].get('input', {}).get('text', '')}\")\n    elif 'retrievalResults' in event:\n        results = event['retrievalResults']['results']\n        print(f\"\\n{len(results)} deduplicated results returned\")\n        for i, r in enumerate(results[:5], 1):\n            print(f\"  {i}. {r['content']['text'][:150]}...\")\n```\n\n## Production ready\n\nGetting a Retrieval Augmented Generation (RAG) prototype working is one thing. Operating it at scale with proper access control, observability, and security is where many teams stall. Managed Knowledge Base includes [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html) integration, document-level access control, and observability out of the box, so you can deploy without building these layers yourself.\n\n### Native AgentCore Gateway integration\n\nManaged Knowledge Bases integrates natively with AgentCore Gateway, giving you a streamlined way to expose your knowledge base to agents. When you add your knowledge base as a target on the gateway, it becomes a tool that agents compatible with the Model Context Protocol (MCP) can discover and invoke automatically. AWS [Identity and Access Management](https://aws.amazon.com/iam/) (IAM), routing, and observability are centralized at the gateway. You can also use Managed Knowledge Bases standalone by calling the retrieval APIs directly from your application if that better suits your use case.\n\nAgentCore Gateway adds the following to your Managed Knowledge Bases integration:\n\n* **Abstracted infrastructure**: Knowledge base IDs are hidden behind the gateway, so agents simply discover and call tools by name, decoupling your agent code from underlying infrastructure.\n* **Framework compatibility**: Agents interact through a standardized MCP endpoint, making your knowledge bases instantly compatible with MCP-aware frameworks, including Strands, LangChain, and CrewAI.\n* **Unified access point**: A single gateway URL becomes the access point for your knowledge bases across your organization, simplifying agent configuration and governance.\n* **Centralized security**: IAM policy at the gateway level replaces per-knowledge-base permissions management, giving you one place to enforce security, audit access, and manage scale.\n* **Transparent operations**: Built-in observability, routing, and authentication are handled for you, so you can add, swap, or scale knowledge bases without changing a single line of agent code.\n\n![Architecture diagram of AgentCore Gateway fronting a Managed Knowledge Base, with MCP-compatible agent frameworks invoking it as a tool through a single gateway URL](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/19/ML-20588-3.png)\n\nAfter you create a gateway and add your knowledge base as a target, MCP-compatible agent frameworks can discover and invoke it without knowing the underlying knowledge base ID:\n\n```\nfrom strands.tools.mcp import MCPClient\nfrom mcp_proxy_for_aws.client import aws_iam_streamablehttp_client\n\nmcp_client = MCPClient(lambda: aws_iam_streamablehttp_client(\n    endpoint=gateway_url,\n    aws_region='us-west-2',\n    aws_service='bedrock-agentcore',\n))\n\nwith mcp_client:\n    # KB tools are auto-discovered via MCP\n    tools = mcp_client.list_tools_sync()\n    print(f\"Available tools: {[t.tool_name for t in tools]}\")\n\n    # Retrieve (the agent never sees the KB ID)\n    result = mcp_client.call_tool_sync(\n        'tool_call_1',\n        tools[0].tool_name,\n        {'retrievalQuery': {'text': 'What is our total revenue?'}},\n    )\n```\n\nThis pattern works with [Strands](https://strandsagents.com/), [LangChain](https://www.langchain.com/), [CrewAI](https://crewai.com/), or other MCP-compatible frameworks. The gateway handles IAM, routing, and observability transparently.\n\n> *At **Sony**, we’re building an agentic chat platform on Amazon Bedrock AgentCore to help teams get trusted answers from complex enterprise content and live web information. With Bedrock Managed Knowledge Base and Web Search now available as tools in AgentCore, our agents can reason across internal PDFs, presentations, spreadsheets, charts, and tables, going beyond simple vector retrieval, and ground responses in current web information while keeping our data within AWS. The result is a single experience for answering questions across internal knowledge and the web*  \n>  *– Masahiro Oba, Senior General Manager, Sony Group Corporation*\n\n### Observability\n\nEvery knowledge base query, whether through the SDK or the gateway, automatically publishes metrics to [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) under the `AWS/Bedrock/KnowledgeBases` namespace, including invocations, client and server errors, and throttles. For Agentic Retrieval, trace events stream in real time, showing each planning step, sub-query, and evaluation round. This gives you full visibility into the retrieval process without writing instrumentation code.\n\nFor a complete end-to-end walkthrough, check out the [notebook on GitHub](https://github.com/aws-samples/amazon-bedrock-samples/blob/main/rag/managed-knowledge-bases/03-use-case-example/01-end-to-end-example-with-ac-gateway/01-bmkb-with-agentcore-gateway.ipynb).\n\n## Where Managed Knowledge Base fits\n\nAWS offers multiple options for building the knowledge retrieval that grounds agents, generative AI applications, and RAG pipelines. The right choice depends on how much control you need versus how much you want managed for you. The following diagram shows where Managed Knowledge Base sits along that spectrum, from the highest level of abstraction ([Amazon Quick](https://aws.amazon.com/quick/)) to building your own RAG pipeline from scratch.\n\n![Spectrum diagram showing AWS knowledge retrieval options from Amazon Quick (highest abstraction) through Managed Knowledge Base and Bedrock Knowledge Bases to a custom RAG pipeline (lowest abstraction)](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/19/ML-20588-4.png)\n\nIf you need to choose your own vector store and assemble the connector workflow yourself, Amazon Bedrock Knowledge Bases remains available. Managed Knowledge Base is for teams that want to focus on their application rather than the underlying infrastructure, with the service handling storage, scaling, and retrieval on your behalf.\n\n## Pricing\n\nManaged Knowledge Bases consolidates pricing into a straightforward, usage-based model rather than spreading costs across multiple capacity units. You pay for storage of your raw data, standard retrieval API calls, and Agentic Retrieval when you need multi-hop reasoning. The multimodal document parser, managed embedding model and managed re-ranker  are all included at no extra cost. If you choose to use a different Amazon Bedrock model for embeddings, re-ranking, or orchestration, standard Bedrock pricing applies for those models.\n\nFor complete pricing details and worked examples, see the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).\n\n## Conclusion\n\nAmazon Bedrock Managed Knowledge Base removes the infrastructure work that sits between your enterprise data and a working retrieval-augmented generation application. Connect your data sources, let the service handle parsing, storage, and indexing, and retrieve using the mode that matches your query complexity.\n\nDocument-level access control, real-time ACL checks, and native observability through Amazon CloudWatch are built in, so your knowledge base is ready for production workloads at launch. With native AgentCore Gateway integration, your knowledge bases become tools that MCP-compatible agents can discover and use without custom code.\n\nManaged Knowledge Base is now available in us-east-1 (N. Virginia), us-west-2 (Oregon), eu-west-1 (Dublin), eu-central-1 (Frankfurt), ap-southeast-2 (Sydney), eu-west-2 (London), ap-northeast-1 (Tokyo), and us-gov-west-1 (AWS GovCloud US-West).\n\nTo get started, see the [documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html) or try it out on the [AWS Management Console](https://console.aws.amazon.com/).\n\n---\n\n## About the authors\n\n![Dani Mitchell](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/05/11/ml-20969-image-6.png)\n\n### Dani Mitchell\n\nDani is a Sr GenAI Specialist Solutions Architect at AWS and the SA lead for Amazon Bedrock Knowledge Bases. He helps enterprises across the world design and deploy generative AI solutions using Amazon Bedrock and Anthropic’s models and capabilities to build scalable, production-ready applications.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/01/09/snghigf-e1721342253292-258x300-1.jpg)\n\n### Sandeep Singh\n\nSandeep is a Senior Generative AI Data Scientist at AWS, helping large enterprises innovate with generative AI. He specializes in generative AI, Agentic AI, machine learning, and system design, delivering AI/ML-powered solutions to solve complex business problems across diverse industries.\n\n![Siddhant Sahu](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/19/ML-20588-5.jpg)\n\n### Siddhant Sahu\n\nSiddhant is a Sr Product Manager at Amazon Web Services, where he focuses on Bedrock Managed Knowledge Bases. He builds agentic search products that help ISVs and enterprises connect generative AI to their enterprise data.\n\n![Amit Choudhary](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/19/ML-20588-6.jpg)\n\n### Amit Choudhary\n\nAmit is a Principal Product Manager at AWS, where he currently leads Knowledge Bases for Amazon Quick and leads data ingestion capabilities for Amazon Bedrock Knowledge Bases. His work enables secure AI interactions grounded in enterprise knowledge, transforming how organizations use their data for AI-powered insights and decision-making. Previously, he enabled enterprises to securely connect their data sources to Amazon Q Business for user productivity, and built AWS Clean Rooms Differential Privacy, helping enterprises protect user privacy with mathematical guarantees in just a few steps. Outside of work, he enjoys traveling.",
+      "tags": [
+        "Amazon Bedrock",
+        "Managed Knowledge Base",
+        "企业搜索"
+      ],
+      "score": 79,
+      "summary": "AWS发布Amazon Bedrock Managed Knowledge Base，简化企业级Agent搜索构建。",
+      "fetched_at": "2026-07-17T07:05:35.541255+08:00"
+    },
+    {
+      "title": "paper: https://t.co/naLmpjMJxU",
+      "link": "https://x.com/_akhaliq/status/2077879380647305299",
+      "published": "2026-07-17T06:13:44+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "paper: [huggingface.co/papers/2607.13…](https://huggingface.co/papers/2607.13285)\n\n💬0🔄0❤️1👀1261📊1",
+      "tags": [
+        "论文链接"
+      ],
+      "score": 60,
+      "summary": "AK转发一篇Hugging Face论文，无具体内容。",
+      "fetched_at": "2026-07-17T07:05:35.541267+08:00"
+    },
+    {
+      "title": "Harness Handbook\n\nMaking Evolving Agent Harnesses Readable,Navigable, and Editable",
+      "link": "https://x.com/_akhaliq/status/2077879378982166621",
+      "published": "2026-07-17T06:13:43+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "Harness Handbook  \n  \nMaking Evolving Agent Harnesses Readable,Navigable, and Editable\n\n![Tweet Image](https://pbs.twimg.com/media/HNYcNzDXYAEJDfx.png)\n\n💬2🔄5❤️11👀2627📊6",
+      "tags": [
+        "Agent Harness",
+        "手册"
+      ],
+      "score": 60,
+      "summary": "AK分享一份关于Agent Harness的手册，内容不详。",
+      "fetched_at": "2026-07-17T07:05:35.541272+08:00"
+    },
+    {
+      "title": "I’m excited to welcome two legends of developer tools, Pete Hunt (@floydophone) and Nick Schrock (@s...",
+      "link": "https://x.com/rauchg/status/2077870043833229692",
+      "published": "2026-07-17T05:36:38+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "I’m excited to welcome two legends of developer tools, Pete Hunt ([@floydophone](https://x.com/floydophone)) and Nick Schrock ([@schrockn](https://x.com/schrockn)), to Vercel.  \n  \nPete was one of the pioneers of [@reactjs](https://x.com/reactjs) at Meta. He made an early bet to power Instagram Web with ⚛️ React, evangelizing it internally and externally. He will be running Frameworks and leading [@nextjs](https://x.com/nextjs). I couldn’t imagine a better person to lead React’s most popular framework to even greater heights.  \n  \nNick co-invented [@graphql](https://x.com/graphql), solving some of the gnarliest data infrastructure and access issues at Facebook scale, with a delightful developer experience. He will be working on Agentic Developer Experience, solving the problem of enabling the next billion agents and leading the way to a future of self-improving software.  \n  \nIt’s a dream-come-true for a founder of a startup to welcome engineering minds of this caliber who are also wonderful humans. You probably want to work with them, and they’re hiring 😁. Their DMs are open, from job applications to bug reports!\n\n💬33🔄26❤️366👀30312📊70",
+      "tags": [
+        "Vercel",
+        "Pete Hunt",
+        "Nick Schrock"
+      ],
+      "score": 70,
+      "summary": "Vercel宣布聘请React先驱Pete Hunt和GraphQL联合发明人Nick Schrock，分别负责Next.js和Agentic开发者体验。",
+      "fetched_at": "2026-07-17T07:05:35.541275+08:00"
+    },
+    {
+      "title": "who used the term \"load-bearing\" first? humans, or agents?",
+      "link": "https://x.com/julien_c/status/2077875939065622869",
+      "published": "2026-07-17T06:00:03+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "who used the term \"load-bearing\" first? humans, or agents?\n\n💬3🔄0❤️18👀1604📊6",
+      "tags": [
+        "闲聊"
+      ],
+      "score": 30,
+      "summary": "Julien Chaumond提问谁先使用术语'load-bearing'，人类还是智能体。",
+      "fetched_at": "2026-07-17T07:05:35.541278+08:00"
+    },
+    {
+      "title": "Netflix's CEO revealed that the company has already used AI in production across 300+ titles.\n\nIn ma...",
+      "link": "https://x.com/venturetwins/status/2077884565830660233",
+      "published": "2026-07-17T06:34:20+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Netflix's CEO revealed that the company has already used AI in production across 300+ titles.  \n  \nIn many cases, gen AI tools were used for \"key shots\" that would've been left out due to cost.  \n  \nAnd they just released a documentary with 17 minutes of AI-enhanced footage.\n\n![Tweet Image](https://pbs.twimg.com/media/HNYfhVkboAAi1gv.jpg)\n\n💬4🔄2❤️20👀1328📊6",
+      "tags": [
+        "Netflix",
+        "AI制作",
+        "300+影视"
+      ],
+      "score": 70,
+      "summary": "Netflix CEO透露已在300多部影视作品中应用AI，包括生成式AI用于关键镜头。",
+      "fetched_at": "2026-07-17T07:05:35.541281+08:00"
+    },
+    {
+      "title": "We’re hosting a meetup with @cognition on July 28th.\n\nCome learn about LLM Wikis and how to give you...",
+      "link": "https://x.com/LangChain/status/2077862035790979215",
+      "published": "2026-07-17T05:04:48+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We’re hosting a meetup with [@cognition](https://x.com/cognition) on July 28th.  \n  \nCome learn about LLM Wikis and how to give your agents open memory with OpenWiki.  \n  \nRSVP while spaces last: [luma.com/mylwoabu](https://luma.com/mylwoabu)\n\n![Tweet Image](https://pbs.twimg.com/media/HNYIZSiXwAA-Am8.jpg)\n\n💬2🔄2❤️13👀2647📊4",
+      "tags": [
+        "LangChain",
+        "Cognition",
+        "OpenWiki"
+      ],
+      "score": 65,
+      "summary": "LangChain与Cognition将于7月28日举办meetup，主题为LLM Wikis和OpenWiki。",
+      "fetched_at": "2026-07-17T07:05:35.541284+08:00"
+    },
+    {
+      "title": "Absolutely fascinating.",
+      "link": "https://x.com/pmarca/status/2077879326830440887",
+      "published": "2026-07-17T06:13:31+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Absolutely fascinating.\n\n![Verónica Bäcker-Peral](https://pbs.twimg.com/profile_images/1566047053234540552/-l0MRIfF_normal.jpg)\n\nVerónica Bäcker-Peral@VBPeral\n\nExcited to share our new working paper: how much did the US standard of living really rise over the twentieth century — and when? With [@bhwittenbrink](https://x.com/bhwittenbrink)  \nUsing 5.1 million Sears catalog listings, we build a quality-adjusted price index for consumer goods, 1900–1990. Two headline findings: growth was much larger than official statistics imply, and its peak came before WWII, not after. (1/9)\n\n![Tweet Image](https://pbs.twimg.com/media/HNXW3SYXIAA6bcY.png)\n\n[🔗 View Quoted Tweet](https://x.com/VBPeral/status/2077803583781679505)\n\n💬14🔄7❤️78👀27671📊18",
+      "tags": [
+        "Marc Andreessen",
+        "评论"
+      ],
+      "score": 30,
+      "summary": "Marc Andreessen评论一篇关于美国生活水平的经济学论文。",
+      "fetched_at": "2026-07-17T07:05:35.541286+08:00"
+    },
+    {
+      "title": "Impressive.",
+      "link": "https://x.com/pmarca/status/2077872019295887771",
+      "published": "2026-07-17T05:44:29+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Impressive.\n\n![Saronic](https://pbs.twimg.com/profile_images/1704571937643454464/igTJuF7P_normal.jpg)\n\nSaronic@Saronic\n\nToday, we're proud to announce the future home of Port Alpha: Brownsville, Texas.  \n  \nOur next-generation shipyard moves from vision to reality through a planned investment of more than $3 billion to establish one of the world's most advanced shipyards, built for software-defined shipbuilding and autonomous maritime systems.  \n  \nPort Alpha is expected to generate more than $160 billion in regional economic impact for Cameron County and $264.5 billion for the State of Texas, while creating up to 10,000 direct jobs — which makes it one of the largest economic development projects in modern Texas history.  \n  \nMore than a shipyard, Port Alpha represents a new model for American shipbuilding — combining advanced manufacturing, software-defined production, and autonomy at unprecedented scale. We're proud to continue building in Texas.  \n  \nLearn more: [medium.com/saronic-techno…](https://medium.com/saronic-technologies/saronic-to-build-port-alpha-americas-next-generation-shipyard-in-brownsville-texas-f71c15565ec6?postPublishedType=initial)\n\n![Tweet Image](https://pbs.twimg.com/media/HNXUP_7WEAAkw43.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Saronic/status/2077801200477421981)\n\n💬12🔄8❤️173👀30715📊19",
+      "tags": [
+        "Saronic",
+        "造船厂"
+      ],
+      "score": 30,
+      "summary": "Marc Andreessen评论Saronic在德克萨斯州建造先进造船厂的计划。",
+      "fetched_at": "2026-07-17T07:05:35.541289+08:00"
+    },
+    {
+      "title": "Amazing.",
+      "link": "https://x.com/pmarca/status/2077869811770749063",
+      "published": "2026-07-17T05:35:42+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Amazing.\n\n![Sebastien Bubeck](https://pbs.twimg.com/profile_images/1709609135321583616/6bXuF85D_normal.jpg)\n\nSebastien Bubeck@SebastienBubeck\n\nThis is actually crazy, many of us thought about this lower bound for many years ...  \n[reddit.com/r/math/s/lrKVC…](https://www.reddit.com/r/math/s/lrKVCd6WcZ)\n\n[🔗 View Quoted Tweet](https://x.com/SebastienBubeck/status/2077785437096321469)\n\n💬5🔄4❤️45👀36744📊7",
+      "tags": [
+        "数学下界"
+      ],
+      "score": 30,
+      "summary": "Marc Andreessen评论一个数学下界讨论。",
+      "fetched_at": "2026-07-17T07:05:35.541291+08:00"
+    },
+    {
+      "title": "Interesting.",
+      "link": "https://x.com/pmarca/status/2077867976720785430",
+      "published": "2026-07-17T05:28:25+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Interesting.\n\n![Samo Burja](https://pbs.twimg.com/profile_images/1985044907812405248/RwycHQWB_normal.jpg)\n\nSamo Burja@SamoBurja\n\nThe best time to read the [@bismarckanlys](https://x.com/bismarckanlys) Brief on Moonshot AI the creators of Kimi K3 was September 24, 2025.  \n  \nThe second-best time is now.\n\n[🔗 View Quoted Tweet](https://x.com/SamoBurja/status/2077839236594872670)\n\n💬5🔄5❤️83👀35185📊11",
+      "tags": [
+        "Moonshot AI",
+        "Kimi K3"
+      ],
+      "score": 60,
+      "summary": "Marc Andreessen转发关于Moonshot AI和Kimi K3的简报。",
+      "fetched_at": "2026-07-17T07:05:35.541294+08:00"
+    },
+    {
+      "title": "Ultra amazing —&gt;",
+      "link": "https://x.com/pmarca/status/2077867706850910602",
+      "published": "2026-07-17T05:27:20+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Ultra amazing —>\n\n![Amjad Masad](https://pbs.twimg.com/profile_images/1897858917507776512/TRVTyKFk_normal.jpg)\n\nAmjad Masad@amasad\n\n[x.com/i/article/2077…](http://x.com/i/article/2077626320205574144)\n\n[🔗 View Quoted Tweet](https://x.com/amasad/status/2077802290304684404)\n\n💬12🔄22❤️392👀104652📊106",
+      "tags": [
+        "Amjad Masad",
+        "文章"
+      ],
+      "score": 30,
+      "summary": "Marc Andreessen转发Amjad Masad的一篇文章。",
+      "fetched_at": "2026-07-17T07:05:35.541296+08:00"
+    },
+    {
+      "title": "By checks, I mean people who check on other people to make sure they're performing well, and by bala...",
+      "link": "https://x.com/RayDalio/status/2077875931717243204",
+      "published": "2026-07-17T06:00:01+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "By checks, I mean people who check on other people to make sure they're performing well, and by balances, I mean balances of power. Even the most benevolent leaders are prone to becoming more autocratic, if for no other reason than because managing a lot of people and having limited time to do it requires them to make numerous difficult choices quickly, and they sometimes lose patience with arguments and issue commands instead. And most leaders are not so benevolent that they can be trusted to put the organization's interests ahead of their own. #principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HNXcWjzXcAEXaiI.png)\n\n💬12🔄17❤️77👀23339📊19",
+      "tags": [
+        "Ray Dalio",
+        "原则"
+      ],
+      "score": 30,
+      "summary": "Ray Dalio分享关于制衡与权力平衡的原则。",
+      "fetched_at": "2026-07-17T07:05:35.541299+08:00"
+    },
+    {
+      "title": "Turbo is expanding beyond SQLite to become a foundation on which multiple database compatibility lay...",
+      "link": "https://x.com/simonw/status/2077872001914748947",
+      "published": "2026-07-17T05:44:24+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Turbo is expanding beyond SQLite to become a foundation on which multiple database compatibility layers can be built - makes the project a whole lot more interesting IMO!\n\n![Glauber Costa](https://pbs.twimg.com/profile_images/1986909545273155584/V08BerFl_normal.jpg)\n\nGlauber Costa@glcst\n\nWe are rewriting Postgres. And in the process, turning Turso into the LLVM of databases: [turso.tech/blog/a-new-mod…](https://turso.tech/blog/a-new-modern-version-of-postgres-in-rust)\n\n[🔗 View Quoted Tweet](https://x.com/glcst/status/2077759129041473725)\n\n💬3🔄1❤️39👀5427📊6",
+      "tags": [
+        "Turbo",
+        "数据库兼容层"
+      ],
+      "score": 60,
+      "summary": "Simon Willison评论Turbo从SQLite扩展到多数据库兼容层。",
+      "fetched_at": "2026-07-17T07:05:35.541302+08:00"
+    },
+    {
+      "title": "Great paper club lineup organized by @FrancoisChauba1!",
+      "link": "https://x.com/StanfordAILab/status/2077868089413161278",
+      "published": "2026-07-17T05:28:52+08:00",
+      "source": "Stanford AI Lab(@StanfordAILab)",
+      "content": "Great paper club lineup organized by [@FrancoisChauba1](https://x.com/FrancoisChauba1)!\n\n![Francois Chaubard](https://pbs.twimg.com/profile_images/1992068689076875264/qQm5w9MB_normal.jpg)\n\nFrancois Chaubard@FrancoisChauba1\n\nGreat YC Paper Club Kernels/Chips edition last night.   \n  \nPapers:  \n    1    Stuart Sul (Stanford/Cursor) - ParallelKittens ([arxiv.org/pdf/2511.13940](https://arxiv.org/pdf/2511.13940))  \n    2    Avanika Narayan and Jon Saad-Falcon (Stanford) - Intelligence Per Watt: Measuring Intelligence Efficiency of Local AI ([arxiv.org/pdf/2511.07885](https://arxiv.org/pdf/2511.07885))  \n    3    Mark Saroufim (Core Automation) - To automate research we must automate systems (no paper)  \n    4    Misha Smelyanskiy (Nvidia/NewCo) - Why AI Inference Needs Heterogeneous Hardware (no paper)  \n    5    Brennan Shacklett (Stanford) - An Extensible, Data-Oriented Architecture for High-Performance, Many-World Simulation ([madrona-engine.github.io/shacklett\\_sigg…](https://madrona-engine.github.io/shacklett_siggraph23.pdf))  \n  \npic of [@marksaroufim](https://x.com/marksaroufim) teaching CUDA!   \n  \nnext one on robotics..   \n  \nwho should we invite to present?\n\n![Tweet Image](https://pbs.twimg.com/media/HNYE_glbIAAbNsy.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/FrancoisChauba1/status/2077853774173913388)\n\n💬0🔄0❤️1👀1334📊1",
+      "tags": [
+        "Stanford AI Lab",
+        "论文俱乐部"
+      ],
+      "score": 60,
+      "summary": "Stanford AI Lab转发YC论文俱乐部活动，涉及多个AI相关论文。",
+      "fetched_at": "2026-07-17T07:05:35.541304+08:00"
+    },
+    {
+      "title": "I’ve said it many times: the countries or companies that are leading in open science and open source...",
+      "link": "https://x.com/ClementDelangue/status/2077873510144512400",
+      "published": "2026-07-17T05:50:24+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "I’ve said it many times: the countries or companies that are leading in open science and open source AI will start leading the frontier a few years later as it accelerates AI progress massively! That’s how the US took the lead\n\n💬11🔄8❤️98👀4697📊20",
+      "tags": [
+        "开源AI",
+        "前沿"
+      ],
+      "score": 65,
+      "summary": "Clement Delangue表示领先开源AI的国家或公司将在几年后引领前沿。",
+      "fetched_at": "2026-07-17T07:05:35.541307+08:00"
+    },
+    {
+      "title": "Bullish on open models.\n\nAt this rate, it won't even make sense to compare models directly. \n\nAnd it...",
+      "link": "https://x.com/omarsar0/status/2077867024638730389",
+      "published": "2026-07-17T05:24:38+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Bullish on open models.  \n  \nAt this rate, it won't even make sense to compare models directly.   \n  \nAnd it looks like I was right. We might have an open-weight Fable/Mythos 5-level model by EOY.  \n  \nBut don't get distracted because overdependence on one model is a poor strategy. Combine models instead.   \n  \nHow I decide which models to use now is based on what they can solve and how effective and efficient they are. No single benchmark can measure that. Thus, private evals on your harnesses and workflows are the only real way to tell how much you are leaving on the table when you exclude models in the top 10 in this chart. The difference in results that matters doesn't change that much once you start fusing model capabilities. Very few people know this.  \n  \nI say this because you would be absolutely mistaken if you were only relying on one or the top model in this chart. Capability gaps between models have been significantly shrinking, and that trend will accelerate in the coming months.\n\n![Tweet Image](https://pbs.twimg.com/media/HNYRCvFWcAE04jm.jpg)\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nIntroducing Kimi K3: Open Frontier Intelligence  \n  \n🔹 2.8 Trillion Parameters, 1 Million Context, Native Multimodal  \n🔹 Kimi Delta Attention enables up to 6.3x faster decoding in million-token contexts  \n🔹 Attention Residuals deliver ~25% higher training efficiency at <2% additional cost  \n🔹 Built for long-horizon agentic coding and self-evolving workflows  \n  \nKimi K3 is now live on[Kimi.com](http://Kimi.com)xZUo, Kimi Work, Kimi Code, and the Kimi API.  \nOpen Weights by July 27, 2026.  \n  \n🔗 [platform.kimi.ai](http://platform.kimi.ai)XAqMw  \n🔗 Tech [kimi.com/blog/kimi-k3](http://kimi.com/blog/kimi-k3)MSNM1f\n\n![Tweet Image](https://pbs.twimg.com/media/HNXu0kobMAAPljb.png)![Tweet Image](https://pbs.twimg.com/media/HNXu2GWaYAAwH4w.png)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n\n💬8🔄2❤️19👀3497📊8",
+      "tags": [
+        "Kimi K3",
+        "开源模型",
+        "模型融合"
+      ],
+      "score": 70,
+      "summary": "Elvis评论开源模型趋势，提及Kimi K3（2.8T参数）并建议融合模型而非依赖单一模型。",
+      "fetched_at": "2026-07-17T07:05:35.541309+08:00"
     }
   ]
 }
