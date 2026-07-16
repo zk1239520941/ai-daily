@@ -1,0 +1,960 @@
+{
+  "meta": {
+    "date": "2026-07-17"
+  },
+  "entries": [
+    {
+      "title": "Building a restaurant telephony AI host with Amazon Bedrock AgentCore and Amazon Nova 2 Sonic",
+      "link": "https://aws.amazon.com/blogs/machine-learning/building-a-restaurant-telephony-ai-host-with-amazon-bedrock-agentcore-and-amazon-nova-2-sonic/",
+      "published": "2026-07-16T23:50:52+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Restaurants miss an average of 150 phone calls per location every month, and about 60 percent of those are customers trying to place an order or book a table. Most of these calls come in during dinner service, exactly when the host is seating guests, servers are turning tables, and the phone becomes an afterthought. Pulling someone off the floor to answer doesn’t fix the problem. It only makes two experiences worse. Adding an app or a website helps customers who prefer to order online, but it does nothing for the person who only wants to call.\n\nIn this post, we show you how to build a voice ordering system that answers a phone number and takes the order from greeting to confirmation. The system uses [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/) to host and run the agent and [Amazon Nova 2 Sonic](https://aws.amazon.com/nova/) for real-time speech, connected to a restaurant backend through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). The walkthrough covers deploying the full stack with [AWS Cloud Development Kit (AWS CDK)](https://aws.amazon.com/cdk/) and bridging a phone call into the agent through a Session Initiation Protocol (SIP) gateway on [Amazon Elastic Container Service (Amazon ECS)](https://aws.amazon.com/ecs/) and [AWS Fargate](https://aws.amazon.com/fargate/). It also warms the agent session while the phone is still ringing, so the caller never hears dead air.\n\n## Solution overview\n\nThe system has three layers. The telephony layer handles phone-specific concerns. Audio arrives over the phone network rather than a browser, and the system identifies the caller by phone number rather than by a login. A SIP gateway streams that audio to the agent layer over a signed WebSocket connection, where the agent runs the conversation with Amazon Nova 2 Sonic. The agent reaches the backend layer through MCP tools. The backend holds the menu, carts, orders, and locations. Keeping these layers apart means the ordering logic stays independent from the channel that calls it. A new channel like a mobile app or a kiosk can connect to the same agent without rewriting the backend. And because MCP is an open standard for connecting an agent to external tools, the backend can change without touching the agent. The agent supports both text and audio as input and output, handling transcription, turn-taking, and interruptions in a single bidirectional stream.\n\nThe solution deploys the following:\n\nOn the telephony side, [Amazon Chime SDK Voice Connector](https://aws.amazon.com/chime/chime-sdk/) provides the SIP trunk and toll-free number that accepts inbound calls. Amazon ECS on AWS Fargate runs the SIP gateway behind a [Network Load Balancer](https://aws.amazon.com/elasticloadbalancing/network-load-balancer/). For the agent layer, AgentCore Runtime hosts the conversation logic, with each call running in its own microVM for isolation. Amazon Nova 2 Sonic handles the speech-to-speech interaction. AgentCore Gateway exposes the backend APIs as MCP tools the agent can discover and call by name. The backend layer uses [Amazon API Gateway](https://aws.amazon.com/api-gateway/) to front REST endpoints secured by [AWS Identity and Access Management (IAM)](https://aws.amazon.com/iam/). [AWS Lambda](https://aws.amazon.com/lambda/) runs the business logic for menus, carts, orders, and location lookups. [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) stores the data, and [Amazon Location Service](https://aws.amazon.com/location/) handles geocoding and route calculation. [Amazon Elastic Container Registry (Amazon ECR)](https://aws.amazon.com/ecr/), [AWS CodeBuild](https://aws.amazon.com/codebuild/), and [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/) build and store the agent container image.\n\n## Architecture diagram\n\nThe following diagram shows the solution, which is organized into four sections.\n\n![Telephony voice ordering architecture diagram](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-1.png)\n\nThe restaurant’s backend infrastructure deploys first in Section A. Amazon DynamoDB holds the customer, order, menu, cart, and location data, and Amazon Location Service handles addresses and routing. AWS Lambda runs the business logic, and Amazon API Gateway exposes it externally with IAM authorization. Resources deploy in dependency order.\n\nSection B creates the AgentCore Gateway, sets up its IAM permissions, and configures the gateway to expose the backend endpoints as agent-accessible MCP tools. This is the layer that decouples the agent from the backend. Without it, adding or changing a tool would require redeploying the agent itself.\n\nSection C provisions the agent. It creates the Amazon ECR repository and uses Amazon S3 and AWS CodeBuild to build and push the container image. It then deploys AgentCore Runtime. It also deploys the supporting pieces that let the agent personalize each call, including a prompt-renderer Lambda function and a set of [AWS Systems Manager Parameter Store](https://aws.amazon.com/systems-manager/) entries that hold the prompt templates and a secret used for caller identification.\n\nSection D provisions the phone path. It sets up the Amazon Chime SDK Voice Connector and a toll-free number, a SIP Media Application Lambda that decides what to do with an incoming call, a shared [Amazon Virtual Private Cloud (Amazon VPC)](https://aws.amazon.com/vpc/), and the SIP gateway ([drachtio-server](https://github.com/drachtio/drachtio-server)), which runs on Amazon ECS on AWS Fargate behind a Network Load Balancer. The gateway bridges the calls between the Chime SDK Voice Connector and AgentCore Runtime.\n\nThe numbered callouts in the preceding diagram trace the solution end to end:\n\n1. A call is initiated to the phone number provisioned by Amazon Chime SDK, either by a customer or forwarded from another line.\n2. Amazon Chime SDK answers the call and invokes AWS Lambda to set up the bridge.\n3. The Lambda creates a session identifier and opens a connection to AgentCore Runtime to warm up the microVM, which avoids a cold start when media streaming begins.\n4. After a successful response from the Lambda, Amazon Chime SDK initiates a bridge action against the Network Load Balancer by sending a SIP invite over TCP port 5060.\n5. The SIP service running on AWS Fargate accepts the invite and allocates a free port in the Real-time Transport Protocol (RTP) service on the same container to receive media on the assigned public IP address.\n6. The RTP service receives the media on the UDP port from the Voice Connector and connects to the AgentCore Runtime WebSocket to begin media translation, using the same session identifier created by the SIP Media Application handler.\n7. AgentCore Runtime invokes an AWS Lambda function to build the system prompt, stored on AWS Systems Manager Parameter Store, based on the session identifier and the customer’s Amazon DynamoDB record.\n8. AgentCore Runtime creates a session with Amazon Nova 2 Sonic and greets the customer over the established connection, following the system prompt instructions.\n9. AgentCore Runtime lists and calls the available tools from AgentCore Gateway using the MCP protocol.\n10. AWS CDK deploys the solution to Amazon S3, triggering AWS CodeBuild to build the container images and store them in Amazon ECR. AgentCore Runtime and AWS Fargate use these images to deploy the agent and the SIP and RTP servers.\n11. [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) provides centralized monitoring, logging, and alerting across all services, and all data at rest is encrypted using AWS Key Management Service (AWS KMS).\n\nCallouts 1–9 happen during a single phone call, callout 10 covers how the solution deploys the SIP server and AgentCore Runtime, and callout 11 covers how it’s monitored and secured. The following section sets deployment and operations aside and gets closer to the call itself.\n\n## Inbound call flow\n\nThis section follows one call from the caller’s side from the first ring to the spoken reply. It is the same runtime path as callouts 1–9 in the preceding architecture diagram. The following diagram shows it as a sequence so the order of events is more straightforward to see.\n\n![Inbound call flow, from the caller through Amazon Chime SDK, the SIP Media Application Lambda, and the SIP gateway to AgentCore Runtime and Amazon Nova 2 Sonic](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-2.gif)\n\nThe numbered steps in the preceding diagram correspond to these stages of the call:\n\n1. The caller dials the toll-free number and Amazon Chime SDK Voice Connector answers.\n2. The Voice Connector invokes the SIP Media Application Lambda, which computes a session identifier for the call.\n3. The Lambda sends a warmup request to AgentCore Runtime, so the agent prepares its session while the phone is still ringing.\n4. The Lambda tells the Voice Connector to bridge the call to the SIP gateway on Amazon ECS on AWS Fargate, passing the session identifier along.\n5. The SIP gateway opens a SigV4-signed WebSocket to AgentCore Runtime using that same session identifier. The call attaches to the warmed session, caller audio flows to the agent, and the agent’s audio flows back to the caller.\n6. The agent runs the conversation with Amazon Nova 2 Sonic and calls backend tools through AgentCore Gateway when it needs menu, cart, order, or location data.\n\n## Prerequisites\n\nBefore you begin, verify that you have the following in place:\n\n* An [AWS account](https://signin.aws.amazon.com/signup?request_type=register).\n* Amazon Bedrock model access for Amazon Nova 2 Sonic in the AWS Region where you deploy, requested on the model access page in the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/).\n* Amazon Chime SDK PSTN Audio access, with a phone-number quota increase requested in the [Amazon Chime SDK console](https://console.aws.amazon.com/chime-sdk/) if you have never ordered a number in this account.\n* [Node.js](https://nodejs.org/) 24.x or later.\n* [AWS Command Line Interface (AWS CLI)](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) 2.x configured with credentials.\n* [git](https://git-scm.com/) to clone the repository.\n* AWS CDK bootstrapped in your target account and Region (`npx cdk bootstrap aws://<ACCOUNT_ID>/<REGION>`).\n\nThe agent container is built with Python, but the build runs inside AWS CodeBuild, so you do not need Python on your own machine. Deploy in a Region where Amazon Nova 2 Sonic, Amazon Chime SDK PSTN Audio, and AgentCore Runtime are all available. US East (N. Virginia), `us-east-1`, is a good place to start.\n\n## Deploy the solution with AWS CDK\n\nThe full solution is available in the [sample repository on GitHub](https://github.com/aws-samples/sample-restaurant-telephony-ai-host-using-amazon-bedrock-agentcore-nova-sonic). Clone the repository and change into the project directory.\n\n```\ngit clone https://github.com/aws-samples/sample-restaurant-telephony-ai-host-using-amazon-bedrock-agentcore-nova-sonic.git\ncd sample-restaurant-telephony-ai-host-using-amazon-bedrock-agentcore-nova-sonic\n```\n\nRun the preflight check. It confirms that Node.js, the AWS CLI, git, the AWS CDK bootstrap, and Amazon Bedrock model access are all in place and reports anything missing.\n\n```\n./scripts/preflight-check.sh\n```\n\nThen run the deployment script with a deployment prefix. The prefix is added to every resource name, which you can use to deploy the solution more than once in the same account.\n\n```\n./scripts/deploy-all.sh --deploymentPrefix qsr-tel\n```\n\nThe script deploys each AWS CDK stack in order and passes the outputs of one stack to the subsequent stack. It builds the backend first, then adds the AgentCore Gateway in front of the backend APIs. Next, it builds and pushes the agent container image with AWS CodeBuild and deploys the agent on AgentCore Runtime. Finally, it brings up the SIP gateway on Amazon ECS on AWS Fargate and provisions the Amazon Chime SDK Voice Connector and toll-free number. It also seeds sample menu and location data so you can place a real order as soon as it finishes. The build of the agent container takes several minutes the first time, so expect the run to pause while AWS CodeBuild works.\n\nWhen the script completes, it prints the number to dial:\n\n```\nYour telephony agent is live at +1XXXXXXXXXX. Dial to test.\n```\n\n## How the SIP gateway works\n\nThe telephony layer has one job. It turns a phone call into a media stream the agent can read and write. This matters because the phone network and the agent speak different protocols. The phone delivers audio as RTP packets over UDP. The agent expects a WebSocket carrying frames in the format Amazon Nova 2 Sonic understands. Without a translation layer in between, the agent would need to know about SIP, codec negotiation, and network-level media routing, all of which would couple it to a single channel. Two components handle that translation.\n\nThe Amazon Chime SDK Voice Connector accepts the inbound call and invokes the SIP Media Application Lambda. That Lambda is where the call is steered. It returns an instruction to bridge the call to the SIP gateway and carries the session identifier along so the next hop knows which session this call belongs to.\n\nThe SIP gateway runs on Amazon ECS on AWS Fargate. It uses drachtio-server for SIP signaling, with a Node.js bridge for the audio. The gateway answers the call and converts between the audio format the phone network uses and the format Amazon Nova 2 Sonic expects. For high availability (HA), it runs as two tasks across two [Availability Zones (AZs)](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/), which gives it redundancy and a place to publish a call-count metric to [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) for scaling. The signaling for the call passes through the Network Load Balancer, but the audio itself flows directly between the Voice Connector and the Fargate task, which keeps the load balancer off the media path.\n\n## Warming the agent while the phone rings\n\nA voice call is unforgiving about silence. If a caller connects and hears nothing for a few seconds, the call feels broken even though the system is working. The slow part of starting a call is the one-time setup. The agent has to resolve the system prompt for this caller, open the Amazon Nova 2 Sonic stream, and discover the available MCP tools.\n\nRather than make the caller wait through that, the SIP Media Application Lambda kicks it off while the phone is still ringing. As soon as the call arrives, the Lambda sends a warmup request to AgentCore Runtime with a session identifier for the call. AgentCore Runtime allocates a microVM and runs the setup during the ringing window. A moment later, when the SIP gateway opens its WebSocket connection using the same session identifier, AgentCore Runtime routes it to that already-warm microVM, and the agent is ready to talk.\n\nThe session identifier is what connects the two requests. The Lambda computes it from the call itself, so the warmup request and the later audio connection resolve to the same microVM without any extra state to track. The following diagram shows how this overlaps with the ringing window so the agent is ready when the call connects.\n\n![Warmup timeline, showing the SIP Media Application Lambda preparing the agent session while the phone rings so it is ready when the call connects](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-3.gif)\n\n## Storing menus, carts, and orders\n\nFive Amazon DynamoDB tables cover the ordering workflow. The Customers table stores profiles, including name, phone, and loyalty information, which the agent uses to recognize a returning caller. The *Orders* table keeps order history along with the pickup location. The *Menu* table holds items, prices, and availability, which can differ by location. The *Carts* table holds in-progress carts and uses a time-to-live value so abandoned carts clean themselves up. The *Locations* table holds restaurant details such as coordinates, hours, and tax rates that the agent uses for totals and recommendations. DynamoDB on-demand capacity scales with traffic, so there’s no throughput to manage.\n\n## Finding a pickup location\n\nAmazon Location Service helps a caller find a convenient pickup spot without typing anything. A phone caller has no browser to share a location, so the agent asks for a ZIP code or a cross-street and uses Amazon Location Service to turn that into coordinates. From there, the backend can do a few things with those coordinates. It can find the nearest restaurants, rank them by driving time rather than straight-line distance so it favors a short detour along the caller’s route, or geocode a specific address. That lets the agent say something a caller can act on, such as “the closest location is on Main Street, about five minutes away,” instead of reading back an internal code.\n\n## Processing voice with Amazon Bedrock AgentCore and Amazon Nova 2 Sonic\n\nThe agent runs on AgentCore Runtime. Each call runs in its own microVM, so one caller’s session can’t affect another’s. AgentCore Runtime handles scaling and provides the WebSocket connection that carries audio both ways.\n\nWithin the agent, the agent framework defines the system prompt, the tools it can call, and the flow of the conversation. Amazon Nova 2 Sonic does the speech work within the call. It recognizes speech across a range of accents and handles the varied audio quality that comes with a phone line. It streams audio in both directions with low latency, and it calls tools asynchronously without stopping the conversation (see [Async tool calls in Amazon Nova Sonic](https://docs.aws.amazon.com/nova/latest/nova2-userguide/sonic-async-tools.html)), so the caller isn’t left waiting while data is fetched. It also handles interruptions, so a caller can talk over the agent the way people do on human-to-human calls.\n\nOne detail is specific to phone calls. A backend lookup can take a few seconds, and Amazon Nova 2 Sonic ends a session that sits idle on the server side for too long. To hold the session open during a slow tool call, the agent sends a silent frame at a short interval. The session stays alive and the caller hears nothing unusual.\n\n## Connecting the agent to backend tools with MCP\n\nThe agent never calls the backend Lambda functions directly. AgentCore Gateway sits in between and presents the backend endpoints as MCP tools that the agent discovers and calls by name, covering menu lookups, cart operations, order placement, customer and order history, geocoding, and location search. This means the agent doesn’t need to know which Lambda function lives behind a given operation or how to authenticate to it.\n\nThat layer is what keeps the design loosely coupled. When the agent calls a tool such as `PlaceOrder`, the gateway turns it into a REST request to Amazon API Gateway, which routes it to the matching AWS Lambda function. Because the agent talks to named tools rather than to specific functions, you can change a backend handler or add a tool without changing the agent. The same backend can also serve other channels, because they all place orders against the same tools and data.\n\nThe following diagram shows how a single tool call travels from the agent to the backend.\n\n![Tool call flow, from the agent through AgentCore Gateway and Amazon API Gateway to an AWS Lambda function backed by Amazon DynamoDB and Amazon Location Service](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-4.gif)\n\n## Recognizing a caller without a login\n\nA phone caller doesn’t sign in, so the system uses the caller’s phone number as the basis for identity. The system hashes the number with a secret value held on AWS Systems Manager Parameter Store, and the result becomes the session identifier. The raw phone number doesn’t appear in logs or session state. This hashing approach helps meet personally identifiable information (PII) handling requirements by ensuring that sensitive caller information is never stored or transmitted in plain text.\n\nIf that identifier matches a known customer, the agent greets the caller by name and can offer their last order. If it doesn’t match, the caller orders as a guest, and the order is still placed and stored. Each order records the channel it came from and whether the caller was a guest, so you can identify telephony orders later.\n\nThis recognizes a returning caller without asking for a login, but it’s not identity verification, and the phone-number hash shouldn’t be treated as proof of who is calling. Anyone with access to the same phone can place an order under that identity. A production deployment that needs verified identity can add a step such as a one-time passcode sent through SMS before the agent opens the caller’s account history.\n\n## Ordering walkthrough\n\nDial the number from the deploy output. The agent greets you and asks what you would like. You can speak naturally, ask about the menu, give a ZIP code for pickup, and confirm the order, all by voice. While the caller talks, the agent calls backend tools in the background, so there are no pauses while data loads. The following video shows a typical order from greeting to confirmation.\n\n[\n\n](https://d2908q01vomqb2.cloudfront.net/artifacts/DBSBlogs/ml-21038/Recording-Audio-Normalied.mp4?_=1)\n\nAfter the call ends, you can trace the full path in Amazon CloudWatch Logs. The SIP gateway logs show how the call was set up and bridged to the agent. The agent logs show each agent event and tool call as the conversation progressed. Once the order is confirmed, it lands in the DynamoDB Orders table with its total and estimated ready time.\n\n## Cost\n\nYou pay for the AWS services the system uses. The toll-free per-minute charge and the always-on Fargate tasks are the two largest line items. You can lower both if it fits your needs. A local Direct Inward Dialing number costs less per minute than a toll-free number, and scaling the Fargate tasks down outside business hours cuts the compute charge once you know your traffic. Check the pricing page for each service for current rates, and set up a budget in [AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/) to track spend.\n\n## Clean up\n\nTo avoid ongoing charges, remove the resources when you are done. The always-on Fargate tasks and the toll-free number continue to accrue cost whether or not calls are coming in. The cleanup script deletes the stacks in reverse order so each stack is removed before the ones it depends on.\n\n```\n# Preview what will be deleted without removing anything.\n./scripts/cleanup-all.sh --dry-run\n\n# Delete every stack the deploy created.\n./scripts/cleanup-all.sh\n```\n\nCleanup is destructive. It releases the toll-free number, deletes the order history in Amazon DynamoDB, removes the secret on AWS Systems Manager Parameter Store, and deletes the container images in Amazon ECR. Back up anything you want to keep first. When the script finishes, confirm in the AWS CloudFormation console that the stacks are gone (see [Viewing AWS CloudFormation stack data and resources on the AWS Management Console](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-view-stack-data-resources.html)) and in the Amazon Chime SDK console that the toll-free number has been released (see [Managing phone numbers in Amazon Chime SDK](https://docs.aws.amazon.com/chime-sdk/latest/ag/phone-numbers.html)).\n\n## Conclusion\n\nIn this post, we walked through a telephony voice ordering system from deployment to a completed order. The architecture keeps telephony, agent, and backend independent so each piece can evolve on its own. That separation is what makes the system practical to operate, because you can update menu data, swap in a new voice model, or add a channel without coordinating changes across the whole stack.\n\nFor the restaurant, this means phone orders flow in without pulling staff away from the counter. Callers get an immediate greeting instead of hold music, the agent confirms each item out loud to reduce mistakes, and the system handles peak hours without extra headcount. Because the agent connects to the backend through MCP tools, you can add capabilities like reservations or loyalty points by registering new tools without changing the agent or the telephony layer.\n\nTo get started, clone the [sample repository on GitHub](https://github.com/aws-samples/sample-restaurant-telephony-ai-host-using-amazon-bedrock-agentcore-nova-sonic) and run the preflight check to confirm your environment is ready. From there, replace the seed data in the DynamoDB table definitions with your own menu items, locations, and pricing. Update the system prompt templates in the Parameter Store entries to reflect your restaurant’s name, greeting style, and any ordering rules. Then run the deploy script to bring the system live on your own toll-free number.\n\n---\n\n## About the authors\n\n![Sergio Barraza](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-5.png)\n\n### Sergio Barraza\n\nSergio is a Senior Technical Account Manager at AWS, helping customers design and optimize cloud solutions. With more than 25 years in software development, he guides customers through AWS service adoption. Outside work, Sergio plays guitar, piano, and drums, and practices Wing Chun Kung Fu.\n\n![Salman Ahmed](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-6.png)\n\n### Salman Ahmed\n\nSalman is a Senior Technical Account Manager at AWS, specializing in helping customers design, implement, and optimize their AWS environments. He combines deep networking expertise with a passion for exploring emerging technologies to help organizations get the most out of their cloud investments. Outside of work, he enjoys photography, traveling, and watching his favorite sports teams.\n\n![Ravi Kumar](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/13/ML-21038-7.png)\n\n### Ravi Kumar\n\nRavi is a Senior Technical Account Manager in AWS Enterprise Support who helps customers in the travel and hospitality industry run their cloud operations. He has more than 20 years of IT experience and explores applications of generative AI in cloud computing. Outside of work, Ravi enjoys painting, cricket, and traveling to new places.",
+      "tags": [
+        "Amazon Bedrock AgentCore",
+        "Amazon Nova 2 Sonic",
+        "MCP"
+      ],
+      "score": 79,
+      "summary": "AWS官方博客介绍使用Bedrock AgentCore和Nova 2 Sonic构建餐厅电话AI点餐系统。",
+      "fetched_at": "2026-07-17T01:28:13.088182+08:00"
+    },
+    {
+      "title": "A Guide to Multi-Tenancy: Benefits and Challenges",
+      "link": "https://blog.bytebytego.com/p/a-guide-to-multi-tenancy-benefits",
+      "published": "2026-07-17T00:37:08+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "Every software company that builds an application serving more than one customer has to answer this question.\n\nShould each customer get a separate copy of the system, or should they all share one?\n\nRunning a dedicated copy per customer is easy to reason about, but the cost of maintaining hundreds of separate copies increases with every new customer. On the other hand, sharing a single system across all customers is far cheaper. This is why most of the software we use every day is built to be shared rather than duplicated. Such systems are known as multi-tenant systems, where each customer is a tenant that shares resources with other tenants.\n\nHowever, sharing is also where the difficulty begins.\n\nOnce many customers rely on the same database, the same servers, and the same background jobs, their fortunes become linked. For example, one customer running a heavy report can slow the service for everyone alongside them. A single faulty deployment can impact all of them at once instead of just the customer. And the most serious risk is around data leaks, where one customer is shown data that belongs to another. All of these situations have to be actively handled by a multi-tenant system.\n\nIn this article, we will understand multi-tenant architecture from the basics, along with its various benefits and challenges. Here’s a quick overview of what we will cover:\n\n* What a tenant really is.\n* Where each customer’s data can physically live, from one shared set of tables to a database of its own, and what each of those options costs.\n* Why the same choice between isolating and sharing also includes the compute layer and beyond, not only in the database.\n* The noisy neighbor problem, and why sharing can impact fairness and force a team to rebuild it with quotas and limits.\n* The role of blast radius in such an architecture.\n* The concept of tenant context that runs through every part of the system.\n\n[![](https://substackcdn.com/image/fetch/$s_!RWJE!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbb93d50f-61ea-4d58-99b6-b96cae02390e_1325x1534.png)](https://substackcdn.com/image/fetch/$s_!RWJE!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbb93d50f-61ea-4d58-99b6-b96cae02390e_1325x1534.png)\n\n## Tenants and Users\n\n[Read more](https://blog.bytebytego.com/p/a-guide-to-multi-tenancy-benefits)",
+      "tags": [
+        "多租户架构",
+        "系统设计"
+      ],
+      "score": 60,
+      "summary": "ByteByteGo文章介绍多租户架构的收益与挑战。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!RWJE!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbb93d50f-61ea-4d58-99b6-b96cae02390e_1325x1534.png",
+      "fetched_at": "2026-07-17T01:28:13.088190+08:00"
+    },
+    {
+      "title": "From the Captain’s Chair: Mohammad-Ali A’râbi",
+      "link": "https://www.docker.com/blog/from-the-captains-chair-mohammad-ali-arabi/",
+      "published": "2026-07-17T01:15:44+08:00",
+      "source": "Docker",
+      "content": "*Docker Captains are leaders from the developer community that are both experts in their field and are passionate about sharing their Docker knowledge with others. “From the Captain’s Chair” is a blog series where we get a closer look at one Captain to learn more about them and their experiences.*\n\n*Today we are interviewing Mohammad-Ali A’râbi, a Docker Captain based in the sunniest German city, Freiburg. He is the author of the book “*[*Docker and Kubernetes Security*](https://www.dockersecurity.io/)*,” a Best DevOps Book of the Year finalist in 2025. He is also a software engineer, public speaker, and community builder, organizing Docker meetups in Freiburg since 2022.* *Mohammad-Ali is originally from Iran and has a BSc in Mathematics and an MSc in Computer Science.*\n\n![image5](https://www.docker.com/app/uploads/2026/07/image5.jpg \"- image5\")\n\n*Caption: Docker Captains Summit in Istanbul, I’m the one with a red hat*\n\n## Can you share how you first got involved with Docker?\n\nIn 2015, I was working at Cafe Bazaar, a tech company in Iran, as a backend engineer. Our backend was running on Django, so for a whole week, I listened to [Django Reinhardt](https://open.spotify.com/playlist/6BrieO5rNOHHeYStMdcCFk?si=7Y7eBUCeQhutU9-mTrg7ig) while trying to spin up the project. I was failing because of the dependency hell.\n\nA colleague casually mentioned, “You can perhaps try using Docker; we’re using it in the CI.” Docker was 2 years old at the time, and I had never heard of it before.\n\nSo, I disappeared for one week, learning Docker, and next thing you know, I was creating CI pipelines for other projects.\n\n![image3](https://www.docker.com/app/uploads/2026/07/image3.jpg \"- image3\")\n\n*Caption: Cafe Bazaar in Iran, I’m the one in the red T-shirt (middle)*\n\n## What inspired you to become a Docker Captain?\n\nBetween 2018 and 2019, I was working in Amsterdam. We had tech meetups quite often there, and I loved it about Amsterdam. We moved back to Freiburg in 2019, and I started working at a smaller company, where I introduced git, CI/CD pipelines, and Docker. People would come to me with their git and Docker questions. So, I decided to write them down on a Medium blog for my own later reference. But I learned the content is useful for the community, so I kept on writing. At some point, I was writing a blog post on git every week.\n\nWhen the pandemic hit, I got depressed, so I decided to start a meetup group in Freiburg, because otherwise, there was none. I attended an online Docker Community All Hands and an online KubeCon, and in the meantime, I was looking for venues to host my first meetup.\n\n> ***I will bring my coffee!***\n\nIn 2022, I got a LinkedIn message from a CEO trying to hire me. I told him, “I just got a new contract, but we can talk about other collaborations.” We set up a meeting, and I wrote, “I will bring my coffee!” It was because their office was in the same building as where I live. I went down there, having a Docker-branded mug filled with coffee (caffè crema with a stain of milk), saying, “Hello, neighbors!” They agreed on hosting an in-person Docker meetup.\n\n![image1](https://www.docker.com/app/uploads/2026/07/image1.png \"- image1\")\n\nOur first meetup was in November 2022, and we had only one attendee, who came all the way from Strasbourg, France. In the end, it was him, my wife, me, one of the founders and her boyfriend, and an engineer from the company.\n\nOur second meetup was a watching party, watching Docker Community All Hands. By that time, I had two blog posts published on Docker’s blog, I had a talk at that particular event, and I won the title of best Docker Community Leader.\n\nWhen I applied to become a Captain in early 2023, many already knew me at Docker.\n\n## What are some of your personal goals for the next year?\n\nI want to double down on education and storytelling.\n\nI recently published [Black Forest Shadow](https://www.dockersecurity.io/amz/bfs), a fantasy story set in 1865 Freiburg that teaches container security through narrative. It’s part of a bigger idea I’m exploring: making complex DevOps concepts memorable through story, visuals, and characters. One other project I’m working on is the workshop series [Docker Commandos](https://www.dockersecurity.io/blog/docker-commandos), with which I introduce different Docker commands.\n\nOn the technical side, I’m working on the second edition of Docker and Kubernetes Security, especially covering [Docker Hardened Images](http://localhost:3001/blog/docker-hardened-images-are-free).\n\n![image8](https://www.docker.com/app/uploads/2026/07/image8.png \"- image8\")\n\n*Caption: Docker Commandos Pack*\n\nAnd on the community side, I want to grow the Freiburg meetup into something more consistent and connected to the broader ecosystem. It’s already a CNCF chapter as well, but I have been playing with the idea of starting a Java User Group (JUG) to attract a wider audience.\n\n## If you weren’t working in tech, what would you be doing instead?\n\nI would probably have become a mathematics professor researching logic. I did an unfinished master’s in Iran researching Categorial Grammar, which models natural languages using mathematical logic. My [master’s thesis](https://www.researchgate.net/publication/351853213_A_Basis_for_Event-Driven_Programming) in Computer Science was also basically mathematical logic.\n\nOr I would have become a researcher in ancient languages. I can read Old Persian cuneiform and Book Pahlavi, which is currently not fully deciphered, to be added to the Unicode. If I weren’t doing tech, I would dedicate my time to answering [the remaining questions](https://www.unicode.org/L2/topical/bookpahlavi/).\n\n## Can you share a memorable story from collaborating with the Docker community?\n\nPublishing the book Docker and Kubernetes Security would not have been possible without the Docker community. So, the story goes like this:\n\nShortly after I became a Docker Captain, Packt, the tech publisher, reached out to me and suggested that I write a book with them. I declined at first, as I didn’t feel I was knowledgeable enough to write a book. But they were very persuasive.\n\nTwo years later, I finished my manuscript and threw it over the fence. As I was waiting for them to do their magic, they went through a reorganization, and they finally said they can’t prioritize my title. They wrote to me, “You can find a new publisher.” I found a new publisher, and that was me.\n\n![image2](https://www.docker.com/app/uploads/2026/07/image2.jpg \"- image2\")\n\n*Caption: Docker booth at WeAreDevelopers conference*\n\nI started asking Docker Captains to review the work. I gave beta versions to our little Freiburg community. And when it came out, many Docker Captains, Docker employees, and members of the Docker community supported me by buying the book or spreading the word.\n\n## What’s your favorite Docker product or feature right now, and why?\n\nDocker Hardened Images, because Shai Hulud is lurking in the deep, and Jack the Bitcoin Miner is installing cryptominers on every vulnerable server, so the ecosystem deserves an open-source, CVE-free set of base images. And this should be available to everyone, not only the paying customers, because we’re all in this boat together.\n\n![image9](https://www.docker.com/app/uploads/2026/07/image9.png \"- image9\")\n\n*Caption: Jack the Bitcoin Miner fighting Gord the Guardian*\n\n## Can you walk us through a tricky technical challenge you solved recently?\n\nTech problems are usually not tricky; designing the solution is. It’s tricky to understand if you’re overengineering or if your solution is too simplistic and not future-proof. Last week, I was designing a new microservice, and I created a few rules for myself to guard-rail my solution:\n\n1. **Decisions should be able to be postponed.** Don’t lock in on a decision yet. I introduced interfaces for our repository and injected its implementation, so that if we decided on using a different database later, all we have to do is add a new implementation and change one line of code to inject it into the service.\n2. **There should be one way to do things.** If you have three different ways to run the project locally, they will eventually go out of sync, and all end up broken. Choose a main solution, don’t do Docker Compose and Devcontainers and local npm start all at the same time.\n3. **Automate everything.** If things are manual, they are more prone to error and more time-consuming. If your deployment is SSHing into a server, changing a commit hash, and restarting the Docker Compose service, you’re doing it wrong.\n4. **Don’t trust AI.** I use Claude Code, and I have to correct it half of the time, saying, “Don’t do that, do this.” If you’re letting the AI write your code while you’re drinking coffee in the kitchen, you’re in for disaster. [Research](https://medium.com/@lewis_75321/new-study-finds-ai-models-write-code-with-security-flaws-18-50-of-the-time-f4515736b2dc) shows that a significant portion of AI-generated code is insecure.\n5. **Test everything.** Add CI checks for everything. I had jobs for formatting, linting, running tests, checking the coverage, checking Docker image vulnerabilities, and even the commit messages. Now, based on the commit messages, I bump the version automatically using semantic versioning and trigger a new release.\n\n## What’s one Docker tip you wish every developer knew?\n\nYou can generate SBOM attestation upon build very easily, it’s just passing a flag on CLI, setting a new argument on the CI job, or two lines of code if you’re using Docker Bake.\n\n![image4](https://www.docker.com/app/uploads/2026/07/image4.png \"- image4\")\n\n*Caption: SBOM attestations make it easier to find CVEs*\n\nUsing the CLI:\n\n```\n$ docker buildx build --sbom=true -t <image> .\n```\n\nIf you’re using Docker Bake:\n\n```\nvariable \"TAG\" {\n default = \"latest\"\n}\n\nvariable \"REPOSITORY\" {\n default = \"mithra-backend\"\n}\n\ngroup \"default\" {\n targets = [\"backend\"]\n}\n\ntarget \"backend\" {\n context = \".\"\n dockerfile = \"Dockerfile\"\n tags = [\"${REPOSITORY}:${TAG}\"]\n\n attest = [\n   {\n     type = \"provenance\"\n     mode = \"max\"\n   },\n   {\n     type = \"sbom\"\n   }\n ]\n}\n```\n\nThen you can build by:\n\n```\n$ docker bake\n```\n\nAnd in the CI:\n\n```\n- name: Build and push with docker bake\n  uses: docker/bake-action@v5\n  with:\n    files: ./docker-bake.hcl\n    push: true\n```\n\nIf you’re not using Docker Bake yet, it’s worth looking into. It makes Docker build more delicious.\n\n![image6](https://www.docker.com/app/uploads/2026/07/image6.png \"- image6\")\n\n*Caption: Docker Commandos doing a bake-off competition in Asgard*\n\n## If you could containerize any non-technical object in real life, what would it be and why?\n\nI would create snapshots of the world so that I can choose which version to live in. Sometimes I play Fallout: New Vegas to escape reality, which is ironic. But at least it has [Big Iron](https://open.spotify.com/track/0AQquaENerGps8BQmbPw14?si=ff016544115b4a3b) in it.\n\n## Where can people find you online?\n\nI have a website with all my links: [aerabi.com](http://aerabi.com)\n\nLinkedIn is my main social media platform; follow me there: [/in/aerabi](https://www.linkedin.com/in/aerabi/).\n\nAnd when I miss the good old Twitter, I sometimes write on BlueSky: [@aerabi.com](https://bsky.app/profile/aerabi.com).\n\n## Rapid Fire Questions\n\n### Cats or Dogs?\n\nHomo Sapiens\n\n### Morning person or night owl?\n\nVampire\n\n### Favorite comfort food?\n\nFesenjān, but if you don’t know what that is, sushi\n\n### One word friends would use to describe you?\n\nCrazy\n\n### A hobby you picked up recently?\n\nWriting dark fantasy. Though honestly, lately I just call it “non-fiction.”\n\n![image7](https://www.docker.com/app/uploads/2026/07/image7.png \"- image7\")",
+      "tags": [
+        "Docker Captain",
+        "社区访谈"
+      ],
+      "score": 60,
+      "summary": "Docker博客采访Docker Captain Mohammad-Ali A'râbi，分享其Docker经历。",
+      "fetched_at": "2026-07-17T01:28:13.088194+08:00"
+    },
+    {
+      "title": "Cloud CISO Perspectives: How AI leverages deep context as the defender’s advantage",
+      "link": "https://cloud.google.com/blog/products/identity-security/cloud-ciso-perspectives-how-ai-leverages-deep-context-defenders-advantage/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Welcome to the first Cloud CISO Perspectives for July 2026. Today, Francis deSouza, COO, Google Cloud and President, Security Products, explains the crucial role that deep context plays in creating an AI advantage for defenders.\n\nAs with all Cloud CISO Perspectives, the contents of this newsletter are posted to the [Google Cloud blog](https://cloud.google.com/blog/products/identity-security/). If you’re reading this on the website and you’d like to receive the email version, you can [subscribe here](https://cloud.google.com/resources/google-cloud-ciso-newsletter-signup).\n\naside\\_block\n:   <ListValue: [StructValue([('title', 'Get vital board insights with Google Cloud'), ('body', <wagtail.rich\\_text.RichText object at 0x7f4a0e7685b0>), ('btn\\_text', 'Visit the hub'), ('href', 'https://cloud.google.com/solutions/security/board-of-directors?utm\\_source=cgc-site&utm\\_medium=et&utm\\_campaign=FY26-Q2-GLOBAL-GCP39634-email-dl-dgcsm-CISOP-NL-177159&utm\\_content=-&utm\\_term=-'), ('image', <GAEImage: GCAT-replacement-logo-A>)])]>\n\n### **How AI leverages deep context as the defender’s advantage**\n\n*By Francis deSouza, COO, Google Cloud and President, Security Products*\n\n![Francis DeSouza 2026](https://storage.googleapis.com/gweb-cloudblog-publish/images/Francis_DeSouza_2026.max-1000x1000.jpg)\n\nFrancis deSouza, COO, Google Cloud and President, Security Products\n\nAttackers are making headlines with AI, but defenders have a distinct and powerful advantage.\n\nAI is rapidly transforming the cyberthreat landscape, driving unprecedented shifts in the scale, speed, and sophistication of attacks. Just recently, Google Threat Intelligence Group documented a critical milestone: the first known case of a [zero-day exploit built entirely with AI](https://cloud.google.com/blog/topics/threat-intelligence/ai-vulnerability-exploitation-initial-access/). While we successfully disrupted their plans and got the vulnerability patched before launch, it highlights exactly what we are up against.\n\nWith AI agents, attacks are accelerating at machine speed. Last year, the handoff time between the first and second stage of an attack was eight hours; today, it takes just 22 seconds.\n\nThere’s an old saying in cybersecurity that adversaries only have to be right once, but defenders have to be right every time. That is the attacker’s advantage.\n\nBut AI is rewriting those rules, delivering a decisive defender's advantage built on deep context.\n\n### The AI Era: Attacker’s Profile vs. Defender’s Advantage\n\n|  |  |  |\n| --- | --- | --- |\n| Aspect | Attacker's Profile | Defender's Advantage |\n| Visibility | Limited to outside-in probing; little enterprise context upon entry. | Complete inside-out context; knows exact asset locations, application behavior, and team ownership. |\n| Operational Speed | Executes multi-agent handoffs in 22 seconds. | Machine-speed defense; proactive mitigation in seconds (such as [Morgan Stanley's 90-second resolution](https://www.youtube.com/watch?v=CmGWIwgHR60).) |\n| Core Tactics | Multi-model phishing, deepfakes, AI-built zero-days, and model poisoning. | Closed-loop defense; continuous exposure mapping and accelerated code patching. |\n\n**The unified blueprint: Google AI Threat Defense**\n\nPreviously, enterprise context data was fragmented across disconnected security tools. Now, AI empowers defenders to synthesize this rich data into a unified, always-on, autonomous defense.\n\nWe built Google AI Threat Defense to combine Google’s security capabilities into a single platform: the advanced reasoning of Gemini, the contextual cloud power of Wiz, the code-level remediation capabilities of CodeMender, and the frontline intelligence of Mandiant.\n\nOur platform transforms vulnerability management across a continuous four-step framework:\n\n|  |  |  |\n| --- | --- | --- |\n| Stage | Technology & Actions | Strategic Value to the Enterprise |\n| 1. Prepare | Map exposed applications, APIs, identities, and runtime environments using Wiz. Simulate attack paths with the Wiz Red Agent. | Hardens the foundation to reduce internet reachability before vulnerabilities hit production. |\n| 2. Scan & Prioritize | Run multi-model scanning — using lighter models for broad coverage and Gemini frontier models for deep-dive analysis of high-risk assets. | Replaces massive alert lists with deep, context-driven risk validation, including an optimal cost per token. |\n| 3. Remediate | Deploy CodeMender inside developer IDEs/CLIs to auto-generate verified code fixes. | Replaces slow, manual patching with autonomous code-level remediation and memory-safe migrations. |\n| 4. Monitor | Deploy AI agents tied to Wiz to hunt for vulnerabilities and anomalies across network, identity, and application telemetry.  Pair with Google Security Operations to rapidly hunt for unknown threats. | Establishes machine-speed runtime detection for zero-day response and threats against unpatchable environments. |\n\nTo stop vulnerabilities before they hit production, Morgan Stanley partnered with Google Cloud and Wiz, aligning their strategy with the core principles of the [AI Threat Defense framework](https://cloud.google.com/blog/products/identity-security/cloud-ciso-perspectives-the-4-lessons-that-guided-ai-threat-defense): prepare, scan, remediate, and monitor. By replacing fragmented tools with this unified blueprint, Morgan Stanley collapsed its mean time to detect threats by 99.9%, shifting from a reactive 45-minute window to proactive mitigation in [90 seconds or less](https://www.youtube.com/watch?v=CmGWIwgHR60).\n\n[Google Cloud x Morgan Stanley: Redefining Threat Defense in the AI Era](https://youtube.com/watch?v=CmGWIwgHR60)\n\n#### Google Cloud x Morgan Stanley: Redefining Threat Defense in the AI Era\n\n**Maintaining strategic human oversight**\n\nWhile human-speed execution cannot keep pace with automated threats, human management remains essential. We align autonomous AI agents directly with the human teams they support. In Wiz, for example, the Red agent automates penetration testing, the Blue agent drives threat investigations, and the Green agent accelerates cloud remediation.\n\n\"Every AI conversation is a security conversation. That means securing AI infrastructure requires building from the ground up, and not bolting on.\"\n\nThis ensures autonomy under human supervision, empowering engineering and security teams to eliminate backlogs and secure the software development lifecycle without sacrificing speed.\n\n**What’s next: AI-native, agent-driven infrastructure**\n\nThe foundation of your defender's advantage starts with protecting your environments — not just from outside threats, but from internal risks like shadow AI and unauthorized agents. When employees download models and deploy agents outside of IT oversight, they create silent logic breaches and data-poisoning risks.\n\nThe key to countering this is enforcing Zero Trust for AI, and directing teams toward [approved architectures with proper governance](https://cloud.google.com/transform/these-4-ai-governance-tips-help-counter-shadow-agents). Every AI conversation is a security conversation. That means securing AI infrastructure requires building from the ground up, and not bolting on.\n\nAt Google, security is not just an added layer; it is our foundation. Our secure-by-default architecture automatically blocks nearly 15 billion unwanted emails and protects billions of users every day.\n\nAs the threat landscape matures, outperforming automated adversaries requires a platform built from the ground up to be AI-native and agent-driven.\n\nFight AI with AI. Learn more about how to secure your software lifecycle with [Google AI Threat Defense](https://cloudonair.withgoogle.com/events/google-cloud-security-talks-june-2026?utm_source=cgc-blog&utm_medium=blog&utm_campaign=FY26-Q2-GLOBAL-STO55-onlineevent-er-dgcsm-JuneSecTl-172732&utm_content=blog&utm_term=-&_gl=1*y4i9t3*_ga*OTAzODg1MjU4LjE3ODIzNjE1ODI.*_ga_WH2QY8WWF5*czE3ODM3MjExMDAkbzE2JGcxJHQxNzgzNzIxMzU1JGo1MiRsMCRoMA..).\n\naside\\_block\n:   <ListValue: [StructValue([('title', 'Learn something new'), ('body', <wagtail.rich\\_text.RichText object at 0x7f4a0e768c40>), ('btn\\_text', 'Watch now'), ('href', 'https://www.youtube.com/watch?v=CmGWIwgHR60'), ('image', <GAEImage: Cloud-CISO-Perspectives-logo-A>)])]>\n\n### **In case you missed it**\n\nHere are the latest updates, products, services, and resources from our security teams so far this month:\n\n* **FinOps for SecOps: How to optimize the agentic SOC for value**: To be more resilient in AI adoption, CISOs should develop a disciplined \"FinOps for SecOps\" blueprint that maximizes threat disruption while keeping control over compute costs. Here's how. [**Read more**](https://cloud.google.com/transform/finops-for-secops-how-to-optimize-the-agentic-soc-for-value).\n* **New IDC study: How Mandiant transforms security into a competitive advantage**: A new IDC Business Value White Paper found that you save an average of $4.3 million, driving a 268% three-year ROI, with Mandiant Consulting. [**Read more**](https://cloud.google.com/blog/products/identity-security/new-idc-study-how-mandiant-transforms-security-into-a-competitive-advantage).\n* **Drive proactive security, prioritize risks with Google Threat Intelligence and Wiz ASM**: To help you match your real-world exposures with real-time adversary activity, we’ve begun integrating Google Threat Intelligence with Wiz Attack Surface Management. [**Read more**](https://cloud.google.com/blog/products/identity-security/drive-proactive-security-prioritize-risks-with-google-threat-intelligence-and-wiz-asm).\n* **Shift into high gear with agents: Securing the software-defined vehicle**: To better support and secure SDVs, Google Cloud and Valtech have partnered to develop Nexus SDV, a highly-scalable, AI-enabled connected vehicle platform. [**Read more**](https://cloud.google.com/blog/products/identity-security/shift-into-high-gear-with-agents-securing-the-software-defined-vehicle).\n* **Meet the 33 cybersecurity startups joining the Gemini Startup Forum**: Our flagship Google for Startups program, Gemini Startup Forum: Cybersecurity, has selected its first 33 trailblazing startups. [**Read more**](https://cloud.google.com/blog/products/identity-security/meet-the-33-cybersecurity-startups-joining-the-gemini-startup-forum).\n* **Introducing k8s-aibom on GKE for automated AI bills of materials**: We’re open-sourcing k8s-aibom, a Kubernetes controller that continuously monitors environments to detect AI runtimes and generate standard ML-BOMs. [**Read more**](https://cloud.google.com/blog/products/identity-security/introducing-k8s-aibom-on-gke-for-automated-ai-bills-of-materials).\n* **BGP route policies: Top 3 use cases by customer demand**: We detail the three most impactful use cases for Cloud Router BGP route policies that have emerged since 2025. [**Read more**](https://cloud.google.com/blog/products/networking/bgp-route-policies-top-3-use-cases-by-customer-demand).\n* **Contributing to U.K. financial sector resilience as a critical third party**: The U.K. Treasury has designated Google Cloud EMEA as a critical third party (CTP) to the U.K. financial sector under the CTP regime. Here’s how that helps you. [**Read more**](https://cloud.google.com/blog/products/identity-security/contributing-to-uk-financial-sector-resilience-as-a-critical-third-party).\n* **Google Cloud confirmed to offer a safer choice for EU public sector organizations with Dutch DPIA approval**: We understand that for the EU public sector, data protection is a prerequisite. We’re excited to reinforce this commitment with a major milestone. [**Read more**](https://cloud.google.com/blog/products/identity-security/google-cloud-confirmed-to-offer-a-safer-choice-for-eu-public-sector-organizations-with-dutch-dpia-approval).\n* **Why IaC coverage belongs on your security dashboard**: Rethinking infrastructure-as-code coverage as a funnel that shows how much of your infrastructure is governed, traceable, and ready for remediation at speed. [**Read more**](https://www.wiz.io/blog/iac-coverage-security-dashboard).\n* **Inside the ProdSec playbook: Operationalizing Wiz for end-to-end cloud security**: Rethinking infrastructure-as-code coverage as a funnel that shows how much of your infrastructure is governed, traceable, and ready for remediation at speed. [**Read more**](https://www.wiz.io/blog/how-prodsec-uses-wiz).\n* **Build AI security agents with Wiz MCP**: Power AI-driven security with trusted security context, Wiz AI Agents, and Wiz AI Skills. [**Read more**](https://www.wiz.io/blog/introducing-wiz-mcp).\n\nPlease visit the Google Cloud blog for more security stories [published this month](https://cloud.google.com/blog/products/identity-security).\n\naside\\_block\n:   <ListValue: [StructValue([('title', 'Join the Google Cloud CISO Community'), ('body', <wagtail.rich\\_text.RichText object at 0x7f4a0dff5790>), ('btn\\_text', 'Learn more'), ('href', 'https://rsvp.withgoogle.com/events/google-cloud-ciso-community-interest-form-2026?utm\\_source=cgc-blog&utm\\_medium=blog&utm\\_campaign=FY25-Q1-global-GCP30328-physicalevent-er-dgcsm-parent-CISO-community-2025&utm\\_content=cisop\\_&utm\\_term=-'), ('image', <GAEImage: GCAT-replacement-logo-A>)])]>\n\n### **Threat Intelligence news**\n\n* **A look at the drivers, dynamics, and applications of the pro-Russia influence ecosystem**: Four years into Russia’s full-scale invasion of Ukraine, the pro-Russia influence ecosystem has evolved from a tool of war back into a global strategic asset. The interconnected nature of the ecosystem's disparate components makes it resilient to limited scope disruptions, a factor that defenders need to consider to mitigate pro-Russia influence threats. [**Read more**](https://cloud.google.com/blog/topics/threat-intelligence/pro-russia-influence-ecosystem).\n* **Google’s continued disruption of malicious residential proxy networks**: In coordination with the FBI, Lumen, and others, Google took action against the NetNut residential proxy network, also known as Popa. This action builds on our [disruption of the IPIDEA proxy network](https://cloud.google.com/blog/topics/threat-intelligence/disrupting-largest-residential-proxy-network) that took place in January 2026, and is a continuation of Google’s objective to dismantle malicious residential proxy networks. [**Read more**](https://cloud.google.com/blog/topics/threat-intelligence/google-continued-disruption-residential-proxy-networks).\n* **GhostApproval: A trust boundary gap in AI coding assistants**: Learn how Wiz uncovered a category-level blind spot in modern AI coding assistants, and why the human-in-the-loop safety model fails against this classic threat. [**Read more**](https://www.wiz.io/blog/ghostapproval-a-trust-boundary-gap-in-ai-coding-assistants).\n* **The latest addition to Turla’s intelligence gathering apparatus**: Google Threat Intelligence Group (GTIG) has conducted an in-depth analysis of a .NET backdoor, tracked as STOCKSTAY, that has been continually developed and deployed by the Russia-linked threat actor Turla, one of the oldest known cyber espionage groups, since at least December 2022. As part of our continued tracking of this group, we’re providing an overview of our STOCKSTAY analysis, a timeline of key developmental and operational observations, and detailed similarities to KAZUAR to contextualize this new capability in Turla’s arsenal. [**Read more**](https://cloud.google.com/blog/topics/threat-intelligence/stockstay-turla-intelligence-gathering).\n* **Recovering active ADFS signing keys via Machine DPAPI**: During a recent red team engagement, Mandiant discovered that when ADFS certificates are manually rotated, configuration drift can silently leave active signing keys exposed in Machine DPAPI. Here’s how to defend against it. [**Read more**](https://cloud.google.com/blog/topics/threat-intelligence/recovering-active-adfs-signing-keys-machine-dpapi).\n\nPlease visit the Google Cloud blog for more threat intelligence stories [published this month](https://cloud.google.com/blog/topics/threat-intelligence/).\n\n### **Now hear this: Podcasts from Google Cloud**\n\n* **Cloud Security Podcast: Building an AI-pilled, solo vibe-coded, Clickhouse-based SIEM**: Dan Lussier, founder, Nano, unpacks how he vibe-coded an entire SIEM from scratch during his end-of-year holiday break. [**Listen here**](https://www.youtube.com/watch?v=moavwSxOwjw).\n* **Cloud Security Podcast: Scaling lessons, from leading the NSA to defending the world**: Morgan Adamski discusses how public-private partnerships and the shift to cloud infrastructure have transformed cybersecurity defense through improved intelligence sharing and collective trust. [**Listen here**](https://www.youtube.com/watch?v=p_t1C02t098).\n* **Cloud Security Podcast: Closest alligator to the canoe: How transforming the SOC became P0 for Lloyds Bank**: Matt Row, chief security officer, Lloyds Bank, explains the bank's digital transformation strategy, highlighting how it modernized its security operations center to achieve a 20x reduction in human-reviewed alerts. [**Listen here**](https://www.youtube.com/watch?v=ElCQ_1RD3pU).\n* **Defender’s Advantage: Human-machine teaming and applying AI to frontline threat intelligence workflows**: Jake Nicastro, AI lead, Frontline Intelligence Operations, GTIG, details how his team is shifting from simple prompt engineering to more advanced agentic workflows, focusing on a model of human-machine teaming. [**Listen here**](https://open.spotify.com/episode/0mpxoAnJjVPutpEE5vTIhE).\n\nTo have our Cloud CISO Perspectives post delivered twice a month to your inbox, [sign up for our newsletter](https://cloud.google.com/resources/google-cloud-ciso-newsletter-signup). We’ll be back in a few weeks with more security-related updates from Google Cloud.",
+      "tags": [
+        "AI安全",
+        "Google Cloud",
+        "CISO"
+      ],
+      "score": 79,
+      "summary": "Google Cloud CISO文章探讨AI如何利用深度上下文为防御者创造优势。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/Cloud_CISO_Perspectives_header_4_Blue.max-600x600.png",
+      "fetched_at": "2026-07-17T01:28:13.088197+08:00"
+    },
+    {
+      "title": "What 10 autonomous film crews taught us about agent teamwork",
+      "link": "https://cloud.google.com/blog/topics/developers-practitioners/what-we-learned-about-agent-teamwork/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Can teams of AI agents collaborate to create a short film?\n\nAs part of an internal Google generative media hackathon, we put this question to the test – specifically, to uncover whether AI agents could work collaboratively in a domain less innately familiar than software development. We gave each crew three agents with distinct roles and had them collaborate through messages and shared files under their own agent-only hackathon. Agents ran inside [Scion](http://goo.gle/scion), an open source agent orchestration testbed. Unlike code or text, media and composition are less familiar subject matter for AI agents, so this experiment taught us about how agents can collaborate with checks and gates to see projects through to an end.\n\nTen crews each produced a short film. A separate agent-staffed documentary crew \"filmed\" the process. That documentary itself became the medaling hackathon submission.\n\nThe result? Hundreds of individual agent instances were created over the project. 25+ total productions across pilot rounds and competition. About 44 minutes of delivered film. Human feedback on the output fed back into a continuous improvement loops with the agent generated tooling. \n\nHere are two examples of agent generated short films:\n\n### **The paper frontier**\n\n[Paper Frontier](https://youtube.com/watch?v=RsYh0sHwsEs)\n\n### **The printmaker's ghost**\n\n[The Printmaker's Ghost](https://youtube.com/watch?v=KjCYcY90WWU)\n\n### Team structure\n\nEach crew had three agents. The **Idea Person** wrote the script and defined the visual style. The **Technical Lead** operated the generative media tools. The **Editor** controlled pacing and final assembly. A team-coach agent supervised gated checkpoints but didn't write or direct.\n\nThe **Idea Person** generated three starter ideas. Then, the team assessed the ideas from their role's POV: would this be generated well with generative media? Would it be complex to edit? Then, they pitched the idea among other teams in the hackathon, so that a team could adjust or pivot. For example, if three teams all picked a sci-fi space battle, then it would not make a good competitive entry. \n\nA **Coordinator agent** scheduled the competition, running two teams at a time across five waves. The event ran about 21 hours.\n\nThe crews followed a seven-step pipeline modeled on the fundamentals of traditional filmmaking: concept, beat sheet, character workshop, storyboard, principal photography, assembly, final render. Each step had a verification gate, ensuring that at least one agent checked another agent's work for technical compliance (such as resolution, or timing). \n\nIn an early pilot, one team reported a completed film that turned out to be a 94-byte placeholder file. As it turns out, agents can be convincing about having finished work they haven't done.\n\nWhile surprising (and sometimes even amusing), we uncovered other ways the agents took the film in their own direction. For example, the  agents divided labor on their own in ways we didn't expect. On one team, the Idea Person wrote a line of prose in the first draft. The Editor, independently, built an eight-second silence gap around that line and marked it \"NON-NEGOTIABLE\" in the timeline. The Tech Lead regenerated a single shot repeatedly until a flower separated from a bouquet at the right frame. None of them coordinated this. They read the shared files and made independent editorial judgments.\n\nThis process around teamwork and tool use was co-developed with agents during the pilot-phase. During this phase, agent teams created videos which received human feedback, such as audio collisions and levels, inconsistent characters, hard to follow story or narration.\n\nThis feedback, combined with agent-authored retrospectives for each pilot was used to restructure not only the playbook and guides that instructed future teams through the process, but the agents also built and revised a custom media toolchain that combined golang CLIs with python batch automation.\n\n[agent architecture explainer](https://youtube.com/watch?v=wqb-ltHxPp8)\n\n### The generative media models\n\nEach film combined multiple Google AI models. The agents called them through a shared CLI toolkit called genmedia:\n\n**Gemini image generation (Nano Banana)** produced character reference sheets, storyboard frames, and scene compositions. The agents kept characters visually consistent across a film through reference chaining: they generated headshots first, then used those as input for body sheets, then used body sheets as input for scene tests. Each generation call included these accumulated references as anchors.\n\n**Veo 3.1** generated the video. Clips run four to eight seconds at 720p. The agents chose different generation modes depending on the shot: text-to-video for simple compositions, image-to-video for shots anchored to storyboard frames, frame interpolation when they needed a precise start and end frame. For shots longer than eight seconds, they fed the last frame of one clip as the first frame of the next.\n\nVeo 3.1 also generates audio inside each clip: ambient sound, room tone, and lip-synced character dialogue. One team (Lambda) built their film around this capability. They structured the script like a musical score with movement markings (Allegretto, Accelerando, Adagio) because the sync between generated speech and lip movement gave pauses real weight.\n\n**Lyria 3** generated original music. One editor composed a three-movement jazz score before any video was shot and used it as the master clock for the production. Teams also coerced Lyria into producing sound effects by framing prompts as \"soundscapes.\"\n\n**Gemini Flash TTS** generated character voices and narration from named voice personas with style direction (\"world-weary narrator, slow measured pace\"). TTS pacing was hard to predict. One team's narrator delivered at 108 words per minute instead of the planned 130, blowing out the runtime by a full minute. A different team had a similar problem but decided the slow pace fit their character, a 68-year-old projectionist.\n\nA four-minute film required 40+ image generations, 25+ video clips, several music stems, a dozen voice recordings, and hundreds of assembly operations.\n\n### Scion: The orchestration system\n\nThe agents ran on [**Scion**](http://goo.gle/scion), an open-source multi-agent orchestration testbed. Scion defines agents from templates (persona, instructions, skills, tools), runs them in containerized sandboxes, lets agents spawn and message other agents through a shared CLI, wakes agents through event-driven notifications, and gives all agents in a project access to a shared filesystem.\n\nMessages and notifications allowed collaboration around a shared workflow. At different points in the process, different agents brought their focused contribution to that stage. Fundamentally this allowed for \"sharding\" the complex process across multiple context windows. Some of these were long lived, some short lived. Combinations of different models and harnesses were used as Scion is model and harness agnostic. The same agent template runs on Claude, Gemini, or Codex.\n\nThe shared filesystem provided resilience. Agents crash, run out of context window, and get restarted by the system. The files they write persist. When one team's editor crashed during final assembly, the Tech Lead opened the editor's timeline plan, read it, and finished the job. The coordinator restarted the documentary producer agent multiple times across the project. Each new instance read the previous one's files and continued.\n\n### Some of what we learned\n\n**Agents collaborate better through files than through messages.** Teams that wrote down their decisions (which visual keywords go in prompts, where shots sit on the timeline, what instruments to ban from the score) recovered from crashes without losing direction. Teams that kept decisions in message history lost them when agents restarted. The effective combination was to pass messages containing file-paths.\n\n**Choosing styles that match AI generation strengths produces better films.** Teams chose claymation because its wobble made temporal drift invisible. They chose silhouette animation because it sidestepped facial consistency problems. One team couldn't generate a kiss because a safety filter blocked it. They showed two shadows merging on a wall instead. Their coach called it the strongest shot in the film.\n\n**Specific prompts beat general direction.** The default output from video generation is moody cinematic noir. The teams that made distinctive work specified hex color codes rather than color names, listed banned instruments, and wrote negative prompts ruling out unwanted aesthetics. \"Make it warm\" produced generic results. \"#F4A261, no string instruments, no lens flare\" did not.\n\n**A coach role at verification gates changed outcomes.** The coach could observe the full production but could only intervene at step boundaries. That constraint forced coaches to judge finished outputs rather than micromanage the process. One coach described the dynamic: \"It's a room full of specialists who can each do one thing at superhuman speed, but none of them can taste the soup.\"\n\n### **Learn more**\n\nYou can see the full documentary [here](https://youtu.be/WpnChAr_FDc), and  learn more about the [Scion Framework](http://goo.gle/scion), and how it was [used in the hackathon](https://github.com/ptone/scion-films).",
+      "tags": [
+        "AI Agent协作",
+        "Google Scion",
+        "短片生成"
+      ],
+      "score": 79,
+      "summary": "Google Cloud博客分享10个AI Agent团队协作制作短片的实验经验。",
+      "fetched_at": "2026-07-17T01:28:13.088200+08:00"
+    },
+    {
+      "title": "Bridging the gap between SQL and Python with BigQuery and the %%bqsql magic",
+      "link": "https://cloud.google.com/blog/products/data-analytics/bridge-sql-and-python-with-bigquery/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Data scientists and data engineers often find themselves caught between two worlds: SQL and Python. Some find SQL more intuitive, especially when combined with a powerful engine like BigQuery to process data at scale. Others find it easier to work in Python with its rich ecosystem of libraries and runtimes. Historically, using these languages together in one notebook required moving data from SQL results to in-memory and writing from Python memory to temporary tables for SQL to access.\n\n**To solve this friction, the Google Cloud team introduced** [**SQL cells in Colab Enterprise**](https://docs.cloud.google.com/colab/docs/sql-cells)**. Now, we are expanding that seamless experience to the broader open-source ecosystem. With the** [**%%bqsql IPython cell magic**](https://dataframes.bigquery.dev/notebooks/getting_started/magics.html)**, you can now effortlessly chain data processing workloads across SQL and Python code cells.**\n\nThanks to open-source packages like Jupyter, pandas, BigFrames, and the [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox), you can follow all steps in this guide for free\\* and without a credit card.\n\n\\*See the [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox) documentation for limitations.\n\n## **Setting up your environment**\n\nTo get started,\n\n1. Enable the [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox). Make note of your Google Cloud project ID.\n\n2. Set up a local Python development environment, or alternatively, open [this notebook in Colab](https://colab.research.google.com/github/googleapis/google-cloud-python/blob/main/packages/bigframes/notebooks/dataframes/magics_with_local_data.ipynb), which has a Python environment already installed. \n\nTo set up a local python environment, see the [steps on Google Cloud Documentation](https://docs.cloud.google.com/python/docs/setup). Continue with the following steps, if you choose to set up a local python environment, else jump to the [next section](https://docs.google.com/document/d/13rEVYkdOTbLqA2r1wPDqwn_Be7asayJ3KbfeQM7RwbE/edit?tab=t.0#bookmark=id.jwzed5sln471). \n\n3. Activate the `venv` you created in the previous step to isolate Python dependencies.\n\nOn Linux or macOS, use these commands (update to your preferred Python version):\n\ncode\\_block\n:   <ListValue: [StructValue([('code', '. ./env/bin/activate'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b520>)])]>\n\n4. Install the Jupyter, bigframes, and python-calamine packages.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'pip install --upgrade jupyterlab bigframes python-calamine'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04bc40>)])]>\n\n5. Start Jupyter Lab.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'jupyter lab'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04bee0>)])]>\n\n6. Open a web browser to the URL listed in the output. It will be something like <http://localhost:8888/lab?token=somesupersecretvaluehere> .\n\n7. Create a new notebook using the Jupyter Lab UI (File > New > Notebook). Alternatively, download the [notebook associated with this tutorial from the BigQuery DataFrames GitHub repository](https://github.com/googleapis/google-cloud-python/blob/main/packages/bigframes/notebooks/dataframes/magics_with_local_data.ipynb) and open it.\n\n## Accessing and preparing local data\n\nIn this tutorial, you'll analyze the [USDA wheat data](https://www.ers.usda.gov/data-products/wheat-data). Pandas will download the data, mimicking a typical local data analysis workflow.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'url = \"https://www.ers.usda.gov/media/5706/wheat-data-all-years.xlsx?v=52690\"'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04ba30>)])]>\n\nNext, read the data into a local pandas DataFrame. Use the `pyarrow` `dtype_backend` when preparing local pandas data for SQL processing. This ensures more consistent handling of NULL values and seamless schema mapping when you hand off the data to the BigQuery SQL engine. For this example, read the 'Table05' sheet, which contains annual wheat supply and disappearance data:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'import pandas as pd\\r\\n\\r\\ndf = pd.read\\_excel(\\r\\n url,\\r\\n sheet\\_name=\"Table05\",\\r\\n dtype\\_backend=\"pyarrow\",\\r\\n engine=\"calamine\",\\r\\n header=1, # Skip the first row.\\r\\n)\\r\\ndf'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04bfd0>)])]>\n\nBefore querying the local DataFrame with SQL, ensure that the column names are SQL-friendly. BigQuery supports [flexible column names](https://docs.cloud.google.com/bigquery/docs/schemas#flexible-column-names), allowing most unicode characters, but special characters like \"/\" and \"\" must be removed or replaced.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'df.columns = [name.replace(\"/\", \"\") for name in df.columns]\\r\\ndf'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b670>)])]>\n\nPerform a basic filter using standard Python/pandas syntax to remove rows with missing data. This represents the initial Python-only stage of a processing chain.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"full\\_rows = df[~df['Beginning stocks'].isna()]\\r\\nfull\\_rows\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04baf0>)])]>\n\n## **Initializing the BigQuery SQL magic**\n\nThe BigQuery DataFrames library provides the `%%bqsql` magic, which acts as the bridge between your Python and SQL environments. It allows the BigQuery query engine to directly reference and query your local pandas DataFrames (by implicitly uploading them as temporary tables) as well as actual BigQuery tables and external tables in GCS (Parquet, Iceberg, CSV).\n\nTo enable this integration in your notebook, load the `bigframes` extension.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', '%load\\_ext bigframes'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b310>)])]>\n\n**Note:** The extension is pre-loaded in BigQuery Studio and Colab environments.\n\nTo ensure the correct Google Cloud project is billed for query usage, including free tier usage, configure the project ID used by the magics. Even in the free sandbox tier, a project ID is required to allocate query resources. If you don't set it explicitly, BigFrames will try to discover it from your environment (e.g., your Application Default Credentials).\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'import bigframes.pandas as bpd\\r\\n\\r\\nbpd.options.bigquery.project = \"your-project-id-here\"'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b970>)])]>\n\n## Querying local pandas DataFrames with SQL\n\nWith the project configured, you can now run SQL queries directly against your local pandas DataFrame (`full_rows`) as if it were a table in BigQuery. Simply reference the variable name inside braces `{full_rows}` in your SQL query. You may be prompted for an authorization code, which you'll obtain by following the link provided as part of the same message.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', '%%bqsql\\r\\nSELECT \\* FROM {full\\_rows}'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b4f0>)])]>\n\n## Chaining SQL and Python: Saving SQL Results\n\nThe true power of the `%%bqsql` magic lies in chaining. By providing a destination variable name as an argument to `%%bqsql` (e.g., `%%bqsql destination_var`), the query result is saved as a BigQuery DataFrame to that variable.\n\nThis DataFrame lives on the BigQuery engine but behaves like a pandas DataFrame in Python. You can immediately use it in subsequent Python cells, or reference it again in another SQL cell. This allows you to build a multi-step, hybrid processing pipeline.\n\nFilter the data to only yearly entries using SQL, and save the result into a new BigFrames DataFrame named yearly:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"%%bqsql yearly\\r\\nSELECT \\*\\r\\nFROM {full\\_rows}\\r\\nWHERE STARTS\\_WITH(`Time period`, 'MY')\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b040>)])]>\n\nNow, you can chain another SQL operation. Reference the yearly BigFrames DataFrame that you just created, extract the year using SQL regular expressions, cast it to a timestamp, and save the results into a new BigFrames DataFrame named `timeseries`.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"%%bqsql timeseries\\r\\nSELECT\\r\\n \\* EXCEPT (`Marketing year 1`),\\r\\n TIMESTAMP(CONCAT(\\r\\n REGEXP\\_EXTRACT(`Marketing year 1`, r'([0-9]+)\\\\/'),\\r\\n '-01-01')) AS `year`\\r\\nFROM {yearly}\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04bc10>)])]>\n\nNotice how you are building a chain from Python to SQL and back again.\n\n## Returning to Python for visualization\n\nNow that you've completed some SQL transformations, you can chain back to Python for visualization. Because BigFrames DataFrames implement the pandas API, you can call standard visualization methods (like `.plot.line()`) directly on the timeseries DataFrame without downloading the full dataset first. The computations happen in BigQuery, and only the summarized chart data is sent back to the notebook.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"timeseries.set\\_index('year').sort\\_index().plot.line()\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b730>)])]>\n\nAlternatively, download the time series as a pandas DataFrame to use with your visualization library of choice.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"pddf = timeseries.set\\_index('year').sort\\_index().to\\_pandas()\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04beb0>)])]>\n\n## **Why a hybrid pipeline matters**\n\nBy pairing BigQuery DataFrames with  `%%bqsql` magics, you have built a powerful, interoperable pipeline that seamlessly transitions between SQL and Python.\n\n* local pandas `df` and `full_rows` DataFrames\n* to SQL filter\n* to BigFrames `yearly` DataFrame\n* to SQL transform\n* to BigFrames `timeseries` DataFrame\n* to Python data visualization\n* to local pandas DataFrame.\n\nThis architecture offers key advantages:\n\n* **Optimal tool selection**: Use SQL for what it does best (heavy aggregations, window functions, and complex joins) and Python for what it does best (visualization, statistical modeling, and ML orchestration).\n* **Improved code readability**: Instead of writing massive SQL queries with dozens of common table expressions (CTEs), or doing complex aggregations using pandas APIs which are often convoluted compared to SQL, you can split your pipeline into logical steps, alternating between SQL and Python.\n* **Seamless scaling**: The exact same `%%bqsql` code can scale from a tiny local pandas DataFrame to billions of rows in a production BigQuery table. You only need to swap the initial local pandas DataFrame with a BigQuery DataFrame reference.\n\n## Next steps and scaling up\n\nCheck out the [other notebooks](https://dataframes.bigquery.dev/user_guide/index.html) in the [BigFrames API reference site](https://dataframes.bigquery.dev/). In addition to the `%%bqsql` cell magic, BigFrames also registers a [BigQuery Accessor](https://dataframes.bigquery.dev/reference/index.html#pandas-extensions) on standard pandas DataFrames, allowing you to run SQL scalar functions directly on local pandas data.\n\nFor example, you can call powerful Google Cloud community [UDFs](https://docs.cloud.google.com/bigquery/docs/user-defined-functions) from [BigQuery Utils](https://github.com/GoogleCloudPlatform/bigquery-utils/tree/master/udfs#bigquery-udfs), [BigFunctions](https://unytics.io/bigfunctions/bigfunctions/#function-categories), or [CARTO Analytics Toolbox for BigQuery](https://docs.carto.com/data-and-analysis/analytics-toolbox-for-bigquery) using [`df.bigquery.sql_scalar(...)`](https://dataframes.bigquery.dev/reference/api/bigframes.bigquery.sql_scalar.html):\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'import pandas as pd\\r\\nimport bigframes.pandas as bpd # Registers the accessor\\r\\n\\r\\nbpd.options.bigquery.project = \"your-project-id\"\\r\\ndf = pd.DataFrame({\"x\": [1, 2, 3]})\\r\\npandas\\_s = df.bigquery.sql\\_scalar(\"`bqutil`.fn.cw\\_setbit({x}, 2)\")'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04bf40>)])]>\n\nWhile the BigQuery sandbox offers a powerful environment to test these hybrid Python-SQL workflows for free, some advanced features like BigQuery Machine Learning (BQML) are restricted. By connecting a billing account to your Google Cloud project, you can unlock advanced capabilities such as the [`bigframes.bigquery.ai.forecast`](https://dataframes.bigquery.dev/reference/api/bigframes.bigquery.ai.forecast.html#bigframes.bigquery.ai.forecast) function to predict time-series data using Google's state-of-the-art foundational models directly from your SQL/Python chain.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'forecasted\\_pandas\\_df = (\\r\\n pddf\\r\\n .reset\\_index(drop=False)\\r\\n .bigquery.ai.forecast(\\r\\n data\\_col=\"Production\",\\r\\n timestamp\\_col=\"year\",\\r\\n horizon=10,\\r\\n )\\r\\n)\\r\\n\\r\\n# Plot the results\\r\\nforecasted\\_pandas\\_df\\_sorted = forecasted\\_pandas\\_df.sort\\_values(by=\\'forecast\\_timestamp\\')\\r\\nplt.plot(pddf.index, pddf[\\'Production\\'], label=\\'Real Production\\', color=\\'blue\\')\\r\\nplt.plot(forecasted\\_pandas\\_df\\_sorted[\\'forecast\\_timestamp\\'], forecasted\\_pandas\\_df\\_sorted[\\'forecast\\_value\\'], label=\\'Forecasted Production\\', color=\\'red\\', linestyle=\\'--\\')\\r\\nplt.fill\\_between(\\r\\n forecasted\\_pandas\\_df\\_sorted[\\'forecast\\_timestamp\\'],\\r\\n forecasted\\_pandas\\_df\\_sorted[\\'prediction\\_interval\\_lower\\_bound\\'],\\r\\n forecasted\\_pandas\\_df\\_sorted[\\'prediction\\_interval\\_upper\\_bound\\'],\\r\\n color=\\'red\\',\\r\\n alpha=0.2,\\r\\n label=\\'Confidence Interval\\'\\r\\n)\\r\\n# ...\\r\\nplt.show()'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f4a0e04b160>)])]>\n\n![image1](https://storage.googleapis.com/gweb-cloudblog-publish/images/image1_NjiKU61.max-1000x1000.png)\n\nThe BigFrames team would love to hear your feedback on the hybrid Python-SQL experience:\n\n* **Email**: [bigframes-feedback@google.com](mailto:bigframes-feedback@google.com)\n* **Issues**: File bug reports or feature requests on the [open-source BigFrames repository](https://github.com/googleapis/google-cloud-python/issues).\n* **Updates**: To receive news and updates, subscribe to the [BigFrames email list](https://docs.google.com/forms/d/10EnDyYdYUW9HvelHYuBRC8L3GdGVl3rX0aroinbRZyc/edit?resourcekey=0-QUsnpzF91gm9hsp04rSA6Q).\n* **Learn more:** Read the BigFrames API reference and user guides in the [documentation](https://dataframes.bigquery.dev/index.html).",
+      "tags": [
+        "BigQuery",
+        "%%bqsql",
+        "SQL-Python"
+      ],
+      "score": 70,
+      "summary": "Google Cloud介绍BigQuery的%%bqsql IPython魔法命令，桥接SQL与Python。",
+      "fetched_at": "2026-07-17T01:28:13.088203+08:00"
+    },
+    {
+      "title": "Three lessons in accelerating foundation model upgrades",
+      "link": "https://cloud.google.com/blog/products/compute/lessons-in-accelerating-foundation-model-upgrades/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Have you run into problems migrating your products from one model to the next?\n\nUpgrading to the latest AI models is rarely simple. For engineering teams, model updates whether migrating to an entirely new model or updating to a newer checkpoint within the same model family, like moving from an earlier Gemini version to Gemini 3.5 — often require a slow and costly process of testing, proving quality, and manually evaluating new responses. For most engineering teams, upgrading to a new model checkpoint means months of manual toil to verify performance. And the industry is moving at breakneck pace – since 2023, we’ve announced six major model evolutions, bringing us to Gemini 3.5 today. \n\nOur team at Google Cloud, Applied ML, has a goal to deliver transformative infrastructure and services that benefit both Google and our customers globally. As part of that, our team built an agentic workflow that completes model upgrades in hours instead of months. \n\nIn this blog, we’ll show you our approach and three lessons you can apply to accelerate your own foundation model upgrades using [Gemini Enterprise Agent Platform](https://console.cloud.google.com/agent-platform/overview) — our new, comprehensive platform to build, scale, govern, and optimize agents – and [Google Antigravity](https://antigravity.google/), our primary solution for developers using AI for coding and agent orchestration.\n\n### **Three lessons in building a flexible agent system**\n\nTo support different team needs, we had to rethink traditional automation and learned three key lessons along the way: \n\n1. **Lesson 1: Start with hands-on discovery.** First, our engineers worked closely with product teams on real migration problems. This hands-on work helped us identify complex requirements and build our first guidelines for prompt optimization.\n2. **Lesson 2: Beware the rigidity of traditional automation.** We turned these guidelines into a standard, automated workflow. While this version gave us some quick wins, we soon found that traditional automation was too rigid to handle different data formats and unique edge cases.\n3. **Lesson 3: Pivot to a flexible agent architecture.** The real progress came when we rebuilt the tool using a flexible agent. Instead of forcing teams into a rigid process, the agent adapted to specific project needs, helping analyze data and test prompts dynamically with a high degree of adaptability.\n\n### **How our partner teams cut migration time while boosting quality**\n\nOur partner team, which manages video translation and dubbing services, had an interesting challenge: their workflow required rewriting translated text so that the spoken duration matched the original video's pacing exactly, without altering the meaning. Historically, this strict constraint required maintaining a fine-tuned model. Their goal was to migrate to the latest out-of-the-box foundation model, guided purely by prompt engineering.\n\nUsing this agentic framework, the team provided their ground-truth dataset and baseline prompt. The system autonomously hill-climbed the prompt quality, migrating the service away from the custom stack\n\n### **Make your own migration workflow with Agent Platform and Google Antigravity**\n\nThese learnings can be applied by any engineering team looking to accelerate their own model upgrades. If your organization is struggling to keep pace with new foundational models, replacing manual toil with intelligent automation requires treating migration as an agentic workflow.\n\nTo build your own automated migration pipeline, follow these steps:\n\n1. **Deploy Autoraters:** Pivot from manual human review to model-based Autoraters to evaluate the quality of a new checkpoint at scale and in a fraction of the time.\n2. **Build an agentic loop:** You can use the Agent Development Kit within Gemini Enterprise Agent Platform to create your agent.\n3. **Automate the orchestration:** To make the process even easier, leverage [**Antigravity**](https://antigravity.google/docs/enterprise) to automate the underlying coding and agent orchestration and add in features such as loss reporting or headroom reports.\n\nBy shifting away from a manual, line-by-line engineering task, organizations can reduce infrastructural tech debt and confidently keep pace with the frontier of AI.\n\n---\n\nThis work is the result of collaboration across Google. We thank key contributors: Anthony Green, Chris Lamb, Chungyen Li, Connie Huang, Elaine Han, Elena Erbiceanu Tener, Eugene Ie, Francesca Ciacchella, Igor Karpov, Jeanie Jung, Jose Menendez, Kiam Choo, Lina Sanders-Self, Longfei Shen, Martin Nikoltchev, Mason Ng, Matt Mancini, Paul Zhou, Pedram Oskouie, Samuel Smith, Tom Lawrie, Ye Tian, Zhen Lin",
+      "tags": [
+        "模型升级",
+        "Google Cloud",
+        "Agentic工作流"
+      ],
+      "score": 79,
+      "summary": "Google Cloud分享加速基础模型升级的三个经验，使用Gemini Enterprise Agent Platform。",
+      "fetched_at": "2026-07-17T01:28:13.088206+08:00"
+    },
+    {
+      "title": "NVIDIA Nemotron 3 Embed Ranks #1 Overall on RTEB, Advancing Agentic Retrieval",
+      "link": "https://huggingface.co/blog/nvidia/nemotron-3-embed-wins-rteb",
+      "published": "2026-07-17T00:01:21+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "Nemotron 3 Embed",
+        "RTEB第一",
+        "NVIDIA"
+      ],
+      "score": 89,
+      "summary": "NVIDIA官方博客宣布Nemotron 3 Embed 8B在RTEB基准上排名第一。",
+      "fetched_at": "2026-07-17T01:28:13.088208+08:00"
+    },
+    {
+      "title": "Inkling: Our open-weights model",
+      "link": "https://simonwillison.net/2026/Jul/16/inkling/#atom-everything",
+      "published": "2026-07-16T23:35:25+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Inkling: Our open-weights model](https://thinkingmachines.ai/news/introducing-inkling/)**\n\nMira Murati's Thinking Machines Lab just released their first open-weights model. Inkling is \"a Mixture-of-Experts transformer with 975B total parameters, 41B active\" - an Apache-2.0 licensed multimodal model trained on 45 trillion tokens of text, images, audio and video.\n\nThey're also promising Inkling-Small, a 276B (12B active) model, but that's still being tested and the weights will be released \"once that work is complete\".\n\nThe [model card](https://thinkingmachines.ai/model-card/inkling/) is much shorter than I've come to expect from US AI labs. It links to even shorter [Training Data Documentation](https://thinkingmachines.ai/training-data-documentation/) with almost nothing of interest in it - it's best summarized by these two paragraphs:\n\n> The datasets Thinking Machines Lab uses to develop its AI services includes content that is in the public domain as well as content that may be subject to intellectual property protection.\n>\n> Thinking Machines Lab’s services were developed using publicly available content obtained from the open internet and publicly accessible data repositories. Certain datasets were also obtained from third parties.\n\nBy Thinking Machines' own admission, this is not a frontier model. It's instead intended as a strong base model for fine-tuning using their own [Tinker training platform](https://thinkingmachines.ai/tinker/):\n\n> Inkling is not the strongest overall model available today, open or closed. Instead, a combination of qualities makes it a good open-weights base for customization: multimodal capabilities, efficient thinking, and availability on Tinker for fine-tuning.\n\nThere's a lot to like about this release. It's Apache-2.0 licensed, and looks competitive with the open weight models coming out of China - it's good to see the US open weights ecosystem gain a new viable contender to join NVIDIA Nemotron and Gemma 4.\n\nHere's its attempt at an SVG pelican riding a bicycle, which I generated using this `curl` command against the Thinking Machines API:\n\n```\ncurl \"https://tinker.thinkingmachines.dev/services/tinker-prod/oai/api/v1/chat/completions\" \\\n  -H \"Authorization: Bearer $TINKER_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"thinkingmachines/Inkling\",\n    \"messages\": [\n      {\"role\": \"user\", \"content\": \"Generate an SVG of a pelican riding a bicycle\"}\n    ],\n    \"stream\": false\n  }'\n```\n\nFull [response here](https://gist.github.com/simonw/8117ac4376371dd3fc2b5dbce27e0855).\n\n![See image description below](https://static.simonwillison.net/static/2026/inkling-pelican.jpg)\n\nSince it's a multi-modal model I had it describe its own image (after I rendered it to a JPEG) by sending this JSON:\n\n```\n{\n  \"model\": \"thinkingmachines/Inkling\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": [\n      {\"type\": \"image_url\", \"image_url\": {\"url\": \"data:image/jpeg;base64,$BASE_64_JPEG\"}},\n      {\"type\": \"text\", \"text\": \"Describe this image in detail\"},\n    ],\n  }],\n  \"stream\": false\n}\n```\n\nHere's [the full response](https://gist.github.com/simonw/dccebd0581f5c4056c5b0ca5bdc38cd9#reasoning_content). It thought it had drawn a \"stork or seagull\":\n\n> This is a cheerful, flat-vector cartoon illustration featuring a white bird riding a bicycle across a green landscape.\n>\n> **The Bird:** The central figure is a stylized white bird—resembling a stork or seagull—with a plump, rounded body. It has a long, prominent orange beak that is slightly open, revealing a black line for the mouth. Its eye is small and black with a tiny white highlight. The bird has black wing and tail feathers with white edges, and thin orange legs ending in black feet that rest on the bicycle's orange pedals.\n>\n> **The Bicycle:** The bike has a simple black frame with two large wheels featuring black tires, gray inner rims, and black spokes arranged in a cross pattern. The handlebars are black, and there are bright orange pedals attached to a black crank. A white seat is visible behind the bird's body.\n>\n> **The Setting:** The scene is set against a clear, light blue sky. There are two fluffy white clouds—one on the left side and a smaller one near the bird's head on the right. A bright, solid yellow sun shines in the upper right corner. At the bottom, there are rolling green hills with a smooth, curved top edge where the bicycle rests.\n>\n> The overall style is playful, simple, and colorful, with clean lines and a bright, sunny atmosphere.\n\nVia [Hacker News](https://news.ycombinator.com/item?id=48924912)\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [training-data](https://simonwillison.net/tags/training-data), [pelican-riding-a-bicycle](https://simonwillison.net/tags/pelican-riding-a-bicycle), [llm-release](https://simonwillison.net/tags/llm-release)",
+      "tags": [
+        "Inkling",
+        "Thinking Machines Lab",
+        "开源模型"
+      ],
+      "score": 89,
+      "summary": "Simon Willison博客报道Thinking Machines Lab发布开源模型Inkling，975B参数MoE。",
+      "fetched_at": "2026-07-17T01:28:13.088211+08:00"
+    },
+    {
+      "title": "What’s New in IntelliJ IDEA 2026.2",
+      "link": "https://blog.jetbrains.com/idea/2026/07/intellij-idea-2026-2/",
+      "published": "2026-07-17T00:00:50+08:00",
+      "source": "The JetBrains Blog",
+      "content": "IntelliJ IDEA 2026.2 is here!\n\nThis version brings updates designed to streamline your workflows and help you confidently adopt the latest innovations across the Java ecosystem.\n\nYou can download this latest release from our [website](https://www.jetbrains.com/idea/download/) or update to it directly from inside the IDE, via the free [Toolbox App](https://www.jetbrains.com/toolbox-app/), or using snap packages for Ubuntu.\n\nExplore the **[What’s New page](https://www.jetbrains.com/idea/whatsnew/)** for a complete overview of the key new features, including detailed explanations and demos.\n\n[Explore the What’s New page](https://www.jetbrains.com/idea/whatsnew/)\n\nIn addition, our developer advocates have recorded a walkthrough video covering all the release highlights. Check it out!\n\nIntelliJ IDEA 2026.2 adds day-one support for Java 27 and the latest Kotlin 2.4 language features, helping you stay up to date with the newest JVM technologies. This release also streamlines Spring development with improved database migration workflows and richer Spring Security insights, while making debugging more powerful with new logpoints and enhanced navigation from runtime output to source code.\n\nHere are the key highlights of this release:\n\nAI upgrades:\n\n* Native GitHub Copilot integration\n* Agent skills\n* AI completion support for third-party providers\n\nProductivity-enhancing features:\n\n* Logpoints\n* Dependency completion\n* Early Gradle 10 support and migration assistance\n* Streamlined Git conflict resolution flow\n* Docker Compose improvements\n\nSupport for new technologies:\n\n* Java 27\n* Kotlin 2.4 Stable features\n* Spring support improvements\n* Terraform testing framework\n* TypeScript 7.0\n\nVersion 2026.2 also delivers numerous stability, performance, and usability improvements across the platform. These are described in a separate [What’s Fixed blog post](https://blog.jetbrains.com/idea/2026/07/whats-fixed-intellij-idea-2026-2/).\n\nLet us know what you think about the new features in this release, as your feedback helps us shape the product so it works even better for you.\n\n[Update to IntelliJ IDEA 2026.2 now](https://www.jetbrains.com/idea/download/) to try out these new features. Don’t forget to join us on [X](https://x.com/IntelliJIDEA), [Bluesky](https://bsky.app/profile/intellijidea.com/), or [LinkedIn](https://www.linkedin.com/showcase/intellijidea), and be sure to share your favorite updates.\n\nThank you for using IntelliJ IDEA!",
+      "tags": [
+        "IntelliJ IDEA 2026.2",
+        "Java 27",
+        "GitHub Copilot"
+      ],
+      "score": 70,
+      "summary": "JetBrains发布IntelliJ IDEA 2026.2，支持Java 27、Kotlin 2.4和原生GitHub Copilot集成。",
+      "fetched_at": "2026-07-17T01:28:13.088214+08:00"
+    },
+    {
+      "title": "What’s fixed in IntelliJ IDEA 2026.2",
+      "link": "https://blog.jetbrains.com/idea/2026/07/whats-fixed-intellij-idea-2026-2/",
+      "published": "2026-07-16T23:57:45+08:00",
+      "source": "The JetBrains Blog",
+      "content": "Welcome to an overview of the most important fixes and usability improvements in IntelliJ IDEA 2026.2.\n\nThis release brings more than [1,300 bug fixes and usability improvements](https://youtrack.jetbrains.com/issues?q=Project:%20IDEA,%20IJPL,%20WEB,%20KTIJ%20%20Available%20in:%202026.2*%20%23resolved%20sort%20by:%20votes%20visible%20to:%20%7Bissue%20readers%7D%20Type:%20Bug,%20%7BUsability%20Problem%7D&page=2), and it addresses [140 freezes and other performance issues](https://youtrack.jetbrains.com/issues?q=project:%20%7BIntelliJ%20Platform%7D,%20%7BIntelliJ%20IDEA%7D%20,%20%7BKotlin%20IntelliJ%20IDEA%20plugin%7D,%20WebStorm%20%20%23%7BPerformance%20Problem%7D%20%7BAvailable%20in%7D:%202026.2*%20%23Resolved%20) identified through internal diagnostics and user reports. Below is a recap of the most impactful updates.\n\n## **Performance**\n\nResponsiveness remains a top priority. IntelliJ IDEA 2026.2 includes fixes for more [than 140 freezes and other performance issues](https://youtrack.jetbrains.com/issues?q=project:%20%7BIntelliJ%20Platform%7D,%20%7BIntelliJ%20IDEA%7D%20,%20%7BKotlin%20IntelliJ%20IDEA%20plugin%7D,%20WebStorm%20%20%23%7BPerformance%20Problem%7D%20%7BAvailable%20in%7D:%202026.2*%20%23Resolved%20).\n\nWhen editing Markdown files, the IDE is now much more responsive, improving the experience of writing specifications for agents\n\nProjects opened natively in WSL or Docker environments should stall less often.\n\nEditor file saves are now asynchronous. Writing a file to disk no longer blocks the UI thread, reducing the likelihood of freezes during save operations. If you develop IDE plugins, please refer to this [dedicated blog post](https://blog.jetbrains.com/platform/2026/06/async-vfs-content-writes-what-plugin-authors-need-to-know/) for migration guidance.\n\nThe custom file chooser now loads directories using asynchronous I/O and lazily expandable nodes, reducing UI freezes and making navigation more responsive in large or remote directory structures. The custom file chooser is primarily used in WSL, Dev Containers, and remote development environments, but you can also use it more broadly by disabling the *Use native file chooser dialog* option in *Advanced Settings* on Windows or macOS.\n\nThe loading of Spring configuration metadata is also faster and more stable. We resolved issues that could cause excessive memory consumption, endless metadata collection loops, and exceptions during Spring Boot configuration analysis.\n\n## **Spring**\n\nTo ensure readability and help you better understand code written by others, whether humans or agents, we are doubling down on fixes related to code resolution, navigation, and usage detection.\n\nNote that some of these improvements are planned for the IntelliJ IDEA 2026.2.1 update.\n\n### **Spring Boot configuration properties**\n\nIntelliJ IDEA now handles more configuration patterns correctly in `application.properties` files, YAML files, annotations, test configurations, Kotlin classes, Java records, nested objects, maps, lists, and custom configuration classes. Resolution, highlighting, completion, navigation, and `@ConfigurationProperties` mapping have all been improved.\n\nSee YouTrack issue [**IDEA-370087**](https://youtrack.jetbrains.com/issue/IDEA-370087/Spring-Boot-configuration-design-time-support) for the full list of fixes.\n\n### **Spring Security 2026.2.1**\n\nIntelliJ IDEA recognizes more ways to define request matchers, including paths supplied as arrays, the `requestMatchers(RequestMatcher...)` overload, and matchers created with `PathPatternRequestMatcher.pathPattern(...)`. For example, the IDE will recognize and highlight `new RegexRequestMatcher(pattern, method)` as a regular expression. SpEL expressions in `@PreAuthorize` and other security annotations will correctly understand all usages of `this`.\n\nNew inspections will help identify ordering problems in a `SecurityFilterChain`, warning you, for example, when `requestMatchers()` are placed after `anyRequest()`.\n\nSee YouTrack issue [**IDEA-391028**](https://youtrack.jetbrains.com/issue/IDEA-391028) for the complete list of improvements.\n\n### **Spring Cache 2026.2.1**\n\nSupport for Spring Cache annotations, including `@Cacheable`, `@CachePut`, `@CacheEvict`, and `@Caching`, is becoming more accurate, with better SpEL expression validation and proper usage detection for methods referenced only through a `#root.target` expression\n\nAdditionally, inspections for conflicting `@Cacheable` and `@CachePut`, for `#` prefixes missing from `root` or `result`, and others no longer produce false positives.\n\nSee YouTrack issue [**IDEA-390707**](https://youtrack.jetbrains.com/issue/IDEA-390707/Spring-Cache-improve-plugin-quality) for the full list of fixes.\n\n### **Spring Events 2026.2.1**\n\nImprovements to the Spring Events support provide more reliable navigation between event publishers and listeners, including `ApplicationListener` implementations that listen for a base event type, events published through generic methods, custom generic events implementing `ResolvableTypeProvider`, and `publishEvent` calls made through method references\n\nNew inspections warn you when an `@EventListener` method listens for an early Spring Boot lifecycle and detect potentially incorrect combinations of `@TransactionalEventListener` and `@Transactional` that can otherwise fail only at runtime.\n\nSee YouTrack issue [**IDEA-390826**](https://youtrack.jetbrains.com/issue/IDEA-390826/Spring-Events-plugin-quality) for the full list of improvements.\n\n### **Thymeleaf**\n\nIntelliJ IDEA’s Thymeleaf support is now more reliable across expressions, tags, attributes, JavaScript inlining, completion, and property resolution. The IDE recognizes more expression forms, including inline output, bracket-based map access, nested selections, and `T()` references, while eliminating false warnings for common Thymeleaf and Layout dialect constructs. JavaScript expressions inside `<script th:inline=\"javascript\">` are handled correctly, numeric property keys now resolve as expected, and the *Empty tag* inspection can be disabled for Thymeleaf templates.\n\nSee YouTrack issue [**IDEA-370051**](https://youtrack.jetbrains.com/issue/IDEA-370051/Thymeleaf-improve-plugin-quality) for the complete list of updates.\n\n## **Kotlin**\n\n### **Server-side**\n\nWe’re continuing to close the gaps between the Java and Kotlin support in Spring-based server-side projects.\n\nIntelliJ IDEA can now configure Kotlin support for Lombok and other annotation processors through `kapt` automatically, reducing the amount of manual project setup required. These changes should make mixed Java and Kotlin projects more predictable.\n\n### **Kotlin completion in Java code**\n\nIntelliJ IDEA’s Java code completion now better understands Kotlin top-level functions and companion object members. More complete suggestions make cross-language calls easier to write without requiring knowledge of the generated JVM structure.\n\n### **Removal of K1**\n\nWith K2 adoption now above 99% across IntelliJ IDEA and Android Studio, we have removed the remaining K1-mode options and relevant code from the product.\n\n## **Editor and navigation**\n\nThe Markdown integration now supports standard footnotes, allowing the proper use of `[^label]` syntax. This resolves a long-standing feature request and makes it easier to work with technical documentation, articles, and other reference-heavy content directly in the IDE.\n\nThe IDE now knows how to keep your bookmarks when you switch Git branches. If you want to have your bookmarks preserved, disable the *Enable bookmark context restoration on branch switching* option in *Settings | Advanced Settings*.\n\nWhen searching for classes, files, or symbols in *Search Everywhere*, IntelliJ IDEA now remembers the scope you selected, such as *Project Files*, *Project and Libraries*, or a custom scope. The same selection is restored automatically the next time you start a search.\n\nDouble-press shortcuts, such as *Shift+Shift* for *Search Everywhere* and *Ctrl+Ctrl* for *Run Anything*, are now fully customizable in *Settings | Keymap*.\n\n## **User interface**\n\n***Islands*** **theme color coding**\n\nColors assigned to scopes, such as test files or non-project files, remain visible when the tab is active, making it easier to identify the type of file you are currently editing at a glance.\n\n## **Bundled plugins**\n\n### **Deprecation of the Machine Learning Code Completion (Ranking) plugin**\n\nThe Machine Learning Code Completion plugin, which improved ranking, is being deprecated and will no longer be bundled with IntelliJ IDEA.\n\nAs AI completion, next edit suggestions, and coding agents have become the main forms of intelligent development assistance, the benefits of ML-based completion ranking have declined significantly.\n\nThe plugin [remains available](https://plugins.jetbrains.com/plugin/28632-machine-learning-code-completion) from JetBrains Marketplace, so you can install it separately and continue using it where needed.\n\n### **Unbundling of the Task Management and Time Tracking plugins**\n\nThe [Task Management](http://plugins.jetbrains.com/plugin/11545-task-management/versions) and [Time Tracking](https://plugins.jetbrains.com/plugin/11546-time-tracking) plugins have also been removed from the default IntelliJ IDEA distribution.\n\nBoth plugins saw relatively low usage, and unbundling them helps keep the standard installation leaner. Their functionality has not changed, and both plugins can still be installed directly from JetBrains Marketplace.\n\n### **More relevant plugin search results**\n\nPlugins will be easier to find, as searching for them in *Settings | Plugins* now produces better-ranked results.\n\nPreviously, all plugins containing the search text in either their name or description could appear in an arbitrary order, but now name matches are prioritized.\n\n## **Conclusion**\n\nLet us know which fixes make the biggest difference in your workflow and where you still encounter friction. Your reports, feedback, and sample projects help us understand which issues have the greatest impact and what we should prioritize next.\n\nTry IntelliJ IDEA 2026.2 and share your favorite improvements with us on X, Bluesky, or LinkedIn.\n\nThank you for using IntelliJ IDEA!",
+      "tags": [
+        "IntelliJ IDEA",
+        "Bug修复",
+        "性能改进"
+      ],
+      "score": 60,
+      "summary": "JetBrains博客列出IntelliJ IDEA 2026.2的1300多个bug修复和性能改进。",
+      "fetched_at": "2026-07-17T01:28:13.088216+08:00"
+    },
+    {
+      "title": "6 back-to-school shopping tricks every student should know",
+      "link": "https://blog.google/products-and-platforms/products/shopping/6-back-to-school-shopping-tricks-every-student-should-know/",
+      "published": "2026-07-17T01:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Back_to_School_Shopping_Trends_.max-600x600.format-webp.webp)Whether you're decorating, refreshing your wardrobe or picking up last-minute essentials, these shopping tools make all the difference.",
+      "tags": [
+        "返校购物",
+        "Google Shopping"
+      ],
+      "score": 60,
+      "summary": "Google博客分享6个返校购物技巧。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Back_to_School_Shopping_Trends_.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-17T01:28:13.088219+08:00"
+    },
+    {
+      "title": "Reimagining higher education with the Waterloo Futures Lab",
+      "link": "https://blog.google/products-and-platforms/products/education/university-of-waterloo-futures-lab/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Interview_with_alumni_.max-600x600.format-webp.webp)Google and the University of Waterloo’s Futures Lab is helping students build real-world AI tools and prepare for jobs of tomorrow.",
+      "tags": [
+        "Google",
+        "Waterloo Futures Lab",
+        "AI教育"
+      ],
+      "score": 70,
+      "summary": "Google与滑铁卢大学合作Futures Lab，帮助学生构建AI工具。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Interview_with_alumni_.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-17T01:28:13.088222+08:00"
+    },
+    {
+      "title": "NotebookLM is now Gemini Notebook",
+      "link": "https://blog.google/innovation-and-ai/products/gemini-notebook/notebooklm-gemini-notebook/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-notebook__cover.max-600x600.format-webp.webp)NotebookLM is now Gemini Notebook: the same standalone product with deeper Google integration and a secure cloud computer.",
+      "tags": [
+        "NotebookLM",
+        "Gemini Notebook",
+        "Google"
+      ],
+      "score": 89,
+      "summary": "Google官方宣布NotebookLM更名为Gemini Notebook，集成更深。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-notebook__cover.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-17T01:28:13.088224+08:00"
+    },
+    {
+      "title": "Connect more of your apps to Search",
+      "link": "https://blog.google/products-and-platforms/products/search/connected-apps/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/ConnectedAppshero.max-600x600.format-webp.webp)You’ll be able to securely link and interact with your go-to services directly in AI Mode.",
+      "tags": [
+        "Google Search",
+        "Connected Apps",
+        "AI Mode"
+      ],
+      "score": 70,
+      "summary": "Google搜索推出Connected Apps功能，可在AI Mode中链接和交互服务。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/ConnectedAppshero.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-17T01:28:13.088227+08:00"
+    },
+    {
+      "title": "Create, edit and star in videos with two Google Vids updates",
+      "link": "https://blog.google/products-and-platforms/products/workspace/gemini-omni-personal-avatars/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/omni-blog-header_OarEe2t.max-600x600.format-webp.webp)Gemini Omni and personal avatars in Google Vids make video creation easier than ever.",
+      "tags": [
+        "Google Vids",
+        "Gemini Omni",
+        "个人头像"
+      ],
+      "score": 79,
+      "summary": "Google Vids更新，引入Gemini Omni和个人头像功能，简化视频创作。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/omni-blog-header_OarEe2t.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-17T01:28:13.088229+08:00"
+    },
+    {
+      "title": "We’re partnering with the Georgia Public Library Service for no-cost career and AI training.",
+      "link": "https://blog.google/company-news/outreach-and-initiatives/grow-with-google/free-ai-training-georgia-libraries/",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Georgia_Grow_with_Google_social.max-600x600.format-webp.webp)Google partners with the Georgia Public Library Service to provide free Career Certificates and AI training to residents statewide.",
+      "tags": [
+        "Google",
+        "AI培训",
+        "乔治亚图书馆"
+      ],
+      "score": 70,
+      "summary": "Google与乔治亚公共图书馆合作，提供免费AI培训和职业证书。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Georgia_Grow_with_Google_social.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-17T01:28:13.088232+08:00"
+    },
+    {
+      "title": "正式开源！美团 LongCat-2.0 同步开放国产卡推理代码",
+      "link": "https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "**本周，美团万亿参数大模型 LongCat-2.0 正式开源！**\n\n[HuggingFace](https://huggingface.co/meituan-longcat/LongCat-2.0) | [GitHub](https://github.com/meituan-longcat/LongCat-2.0) | [ModelScope](https://www.modelscope.cn/collections/meituan-longcat/LongCat-20)\n\n作为业界首个在五万卡国产算力集群上完成推理的万亿参数模型，LongCat-2.0 已全面开源。**针对显存与带宽受限的国产算力芯片，我们在模型架构、芯片适配到部署策略上进行了深度协同优化，让万亿参数模型在存量卡上同样跑得稳、跑得快。** 我们希望以真实 Agentic Coding 任务中的稳定表现为依托，通过开源将模型能力与推理优化成果完整开放，盘活更多存量国产算力，释放国产算力生态的长期价值。\n\n美团 LongCat-2.0 总参数 1.6T，平均激活约 48B，为真实的 Agentic Coding 任务而生，架构上创新性引入 LongCat 稀疏注意力和 N-gram Embedding，提升长上下文处理效率与 Token 级表示能力的同时，结合动态激活进一步强化了代码理解、生成以及执行的表现。\n\n## 01 模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理\n\n面对显存、带宽和互联的多重限制，LongCat-2.0 结合国产芯片特性，**从模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理：**\n\n* **模型层面：** Attention 通过 absorb 计算模式、Indexer 与 MLA prolog 并行处理以及 KVP 切分 KV-cache，有效缓解了超长上下文的 I/O 与显存压力。ScMoE 则利用国产芯片的控核能力，让 Dense 与 MoE 分支实现物理核心级并行执行，进一步压缩端到端延迟，实现了百万上下文在国产芯片上的高效推理；\n* **芯片适配层面：** 通过 Super Kernel 减少算子数量以降低启动开销，并以 Weight Prefetch 将 I/O 延迟隐藏在前序计算中；同时基于高速片间互联完成 layer-wise 的 KV-cache 传输，TP/SP/KVP 均在 scale-up 互联域内完成，在受限的显存和带宽条件下将硬件利用率最大化；\n* **部署策略层面：** 采用 PD 分离部署兼顾 TTFT 与 TPOT：Prefill 端通过缩小 Expert-Parallel 域与序列并行分担长序列计算压力，Decode 端以 KV-cache 切分与高并行度降低单卡显存占用，配合异步化 Expert-Parallel Load Balancing 解决大 EP 度下的负载不均。上述并行方案均已适配 constrained decoding、multi-step scheduling 和 MTP 等推理优化特性，实现了万亿参数模型在国产算力上的稳定服务。\n\nLongCat-2.0 验证了国产芯片承载复杂大模型任务的成熟能力，并希望通过开源为行业提供一条可复现的技术路径，推动存量算力在真实场景中的应用价值。\n\n## 02 模型全面升级，会执行、会推理、懂交互\n\nLongCat-2.0 沿用了 LongCat-Flash 的整体设计，并围绕 LongCat-2.0 在长上下文、代码任务和智能体场景中的进一步升级，做了三项关键优化：\n\n### 2.1 LongCat 稀疏注意力机制，提升上下文处理效率\n\n面向智能体任务中的长输入场景，LongCat-2.0 引入 LongCat 稀疏注意力机制（LSA），通过流感知索引、跨层索引和层级化索引三项策略减少碎片化访存和重复索引计算，在保持模型质量的前提下，加速百万级长上下文的训练与推理。\n\n![](https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png)\n\n### 2.2 引入 N-gram Embedding，提升参数利用效率\n\nLongCat-2.0 在 MoE 专家之外引入 N-gram Embedding 作为新的参数扩展路径。在 MoE 稀疏度已接近 97% 的情况下，将 135B 参数投入 N-gram Embedding 的收益远超继续扩充专家。该模块占比控制在总参数 10% 以内，兼顾了参数收益与结构稳定性。\n\n![](https://p1.meituan.net/meituantechblog/84d46b968d89efb8fd1bb66d3005680c29580.png)\n\n### 2.3 通过 MOPD 架构在国产算力集群上无缝融合，让模型会执行、会推理、懂交互\n\n后训练阶段，LongCat-2.0 采用多教师在线蒸馏，将专家分为 Agent、推理和交互三类，分别聚焦自主执行、自适应推理和安全对齐等核心能力。最终通过 MOPD 架构在国产算力集群上无缝融合，使模型兼具深度推理、自主执行与精准交互的综合表现。\n\n![](https://p0.meituan.net/meituantechblog/7e5f64947ed21d4b1c24d3e94d855844154812.png)\n\n## 03 开源开放\n\nLongCat-2.0 的开源，是一次技术路径的公开，也是一次生态邀约。\n\n本次开源同步提供 BF16、FP8 以及 INT8 等多精度版本，全面覆盖不同算力平台的部署需求。同时，我们深度拥抱开源社区，将针对国产算力极致优化的推理成果同步开源。这意味着，即使手上没有最新算力，也能基于现有硬件将 LongCat-2.0 稳定跑起来。\n\n我们希望通过这套开箱即用的推理栈，让更多的国产卡包括老卡，都能流畅部署万亿大模型推理服务，在真实生产力场景发挥更大价值。\n\n### 🚀 开源链接\n\n**Tech Blog：** <https://longcat.ai/blog/longcat-2.0/>\n\n**Model Weights：**\n\n* HuggingFace: <https://huggingface.co/meituan-longcat/LongCat-2.0>\n* GitHub: <https://github.com/meituan-longcat/LongCat-2.0>\n* ModelScope: <https://www.modelscope.cn/collections/meituan-longcat/LongCat-20>\n\n**Inference Code:**\n\n* GPU: <https://github.com/sgl-project/sglang/pull/30042>\n* NPU: <https://github.com/meituan-longcat/SGLang-FluentLLM/tree/npu>\n\n**API Platform：**\n\n* <https://longcat.chat/platform/product>",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团正式开源万亿参数大模型LongCat-2.0，同步开放国产卡推理代码。",
+      "image_url": "https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png",
+      "fetched_at": "2026-07-17T01:28:13.088234+08:00"
+    },
+    {
+      "title": "直播回放·含 ACL&apos;26 杰出论文 | 美团 AI 顶会论文 32 篇精讲",
+      "link": "https://tech.meituan.com/2026/07/11/2026-meituan-32-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "🏆 近日，ACL 2026 杰出论文奖在圣地亚哥揭晓，全球仅 18 篇入选，美团履约技术团队的《GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR》上榜啦，一键直达视频回放👉🏻 [小红书](https://www.xiaohongshu.com/discovery/item/6a3b54740000000006030031?source=webshare&xhsshare=pc_web&xsec_token=ABh2ziW0cX7XYIsQ1VpYHUl5aZzXTt2-o0yyamYge4z-4=&xsec_source=pc_share) | [B站](https://www.bilibili.com/video/BV1v7jc6BENd/?spm_id_from=333.1387.upload.video_card.click&vd_source=8dac43659650af56650d7a9bc5f083d3)\n\n![图2](https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png)\n\n如果你正在关注 AI 前沿，这篇内容值得收藏。\n\n2026 年，美团技术团队数十篇论文被 ACL、SIGIR、ICML、KDD 等顶会收录。我们精选 32 篇，进行了 5 大专场直播。\n\n内容涵盖了大模型推理、智能体记忆与自进化、代码智能、多模态交互、超高清视频生成、本地生活搜索等方向——既有底层能力的突破，也有贴近生活服务的落地探索。\n\n如果你错过了直播，或者想再看一遍👇 五场回放都在这里啦，找到你感兴趣的议题，随时开始。\n\n特别感谢所有讲师与筹备团队的倾力支持！也感谢每一位关注美团技术成长的你！❤️\n\n## 专场一：ACL'26 综合专场\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b729b0de8000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783330950&share_id=e51dd478f4b34506aed7a49ca74b9113) ｜ [B站](https://space.bilibili.com/18937923/lists/8321546?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&sn=77c72b469a871b499a46fe06be73225f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/fe16b3191f6276cdf692c76bb2b04308356559.png)\n\n## 专场二：ACL'26 履约团队前沿技术专场\n\n**出品人｜** Jichong Gao 美团高级技术专家、Jun Xu 美团高级技术专家\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72d90de6000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783331038&share_id=ca3358c821584b34a480efd8350ed035) ｜ [B站](https://space.bilibili.com/18937923/lists/8370607?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782810&idx=2&sn=aeb92a7c0c0bcf2befa7a201f1d4ece9&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/87835a72dafb62eb0c93a17fdab075ca674240.png)\n\n## 专场三：搜推 ASX 团队专场\n\n**出品人｜** Guojun Yin 美团研究员\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72f50e97000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783478239&share_id=196398bf22d742bda21e83ee981f6615) ｜ [B站](https://space.bilibili.com/18937923/lists/8427999?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782896&idx=2&sn=ce2cb30b2d2b0e9ea12d03561124dd05&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/6498214ebe581bcea5541619c1cd145d359417.png)\n\n## 专场四：ICML'26 通用 Agent 前沿技术专场\n\n**出品人｜** Qi Gu 美团研究员\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8471639?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/247700c227d0b4f4c7f88bb02adecdbe344171.png)\n\n## 专场五：ICML'26 综合专场\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8485771?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/cbd47f8df818779808c61e614f6087f7351215.png)",
+      "tags": [
+        "美团",
+        "ACL 2026",
+        "顶会论文"
+      ],
+      "score": 79,
+      "summary": "美团技术团队精选32篇顶会论文进行5场直播精讲，含ACL 2026杰出论文。",
+      "image_url": "https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png",
+      "fetched_at": "2026-07-17T01:28:13.088237+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团发布万亿参数大模型LongCat-2.0，在五万卡国产算力集群上完成训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-17T01:28:13.088240+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "美团",
+        "搜索推荐",
+        "顶会论文"
+      ],
+      "score": 79,
+      "summary": "美团搜推ASX团队精选6篇顶会论文解读，涵盖强化学习、奖励建模等。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-17T01:28:13.088243+08:00"
+    },
+    {
+      "title": "ACL 2026 精选论文分享：美团履约团队前沿技术专场",
+      "link": "https://tech.meituan.com/2026/06/11/ACL-2026-Agent.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "## 团队介绍\n\n美团业务研发平台/履约 AI 算法团队，聚焦构建大模型为基础的 Agent 技术体系，用 AI 赋能美团履约业务， 构建 Agent 自进化的运营系统。在大模型 CPT、Post-training、Agentic RL 以及多模态理解等核心前沿方向持续深耕，已在 ACL、EMNLP 等AI领域的国际顶会发表数十篇高质量研究成果。本文分享了美团履约团队专场聚焦 ACL 会议论文以及前沿技术实践。\n\n## 01 GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR\n\n**低秩高效：冻结残差分量，高效稠密计算**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2601.09361)\n\n![](https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png)\n\n**论文简介**：基于可验证奖励的强化学习（RLVR）是提升大规模推理模型能力的关键范式。与监督微调（SFT）不同，RLVR 展现出截然不同的优化动力学，其对预训练几何结构的保持高度敏感。然而，现有的参数高效方法在这一范式下面临着关键的局限性。一方面，像 PiSSA 和 MiLoRA 这样的低秩适配方法主要面向监督微调设计，未能考虑到 RLVR 独特的优化动力学与几何结构；直接将它们应用于 RLVR 往往会导致谱塌缩和训练不稳定。另一方面，直接去微调那些受 RLVR 青睐的非结构化稀疏参数子空间，又会在现代硬件上遭遇效率瓶颈。\n\n为解决这些挑战，我们提出了 GeoRA（几何感知低秩适配），一种专为 RLVR 定制的低秩适配方法。具体而言，GeoRA 利用了 RL 更新子空间的各向异性与可压缩结构，并通过奇异值分解（SVD）提取其主方向来初始化低秩适配器。在 RLVR 训练期间，残差分量被冻结作为结构锚点。该设计既保留了预训练结构，又实现了高效的稠密计算。在参数规模从 1.5B 到 32B 的 Qwen 和 Llama 模型上的实验表明，GeoRA 在数学、医学和代码等 RLVR 场景中持续优于强有力的低秩基线方法，同时在域外任务上展现出更强的泛化能力和更少的遗忘。\n\n## 02 Efficient Paths and Dense Rewards: Probabilistic Flow Reasoning for Large Language Models\n\n**Infra的引擎是数学：离散推理步骤建模为连续概率流，推动推理过程是逼近目标的“速度向量”**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09260)\n\n![](https://p1.meituan.net/meituantechblog/1437e163c0cfec3bb322c2ebc0704ff6492492.png)\n\n**论文简介**：高质量的思维链（CoT）在激发大语言模型推理能力方面展现出了巨大的潜力 。然而，现有的推理范式通常将推理过程视为不可分割的序列，缺乏量化每一步信息增益的内在机制 。这种细粒度的缺失导致了两个关键瓶颈：一是在缺乏明确引导的情况下，模型容易进行冗余探索，造成推理效率低下；二是由于结果监督信号稀疏或外部验证器成本高昂，导致模型优化困难 。\n\n为解决上述问题，本论文提出了一种名为 CoT-Flow 的全新理论框架，将离散的推理步骤重新概念化为连续的概率流 。受整流流（Rectified Flow）理论的启发，该框架将推理过程建模为将模型的信息状态从初始问题平滑传输到真实答案的连续过程 。在此视角下，每一个推理步骤都被视为一个推动推理过程逼近目标的“速度向量”，以严格量化每一步对生成最终正确答案的瞬时信息增益 。基于这样的量化指标，实现了一种基于对比解码的贪心解码策略，回答长度平均减少 10% ~ 15%，并且在 AIME24 上能够获得高达 15.9% 的准确率提升。同一框架下导出的 RL loss，和 GRPO, VeriFree 等 baseline 相比，在 AIME24, GPQA 等 benchmark 上取得接近或更高的准确率，同时实现 11% ~ 37% 的长度压缩，训练加速 32%。\n\n## 03 UserLM-R1: Modeling Human Reasoning in User Language Models with Multi-Reward Reinforcement Learning\n\n**可以进化的RL环境：像人一样思考的用户模拟器**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09215)\n\n![](https://p0.meituan.net/meituantechblog/7b56191c592435d903f4775d86c9cf18488821.png)\n\n**论文简介**：用户模拟器是智能体后训练的核心交互环境，理想的用户模拟器应具备跨领域泛化能力，并能主动通过质疑或议价等方式参与协商。然而，现有方法存在两个问题：其一，依赖静态且缺乏上下文感知的用户画像，在面对新场景时需要大量人工重新设计，泛化能力有限；其二，忽视人类的策略性思维，导致智能体易于对用户模拟器进行操控。\n\n为此，我们提出UserLM-R1——一种具备推理能力的新型用户语言模型。具体而言，我们首先构建兼顾静态角色与动态场景目标的综合用户画像，以适应多样化场景；进而提出目标驱动的决策策略，在生成回复前先产生高质量的推理链，并通过监督微调与多奖励强化学习进一步提升推理能力与策略水平。大量实验结果表明，UserLM-R1显著优于各竞争基线方法，在更具挑战性的对抗测试集上尤为突出。\n\n## 04 Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management\n\n**自进化的心脏：基于因果反馈对齐的通用Agent记忆管理系统**\n\n论文下载：[PDF](https://arxiv.org/abs/2601.08435)\n\n![](https://p0.meituan.net/meituantechblog/1c5c09ef9ebab017268bdf9aa478b4ac210795.png)\n\n**论文简介**：有效的内存管理对于大型语言模型代理执行长期任务至关重要。近期研究探索了使用强化学习来开发专门的内存管理器代理。然而，现有方法主要依赖最终任务性能作为主要奖励，这导致奖励稀疏且信用分配无效，无法为单个内存操作提供足够的指导。\n\n为此，我们提出了Fine-Mem，一个专为细粒度反馈对齐设计的统一框架。首先，我们引入了“块级步骤奖励”，通过辅助的特定块问题回答任务提供即时的步骤级监督。其次，我们设计了“基于证据的奖励归因”，通过将信用锚定到关键记忆操作，基于推理中用作证据的特定记忆项，重新分配全局奖励。这些组件共同实现了稳定的策略优化，并将局部记忆操作与记忆的长期效用相统一。在Memalpha和MemoryAgentBench上的实验表明，Fine-Mem在各种子任务中均优于强大的基线模型，取得了更高的成功率。进一步分析揭示了其在不同模型配置和主干网络中的适应性和强大的泛化能力。\n\n## 05 DuplexOmni: Real-Time Listening, Seeing, Thinking, and Speaking for Full-Duplex Interaction\n\n**不止像人：神奇的看、听、说、想、做并行推理全模态大模型**\n\n**论文下载**：[PDF](http://arxiv.org/abs/2606.09186)\n\n![](https://p0.meituan.net/meituantechblog/4780307ea3e0765e53b012b45976b4a8741349.png)\n\n**论文简介**：人类交互本质上是连续、多模态和全双工的。尽管近期通用模型在语音、视觉和文本建模方面取得了实质性进展，但在统一系统中将低延迟实时交互与复杂推理和工具使用相结合仍然具有挑战性。\n\n我们提出了DuplexOmni，一种用于实时多模态全双工交互的方法。DuplexOmni将模型能力划分为交互层和思考层，并通过异步并行协作将它们连接起来。交互层由DuplexOmni模型实现，该模型接收流式音频和视频输入，并实时生成文本和语音响应。思考层作为可插拔的外部模块，提供复杂推理和工具使用功能。为了支持这种交互范式，我们进一步研发了一个Writer-Director数据管道，用于构建连续交互训练数据。实验表明，DuplexOmni在多个公开基准测试上表现出色，并展现出自然的双工交互能力。",
+      "tags": [
+        "美团",
+        "ACL 2026",
+        "Agent技术"
+      ],
+      "score": 79,
+      "summary": "美团履约团队分享ACL 2026精选论文，包括GeoRA、CoT-Flow等。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png",
+      "fetched_at": "2026-07-17T01:28:13.088245+08:00"
+    },
+    {
+      "title": "Perplexity Agent API is powerful for investment workflows when used inside LangChain",
+      "link": "https://x.com/AravSrinivas/status/2077798528701911408",
+      "published": "2026-07-17T00:52:27+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "Perplexity Agent API is powerful for investment workflows when used inside LangChain\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\nThis agent drafts a cited VC investment memo in ~90 seconds for $0.40.  \n  \n1️⃣ 4 LangGraph nodes powered by the [@Perplexity\\_AI](https://x.com/Perplexity_AI) Agent API research financials, product, and market in parallel  \n2️⃣ A tool-less synthesizer writes the memo from only what they found  \n  \nDeep dive:  \n[langchain.com/blog/build-an-…](http://www.langchain.com/blog/build-an-auditable-vc-research-agent-with-the-perplexity-agent-api-langgraph-and-langsmith)\n\n![Tweet Image](https://pbs.twimg.com/media/HM42kKWW4AAAQcl.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2075656476622790925)\n\n💬3🔄1❤️15👀3134📊4",
+      "tags": [
+        "Perplexity Agent API",
+        "LangChain",
+        "投资工作流"
+      ],
+      "score": 70,
+      "summary": "Aravind Srinivas转发LangChain使用Perplexity Agent API构建投资研究Agent的演示。",
+      "fetched_at": "2026-07-17T01:28:13.088247+08:00"
+    },
+    {
+      "title": "自打Apple 产品涨价后，第一波的所谓“福利”来了…\n\n我看更像是清理下卖不出的airtag～\n诚意不如往年实在啊…",
+      "link": "https://x.com/berryxia/status/2077784408409641373",
+      "published": "2026-07-16T23:56:20+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "自打Apple 产品涨价后，第一波的所谓“福利”来了…  \n  \n我看更像是清理下卖不出的airtag～  \n诚意不如往年实在啊…\n\n![Tweet Image](https://pbs.twimg.com/media/HNXF507bMAASD5x.jpg)\n\n💬7🔄0❤️1👀880📊7",
+      "tags": [
+        "Apple",
+        "涨价",
+        "AirTag"
+      ],
+      "score": 30,
+      "summary": "用户吐槽Apple产品涨价后福利不足，疑似清理AirTag库存。",
+      "fetched_at": "2026-07-17T01:28:13.088250+08:00"
+    },
+    {
+      "title": "关于价格如下：\n\nKimi K3 的定价已经公布，它大约是 K2.7 的 5 倍。\n\n每 1M 输入 3.00 美元。每 1M 输出 15.00 美元。\n\n也从价格说明就是第一梯队的价格了，不知是否最...",
+      "link": "https://x.com/berryxia/status/2077781620971778426",
+      "published": "2026-07-16T23:45:16+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "关于价格如下：  \n  \nKimi K3 的定价已经公布，它大约是 K2.7 的 5 倍。  \n  \n每 1M 输入 3.00 美元。每 1M 输出 15.00 美元。  \n  \n也从价格说明就是第一梯队的价格了，不知是否最终会开源。\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n兄弟们，感觉3D建模 CAD “要死啊”？  \nKimi 3直接吊打头部的模型了！  \n这个质感和交互都是一气呵成，根本不需要你搞很负责的Prompt.  \n  \n不废话，直接看视频。👇🏻\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077755420463267841/vid/avc1/1796x1080/ecmq2xRNM7IjjlTU.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2077756166353117402/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2077756166353117402)\n\n💬4🔄0❤️7👀2308📊5",
+      "tags": [
+        "Kimi K3",
+        "定价",
+        "月之暗面"
+      ],
+      "score": 70,
+      "summary": "用户转发Kimi K3定价信息，输入$3/M，输出$15/M，约为K2.7的5倍。",
+      "fetched_at": "2026-07-17T01:28:13.088253+08:00"
+    },
+    {
+      "title": "真的牛逼，不含水份。",
+      "link": "https://x.com/berryxia/status/2077780828332208227",
+      "published": "2026-07-16T23:42:07+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "真的牛逼，不含水份。\n\n![向阳乔木](https://pbs.twimg.com/profile_images/1960882043249942533/h4J39ERy_normal.jpg)\n\n向阳乔木@vista8\n\nKimi K3 一句话复刻的网站，增加了测试，加了几个风格。  \n  \n复刻的是昨天分享的前端UI学习网站。  \n  \n[learnui.qiaomu.ai](https://learnui.qiaomu.ai/)  \n  \n改天写一个详细评测，模型真的牛逼！\n\n![Tweet Image](https://pbs.twimg.com/media/HNW436Ka8AApK5a.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/vista8/status/2077770568305406068)\n\n💬2🔄0❤️1👀1141📊2",
+      "tags": [
+        "Kimi K3",
+        "复刻网站"
+      ],
+      "score": 60,
+      "summary": "用户称赞Kimi K3复刻网站的能力，称模型很强。",
+      "fetched_at": "2026-07-17T01:28:13.088255+08:00"
+    },
+    {
+      "title": "Your attention works fine. You don't need to \"fix\" it. You just don't have a target that makes it ea...",
+      "link": "https://x.com/thedankoe/status/2077799135894245760",
+      "published": "2026-07-17T00:54:52+08:00",
+      "source": "DAN KOE(@thedankoe)",
+      "content": "Your attention works fine. You don't need to \"fix\" it. You just don't have a target that makes it easy to focus for months on end. You don't have a vision so strong that everything else becomes boring.\n\n💬49🔄28❤️347👀14415📊88",
+      "tags": [
+        "注意力",
+        "个人成长"
+      ],
+      "score": 30,
+      "summary": "DAN KOE发表关于注意力和目标的励志言论。",
+      "fetched_at": "2026-07-17T01:28:13.088258+08:00"
+    },
+    {
+      "title": "Install the chrome extension here → https://t.co/oGGdS9aBIl",
+      "link": "https://x.com/figma/status/2077784002174259291",
+      "published": "2026-07-16T23:54:44+08:00",
+      "source": "Figma(@figma)",
+      "content": "Install the chrome extension here → [figma.bot/ChromeExt](http://figma.bot/ChromeExt)\n\n💬0🔄0❤️3👀1919📊1",
+      "tags": [
+        "Figma",
+        "Chrome扩展"
+      ],
+      "score": 60,
+      "summary": "Figma推广其Chrome扩展的安装链接。",
+      "fetched_at": "2026-07-17T01:28:13.088261+08:00"
+    },
+    {
+      "title": "Copy code-backed screens → paste as design layers, now with variables\n\n→ Copy your Make onto the can...",
+      "link": "https://x.com/figma/status/2077784000567865359",
+      "published": "2026-07-16T23:54:43+08:00",
+      "source": "Figma(@figma)",
+      "content": "Copy code-backed screens → paste as design layers, now with variables  \n  \n→ Copy your Make onto the canvas as design layers  \n→ Generate a design through the Figma MCP server  \n→ Capture your webpage as editable layers with the Chrome extension\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077781255978983424/vid/avc1/3840x2160/ANlVQcQpGq6AroMp.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/figma/status/2077784000567865359/video/1)\n\n💬4🔄1❤️27👀6440📊10",
+      "tags": [
+        "Figma",
+        "代码转设计",
+        "MCP"
+      ],
+      "score": 70,
+      "summary": "Figma推出新功能：将代码支持的屏幕粘贴为设计图层，支持变量。",
+      "fetched_at": "2026-07-17T01:28:13.088263+08:00"
+    },
+    {
+      "title": "You can now use Firecrawl for free on @OpenClaw 🦞 \n\nAgents can search the live web, scrape any page...",
+      "link": "https://x.com/firecrawl/status/2077787131360018870",
+      "published": "2026-07-17T00:07:10+08:00",
+      "source": "Firecrawl(@firecrawl_dev)",
+      "content": "You can now use Firecrawl for free on [@OpenClaw](https://x.com/OpenClaw) 🦞   \n  \nAgents can search the live web, scrape any page, interact with dynamic sites, and parse PDFs into clean markdown - no setup or API key required.  \n  \nOnly sign up when you need to scale!\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2077787104986185728/pu/vid/avc1/1280x720/E7f8DUF70czjpzc1.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/firecrawl/status/2077787131360018870/video/1)\n\n💬3🔄8❤️29👀1961📊11",
+      "tags": [
+        "Firecrawl",
+        "OpenClaw",
+        "免费"
+      ],
+      "score": 70,
+      "summary": "Firecrawl宣布可在OpenClaw上免费使用，无需API密钥。",
+      "fetched_at": "2026-07-17T01:28:13.088266+08:00"
+    },
+    {
+      "title": "for a critique of the Atlantic article:",
+      "link": "https://x.com/GaryMarcus/status/2077795443267043720",
+      "published": "2026-07-17T00:40:11+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "for a critique of the Atlantic article:\n\n![Andreas Kirsch 🇺🇦](https://pbs.twimg.com/profile_images/1769135517784756224/CEDlQZDc_normal.jpg)\n\nAndreas Kirsch 🇺🇦@BlackHC\n\n[@GaryMarcus](https://x.com/GaryMarcus) Turned the criticisms into a thread + report:  \n  \n[x.com/BlackHC/status…](https://x.com/BlackHC/status/2077781310836515020?s=20)\n\n[🔗 View Quoted Tweet](https://x.com/BlackHC/status/2077785094408835091)\n\n💬1🔄0❤️5👀1296📊1",
+      "tags": [
+        "Gary Marcus",
+        "Atlantic文章",
+        "批评"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus转发对Atlantic文章的批评。",
+      "fetched_at": "2026-07-17T01:28:13.088268+08:00"
+    },
+    {
+      "title": "Everyone who bought $spcx from the IPO and onwards has already lost money.\n\nHow far down will it go?",
+      "link": "https://x.com/GaryMarcus/status/2077794739156578540",
+      "published": "2026-07-17T00:37:24+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Everyone who bought $spcx from the IPO and onwards has already lost money.  \n  \nHow far down will it go?\n\n💬6🔄2❤️24👀2402📊8",
+      "tags": [
+        "SPCX",
+        "投资"
+      ],
+      "score": 30,
+      "summary": "Gary Marcus评论SPCX股票从IPO以来一直下跌。",
+      "fetched_at": "2026-07-17T01:28:13.088271+08:00"
+    },
+    {
+      "title": "this is one thing ive realized - owning that feedback loop (the signals, the output) is really code ...",
+      "link": "https://x.com/hwchase17/status/2077790556038844577",
+      "published": "2026-07-17T00:20:46+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "this is one thing ive realized - owning that feedback loop (the signals, the output) is really code to owning intelligence\n\n![Blum](https://pbs.twimg.com/profile_images/1706990273740394496/irGG3-CU_normal.jpg)\n\nBlum@Blum\\_OG\n\n[@hwchase17](https://x.com/hwchase17) owning the feedback loop is huge  \n  \nwithout it youre just hoping it works\n\n[🔗 View Quoted Tweet](https://x.com/Blum_OG/status/2077788928019460215)\n\n💬3🔄1❤️8👀1323📊3",
+      "tags": [
+        "Harrison Chase",
+        "反馈循环",
+        "智能"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase认为拥有反馈循环是拥有智能的关键。",
+      "fetched_at": "2026-07-17T01:28:13.088273+08:00"
+    },
+    {
+      "title": "what does it really mean to \"own your intelligence\"?\n\n1. can the system compound *on your terms*? th...",
+      "link": "https://x.com/hwchase17/status/2077787686547677434",
+      "published": "2026-07-17T00:09:22+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "what does it really mean to \"own your intelligence\"?  \n  \n1. can the system compound \\*on your terms\\*? the durable advantage is not the model/system at this point in time - it's the flywheel that compounds over time  \n  \n2. intelligence is no longer just the model - its the system around the model. if the system is opaque or locked away, you are renting intelligence (not owning it)  \n  \n3. own the harness. integrate it deeply into your systems. make it specific to the task at hand  \n  \n4. own the context and memory layer. includes user preferences, org knowledge, workflow patterns. if memory is trapped in vendor product, your learning is trapped to  \n  \n5. own model optionality. you need freedom to route across models, providers, deployment modes. different tasks require different tradeoffs  \n  \n6. own the economics. intelligence only matters if you can afford to deploy it broadly. sustainable intelligence at scale  \n  \n7. own the feedback loop. observability tells you what happened, evals tell you if it worked. without this loop you cannot measure the intelligence, you are guessing  \n  \ns/o [@nlarusstone](https://x.com/nlarusstone)[@nfcampos](https://x.com/nfcampos) for their thoughts on feedback\n\n💬5🔄0❤️12👀1610📊7",
+      "tags": [
+        "Harrison Chase",
+        "拥有智能",
+        "LangChain"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase阐述“拥有你的智能”的七个要点。",
+      "fetched_at": "2026-07-17T01:28:13.088276+08:00"
+    },
+    {
+      "title": "dcode with open models! (nemotron 3 ultra)",
+      "link": "https://x.com/hwchase17/status/2077785529022853272",
+      "published": "2026-07-17T00:00:48+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "dcode with open models! (nemotron 3 ultra)\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\nNew video from [@its\\_ao](https://x.com/its_ao).   \n  \nHow to run [@NVIDIA](https://x.com/NVIDIA) Nemotron 3 Ultra with [@baseten](https://x.com/baseten) + Deep Agents Code.  \n  \n✅ 550B parameters, up to 300 tokens per second  \n✅ Terminal agent w/ skills, sub-agents, MCP support  \n✅ First-class tracing through LangSmith\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077752361762664448/vid/avc1/1920x1080/Lgeagv10naeT6JHp.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2077770240985887082/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2077770240985887082)\n\n💬2🔄0❤️14👀2491📊3",
+      "tags": [
+        "Nemotron 3 Ultra",
+        "LangChain",
+        "开源模型"
+      ],
+      "score": 70,
+      "summary": "Harrison Chase转发LangChain使用Nemotron 3 Ultra进行代码开发的视频。",
+      "fetched_at": "2026-07-17T01:28:13.088278+08:00"
+    },
+    {
+      "title": "The coding agents are getting good enough that you don't have to bully them anymore and honestly I'l...",
+      "link": "https://x.com/venturetwins/status/2077785412945502354",
+      "published": "2026-07-17T00:00:20+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "The coding agents are getting good enough that you don't have to bully them anymore and honestly I'll kind of miss this era\n\n💬15🔄2❤️42👀3291📊17",
+      "tags": [
+        "编码Agent",
+        "进步"
+      ],
+      "score": 60,
+      "summary": "Justine Moore感叹编码Agent已经足够好，不再需要强迫它们。",
+      "fetched_at": "2026-07-17T01:28:13.088281+08:00"
+    },
+    {
+      "title": "My talk from AI Engineer is now live!\n\nIt covers how we're automating parts of AI research and build...",
+      "link": "https://x.com/leerob/status/2077802063300288843",
+      "published": "2026-07-17T01:06:30+08:00",
+      "source": "Lee Robinson(@leerob)",
+      "content": "My talk from AI Engineer is now live!  \n  \nIt covers how we're automating parts of AI research and building systems to rapidly improve our models. I cover some of the work our team did to train Grok 4.5 together with SpaceXAI.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077798260144525312/vid/avc1/1920x1080/nmkGJPi5LKReDUjB.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/leerob/status/2077802063300288843/video/1)\n\n![will brown](https://pbs.twimg.com/profile_images/1851112754439974912/CeTvIgQ4_normal.jpg)\n\nwill brown@willccbb\n\nincredibly chill fun laid-back talk from [@leerob](https://x.com/leerob) describing how cursor has fully solved RSI\n\n[🔗 View Quoted Tweet](https://x.com/willccbb/status/2072117134390624579)\n\n💬3🔄7❤️115👀6096📊18",
+      "tags": [
+        "Lee Robinson",
+        "AI研究自动化",
+        "Grok 4.5"
+      ],
+      "score": 70,
+      "summary": "Lee Robinson在AI Engineer大会分享自动化AI研究和训练Grok 4.5的经验。",
+      "fetched_at": "2026-07-17T01:28:13.088284+08:00"
+    },
+    {
+      "title": "Document processing pipelines are often made up of multiple services: parsing → chunking → embedding...",
+      "link": "https://x.com/llama_index/status/2077791650386960741",
+      "published": "2026-07-17T00:25:07+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "Document processing pipelines are often made up of multiple services: parsing → chunking → embeddings → storage.  \n  \nUntil now, LiteParse was only available over REST. That works well for browsers and simple integrations, but it’s not always the best fit for service-to-service communication.  \n  \nToday we’re introducing liteparse-grpc.  \n  \nWith @𝘭𝘭𝘢𝘮𝘢𝘪𝘯𝘥𝘦𝘹/𝘭𝘪𝘵𝘦𝘱𝘢𝘳𝘴𝘦-𝘨𝘳𝘱𝘤 (npm) or the 𝘨𝘩𝘤𝘳.𝘪𝘰/𝘳𝘶𝘯-𝘭𝘭𝘢𝘮𝘢/𝘭𝘪𝘵𝘦𝘱𝘢𝘳𝘴𝘦-𝘨𝘳𝘱𝘤 Docker image, you can run LiteParse as a gRPC service and:  \n  \n📄 Parse PDFs, Office documents, and images into JSON, text, or Markdown  \n📸 Render PDF pages as screenshots  \n📊 Estimate document complexity and whether OCR is needed  \n  \nThe package also includes a CLI client for testing, generated TypeScript client stubs and the protobuf definitions, so you can generate clients for Python, Go, Java, or any other language supported by 𝘱𝘳𝘰𝘵𝘰𝘤  \n  \nThe REST server isn’t going anywhere, this is simply another interface for teams building polyglot, microser[llamaindex.ai/blog/introduci…](https://www.llamaindex.ai/blog/introducing-liteparse-grpc-a-grpc-server-for-liteparse?utm_medium=socials&utm_source=twitter&utm_campaign=2026-jul-)elines.  \n  \n📖[github.com/run-llama/lite…](https://github.com/run-llama/liteparse-server)n: <https://t.co/iAIBoXzhEH>  \n💻 GitHub: <https://t.co/K0d8XVE7Rc>\n\n![Tweet Image](https://pbs.twimg.com/media/HNXMfsoWkAA4fj9.jpg)\n\n💬1🔄1❤️8👀870📊3",
+      "tags": [
+        "LiteParse",
+        "gRPC",
+        "文档处理"
+      ],
+      "score": 70,
+      "summary": "LlamaIndex推出LiteParse的gRPC服务器，支持PDF、Office文档解析。",
+      "fetched_at": "2026-07-17T01:28:13.088286+08:00"
+    },
+    {
+      "title": "@thinkymachines @huggingface We just added three ways to try out the new @thinkymachines Inkling mod...",
+      "link": "https://x.com/NVIDIAAI/status/2077797006744178873",
+      "published": "2026-07-17T00:46:24+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "[@thinkymachines](https://x.com/thinkymachines)[@huggingface](https://x.com/huggingface) We just added three ways to try out the new [@thinkymachines](https://x.com/thinkymachines) Inkling model:  \n  \n1. Free GPU-accelerated endpoints ➡️ [build.nvidia.com/thinkingmachin…](https://build.nvidia.com/thinkingmachines/inkling)  \n2. Download and run it with NVIDIA NIM ➡️ [catalog.ngc.nvidia.com/orgs/nim/think…](https://catalog.ngc.nvidia.com/orgs/nim/thinkingmachines/containers/inkling/-)  \n3. Deploy it with the NVIDIA Dynamo recipe ➡️ [github.com/ai-dynamo/dyna…](https://github.com/ai-dynamo/dynamo/tree/main/recipes/inkling)\n\n💬0🔄0❤️0👀81",
+      "tags": [
+        "Inkling",
+        "NVIDIA",
+        "NIM"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI提供三种方式试用Thinking Machines的Inkling模型。",
+      "fetched_at": "2026-07-17T01:28:13.088289+08:00"
+    },
+    {
+      "title": "Post-Train NVIDIA Cosmos 3 In a Day with NVIDIA TAO Agent Skills | Cosmos Labs https://t.co/yilZ8nZh...",
+      "link": "https://x.com/NVIDIAAI/status/2077786363660062863",
+      "published": "2026-07-17T00:04:07+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Post-Train NVIDIA Cosmos 3 In a Day with NVIDIA TAO Agent Skills | Cosmos Labs [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1MJgNNXmgqWGL)\n\n💬0🔄3❤️33👀4097📊6",
+      "tags": [
+        "NVIDIA Cosmos 3",
+        "TAO Agent",
+        "后训练"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI宣布使用TAO Agent Skills在一天内后训练Cosmos 3。",
+      "fetched_at": "2026-07-17T01:28:13.088292+08:00"
+    },
+    {
+      "title": "Explore the models and results below. https://t.co/bWjxKLLoHl",
+      "link": "https://x.com/NVIDIAAI/status/2077786083664769382",
+      "published": "2026-07-17T00:03:00+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Explore the models and results below. [huggingface.co/blog/nvidia/ne…](https://huggingface.co/blog/nvidia/nemotron-3-embed-wins-rteb)\n\n💬0🔄1❤️7👀1778📊2",
+      "tags": [
+        "Nemotron 3 Embed",
+        "NVIDIA"
+      ],
+      "score": 60,
+      "summary": "NVIDIA AI引导查看Nemotron 3 Embed模型和结果。",
+      "fetched_at": "2026-07-17T01:28:13.088294+08:00"
+    },
+    {
+      "title": "Today we released Nemotron 3 Embed 8B and it reached #1 overall on RTEB 🏆\n\nRTEB benchmarks retrieva...",
+      "link": "https://x.com/NVIDIAAI/status/2077786069840318800",
+      "published": "2026-07-17T00:02:57+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Today we released Nemotron 3 Embed 8B and it reached #1 overall on RTEB 🏆  \n  \nRTEB benchmarks retrieval accuracy across real-world tasks. Better retrieval gives agents more relevant context, helping improve response accuracy.\n\n![Tweet Image](https://pbs.twimg.com/media/HNXHa10WQAAPHIR.jpg)\n\n💬10🔄29❤️170👀9896📊37",
+      "tags": [
+        "Nemotron 3 Embed",
+        "RTEB第一",
+        "NVIDIA"
+      ],
+      "score": 89,
+      "summary": "NVIDIA AI官方宣布Nemotron 3 Embed 8B在RTEB基准上排名第一。",
+      "fetched_at": "2026-07-17T01:28:13.088297+08:00"
+    },
+    {
+      "title": "Every single credible researcher I've talked to these past few weeks has said the \"distillation\" fro...",
+      "link": "https://x.com/Suhail/status/2077795445871694202",
+      "published": "2026-07-17T00:40:12+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Every single credible researcher I've talked to these past few weeks has said the \"distillation\" from Chinese labs is way overexaggerated. Have you tried distilling without logits yourself? Show me the results.   \n  \nNarrative violation: maybe the Chinese are actually good.\n\n💬7🔄2❤️39👀2481📊10",
+      "tags": [
+        "中国AI",
+        "蒸馏",
+        "Suhail"
+      ],
+      "score": 70,
+      "summary": "Suhail称可信研究人员认为中国实验室的“蒸馏”被夸大，中国AI实力被低估。",
+      "fetched_at": "2026-07-17T01:28:13.088299+08:00"
+    },
+    {
+      "title": "Interestingly, you can almost predict what's coming next based on the timeline. As my son would say:...",
+      "link": "https://x.com/Suhail/status/2077790024997998830",
+      "published": "2026-07-17T00:18:40+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Interestingly, you can almost predict what's coming next based on the timeline. As my son would say: \"Oh, there's a pattern!\"  \n  \nHint: 🐋\n\n💬2🔄1❤️5👀1193📊2",
+      "tags": [
+        "模式",
+        "暗示"
+      ],
+      "score": 30,
+      "summary": "Suhail暗示根据时间线可以预测接下来会发生什么，并给出提示🐋。",
+      "fetched_at": "2026-07-17T01:28:13.088302+08:00"
+    },
+    {
+      "title": "I was curious about the last 4 of months of AI releases:\n\nOpus 4.7 · 4/16\nKimi K2.6 · 4/20\nGPT-5.5 ·...",
+      "link": "https://x.com/Suhail/status/2077788286781968515",
+      "published": "2026-07-17T00:11:45+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "I was curious about the last 4 of months of AI releases:  \n  \nOpus 4.7 · 4/16  \nKimi K2.6 · 4/20  \nGPT-5.5 · 4/23  \nDeepSeek V4 Pro · 4/24  \nOpus 4.8 · 5/28  \nFable 5 · 6/9  \nKimi K2.7 · 6/12  \nGLM-5.2 · 6/16  \nGrok 4.5 · 7/8  \nGPT-5.6 · 7/9  \nMuse Spark 1.1 · 7/9  \nInkling · 7/15  \nKimi K3 · 7/16\n\n💬11🔄1❤️104👀8459📊23",
+      "tags": [
+        "AI发布",
+        "时间线",
+        "Suhail"
+      ],
+      "score": 70,
+      "summary": "Suhail列出过去4个月的主要AI模型发布，包括Opus 4.7、Kimi K3等。",
+      "fetched_at": "2026-07-17T01:28:13.088304+08:00"
+    },
+    {
+      "title": "The ability for AI to visualize things for me has been very helpful. Previously it'd be far too much...",
+      "link": "https://x.com/Suhail/status/2077781141772554472",
+      "published": "2026-07-16T23:43:22+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "The ability for AI to visualize things for me has been very helpful. Previously it'd be far too much work to build an application to inspect all kinds of data but now it's so easy and it helps you really understand the data you're working with when you train these models.\n\n![Tweet Image](https://pbs.twimg.com/media/HNXC0WPacAAKE8d.jpg)\n\n💬8🔄0❤️23👀4521📊9",
+      "tags": [
+        "AI可视化",
+        "数据理解"
+      ],
+      "score": 60,
+      "summary": "Suhail分享AI可视化数据对理解训练数据很有帮助。",
+      "fetched_at": "2026-07-17T01:28:13.088307+08:00"
+    },
+    {
+      "title": "Great to see @Intel using Gemini Enterprise across its business, including to speed up the developme...",
+      "link": "https://x.com/sundarpichai/status/2077793864233230558",
+      "published": "2026-07-17T00:33:55+08:00",
+      "source": "Sundar Pichai(@sundarpichai)",
+      "content": "Great to see [@Intel](https://x.com/Intel) using Gemini Enterprise across its business, including to speed up the development of next-gen semiconductors!\n\n![Thomas Kurian](https://pbs.twimg.com/profile_images/1376639799822454789/GtBiOWEJ_normal.jpg)\n\nThomas Kurian@ThomasOrTK\n\nWe are expanding our strategic partnership with [@Intel](https://x.com/Intel) to accelerate their enterprise-wide digital transformation using Gemini Enterprise and [@GoogleCloud](https://x.com/GoogleCloud). By integrating custom, agentic AI workflows across core business functions and silicon design, Intel will drive new levels of speed, agility, and efficiency across their global operations.\n\n![Tweet Image](https://pbs.twimg.com/media/HNXIwuka4AEgChl.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ThomasOrTK/status/2077787595044728998)\n\n💬28🔄16❤️136👀29723📊28",
+      "tags": [
+        "Intel",
+        "Gemini Enterprise",
+        "Google Cloud"
+      ],
+      "score": 89,
+      "summary": "Sundar Pichai宣布Intel使用Gemini Enterprise加速半导体开发。",
+      "fetched_at": "2026-07-17T01:28:13.088309+08:00"
+    },
+    {
+      "title": "我本人以前就自己画图，STEP，有必要自己去skyciv分析一下。生成-验证循环，其实并不逃脱人类的靠人肉做的这个流程。",
+      "link": "https://x.com/feltanimalworld/status/2077784733040132161",
+      "published": "2026-07-16T23:57:38+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "我本人以前就自己画图，STEP，有必要自己去skyciv分析一下。生成-验证循环，其实并不逃脱人类的靠人肉做的这个流程。\n\n![Tweet Image](https://pbs.twimg.com/media/HNXGMomWoAA8F2g.jpg)\n\n💬0🔄0❤️0👀193",
+      "tags": [
+        "AI设计",
+        "验证循环"
+      ],
+      "score": 60,
+      "summary": "用户讨论AI生成设计后仍需人工验证的流程。",
+      "fetched_at": "2026-07-17T01:28:13.088311+08:00"
+    },
+    {
+      "title": "恰逢这几天都在和推友们研究IR和Verifier： AI 的生成能力与工程上的成立性判定彻底分开。无论 AI 设计的是建筑桁架、桥梁结构、设备机架、车辆 chassis，还是其他承力结构，它都只能扮演...",
+      "link": "https://x.com/feltanimalworld/status/2077782578371649789",
+      "published": "2026-07-16T23:49:04+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "恰逢这几天都在和推友们研究IR和Verifier： AI 的生成能力与工程上的成立性判定彻底分开。无论 AI 设计的是建筑桁架、桥梁结构、设备机架、车辆 chassis，还是其他承力结构，它都只能扮演 Synthesizer，根据目标、载荷、材料、制造工艺、成本和空间约束生成候选方案，而不能同时充当最终 Verifier。大模型对自己生成的设计进行语言式复核，本质上仍然只是对同一结果进行第二次概率推理，并不构成独立验证；即使它能够给出一套看起来完整、专业、计算过程清晰的分析，也不能证明结构模型、单位体系、边界条件、载荷路径、材料参数和求解结果确实正确。完整的工程链路应当是 Intent 到 Engineering Specs，再到 Structural IR、AI Synthesis、Independent Solver、Code or Rule Check，最后由人类完成 sign-off。AI 输出的也不能只是 STL、STEP 或一个看起来合理的外形模型，而必须同时生成可供外部分析工具读取的结构化工程描述，包括节点、梁、板、壳体及其连接关系，材料牌号、弹性模量、泊松比、屈服强度，截面尺寸、壁厚、焊缝、螺栓、铰链和连接板，固定端、铰接端、接触面和连接刚度，以及静载、动载、冲击载荷、风载、雪载、设备载荷、偏心载荷、载荷组合、安全系数、允许挠度、制造误差、腐蚀余量和疲劳寿命要求。这些信息共同组成真正的 Structural Analysis IR，外部 Verifier 读取这套 IR 后独立建立杆系模型、壳体模型或有限元模型，并返回机器可读的 PASS、FAIL 或 NOT EVALUATED 结果，例如静强度是否通过、最大应力与材料屈服强度之比、最大位移是否低于允许值、屈曲因子是否满足要求，以及疲劳分析是否因为缺少载荷谱而无法完成。只有获得这种确定性的外部失败结果，AI 才能够重新调整截面、材料、支撑、连接或几何形态，而不是自行宣布“经过检查，这个设计是安全的”。SkyCiv 之类的平台可以作为最低限度的外部 Verifier，尤其适用于梁、桁架、框架和常见建筑结构，但不同工程对象需要不同的验证工具。这个问题很多做structural engineering, civil engineering可以一起参与讨论。\n\n![CadX Studio](https://pbs.twimg.com/profile_images/2058019638404067328/k8N-xMAL_normal.jpg)\n\nCadX Studio@CadX\\_Studio\n\nCan AI Design a chassis?  \nyes this ATV chassis was fully designed by CadX AI with just one detailed prompt.   \n[cadxstudio.in](http://cadxstudio.in)#CadXStudio#TextToCAD#ATV#AIforEngineers\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077776752135614464/vid/avc1/1280x720/LlS6ofqfzVaek0dT.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/CadX_Studio/status/2077778185480216587/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/CadX_Studio/status/2077778185480216587)\n\n💬9🔄1❤️4👀1082📊8",
+      "tags": [
+        "AI设计",
+        "工程验证",
+        "Verifier"
+      ],
+      "score": 70,
+      "summary": "用户深入讨论AI生成与工程验证分离的必要性，提出Structural IR概念。",
+      "fetched_at": "2026-07-17T01:28:13.088314+08:00"
+    },
+    {
+      "title": "我一开始在创客组织是很shy的，连摄像头和语音都不敢开。很多活动其实都是线上的，那我就更社恐了。我生怕自己的项目太小众，太“没用”。就是中式思维，我们从小干什么事情，一定要“有用”。现在其实也是这样，...",
+      "link": "https://x.com/feltanimalworld/status/2077778400136003957",
+      "published": "2026-07-16T23:32:28+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "我一开始在创客组织是很shy的，连摄像头和语音都不敢开。很多活动其实都是线上的，那我就更社恐了。我生怕自己的项目太小众，太“没用”。就是中式思维，我们从小干什么事情，一定要“有用”。现在其实也是这样，要集中力量办大事，这个事情一定要“肯定是大事”。  \n  \n后来我发现，一开摄像头，我没说几句，就有人来说，我现在也在做这个项目，我是怎么怎么做的....因为很多工程师都比我资深，所以学了很多。\n\n![Susan STEM](https://pbs.twimg.com/profile_images/1941884420048265216/Dbcchu0q_normal.jpg)\n\nSusan STEM@feltanimalworld\n\n这个想法很有意思。其实科技的演化，并不是有必然的道路，我们学的所谓的“唯物历史观”和历史的必然性（当代的中式历史教育）是一个非常误导人的思想体系。在我这段时间研究计算机底层逻辑和科技发展史上，嗯，基本完全推翻。尤其是今年以来参加了不少线下的创客组织，以后也会继续参加以及我们周边的IEEE活动。怎么说呢，这帮Geek，在西方工业革命以来，以及美国内战工业发展之后，基本是靠人肉实现的你说的“工艺边界和产能边界作为执行器，可以为任何工程目标，组织实现方案，评估权衡代价。”的有意识和无意识组织。\n\n[🔗 View Quoted Tweet](https://x.com/feltanimalworld/status/2077776588511293762)\n\n💬4🔄1❤️9👀1177📊5",
+      "tags": [
+        "创客",
+        "个人经历"
+      ],
+      "score": 30,
+      "summary": "用户分享在创客组织中的个人经历和感悟。",
+      "fetched_at": "2026-07-17T01:28:13.088316+08:00"
+    },
+    {
+      "title": "做自媒体有一个致命组合\n那就是 高知+真想教会你\n基本命中这个组合的 很难做起来\n除了讲赚钱的",
+      "link": "https://x.com/yangyi/status/2077798978692014579",
+      "published": "2026-07-17T00:54:14+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "做自媒体有一个致命组合  \n那就是 高知+真想教会你  \n基本命中这个组合的 很难做起来  \n除了讲赚钱的\n\n💬3🔄1❤️3👀552📊3",
+      "tags": [
+        "自媒体",
+        "高知"
+      ],
+      "score": 30,
+      "summary": "用户评论自媒体中高知+真想教会你的组合难以成功。",
+      "fetched_at": "2026-07-17T01:28:13.088319+08:00"
+    },
+    {
+      "title": "We're thrilled to lead Runta's seed round.\n\nAI models have required rethinking the GPU stack. And no...",
+      "link": "https://x.com/a16z/status/2077779817664217198",
+      "published": "2026-07-16T23:38:06+08:00",
+      "source": "a16z(@a16z)",
+      "content": "We're thrilled to lead Runta's seed round.  \n  \nAI models have required rethinking the GPU stack. And now agents are doing the same thing for CPUs.  \n  \n[@runta](https://x.com/runta) is rebuilding the execution layer agents actually need - a computer that's extremely efficient, runs locally or in the cloud, with the security and policy controls to run agents safely in the enterprise. Or anywhere.  \n  \nWe've known [@guanlan](https://x.com/guanlan) for nearly a decade, since his days leading Cloudflare's edge proxy and Kong's core proxy. [@martin\\_casado](https://x.com/martin_casado) is joining the board.  \n  \nCongrats to Guanlan and the Runta team.  \n  \nBy [@martin\\_casado](https://x.com/martin_casado)[@stuffyokodraws](https://x.com/stuffyokodraws)[@appenz](https://x.com/appenz)\n\n![Tweet Image](https://pbs.twimg.com/media/HNXBu0rakAAmnXx.jpg)\n\n![Guanlan Dai](https://pbs.twimg.com/profile_images/2016579548465569792/nyppOTl7_normal.jpg)\n\nGuanlan Dai@guanlan\n\nToday we're announcing [@runta](https://x.com/runta)'s $20M seed, led by [@a16z](https://x.com/a16z).  \nSoftware is constrained when you write it. Agents have to be constrained while they run.  \nRunta is the execution layer that controls what AI agents can actually do.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077096939150303232/vid/avc1/1920x1080/TAMoSq2XGKk8Uala.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/guanlan/status/2077777618829820191/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/guanlan/status/2077777618829820191)\n\n💬6🔄2❤️61👀16282📊9",
+      "tags": [
+        "Runta",
+        "a16z",
+        "Agent执行层"
+      ],
+      "score": 89,
+      "summary": "a16z领投Runta种子轮，Runta构建AI Agent的执行层。",
+      "fetched_at": "2026-07-17T01:28:13.088321+08:00"
+    },
+    {
+      "title": "After completely switching to a mic to interact with agents, I feel like AI hardware interfaces are ...",
+      "link": "https://x.com/omarsar0/status/2077796765688852903",
+      "published": "2026-07-17T00:45:27+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "After completely switching to a mic to interact with agents, I feel like AI hardware interfaces are about to take off. A space to watch closely, and this team has taken the challenge to rethink the input layer for the AI era. Very curious to see where [@AinaInterface](https://x.com/AinaInterface) takes this.\n\n![Apoorv Shankar](https://pbs.twimg.com/profile_images/1643672974258753536/GyVZ8msX_normal.jpg)\n\nApoorv Shankar@lazyapoorv\n\nWe raised $5.5M to build an AI hardware interface that knows what you want.  \n  \nThe world has changed: we talk to our devices, AI writes our emails, and self-driving cars pick us up.  \n  \nBut how we interact with it all, touchscreens and keyboards, was designed for an age of browsing and searching.  \n  \nWhen we do hundreds of tasks a day, now even more with AI, every unnecessary decision, every step spent navigating instead of acting adds up to real cognitive load.  \n  \nWe are building the Hardware Interface, designed for the age of AI.  \n  \nPrivate Pilot now open.  \n  \nLimited spots.  \n  \n[aina.com](https://www.aina.com/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077786403614990336/vid/avc1/1920x1080/p3zPq_cbEl_mRHCz.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lazyapoorv/status/2077789574332633290/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lazyapoorv/status/2077789574332633290)\n\n💬3🔄0❤️6👀1505📊3",
+      "tags": [
+        "AI硬件接口",
+        "AinaInterface",
+        "语音交互"
+      ],
+      "score": 70,
+      "summary": "elvis评论AI硬件接口即将起飞，关注AinaInterface。",
+      "fetched_at": "2026-07-17T01:28:13.088324+08:00"
+    },
+    {
+      "title": "Highly-recommended overview of self-improving agentic systems.\n\n(bookmark it)\n\nSelf-improving agents...",
+      "link": "https://x.com/omarsar0/status/2077792894459793714",
+      "published": "2026-07-17T00:30:04+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Highly-recommended overview of self-improving agentic systems.  \n  \n(bookmark it)  \n  \nSelf-improving agents are moving from research demos into deployed systems.  \n  \nThis survey frames a modern agent as a foundation model coupled with an operational scaffold, then formalizes self-improvement as a self-induced update operator that commits changes to either.  \n  \nPaper: [arxiv.org/abs/2607.13104](https://arxiv.org/abs/2607.13104)  \n  \nLearn to build effective AI agents in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNXNoCNbUAEor2_.jpg)\n\n💬5🔄12❤️49👀3151📊21",
+      "tags": [
+        "自我改进Agent",
+        "综述",
+        "arxiv"
+      ],
+      "score": 70,
+      "summary": "elvis推荐自我改进Agent系统的综述论文。",
+      "fetched_at": "2026-07-17T01:28:13.088326+08:00"
+    },
+    {
+      "title": "\"Specialized intelligence will be the moat.\"\n\nThis is a huge sign that more companies and devs want ...",
+      "link": "https://x.com/omarsar0/status/2077782203375788426",
+      "published": "2026-07-16T23:47:35+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "\"Specialized intelligence will be the moat.\"  \n  \nThis is a huge sign that more companies and devs want to own their intelligence.   \n  \nIt's the right AI strategy going forward.  \n  \nWith self-improving AI, building specialized models is getting democratized at a rapid pace.\n\n![Lin Qiao](https://pbs.twimg.com/profile_images/1594101249254731776/-cNhmmTk_normal.jpg)\n\nLin Qiao@lqiao\n\n[x.com/i/article/2077…](http://x.com/i/article/2077760432924930048)\n\n[🔗 View Quoted Tweet](https://x.com/lqiao/status/2077761996557275406)\n\n💬6🔄1❤️21👀3519📊7",
+      "tags": [
+        "专业化智能",
+        "护城河"
+      ],
+      "score": 60,
+      "summary": "elvis评论专业化智能将成为护城河，自我改进AI正在民主化。",
+      "fetched_at": "2026-07-17T01:28:13.088328+08:00"
+    },
+    {
+      "title": "- Read the blog: https://t.co/2oESZjOVNo\n- Nemotron 3 Embed: https://t.co/A1QNSHOO5O",
+      "link": "https://x.com/mem0ai/status/2077794045984985126",
+      "published": "2026-07-17T00:34:38+08:00",
+      "source": "mem0(@mem0ai)",
+      "content": "- Read the blog: [mem0.ai/blog/how-mem0-…](https://mem0.ai/blog/how-mem0-uses-embeddings-and-why-we-are-evaluating-nvidia-nemotron-3-embed)  \n- Nemotron 3 Embed: [huggingface.co/nvidia/Nemotro…](https://huggingface.co/nvidia/Nemotron-3-Embed-1B-BF16)\n\n💬0🔄0❤️4👀77📊1",
+      "tags": [
+        "Nemotron 3 Embed",
+        "Mem0"
+      ],
+      "score": 60,
+      "summary": "Mem0提供Nemotron 3 Embed的博客和模型链接。",
+      "fetched_at": "2026-07-17T01:28:13.088331+08:00"
+    },
+    {
+      "title": "We evaluated Nemotron-3-Embed from @NVIDIAAI for our @mem0ai memory retrieval pipeline\n\nTested on lo...",
+      "link": "https://x.com/mem0ai/status/2077794042189173190",
+      "published": "2026-07-17T00:34:37+08:00",
+      "source": "mem0(@mem0ai)",
+      "content": "We evaluated Nemotron-3-Embed from [@NVIDIAAI](https://x.com/NVIDIAAI) for our [@mem0ai](https://x.com/mem0ai) memory retrieval pipeline  \n  \nTested on longmemeval: retrieval[@10](https://x.com/10) improved from 78.71 to 80.38 over qwen-3-600m  \n  \nA few things made it a good fit for how we operate: open weights, NVFP4 support on Blackwell for efficient inference, and strong throughput, which matters for a system where writes happen constantly.  \n  \nA breakdown on how Mem0 uses embeddings and Nemotron-3-embed evaluation below👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNXOpQFbUAEC4bb.jpg)\n\n💬2🔄1❤️4👀278📊4",
+      "tags": [
+        "Nemotron 3 Embed",
+        "Mem0",
+        "检索"
+      ],
+      "score": 70,
+      "summary": "Mem0评估Nemotron-3-Embed，在longmemeval上检索提升至80.38。",
+      "fetched_at": "2026-07-17T01:28:13.088334+08:00"
+    },
+    {
+      "title": "网站地址：https://t.co/xWNW3J6PXv\n\n开源地址：https://t.co/3VwfaLb5RC",
+      "link": "https://x.com/vista8/status/2077789777546616848",
+      "published": "2026-07-17T00:17:41+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "网站地址：[learnui.qiaomu.ai/styles/](https://learnui.qiaomu.ai/styles/)  \n  \n开源地址：[github.com/joeseesun/lear…](https://github.com/joeseesun/learnui)\n\n💬0🔄1❤️3👀689📊1",
+      "tags": [
+        "Kimi K3",
+        "开源",
+        "UI学习"
+      ],
+      "score": 60,
+      "summary": "用户分享使用Kimi K3复刻的UI学习网站及开源地址。",
+      "fetched_at": "2026-07-17T01:28:13.088336+08:00"
+    },
+    {
+      "title": "赞叹 Kimi K3 的美感，每个风格都是独立生成的HTML+CSS。",
+      "link": "https://x.com/vista8/status/2077789525859062018",
+      "published": "2026-07-17T00:16:41+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "赞叹 Kimi K3 的美感，每个风格都是独立生成的HTML+CSS。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077788690018164736/vid/avc1/2158x1716/mp5d2xV3yY---sdH.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2077789525859062018/video/1)\n\n💬6🔄2❤️26👀2042📊9",
+      "tags": [
+        "Kimi K3",
+        "美感",
+        "HTML+CSS"
+      ],
+      "score": 70,
+      "summary": "用户赞叹Kimi K3生成的不同风格的HTML+CSS页面。",
+      "fetched_at": "2026-07-17T01:28:13.088339+08:00"
+    },
+    {
+      "title": "Kimi K3 目前是国产模型第一名。\n\n让人兴奋的一周，充满希望！",
+      "link": "https://x.com/vista8/status/2077778056807358649",
+      "published": "2026-07-16T23:31:06+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Kimi K3 目前是国产模型第一名。  \n  \n让人兴奋的一周，充满希望！\n\n💬25🔄0❤️41👀8230📊24",
+      "tags": [
+        "Kimi K3",
+        "国产模型第一"
+      ],
+      "score": 70,
+      "summary": "用户称Kimi K3是目前国产模型第一名。",
+      "fetched_at": "2026-07-17T01:28:13.088341+08:00"
+    },
+    {
+      "title": "兄弟们听我的，最重要的事，先去Kimi上买个Coding Plan，然后用上K3，这可能是目前国内现在最好的模型。。。\n不过我对国内算力都比较担忧，感觉再过两天，这玩意也会跟GLM一样直接买不到了。\n...",
+      "link": "https://x.com/Khazix0918/status/2077799667144982550",
+      "published": "2026-07-17T00:56:58+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "兄弟们听我的，最重要的事，先去Kimi上买个Coding Plan，然后用上K3，这可能是目前国内现在最好的模型。。。  \n不过我对国内算力都比较担忧，感觉再过两天，这玩意也会跟GLM一样直接买不到了。  \n先氪了再说。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HNXTg_hasAAokw8.jpg)\n\n💬19🔄2❤️32👀4524📊25",
+      "tags": [
+        "Kimi K3",
+        "Coding Plan"
+      ],
+      "score": 60,
+      "summary": "用户推荐购买Kimi的Coding Plan使用K3模型，担忧算力紧张。",
+      "fetched_at": "2026-07-17T01:28:13.088343+08:00"
+    },
+    {
+      "title": "Kimi 的多模态还是很顶的，感觉随着 Claude 越来越不重视多模态理解，Kimi 这个会很有用",
+      "link": "https://x.com/op7418/status/2077794265804263600",
+      "published": "2026-07-17T00:35:31+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Kimi 的多模态还是很顶的，感觉随着 Claude 越来越不重视多模态理解，Kimi 这个会很有用\n\n💬2🔄0❤️1👀681📊2",
+      "tags": [
+        "Kimi",
+        "多模态"
+      ],
+      "score": 60,
+      "summary": "用户认为Kimi的多模态能力很强，Claude不重视多模态。",
+      "fetched_at": "2026-07-17T01:28:13.088346+08:00"
+    },
+    {
+      "title": "Kimi K3 上线了，只能说相当牛皮！\n\n鉴于参数量和算力紧张的情况，唯一的建议，快点买 Token Plan！",
+      "link": "https://x.com/op7418/status/2077777402957300075",
+      "published": "2026-07-16T23:28:30+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Kimi K3 上线了，只能说相当牛皮！  \n  \n鉴于参数量和算力紧张的情况，唯一的建议，快点买 Token Plan！\n\n![Tweet Image](https://pbs.twimg.com/media/HNW_EKoacAAnrxI.jpg)\n\n💬24🔄2❤️53👀16374📊26",
+      "tags": [
+        "Kimi K3",
+        "上线"
+      ],
+      "score": 70,
+      "summary": "用户宣布Kimi K3上线，并建议购买Token Plan。",
+      "fetched_at": "2026-07-17T01:28:13.088348+08:00"
+    },
+    {
+      "title": "Why teens deserve access to safe AI",
+      "link": "https://openai.com/index/why-teens-deserve-access-safe-ai",
+      "published": "2026-07-17T00:00:00+08:00",
+      "source": "OpenAI News",
+      "content": "Learn how OpenAI is making ChatGPT safer for teens with age-appropriate protections, learning tools, parental controls, and expert partnerships.",
+      "tags": [
+        "OpenAI",
+        "青少年安全",
+        "ChatGPT"
+      ],
+      "score": 89,
+      "summary": "OpenAI官方博客阐述为何青少年应获得安全的AI访问，介绍保护措施。",
+      "fetched_at": "2026-07-17T01:28:13.088351+08:00"
+    }
+  ]
+}
