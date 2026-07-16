@@ -1429,6 +1429,407 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-07-17T03:25:32.830649+08:00"
+    },
+    {
+      "title": "Introducing Grok on Amazon Bedrock",
+      "link": "https://aws.amazon.com/blogs/machine-learning/introducing-grok-on-amazon-bedrock/",
+      "published": "2026-07-17T03:29:26+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "*This post is co-written with Eric Jiang from xAI (SpaceXAI).*\n\nxAI’s Grok 4.3 is now generally available on Amazon Bedrock, giving teams that build agents and AI workflows a model that reasons reliably over long inputs. With this launch, xAI joins Amazon Bedrock as a model provider. Grok 4.3 is a model with configurable reasoning effort. It offers strong tool use and instruction following for building agents, and token efficiency for high-volume inference. It accepts text and image input, and has a 1 million token context window for long documents and multi-turn sessions. The model runs on Mantle, the next-generation inference engine in Amazon Bedrock.\n\nThis post covers what makes Grok 4.3 a great fit for agentic and enterprise workloads, how you access it through Amazon Bedrock, and how to use the capabilities most teams reach for first: a basic chat request, configurable reasoning effort, tool calling, structured output, image input, and stateful multi-turn conversations.\n\n## Why Grok 4.3 is a great fit for agentic and reasoning workloads\n\nAccording to xAI, [Grok 4.3 is built for enterprise work where accuracy matters](https://x.ai/news/grok-amazon-bedrock). On its own benchmarks at the time of the model launch, xAI reports it outperforms various industry benchmarks. Grok 4.3 ranked #1 on the [Artificial Analysis Omniscience benchmark](https://artificialanalysis.ai/evaluations/omniscience?utm_campaign=The%20Batch&utm_source=hs_email&utm_medium=email&_hsenc=p2ANqtz--jlCYITSykev8ODecGx9q0tH8Coln9qaw838TEzw3uKSZpnjXA6UrgLrzMY1Mj6AoeZ6BG) with the lowest hallucination rate among the frontier models it compared. It also placed #1 on the Artificial Analysis Tau2 Telecom benchmark for tool calling in customer support scenarios, and #1 on the Vals AI Case Law and Corporate Finance benchmarks for document understanding. xAI also places the model on the intelligence-versus-cost Pareto frontier, which it describes as 2 to 10 times more intelligence per dollar than other frontier models.\n\nWith Grok 4.3, you can control how much the model thinks before answering through an effort level on each request. You configure the effort level (`none`, `low`, `medium`, and `high`) per request and let one model serve the full range of work. A classification call can run at `none` effort to keep latency low. A contract analysis or case law task can run at `high` when depth matters more than response time. Grok 4.3 accepts text and image input and returns text, and its 1 million token context window leaves room for long documents and extended multi-turn sessions. The model handles tool calling and instruction following well, which is what makes it practical for agents that depend on function calls to take action. These traits line up with use cases such as contract review, credit agreement analysis, and financial document question answering. In these cases, the model reasons over long inputs and then calls out to systems of record.\n\n## How you access Grok 4.3 on Amazon Bedrock\n\nGrok 4.3 runs on Mantle, and accessing it differs from models that use the Amazon Bedrock Runtime API. Mantle uses OpenAI-compatible APIs. You can invoke Grok 4.3 either with the OpenAI SDK or through direct HTTPS requests to the Chat Completions API or the Responses API.\n\nThe Mantle endpoint URL is Region-specific and follows this pattern:\n\n[![Display of URL showing which parts are the Base URL, Region, and Path](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/21284-1.png)](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/06/30/21284-1.png)\n\nFor example, in `us-west-2` the base URL is `https://bedrock-mantle.us-west-2.api.aws/openai/v1`. Note that the Responses API URL route differs slightly on the Mantle endpoint (`/openai/v1/`) from the Runtime endpoint (`/v1/responses`).\n\nTo set up your SDK with Grok 4.3, set the base URL with the correct Region and path as described in the preceding section.\n\nWhen using Grok, note that the context window is 1 million tokens and that the defaults depart from the standard OpenAI specification in three places:\n\n* `temperature` defaults to `0.7` rather than `1`.\n* `top_p` defaults to `0.95` rather than `1`.\n* `max_completion_tokens` defaults to `131072`.\n\nSet these explicitly if your application needs different behavior.\n\n## Authenticate and run a first request\n\nYou have two ways to authenticate against the Mantle endpoint, and both work with the same OpenAI SDK. For production, we recommend short-term bearer tokens generated from your IAM credentials, because they expire automatically and keep access tied to your IAM identity. Use a long-term Amazon Bedrock API key for quick exploration and getting started. Restrict long-lived keys to that purpose rather than embedding them in production applications.\n\nThe following example shows how to authenticate with a long-term Amazon Bedrock API key to access the model. Treat this as an exploration-only credential. You can [generate one](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-generate.html) from the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/home#/api-keys/long-term/create), and then install the OpenAI SDK:\n\n```\npip install openai\n```\n\nPoint the client at the regional Mantle endpoint and authenticate with your API key. The model ID is `xai.grok-4.3`:\n\n```\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key=\"<your Amazon Bedrock API key>\",\n    base_url=\"https://bedrock-mantle.us-west-2.api.aws/openai/v1\",\n)\n\nresponse = client.chat.completions.create(\n    model=\"xai.grok-4.3\",\n    messages=[\n        {\"role\": \"user\", \"content\": \"In one sentence, what is Amazon Bedrock?\"}\n    ],\n)\nprint(response.choices[0].message.content)\n```\n\nWhen you’re ready to incorporate Amazon Bedrock into applications with greater security requirements, we recommend using short-term credentials. You can generate a short-term bearer token from your existing AWS credentials at request time using the [Amazon Bedrock token generator](https://github.com/aws/aws-bedrock-token-generator-python). This keeps authentication tied to your IAM identity and avoids a long-lived secret. To get started, install the `aws-bedrock-token-generator` package.\n\n```\npip install aws-bedrock-token-generator\n```\n\nUse the provide\\_token function from the `aws_bedrock_token_generator` library in code as shown below:\n\n```\nfrom aws_bedrock_token_generator import provide_token\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key=provide_token(region=\"us-west-2\"),\n    base_url=\"https://bedrock-mantle.us-west-2.api.aws/openai/v1\",\n)\n```\n\n## Configure reasoning output\n\nYou can control how much of reasoning effort the model spends through the `reasoning` parameter on the Responses API. The effort levels are `none` (which disables reasoning), `low` (the default), `medium`, and `high`. Higher effort tends to help on multi-step problems where a quick answer would be wrong, at the cost of more output tokens.\n\nThe Chat Completions API does not return a reasoning trace. If you want the model’s reasoning available across turns, use the Responses API. In the default stateful pattern, where you set `store=True` and chain calls with `previous_response_id`, the service retains each turn’s reasoning and feeds it back automatically, so you do not manage it yourself. Encrypted reasoning is for the stateless case. If you set `store=False` (for example, when your workload requires that turns are not persisted server-side), request the reasoning with `include=[\"reasoning.encrypted_content\"]`. Pass it back in your next request’s input to give the model its own prior reasoning as context.\n\nThis example runs a classic trick question at high effort:\n\n```\nresponse = client.responses.create(\n    model=\"xai.grok-4.3\",\n    reasoning={\"effort\": \"high\"},  # none, low, medium, or high\n    include=[\"reasoning.encrypted_content\"],\n    max_output_tokens=4096,\n    input=(\n        \"A bat and ball cost $1.10. The bat costs $1 more than the ball. \"\n        \"How much is the ball? Answer with just the number.\"\n    ),\n)\nprint(response.output_text)\nprint(response.usage.output_tokens_details.reasoning_tokens)\n```\n\nThe model worked through the algebra rather than reaching for the intuitive wrong answer of $0.10, and the usage block reports the reasoning tokens it spent internally. Drop the effort to `none` and that same field reports `0` reasoning tokens, which is the setting to reach for on simple, latency-sensitive calls:\n\n```\nresponse = client.responses.create(\n    model=\"xai.grok-4.3\",\n    reasoning={\"effort\": \"none\"},\n    max_output_tokens=2048,\n    input=\"Say OK.\",\n)\nprint(response.output_text)  # OK.\n```\n\nA practical pattern is to run classification, extraction, and short factual lookups at `none` or `low`, and reserve `high` for planning steps, math, and chains where a single early mistake derails the whole task.\n\n## Call tools with Grok 4.3\n\nTool calling is central to agentic workloads, and Grok 4.3 supports it through the same OpenAI-compatible interface. You describe the tools available, the model decides when to call one, and it returns a structured request that your code executes and feeds back. Grok 4.3 follows the standard OpenAI tool-calling shape, so you define each tool with a JSON Schema for its parameters.\n\nThe following example offers a single `get_weather` tool and asks a question that should trigger it:\n\n```\ntools = [\n    {\n        \"type\": \"function\",\n        \"function\": {\n            \"name\": \"get_weather\",\n            \"description\": \"Get the current weather for a city\",\n            \"parameters\": {\n                \"type\": \"object\",\n                \"properties\": {\"city\": {\"type\": \"string\"}},\n                \"required\": [\"city\"],\n            },\n        },\n    }\n]\n\nresponse = client.chat.completions.create(\n    model=\"xai.grok-4.3\",\n    messages=[{\"role\": \"user\", \"content\": \"What's the weather in Sydney? Use the tool.\"}],\n    tools=tools,\n    tool_choice=\"auto\",  # let the model decide whether to call a tool\n)\n\ntool_call = response.choices[0].message.tool_calls[0]\nprint(tool_call.function.name, tool_call.function.arguments)\n# get_weather {\"city\":\"Sydney\"}\n```\n\nThe model parsed the city out of the question and produced a valid arguments object that matches the schema. From here you run the function in your own code, append a `tool` role message with the result, and call the model again so it can fold the data into a natural-language reply. This is the building block for multi-step agents on Grok 4.3.\n\n## Structured output\n\nWhen you need the model to return data your code can parse directly, use structured output with a JSON Schema. Grok 4.3 supports the `json_schema` response format with strict mode, so the response conforms to the schema you provide, rather than giving free-form text.\n\nFor example, the following code asks for facts about a country and constrains the shape of the answer:\n\n```\nimport json\n\nschema = {\n    \"type\": \"object\",\n    \"properties\": {\n        \"name\": {\"type\": \"string\"},\n        \"capital\": {\"type\": \"string\"},\n        \"population_millions\": {\"type\": \"number\"},\n    },\n    \"required\": [\"name\", \"capital\", \"population_millions\"],\n    \"additionalProperties\": False,\n}\n\nresponse = client.chat.completions.create(\n    model=\"xai.grok-4.3\",\n    messages=[{\"role\": \"user\", \"content\": \"Return facts about the country Australia.\"}],\n    response_format={\n        \"type\": \"json_schema\",\n        \"json_schema\": {\"name\": \"country_facts\", \"strict\": True, \"schema\": schema},\n    },\n    max_completion_tokens=4096,\n)\n\ndata = json.loads(response.choices[0].message.content)\nprint(data)\n# {'name': 'Australia', 'capital': 'Canberra', 'population_millions': 26.6}\n```\n\nSetting `strict` to `True` and `additionalProperties` to `False` keeps the response constrained to the keys you asked for, which pairs well with tool calling when a downstream system expects a fixed record format. One operational note from testing: requests occasionally return a `400` from an automated content safety check even on benign input, so build a short retry into production calls.\n\n## Image input\n\nGrok 4.3 accepts images as input and returns text, which covers document understanding, chart reading, and visual question answering. You pass an image using the same pattern as the OpenAI Chat Completions API, as a content part with a `data:` URL holding base64-encoded bytes, or a public image URL. The text and image parts go in the same `content` array so the model sees the question and the picture together.\n\n```\nimport base64\n\nwith open(\"chart.png\", \"rb\") as f:\n    b64 = base64.b64encode(f.read()).decode()\n\nresponse = client.chat.completions.create(\n    model=\"xai.grok-4.3\",\n    messages=[\n        {\n            \"role\": \"user\",\n            \"content\": [\n                {\"type\": \"text\", \"text\": \"Describe this image in one short sentence.\"},\n                {\n                    \"type\": \"image_url\",\n                    \"image_url\": {\"url\": f\"data:image/png;base64,{b64}\"},\n                },\n            ],\n        }\n    ],\n    max_completion_tokens=4096,\n)\nprint(response.choices[0].message.content)\n```\n\nIn testing, the model read a generated test image and named its dominant color correctly. Use a supported image format such as PNG or JPEG and keep the encoding clean: a malformed or truncated image payload returns a `validation_error` rather than a best-guess answer.\n\n## Stateful conversations with the Responses API\n\nThe Responses API can hold conversation state on the service side, so you do not need to resend the full message history on every turn. You store a turn by passing `store=True`, capture the returned response ID, and reference it on the next call with `previous_response_id`. The model treats the earlier exchange as context.\n\n```\nfirst = client.responses.create(\n    model=\"xai.grok-4.3\",\n    input=\"Remember the number 42. Just acknowledge.\",\n    store=True,\n    max_output_tokens=2048,\n)\n\nsecond = client.responses.create(\n    model=\"xai.grok-4.3\",\n    previous_response_id=first.id,\n    input=\"What number did I ask you to remember?\",\n    max_output_tokens=2048,\n)\nprint(second.output_text)  # 42\n```\n\nFrom the second `client.responses.create` call in the code example, there is no message being sent except for the `previous_response_id`. Because the service stores each turn, the model’s prior reasoning is carried forward automatically to the next call, so you keep both the conversation and the model’s thinking in scope without managing that state yourself. One thing to know before you turn this on: storing conversation state means the service retains those turns. Review the [Amazon Bedrock data protection](https://docs.aws.amazon.com/bedrock/latest/userguide/data-protection.html) documentation for details on the security and privacy of your stored data, and how to disable retention if needed.\n\n## Service tiers and Regional availability\n\nAmazon Bedrock offers multiple service tiers so you can match cost and throughput to each workload. Standard tier on-demand inference provides pay-per-token access with no commitment, Priority offers preferential treatment in the processing queue for a higher per-token price, and Flex provides lower-cost access for workloads that are not time-sensitive. You can use Grok 4.3 with the Standard, Priority, and Flex tiers. For details, see [service tiers for inference](https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html).\n\nGrok 4.3 uses in-Region inference, so you pin your client to a Region where the model is available and set the Mantle base URL to match. Geo and Global cross-Region inference are not offered for this model at launch. The examples in this post use `us-west-2`. For the current list of supported Regions, see the [Regional availability](https://docs.aws.amazon.com/bedrock/latest/userguide/models-region-compatibility.html) documentation, and for pricing across the tiers, see the [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) page.\n\n## Conclusion\n\nGrok 4.3 on Amazon Bedrock gives you a reasoning-first model with configurable effort, native tool calling, strict structured output, image understanding, and server-side conversation state. You can reach the model through the OpenAI SDK pointed at the `bedrock-mantle` endpoint. The examples in this post do not create billable AWS resources beyond per-request token usage. But if you generated a long-term Amazon Bedrock API key for exploration, delete it from the Amazon Bedrock console when you are done. A long-term key is a standing credential, so removing the ones you no longer need keeps your account’s attack surface small.\n\nTo start building, review the [Grok 4.3 model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards.html) for the current Region list and parameter details, and see the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/) for token rates. From there, a few directions are worth exploring: wire the tool-calling loop end to end by executing the returned function and feeding the result back, thread encrypted reasoning content across Responses turns to give long-running agents continuity in how they think, and benchmark effort levels against your own workloads to find where higher reasoning stops earning its token cost. Join the discussion in the [Amazon Bedrock community on AWS re:Post](https://repost.aws/tags/TA4IvCeWI1TE66q4jET7AQlA/amazon-bedrock).\n\n---\n\n## About the authors\n\n![Melanie Li](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2025/10/03/mmelli-100x133.jpg)\n\n### Melanie Li\n\nMelanie Li, PhD, is a Senior Generative AI Specialist Solutions Architect at AWS based in Sydney, Australia, where her focus is on working with customers to build solutions using state-of-the-art AI/ML tools. She has been actively involved in multiple generative AI initiatives across APJ, harnessing the power of LLMs. Prior to joining AWS, Dr. Li held data science roles in the financial and retail industries.\n\n![Saurabh Trikande](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2022/06/15/Saurabh-Trikande.jpg)\n\n### Saurabh Trikande\n\nSaurabh is a Senior Product Manager for Amazon Bedrock and Amazon SageMaker Inference. He is passionate about working with customers and partners, motivated by the goal of democratizing AI. He focuses on core challenges related to deploying complex AI applications, inference with multi-tenant models, cost optimizations, and making the deployment of generative AI models more accessible. In his spare time, Saurabh enjoys hiking, learning about innovative technologies, following TechCrunch, and spending time with his family.\n\n![Alex Thewsey](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2021/10/04/Alex-LinkedIn-PhoneTool-Crop.jpg)\n\n### Alex Thewsey\n\nAlex is a Generative AI Specialist Solutions Architect at AWS, based in Singapore. Alex helps customers across Southeast Asia to design and implement solutions with ML and Generative AI. He also enjoys karting, working with open source projects, and trying to keep up with new ML research.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/16/Screenshot-2026-07-14-at-10.44.03 PM.png)\n\n### Eric Jiang\n\nEric Jiang is an engineer at SpaceXAI based in Palo Alto. He leads the API and Enterprise post-training teams, and is passionate about building products that delight users. Outside of work, he enjoys running, playing bass guitar, and trying new foods. Thanks again for your great help.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/16/anirbag.jpg)\n\n### Anirban Gupta\n\nAnirban is a Principal Engineer at AWS based in Seattle, USA, where he focuses on the design of secure, high-scale model-serving infrastructure for Amazon Bedrock. He has driven the technical work behind several foundation-model launches on the platform. Prior to joining Amazon Bedrock, he was a Principal Engineer on AWS Outposts, building hybrid on-premises cloud infrastructure.",
+      "tags": [
+        "Grok 4.3",
+        "Amazon Bedrock",
+        "xAI"
+      ],
+      "score": 90,
+      "summary": "xAI的Grok 4.3模型在Amazon Bedrock上正式可用，支持100万token上下文和可配置推理努力。",
+      "fetched_at": "2026-07-17T05:12:06.027995+08:00"
+    },
+    {
+      "title": "Kimi K3, and what we can still learn from the pelican benchmark",
+      "link": "https://simonwillison.net/2026/Jul/16/kimi-k3/#atom-everything",
+      "published": "2026-07-17T04:19:30+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "Chinese AI lab Moonshot AI [announced Kimi K3](https://www.kimi.com/blog/kimi-k3) this morning, describing it as their \"most capable model to date, with 2.8 trillion parameters\". It's currently available via their website and API, but an open weight release is promised \"by July 27, 2026\".\n\nMoonshot are calling this the first \"open 3T-class model\" (I guess they're rounding 2.8 trillion up to 3 trillion), taking the crown from [DeepSeek's 1.6T v4 Pro](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro). Their [self-reported benchmarks](https://www.kimi.com/blog/kimi-k3#full-benchmark-table) have K3 mostly beating Claude Opus 4.8 max and GPT-5.5 high, while losing out to Claude Fable 5 and GPT-5.6 Sol.\n\nA few highlights from the [Artificial Analysis report](https://twitter.com/ArtificialAnlys/status/2077832874183860404) on the model:\n\n* \"On our private long-horizon knowledge work evaluation, Kimi K3 reaches an overall Elo of 1547, +732 points from Kimi K2.6 and behind only Claude Fable 5.\"\n* \"Cost per task ($0.94) is similar to GPT-5.6 Sol ($1.04), ~1/2 the price of Opus 4.8 ($1.80) and higher than open weights peers\"\n* \"Kimi K3’s token usage on the Artificial Analysis Intelligence Index decreased significantly, using 21% fewer output tokens than K2.6.\"\n\nThe model is also now the [leading model on Arena.ai's Frontend Code arena](https://twitter.com/arena/status/2077824029126504525), surpassing even Claude Fable 5.\n\nThe new model is notable for the pricing: $3/million input tokens and $15/million output tokens, putting it at the same level as Anthropic's Claude Sonnet series and making it the most expensive model released by a Chinese AI lab to date. This is a significant increase on their earlier models [such as Kimi K2.6](https://platform.kimi.ai/docs/pricing/chat-k26) at $0.95/$4. 2.8 trillion parameters is also more than twice the size of that 1T model.\n\n#### But how does it pelican?\n\nI used OpenRouter (to avoid signing up for a Moonshot API key) with the [llm-openrouter plugin](https://github.com/simonw/llm-openrouter) to generate an SVG of a pelican riding a bicycle:\n\n```\nllm -m openrouter/moonshotai/kimi-k3 'Generate an SVG of a pelican riding a bicycle'\n```\n\nHere's [the transcript](https://gist.github.com/simonw/66a2699eb1594258904c7b5102840dd6). It looks like this:\n\n![See description below](https://static.simonwillison.net/static/2026/kimi-3-pelican.jpg)\n\nThat pelican took 95 input tokens and 16,658 output tokens (13,241 were reasoning tokens), for a total cost of [25 cents](https://www.llm-prices.com/#it=95&ot=16658&ic=3&oc=15)!\n\nSince K3 accepts image input I ran it against that rendered SVG above (with my [alt text prompt](https://simonwillison.net/guides/agentic-engineering-patterns/prompts/#alt-text)) and [got back](https://gist.github.com/simonw/665dbf840701b421745f2cb891acdfd6) (for [0.6 cents](https://www.llm-prices.com/#it=822&ot=243&ic=3&oc=15)):\n\n> Cartoon illustration of a white pelican wearing a red scarf, riding a red bicycle along a gray road with white dashed lines; the pelican has a large orange beak and webbed orange feet pedaling, with white motion lines behind it; the background shows a light blue sky with white clouds, a yellow sun, two small black birds in flight, and green grass with tiny white flowers in the foreground\n\n#### What can we learn from the pelican?\n\nMy [Generate an SVG of a pelican riding a bicycle](https://simonwillison.net/tags/pelican-riding-a-bicycle/) test is 21 months old now. It was never a particularly great benchmark. It started out as a joke on how absurdly difficult it is to compare these models, but then for the first year it turned out to have a [surprising correlation](https://simonwillison.net/2025/Jun/6/six-months-in-llms/) to how good the models actually were.\n\nThat connection has been mostly severed now. The [GPT-5.6](https://simonwillison.net/2026/Jul/9/gpt-5-6/) and [Claude Fable 5](https://simonwillison.net/2026/Jun/9/claude-fable-5/) pelicans are outclassed [by GLM-5.2](https://simonwillison.net/2026/Jun/17/glm-52/), and much as I love GLM I don't think that's a Fable-class model.\n\n(I'm still not convinced that labs are [training for the benchmark](https://simonwillison.net/2025/Nov/13/training-for-pelicans-riding-bicycles/) - if they were, I'd expect much better results. There's a chance that Gemini has optimized for [any combination of an animal on a vehicle](https://simonwillison.net/2026/Feb/19/gemini-31-pro/#jeff-dean) though!)\n\nThe biggest limitation of the pelican is that it doesn't touch at all on the thing that matters most for today's model: agentic tool calling and the ability to operate tools reliably as conversations grow in length.\n\nSo don't go using pelicans to compare models!\n\nAll of that said, I still get a decent amount of value out of running the benchmark myself.\n\nFirstly, it's a forcing function for actually trying the model. If I show you a pelican, that means I've managed to run a prompt through it. If the model has an official API I'll use that, if it's open weight (and small enough to fit a 128GB M5 MacBook Pro) I'll try running it on my own machine, usually via [llama.cpp](https://github.com/ggml-org/llama.cpp) or [LM Studio](https://lmstudio.ai) or [Ollama](https://ollama.com). I'll frequently use [OpenRouter](https://openrouter.ai) since that usually provides a proxy to an official API without me needing a new API key.\n\nMost of my pelicans are generated using [my LLM CLI tool](https://llm.datasette.io/), which helps encourage me to ensure the latest models are supported by that (via one of its plugins).\n\nMore importantly though, even the act of a single prompt to \"Generate an SVG of a pelican riding a bicycle\" can reveal interesting model characteristics.\n\nConsider [the result](https://gist.github.com/simonw/66a2699eb1594258904c7b5102840dd6) for Kimi K3 today. Running those simple prompts helped emphasize several points about the model.\n\n1. It only has one reasoning effort right now, \"max\" - and it shows. The model consumed 13,241 reasoning tokens to output 3,417 tokens of response. This is expensive - the pelican cost 25 cents!\n2. How does the prompt \"Generate an SVG of a pelican riding a bicycle\" add up to 95 input tokens? OpenAI's [tokenizer](https://platform.openai.com/tokenizer) counts 10, [Anthropic's](https://tools.simonwillison.net/claude-token-counter) counts 10 for Opus 4.6, 30 for Opus 4.7 and 25 for Sonnet 5/Fable 5. Prompting \"hi\" [to Kimi K3](https://news.ycombinator.com/item?id=48935342#48936461) counted 86 tokens, suggesting there may be an 85 token hidden system prompt. It [refused to leak it](https://news.ycombinator.com/item?id=48935342#48936515) though.\n3. Vision works well: the alt text it generated is very good.\n\nK3 currently only has one thinking effort level, but I've been deriving quite a bit of value recently from running the same pelican prompt through different effort levels to get a quick idea for what impact those have. Here's my matrix [for the GPT-5.6 model family](https://static.simonwillison.net/static/2026/gpt-5.6-pelicans.html), for example.\n\nReally though the main things I gain from the pelican test are:\n\n1. It's a \"hello world\" exercise for prompting a model\n2. A rough cost and reasoning estimate for a simple task\n3. Confirmation that the model can output valid SVG and has a basic idea of geometry and spatial awareness. This is a much bigger deal for the smaller models that run on my laptop.\n4. It's still interesting to compare pelicans between releases in the same model family. K3's pelican is a notable improvement from [Kimi 2.5](https://simonwillison.net/2026/Jan/27/kimi-k25/).\n5. It's something I can share that demonstrates I've tried it. Plus a comment with a pelican in it is kind of a tradition on Hacker News at this point, any time I'm late I get comments asking where it is!\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [llm-pricing](https://simonwillison.net/tags/llm-pricing), [pelican-riding-a-bicycle](https://simonwillison.net/tags/pelican-riding-a-bicycle), [llm-release](https://simonwillison.net/tags/llm-release), [ai-in-china](https://simonwillison.net/tags/ai-in-china), [artificial-analysis](https://simonwillison.net/tags/artificial-analysis), [moonshot](https://simonwillison.net/tags/moonshot), [kimi](https://simonwillison.net/tags/kimi)",
+      "tags": [
+        "Kimi K3",
+        "2.8T参数",
+        "开源模型"
+      ],
+      "score": 85,
+      "summary": "Moonshot AI发布Kimi K3，2.8万亿参数，开源，在多项基准上接近Claude Fable 5和GPT-5.6 Sol。",
+      "fetched_at": "2026-07-17T05:12:06.028007+08:00"
+    },
+    {
+      "title": "Learn more: https://t.co/tppgbwiH7J",
+      "link": "https://x.com/aisdk/status/2077843954486436246",
+      "published": "2026-07-17T03:52:57+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "Learn more: [ai-sdk.dev/providers/ai-s…](https://ai-sdk.dev/providers/ai-sdk-providers/moonshotai)\n\n💬0🔄0❤️0👀226",
+      "tags": [
+        "AI SDK",
+        "Moonshot"
+      ],
+      "score": 60,
+      "summary": "AI SDK宣布支持Moonshot的Kimi K3模型。",
+      "fetched_at": "2026-07-17T05:12:06.028011+08:00"
+    },
+    {
+      "title": "Use Moonshot's Kimi K3 model in AI SDK",
+      "link": "https://x.com/aisdk/status/2077843794050113548",
+      "published": "2026-07-17T03:52:19+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "Use Moonshot's Kimi K3 model in AI SDK\n\n![Tweet Image](https://pbs.twimg.com/media/HNX6H0JaEAAb-rx.jpg)\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nIntroducing Kimi K3: Open Frontier Intelligence  \n  \n🔹 2.8 Trillion Parameters, 1 Million Context, Native Multimodal  \n🔹 Kimi Delta Attention enables up to 6.3x faster decoding in million-token contexts  \n🔹 Attention Residuals deliver ~25% higher training efficiency at <2% additional cost  \n🔹 Built for long-horizon agentic coding and self-evolving workflows  \n  \nKimi K3 is now live on[Kimi.com](http://Kimi.com)xZUo, Kimi Work, Kimi Code, and the Kimi API.  \nOpen Weights by July 27, 2026.  \n  \n🔗 [platform.kimi.ai](http://platform.kimi.ai)XAqMw  \n🔗 Tech [kimi.com/blog/kimi-k3](http://kimi.com/blog/kimi-k3)MSNM1f\n\n![Tweet Image](https://pbs.twimg.com/media/HNXu0kobMAAPljb.png)![Tweet Image](https://pbs.twimg.com/media/HNXu2GWaYAAwH4w.png)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n\n💬2🔄1❤️41👀2499📊7",
+      "tags": [
+        "AI SDK",
+        "Kimi K3"
+      ],
+      "score": 60,
+      "summary": "AI SDK支持Moonshot Kimi K3模型。",
+      "fetched_at": "2026-07-17T05:12:06.028014+08:00"
+    },
+    {
+      "title": "Designers ship at a rate previously thought to be impossible for engineers.",
+      "link": "https://x.com/amasad/status/2077856392611074364",
+      "published": "2026-07-17T04:42:23+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "Designers ship at a rate previously thought to be impossible for engineers.\n\n![zade ⠕](https://pbs.twimg.com/profile_images/1881487840409964544/tXRR8e7r_normal.jpg)\n\nzade ⠕@okayzade\n\nthe replit design team has been shipping 🚀\n\n![Tweet Image](https://pbs.twimg.com/media/HNYBZtkbcAA4q9w.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/okayzade/status/2077849821688529023)\n\n💬5🔄2❤️46👀4342📊8",
+      "tags": [
+        "Replit",
+        "设计团队"
+      ],
+      "score": 30,
+      "summary": "Replit CEO称赞设计团队交付速度。",
+      "fetched_at": "2026-07-17T05:12:06.028016+08:00"
+    },
+    {
+      "title": "reminder that anything that looks like this is a scam. i don’t and won’t give stock plans, let alone...",
+      "link": "https://x.com/GaryMarcus/status/2077858583967113254",
+      "published": "2026-07-17T04:51:05+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "reminder that anything that looks like this is a scam. i don’t and won’t give stock plans, let alone misspell my own name.\n\n💬0🔄1❤️1👀963📊1",
+      "tags": [
+        "Gary Marcus",
+        "诈骗提醒"
+      ],
+      "score": 20,
+      "summary": "Gary Marcus提醒类似其名义的股票计划是诈骗。",
+      "fetched_at": "2026-07-17T05:12:06.028019+08:00"
+    },
+    {
+      "title": "pretty empty. not a great sign.",
+      "link": "https://x.com/GaryMarcus/status/2077856296196526559",
+      "published": "2026-07-17T04:42:00+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "pretty empty. not a great sign.\n\n![Sam Altman](https://pbs.twimg.com/profile_images/2046764873200394240/r7BxVezs_normal.jpg)\n\nSam Altman@sama\n\nwe did not have our best last 12 months ever, which is mostly my fault, but we are about to have our best 12 months to date. the team is doing amazing work and i think you’ll be very happy with what they’ve got cooking for you.  \n  \ni am happy about this for many reasons, but mostly because i care about our users winning. AI has to be about giving lots of people more freedom, agency, and wealth. we want to do the right thing, but we do not want to scare people into doing our thing.\n\n[🔗 View Quoted Tweet](https://x.com/sama/status/2077817060068057493)\n\n💬8🔄0❤️30👀3792📊8",
+      "tags": [
+        "Sam Altman",
+        "OpenAI"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus评论Sam Altman的推文，认为内容空洞。",
+      "fetched_at": "2026-07-17T05:12:06.028021+08:00"
+    },
+    {
+      "title": "Oracle is down almost two-thirds from its peak. \n\nMaking  a deal with OpenAI has lost its magic.",
+      "link": "https://x.com/GaryMarcus/status/2077845249842680228",
+      "published": "2026-07-17T03:58:06+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Oracle is down almost two-thirds from its peak.   \n  \nMaking a deal with OpenAI has lost its magic.\n\n![Tweet Image](https://pbs.twimg.com/media/HNX9Os1bEAA2T6f.jpg)\n\n💬9🔄19❤️149👀5951📊26",
+      "tags": [
+        "Oracle",
+        "OpenAI"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus指出Oracle股价下跌，与OpenAI合作失去魔力。",
+      "fetched_at": "2026-07-17T05:12:06.028023+08:00"
+    },
+    {
+      "title": "The case for your own public agent, on your .com.\n\n0️⃣ First, the anti-case. If you haven't shipped ...",
+      "link": "https://x.com/rauchg/status/2077847855306596563",
+      "published": "2026-07-17T04:08:27+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "The case for your own public agent, on your .com.  \n  \n0️⃣ First, the anti-case. If you haven't shipped high quality APIs for agents, start there. OpenAPI specs, SDKs, CLIs and MCPs as appropriate.  \n  \n1️⃣ Convenience. Not every customer has a harness 'at the ready' for every possible interaction with your product and company. Shipping one on your own domain covers a lot of spontaneous requirements.  \n  \n2️⃣ Security. When you go to 𝚟𝚎𝚛𝚌𝚎𝚕.𝚌𝚘𝚖 and talk to Agent, we put in the work to cover audit trails, a least-privilege permission model, and extra assurances to ensure security, privacy and data integrity. It's fully cloud-based and sandboxed, vs. a sprawl of static credentials on users' machines.  \n  \n3️⃣ Proactivity. We're still in the \"human enters prompt\" phase of AI. Our cloud-based agent can act on anomaly alerts triggered by exceptions, attacks, usage spikes. Our agent needs to monitor your infra while you sleep. You can, of course, set up workflows and schedules with your own harnesses, but it gets much harder.  \n  \nI think it's ultimately a sequencing thing. I agree with Mitchell that the priority is to give users choice and flexibility. We giv[vercel.com/plugin](http://vercel.com/plugin)hLxa4zpiZ to integrate with every agent out there. Our CLI and MCP are constantly improving. Our own Agent re-uses [skills.sh](http://skills.sh)gfC60tXum everyone gets. All our sites are Markdown-over-the-wire if you're an agent.  \n  \nBased on the data and anecdata available to me, this strategy is working quite well, but YMMV.\n\n![Mitchell Hashimoto](https://pbs.twimg.com/profile_images/1141762999838842880/64_Y4_XB_normal.jpg)\n\nMitchell Hashimoto@mitchellh\n\nUsing a generic agent harness (e.g. Codex, Claude, OpenCode) + CLI/MCP is better than \"Ask me anything\" built-in product chat boxes in every product I've ever tried. A big reason is I can use the latest frontier models, another is mixing more context. Why your box over mine?\n\n[🔗 View Quoted Tweet](https://x.com/mitchellh/status/2077788454860316915)\n\n💬17🔄4❤️53👀9209📊23",
+      "tags": [
+        "Vercel",
+        "Agent",
+        "公共代理"
+      ],
+      "score": 75,
+      "summary": "Vercel CEO阐述在自家域名上部署公共代理的优势。",
+      "fetched_at": "2026-07-17T05:12:06.028025+08:00"
+    },
+    {
+      "title": "We'll be at @Temporalio's AI meetup along with @Modal  and @Vapi_AI \n\nCome through for live demos an...",
+      "link": "https://x.com/HeyGen/status/2077858428849144278",
+      "published": "2026-07-17T04:50:28+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "We'll be at [@Temporalio](https://x.com/Temporalio)'s AI meetup along with [@Modal](https://x.com/Modal) and [@Vapi\\_AI](https://x.com/Vapi_AI)   \n  \nCome through for live demos and real conversation about [@HyperFrames\\_](https://x.com/HyperFrames_)   \n  \nTuesday - July 28th, in SF   \n  \nRequest to join: [luma.com/durable-ai-july](https://luma.com/durable-ai-july)\n\n![Tweet Image](https://pbs.twimg.com/media/HNYCR7SbwAAAIGJ.jpg)\n\n💬0🔄0❤️0",
+      "tags": [
+        "HeyGen",
+        "AI meetup"
+      ],
+      "score": 30,
+      "summary": "HeyGen将参加Temporalio的AI meetup。",
+      "fetched_at": "2026-07-17T05:12:06.028027+08:00"
+    },
+    {
+      "title": "Damn we're getting Fable in the subscription through Christmas",
+      "link": "https://x.com/venturetwins/status/2077853496377070059",
+      "published": "2026-07-17T04:30:52+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Damn we're getting Fable in the subscription through Christmas\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nBig news: Kimi-K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) is now #1 in the Frontend Code Arena with 1679 pts, surpassing Claude Fable 5.  \n  \nThis is a 17-place jump from Kimi-k2.6 (#18 -> #1).  \n  \nIn Frontend, Kimi-K3 ranked #1 in 6 of 7 domains: Brand & Marketing, Reference-Based Design, Data & Analytics, Consumer Product, Simulations, and Content Creation Tools, landing #2 only in Gaming behind Fable 5.  \n  \nThe full model weights will be released by July 27.  \n  \nCongrats to the [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) team on this major milestone!\n\n![Tweet Image](https://pbs.twimg.com/media/HNXpi8UaIAAM6Ag.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2077824029126504525)\n\n💬3🔄3❤️19👀1333📊4",
+      "tags": [
+        "Fable 5",
+        "订阅"
+      ],
+      "score": 50,
+      "summary": "Justine Moore评论Kimi K3在Frontend Code Arena排名第一，并提到Fable 5订阅。",
+      "fetched_at": "2026-07-17T05:12:06.028029+08:00"
+    },
+    {
+      "title": "@thinkymachines @cursor_ai I've tested a bunch of podcast clipping tools - but they typically conver...",
+      "link": "https://x.com/venturetwins/status/2077839644516094318",
+      "published": "2026-07-17T03:35:50+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "[@thinkymachines](https://x.com/thinkymachines)[@cursor\\_ai](https://x.com/cursor_ai) I've tested a bunch of podcast clipping tools - but they typically convert the audio to a transcript first.   \n  \nInkling natively understands the audio input, so it can use verbal cues like vocal emphasis, emotion, and speech cadence to decide what to clip.  \n  \nMakes a big difference!\n\n💬0🔄0❤️6👀598📊1",
+      "tags": [
+        "Inkling",
+        "播客剪辑"
+      ],
+      "score": 50,
+      "summary": "Justine Moore比较播客剪辑工具，称Inkling原生理解音频。",
+      "fetched_at": "2026-07-17T05:12:06.028031+08:00"
+    },
+    {
+      "title": "@thinkymachines Full app was built in @cursor_ai.\n\nIt does the following: \n(1) Download YouTube vid ...",
+      "link": "https://x.com/venturetwins/status/2077838585764704510",
+      "published": "2026-07-17T03:31:37+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "[@thinkymachines](https://x.com/thinkymachines) Full app was built in [@cursor\\_ai](https://x.com/cursor_ai).  \n  \nIt does the following:   \n(1) Download YouTube vid + convert to WAV  \n(2) Split long audio into batches  \n(3) Inkling reasons across audio + proposes candidates  \n(4) Correction pass checks that each one starts + ends in right place  \n(5) FFMPEG renders\n\n💬1🔄0❤️5👀892📊2",
+      "tags": [
+        "Inkling",
+        "播客剪辑",
+        "Cursor"
+      ],
+      "score": 50,
+      "summary": "Justine Moore描述用Cursor和Inkling构建播客剪辑应用。",
+      "fetched_at": "2026-07-17T05:12:06.028033+08:00"
+    },
+    {
+      "title": "Built a podcast clipping app with Inkling from @thinkymachines ✨\n\nThe model is exceptional at reason...",
+      "link": "https://x.com/venturetwins/status/2077837120430113156",
+      "published": "2026-07-17T03:25:48+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Built a podcast clipping app with Inkling from [@thinkymachines](https://x.com/thinkymachines) ✨  \n  \nThe model is exceptional at reasoning over long-form audio - so I have it listen to full episodes and direct FFMPEG on which clips to cut.  \n  \nYou can have it choose the best moments or search for specific topics 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077837078705156096/vid/avc1/1652x1454/4WP3tfFdEI4twOlX.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2077837120430113156/video/1)\n\n💬8🔄4❤️39👀2781📊14",
+      "tags": [
+        "Inkling",
+        "播客剪辑"
+      ],
+      "score": 55,
+      "summary": "Justine Moore展示用Inkling构建的播客剪辑应用。",
+      "fetched_at": "2026-07-17T05:12:06.028035+08:00"
+    },
+    {
+      "title": "As agents take on larger workloads across the organization, governance becomes part of the system de...",
+      "link": "https://x.com/LangChain/status/2077837336973336730",
+      "published": "2026-07-17T03:26:40+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "As agents take on larger workloads across the organization, governance becomes part of the system design, shaping how teams control spend, protect sensitive data, enforce internal policies, and manage access at scale.  \n  \nOn August 12th, we’ll break down the foundations teams need to govern production agents and where gateway infrastructure fits into the broader Agent Development Lifecycle.  \n  \n[events.langchain.com/register/build…](https://events.langchain.com/register/building-governed-agents/)\n\n💬1🔄0❤️8👀2081📊2",
+      "tags": [
+        "LangChain",
+        "Agent治理"
+      ],
+      "score": 60,
+      "summary": "LangChain宣布8月12日举办关于生产Agent治理的网络研讨会。",
+      "fetched_at": "2026-07-17T05:12:06.028038+08:00"
+    },
+    {
+      "title": "🔬 The Lab of the Future Should Feel Like a Data Center  with Andy Beam & Rafa Gómez-Bombarelli, Lil...",
+      "link": "https://x.com/latentspacepod/status/2077853879132422221",
+      "published": "2026-07-17T04:32:24+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "🔬 The Lab of the Future Should Feel Like a Data Center with Andy Beam & Rafa Gómez-Bombarelli, Lila Sciences[latent.space/p/the-lab-of-t…](https://latent.space/p/the-lab-of-the-future-should-feel)A  \n  \n[@LilaSciences](https://x.com/LilaSciences) CTO [@AndrewLBeam](https://x.com/AndrewLBeam) and CSO Rafa Gómez-Bombarelli explain why science is the last untapped source of internet-scale training data, how AI Science Factories turn wet labs into 24/7 token generators, what’s inside 10 trillion experimentally validated reasoning tokens, why breadth across biology, chemistry, and materials can produce better general reasoners, and what it will take to move from superhuman test-taking to genuinely creative scientific discovery.\n\n💬1🔄0❤️2👀344📊1",
+      "tags": [
+        "Lila Sciences",
+        "AI科学",
+        "数据工厂"
+      ],
+      "score": 70,
+      "summary": "Latent Space播客讨论Lila Sciences将湿实验室变为AI数据工厂。",
+      "fetched_at": "2026-07-17T05:12:06.028040+08:00"
+    },
+    {
+      "title": "Highly unexpected\n\nKimi K3 is an open model already competitive with Fable 5 and 5.6 Sol...\n\nAnd eve...",
+      "link": "https://x.com/itsPaulAi/status/2077837344430751909",
+      "published": "2026-07-17T03:26:41+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "Highly unexpected  \n  \nKimi K3 is an open model already competitive with Fable 5 and 5.6 Sol...  \n  \nAnd even better on some tasks!!!  \n  \n- 2.8T parameters  \n- 1M context window  \n- Frontier on coding/agentic  \n  \nLast but not least:  \n  \nK3 has the same pricing as Sonnet 5 🤯  \n  \nSo you have ~ Fable 5/GPT-5.6 Sol intelligence but MUCH cheaper.  \n  \nFirst in frontend design arena as well!  \n  \nOpen source keeps winning\n\n![Tweet Image](https://pbs.twimg.com/media/HNX2DM_XAAADBmy.jpg)\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nMeet Kimi K3\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077820634730749952/vid/avc1/1920x1080/-7JLoNiYg2boupuD.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Kimi_Moonshot/status/2077821890207547467/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077821890207547467)\n\n💬5🔄1❤️17👀3768📊6",
+      "tags": [
+        "Kimi K3",
+        "开源",
+        "性价比"
+      ],
+      "score": 75,
+      "summary": "Paul Couvert评论Kimi K3开源模型性能接近Fable 5，价格更低。",
+      "fetched_at": "2026-07-17T05:12:06.028042+08:00"
+    },
+    {
+      "title": "i talk to chatgpt more than i type to it at this point\n\nnew voice model really crossed a threshold",
+      "link": "https://x.com/sama/status/2077842579232895286",
+      "published": "2026-07-17T03:47:29+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "i talk to chatgpt more than i type to it at this point  \n  \nnew voice model really crossed a threshold\n\n💬727🔄79❤️2941👀148383📊759",
+      "tags": [
+        "Sam Altman",
+        "ChatGPT",
+        "语音模型"
+      ],
+      "score": 80,
+      "summary": "Sam Altman表示新语音模型使ChatGPT语音交互超越打字。",
+      "fetched_at": "2026-07-17T05:12:06.028044+08:00"
+    },
+    {
+      "title": "My notes on Kimi K3, plus some thoughts on what we can still learn from the pelican benchmark even w...",
+      "link": "https://x.com/simonw/status/2077852005129933247",
+      "published": "2026-07-17T04:24:57+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "My notes on Kimi K3, plus some thoughts on what we can still learn from the pelican benchmark even while it becomes further detached from how good the models are at the things that matter (like agentic tool calling across longer conversations) [simonwillison.net/2026/Jul/16/ki…](https://simonwillison.net/2026/Jul/16/kimi-k3/)\n\n💬12🔄8❤️85👀4894📊23",
+      "tags": [
+        "Kimi K3",
+        "pelican基准"
+      ],
+      "score": 80,
+      "summary": "Simon Willison分享Kimi K3笔记并讨论pelican基准的局限性。",
+      "fetched_at": "2026-07-17T05:12:06.028046+08:00"
+    },
+    {
+      "title": "Tomorrow: learn how to turn source files and research into polished work with ChatGPT.\n\nIn this free...",
+      "link": "https://x.com/TheRundownAI/status/2077856371756658929",
+      "published": "2026-07-17T04:42:18+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Tomorrow: learn how to turn source files and research into polished work with ChatGPT.  \n  \nIn this free, live 90-minute masterclass, our University Educator Nate Grahek will walk through using ChatGPT Work, GPT-5.6, and Codex to create a sleek, editable presentation.   \n  \nRSVP below:\n\n![Tweet Image](https://pbs.twimg.com/media/HNYCQ2UXsAAJxMp.jpg)\n\n💬1🔄0❤️2👀2299📊1",
+      "tags": [
+        "ChatGPT",
+        "演示制作"
+      ],
+      "score": 50,
+      "summary": "The Rundown AI推广使用ChatGPT制作演示文稿的免费课程。",
+      "fetched_at": "2026-07-17T05:12:06.028048+08:00"
+    },
+    {
+      "title": "More info &amp; register: \n\nhttps://t.co/ryH9yt7WOc",
+      "link": "https://x.com/TheRundownAI/status/2077856373920989531",
+      "published": "2026-07-17T04:42:18+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "More info & register:   \n  \n<https://t.co/ryH9yt7WOc>\n\n💬0🔄0❤️1👀434",
+      "tags": [
+        "ChatGPT",
+        "课程"
+      ],
+      "score": 30,
+      "summary": "The Rundown AI提供ChatGPT演示制作课程注册链接。",
+      "fetched_at": "2026-07-17T05:12:06.028050+08:00"
+    },
+    {
+      "title": "Earlier today we launched Bolt Slides. Now, we're giving away pairs of Bolt slides. The kind you wea...",
+      "link": "https://x.com/boltdotnew/status/2077835159802728652",
+      "published": "2026-07-17T03:18:01+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "Earlier today we launched Bolt Slides. Now, we're giving away pairs of Bolt slides. The kind you wear.  \n  \nReply to this tweet and we'll randomly pick 200 winners.  \n  \n(If you win, we wanna see pics of you rocking Bolt slides while making Bolt Slides 👟📊)\n\n![Tweet Image](https://pbs.twimg.com/media/HNXy9UWa0AALzGq.jpg)\n\n![bolt.new](https://pbs.twimg.com/profile_images/2018401342755364864/xVn-9oYv_normal.jpg)\n\nbolt.new@boltdotnew\n\nToday we're open sourcing Bolt Slides.  \n  \nNow any agent (Claude Code, Codex, Bolt) can make slides you couldn't even imagine before.  \n  \nWhat does that mean? Take a look 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2077770254441119744/pu/vid/avc1/1280x720/HWl9vHHzbL_RUaWU.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/boltdotnew/status/2077770386444341332/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/boltdotnew/status/2077770386444341332)\n\n💬211🔄14❤️80👀7051📊145",
+      "tags": [
+        "Bolt Slides",
+        "赠品"
+      ],
+      "score": 40,
+      "summary": "bolt.new为Bolt Slides发布举办赠品活动。",
+      "fetched_at": "2026-07-17T05:12:06.028052+08:00"
+    },
+    {
+      "title": "See the full Text Arena leaderboards at https://t.co/q0J9NAytLa",
+      "link": "https://x.com/arena/status/2077856218262208732",
+      "published": "2026-07-17T04:41:41+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "See the full Text Arena leaderboards at [arena.ai/leaderboard/te…](https://arena.ai/leaderboard/text)\n\n💬0🔄0❤️3👀987",
+      "tags": [
+        "Text Arena",
+        "排行榜"
+      ],
+      "score": 50,
+      "summary": "lmarena.ai提供Text Arena完整排行榜链接。",
+      "fetched_at": "2026-07-17T05:12:06.028054+08:00"
+    },
+    {
+      "title": "In the Text Arena, Kimi-K3 by @Kimi_Moonshot landed #9, with 1486 pts.\n\nThis is another significant ...",
+      "link": "https://x.com/arena/status/2077856214684455116",
+      "published": "2026-07-17T04:41:40+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "In the Text Arena, Kimi-K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) landed #9, with 1486 pts.  \n  \nThis is another significant improvement from Kimi-k2.6 (#38 -> #9).  \n  \n- Top 10 in Creative Writing, Coding and Instruction Following  \n- #1 in three occupations: Physical & Social Science, Legal & Government, and Medicine & Healthcare. Plus #3 Business, Management, & Financial Ops  \n  \nThe full model weights will be released by July 27.\n\n![Tweet Image](https://pbs.twimg.com/media/HNYG3jpagAAEVgb.jpg)\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nIntroducing Kimi K3: Open Frontier Intelligence  \n  \n🔹 2.8 Trillion Parameters, 1 Million Context, Native Multimodal  \n🔹 Kimi Delta Attention enables up to 6.3x faster decoding in million-token contexts  \n🔹 Attention Residuals deliver ~25% higher training efficiency at <2% additional cost  \n🔹 Built for long-horizon agentic coding and self-evolving workflows  \n  \nKimi K3 is now live on[Kimi.com](http://Kimi.com)xZUo, Kimi Work, Kimi Code, and the Kimi API.  \nOpen Weights by July 27, 2026.  \n  \n🔗 [platform.kimi.ai](http://platform.kimi.ai)XAqMw  \n🔗 Tech [kimi.com/blog/kimi-k3](http://kimi.com/blog/kimi-k3)MSNM1f\n\n![Tweet Image](https://pbs.twimg.com/media/HNXu0kobMAAPljb.png)![Tweet Image](https://pbs.twimg.com/media/HNXu2GWaYAAwH4w.png)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n\n💬4🔄1❤️65👀5540📊8",
+      "tags": [
+        "Kimi K3",
+        "Text Arena",
+        "排名"
+      ],
+      "score": 70,
+      "summary": "Kimi K3在Text Arena排名第9，较K2.6提升29位。",
+      "fetched_at": "2026-07-17T05:12:06.028056+08:00"
+    },
+    {
+      "title": "Check out the Pareto Frontier for Code Arena: Frontend https://t.co/I584K4VT5z",
+      "link": "https://x.com/arena/status/2077841094658961590",
+      "published": "2026-07-17T03:41:36+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Check out the Pareto Frontier for Code Arena: Frontend [arena.ai/leaderboard/co…](https://arena.ai/leaderboard/code/webdev/pareto)\n\n💬1🔄1❤️8👀2942📊2",
+      "tags": [
+        "Code Arena",
+        "Pareto前沿"
+      ],
+      "score": 50,
+      "summary": "lmarena.ai提供Code Arena前端Pareto前沿链接。",
+      "fetched_at": "2026-07-17T05:12:06.028058+08:00"
+    },
+    {
+      "title": "Kimi K3 from @Kimi_Moonshot has moved the Pareto Frontier for Code Arena: Frontend.",
+      "link": "https://x.com/arena/status/2077841092104646856",
+      "published": "2026-07-17T03:41:35+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Kimi K3 from [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) has moved the Pareto Frontier for Code Arena: Frontend.\n\n![Tweet Image](https://pbs.twimg.com/media/HNX5U0nb0AAu9ie.jpg)\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nBig news: Kimi-K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) is now #1 in the Frontend Code Arena with 1679 pts, surpassing Claude Fable 5.  \n  \nThis is a 17-place jump from Kimi-k2.6 (#18 -> #1).  \n  \nIn Frontend, Kimi-K3 ranked #1 in 6 of 7 domains: Brand & Marketing, Reference-Based Design, Data & Analytics, Consumer Product, Simulations, and Content Creation Tools, landing #2 only in Gaming behind Fable 5.  \n  \nThe full model weights will be released by July 27.  \n  \nCongrats to the [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) team on this major milestone!\n\n![Tweet Image](https://pbs.twimg.com/media/HNXpi8UaIAAM6Ag.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2077824029126504525)\n\n💬10🔄20❤️337👀24990📊36",
+      "tags": [
+        "Kimi K3",
+        "Code Arena",
+        "Pareto前沿"
+      ],
+      "score": 70,
+      "summary": "Kimi K3推动Code Arena前端Pareto前沿。",
+      "fetched_at": "2026-07-17T05:12:06.028060+08:00"
+    },
+    {
+      "title": "Check out @Kimi_Moonshot's Kimi-K3 official release: https://t.co/AnJUchkGxf",
+      "link": "https://x.com/arena/status/2077834713818169716",
+      "published": "2026-07-17T03:16:14+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Check out [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot)'s Kimi-K3 official release: [x.com/Kimi\\_Moonshot/…](https://x.com/Kimi_Moonshot/status/2077830229968683203?s=20)\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nIntroducing Kimi K3: Open Frontier Intelligence  \n  \n🔹 2.8 Trillion Parameters, 1 Million Context, Native Multimodal  \n🔹 Kimi Delta Attention enables up to 6.3x faster decoding in million-token contexts  \n🔹 Attention Residuals deliver ~25% higher training efficiency at <2% additional cost  \n🔹 Built for long-horizon agentic coding and self-evolving workflows  \n  \nKimi K3 is now live on[Kimi.com](http://Kimi.com)xZUo, Kimi Work, Kimi Code, and the Kimi API.  \nOpen Weights by July 27, 2026.  \n  \n🔗 [platform.kimi.ai](http://platform.kimi.ai)XAqMw  \n🔗 Tech [kimi.com/blog/kimi-k3](http://kimi.com/blog/kimi-k3)MSNM1f\n\n![Tweet Image](https://pbs.twimg.com/media/HNXu0kobMAAPljb.png)![Tweet Image](https://pbs.twimg.com/media/HNXu2GWaYAAwH4w.png)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n\n💬1🔄4❤️65👀43832📊7",
+      "tags": [
+        "Kimi K3",
+        "官方发布"
+      ],
+      "score": 60,
+      "summary": "lmarena.ai转发Kimi K3官方发布推文。",
+      "fetched_at": "2026-07-17T05:12:06.028062+08:00"
+    },
+    {
+      "title": "Kimi K3, 开源模型超越 Opus 已经成为标配！",
+      "link": "https://x.com/dongxi_nlp/status/2077836439702679924",
+      "published": "2026-07-17T03:23:06+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "Kimi K3, 开源模型超越 Opus 已经成为标配！\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nIntroducing Kimi K3: Open Frontier Intelligence  \n  \n🔹 2.8 Trillion Parameters, 1 Million Context, Native Multimodal  \n🔹 Kimi Delta Attention enables up to 6.3x faster decoding in million-token contexts  \n🔹 Attention Residuals deliver ~25% higher training efficiency at <2% additional cost  \n🔹 Built for long-horizon agentic coding and self-evolving workflows  \n  \nKimi K3 is now live on[Kimi.com](http://Kimi.com)xZUo, Kimi Work, Kimi Code, and the Kimi API.  \nOpen Weights by July 27, 2026.  \n  \n🔗 [platform.kimi.ai](http://platform.kimi.ai)XAqMw  \n🔗 Tech [kimi.com/blog/kimi-k3](http://kimi.com/blog/kimi-k3)MSNM1f\n\n![Tweet Image](https://pbs.twimg.com/media/HNXu0kobMAAPljb.png)![Tweet Image](https://pbs.twimg.com/media/HNXu2GWaYAAwH4w.png)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n\n💬3🔄0❤️6👀477📊3",
+      "tags": [
+        "Kimi K3",
+        "开源"
+      ],
+      "score": 40,
+      "summary": "马东锡NLP评论Kimi K3开源模型超越Opus。",
+      "fetched_at": "2026-07-17T05:12:06.028064+08:00"
     }
   ]
 }
