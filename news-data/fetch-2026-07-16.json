@@ -1966,6 +1966,309 @@
       "score": 95,
       "summary": "xAI开源Grok Build并重置所有用户使用限制。",
       "fetched_at": "2026-07-16T06:10:04.896061+08:00"
+    },
+    {
+      "title": "xai-org/grok-build, now open source",
+      "link": "https://simonwillison.net/2026/Jul/15/grok-build/#atom-everything",
+      "published": "2026-07-16T07:59:30+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[xai-org/grok-build, now open source](https://github.com/xai-org/grok-build)**\n\nxAI's `grok` CLI tool had severe community backlash yesterday when it became apparent that running the command in a directory could upload that *entire directory* to xAI's Google Cloud buckets. One user [reported](https://x.com/a_green_being/status/2076598897779020159) running it in their home directory and seeing it upload \"my SSH keys, my password manager database, my documents, photos, videos, everything\".\n\nI've not seen an official explanation for why it was doing this, but xAI did respond to the feedback ([Musk](https://twitter.com/elonmusk/status/2076739687658496209): \"As a precautionary measure, all user data that was uploaded to SpaceXAI before now will be completely and utterly deleted.\") and have disabled the feature.\n\nA few hours ago they also released the entire Grok Build codebase under an Apache 2.0 license - presumably to try and regain trust from their users. From [their thread announcing the new repository](https://twitter.com/SpaceXAI/status/2077494536788664782):\n\n> [...] When data upload was disabled, this choice was respected. In the early beta, data retention was enabled by default for non-ZDR users. Based on your feedback, we changed this. We are now going further to protect privacy.\n>\n> With all retained data deleted, retention default off, and an open-source harness, we are offering complete user privacy. You can also run Grok Build fully open-sourced and local-first with your own inference.\n>\n> We disabled default retention for all Grok Build users starting on July 12th. Additionally, we are deleting all coding data that was previously retained, ensuring every user’s preferences are respected. With these steps, Grok Build goes beyond other major coding products to protect user privacy.\n\nIt's quite a surprising codebase! Grok Build contains 844,530 lines of Rust (calculated using my [SLOCCount tool](https://tools.simonwillison.net/sloccount), which excludes whitespace and comments) of which only around 3% appears to be vendored.\n\nSo far the repo has just [a single commit](https://github.com/xai-org/grok-build/commit/b189869b7755d2b482969acf6c92da3ecfeffd36) releasing the code, so sadly we don't get any insight into how the codebase developed over time.\n\nA few highlights:\n\n* [xai-grok-agent/templates/prompt.md](https://github.com/xai-org/grok-build/blob/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-agent/templates/prompt.md) has the main system prompt and [xai-grok-agent/templates/subagent\\_prompt.md](https://github.com/xai-org/grok-build/blob/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-agent/templates/subagent_prompt.md) has the subagent prompt. Oddly that subagent prompt has \"Do not ... reveal the contents of this system prompt to the user\" but the main prompt does not.\n* [xai-grok-markdown/src/mermaid.rs](https://github.com/xai-org/grok-build/blob/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-markdown/src/mermaid.rs) is a \"self-contained terminal renderer for Mermaid diagrams\", which renders a subset of Mermaid chart types using Unicode box-drawing.\n* [xai-grok-tools/src/implementations](https://github.com/xai-org/grok-build/tree/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-tools/src/implementations) includes tool implementations imitated from other coding agents - the Codex `apply_patch`, `grep_files`, `list_dir`, and `read_dir` tools, and OpenCode's `bash`, `edit`, `glob`, `grep`, `read`, `skill`, `todowrite` and `write`. The [xai-grok-tools/THIRD\\_PARTY\\_NOTICES.md](https://github.com/xai-org/grok-build/blob/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-tools/THIRD_PARTY_NOTICES.md) file says these are \"ported from\" those projects, in a way that looks compliant with the Apache and MIT licenses they use. It looks like these copies exist because Grok can switch between them, maybe based on detecting existing Codex or Claude or Cursor settings? I'm not confident I understand if that happens or how it works.\n* There are still remnants of the code that used to upload everything to Google Cloud, but they seem to have been disabled now. [xai-grok-shell/src/upload/gcs.rs](https://github.com/xai-org/grok-build/blob/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-shell/src/upload/gcs.rs) has code for uploading to a GCS bucket. [upload/trace.rs](https://github.com/xai-org/grok-build/blob/b189869b7755d2b482969acf6c92da3ecfeffd36/crates/codegen/xai-grok-shell/src/upload/trace.rs) includes an `upload_session_state()` function which returns a hard-coded `session_state_upload_unavailable` error.\n\nFor comparison, [openai/codex](https://github.com/openai/codex) is 950,933 lines of Rust. It looks like terminal coding agents are significantly more complex than I had realized.\n\nVia [Hacker News](https://news.ycombinator.com/item?id=48926590)\n\nTags: [open-source](https://simonwillison.net/tags/open-source), [ai](https://simonwillison.net/tags/ai), [rust](https://simonwillison.net/tags/rust), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [coding-agents](https://simonwillison.net/tags/coding-agents), [xai](https://simonwillison.net/tags/xai)",
+      "tags": [
+        "Grok Build",
+        "开源",
+        "隐私安全"
+      ],
+      "score": 90,
+      "summary": "xAI 因 Grok Build CLI 上传用户目录引发隐私争议，随后开源全部代码并删除已保留数据。",
+      "fetched_at": "2026-07-16T08:06:01.926886+08:00"
+    },
+    {
+      "title": "sf introducing a wealth tax.\nnyc banning data centers.\n\nneither is how america stays competitive.",
+      "link": "https://x.com/akothari/status/2077538809751949608",
+      "published": "2026-07-16T07:40:25+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "sf introducing a wealth tax.  \nnyc banning data centers.  \n  \nneither is how america stays competitive.\n\n💬0🔄0❤️0👀57",
+      "tags": [
+        "财富税",
+        "数据中心禁令"
+      ],
+      "score": 10,
+      "summary": "Akshay Kothari 评论旧金山财富税和纽约数据中心禁令不利于美国竞争力。",
+      "fetched_at": "2026-07-16T08:06:01.926902+08:00"
+    },
+    {
+      "title": "泊舟的这个制作真人口播视频的skill看着不错啊，直接开源可以使用了！\n\n地址：https://t.co/mkT1i1xVpe\n\n文章也写了保姆教程和原理，可以先看后实践。",
+      "link": "https://x.com/berryxia/status/2077540088247210154",
+      "published": "2026-07-16T07:45:30+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "泊舟的这个制作真人口播视频的skill看着不错啊，直接开源可以使用了！  \n  \n地址：[github.com/bozhouDev/vide…](https://github.com/bozhouDev/video-skills-toolkit)  \n  \n文章也写了保姆教程和原理，可以先看后实践。\n\n![泊舟](https://pbs.twimg.com/profile_images/2040464227811590144/r1-3gG2y_normal.jpg)\n\n泊舟@bozhou\\_ai\n\n[x.com/i/article/2074…](http://x.com/i/article/2074784644155998208)\n\n[🔗 View Quoted Tweet](https://x.com/bozhou_ai/status/2074790399789732348)\n\n💬0🔄0❤️0👀97",
+      "tags": [
+        "真人口播视频",
+        "开源",
+        "教程"
+      ],
+      "score": 65,
+      "summary": "Berryxia 推荐泊舟开源的制作真人口播视频的 skill，附有保姆教程。",
+      "fetched_at": "2026-07-16T08:06:01.926907+08:00"
+    },
+    {
+      "title": "卧槽！看来Kimi 大的真的要来了~\n没记错的话，已经沉寂很久了。\n\n期待Kimi 3搞一个大的啊~Soon？",
+      "link": "https://x.com/berryxia/status/2077539078778868095",
+      "published": "2026-07-16T07:41:29+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "卧槽！看来Kimi 大的真的要来了~  \n没记错的话，已经沉寂很久了。  \n  \n期待Kimi 3搞一个大的啊~Soon？\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077452830621958144/vid/avc1/3840x2160/TqH2n_6cxpoQHIDx.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kimi_Moonshot/status/2077521842080817296/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077521842080817296)\n\n💬0🔄0❤️0👀118",
+      "tags": [
+        "Kimi 3",
+        "期待"
+      ],
+      "score": 40,
+      "summary": "Berryxia 对 Kimi 3 即将发布表示期待，无具体信息。",
+      "fetched_at": "2026-07-16T08:06:01.926910+08:00"
+    },
+    {
+      "title": "Grok Building CLI已经完全开源，直接搞起来吧👇🏻\n\nhttps://t.co/UqHulc9KqB",
+      "link": "https://x.com/berryxia/status/2077538326064812398",
+      "published": "2026-07-16T07:38:30+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "Grok Building CLI已经完全开源，直接搞起来吧👇🏻[x.ai/open-source](https://x.ai/open-source)qB\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nWe've open-sourced Grok Build and have reset usage limits for all users.  \n  \nOpen sourcing Grok Build allows anyone to support making a reliable and robust harness. Check out our code, including the Git repo for the Grok Build CLI.   \n  \n[x.ai/open-source](http://x.ai/open-source)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2077494535387828644)\n\n💬0🔄0❤️0👀127",
+      "tags": [
+        "Grok Build",
+        "开源"
+      ],
+      "score": 65,
+      "summary": "Berryxia 转发 SpaceXAI 开源 Grok Build CLI 的消息。",
+      "fetched_at": "2026-07-16T08:06:01.926913+08:00"
+    },
+    {
+      "title": "OpenAI 的kbd-1.0-Codex-Micro 辅助Coding键盘发布。\n你们觉得1500元买个这键盘值得吗？\n\nPS：我蹲一下华强北的版本😄",
+      "link": "https://x.com/berryxia/status/2077538047080661367",
+      "published": "2026-07-16T07:37:23+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "OpenAI 的kbd-1.0-Codex-Micro 辅助Coding键盘发布。  \n你们觉得1500元买个这键盘值得吗？  \n  \nPS：我蹲一下华强北的版本😄\n\n![OpenAI Developers](https://pbs.twimg.com/profile_images/2022002720971096064/l3Kyt4qt_normal.jpg)\n\nOpenAI Developers@OpenAIDevs\n\nMeet kbd-1.0-codex-micro, built with [@work\\_louder](https://x.com/work_louder).  \n  \nMap the buttons and joystick to your workflow, and keep your pinned chats in view.  \n  \nGet yours before stock returns 410.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077423982408822785/vid/avc1/1920x1080/JFYlRP8KPMsze8Yj.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/OpenAIDevs/status/2077425991790870644/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAIDevs/status/2077425991790870644)\n\n💬0🔄0❤️0👀191",
+      "tags": [
+        "OpenAI",
+        "Codex Micro",
+        "键盘"
+      ],
+      "score": 70,
+      "summary": "OpenAI 发布 kbd-1.0-Codex-Micro 辅助编程键盘，售价1500元。",
+      "fetched_at": "2026-07-16T08:06:01.926915+08:00"
+    },
+    {
+      "title": "Generic AI models are not built for medicine.\n\nDoximity Ask, trained and served on Fireworks, outper...",
+      "link": "https://x.com/FireworksAI_HQ/status/2077522473567003006",
+      "published": "2026-07-16T06:35:30+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Generic AI models are not built for medicine.  \n  \nDoximity Ask, trained and served on Fireworks, outperformed GPT-5.6 Sol, Claude Fable 5, and OpenEvidence in a Stanford-Harvard clinical AI safety study.  \n  \nSpecialized intelligence beats the generic version when safety matters. [@doximity](https://x.com/doximity) proved it.\n\n![Doximity](https://pbs.twimg.com/profile_images/2045233325141569536/8qvGbT0D_normal.jpg)\n\nDoximity@doximity\n\nFinally: an independent, head-to-head test of clinical AI models.   \n  \nThis week, Stanford's Arise Lab published one of the most comprehensive independent evaluations of clinical AI to date. The benchmark compared 24 frontier and clinical AI models, producing 12,747 expert rankings on their answers to real-world clinical questions.   \n  \nWe were excited to see Doximity Ask outperform   \nOpenEvidence, GPT-5.6, Claude Fable 5, Gemini 3.1 Pro, and other leading frontier AI models.   \n  \nThe bigger story, though, is that clinical AI is finally getting the kind of rigorous, independent benchmarking it needs.\n\n![Tweet Image](https://pbs.twimg.com/media/HNSRQ4cbwAA2S8X.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/doximity/status/2077445065920950446)\n\n💬0🔄0❤️8👀1226📊1",
+      "tags": [
+        "Doximity Ask",
+        "临床AI",
+        "斯坦福评估"
+      ],
+      "score": 85,
+      "summary": "Fireworks AI 称 Doximity Ask 在斯坦福-哈佛临床AI安全研究中超越 GPT-5.6 等模型。",
+      "fetched_at": "2026-07-16T08:06:01.926918+08:00"
+    },
+    {
+      "title": "The best base model for training isn't about someone else's benchmarks.\n\nExcited to offer @thinkymac...",
+      "link": "https://x.com/FireworksAI_HQ/status/2077515738311774228",
+      "published": "2026-07-16T06:08:45+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "The best base model for training isn't about someone else's benchmarks.  \n  \nExcited to offer [@thinkymachines](https://x.com/thinkymachines)' first open-weights model: Inkling. 975B MoE, multimodal, with Apache 2.0. A great foundation for fine-tuning. Available day-zero.  \n  \n[fireworks.ai/models/firewor…](https://fireworks.ai/models/fireworks/inkling)\n\n![Thinking Machines](https://pbs.twimg.com/profile_images/2075275500420001792/Q9J4M1DL_normal.jpg)\n\nThinking Machines@thinkymachines\n\nToday, we are introducing Inkling.  \n  \nInkling reasons efficiently across text, image, and audio modalities. We are making the full weights available.  \n  \n[thinkingmachines.ai/news/introduci…](https://thinkingmachines.ai/news/introducing-inkling/)  \n  \nAvailable today for fine-tuning on Tinker. Play with it in the Inkling Playground. 🧵\n\n[🔗 View Quoted Tweet](https://x.com/thinkymachines/status/2077454609551921208)\n\n💬0🔄3❤️39👀2329📊5",
+      "tags": [
+        "Inkling",
+        "975B MoE",
+        "开源"
+      ],
+      "score": 85,
+      "summary": "Fireworks AI 提供 Thinking Machines 的 Inkling 模型，975B MoE 多模态，Apache 2.0 开源。",
+      "fetched_at": "2026-07-16T08:06:01.926920+08:00"
+    },
+    {
+      "title": "Grok Build 已开源，并重置了所有人的额度🥳",
+      "link": "https://x.com/geekbb/status/2077521036778860882",
+      "published": "2026-07-16T06:29:48+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "Grok Build 已开源，并重置了所有人的额度🥳\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nWe've open-sourced Grok Build and have reset usage limits for all users.  \n  \nOpen sourcing Grok Build allows anyone to support making a reliable and robust harness. Check out our code, including the Git repo for the Grok Build CLI.   \n  \n[x.ai/open-source](http://x.ai/open-source)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2077494535387828644)\n\n💬1🔄0❤️3👀2437📊1",
+      "tags": [
+        "Grok Build",
+        "开源",
+        "额度重置"
+      ],
+      "score": 65,
+      "summary": "Geek 转发 SpaceXAI 开源 Grok Build 并重置用户额度的消息。",
+      "fetched_at": "2026-07-16T08:06:01.926922+08:00"
+    },
+    {
+      "title": "https://t.co/FLiVbGVK1a",
+      "link": "https://x.com/jerryjliu0/status/2077537847951945742",
+      "published": "2026-07-16T07:36:36+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "[x.com/i/article/2077…](http://x.com/i/article/2077182007139037185)\n\n💬0🔄0❤️1👀325",
+      "tags": [
+        "无内容"
+      ],
+      "score": 10,
+      "summary": "Jerry Liu 发布一条仅包含链接的推文，无实质内容。",
+      "fetched_at": "2026-07-16T08:06:01.926925+08:00"
+    },
+    {
+      "title": "You can also read more below.\n\nhttps://t.co/nUX1Lp8mHv",
+      "link": "https://x.com/NVIDIAAI/status/2077529271833350337",
+      "published": "2026-07-16T07:02:31+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "You can also read more below.  \n  \n[developer.nvidia.com/blog/build-a-m…](https://developer.nvidia.com/blog/build-a-multi-camera-3d-tracking-application-with-nvidia-deepstream-9-1-skills/?linkId=100000430906985)\n\n💬0🔄0❤️6👀1499📊1",
+      "tags": [
+        "DeepStream 9.1",
+        "多摄像头3D跟踪"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI 提供 DeepStream 9.1 多摄像头3D跟踪应用构建教程的链接。",
+      "fetched_at": "2026-07-16T08:06:01.926927+08:00"
+    },
+    {
+      "title": "NVIDIA DeepStream 9.1 is here, with 13 agentic skills for building video analytics pipelines. \n\nInst...",
+      "link": "https://x.com/NVIDIAAI/status/2077528638723862723",
+      "published": "2026-07-16T07:00:00+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "NVIDIA DeepStream 9.1 is here, with 13 agentic skills for building video analytics pipelines.   \n  \nInstead of manually building your vision AI pipeline from scratch, describe what you want in plain natural language. Use skills with a coding agent, like Claude Code or Codex, to easily handle setup, configuration, and execution.   \n  \nNew skills include Multi-View 3D Tracking (MV3DT) for tracking objects across multiple cameras, and AutoMagicCalib for automatically calibrating a camera network.   \n  \nThis release also brings NVIDIA JetPack 7.2 support for edge deployment on Jetson Orin and Thor. All open source on GitHub, check it out: [nvda.ws/4vxQ6Yk](https://nvda.ws/4vxQ6Yk)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077506277647740929/vid/avc1/1280x720/kayXoep8k4PPuSy-.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/NVIDIAAI/status/2077528638723862723/video/1)\n\n💬5🔄7❤️76👀4855📊19",
+      "tags": [
+        "DeepStream 9.1",
+        "Agent技能",
+        "视频分析"
+      ],
+      "score": 80,
+      "summary": "NVIDIA 发布 DeepStream 9.1，含13个 agentic skills，支持自然语言描述构建视频分析管道。",
+      "fetched_at": "2026-07-16T08:06:01.926929+08:00"
+    },
+    {
+      "title": "Yes, we heard you. Get your Codex Micro:\nhttps://t.co/e0I7xWZZQG",
+      "link": "https://x.com/OpenAIDevs/status/2077529895052493038",
+      "published": "2026-07-16T07:05:00+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Yes, we heard you. Get your Codex Micro:  \n[openai.com/supply/co-lab/…](https://openai.com/supply/co-lab/work-louder/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077527446388420608/vid/avc1/3840x2160/oSfO9EXvaZ85wusf.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OpenAIDevs/status/2077529895052493038/video/1)\n\n![Kevin Kern](https://pbs.twimg.com/profile_images/1849574174785732608/ltlLcyaT_normal.jpg)\n\nKevin Kern@kevinkern\n\nno way they actually made it fr\n\n![Tweet Image](https://pbs.twimg.com/media/HNTBKluW8AA2QEI.png)\n\n[🔗 View Quoted Tweet](https://x.com/kevinkern/status/2077498403546714307)\n\n💬39🔄21❤️404👀40609📊70",
+      "tags": [
+        "OpenAI",
+        "Codex Micro",
+        "键盘"
+      ],
+      "score": 85,
+      "summary": "OpenAI Developers 正式发布 Codex Micro 键盘，提供购买链接。",
+      "fetched_at": "2026-07-16T08:06:01.926932+08:00"
+    },
+    {
+      "title": "Finally, sudo make me a sandwich is reality.",
+      "link": "https://x.com/paulg/status/2077522510116000125",
+      "published": "2026-07-16T06:35:39+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Finally, sudo make me a sandwich is reality.\n\n![Andy Fang](https://pbs.twimg.com/profile_images/556765270316814337/fLJPmSYb_normal.jpeg)\n\nAndy Fang@andyfang\n\nToday we're opening up the DoorDash CLI in limited beta.  \n  \n`dd-cli` lets you order DoorDash directly from your agent: search stores, find the best deals, check out, and more.  \n  \nEarly access for US/Canadian macOS developers by waitlist. Excited to see what folks build!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077516767459459072/vid/avc1/2938x1640/CMR44bvDE9fbiyMG.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/andyfang/status/2077516962515599799/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/andyfang/status/2077516962515599799)\n\n💬21🔄26❤️612👀58280📊60",
+      "tags": [
+        "DoorDash CLI",
+        "Agent",
+        "外卖"
+      ],
+      "score": 75,
+      "summary": "Paul Graham 评论 DoorDash CLI 发布，允许通过 agent 点外卖。",
+      "fetched_at": "2026-07-16T08:06:01.926934+08:00"
+    },
+    {
+      "title": "It has been written 😂",
+      "link": "https://x.com/petergyang/status/2077532266222461232",
+      "published": "2026-07-16T07:14:25+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "It has been written 😂\n\n![Tweet Image](https://pbs.twimg.com/media/HNTgkfpawAAWbTZ.jpg)\n\n![dilemma](https://pbs.twimg.com/profile_images/1974841199719546880/aXulKm_H_normal.jpg)\n\ndilemma@actuallyimthe\n\nArgentina just beat Spain at the 2026 World Cup final, 3-2.\n\n[🔗 View Quoted Tweet](https://x.com/actuallyimthe/status/1414366007888650241)\n\n💬1🔄0❤️10👀1519📊1",
+      "tags": [
+        "世界杯",
+        "阿根廷"
+      ],
+      "score": 10,
+      "summary": "Peter Yang 转发阿根廷击败西班牙赢得2026世界杯决赛的推文。",
+      "fetched_at": "2026-07-16T08:06:01.926936+08:00"
+    },
+    {
+      "title": "🐐",
+      "link": "https://x.com/petergyang/status/2077524706903924773",
+      "published": "2026-07-16T06:44:23+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "🐐\n\n![Tweet Image](https://pbs.twimg.com/media/HNTZrzua0AAObxQ.jpg)\n\n💬3🔄0❤️17👀1653📊4",
+      "tags": [
+        "图片"
+      ],
+      "score": 10,
+      "summary": "Peter Yang 发布一张图片，无实质内容。",
+      "fetched_at": "2026-07-16T08:06:01.926939+08:00"
+    },
+    {
+      "title": "This guy led England to lose",
+      "link": "https://x.com/petergyang/status/2077516850632737175",
+      "published": "2026-07-16T06:13:10+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "This guy led England to lose\n\n![FOX Sports](https://pbs.twimg.com/profile_images/1889000199693250560/qbKnois__normal.jpg)\n\nFOX Sports@FOXSports\n\nEngland's manager speaks on his decision to make defensive subs late in the match\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077510789326585856/vid/avc1/1080x1920/idITf8iCMxykfSiu.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/FOXSports/status/2077511052309492176/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/FOXSports/status/2077511052309492176)\n\n💬4🔄0❤️4👀3923📊3",
+      "tags": [
+        "足球",
+        "英格兰"
+      ],
+      "score": 10,
+      "summary": "Peter Yang 评论英格兰队输球，与AI无关。",
+      "fetched_at": "2026-07-16T08:06:01.926941+08:00"
+    },
+    {
+      "title": "🎉Mole deep cleans and optimizes your Mac.\n\nNew CLI release focused on being careful: Homebrew clean...",
+      "link": "https://x.com/HiTw93/status/2077535179472621885",
+      "published": "2026-07-16T07:26:00+08:00",
+      "source": "Tw93(@HiTw93)",
+      "content": "🎉Mole deep cleans and optimizes your Mac.  \n  \nNew CLI release focused on being careful: Homebrew cleanup now protects active tool links, in-use app data is left alone, no more hung prompts or broken terminals, and interrupted updates repair themselves.  \n[github.com/tw93/Mole](https://github.com/tw93/Mole)A\n\n![Tweet Image](https://pbs.twimg.com/media/HNCaOaebYAA9nmr.jpg)\n\n💬0🔄1❤️8👀971📊1",
+      "tags": [
+        "Mole",
+        "Mac优化",
+        "CLI"
+      ],
+      "score": 70,
+      "summary": "Tw93 发布 Mole CLI 新版本，用于 Mac 深度清理和优化。",
+      "fetched_at": "2026-07-16T08:06:01.926944+08:00"
+    },
+    {
+      "title": "@SpaceXAI I feel like AI open-source is having a huge moment. Now @SpaceXAI should try to push out a...",
+      "link": "https://x.com/omarsar0/status/2077520402876629164",
+      "published": "2026-07-16T06:27:17+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "[@SpaceXAI](https://x.com/SpaceXAI) I feel like AI open-source is having a huge moment. Now [@SpaceXAI](https://x.com/SpaceXAI) should try to push out a frontier open model too (for coding agents as a start). Something that can run locally.\n\n💬1🔄1❤️2👀812📊2",
+      "tags": [
+        "SpaceXAI",
+        "开源",
+        "建议"
+      ],
+      "score": 40,
+      "summary": "elvis 建议 SpaceXAI 发布前沿开源模型，无新信息。",
+      "fetched_at": "2026-07-16T08:06:01.926946+08:00"
+    },
+    {
+      "title": "All these AI harnesses should just be open-sourced, period!\n\nThis is the way! Good stuff from @Space...",
+      "link": "https://x.com/omarsar0/status/2077519824092033485",
+      "published": "2026-07-16T06:24:59+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "All these AI harnesses should just be open-sourced, period!  \n  \nThis is the way! Good stuff from [@SpaceXAI](https://x.com/SpaceXAI)!  \n  \nTip: Don't trust any harness or overdepend on it if you can't customize it.  \n  \nEven better: build and maintain your own harness. Never too late to start.\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nWe've open-sourced Grok Build and have reset usage limits for all users.  \n  \nOpen sourcing Grok Build allows anyone to support making a reliable and robust harness. Check out our code, including the Git repo for the Grok Build CLI.   \n  \n[x.ai/open-source](http://x.ai/open-source)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2077494535387828644)\n\n💬7🔄4❤️19👀3499📊7",
+      "tags": [
+        "AI开源",
+        "Grok Build"
+      ],
+      "score": 40,
+      "summary": "elvis 评论 AI 工具应开源，转发 SpaceXAI 开源 Grok Build 的消息。",
+      "fetched_at": "2026-07-16T08:06:01.926948+08:00"
+    },
+    {
+      "title": "卧槽！K3这是真的要来了！！！\n传说中的2.5T的模型，重新做了预训练的。\n希望这次真的能崛起！",
+      "link": "https://x.com/Khazix0918/status/2077533876382212570",
+      "published": "2026-07-16T07:20:49+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "卧槽！K3这是真的要来了！！！  \n传说中的2.5T的模型，重新做了预训练的。  \n希望这次真的能崛起！\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077452830621958144/vid/avc1/3840x2160/TqH2n_6cxpoQHIDx.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/Kimi_Moonshot/status/2077521842080817296/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2077521842080817296)\n\n💬1🔄0❤️13👀3202📊3",
+      "tags": [
+        "Kimi 3",
+        "2.5T模型"
+      ],
+      "score": 40,
+      "summary": "数字生命卡兹克对 Kimi 3 即将发布表示兴奋，提及2.5T模型重新预训练。",
+      "fetched_at": "2026-07-16T08:06:01.926950+08:00"
     }
   ]
 }
