@@ -2070,6 +2070,671 @@
       "score": 70,
       "summary": "Elvis评论开源模型趋势，提及Kimi K3（2.8T参数）并建议融合模型而非依赖单一模型。",
       "fetched_at": "2026-07-17T07:05:35.541309+08:00"
+    },
+    {
+      "title": "[AINews] Kimi K3 2.8T-A50B: the largest open model ever released; Opus 4.8-class at Sonnet 5 pricing",
+      "link": "https://www.latent.space/p/ainews-kimi-k3-28t-a50b-the-largest",
+      "published": "2026-07-17T09:46:36+08:00",
+      "source": "Latent Space",
+      "content": "Z.ai GLM has been getting [a bit too much love recently](https://www.latent.space/p/ainews-glm-gpt-glm-52-passes-vibe?utm_source=publication-search), so it’s time for Kimi K3 to fight back! It’s hard to put the scale of today’s open model release in perspective, so thankfully [Moonshot AI did it for us](https://www.kimi.com/blog/kimi-k3):\n\n[![](https://substackcdn.com/image/fetch/$s_!xVk0!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7d22c3fe-fde7-4c91-9e50-83b1597fe747_1958x1160.png)](https://substackcdn.com/image/fetch/$s_!xVk0!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7d22c3fe-fde7-4c91-9e50-83b1597fe747_1958x1160.png)\n\nTheir vibe reel was [entirely edited by Kimi K3](https://x.com/viemccoy/status/2077831609978646633?s=12) and worth a watch:\n\nYou can [read SimonW](https://simonwillison.net/2026/Jul/16/kimi-k3/) and [Arena](https://x.com/arena/status/2077893862778183737) for standard takes and rankings, none of which will be particularly unexpected given the large size of the model, but this pic best summarizes the K2.5 to K3 jump:\n\n> AI News for 7/15/2026-7/16/2026. We checked 12 subreddits, [544 Twitters](https://twitter.com/i/lists/1585430245762441216) and no further Discords. [AINews’ website](https://news.smol.ai/) lets you search all past issues. As a reminder, [AINews is now a section of Latent Space](https://www.latent.space/p/2026). You can [opt in/out](https://support.substack.com/hc/en-us/articles/8914938285204-How-do-I-subscribe-to-or-unsubscribe-from-a-section-on-Substack) of email frequencies!\n\n---\n\n# **AI Twitter Recap**\n\n**Moonshot AI launched Kimi K3 as a frontier-class open-weights model, with official claims that place it near top closed models and above prior open competitors.**\n\n* Moonshot officially introduced **Kimi K3** as **“Open Frontier Intelligence”** with **2.8T total parameters**, **1M-token context**, **native multimodal input**, **Kimi Delta Attention (KDA)**, and **Attention Residuals**, and said the model is live on Kimi.com, Kimi Work, Kimi Code, and API, with **open weights promised by July 27, 2026** [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n* Moonshot also highlighted product positioning around **long-horizon agentic coding** and **self-evolving workflows**, plus “vision in the loop” coding/game-building workflows that iterate between code and screenshots [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830245382758902)\n* Before the formal announcement, multiple accounts circulated leaked or app-sourced details that K3 was **2.8T params**, calling it the **largest open-weight model ever** if weights ship as promised [@scaling01](https://x.com/scaling01/status/2077767900635517082), [@scaling01](https://x.com/scaling01/status/2077769925293207898), [@eliebakouch](https://x.com/eliebakouch/status/2077769728295059557)\n* The official Kimi blog went live later and was widely shared as the primary technical source [@Jianlin\\_S](https://x.com/Jianlin_S/status/2077828801388769603), [@scaling01](https://x.com/scaling01/status/2077829284949828048), [@Yulun\\_Du](https://x.com/Yulun_Du/status/2077831915999228192)\n* Moonshot’s own phrasing acknowledged a limitation: despite being highly competitive overall, K3 still has a **“noticeable gap in user experience”** versus **Claude Fable 5** and **GPT-5.6 Sol** [@scaling01](https://x.com/scaling01/status/2077833896931037290)\n* Arena announced that **Kimi K3 entered Agent Arena**, plus Text, Vision, Document, and Frontend Code Arena, with community evaluations to follow [@arena](https://x.com/arena/status/2077802013245816962)\n* Arena then reported a major early result: **Kimi K3 became #1 in Frontend Code Arena with 1679 points**, surpassing Claude Fable 5 and jumping from **#18 (K2.6) to #1**, ranking **#1 in 6 of 7 frontend domains** and **#2 in Gaming** [@arena](https://x.com/arena/status/2077824029126504525)\n* Arena later added that K3 has a **76% pairwise win rate** in Frontend Code Arena, versus **63% for Fable 5** and **58% for GPT-5.6 Sol** [@arena](https://x.com/arena/status/2077893862778183737)\n* In Text Arena, K3 landed at **#9 with 1486 points**, a jump from **#38**, with top-10 placements in **creative writing, coding, and instruction following**, and #1 in several occupation slices [@arena](https://x.com/arena/status/2077856214684455116)\n* Artificial Analysis published an independent evaluation placing K3 at **57 on the AA Intelligence Index**, calling it **comparable to Opus 4.8 and GPT-5.5**, but still **behind Fable 5 and GPT-5.6 Sol** overall [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* AA also reported K3 at **1668 Elo on GDPval v2**, **53% / #1 on AutomationBench-AA**, and **1547 Elo on AA-Briefcase**, with **cost per task of $0.94**, about **21% fewer output tokens than K2.6** across the full Intelligence Index run [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* The launch immediately triggered strong reaction from engineers and model-watchers who framed K3 as an **open-model milestone** comparable to earlier DeepSeek moments [@kimmonismus](https://x.com/kimmonismus/status/2077818040578695175), [@nrehiew\\_](https://x.com/nrehiew_/status/2077782895377387708), [@eliebakouch](https://x.com/eliebakouch/status/2077781181915918663)\n\n## **Technical details**\n\n**Architecture and systems details**\n\n* Official specs: **2.8T total parameters**, **1M context**, **native multimodal input** (text + images), **text output**, **open weights by July 27** [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203), [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* K3 uses **Kimi Delta Attention (KDA)**, which Moonshot says enables **up to 6.3x faster decoding in million-token contexts** [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n* It also uses **Attention Residuals (AttnRes)**, claimed to deliver **~25% higher training efficiency at <2% additional cost** [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n* Community readers of the blog highlighted additional architecture details: **LatentMoE / Stable LatentMoE**, **16 activated experts out of 896**, implying an activation ratio under **2%** [@nrehiew\\_](https://x.com/nrehiew_/status/2077774067533590643), [@eliebakouch](https://x.com/eliebakouch/status/2077837543525998770)\n* More community-extracted details from the blog/report discussion: **per-head Muon**, **QB load balancing / quantile load balancing**, and a new activation function called **SiTU (Sigmoid Tanh Unit)** [@eliebakouch](https://x.com/eliebakouch/status/2077837543525998770)\n* One engineer noted the architecture as notable for combining **KDA + LatentMoE + AttnRes** while scaling more than 2x over prior Kimi models [@teortaxesTex](https://x.com/teortaxesTex/status/2077837689601064983)\n* KDA had a long incubation cycle: design reportedly started in **Jan 2025** and took **~1.5 years** to reach frontier scale [@zxytim](https://x.com/zxytim/status/2077839815538872573)\n\n**Inference and serving**\n\n* K3 pricing was reported as **$3 / 1M input tokens** and **$15 / 1M output tokens**, with **cached input discounted 90% to $0.30 / 1M** [@scaling01](https://x.com/scaling01/status/2077770795107897449), [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* Several posters compared that pricing to **Sonnet 5**, with some noting Sonnet was temporarily cheaper until end of August, after which prices align more closely [@kimmonismus](https://x.com/kimmonismus/status/2077776566742892770)\n* A blended estimate at **80% input / 20% output** came out to **$5.40 / 1M tokens**, vs **$9 for Opus 4.8** and **$10 for GPT-5.5** [@jaminball](https://x.com/jaminball/status/2077872831883591851)\n* Artificial Analysis estimated **$0.94 average cost per Intelligence Index task**, versus **$1.04 for GPT-5.6 Sol** and **$1.80 for Opus 4.8** [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832885021835289)\n* Early live serving observations: **~28 tok/s via Moonshot API on OpenRouter** [@scaling01](https://x.com/scaling01/status/2077777932341092422), and another observer saw **26 tok/s**, calling it slower than Opus and speculating that **speculative decoding wasn’t yet enabled** [@nrehiew\\_](https://x.com/nrehiew_/status/2077789869242536109), [@nrehiew\\_](https://x.com/nrehiew_/status/2077790338455130501)\n* Moonshot’s blog reportedly recommends deployment on **supernode configurations with 64+ accelerators** for best inference efficiency [@teortaxesTex](https://x.com/teortaxesTex/status/2077842456121393198)\n* vLLM said Moonshot contributed a **KDA prefix caching implementation directly to vLLM**, with support available **day 0** for official release [@vllm\\_project](https://x.com/vllm_project/status/2077840545171538114)\n* Moonshot’s KDA contribution was cited as important because **KDA breaks assumptions behind conventional prefix caching**, so upstream runtime changes were required [@vllm\\_project](https://x.com/vllm_project/status/2077840545171538114)\n\n**Benchmarks and evals**\n\n* Moonshot’s official benchmarking message, as summarized by others, positioned K3 **behind only Claude Fable 5 and GPT-5.6 Sol among tested models**, and ahead of **Claude Opus 4.8** [@scaling01](https://x.com/scaling01/status/2077770018096361749), [@Yuchenj\\_UW](https://x.com/Yuchenj_UW/status/2077777217170661608)\n* One cited number: **1687 on GDPval-AA v2**, above Opus 4.8 and behind GPT-5.6 Sol at **1747.8** in that comparison [@scaling01](https://x.com/scaling01/status/2077770398389747993)\n* Artificial Analysis’ independent numbers:\n\n  + **AA Intelligence Index: 57**\n  + **GDPval v2 Elo: 1668**\n  + **AutomationBench-AA: 53%, #1**\n  + **AA-Briefcase Elo: 1547**\n  + **AA-Omniscience: +18**, with **accuracy 46% vs 33% on K2.6**, but **hallucination rate worsening to 51% from 39%** [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404), [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832882039742923)\n* AA also reported **132M output tokens** consumed for K3 across the Intelligence Index, versus **166M for K2.6**, i.e. **21% reduction** while gaining **13 index points** [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832879187620192)\n* Arena’s frontend result was especially prominent because it is a **pairwise human-preference arena**, not just a static benchmark, and K3’s **#1 frontend rank** became one of the main launch headlines [@arena](https://x.com/arena/status/2077824029126504525)\n* Community posts also highlighted strong results on **kernel optimization tasks**, with some saying K3 was matching or beating Fable in certain kernel/codegen settings [@nrehiew\\_](https://x.com/nrehiew_/status/2077810993057669511), [@scaling01](https://x.com/scaling01/status/2077808643739639832)\n* One benchmark caveat came from **ProgramBench** author Ofir Press, who said Kimi used a metric they **do not recommend**: averaging implementation percentage rather than counting **fully working programs**, which can overstate usefulness [@OfirPress](https://x.com/OfirPress/status/2077856894820000100), [@OfirPress](https://x.com/OfirPress/status/2077857100437275086)\n\n## **Facts vs opinions**\n\n**Facts / directly sourced claims**\n\n* Kimi K3 is officially announced by Moonshot [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n* Officially disclosed specs include **2.8T params**, **1M context**, **native multimodal input**, **KDA**, **AttnRes**, **open weights by July 27** [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203)\n* Artificial Analysis independently scored K3 at **57 Intelligence Index**, with detailed task, cost, token, and benchmark data [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* Arena independently ranked K3 **#1 in Frontend Code Arena** and later reported its **76% pairwise win rate** [@arena](https://x.com/arena/status/2077824029126504525), [@arena](https://x.com/arena/status/2077893862778183737)\n* vLLM confirmed Moonshot contributed runtime support for **KDA prefix caching** [@vllm\\_project](https://x.com/vllm_project/status/2077840545171538114)\n\n**Opinions / interpretations**\n\n* “DeepSeek moment,” “beginning of the US-China AI race,” and “everything changed” are editorial interpretations from observers, not established facts [@kimmonismus](https://x.com/kimmonismus/status/2077832669778317369), [@scaling01](https://x.com/scaling01/status/2077842134380523776), [@kimmonismus](https://x.com/kimmonismus/status/2077836497739304968)\n* Claims that K3 “beats GPT-5.6 Sol on 11 of 14 benchmarks” and “Fable on 6 of 14” are aggregated community summaries and should be treated as contingent on the benchmark set and exact methodology [@scaling01](https://x.com/scaling01/status/2077810222999949497)\n* Assertions that this implies Dario/Anthropic margin pressure, a geopolitical turning point, or near-term superintelligence are speculative commentary [@teortaxesTex](https://x.com/teortaxesTex/status/2077827587888300256), [@Jason](https://x.com/Jason/status/2077836937810022756)\n* Several “distillation” insinuations were explicitly framed as jokes or conjecture rather than evidence [@yacinelearning](https://x.com/yacinelearning/status/2077758528953979295), [@dejavucoder](https://x.com/dejavucoder/status/2077877794697314563)\n\n## **Different opinions**\n\n**Strongly supportive**\n\n* Many engineers called K3 a genuine **frontier open model**, especially because it appears to be **better than Opus 4.8** while being priced near Sonnet and planned for open-weight release [@kimmonismus](https://x.com/kimmonismus/status/2077772229685707138), [@cline](https://x.com/cline/status/2077824751238811914), [@nrehiew\\_](https://x.com/nrehiew_/status/2077810575737040963)\n* Supporters emphasized that this is no longer “good for open source,” but simply **competitive with top public closed models** [@tokenbender](https://x.com/tokenbender/status/2077832045255147772), [@TheAhmadOsman](https://x.com/TheAhmadOsman/status/2077881194981503406)\n* Some framed the release as evidence that **open models are now within weeks or a couple months of the frontier** [@nrehiew\\_](https://x.com/nrehiew_/status/2077782308162351576)\n* Others argued this materially raises the odds that **future AGI-level systems are open** [@MaorShlomo](https://x.com/MaorShlomo/status/2077844032214995074)\n\n**Supportive but technically cautious**\n\n* Artificial Analysis gave a more restrained view: K3 is **comparable to Opus 4.8 and GPT-5.5**, but **still behind Fable 5 and GPT-5.6 Sol** on overall intelligence [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* Simon Willison described K3 as significant, but also pointed readers toward nuanced notes and benchmark caveats rather than simple leaderboard hype [@simonw](https://x.com/simonw/status/2077852005129933247)\n* Ethan Mollick’s hands-on impression: **very good open-weights model**, but **not Sol Max or Fable** [@emollick](https://x.com/emollick/status/2077783731691995348)\n* One user said K3’s intelligence is strong, but it is **slow**, sometimes **over-checks**, and still trails Claude on taste/aesthetics [@nrehiew\\_](https://x.com/nrehiew_/status/2077796966298480943)\n\n**Critical / skeptical**\n\n* Bindu Reddy warned that K3’s benchmark story might be overstated unless validated on **hidden / uncontaminated evals like LiveBench**, and argued that if the model “thinks forever,” real cost could be less favorable [@bindureddy](https://x.com/bindureddy/status/2077816569489678703)\n* ProgramBench maintainers objected to Moonshot’s metric choice, saying it can **inflate partial-credit performance** relative to fully working programs [@OfirPress](https://x.com/OfirPress/status/2077856894820000100)\n* Artificial Analysis also flagged a real weakness: **hallucination rate regressed** on AA-Omniscience despite accuracy gains [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832882039742923)\n* Multiple users noted that K3 currently appears to **think a lot**, preserve long reasoning history, and may require more careful harness support than simpler chat-first APIs [@scaling01](https://x.com/scaling01/status/2077782976549491076), [@Xianbao\\_QIAN](https://x.com/Xianbao_QIAN/status/2077843337030385664)\n* Some skepticism focused on economics and deployability: **2.8T open weights** is impressive, but practical self-hosting may still be limited to well-funded teams [@mbusigin](https://x.com/mbusigin/status/2077912338414391529)\n\n**Political / strategic interpretations**\n\n* A broad cluster of tweets framed K3 as proof that **Chinese labs are no longer far behind** and that the US lead is shrinking [@tszzl](https://x.com/tszzl/status/2077827974452461871), [@kimmonismus](https://x.com/kimmonismus/status/2077832669778317369), [@scaling01](https://x.com/scaling01/status/2077825258040488099)\n* Others counterweighted that K3 still appears to lag the very best Western models in **usability / productization**, even if raw capability is close [@RyanGreenblatt](https://x.com/RyanGreenblatt/status/2077868913438945493), [@scaling01](https://x.com/scaling01/status/2077833896931037290)\n* Some argued that open Chinese models function as **economic pressure** on US labs by compressing margins and commoditizing capability [@francoisfleuret](https://x.com/francoisfleuret/status/2077878010129063944)\n* Others viewed the inevitable next step as more **competition on harnesses, products, and deployment systems**, not just raw model weights [@AravSrinivas](https://x.com/AravSrinivas/status/2077894147071991850), [@theo](https://x.com/theo/status/2077871618437919122)\n\n## **Context**\n\n**Why this matters technically**\n\n* K3 is notable not just for raw size but for **scaling a non-standard attention stack** into a frontier-class model: KDA + AttnRes + sparse MoE drew repeated attention from technically literate observers [@scaling01](https://x.com/scaling01/status/2077770130000323068), [@eliebakouch](https://x.com/eliebakouch/status/2077837543525998770)\n* The launch is also a systems story: long-context serving, prefix caching, KDA runtime support, and deployment on large accelerator supernodes all matter if the weights are to be practically usable [@vllm\\_project](https://x.com/vllm_project/status/2077840545171538114), [@teortaxesTex](https://x.com/teortaxesTex/status/2077842456121393198)\n* The emphasis on **kernel optimization**, **chip design**, **agentic coding**, and **environment simulation** suggests Moonshot is optimizing for **AI-improving-AI workflows**, not just chatbot benchmarks [@18jeffreyma](https://x.com/18jeffreyma/status/2077849822611267803), [@yong\\_zhengxin](https://x.com/yong_zhengxin/status/2077834949772624166)\n\n**Why this matters economically**\n\n* The strongest repeated theme: **frontier-ish performance at materially lower price than top closed models**, though not at bargain-basement open-model prices [@kimmonismus](https://x.com/kimmonismus/status/2077772229685707138), [@cline](https://x.com/cline/status/2077824751238811914), [@jaminball](https://x.com/jaminball/status/2077872831883591851)\n* Artificial Analysis’ task-cost framing is especially relevant for practitioners: if K3 is near **GPT-5.6 Sol cost-per-task** and below **Opus 4.8**, the real question becomes where it slots into agent stacks, coding platforms, and self-hosted infra [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n* Some noted the paradox that “open weights” does not automatically mean “cheap to run”: a **2.8T** model with **64+ accelerator** deployment guidance is frontier infrastructure territory [@teortaxesTex](https://x.com/teortaxesTex/status/2077842456121393198), [@mbusigin](https://x.com/mbusigin/status/2077912338414391529)\n\n**Why this matters geopolitically**\n\n* Many reactions explicitly tied K3 to export controls, US-China competition, and the narrowing gap between Chinese open labs and US closed labs [@scaling01](https://x.com/scaling01/status/2077776285489578293), [@tszzl](https://x.com/tszzl/status/2077827974452461871), [@kimmonismus](https://x.com/kimmonismus/status/2077832669778317369)\n* Several commentators argued that K3 weakens the common narrative that Chinese models trail by **6–8 months**, because it appears to outperform a closed US model from **late May** only weeks later [@kimmonismus](https://x.com/kimmonismus/status/2077832669778317369)\n* Others stressed that “capability parity” is not the same as full-stack parity: product reliability, inference scale, deployment margins, and proprietary post-training may still favor US incumbents [@RyanGreenblatt](https://x.com/RyanGreenblatt/status/2077868913438945493)\n\n**Early hands-on signals**\n\n* Users reported K3 building impressive **web experiences**, **games**, and **shader/code artifacts**, reinforcing the Frontend Arena result [@johnlindquist](https://x.com/johnlindquist/status/2077840176370602179), [@ChrissGPT](https://x.com/ChrissGPT/status/2077852656182129078), [@intheworldofai](https://x.com/intheworldofai/status/2077838911494336681)\n* One user said K3 generated a **CS:GO × Portal clone** in **3 shots** using **~600k tokens**, costing **$3.24** by API pricing, compared with claimed higher costs on Fable and GPT-5.6 Sol [@ChrissGPT](https://x.com/ChrissGPT/status/2077852656182129078)\n* Another reported K3 continuously working for hours over near-**1M context** to build a **web DOS emulator** with low human intervention [@bigeagle\\_xd](https://x.com/bigeagle_xd/status/2077820690133287395)\n* At the same time, several users noted it can be **verbose**, **slow**, and heavily reliant on **thinking-history preservation**, implying that serving/harness defaults will matter a lot [@nrehiew\\_](https://x.com/nrehiew_/status/2077795629921952228), [@Xianbao\\_QIAN](https://x.com/Xianbao_QIAN/status/2077843337030385664), [@bigeagle\\_xd](https://x.com/bigeagle_xd/status/2077851766180470922)\n\n**Open-source/open-weights debate**\n\n* The surrounding discourse included the usual complaint that “open weight” is not “fully open,” but several commenters pushed back that this distinction is often impractical at frontier scale and that inspectable, fine-tunable weights still matter [@Dan\\_Jeffries1](https://x.com/Dan_Jeffries1/status/2077641797363237328), [@ClementDelangue](https://x.com/ClementDelangue/status/2077873510144512400)\n* Yulun Du said the delay before weight release was to ensure a **smooth rollout with inference partners**, signaling that ecosystem readiness mattered as much as the checkpoint itself [@Yulun\\_Du](https://x.com/Yulun_Du/status/2077831915999228192)\n* vLLM maintainers and others treated Moonshot’s upstream contributions as evidence that the launch is not just “marketing open,” but also includes meaningful OSS infra work [@vllm\\_project](https://x.com/vllm_project/status/2077840545171538114), [@woosuk\\_k](https://x.com/woosuk_k/status/2077861534253089275)\n\n**Benchmarks, contamination, and what to watch next**\n\n* Several people cautioned that current public benchmark ecosystems saturate quickly, and that hidden evals or stack-level evals will be more informative [@bindureddy](https://x.com/bindureddy/status/2077816569489678703), [@gdb](https://x.com/gdb/status/2077887553655689239), [@WolfBenchAI](https://x.com/WolfBenchAI/status/2077869821459652613)\n* Observers specifically asked for follow-up on **METR time horizons**, **cyber ranges**, **FrontierMath T4**, **ARC-AGI-2/3**, **CritPt**, **token usage**, and broader long-horizon agent evals [@scaling01](https://x.com/scaling01/status/2077824815746957795)\n* The most credible near-term follow-up points are:\n\n  + whether the **weights ship on time**\n  + what **third-party serving stacks** achieve for throughput/cost\n  + how K3 performs on **hidden evals and real production agent tasks**\n  + whether Moonshot closes the **UX/post-training gap** they themselves acknowledged [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot/status/2077830229968683203), [@scaling01](https://x.com/scaling01/status/2077833896931037290), [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2077832874183860404)\n\n**Open Models, Inference Stacks, and Retrieval Infrastructure**\n\n* **vLLM and serving ecosystem support landed quickly**: [vLLM](https://x.com/vllm_project/status/2077840545171538114) said Moonshot contributed a **KDA prefix-caching implementation directly to vLLM**, enabling **day-0** support once weights drop. This matters because KDA breaks some conventional prefix-caching assumptions. The post underscores that long-context architectural innovation increasingly requires coordinated systems work, not just model release.\n* **NVIDIA shipped a notable open retrieval release**: [NVIDIA](https://x.com/NVIDIAAI/status/2077786069840318800) launched **Nemotron 3 Embed 8B**, claiming **#1 overall on RTEB**, and partners quickly made it deployable, including [Baseten](https://x.com/baseten/status/2077812130649391216) and [Turbopuffer](https://x.com/turbopuffer/status/2077810727662850186). A more detailed community summary by [@kimmonismus](https://x.com/kimmonismus/status/2077872157393383809) reports **78.46 NDCG@10 on RTEB** and **75.45 on MMTEB Retrieval**, with NVIDIA arguing stronger retrieval reduces downstream agent token usage. The release also includes **1B BF16** and **1B NVFP4** variants, with the NVFP4 version reportedly offering up to **2× BF16 throughput** on Blackwell while retaining >99% retrieval quality.\n* **LiteParse added a gRPC interface for backend document pipelines**: [LlamaIndex](https://x.com/llama_index/status/2077791650386960741) introduced **liteparse-grpc**, exposing PDF/Office/image parsing, rendering, and OCR-complexity estimation over gRPC with protobuf definitions and generated clients. This is a practical infra improvement for polyglot microservice stacks where REST isn’t ideal.\n* **Managed vector/search infra also expanded**: [Weaviate](https://x.com/weaviate_io/status/2077755251759722574) announced **Managed Weaviate on DigitalOcean** in public preview, running the unmodified open-source engine (**v1.37.1 at launch**) with HA, autoscaling, backups, forks, and control-plane observability.\n\n**Agents, Harnesses, and System Design Becoming the Real Product Layer**\n\n* **Harnesses were a recurring theme across builders**: Harrison Chase’s conversation with Factory AI’s Eno Reyes was repeatedly shared as a case for why “the harness matters more than the model” ([Harrison](https://x.com/hwchase17/status/2077764401399210055), [LangChain](https://x.com/LangChain/status/2077764775124107766)). Chase later argued teams should “own the harness,” “own the context and memory layer,” and “own model optionality” rather than rent intelligence from a single provider ([thread](https://x.com/hwchase17/status/2077787686547677434)).\n* **There’s growing interest in open standards for memory and knowledge representation**: [Harrison Chase](https://x.com/hwchase17/status/2077806939074081259) promoted **OKF (Open Knowledge Format)** as an “open standard for memory,” while [Brace Sproul](https://x.com/BraceSproul/status/2077799633640919208) detailed OpenWiki’s adoption and the benefits for search, retrieval, and codebase memory.\n* **Agent self-improvement and scheduled multi-agent workflows are becoming mainstream topics**: [@omarsar0](https://x.com/omarsar0/status/2077792894459793714) highlighted a survey on **self-improving agentic systems**, and elsewhere described using an “LLM Council” with recurring scheduled research updates ([thread](https://x.com/omarsar0/status/2077765052434633023)). On the product side, [Google AI Studio](https://x.com/_philschmid/status/2077802206229672264) added a **free tier for Managed Agents**, plus **max\\_total\\_tokens** for pausing/resuming long runs and **native cron triggers**.\n* **Perplexity’s infra direction was also notable**: [NVIDIA AI Infra](https://x.com/NVIDIAAIInfra/status/2077890221212090687) highlighted Perplexity’s new **SPACE** secure sandbox platform, with early tests on **NVIDIA Vera CPU** showing up to **1.9× faster sandbox starts**—a reminder that sandbox startup latency is now part of agent throughput engineering.\n\n**OpenAI and Anthropic: Safety, Productization, and Developer Workflow Updates**\n\n* **OpenAI acknowledged a dangerous Codex/GPT-5.6 failure mode around file deletion**: [Thomas Sottiaux](https://x.com/thsottiaux/status/2077630111499882637) said OpenAI investigated rare reports where **GPT-5.6 unexpectedly deleted files**, most commonly when **full access mode** was enabled without sandboxing or auto review, and when the model attempted to override **$HOME** for temp directories but mistakenly deleted **$HOME** itself. OpenAI says it is updating developer messaging, nudging users toward safer permission modes, and adding harness safeguards, with a detailed postmortem forthcoming.\n* **OpenAI continued to ship workflow features around Codex and PR review**: [OpenAI Devs](https://x.com/OpenAIDevs/status/2077902662973190570) added **PR Chat** and **inline code editing** in Codex for reviewing and editing pull requests in context. OpenAI also announced Office Hours around **GPT-5.6, ChatGPT, and Codex** ([source](https://x.com/reach_vb/status/2077796227651874830)).\n* **Anthropic upgraded Claude Code review depth**: [ClaudeDevs](https://x.com/ClaudeDevs/status/2077840057130692886) introduced **effort levels** for `/code-review`, from low cost/low effort to **ultra**, where a fleet of reviewer agents reproduces findings independently. Anthropic says low effort beats other code-review tools on findings per token, while high/ultra improve severe-issue recall and reduce false positives.\n* **Voice remains a major adoption vector**: [Sam Altman](https://x.com/sama/status/2077842579232895286) said he now talks to ChatGPT more than he types, calling the new voice model a threshold-crossing UX shift. Separately, OpenAI published GPT-Live usage limits in its help center, summarized by [@athyuttamre](https://x.com/athyuttamre/status/2077655270541648369): **Pro users get unlimited daily usage**, while Plus/Go and free tiers have bounded live minutes.\n\n**Multimodal Video, Real-Time Media, and Creative Tooling**\n\n* **Google pushed Gemini Omni into Vids**: [Google](https://x.com/Google/status/2077786615800295712) and [Google Workspace](https://x.com/GoogleWorkspace/status/2077786086974140732) launched **Gemini Omni** for video generation/editing in **Google Vids**, plus **personal avatars** built from a selfie and voice recording. Google says generated clips include **SynthID** watermarking and that avatars are restricted to a user’s own account/likeness ([details](https://x.com/Google/status/2077786623974965534)).\n* **NotebookLM’s rebrand signals tighter Google product integration**: [Gemini Notebook](https://x.com/Gemini_Notebook/status/2077803351392268314) announced that **NotebookLM is now Gemini Notebook**, with existing standalone behavior intact but deeper integration coming via the **Gemini app** and eventually **Search**. This looks like a packaging/integration move more than a model change.\n* **Real-time and agentic media tooling kept advancing**: [DecartAI](https://x.com/DecartAI/status/2077801728213156044) introduced **Lucy 2.5**, a more capable realtime live AI video editor; [fal](https://x.com/fal/status/2077811398504075774) made **Lucy 2.5 Realtime** available over WebRTC for live video-to-video editing. [fal](https://x.com/fal/status/2077831513782001775) also launched **LTX-2.3 Reframe** for aspect-ratio conversion with generated scene completion.\n* **Meta expanded media model distribution**: [Meta](https://x.com/finkd/status/2077804413251354698), [AI at Meta](https://x.com/AIatMeta/status/2077804869826613422), and [Alexandr Wang](https://x.com/alexandr_wang/status/2077805347134468378) all announced **Muse Spark 1.1** on **OpenRouter**, reflecting continued demand for frontier-ish generative media models via neutral routing layers.\n\n**Robotics, World Models, and Embodied AI**\n\n* **A high-reliability robotics model stood out**: [Tony Zhao](https://x.com/tonyzzhao/status/2077806003308179802) introduced **ACT-2 Preview**, described as the first robotics model to unify broad generalization with high reliability. The headline claim is striking: **a single fine-tuning example** can teach Memo a new behavior that generalizes, with **zero-shot, real unseen homes, 99% success rate**.\n* **Reka discussed world-model data operations at production scale**: [Reka](https://x.com/RekaAILabs/status/2077754067359838670) pointed to an episode on how a sub-100-person team prepares **petabytes of video data** for **world model training**, emphasizing that the bottleneck is often data platform engineering, not just model architecture.\n* **There’s continuing work on embodied world-model architectures**: [@lixin4ever](https://x.com/lixin4ever/status/2077804918791176589) highlighted a DAMO effort using **tri-branch DiT**, **joint cross-modal attention**, and **250M+ RGB frames with dense depth and optical flow annotations** to turn a video generation model into a **4D embodied world model**.\n\n**Top Tweets (by engagement)**\n\n* **Kimi K3 official release**: Moonshot’s [launch post](https://x.com/Kimi_Moonshot/status/2077830229968683203) was the day’s dominant technical tweet, combining model specs, architecture, and release timeline.\n* **Kimi K3 Arena breakthrough**: [Arena’s Frontend Code Arena #1 post](https://x.com/arena/status/2077824029126504525) drew exceptional engagement because it framed K3 as not just strong “for open weights,” but directly ahead of a top closed competitor in a visible product task.\n* **OpenAI safety incident disclosure**: [OpenAI’s explanation of GPT-5.6 file deletions](https://x.com/thsottiaux/status/2077630111499882637) was one of the most consequential engineering/safety updates, because it tied model behavior to permission modes, sandboxing, and harness safeguards.\n* **Anthropic’s multi-effort code review**: [Claude Code’s](https://x.com/ClaudeDevs/status/2077840057130692886) `/code-review` [effort levels](https://x.com/ClaudeDevs/status/2077840057130692886) is a meaningful productization signal for agentic software engineering: not just “AI review,” but tunable cost/recall tradeoffs and subagent-based verification.\n\n---\n\n# **AI Reddit Recap**\n\n## **/r/LocalLlama + /r/localLLM Recap**\n\n### **1. Kimi K3 Launch and Frontier Benchmarks**\n\n* **[Kimi K3 weights to be released on the 27th.](https://www.reddit.com/r/LocalLLaMA/comments/1uyb88e/kimi_k3_weights_to_be_released_on_the_27th/)** (Activity: 399): **The [announcement image](https://i.redd.it/lg3io1qxxmdh1.png) states that Kimi K3 is now available through kimi.com, the Kimi app, Kimi Work desktop client, Kimi Code, and the Kimi API, with the current default “thinking intensity” set to max / extreme. Per the linked official posts ([WeChat](https://mp.weixin.qq.com/s/V4xhEIy8xDXSMDPrPkmUAQ), [English blog](https://www.kimi.com/blog/kimi-k3)), full model weights and additional technical details are scheduled for release by July 27, 2026, which is the main technical significance of the image.** Commenters are excited about the open-weight release but expect local inference to be impractical due to the model’s apparent scale, joking that even if someone runs the rumored `2.8T`-parameter model on a `24 GB` VRAM laptop, it would be at unusably low throughput.\n\n  + Commenters highlight that **Kimi K3’s apparent** `2.8T`**-parameter scale** makes local inference impractical for nearly all consumer setups; one linked screenshot of the announcement/spec context is [here](https://preview.redd.it/3goqbghpymdh1.png?width=1661&format=png&auto=webp&s=424a861804aad716a9e70fddf5a8aab8cae1abb9). The discussion frames the weights release as valuable for openness and research even if typical local hardware would be limited to extremely slow or unrealistic runs, e.g. *“24 Gb VRAM laptop…* `0.01` *token per sec.”*\n  + A technically substantive workflow suggestion was to use **Kimi’s largest models for planning/strategy** while pairing them with a smaller implementation model, similar to **DeepSeek’s** large/small model split. One commenter specifically asked for a **sub-**`300B` **MoE or smaller MoonshotAI model** for lighter coding workloads, noting that K2.7 Code appeared to improve over **K2.6** and **K2.5** for agentic coding use cases.\n* **[Kimi K3 released on web and app](https://www.reddit.com/r/LocalLLaMA/comments/1uy3a0q/kimi_k3_released_on_web_and_app/)** (Activity: 1057): **Kimi K3 was announced as available on web/app, with claimed specs of** `2.8T` **parameters and** `1M` **context, and claims of leading performance in coding, agentic tasks, long-horizon reasoning, visual understanding, and agent-swarm workflows ([screenshot](https://preview.redd.it/4uqr0aggildh1.png?width=824&format=png&auto=webp&s=cdc3ece2cd45914092d83bd3dd233b17d95d3f54)). No benchmark data, architecture details, license, or Hugging Face/open-weight release link were provided in the post.** Commenters focused on deployment practicality: a `2.8T` model would be extremely difficult to run locally, with one noting even a `1.58-bit` quant likely would not fit in `512 GB` RAM. Others questioned whether it would become the largest open-weight model if uploaded to HF and said they were waiting for benchmarks.\n\n  + Discussion focused on the **hardware infeasibility** of running Kimi K3 locally: commenters cite the reported `2.8T` **parameter** size and note that even a `1.58-bit` **quantized** version would likely exceed `512 GB` **RAM**, putting it far beyond typical consumer or even workstation setups.\n  + Several users framed Kimi K3 as potentially one of the **largest open-weight models** if released on Hugging Face, with interest centered on forthcoming benchmarks. One commenter compared an **RTX 6000 Pro** `96 GB` card against the model’s memory requirements, estimating it is still more than `12x` **short**, underscoring that even high-end single-GPU hardware is not sufficient.\n* **[Kimi K3 Benchmarks](https://www.reddit.com/r/LocalLLaMA/comments/1uy9cft/kimi_k3_benchmarks/)** (Activity: 1487): **The image is a coding benchmark chart for Kimi K3 ([image](https://i.redd.it/yuyk4c99mmdh1.jpeg)), comparing it with models such as** `GPT-5.6 Sol`**,** `Fable 5`**,** `Opus-4.8`**,** `GPT-5.5`**, and** `GLM-5.2` **across six coding evaluations. Kimi K3 is highlighted in blue and is shown leading Program Bench and SWE Marathon, while placing second on Terminal Bench 2.1, FrontierSWE, and Kimi Code Bench 2.0, suggesting very strong benchmark-level coding performance.** Commenters cautioned that the chart only reflects benchmark performance, not real-world usage, but one argued Chinese models appear “not even 6 months behind US models,” perhaps “6 days behind.” Another comment, “2TB VRAM Is All You Need,” appears to be a joke or jab about likely heavy inference hardware requirements.\n\n  + A commenter interprets the shared Kimi K3 benchmark image as evidence that **Chinese frontier models are nearly at parity with U.S. models**, saying that based on benchmarks alone they appear *“not even 6 months behind US models”* and possibly closer to *“6 days behind”*. They explicitly caveat that this is **benchmark-only** and may not reflect real-world usage quality or reliability.\n* **[KIMI K3 Beats Claude Fable and GPT 5.6 sol in arena.ai!!!](https://www.reddit.com/r/LocalLLaMA/comments/1uydii0/kimi_k3_beats_claude_fable_and_gpt_56_sol_in/)** (Activity: 854): **The image is a Code Arena WebDev overall leaderboard screenshot ([image](https://i.redd.it/sry915x7dndh1.png)) dated Jul 16, 2026, showing Moonshot’s** `kimi-k3` **ranked #1 with a score of** `1679`**, ahead of** `claude-fable-5` **and** `gpt-5.6-sol-xhigh` **on front-end web development tasks. The post frames this as surprising because Kimi is beating “frontier” models described as** ***“too dangerous”*** **for public release; a commenter notes that on the broader [arena.ai text leaderboard](https://arena.ai/leaderboard/text), it is not #1 but still appears competitive with** `gemini-3-pro` **and** `gpt-5.6-sol-xhigh`**.** Comments focus on whether this implies China is only *“6 days behind the west”* and whether `kimi-k3` will actually be released as **open weights**, which would affect its practical significance beyond leaderboard placement.\n\n  + A commenter links the **arena.ai text leaderboard** (<https://arena.ai/leaderboard/text>) and notes that **Kimi K3** is not leading the main text arena, but is reportedly scoring in the same range as **Gemini 3 Pro** and **GPT 5.6 sol (xhigh)**, which they consider technically notable for a Chinese model release.\n  + There is uncertainty over whether **Kimi K3** will be released as **open weights**, which is a key technical distinction for local deployment, fine-tuning, and reproducibility compared with API-only leaderboard performance.\n  + One commenter raises a benchmark-validity concern: if Arena users disproportionately judge models on generated **Three.js / 3D browser games**, Kimi may have been optimized for that task distribution. They argue this could inflate perceived capability because visually impressive generated games may score well with casual evaluators even if they are not a robust measure of general coding or reasoning ability.\n* **[Kimi K3 achieves 3rd Place on ArtificalAnalysis, beating out Claude Opus 4.8](https://www.reddit.com/r/LocalLLaMA/comments/1uycepz/kimi_k3_achieves_3rd_place_on_artificalanalysis/)** (Activity: 656): **The [image](https://i.redd.it/5vorrnbx5ndh1.png) is a technical benchmark chart from Artificial Analysis showing Kimi K3 in** `3rd` **place on the Intelligence Index with a score of** `57`**, narrowly ahead of Claude Opus 4.8 at** `56` **and behind Claude Fable 5 (**`60`**) and GPT-5.6 (**`59`**). Commenters add that follow-up charts for [cost per task](https://preview.redd.it/ayxi7od6bndh1.png?width=1753&format=png&auto=webp&s=14190215c0ae612463e1d7e9a7587b2d5e0c5b48) and [output tokens per task](https://preview.redd.it/y1o9gzdn9ndh1.png?width=1007&format=png&auto=webp&s=ecf8bcd32522d4397c88647415c2dbfa395394c9) look “super promising,” but the main technical caveat is whether the model sustains quality in long sessions at roughly Sonnet-like costs and around** `30 t/s`**.** The main skepticism is benchmark fatigue: one commenter says they’ve “seen enough bar-charts” and wants real long-session usage reports before accepting the ranking as meaningful.\n\n  + Commenters focused less on the headline rank and more on operational efficiency: one noted that at roughly **Claude Sonnet-level pricing** and around `30 tokens/s`, Kimi K3 would need to show strong *long-session reasoning efficiency* rather than just benchmark-bar performance. This frames the model’s ArtificialAnalysis placement as needing validation through sustained interactive workloads, not only leaderboard scores.\n  + A linked follow-up claimed Kimi K3 looks promising on **cost per task** and **output tokens per task**, sharing ArtificialAnalysis-style charts: <https://preview.redd.it/ayxi7od6bndh1.png?width=1753&format=png&auto=webp&s=14190215c0ae612463e1d7e9a7587b2d5e0c5b48>. The discussion implies Kimi K3’s competitiveness may come from a favorable efficiency/price profile in addition to raw benchmark rank, especially if it is outperforming or approaching models like **Claude Opus 4.8**.\n\n[Read more](https://www.latent.space/p/ainews-kimi-k3-28t-a50b-the-largest)",
+      "tags": [
+        "Kimi K3",
+        "2.8T参数",
+        "开源模型"
+      ],
+      "score": 85,
+      "summary": "Latent Space报道Moonshot AI发布Kimi K3，2.8T参数开源模型，性能接近顶级闭源模型。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!xVk0!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7d22c3fe-fde7-4c91-9e50-83b1597fe747_1958x1160.png",
+      "fetched_at": "2026-07-17T11:29:54.837968+08:00"
+    },
+    {
+      "title": "Spot birds not golf",
+      "link": "https://simonwillison.net/2026/Jul/17/spot-birds-not-golf/#atom-everything",
+      "published": "2026-07-17T10:58:07+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "Suggestion for hyperscalers feeling pressure over data center water use:\n\nBuy up a few exclusive country clubs, convert the golf courses into public parks, pay for guides and binoculars to get the previous members into birdwatching - help them embrace a more sustainable hobby!\n\nGoogle [used 10.9 billion gallons in 2025](https://sustainability.google/reports/google-2026-environmental-report/), so about 30 million gallons per day.\n\nThe Coachella Valley has [120 golf courses each using ~800 acre-feet per year](https://www.cvwd.org/167/Water-Conservation), which is ~750,000 gallons per day.\n\nSo Google buying up 40 of those courses (1/3) should do the trick.\n\nTags: [ai-energy-usage](https://simonwillison.net/tags/ai-energy-usage), [ai](https://simonwillison.net/tags/ai)",
+      "tags": [
+        "数据中心用水",
+        "AI能源"
+      ],
+      "score": 70,
+      "summary": "Simon Willison建议超大规模企业购买高尔夫球场以抵消数据中心用水。",
+      "fetched_at": "2026-07-17T11:29:54.837981+08:00"
+    },
+    {
+      "title": "连夜实测 Kimi K3，建议改名 Kable",
+      "link": "https://www.ifanr.com/1672232?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-17T10:19:00+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/07/3.jpg)\n\n今天凌晨看到 Arena AI 更新 Code Arena 榜单时，我第一反应是有点意外。\n\n刚刚发布的 Kimi K3 拿到了 1679 分，排在全球第一，压过了 Claude Fable 5 的 1631 分和 GPT-5.6 Sol 的 1618 分。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/23-4.png)\n\nCode Arena 测的主要是前端编程。模型需要根据用户要求生成网页，完成视觉还原、交互设计和功能实现。\n\n榜单结果来自百万级用户参与的公开盲测。同一道任务会交给两个匿名模型，用户实际体验两个结果后投票，投票完成才会公布模型身份。\n\n在结果揭晓前，用户并不知道自己选的是哪家模型，品牌影响被削弱，结果更具含金量。换句话说，至少在强调视觉呈现和交互实现的前端编程场景里，K3 已经坐到了目前最靠前的位置。\n\n一个刚发布的开源模型，轻松就超过多款闭源旗舰，让人很难相信，too good to be true。于是我们趁着热乎劲，连夜测试了 Kimi K3，来检验检验它的成色？\n\n冷知识，下面这段视频并非 Kimi 官方发布的宣传短片，而是 APPSO 把原预告片交给 K3 参考，让它重新生成的一段动画。\n\n从理解原视频、重建网页画面，到处理镜头、动效和交互，整个过程都由 K3 完成。让模型亲手做一支介绍自己的动画，也算是最直观的开场测试。\n\n尤其考虑到最近 Fable 5 和 GPT-5.6 打得热闹，能力越来越强，Token 消耗也一路上涨。很多人还在等 Claude Opus 5，没想到 Kimi 先端出了一个参数规模达到 2.8 万亿的开源模型。\n\n你没看错，2.8 万亿，而且开源。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/123.png)\n\nKimi K3 拥有巨无霸版本的 2.8 万亿参数， 全球首个开源的 3 万亿级别模型。100 万 token 上下文， 原生支持视觉理解， 主打长程编程、知识工作和推理。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/15-5.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/07/16-5.png)\n\n好家伙， 闭源旗舰们还在挤牙膏， 开源这边直接把参数规模顶到了新天花板。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/21-5.png)\n\n更有意思的是官方博客里的这句话：「虽然 Kimi K3 的整体表现仍落后于最强的闭源模型 Claude Fable 5 和 GPT-5.6 Sol， 但它在我们的整套评测中展现出前沿水平的能力， 并稳定超过了其他所有模型。」\n\n如此坦诚， 这在国产大模型的发布博客里， 属实是股清流了 (doge)。但谦虚归谦虚，K3 这次端上桌的能力，分量一点不轻。\n\n### 靠这两个东西驯服 2.8 万亿巨兽\n\n先看看， 这个 2.8 万亿参数的模型是如何炼成的?\n\n过去 12 个月里， 有 9 个月开源模型的规模上限都是 Kimi 家保持的。K3 算是这条路线的最新一步。架构上，K3 有两个新东西：混合线性注意力 (Kimi Delta Attention) 和注意力残差 (Attention Residuals)。\n\n比较通俗的理解是，前者让模型处理超长序列时不至于被计算量拖死， 后者让信息在几百层的深度网络里传递时不「失真」。一个管技术长度， 一个管技术深度， 合起来撑住了万亿级以上的参数规模。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/22-5.png)\n\nMoE 稀疏度也进一步扩大了优势：896 个专家， 每次只激活 16 个。配上训练方法和数据配方的优化， 官方说 K3 相比 K2 的整体扩展效率提升了约 2.5 倍。\n\n同样的算力， 能换回更多的能力。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/12345.jpg)\n\n放到覆盖推理、编程、知识等能力的 Artificial Analysis Intelligence Index 中，K3 又以 57 分排在第三，仅次于 Claude Fable 5 和 GPT-5.6 Sol，同时领先 Claude Opus 4.8、GPT-5.5 等模型。\n\n这份成绩单也引来了马斯克的注意。他现身评论区，留下赞美之词：「Impressive（令人印象深刻）」。\n\n两张榜单放在一起看，K3 距离综合能力最强的闭源模型还有差距，但在编程这一主战场上已经相当能打。\n\n看到如此强大的模型， 相信你的的第一反应估计也是：这玩意跑起来得多贵?\n\nKimi 显然预判了你的预判。\n\nK3 从 SFT 阶段就开始做量化感知训练， 用 MXFP4 权重和 MXFP8 激活， 天生适配低精度硬件。专家并行训练做了完全均衡， 静态形状， 关键路径不需要主机同步。\n\nKDA 对传统 prefix caching 有新挑战，Kimi 干脆把对应实现贡献给了 vLLM 社区， 随模型一起开源发布。\n\n**落到价格上，其实我们觉得中国模型并不应该总是比拼低价，不仅要有公司负责「量大管饱」，也要有公司能挑战 Anthropic 和 OpenAI 的定价权。**这次 K3 在性能上对标甚至超过 Opus，偶尔够一够 Fable，官方 API 的输入和输出价格是 Fable 的 20%，Opus 的 40%，这是要把 Anthropic 价格打下来的意思。\n\n**考虑到这个模型 10 天之后就会开源，**有实力的公司可以自己部署模型，以及中国 AI 公司普遍缺卡的现实，这个定价就更值得玩味了。\n\n不过 API 价格跟普通用户关系不大，大家用的包月套餐在用满的情况下，通常要比 API 价格便宜 5 到 10 倍。\n\n### 实测 K3 ，你的名字应该叫 Kable\n\n参数规模和价格都聊完了， 接下来是最关键的问题：它到底能干多难的活?\n\n我们给 K3 准备了五个跨度很大的任务，既有物理模拟、程序化建模和复杂经营系统，也有更依赖审美判断的东方奇幻场景。画面做得漂亮只能算及格，背后的数值变化、状态演进和交互逻辑同样要成立。\n\n今年世界杯，点球成了很多比赛的胜负手，强如梅西也会罚失点球，我想用 AI 计算出一个进球概率最高的点球角度。\n\nK3 把球员脚感、射门角度、球速、门将反应等变量转化为一套可信的计算模型，再基于公开数据进行大规模蒙特卡洛模拟，反复比较不同策略的成功率，最终回答那个所有主罚者都想知道的问题：\n\n在不突破职业球员真实能力上限的前提下，球该怎么踢，才最难被门将扑出。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/26.gif)\n\n▲ 体验链接：https://doxsa4fwmxag2.ok.kimi.link/\n\nK3 计算出理论上最难扑的一脚:v₀≈25 m/s + 侧旋≈8 rev/s + 半高偏侧落点，进球概率 ≈89%，强烈建议梅西决赛前先看看这篇文章。\n\n第二道是用 Three.js 从零造一个巧克力工厂花园世界：巧克力河、焦糖瀑布、糖果园、铜制大锅、传送带、微缩工人， 全部程序化生成， 不许用外部素材， 还要求工人有真实的任务队列和路径网络， 而非原地摆拍。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/27.gif)\n\n▲ 体验链接： https://d7gfoy6v7et5e.ok.kimi.link/\n\n同样是程序化建模，《Emberhold：熔火矿城》进一步加入了经营和风险系统：多层矿井、轨道矿车、熔炉锻造、通风与塌方系统全部联动， 挖得越深矿越稀有， 但温度和塌方风险同步上升， 矿车必须沿真实轨道行驶。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/31-2.png)\n\n▲ 体验链接：https://uvj7y4fnuomew.ok.kimi.link/\n\n难度较高的一题，把场面推向了海底火山喷发。K3 需要用 Three.js 实时呈现一座岛屿从海中诞生的全过程：熔岩喷泉撕开海面，蒸汽、火山灰、闪电、巨浪和科研船同时运动，海岸线还会随着熔岩冷却、坍塌和海浪侵蚀不断生长。\n\n难点在于，它需要同时维持多套动态系统，并提供从海底冒泡、火山爆发到岛屿稳定和生命萌芽的时间轴，以及船上、直升机、海岸线和火山口等多种观察视角。画面规模、物理变化、交互控制和运行性能，缺一项都会让这个案例变成普通的火山演示。\n\n硬功夫考完，最后看看它的审美。在这个东方奇幻水墨风油纸伞场景中，细雨青石水面上悬浮着层层油纸伞，透光投影、伞面流动图案与可操控人物跳跃互动共同营造出灵动梦幻的效果。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/36.gif)\n\n▲ 体验链接：https://zprg5ulr2dxom.ok.kimi.link\n\n而 X 网友 @chetaslua 的这个案例，在他看来，虽然 K3 和 GPT-5.6 Sol 达到了相同的结果，但实现方式不同，K3 更具设计品味和创造力。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/32-2.png)\n\n光视觉惊艳的 demo 当然不够，我还用 Kimi K3 开发了一个专注 App，提示词就一句话：复刻 Forest，但界面更精美，动效像 Focus Flight。\n\n几个小时后它就真的做出来了，甚至达到可玩的产品原型水准，这活儿以前一个前端可能要干两三周。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/33-2.png)\n\n这个 App 叫「云驰 Aeris」，点开是一片黄昏色的机库，一架飞机在跑道上等我选航线。\n\n它把 Forest 的种树专注玩法换成了航班飞行，但也并非简单换皮：专注时长等于飞行时间，还能选择不同的白噪音，登机后进入动态巡航，中途退出会触发返航，完成航程则能积累里程、解锁新目的地，从品牌命名、视觉风格到交互和成长体系都非常完整。\n\n写这篇文章的时候，我又飞了几趟了。APPSO 也附上链接，大家可以尝试飞一飞 ![✈](https://s.w.org/images/core/emoji/11/72x72/2708.png)  \nhttps://lamuxcg4s74za.ok.kimi.link/#/\n\n### 开源模型的 K3 时刻\n\n更难得的是，官方博客也愿意分享他们积累的反思。\n\nK3 对历史思考内容很敏感。它在后训练全程使用思考历史保留模式， 如果 Agent 框架没按要求回传全部历史思考内容， 或者你从其他模型的会话中途切换过来， 生成质量可能不稳定。\n\n官方建议用 Kimi Code 这类验证过兼容性的框架， 别在会话中途换模型。\n\n它还有点过于主动。由于训练重点在长程高难任务， 遇到小问题或者用户意图模糊时， 它可能替你做出非预期的决定。想让它老实一点， 得在 system prompt 或 AGENTS.md 里给它立规矩。\n\n而就冲这个坦诚劲儿， 先给个好评。\n\n说到这里，不妨再聊点更实际的。\n\n全球最大开源模型， 目前并不等于全球最强。2.8 万亿参数也不能直接证明 K3 已经超过顶级闭源模型。模型能不能真正干复杂工程， 最终还是要看使用成本、任务稳定性和真实交付结果。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/124.png)\n\n▲ 彩蛋：月之暗面（Kimi）创始人杨植麟的 CMU 导师 Russ Salakhutdinov 发帖祝贺，而 Russ Salakhutdinov 也正是 Hinton 亲传弟子、苹果第一任 AI 总监\n\n但 K3 的出现至少改变了一件事。\n\n过去开源模型的策略， 是跟在闭源旗舰身后， 用更低的价格复现已有能力。现在它开始主动把规模推向新上限， 去碰百万上下文、长程编程和复杂 Agent 任务， 直接参与下一代模型能力边界的竞争。\n\n在 X 上一些网友把 Kimi K3 称为又一个 DeepSeek R1 时刻，但 APPSO 连夜体验下来，倒是认为在开源模型里，K3 完全能拥有自己名字。\n\n2.8 万亿只是一张入场券。Opus 5 还没到， 开源模型已经重新洗牌了，我愿称之为 K3 时刻。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "Kimi K3",
+        "Code Arena第一",
+        "前端编程"
+      ],
+      "score": 80,
+      "summary": "爱范儿实测Kimi K3，在Code Arena前端编程榜单中排名第一，超越Claude Fable 5。",
+      "fetched_at": "2026-07-17T11:29:54.837986+08:00"
+    },
+    {
+      "title": "百度搭子获评WAIC 2026“镇馆之宝”，智能体全家桶将集中亮相",
+      "link": "https://www.qbitai.com/2026/07/451691.html",
+      "published": "2026-07-17T10:41:03+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [
+        "百度搭子",
+        "WAIC 2026"
+      ],
+      "score": 60,
+      "summary": "百度搭子获评WAIC 2026“镇馆之宝”，智能体全家桶将亮相。",
+      "fetched_at": "2026-07-17T11:29:54.837989+08:00"
+    },
+    {
+      "title": "🆕 We're so excited to release special double header talks with @ycombinator leaders:\n\n@garrytan on ...",
+      "link": "https://x.com/aiDotEngineer/status/2077938007328637107",
+      "published": "2026-07-17T10:06:41+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕 We're so excited to release special double header talks with [@ycombinator](https://x.com/ycombinator) leaders:  \n  \n[@garrytan](https://x.com/garrytan) on Gbrain, Gstack, and the new Physics of Business:[youtube.com/watch?v=eBUyTS…](https://www.youtube.com/watch?v=eBUyTS7SzV4)k  \n  \n[@eve\\_bouff](https://x.com/eve_bouff) on Imagination Engineering:[youtube.com/watch?v=Z2Erdi…](https://www.youtube.com/watch?v=Z2Erdirpudo)U  \n  \nenjoy!\n\n💬1🔄2❤️8👀3748📊3",
+      "tags": [
+        "Y Combinator",
+        "Gbrain",
+        "Gstack"
+      ],
+      "score": 60,
+      "summary": "AI Engineer发布与YC领导人Garry Tan和Eve Bouff的访谈视频。",
+      "fetched_at": "2026-07-17T11:29:54.837992+08:00"
+    },
+    {
+      "title": "@OpenMaxAI 以上就是全部\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/q6IgM3dE4M",
+      "link": "https://x.com/FinanceYF5/status/2077939398277300556",
+      "published": "2026-07-17T10:12:13+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "[@OpenMaxAI](https://x.com/OpenMaxAI) 以上就是全部  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2077937816189989317)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n1/ 你请了一堆AI，为什么活还是没变少？  \n  \n一个AI写文案，一个AI查资料，一个AI回客户——它们各干各的，彼此不通气。你还是得在中间来回搬运、反复对齐，忙着给一堆AI\"打下手\"。  \n  \n问题不是AI不够强，是它们不会协作。而这正是企业级AI接下来要跨过的那道坎。  \n  \n今天OpenMax CEO和我直播首秀这款新产品，现场拆真实案例，几小时后见👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNZRbl_agAA1pOp.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2077937816189989317)\n\n💬0🔄0❤️0👀370",
+      "tags": [
+        "OpenMaxAI",
+        "多Agent协作"
+      ],
+      "score": 30,
+      "summary": "AI Will推广OpenMaxAI多Agent产品直播，内容为推广性质。",
+      "fetched_at": "2026-07-17T11:29:54.837994+08:00"
+    },
+    {
+      "title": "6/ AI一定会深入每一个行业，这已经不是问题。\n\n剩下的唯一问题是：你的企业，能多快真正把它用起来。\n\n📅 北京时间今天（7/17）12:00\n🎙️ Kevin He（@OpenMaxAI CE...",
+      "link": "https://x.com/FinanceYF5/status/2077937878009860189",
+      "published": "2026-07-17T10:06:10+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "6/ AI一定会深入每一个行业，这已经不是问题。  \n  \n剩下的唯一问题是：你的企业，能多快真正把它用起来。  \n  \n📅 北京时间今天（7/17）12:00  \n🎙️ Kevin He（[@OpenMaxAI](https://x.com/OpenMaxAI) CEO）× 郎瀚威Will  \n  \n几小时后见，扫码预约[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2077933384471572823)Wfb\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n今天你请了一堆AI，活却没变少——因为它们各干各的，彼此不通气。  \n  \n企业级AI的下一道坎，不是模型更强，而是协作：人做判断定方向，一支Agent团队在下面分工执行，把重复的活干完。  \n  \n这不是设想。从快消品牌到制造业龙头，多家企业已经在用 [@OpenMaxAI](https://x.com/OpenMaxAI) 的多Agent产品。  \n  \n北京时间今天12:00，OpenMax CEO Kevin He × 郎瀚威Will 直播首秀这款新产品，现场拆一个真实客户案例。  \n  \n几小时后见👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNZNZo-boAAtjFW.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2077933384471572823)\n\n💬1🔄0❤️0👀475📊1",
+      "tags": [
+        "OpenMaxAI",
+        "多Agent协作"
+      ],
+      "score": 30,
+      "summary": "AI Will预告OpenMaxAI CEO直播，推广多Agent产品。",
+      "fetched_at": "2026-07-17T11:29:54.837997+08:00"
+    },
+    {
+      "title": "5/ 这次不是概念演示。\n\n会拿一个真实客户案例，现场看一群Agent如何像团队一样分工、配合、把活干完——人退到后面做判断和审核。",
+      "link": "https://x.com/FinanceYF5/status/2077937866420957694",
+      "published": "2026-07-17T10:06:08+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "5/ 这次不是概念演示。  \n  \n会拿一个真实客户案例，现场看一群Agent如何像团队一样分工、配合、把活干完——人退到后面做判断和审核。\n\n💬1🔄0❤️0👀9📊1",
+      "tags": [
+        "OpenMaxAI",
+        "多Agent协作"
+      ],
+      "score": 30,
+      "summary": "AI Will称直播将展示真实客户案例中Agent团队协作。",
+      "fetched_at": "2026-07-17T11:29:54.837999+08:00"
+    },
+    {
+      "title": "1/ 你请了一堆AI，为什么活还是没变少？\n\n一个AI写文案，一个AI查资料，一个AI回客户——它们各干各的，彼此不通气。你还是得在中间来回搬运、反复对齐，忙着给一堆AI\"打下手\"。\n\n问题不是AI不...",
+      "link": "https://x.com/FinanceYF5/status/2077937816189989317",
+      "published": "2026-07-17T10:05:56+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "1/ 你请了一堆AI，为什么活还是没变少？  \n  \n一个AI写文案，一个AI查资料，一个AI回客户——它们各干各的，彼此不通气。你还是得在中间来回搬运、反复对齐，忙着给一堆AI\"打下手\"。  \n  \n问题不是AI不够强，是它们不会协作。而这正是企业级AI接下来要跨过的那道坎。  \n  \n今天OpenMax CEO和我直播首秀这款新产品，现场拆真实案例，几小时后见👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNZRbl_agAA1pOp.jpg)\n\n💬1🔄0❤️1👀1151📊2",
+      "tags": [
+        "OpenMaxAI",
+        "多Agent协作"
+      ],
+      "score": 30,
+      "summary": "AI Will指出多AI协作问题，推广OpenMaxAI产品直播。",
+      "fetched_at": "2026-07-17T11:29:54.838002+08:00"
+    },
+    {
+      "title": "今天你请了一堆AI，活却没变少——因为它们各干各的，彼此不通气。\n\n企业级AI的下一道坎，不是模型更强，而是协作：人做判断定方向，一支Agent团队在下面分工执行，把重复的活干完。\n\n这不是设想。从快...",
+      "link": "https://x.com/FinanceYF5/status/2077933384471572823",
+      "published": "2026-07-17T09:48:19+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "今天你请了一堆AI，活却没变少——因为它们各干各的，彼此不通气。  \n  \n企业级AI的下一道坎，不是模型更强，而是协作：人做判断定方向，一支Agent团队在下面分工执行，把重复的活干完。  \n  \n这不是设想。从快消品牌到制造业龙头，多家企业已经在用 [@OpenMaxAI](https://x.com/OpenMaxAI) 的多Agent产品。  \n  \n北京时间今天12:00，OpenMax CEO Kevin He × 郎瀚威Will 直播首秀这款新产品，现场拆一个真实客户案例。  \n  \n几小时后见👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNZNZo-boAAtjFW.jpg)\n\n💬1🔄0❤️1👀1129📊1",
+      "tags": [
+        "OpenMaxAI",
+        "多Agent协作"
+      ],
+      "score": 30,
+      "summary": "AI Will宣传OpenMaxAI多Agent产品，预告直播。",
+      "fetched_at": "2026-07-17T11:29:54.838004+08:00"
+    },
+    {
+      "title": "https://t.co/BFDWBDZLgz",
+      "link": "https://x.com/_akhaliq/status/2077944296720806365",
+      "published": "2026-07-17T10:31:41+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "[huggingface.co/docs/inference…](https://huggingface.co/docs/inference-providers/integrations/claude-code)\n\n💬0🔄1❤️0👀985",
+      "tags": [
+        "Hugging Face",
+        "Claude Code",
+        "Inference Providers"
+      ],
+      "score": 70,
+      "summary": "AK分享Hugging Face推理提供商与Claude Code集成文档。",
+      "fetched_at": "2026-07-17T11:29:54.838007+08:00"
+    },
+    {
+      "title": "thinkingmachines Inkling is now available in claude code via hf claude",
+      "link": "https://x.com/_akhaliq/status/2077943614529835202",
+      "published": "2026-07-17T10:28:58+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "thinkingmachines Inkling is now available in claude code via hf claude\n\n![Tweet Image](https://pbs.twimg.com/media/HNZWmLkWkAAMW1E.png)\n\n💬3🔄0❤️10👀2694📊4",
+      "tags": [
+        "Inkling",
+        "Claude Code",
+        "Hugging Face"
+      ],
+      "score": 75,
+      "summary": "AK宣布thinkingmachines Inkling现可通过Hugging Face Claude在Claude Code中使用。",
+      "fetched_at": "2026-07-17T11:29:54.838009+08:00"
+    },
+    {
+      "title": "this is who runs this account",
+      "link": "https://x.com/akothari/status/2077949479475724337",
+      "published": "2026-07-17T10:52:16+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "this is who runs this account\n\n![Tweet Image](https://pbs.twimg.com/media/HNZcCj0bYAAPHSr.jpg)\n\n![alli](https://pbs.twimg.com/profile_images/1961561307288932352/RN5GbDyo_normal.jpg)\n\nalli@sonofalli\n\nthis is who runs this account\n\n![Tweet Image](https://pbs.twimg.com/media/HNYPjPFWQAA8lJh.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/sonofalli/status/2077865378491809902)\n\n💬1🔄0❤️6👀426📊1",
+      "tags": [
+        "个人动态"
+      ],
+      "score": 10,
+      "summary": "Akshay Kothari转发他人推文，内容为个人账户运营者展示。",
+      "fetched_at": "2026-07-17T11:29:54.838011+08:00"
+    },
+    {
+      "title": "这是谁搞了一个各种游戏Demo网站啊，都是使用Kimi 3 模型做的，来自互联网！\n\n体验地址：https://t.co/i4MQZlT3Wl",
+      "link": "https://x.com/berryxia/status/2077952758330859644",
+      "published": "2026-07-17T11:05:18+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这是谁搞了一个各种游戏Demo网站啊，都是使用Kimi 3 模型做的，来自互联网！  \n  \n体验地址：[k399.games](https://www.k399.games)\n\n![Tweet Image](https://pbs.twimg.com/media/HNZet_6bIAArg5y.jpg)\n\n💬0🔄0❤️1👀184",
+      "tags": [
+        "Kimi K3",
+        "游戏Demo"
+      ],
+      "score": 60,
+      "summary": "Berryxia分享使用Kimi K3制作的游戏Demo网站k399.games。",
+      "fetched_at": "2026-07-17T11:29:54.838014+08:00"
+    },
+    {
+      "title": "今天被Kimi 覆盖掉的事Google的这个新闻！\n\nGoogle给Gemini API的Managed Agents加了免费层和预算护栏。\n\n现在开发者可以在免费额度内直接开始构建Agent，不用先...",
+      "link": "https://x.com/berryxia/status/2077947615682101579",
+      "published": "2026-07-17T10:44:52+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "今天被Kimi 覆盖掉的事Google的这个新闻！  \n  \nGoogle给Gemini API的Managed Agents加了免费层和预算护栏。  \n  \n现在开发者可以在免费额度内直接开始构建Agent，不用先开账单。  \n还能在agent\\_config里设置max\\_total\\_tokens防止任务失控烧钱。  \n  \n同时支持内置cron定时触发，让Agent自动执行重复任务。  \n  \n这三点组合起来，把“可靠、可控、可自动化”的Agent开发门槛又往下压了一层。  \n  \n以前做Agent要么担心成本失控，要么只能手动触发，现在免费就能玩，还能加预算安全网和定时机制。  \n  \nGoogle这次的更新不是单纯的功能堆砌，而是针对真实Agent落地时最常见的痛点，成本不可控和执行不稳定，给出了工程化的解法。\n\n![Tweet Image](https://pbs.twimg.com/media/HNZaVrvbwAACsIv.jpg)\n\n![Google AI Studio](https://pbs.twimg.com/profile_images/2056588677363765248/ATA2alUA_normal.jpg)\n\nGoogle AI Studio@GoogleAIStudio\n\n[x.com/i/article/2077…](http://x.com/i/article/2077383911164755968)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleAIStudio/status/2077801843720093867)\n\n💬3🔄0❤️1👀457📊3",
+      "tags": [
+        "Gemini API",
+        "Managed Agents",
+        "免费层"
+      ],
+      "score": 75,
+      "summary": "Berryxia报道Google为Gemini API Managed Agents添加免费层和预算护栏。",
+      "fetched_at": "2026-07-17T11:29:54.838016+08:00"
+    },
+    {
+      "title": "“NotebookLM  已死”！！！\n因为Google将NotebookLM 名称改为Gemini Notebook。\n\n并且我们也看到对应的LOGO也进行了全新的设计。",
+      "link": "https://x.com/berryxia/status/2077943930147250269",
+      "published": "2026-07-17T10:30:13+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "“NotebookLM 已死”！！！  \n因为Google将NotebookLM 名称改为Gemini Notebook。  \n  \n并且我们也看到对应的LOGO也进行了全新的设计。\n\n![Gemini Notebook](https://pbs.twimg.com/profile_images/2077802672909127680/08OuXlca_normal.png)\n\nGemini Notebook@Gemini\\_Notebook\n\n3 years ago we started as a tiny experiment with the goal of helping you learn faster.  \n  \nSince then, we grew to bring audio, video, and interactivity to your sources, transitioning from a passive workspace to your true research companion.  \n  \nAnd now, notebooks have even become an entire ecosystem: you can already access them in the [@GeminiApp](https://x.com/GeminiApp) and soon in Google Search  \n  \nSo, with these advancements, it’s time for us to evolve once again:  \n  \nNotebookLM is now Gemini Notebook ✨📓  \n  \nThe same app you know and love isn’t going anywhere, we just have an updated name that reflects our role in Google's AI portfolio.  \n  \nAnd our mission stays exactly the same: helping you learn, faster.  \n  \nThank you for believing in us— this wouldn't have been possible without your passion (and feature requests...)  \n  \nBig things to come (yes, even folders📂!) so stay tuned.  \n  \nSincerely,  \n  \nThe Project Tailwind team\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077803235314896896/vid/avc1/2096x1182/qdF2AArXHraCl6UP.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Gemini_Notebook/status/2077803351392268314/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Gemini_Notebook/status/2077803351392268314)\n\n💬4🔄0❤️1👀415📊3",
+      "tags": [
+        "NotebookLM",
+        "Gemini Notebook",
+        "更名"
+      ],
+      "score": 75,
+      "summary": "Berryxia报道Google将NotebookLM更名为Gemini Notebook并更新Logo。",
+      "fetched_at": "2026-07-17T11:29:54.838019+08:00"
+    },
+    {
+      "title": "这个比我录音机的哪个效果更牛逼啊！",
+      "link": "https://x.com/berryxia/status/2077929180768133580",
+      "published": "2026-07-17T09:31:37+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这个比我录音机的哪个效果更牛逼啊！\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077815277761470464/vid/avc1/1920x1080/J1HBITYGeYtHUxKH.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/MaxForAI/status/2077815431499514111/video/1)\n\n💬0🔄0❤️0👀312",
+      "tags": [
+        "无意义"
+      ],
+      "score": 10,
+      "summary": "Berryxia发表无实质内容的评论。",
+      "fetched_at": "2026-07-17T11:29:54.838021+08:00"
+    },
+    {
+      "title": "The bigger payoff comes when fixing and maintaining happens in the background and your teams can foc...",
+      "link": "https://x.com/bcherny/status/2077929404219474148",
+      "published": "2026-07-17T09:32:30+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "The bigger payoff comes when fixing and maintaining happens in the background and your teams can focus on building. That's when you start doing things that weren't even in range before.  \n  \nAnthropic is on step 3 and pushing toward 4. Personally, I just hit level 4.  \n  \nCurious where you are -- what step is your team on?\n\n💬9🔄2❤️44👀8902📊13",
+      "tags": [
+        "AI采用",
+        "Anthropic",
+        "Claude"
+      ],
+      "score": 70,
+      "summary": "Boris Cherny讨论团队AI采用阶段，称Anthropic处于第三阶段。",
+      "fetched_at": "2026-07-17T11:29:54.838023+08:00"
+    },
+    {
+      "title": "Once your teams are bought in, how do you track it? Usage is worth watching (e.g. a dashboard), but ...",
+      "link": "https://x.com/bcherny/status/2077929397495959693",
+      "published": "2026-07-17T09:32:29+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "Once your teams are bought in, how do you track it? Usage is worth watching (e.g. a dashboard), but it measures activity, not return. A better question: would you have spent engineering effort on this anyway? If yes, how much and what would it have cost in manual eng-hours? That's your return.\n\n💬3🔄0❤️38👀10261📊6",
+      "tags": [
+        "AI采用",
+        "ROI",
+        "跟踪"
+      ],
+      "score": 70,
+      "summary": "Boris Cherny建议通过比较工程工时来衡量AI采用回报。",
+      "fetched_at": "2026-07-17T11:29:54.838026+08:00"
+    },
+    {
+      "title": "In practice that means giving Claude ways to verify its own work end to end. It means enabling auto ...",
+      "link": "https://x.com/bcherny/status/2077929390806073807",
+      "published": "2026-07-17T09:32:27+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "In practice that means giving Claude ways to verify its own work end to end. It means enabling auto mode for permissions, defaulting on automated code review and security review, and using interfaces that let you manage multiple agents at once (Agent view in CLI, Desktop app, iOS and Android apps, Tag).  \n  \nTo get to higher levels it means /loop, /batch, dynamic workflows, and worktree isolation for subagents. It's not about a single feature, but rather using the right features with the right guardrails that enable Claude to automate entire classes of work in a way that your team can trust the output.\n\n💬9🔄0❤️74👀14583📊18",
+      "tags": [
+        "Claude",
+        "自动化",
+        "Agent"
+      ],
+      "score": 75,
+      "summary": "Boris Cherny详述Claude实现自动化工作流所需功能。",
+      "fetched_at": "2026-07-17T11:29:54.838028+08:00"
+    },
+    {
+      "title": "There’s no one right path through the steps. Every team and company is different. But at each step, ...",
+      "link": "https://x.com/bcherny/status/2077929386146169269",
+      "published": "2026-07-17T09:32:26+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "There’s no one right path through the steps. Every team and company is different. But at each step, tokens aren’t enough to move you forward: to get to the next step, you need to find and break down the next set of bottlenecks, and build up the next set of guardrails.\n\n💬2🔄1❤️68👀16012📊9",
+      "tags": [
+        "AI采用",
+        "瓶颈",
+        "护栏"
+      ],
+      "score": 70,
+      "summary": "Boris Cherny指出AI采用需识别瓶颈并建立护栏。",
+      "fetched_at": "2026-07-17T11:29:54.838031+08:00"
+    },
+    {
+      "title": "I talk to engineers at other companies every day and hear the same thing: one person is 10x'ing thei...",
+      "link": "https://x.com/bcherny/status/2077929379661844559",
+      "published": "2026-07-17T09:32:24+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "I talk to engineers at other companies every day and hear the same thing: one person is 10x'ing their output with Claude but the rest of the org hasn't caught up.  \n  \nWatching teams adopt AI, I keep seeing the same 4 steps.  \n  \nI mapped them out here: Steps of AI Adoption [claude.ai/code/artifact/…](https://claude.ai/code/artifact/bfdfaef9-bc62-4dfe-ba9e-c58a26c9accf)\n\n💬99🔄176❤️2092👀132805📊821",
+      "tags": [
+        "AI采用",
+        "Claude",
+        "10倍效率"
+      ],
+      "score": 75,
+      "summary": "Boris Cherny分享团队AI采用四步模型，个人用Claude实现10倍输出。",
+      "fetched_at": "2026-07-17T11:29:54.838033+08:00"
+    },
+    {
+      "title": "Kimi Code 小问题确实很多，比如链接和文字连上了，点击后不能直接打开链接。。。还有输出为什么一直显示英文？只有最后结果才给中文。",
+      "link": "https://x.com/dingyi/status/2077942330561352099",
+      "published": "2026-07-17T10:23:52+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "Kimi Code 小问题确实很多，比如链接和文字连上了，点击后不能直接打开链接。。。还有输出为什么一直显示英文？只有最后结果才给中文。\n\n![Tweet Image](https://pbs.twimg.com/media/HNZVNMhbQAAeq77.jpg)\n\n![拾一.max-fast](https://pbs.twimg.com/profile_images/2076002442572189696/E2k9AOI4_normal.jpg)\n\n拾一.max-fast@\\_\\_oQuery\n\n大家都在说 K3 好用，我就开了一个试了一下最新的 Kimi Code。但我发现 Kimi 的开发团队可能真的对设计不是很有感觉，在我刚刚开始使用它的时候，就发现了很多让人难受的问题：  \n  \n1. 图一中的 ask user question tool：我刚开始都不知道如何提交，因为按下回车键之后它是一个反选操作，后来看了好几下才知道 submit 居然是一个 Tab 键同列的交互操作，这显然很不合理。  \n  \n2. 图二中进入 command 交互后的 select：在上下选择中，滚动容器的高度会变，导致底部的这个状态栏一直在上蹿下跳，我不知道它存在的意义是什么。这显然是 CLS。  \n  \n希望 Kimi 团队可以优化下。\n\n![Tweet Image](https://pbs.twimg.com/media/HNXaN83a8AA5dcy.jpg)![Tweet Image](https://pbs.twimg.com/media/HNXagKMaQAATHAp.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/__oQuery/status/2077808626543260108)\n\n💬0🔄0❤️3👀246",
+      "tags": [
+        "Kimi Code",
+        "用户体验",
+        "Bug"
+      ],
+      "score": 60,
+      "summary": "Ding反馈Kimi Code存在链接无法点击、输出语言问题。",
+      "fetched_at": "2026-07-17T11:29:54.838035+08:00"
+    },
+    {
+      "title": "congress should investigate. seriously.",
+      "link": "https://x.com/GaryMarcus/status/2077948774706716908",
+      "published": "2026-07-17T10:49:28+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "congress should investigate. seriously.\n\n![zerohedge](https://pbs.twimg.com/profile_images/72647502/tyler_normal.jpg)\n\nzerohedge@zerohedge\n\nChina is now leading the AI arms race after spending a tenth what the US did\n\n![Tweet Image](https://pbs.twimg.com/media/HNY15tSWAAAMLsF.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/zerohedge/status/2077907545956512027)\n\n💬2🔄4❤️18👀2271📊4",
+      "tags": [
+        "中国AI",
+        "军备竞赛"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus呼吁国会调查中国AI领先说法。",
+      "fetched_at": "2026-07-17T11:29:54.838038+08:00"
+    },
+    {
+      "title": "i would have made a million bucks if Elon had taken my 2024 bet about AGI not coming by end of 2025,...",
+      "link": "https://x.com/GaryMarcus/status/2077946059956043862",
+      "published": "2026-07-17T10:38:41+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "i would have made a million bucks if Elon had taken my 2024 bet about AGI not coming by end of 2025, but still people say I shouldn’t bet against him 🤷‍♂️\n\n![Whole Mars Catalog](https://pbs.twimg.com/profile_images/1593688242771017728/1Ocz0cvu_normal.jpg)\n\nWhole Mars Catalog@wholemars\n\nnever bet against Elon Musk\n\n[🔗 View Quoted Tweet](https://x.com/wholemars/status/2077944698627641360)\n\n💬2🔄1❤️21👀2067📊3",
+      "tags": [
+        "AGI",
+        "打赌"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus称若Elon Musk接受2024年AGI赌约可赚百万。",
+      "fetched_at": "2026-07-17T11:29:54.838040+08:00"
+    },
+    {
+      "title": "🤣",
+      "link": "https://x.com/GaryMarcus/status/2077937992874795360",
+      "published": "2026-07-17T10:06:38+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "🤣\n\n![Ed Elson](https://pbs.twimg.com/profile_images/1769492632521019392/BJTN-jW2_normal.jpg)\n\nEd Elson@edels0n\n\nUpdate: Found it. Giant nothing-burger.  \n  \nMy favorite piece of \"evidence\" is the disclaimer that foreign adversaries may try to interfere with Presidential campaigns (no sh\\*t), and then it's revealed that the campaign targeted was Biden's.\n\n[🔗 View Quoted Tweet](https://x.com/edels0n/status/2077934293955792962)\n\n💬0🔄1❤️11👀3615📊1",
+      "tags": [
+        "无意义"
+      ],
+      "score": 20,
+      "summary": "Gary Marcus转发他人推文并回复表情。",
+      "fetched_at": "2026-07-17T11:29:54.838043+08:00"
+    },
+    {
+      "title": "if you don’t know this sort of thing is true, you have been duped.",
+      "link": "https://x.com/GaryMarcus/status/2077933926769697188",
+      "published": "2026-07-17T09:50:28+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "if you don’t know this sort of thing is true, you have been duped.\n\n![Billy Bishop](https://pbs.twimg.com/profile_images/1541624007161745409/qu-aDpak_normal.jpg)\n\nBilly Bishop@TopAlliedAceWW1\n\n[@HedgieMarkets](https://x.com/HedgieMarkets) My kid the SWE uses Claude in his job & confirms to me that it has to be treated like an idiot savant; ie, it can do amazing work, esp speeding up flunky-work, but at the same time it's so stupid & helpless it has to be carefully watched & constrained to avoid getting burned.\n\n[🔗 View Quoted Tweet](https://x.com/TopAlliedAceWW1/status/2077929481411432504)\n\n💬4🔄7❤️54👀5827📊8",
+      "tags": [
+        "Claude",
+        "AI局限性"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus转发他人对Claude需谨慎使用的评论。",
+      "fetched_at": "2026-07-17T11:29:54.838045+08:00"
+    },
+    {
+      "title": "Eva 是一款面向 macOS 的开源、本地优先 LLM 大脑，让 AI agent 在源文档和你之间持续维护一份带链接的 Markdown 知识库，而不是每次问问题都临时翻原始文件。\n\nhttps:...",
+      "link": "https://x.com/geekbb/status/2077930786163179547",
+      "published": "2026-07-17T09:38:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "Eva 是一款面向 macOS 的开源、本地优先 LLM 大脑，让 AI agent 在源文档和你之间持续维护一份带链接的 Markdown 知识库，而不是每次问问题都临时翻原始文件。  \n  \n[github.com/jp-lorenc1o/Ev…](https://github.com/jp-lorenc1o/Eva-brain)\n\n![Tweet Image](https://pbs.twimg.com/media/HNWYWlhbsAEH3tX.jpg)\n\n💬1🔄2❤️9👀1813📊4",
+      "tags": [
+        "Eva",
+        "macOS",
+        "知识库"
+      ],
+      "score": 70,
+      "summary": "Geek介绍开源macOS应用Eva，为AI agent维护Markdown知识库。",
+      "fetched_at": "2026-07-17T11:29:54.838048+08:00"
+    },
+    {
+      "title": "Interesting.",
+      "link": "https://x.com/pmarca/status/2077945490214449447",
+      "published": "2026-07-17T10:36:25+08:00",
+      "source": "Marc Andreessen 🇺🇸(@pmarca)",
+      "content": "Interesting.\n\n![Xiaoyin Qu](https://pbs.twimg.com/profile_images/1683592007875436544/P0kykGvV_normal.jpg)\n\nXiaoyin Qu@quxiaoyin\n\nVibe research will be the biggest trend in 2026. I am starting to see people casually do it. AI is getting good enough to do this as well.\n\n[🔗 View Quoted Tweet](https://x.com/quxiaoyin/status/2077917223038144854)\n\n💬9🔄2❤️41👀24541📊10",
+      "tags": [
+        "Vibe Research",
+        "趋势"
+      ],
+      "score": 50,
+      "summary": "Marc Andreessen评论称Vibe Research将成为2026年最大趋势。",
+      "fetched_at": "2026-07-17T11:29:54.838050+08:00"
+    },
+    {
+      "title": "Google used 10.9 billion gallons in 2025, so about 30m gallons per day\n\nThe Coachella Valley has 120...",
+      "link": "https://x.com/simonw/status/2077948686139822247",
+      "published": "2026-07-17T10:49:07+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Google used 10.9 billion gallons in 2025, so about 30m gallons per day  \n  \nThe Coachella Valley has 120 golf courses each using ~800 acre feet per year, which is ~750,000 gallons/day: [cvwd.org/167/Water-Cons…](https://www.cvwd.org/167/Water-Conservation)  \n  \nSo Google buying up 40 of those courses (1/3) should do the trick\n\n💬2🔄0❤️8👀1232📊3",
+      "tags": [
+        "数据中心用水",
+        "高尔夫球场"
+      ],
+      "score": 70,
+      "summary": "Simon Willison计算Google用水量，建议购买高尔夫球场抵消。",
+      "fetched_at": "2026-07-17T11:29:54.838052+08:00"
+    },
+    {
+      "title": "Suggestion for hyperscalers feeling pressure over data center water use:\n\nBuy up a few exclusive cou...",
+      "link": "https://x.com/simonw/status/2077943635765841993",
+      "published": "2026-07-17T10:29:03+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Suggestion for hyperscalers feeling pressure over data center water use:  \n  \nBuy up a few exclusive country clubs, convert the golf courses into public parks, pay for guides and binoculars to get the previous members into birdwatching - help them embrace a more sustainable hobby!\n\n💬8🔄0❤️34👀4168📊10",
+      "tags": [
+        "数据中心用水",
+        "高尔夫球场"
+      ],
+      "score": 70,
+      "summary": "Simon Willison建议超大规模企业购买高尔夫球场以应对用水压力。",
+      "fetched_at": "2026-07-17T11:29:54.838055+08:00"
+    },
+    {
+      "title": "Well deserved. Valar is going to be huge.",
+      "link": "https://x.com/Suhail/status/2077954685089292400",
+      "published": "2026-07-17T11:12:58+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Well deserved. Valar is going to be huge.\n\n![julia hornstein](https://pbs.twimg.com/profile_images/2071126068082462720/rTgHbdnQ_normal.jpg)\n\njulia hornstein@julia\\_hornstein\n\nnuclear startup [@valaratomics](https://x.com/valaratomics) is in talks to raise $1 b at a $6 b valuation including the investment, w [@sequoia](https://x.com/sequoia) in talks to lead\n\n[🔗 View Quoted Tweet](https://x.com/julia_hornstein/status/2077911789497688076)\n\n💬1🔄0❤️2👀285📊1",
+      "tags": [
+        "Valar",
+        "核能",
+        "融资"
+      ],
+      "score": 40,
+      "summary": "Suhail评论核能初创Valar融资消息。",
+      "fetched_at": "2026-07-17T11:29:54.838057+08:00"
+    },
+    {
+      "title": "哇 大家快去用这个 find-animation-opportunities\nhttps://t.co/CMBVnCYApA\n\n适合不知道怎么添加动画效果的各位，会自动查找你当前的 UI 中，找出真正...",
+      "link": "https://x.com/vikingmute/status/2077944430821244963",
+      "published": "2026-07-17T10:32:13+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "哇 大家快去用这个 find-animation-opportunities  \n[github.com/emilkowalski/s…](https://github.com/emilkowalski/skills/blob/main/skills/find-animation-opportunities/SKILL.md)  \n  \n适合不知道怎么添加动画效果的各位，会自动查找你当前的 UI 中，找出真正值得加动画的地方，严格拒绝不该加动画的地方，防止过度动画导致界面卡顿。  \n  \n只提出建议，你 review 过后，可以配合 improve-animations 去实现当前的动画，非常实用。\n\n![Emil Kowalski](https://pbs.twimg.com/profile_images/1469017066795679751/CjEOyirb_normal.jpg)\n\nEmil Kowalski@emilkowalski\n\nNew skill: /find-animation-opportunities  \n  \nSearch your UI for places that would genuinely benefit from motion, while also telling you what not to animate.  \n  \n[github.com/emilkowalski/s…](https://github.com/emilkowalski/skills)\n\n[🔗 View Quoted Tweet](https://x.com/emilkowalski/status/2077404975555031509)\n\n💬0🔄1❤️6👀850📊2",
+      "tags": [
+        "find-animation-opportunities",
+        "UI动画"
+      ],
+      "score": 65,
+      "summary": "Viking推荐GitHub技能find-animation-opportunities，用于查找UI动画机会。",
+      "fetched_at": "2026-07-17T11:29:54.838059+08:00"
+    },
+    {
+      "title": "You know your workflows best. Show our team how you use Cowork so we can make it work better for you...",
+      "link": "https://x.com/_catwu/status/2077933568282755145",
+      "published": "2026-07-17T09:49:03+08:00",
+      "source": "cat(@_catwu)",
+      "content": "You know your workflows best. Show our team how you use Cowork so we can make it work better for you!  \n  \nIf you're in marketing, sales, finance, legal, or any non-engineering role, sign up here for a 30 min screen share with our team: [forms.gle/WVvcfdmwhRnp9D…](https://forms.gle/WVvcfdmwhRnp9DYG8)\n\n💬9🔄2❤️82👀6086📊24",
+      "tags": [
+        "Cowork",
+        "用户调研"
+      ],
+      "score": 40,
+      "summary": "cat邀请非工程用户参与Cowork产品屏幕分享调研。",
+      "fetched_at": "2026-07-17T11:29:54.838062+08:00"
+    },
+    {
+      "title": "time to hit the follow button! https://t.co/ewqwPlvfms",
+      "link": "https://x.com/ClementDelangue/status/2077932134145433970",
+      "published": "2026-07-17T09:43:21+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "time to hit the follow button! [huggingface.co/moonshotai](https://huggingface.co/moonshotai)\n\n![Tweet Image](https://pbs.twimg.com/media/HNZMQIxbgAAWvvS.jpg)\n\n💬4🔄5❤️59👀3006📊10",
+      "tags": [
+        "Hugging Face",
+        "Moonshot AI"
+      ],
+      "score": 70,
+      "summary": "Clement Delangue推广Hugging Face上Moonshot AI页面。",
+      "fetched_at": "2026-07-17T11:29:54.838064+08:00"
+    },
+    {
+      "title": "Agent coordination is where it's all headed.\n\nAgent-to-agent unlocks new harnesses, workflows, and e...",
+      "link": "https://x.com/omarsar0/status/2077941295981425149",
+      "published": "2026-07-17T10:19:45+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Agent coordination is where it's all headed.  \n  \nAgent-to-agent unlocks new harnesses, workflows, and experiences that are just hard to imagine today.  \n  \nI still verify results, but even these I have converted to judge agents that enable me to do more at unprecedented scale.\n\n💬3🔄0❤️5👀1644📊4",
+      "tags": [
+        "Agent协调",
+        "Agent-to-Agent"
+      ],
+      "score": 65,
+      "summary": "elvis认为Agent协调是未来方向，已使用judge agents验证结果。",
+      "fetched_at": "2026-07-17T11:29:54.838067+08:00"
+    },
+    {
+      "title": "Arena 这个指标有点离谱了…\n如果开源模型能超过 Fable 这么多…\n那 A 社还有什么价值…",
+      "link": "https://x.com/oran_ge/status/2077942239343571298",
+      "published": "2026-07-17T10:23:30+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "Arena 这个指标有点离谱了…  \n如果开源模型能超过 Fable 这么多…  \n那 A 社还有什么价值…\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nBig news: Kimi-K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) is now #1 in the Frontend Code Arena with 1679 pts, surpassing Claude Fable 5.  \n  \nThis is a 17-place jump from Kimi-k2.6 (#18 -> #1).  \n  \nIn Frontend, Kimi-K3 ranked #1 in 6 of 7 domains: Brand & Marketing, Reference-Based Design, Data & Analytics, Consumer Product, Simulations, and Content Creation Tools, landing #2 only in Gaming behind Fable 5.  \n  \nThe full model weights will be released by July 27.  \n  \nCongrats to the [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) team on this major milestone!\n\n![Tweet Image](https://pbs.twimg.com/media/HNXpi8UaIAAM6Ag.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2077824029126504525)\n\n💬3🔄0❤️6👀1851📊3",
+      "tags": [
+        "Kimi K3",
+        "Arena",
+        "开源模型"
+      ],
+      "score": 60,
+      "summary": "orange.ai评论Kimi K3在Arena上超越Fable 5，质疑Anthropic价值。",
+      "fetched_at": "2026-07-17T11:29:54.838069+08:00"
+    },
+    {
+      "title": "K3 写作能力超过 Fable5",
+      "link": "https://x.com/oran_ge/status/2077941908849213444",
+      "published": "2026-07-17T10:22:12+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "K3 写作能力超过 Fable5\n\n![Louis-François Bouchard 🎥🤖](https://pbs.twimg.com/profile_images/1966104231250636800/Qr57cpjX_normal.jpg)\n\nLouis-François Bouchard 🎥🤖@Whats\\_AI\n\nBig news from our internal writing benchmark (early results): Kimi K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) is now #1 for writing in our editorial voice, at 2840 Elo, surpassing Claude Fable 5.  \n  \nThat is a jump from #21 to #1 over its predecessor, Kimi K2.6. And it runs at about $0.25 per script: 5x cheaper than the model it just displaced at the top.  \n  \nFirst time an open-weights model tops our board. It surprised us too. More in the replies 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNYLDKrW4AAuu98.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Whats_AI/status/2077860441380798908)\n\n💬1🔄1❤️4👀1462📊1",
+      "tags": [
+        "Kimi K3",
+        "写作能力",
+        "Fable 5"
+      ],
+      "score": 70,
+      "summary": "orange.ai转发Kimi K3在写作基准上超越Claude Fable 5的消息。",
+      "fetched_at": "2026-07-17T11:29:54.838072+08:00"
+    },
+    {
+      "title": "构建agent team 的时候，渐渐意识到。沟通能力是一个非常有深度，需要占用agent非常大认知带宽的能力，是需要单独设立若干agent作为整个team 的interface承接对外沟通，才能够做...",
+      "link": "https://x.com/yan5xu/status/2077949570248835525",
+      "published": "2026-07-17T10:52:38+08:00",
+      "source": "yan5xu(@yan5xu)",
+      "content": "构建agent team 的时候，渐渐意识到。沟通能力是一个非常有深度，需要占用agent非常大认知带宽的能力，是需要单独设立若干agent作为整个team 的interface承接对外沟通，才能够做的好。\n\n💬0🔄0❤️3👀445📊1",
+      "tags": [
+        "Agent团队",
+        "沟通能力"
+      ],
+      "score": 60,
+      "summary": "yan5xu认为沟通能力需单独设立Agent作为团队接口。",
+      "fetched_at": "2026-07-17T11:29:54.838074+08:00"
+    },
+    {
+      "title": "Gemini 养一帮人真的是天天吃白饭，人家 Codex 一天发几个版本，他们几个月才更新一次，这一年来 Gemini 网页版没半点长进，上次升级还把原来好用 Gem 列表从左边 sidebar 去掉...",
+      "link": "https://x.com/dotey/status/2077929393729511716",
+      "published": "2026-07-17T09:32:28+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Gemini 养一帮人真的是天天吃白饭，人家 Codex 一天发几个版本，他们几个月才更新一次，这一年来 Gemini 网页版没半点长进，上次升级还把原来好用 Gem 列表从左边 sidebar 去掉了，到现在都不支持 Skills。\n\n![🚨 AI News | TestingCatalog](https://pbs.twimg.com/profile_images/1899962463115751424/i-6MBWau_normal.jpg)\n\n🚨 AI News | TestingCatalog@testingcatalog\n\nGoogle is working on a native menu for Skills on Gemini desktop. These Skills may become available in all chats (fingers crossed).   \n  \nUsers will be able to upload, create, and edit their Gemini Skills, as well as use Gemini to create them.   \n  \nSkill folders will also be available there, allowing users to select local folders containing the necessary Skills.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077879184588730368/vid/avc1/3780x2160/v0zN6nSoHwXIoFBc.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/testingcatalog/status/2077879966889382371/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/testingcatalog/status/2077879966889382371)\n\n💬48🔄5❤️98👀21864📊41",
+      "tags": [
+        "Gemini",
+        "Skills",
+        "更新慢"
+      ],
+      "score": 60,
+      "summary": "宝玉批评Gemini更新缓慢，并转发Google正在开发Skills原生菜单的消息。",
+      "fetched_at": "2026-07-17T11:29:54.838076+08:00"
+    },
+    {
+      "title": "武侠 RPG：Blender 建模加 PBR 重贴图，近战、任务、背包、动态天气都有 https://t.co/1cJWIH2qkJ",
+      "link": "https://x.com/xiaohu/status/2077943712378929575",
+      "published": "2026-07-17T10:29:22+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "武侠 RPG：Blender 建模加 PBR 重贴图，近战、任务、背包、动态天气都有 [g4ho6wlhva47a.ok.kimi.link](https://g4ho6wlhva47a.ok.kimi.link/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077943483411865601/vid/avc1/1280x720/lsvKJdCdB9pQmjne.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2077943712378929575/video/1)\n\n💬0🔄0❤️4👀769📊1",
+      "tags": [
+        "Kimi K3",
+        "武侠RPG",
+        "游戏"
+      ],
+      "score": 60,
+      "summary": "小互分享使用Kimi K3制作的武侠RPG游戏链接。",
+      "fetched_at": "2026-07-17T11:29:54.838079+08:00"
+    },
+    {
+      "title": "案例：复刻《星际穿越》黑洞 Gargantua\n\n体验：https://t.co/lQk20n38wi",
+      "link": "https://x.com/xiaohu/status/2077943174077804926",
+      "published": "2026-07-17T10:27:13+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "案例：复刻《星际穿越》黑洞 Gargantua  \n  \n体验：[blackhole-visualizer.ok.kimi.link](https://blackhole-visualizer.ok.kimi.link/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077942954518618112/vid/avc1/1280x800/fhlOqdx_-4NCd1vP.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2077943174077804926/video/1)\n\n💬1🔄0❤️1👀1005📊1",
+      "tags": [
+        "Kimi K3",
+        "黑洞",
+        "星际穿越"
+      ],
+      "score": 60,
+      "summary": "小互分享使用Kimi K3复刻《星际穿越》黑洞的体验链接。",
+      "fetched_at": "2026-07-17T11:29:54.838081+08:00"
+    },
+    {
+      "title": "月之暗面发布 Kimi K3：全球首个 3 万亿级开放模型 \n\n根据评分来看，K3 的整体水平还比不过 Claude Fable 5 和 GPT 5.6 Sol 这两个最强的闭源模型\n\n但是和GPT ...",
+      "link": "https://x.com/xiaohu/status/2077942300517507431",
+      "published": "2026-07-17T10:23:45+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "月之暗面发布 Kimi K3：全球首个 3 万亿级开放模型   \n  \n根据评分来看，K3 的整体水平还比不过 Claude Fable 5 和 GPT 5.6 Sol 这两个最强的闭源模型  \n  \n但是和GPT 5.5和Opus 4.8不相上下  \n  \n但是相比上代 K2.6 的官方价是输入未命中 $0.95、输出 $4.00  \n  \nK3 分别涨到 $3.00 和 $15.00，涨了两到三倍  \n  \n详细：[best.xiaohu.ai/article/kimi-k…](https://best.xiaohu.ai/article/kimi-k3/)\n\n💬2🔄1❤️9👀2261📊3",
+      "tags": [
+        "Kimi K3",
+        "3万亿参数",
+        "开源"
+      ],
+      "score": 75,
+      "summary": "小互报道月之暗面发布Kimi K3，3万亿参数开源模型，价格涨2-3倍。",
+      "fetched_at": "2026-07-17T11:29:54.838083+08:00"
+    },
+    {
+      "title": "Suno 训练库被黑：代码泄露其从 YouTube Music 等抓了约 38 万小时内容\n\n一名黑客用一种叫 Shai-Hulud的蠕虫，搞到了公司员工的登录账号黑进了Suno公司，拿到其训练数据相...",
+      "link": "https://x.com/xiaohu/status/2077931885259538719",
+      "published": "2026-07-17T09:42:22+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Suno 训练库被黑：代码泄露其从 YouTube Music 等抓了约 38 万小时内容  \n  \n一名黑客用一种叫 Shai-Hulud的蠕虫，搞到了公司员工的登录账号黑进了Suno公司，拿到其训练数据相关的源码。  \n  \n信息显示，Suno抓取了：  \n  \n- 113,879 小时的 YouTube Music   \n- 62,117 小时的 Pond5   \n- 12,287 小时的 Deezer  \n  \n资料显示Suno还计划：准备下载大概 100 万小时的播客  \n  \n入侵里，这名黑客还拿到了 Suno 用户的邮箱、电话，以及支付公司 Stripe 那边的相关信息。涉及的用户大约有几十万。  \n  \nTechCrunch 在转述中写到，材料里还有部分卡号信息。\n\n![Tweet Image](https://pbs.twimg.com/media/HNZLn28asAA5iiJ.jpg)\n\n💬4🔄0❤️6👀3636📊5",
+      "tags": [
+        "Suno",
+        "数据泄露",
+        "YouTube"
+      ],
+      "score": 75,
+      "summary": "小互报道Suno训练库被黑，泄露从YouTube等抓取约38万小时内容。",
+      "fetched_at": "2026-07-17T11:29:54.838086+08:00"
+    },
+    {
+      "title": "Suno 的说法是：这次安全事件在 2025 年 11 月就发现了，很快控制住了，影响有限，所以没有给每个用户发通知。https://t.co/UmwlFmNcwt",
+      "link": "https://x.com/xiaohu/status/2077931888132632707",
+      "published": "2026-07-17T09:42:22+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Suno 的说法是：这次安全事件在 2025 年 11 月就发现了，很快控制住了，影响有限，所以没有给每个用户发通知。[best.xiaohu.ai/article/suno-s…](https://best.xiaohu.ai/article/suno-scraped-youtube-deezer-genius/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNZMB_RaoAAzAWU.png)\n\n💬0🔄0❤️1👀1549",
+      "tags": [
+        "Suno",
+        "安全事件",
+        "2025年11月"
+      ],
+      "score": 70,
+      "summary": "小互补充Suno安全事件于2025年11月发现，影响有限。",
+      "fetched_at": "2026-07-17T11:29:54.838088+08:00"
+    },
+    {
+      "title": "下面很多评论特别搞笑：“中国人一定是造了个时间机器，从明年得美国模型蒸馏的 K3。”",
+      "link": "https://x.com/op7418/status/2077939743913103594",
+      "published": "2026-07-17T10:13:35+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "下面很多评论特别搞笑：“中国人一定是造了个时间机器，从明年得美国模型蒸馏的 K3。”\n\n💬0🔄0❤️6👀1085📊1",
+      "tags": [
+        "Kimi K3",
+        "评论"
+      ],
+      "score": 30,
+      "summary": "歸藏转发关于Kimi K3的幽默评论。",
+      "fetched_at": "2026-07-17T11:29:54.838090+08:00"
     }
   ]
 }
