@@ -1463,6 +1463,326 @@
       "score": 20,
       "summary": "宝玉评论AI提升普通人下限但无法提升上限。",
       "fetched_at": "2026-07-18T03:23:39.681697+08:00"
+    },
+    {
+      "title": "Cloudflare WAF protects WordPress applications from two high-severity vulnerabilities",
+      "link": "https://blog.cloudflare.com/wordpress-vulnerabilities/",
+      "published": "2026-07-18T04:18:59+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "Cloudflare has deployed new Web Application Firewall (WAF) protections for two critical vulnerabilities affecting WordPress. The protections address an Unauthenticated Remote Code Execution (RCE) vulnerability in WordPress's REST API and a related SQL Injection vulnerability.\n\nThe WordPress security team disclosed the vulnerabilities to Cloudflare before public release so that we could prepare protections for customers. **Cloudflare has deployed the new rules to protect all customers, including those on free and paid plans, as long as their application traffic is proxied through the Cloudflare WAF.** The rules were deployed at 17:03 UTC on July 17 2026.\n\nWAF protections reduce exposure while customers update, but they are not a substitute for patching. WordPress has released fixes in version 7.0.2, with backports to affected earlier branches: 6.9.5, 6.8.6, and 7.1 Beta 2. Versions earlier than 6.8 are not affected. WordPress is treating this as its highest-severity, highest-priority class of issue and is forcing automatic updates to affected sites, so most sites will be updated automatically. We still recommend confirming that you are on a patched release or the backports for your branch and follow the guidance in the official WordPress security release [announcement](https://wordpress.org/news/2026/07/wordpress-7-0-2-release/).\n\n### What you need to know\n\nThe vulnerabilities affect different parts of the request path:\n\n* **CVE-2026-60137: SQL injection.** A vulnerability in WordPress version 6.8 and later allows crafted input to alter a database query. Rating High.\n* **CVE-2026-63030: Unauthenticated remote code execution.** A vulnerability in WordPress version 6.9 and later allows an unauthenticated attacker to execute code through the batch endpoint of the REST API when a persistent object cache is not in use. This vulnerability is related to the SQL injection described above. No login or user interaction is required to exploit this vulnerability. Rating Critical.\n\nThe SQL injection vulnerability is present from version 6.8 onwards, while the RCE only affects versions from 6.9. So 6.8.6 addresses the SQLi only since the RCE isn't present on 6.8, while 6.9.5, 7.0.2, and 7.1 Beta 2 get fixes for both.\n\nCloudflare created two rules to detect requests associated with these vulnerabilities:\n\nCloudflare customers running WordPress sites on Pro, Business, or Enterprise plans should ensure that Cloudflare Managed Rules are enabled. Customers can follow the steps in our [WAF Managed Rules documentation](https://developers.cloudflare.com/waf/get-started/#1-deploy-the-cloudflare-managed-ruleset). Customers on free plans are automatically protected through the Free Ruleset.\n\nThe new rules are deployed with the default Managed Ruleset action of Block. Customers running WordPress sites should review any ruleset-level overrides, including those that change all rules from Block to Log, and ensure the new rules use the recommended action while they update WordPress. Cloudflare customers should also monitor Security Events for requests matching either rule.\n\n### Defense in depth while you patch\n\nThe SQL injection rule detects crafted parameter values before they reach WordPress. The unauthenticated RCE rule targets requests attempting to reach the remote code execution path. Together, they detect the attack at two different points.\n\nThese rules reduce risk while organizations update affected systems; they do not fix the underlying vulnerable code. Updating WordPress remains the most effective way to address the vulnerabilities.\n\nIf an immediate update is not possible, verify that both Cloudflare rules are active with the recommended action and review logs for suspicious requests to the affected REST API endpoint.\n\n### Looking forward\n\nCloudflare will monitor matching traffic and test the rules against new attack variations, updating detections when needed.  \nWe thank the WordPress security team for coordinating with Cloudflare and other infrastructure providers to help protect users before details of the vulnerabilities became public.",
+      "tags": [
+        "Cloudflare WAF",
+        "WordPress漏洞",
+        "RCE"
+      ],
+      "score": 70,
+      "summary": "Cloudflare为WordPress两个高危漏洞（RCE和SQL注入）部署WAF规则。",
+      "fetched_at": "2026-07-18T05:04:44.241849+08:00"
+    },
+    {
+      "title": "重估一切，文艺复兴---2026H1 AI行业观察",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a5a91e1a3fec224d59f4ddd",
+      "published": "2026-07-18T04:50:06+08:00",
+      "source": "屠龙之术",
+      "content": "![](https://image.xyzcdn.net/FtlsrL_4pphT5vQAcQnqE2KLfeMh.png)\n\n距离我上一次狂喜上做的AI行业总结已经过去了2个半月，\n\n最近趁着被CSDN邀请参加他们大会的由头我做了最新的一次行业整理PPT，\n\n76页……\n\n![](https://image.xyzcdn.net/Fm81Yy5YzpPgwpU50aEqcnkqqqe2.png)\n\n本期节目用约50分钟回顾和梳理**2026年上半年AI行业的重要变化**，\n\n并结合7月初的最新行业信号，\n\n从资本、硬件、模型、智能体、世界模型与治理等多个角度，\n\n重新审视AI产业的发展方向。\n\n讨论议题包括：\n\n* 巨额AI资本开支背后，是基础设施繁荣还是泡沫前夜？\n* 芯片、存储、云计算与能源为何成为AI竞赛的核心？\n* OpenAI、Anthropic、Google以及中国模型厂商的格局如何变化？\n* 中美AI生态是否正在形成“闭源前沿模型”与“开放权重、高效率扩散”两种主导路线？\n* 为什么2026年可能成为Agent从聊天走向任务执行的关键年份？\n* Coding Agent、办公智能体与Agent基础设施将如何重构软件生态？\n* 世界模型能否推动AI从“预测下一个词”走向理解和模拟现实世界？\n* 当Token还无法代表真实价值，AI产品的ROI究竟应该如何衡量？\n* 面对安全、主权和就业问题，AI治理将出现怎样的反弹与冲突？\n* 当智能逐渐不再稀缺，人类的责任、价值与位置又该如何重新定义？\n\n老规矩，PPT在我的ima知识库中，有兴趣的朋友欢迎订阅了解。\n\n**屠龙之术VIP报告库** [**ima.qq.com**](https://ima.qq.com/wiki/?shareId=7c732a68674e53edea8d17f9546ad5a2047e0c63985dde9d2592f2bb76fe43eb)\n\n![](https://image.xyzcdn.net/FhLzAvkrbR4nfdk5rtElyIhbotlX.png)\n\n*（想加粉丝群的请先+微信：rosicky311)*\n\n下面正片开始……\n\n**【时间线】**\n\n01:52 标题页：《重估一切，文艺复兴》\n\n![](https://image.xyzcdn.net/Fl8n0M2EFRd-RPwiIWb4Rm3e9tkK.png)\n\n02:18 金曲奖颁奖引发的“今夕是何年”的慨叹\n\n![](https://image.xyzcdn.net/Fl97jp1UYCZmnZIsBXRtNH-Rxubv.png)\n\n03:20 老家伙回归\n\n![](https://image.xyzcdn.net/FmxOqqxLfycxtb5aMcbpzOToIxpM.png)\n\n05:31 所以什么是文艺复兴？\n\n![](https://image.xyzcdn.net/FgDZND_LUPdjw4x146r-FxIkNf21.png)![](https://image.xyzcdn.net/Fh7a8w7DIXr6HuNhpW3Ql46X3ewD.png)\n\n06:52 那些隐喻在今天的对照\n\n![](https://image.xyzcdn.net/FpWV3N7bO1XA2ON8_ySiOcgRWAq2.png)\n\n* 08:18 第一章：资本与硬件对应美第奇的账本\n\n  ![](https://image.xyzcdn.net/FhIwWPLQ5HuEbX2M0D7VN2uCoURS.png)\n\n08:54 两个时代的“赞助人”叙事\n\n![](https://image.xyzcdn.net/FjQq8AD-KDhOR64lGYEKGNKfBmdf.png)\n\n10:17 老生常谈的CAPEX\n\n![](https://image.xyzcdn.net/FmfXh0uJlEGLAWYbGZcuf9ZzOKV9.png)\n\n12:11 AI的叙事变了\n\n![](https://image.xyzcdn.net/Fmk12NL6soO4jie5P1L0D6PNoXlU.png)\n\n12:48 万亿美金的流转\n\n![](https://image.xyzcdn.net/Fo8h27-aG8SYMFXXmO4JyjEY0kdH.png)\n\n13:22 token买方和卖方的利益博弈成为市场的主线\n\n![](https://image.xyzcdn.net/nt5awZEFawkpheqQ97C_TyiJdvhs.png)\n\n13:55 那么股价能说明一切么？\n\n![](https://image.xyzcdn.net/Fgn0OVYwP-x66p-hBMegx5soWxWk.png)\n\n14:35 提及存储要先看成本占比和绝对量增长\n\n![](https://image.xyzcdn.net/FueIzrhhqt2o2Z8E-PVnlSuoqS0y.png)\n\n15:47 存储行业是垄断的\n\n![](https://image.xyzcdn.net/FuNvFL4OdznRIgFnMM1mYmVLfQyj.png)![](https://image.xyzcdn.net/Fpn_z7NoL2_YEyQinUuGcIDSprdF.png)\n\n16:40 SK海力士去美国上市\n\n![](https://image.xyzcdn.net/FpPoR9ykyMpkLLTZN57iHLUhoxPP.png)\n\n17:01 存储行业的周期在美光毛利上的体现\n\n![](https://image.xyzcdn.net/FkEhQNhS5Qydc1imV7lWmbq9Lg5F.png)\n\n17:48 Intel和思科的股价漫漫回归路\n\n![](https://image.xyzcdn.net/Fmjiu0MEOKzDF3Jek5-BOaZ9etIc.png)\n\n18:34 账本的背面\n\n![](https://image.xyzcdn.net/FuSJg7qG1RmK8dQHr6JV4KZQ_IkM.png)\n\n19:21 收入只够折旧\n\n![](https://image.xyzcdn.net/Fi8Vn5GZc9BCp-cdSQK0UUVWkofs.png)\n\n20:12 所以现金流出了问题\n\n![](https://image.xyzcdn.net/FvZUP8Qe543jfa6mPdcyv-drqZ92.png)\n\n20:55 所以“债”频繁出现\n\n![](https://image.xyzcdn.net/Fk9HnIdJzVzZsveZksIZmiVcXX23.png)\n\n21:41 所以neocloud们的挑战被“债”放大了\n\n![](https://image.xyzcdn.net/FgdWDj0KicCmeY7nKmjeB2z3PTU3.png)\n\n22:00 第一章的结论到底是黄金时代还是泡沫破裂之前？\n\n![](https://image.xyzcdn.net/FtKJ2CjSneGSxpOR23kRMufmrhmI.png)\n\n* 23:22 第二章 智能的复兴\n\n![](https://image.xyzcdn.net/FqDcRDiujm6YVvm92CHePU19XbUF.png)\n\n23:34 美国头部模型厂商的竞争\n\n![](https://image.xyzcdn.net/FpurRk2miOR_NJj1dbCuXyiE4q5M.png)\n\n24:03 模型的能力已经非常强\n\n![](https://image.xyzcdn.net/FnX6PAcoEPAUP9zdPjVgBGWeU9zF.png)\n\n24:37 两家公司的主张与共识\n\n![](https://image.xyzcdn.net/FtgyXXc5uPj92-vNywyUQ1kW20AN.png)\n\n25:33 模型发布节奏疯狂加速\n\n![](https://image.xyzcdn.net/Frdy5yQ_MnLybjspL4Ujajz4TJp5.png)\n\n26:09 多模型共存成为常态\n\n![](https://image.xyzcdn.net/FukhjUZVgKdwqgtltvMgQf_3qYNm.png)\n\n26:39 neolabs兴起\n\n![](https://image.xyzcdn.net/FukhjUZVgKdwqgtltvMgQf_3qYNm.png)\n\n26:57 anthropic超过OpenAI\n\n![](https://image.xyzcdn.net/FrASUvFO8ANVN7kByVYbFGFyq8ql.png)\n\n27:30 疯狂的数字：1万亿美金\n\n![](https://image.xyzcdn.net/FgVM1bbIbDkkXgjMt6d-4erEMfaz.png)\n\n28:16 史无前例的“大年”\n\n![](https://image.xyzcdn.net/Fvf1eUVIDzFoaaFSt-V6cBvm_jts.png)\n\n28:41 中美对抗\n\n![](https://image.xyzcdn.net/Fs-Nf3uH8Zd97DRcHt-NsY9izbpg.png)\n\n29:27 头模型厂商进展\n\n![](https://image.xyzcdn.net/FhOM4Q99ypmurjQl9Vr3BbL_BXqu.png)\n\n29:50 开源与闭源\n\n![](https://image.xyzcdn.net/Fjs3R_fjZhDrxps6ppxyp6fC9pge.png)\n\n30:27 中国的厂商们\n\n![](https://image.xyzcdn.net/FqDp-wCdUgcAWcaqGiiadQ1D6YTH.png)\n\n31:18 钱的角度有差距\n\n![](https://image.xyzcdn.net/FnhBju1k9f2yLqxDvcIArWYGajDn.png)\n\n31:50 非此即彼吗？\n\n![](https://image.xyzcdn.net/FpE9TLfodzHG5xtkPUBT24NSPt8M.png)\n\n32:52 透视法对应世界模型\n\n![](https://image.xyzcdn.net/FjVKp7TK2ubrXKQrqIyPL5qaVUDH.png)\n\n上一期聊世界模型的播客：\n\n# [**World Model-世界模型也有Scaling Law吗？**](https://www.xiaoyuzhoufm.com/episode/6a40c46d9d2f5743683f00a8)\n\n33:37 李飞飞老师对于世界模型的分类\n\n![](https://image.xyzcdn.net/FlPQ6UCvNXwKeMWPmHyvpPGnggoN.png)\n\n34:16 一路走来\n\n![](https://image.xyzcdn.net/FpfIky_OOp1vQwW_DOlVoQggO-QT.png)\n\n34:29 所有人似乎都在做世界模型\n\n![](https://image.xyzcdn.net/FopAYlnLnI2ZIj-_XCcGg-EJ_G3x.png)\n\n35:15 各自有各自的主张\n\n![](https://image.xyzcdn.net/FrrvKUYF5aAxH9CXNGiWl3nvvCxM.png)\n\n* 35:50 第三章 Agent元年对应画匠与工坊\n\n  ![](https://image.xyzcdn.net/FnAMPkdJrLd-D5sEM0hPmJpBZL_E.png)\n\n![](https://image.xyzcdn.net/FlBM1ATERYhlVpO7qFLAOpndFUn0.png)\n\n36:39 codex=新.ChatGPT\n\n![](https://image.xyzcdn.net/FnKl5FTlC4G5FfSt2fmUZhgbTO_Z.png)\n\n37:10 新的codex的增长\n\n![](https://image.xyzcdn.net/Fs2jA0BcdLf2z4nNEJCGi_js0HZU.png)\n\n37:36 用户层面的“时代变了”\n\n![](https://image.xyzcdn.net/Fp6LB4b1KCjALrQHOcWe-pYGs_ZR.png)\n\n38:01 claude code时刻\n\n![](https://image.xyzcdn.net/FuGX8hTE9SjftYi203kcZAeHSM-q.png)\n\n38:25 code吞噬一切\n\n![](https://image.xyzcdn.net/Fj4WLmk4b0lK8PXKMqxjV2JP7kNv.png)\n\n38:53 coding成为核心战场\n\n![](https://image.xyzcdn.net/FqXsKJxb9SAZEZaBDv4emF_lHCRK.png)\n\n39:18 软件生态改写\n\n![](https://image.xyzcdn.net/FlEzhAjoMtdz7mvTs1kPAP5puFdW.png)![](https://image.xyzcdn.net/FlD81GZ8GP77VvwZ__A0ri_wvkgM.png)\n\n39:40 Agent Infra蓬勃发展\n\n![](https://image.xyzcdn.net/Flw5I67P4iF_HM4IyCrOC1y4CLBJ.png)\n\n40:08 模型厂商的边界\n\n![](https://image.xyzcdn.net/FgzrNNDjqo7Xy6ZuiKLfriZhz6mp.png)\n\n41:01 市场规模的变化\n\n![](https://image.xyzcdn.net/FilMfFq92lNmj9TYbK6sozaVES1L.png)\n\n41:36 国内的共识\n\n![](https://image.xyzcdn.net/FrCFisF1oP8VxIoKyri88CHiJ_OD.png)\n\n42:33 codex可能定义了这一轮的产品样式\n\n![](https://image.xyzcdn.net/Fq3urYOcQf1iZS0PusLRFlqaImRO.png)\n\n43:10 国内大厂再次掀起竞争\n\n![](https://image.xyzcdn.net/Fu3_H6RxBAmWseETzC9I0Qc4lcEN.png)\n\n43:42 变化与调整也在发生\n\n![](https://image.xyzcdn.net/FtdLu1rS-SJdvkK9QNsaHMmox_4p.png)\n\n44:58 第四章 治理与反弹\n\n![](https://image.xyzcdn.net/FjKMPn_1fxD_qovKUPyutzbWImHs.png)![](https://image.xyzcdn.net/FlzzpG6Y8Ma56WcZELWOvveEmCok.png)\n\n46:05 大模型也要先审后发吗？\n\n![](https://image.xyzcdn.net/Fij6LQjfwD9QrchOBMrqzGYUc4Vp.png)\n\n46:25 三对博弈\n\n![](https://image.xyzcdn.net/Fqc4T3dp4sgm6HE2AS_houdSy2HQ.png)\n\n47:47 tokenmaxxxing的叙事也很快过去了\n\n![](https://image.xyzcdn.net/Fm3eFLv8IjwC_jF1dgMPsK5dNXMD.png)\n\n48:21 所以真实的“价值”如何衡量？\n\n![](https://image.xyzcdn.net/FhqO1DPCEH5VQ9W0M31UkeALhqHD.png)\n\n49:24 “第四支柱”的缺失\n\n![](https://image.xyzcdn.net/FlgsYDCmUlemgOjxUFCtcVF-Epos.png)![](https://image.xyzcdn.net/FpthzCJZykgbF1r3GNG52ugouU9z.png)\n\n50:49 人还是万物的尺度吗？\n\n![](https://image.xyzcdn.net/Fs2evW2MzsCJMQh1qMQpw4U38Pqc.png)\n\n51:43 2050年的一种可能\n\n![](https://image.xyzcdn.net/FgDoPJwV3mZMNUoKkyFhb07aqmvi.png)\n\n52:20 下半年的关注\n\n![](https://image.xyzcdn.net/FuqkhksBIhCdiDsTAXvMsi13UCGu.png)\n\n53:36 “刚刚开始”\n\n![](https://image.xyzcdn.net/Fncv_iAq9RDnZT0DPwZFRoy0Pbti.png)\n\n**【播客简介】**\n\n屠龙之术是一档关注科技、互联网、风险投资的播客，\n\n主播庄明浩是一个游走在互联网和风险投资行业的边缘人士。\n\n其工作多年所积累的认知似乎都成为了某种意义上的”屠龙之术“……\n\n或许某天再有新的“龙”出现的时候，就是这档播客停更之时。\n\n**【ima知识库】屠龙之术VIP报告库** [**ima.qq.com**](https://ima.qq.com/wiki/?shareId=7c732a68674e53edea8d17f9546ad5a2047e0c63985dde9d2592f2bb76fe43eb)\n\n![](https://image.xyzcdn.net/Fh7sXFANg724pHei6gzpziPTC1HG.png)",
+      "tags": [
+        "2026H1 AI行业观察",
+        "播客"
+      ],
+      "score": 60,
+      "summary": "播客回顾2026上半年AI行业变化，涵盖资本、硬件、模型、Agent等。",
+      "fetched_at": "2026-07-18T05:04:44.241864+08:00"
+    },
+    {
+      "title": "I’m so confused by big tech renting out its precious compute to AI labs. Isn’t that the clearest sig...",
+      "link": "https://x.com/akothari/status/2078201063971405931",
+      "published": "2026-07-18T03:31:59+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "I’m so confused by big tech renting out its precious compute to AI labs. Isn’t that the clearest signal that they don’t have the confidence to build compelling agentic products themselves?  \n  \nWhat am I missing?\n\n💬6🔄1❤️23👀1886📊9",
+      "tags": [
+        "大科技出租算力",
+        "AI实验室"
+      ],
+      "score": 65,
+      "summary": "Akshay Kothari质疑大科技公司出租算力给AI实验室，认为表明缺乏自信。",
+      "fetched_at": "2026-07-18T05:04:44.241869+08:00"
+    },
+    {
+      "title": "we will not get to AGI in 2026.\n\nhappy to put money on that, @jason, if you dare.",
+      "link": "https://x.com/GaryMarcus/status/2078198698530812129",
+      "published": "2026-07-18T03:22:35+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "we will not get to AGI in 2026.  \n  \nhappy to put money on that, [@jason](https://x.com/jason), if you dare.\n\n![@jason](https://pbs.twimg.com/profile_images/1828870492633104384/o37xorx4_normal.jpg)\n\n@jason@Jason\n\nIt’s happening folks… things accelerated more in the last 30 days from a dozen players than in the last year  \n  \nOpen Source models are compounding  \n  \nFrontier Models are refining   \n  \nWhen open source hits robotics, self driving and life sciences things are going to get wild   \n  \n2026 will be the year it happened   \n  \nWERE AT AGI IN 2026   \n  \nSUPER INTELLIGENCE IS 2027-28   \n  \nITS GONNA GET VERY STRANGE\n\n[🔗 View Quoted Tweet](https://x.com/Jason/status/2077836937810022756)\n\n💬10🔄3❤️36👀3719📊10",
+      "tags": [
+        "Gary Marcus",
+        "AGI 2026",
+        "打赌"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus打赌2026年不会实现AGI，反驳Jason的乐观预测。",
+      "fetched_at": "2026-07-18T05:04:44.241872+08:00"
+    },
+    {
+      "title": "the thing that killed US AI supremacy more than anything else is hubris.",
+      "link": "https://x.com/GaryMarcus/status/2078196479316128139",
+      "published": "2026-07-18T03:13:46+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "the thing that killed US AI supremacy more than anything else is hubris.\n\n💬11🔄11❤️64👀3468📊18",
+      "tags": [
+        "Gary Marcus",
+        "美国AI霸权",
+        "傲慢"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus认为傲慢是美国AI霸权衰落的主因。",
+      "fetched_at": "2026-07-18T05:04:44.241875+08:00"
+    },
+    {
+      "title": "pouring more money into data centers and companies with no moat and no clear plan is not the answer,...",
+      "link": "https://x.com/GaryMarcus/status/2078195189915734204",
+      "published": "2026-07-18T03:08:38+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "pouring more money into data centers and companies with no moat and no clear plan is not the answer, [@DavidSacks](https://x.com/DavidSacks).  \n  \nwe need a new strategy, not more of the same.\n\n![David Sacks](https://pbs.twimg.com/profile_images/1879600809693917185/GkBxdTd9_normal.jpg)\n\nDavid Sacks@DavidSacks\n\nThis is concerning. For the first time, a Chinese model Kimi K3 has taken #1 on the Frontend Code Arena and is scoring at or near the frontier on other benchmarks.   \n  \nMeanwhile America is tying itself in knots: politicians and bureaucrats are banning new data centers, piling on state regulations, and pushing for new federal agencies to pre-approve frontier models.   \n  \nThis is how you lose the AI race. The rest of the world won’t play by our rules if we bog ourselves down. Permissionless innovation is how America won the internet and became the technological envy of the world. We can do it again with AI -- while addressing risks in a targeted way -- or we’ll watch our lead evaporate.\n\n[🔗 View Quoted Tweet](https://x.com/DavidSacks/status/2078092271296143593)\n\n💬5🔄5❤️34👀4143📊7",
+      "tags": [
+        "Gary Marcus",
+        "数据中心投资",
+        "AI战略"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus批评向无护城河的公司投入更多资金，呼吁新战略。",
+      "fetched_at": "2026-07-18T05:04:44.241878+08:00"
+    },
+    {
+      "title": "The Build with Gemini @xprize Hackathon is live through August 17, 2026. Dream big, build a startup ...",
+      "link": "https://x.com/googleaidevs/status/2078209608011653234",
+      "published": "2026-07-18T04:05:56+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "The Build with Gemini [@xprize](https://x.com/xprize) Hackathon is live through August 17, 2026. Dream big, build a startup that solves real-world problems, and compete for $2M in prizes.  \n  \nThis video shows you how to use different Google products and tools, like Gemini Deep Research, Gemini Spark, and [@GoogleAIStudio](https://x.com/GoogleAIStudio), to bring your project from idea to launch 💡\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2078183921615765504/vid/avc1/3840x2160/5oCSyAPohYV8_RLi.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2078209608011653234/video/1)\n\n💬2🔄3❤️3👀1010📊3",
+      "tags": [
+        "Gemini XPRIZE",
+        "黑客松",
+        "200万美元奖金"
+      ],
+      "score": 70,
+      "summary": "Google AI开发者宣布Build with Gemini XPRIZE黑客松，奖金200万美元，截止8月17日。",
+      "fetched_at": "2026-07-18T05:04:44.241880+08:00"
+    },
+    {
+      "title": "The Build with Gemini @xprize Hackathon ends August 17, 2026.\n\nGet more details: https://t.co/DOavKK...",
+      "link": "https://x.com/googleaidevs/status/2078209609848824002",
+      "published": "2026-07-18T04:05:56+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "The Build with Gemini [@xprize](https://x.com/xprize) Hackathon ends August 17, 2026.  \n  \nGet more details: [geminixprize.com](http://geminixprize.com)\n\n💬0🔄0❤️1👀207",
+      "tags": [
+        "Gemini XPRIZE",
+        "黑客松截止"
+      ],
+      "score": 60,
+      "summary": "Google AI开发者提醒Build with Gemini XPRIZE黑客松8月17日截止。",
+      "fetched_at": "2026-07-18T05:04:44.241883+08:00"
+    },
+    {
+      "title": "Batch APIs are LIVE\n\nSubmit up to 100 videos, translations, lipsyncs, or uploads in one request. Get...",
+      "link": "https://x.com/HeyGen/status/2078218006568853628",
+      "published": "2026-07-18T04:39:18+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "Batch APIs are LIVE  \n  \nSubmit up to 100 videos, translations, lipsyncs, or uploads in one request. Get one webhook back when everything's done  \n  \n[developers.heygen.com/batch-videos](https://developers.heygen.com/batch-videos)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2078216297591324672/vid/avc1/1080x1080/Wy7GDKcXUN3bMubd.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/HeyGen/status/2078218006568853628/video/1)\n\n💬2🔄5❤️12👀1230📊6",
+      "tags": [
+        "HeyGen",
+        "Batch API",
+        "批量视频"
+      ],
+      "score": 75,
+      "summary": "HeyGen发布Batch API，支持一次提交最多100个视频任务。",
+      "fetched_at": "2026-07-18T05:04:44.241886+08:00"
+    },
+    {
+      "title": "Don't worry about being the most interesting person in the room, just try to be the most interested ...",
+      "link": "https://x.com/JamesClear/status/2078201734611227072",
+      "published": "2026-07-18T03:34:39+08:00",
+      "source": "James Clear(@JamesClear)",
+      "content": "Don't worry about being the most interesting person in the room, just try to be the most interested person in the room.   \n  \nThe interested person asks about others and leaves a good impression because people like talking about themselves. The interested person is genuinely curious about someone's craft and learns a lot about how things work. The interested person engages with more people and—because opportunities come through people—is more likely to catch a lucky break.   \n  \nIn general, the interested person learns more and tends to be well-liked. And in the long run, it's hard to keep down someone who is well-learned and well-liked.\n\n💬23🔄63❤️596👀22669📊103",
+      "tags": [
+        "James Clear",
+        "人生建议"
+      ],
+      "score": 10,
+      "summary": "James Clear分享关于成为感兴趣的人而非有趣的人的建议。",
+      "fetched_at": "2026-07-18T05:04:44.241889+08:00"
+    },
+    {
+      "title": "This agent turns an RFP into a fully drafted response, citations included, letting the SME review st...",
+      "link": "https://x.com/LangChain/status/2078208365705224641",
+      "published": "2026-07-18T04:01:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "This agent turns an RFP into a fully drafted response, citations included, letting the SME review start from a draft instead of a blank page.  \n  \n1️⃣ Requirements extraction agent: Pulls scope, SLAs, pricing format, + regulatory provisions from RFP package  \n2️⃣ Content mapping agent: Matches requirements to approved internal content  \n3️⃣ Draft generation agent: Writes responses with citations  \n4️⃣ Gap detection agent: Flags exactly what needs a human  \n  \nBuilt with LangGraph + LangSmith, measured with [@payicorp](https://x.com/payicorp). [langchain.com/blog/proving-t…](https://www.langchain.com/blog/proving-the-roi-of-agentic-ai-in-financial-services)\n\n💬0🔄0❤️1👀667📊1",
+      "tags": [
+        "LangChain",
+        "RFP Agent",
+        "LangGraph"
+      ],
+      "score": 75,
+      "summary": "LangChain展示用LangGraph构建的RFP响应Agent，自动生成带引用的草稿。",
+      "fetched_at": "2026-07-18T05:04:44.241891+08:00"
+    },
+    {
+      "title": "👀",
+      "link": "https://x.com/LangChain/status/2078207652094460370",
+      "published": "2026-07-18T03:58:10+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "👀\n\n![Brace](https://pbs.twimg.com/profile_images/1694931592505085952/i14SGO0t_normal.jpg)\n\nBrace@BraceSproul\n\ni need to hire someone who's really really good at evals and benchmarks in SF (or maybe nyc if you're super special)  \n  \nif this is you, or you know someone who fits this, please dm me! i'd love to chat\n\n[🔗 View Quoted Tweet](https://x.com/BraceSproul/status/2078202791533961570)\n\n💬0🔄0❤️0👀971",
+      "tags": [
+        "LangChain",
+        "招聘"
+      ],
+      "score": 10,
+      "summary": "LangChain转发招聘评估和基准测试专家的推文。",
+      "fetched_at": "2026-07-18T05:04:44.241894+08:00"
+    },
+    {
+      "title": "Another leaderboard win for Nemotron 3 Embed 👀\n\nThe 8B model takes #1 on LMEB, with the 1B model ri...",
+      "link": "https://x.com/NVIDIAAI/status/2078204725921771890",
+      "published": "2026-07-18T03:46:32+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Another leaderboard win for Nemotron 3 Embed 👀  \n  \nThe 8B model takes #1 on LMEB, with the 1B model right behind it at #2.  \n  \nLMEB tests whether embedding models can find the right details across long-running conversations and other memory-heavy tasks, useful for agents that need to remember context across sessions.\n\n![Tweet Image](https://pbs.twimg.com/media/HNdDjDba4AALN7Q.jpg)\n\n![NVIDIA AI](https://pbs.twimg.com/profile_images/2055340743552831488/me-KUIug_normal.png)\n\nNVIDIA AI@NVIDIAAI\n\nToday we released Nemotron 3 Embed 8B and it reached #1 overall on RTEB 🏆  \n  \nRTEB benchmarks retrieval accuracy across real-world tasks. Better retrieval gives agents more relevant context, helping improve response accuracy.\n\n![Tweet Image](https://pbs.twimg.com/media/HNXHa10WQAAPHIR.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/NVIDIAAI/status/2077786069840318800)\n\n💬7🔄11❤️68👀6721📊14",
+      "tags": [
+        "Nemotron 3 Embed",
+        "LMEB榜首",
+        "NVIDIA"
+      ],
+      "score": 80,
+      "summary": "NVIDIA AI宣布Nemotron 3 Embed 8B在LMEB基准测试中排名第一。",
+      "fetched_at": "2026-07-18T05:04:44.241896+08:00"
+    },
+    {
+      "title": "After going on three campus tours in three days, Jessica has started to slip unknowingly into uptalk...",
+      "link": "https://x.com/paulg/status/2078219683270889805",
+      "published": "2026-07-18T04:45:58+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "After going on three campus tours in three days, Jessica has started to slip unknowingly into uptalking.\n\n💬9🔄0❤️42👀5552📊10",
+      "tags": [
+        "Paul Graham",
+        "日常"
+      ],
+      "score": 0,
+      "summary": "Paul Graham分享女儿校园参观后不自觉使用升调的趣事。",
+      "fetched_at": "2026-07-18T05:04:44.241899+08:00"
+    },
+    {
+      "title": "Learn more about our approach to building Runway Agent: https://t.co/V8vctepG4Z",
+      "link": "https://x.com/runwayml/status/2078216362044838183",
+      "published": "2026-07-18T04:32:46+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Learn more about our approach to building Runway Agent: [runwayml.com/news/engineeri…](https://runwayml.com/news/engineering/inside-building-runway-agent)\n\n💬0🔄0❤️3👀647",
+      "tags": [
+        "Runway Agent",
+        "技术博客"
+      ],
+      "score": 70,
+      "summary": "Runway发布关于构建Runway Agent方法的博客文章。",
+      "fetched_at": "2026-07-18T05:04:44.241902+08:00"
+    },
+    {
+      "title": "Runway Agent ranked No. 1 across every dimension.\n\nAn independent human evaluation put six AI video ...",
+      "link": "https://x.com/runwayml/status/2078215839862648903",
+      "published": "2026-07-18T04:30:42+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Runway Agent ranked No. 1 across every dimension.  \n  \nAn independent human evaluation put six AI video agents through 30 cinematic prompts and 16 metrics. Runway came out on top in all three pillars: Narrative Coherence, Cinematic Language, and Production Quality.\n\n![Tweet Image](https://pbs.twimg.com/media/HNdOSvHbQAAu92o.jpg)\n\n![Physion Labs Official](https://pbs.twimg.com/profile_images/2030712876835758080/6-1IeSXo_normal.jpg)\n\nPhysion Labs Official@Physion\\_Labs\n\n🎬 Video agents can now generate minute-long videos. But can they actually direct?  \n  \nToday, we’re launching 𝐏𝐡𝐲𝐬𝐢𝐨𝐧-𝐀𝐫𝐜 1.0, a new benchmark evaluating complete, multi-scene videos across narrative coherence, cinematic language, and production quality.  \n  \nWe tested [@runwayml](https://x.com/runwayml), [@LumaLabsAI](https://x.com/LumaLabsAI), [@MiniMax\\_AI](https://x.com/MiniMax_AI), [@Kling\\_ai](https://x.com/Kling_ai) , [@UtopaiStudios](https://x.com/UtopaiStudios) and [@TapNow\\_AI](https://x.com/TapNow_AI) on 100 screenplays and 600 generated videos.   \n  \n🏆 𝐑𝐮𝐧𝐰𝐚𝐲 𝐀𝐠𝐞𝐧𝐭 2.0 𝐫𝐚𝐧𝐤𝐞𝐝 𝐍𝐨. 1 𝐨𝐯𝐞𝐫𝐚𝐥𝐥 𝐚𝐧𝐝 𝐥𝐞𝐝 𝐞𝐯𝐞𝐫𝐲 𝐞𝐯𝐚𝐥𝐮𝐚𝐭𝐢𝐨𝐧 𝐝𝐢𝐦𝐞𝐧𝐬𝐢𝐨𝐧. Its advantage was especially clear across subjective metrics, where cinematic taste matters [lnkd.in/g-5tcwK7](https://lnkd.in/g-5tcwK7)st on all eight.  \n  \n🔗 Read the full benchmark: <https://t.co/PuBpmwUQGv>\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2077551208513015809/vid/avc1/1920x1080/JvuXW_mcymM9Rwc1.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Physion_Labs/status/2077551810357969047/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Physion_Labs/status/2077551810357969047)\n\n💬1🔄5❤️21👀3134📊4",
+      "tags": [
+        "Runway Agent",
+        "Physion-Arc 1.0",
+        "视频生成排名第一"
+      ],
+      "score": 80,
+      "summary": "Runway Agent在Physion-Arc 1.0基准测试中所有维度排名第一。",
+      "fetched_at": "2026-07-18T05:04:44.241904+08:00"
+    },
+    {
+      "title": "Literally frog boiling the app layer. There needs to be a neutral party in this.",
+      "link": "https://x.com/Suhail/status/2078194002030112836",
+      "published": "2026-07-18T03:03:55+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Literally frog boiling the app layer. There needs to be a neutral party in this.\n\n💬0🔄0❤️7👀1374📊1",
+      "tags": [
+        "Suhail",
+        "应用层",
+        "中立方"
+      ],
+      "score": 40,
+      "summary": "Suhail评论应用层被温水煮青蛙，呼吁中立方介入。",
+      "fetched_at": "2026-07-18T05:04:44.241907+08:00"
+    },
+    {
+      "title": "Markets price the future.\n\nCharts of the Week: https://t.co/b6vvV3acMy",
+      "link": "https://x.com/a16z/status/2078199413642821832",
+      "published": "2026-07-18T03:25:25+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Markets price the future.  \n  \nCharts of the Week: [a16z.news/p/charts-of-th…](https://www.a16z.news/p/charts-of-the-week-softwares-selective)\n\n![Tweet Image](https://pbs.twimg.com/media/HNc_WmlaAAAxl_i.jpg)\n\n💬4🔄8❤️73👀12896📊16",
+      "tags": [
+        "a16z",
+        "市场定价未来"
+      ],
+      "score": 60,
+      "summary": "a16z发布本周图表，主题为市场定价未来。",
+      "fetched_at": "2026-07-18T05:04:44.241909+08:00"
+    },
+    {
+      "title": "See the full Frontend Code Arena leaderboards at https://t.co/GFZ3FCC7Cl",
+      "link": "https://x.com/arena/status/2078208551462617335",
+      "published": "2026-07-18T04:01:44+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "See the full Frontend Code Arena leaderboards at [arena.ai/leaderboard/co…](https://arena.ai/leaderboard/code/webdev)\n\n💬0🔄1❤️5👀1770📊1",
+      "tags": [
+        "Frontend Code Arena",
+        "排行榜"
+      ],
+      "score": 70,
+      "summary": "lmarena.ai发布Frontend Code Arena完整排行榜。",
+      "fetched_at": "2026-07-18T05:04:44.241912+08:00"
+    },
+    {
+      "title": "For the first time, China has taken the lead over the US in Frontend Code Arena with the launch of K...",
+      "link": "https://x.com/arena/status/2078208547457012005",
+      "published": "2026-07-18T04:01:43+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "For the first time, China has taken the lead over the US in Frontend Code Arena with the launch of Kimi-K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot).  \n  \nThe last time a Chinese model came close was in early 2025, with DeepSeek-R1.\n\n![Tweet Image](https://pbs.twimg.com/media/HNdHbrIasAAAQvb.jpg)\n\n![Anastasios Nikolas Angelopoulos](https://pbs.twimg.com/profile_images/1834367763026169856/4sbu_-Af_normal.jpg)\n\nAnastasios Nikolas Angelopoulos@ml\\_angelopoulos\n\nThis may be the single biggest release of the year, and marks the moment that OSS Chinese models have surpassed US models.  \n  \nOn Code Arena, Kimi K3 has BEATEN FABLE.  \n  \nThis is only 6 weeks after the Fable release.  \n  \nThis makes [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) the #1 AI lab in the world on frontend coding capability, and more results are rolling in that are likely to continue to show it is at the top of the pack.  \n  \nThe implications of this, whether on the closed-source AI business models or the larger capital ecosystem in the US, are enormous.\n\n![Tweet Image](https://pbs.twimg.com/media/HNXxvRvbsAAaWD5.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ml_angelopoulos/status/2077832882673066109)\n\n💬16🔄35❤️241👀13010📊40",
+      "tags": [
+        "Kimi K3",
+        "Frontend Code Arena",
+        "中国模型超越美国"
+      ],
+      "score": 85,
+      "summary": "lmarena.ai报道Kimi K3在Frontend Code Arena首次超越美国模型，中国领先。",
+      "fetched_at": "2026-07-18T05:04:44.241915+08:00"
+    },
+    {
+      "title": "可以添加专门的 AI 时间线，看到更多 AI 相关信息",
+      "link": "https://x.com/dotey/status/2078205785100652663",
+      "published": "2026-07-18T03:50:45+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "可以添加专门的 AI 时间线，看到更多 AI 相关信息\n\n![Tweet Image](https://pbs.twimg.com/media/HNdFGExWcAAHQbO.jpg)\n\n![Nikita Bier](https://pbs.twimg.com/profile_images/1755448801957945344/Fh2HNw5Y_normal.jpg)\n\nNikita Bier@nikitabier\n\nIf you want to keep track of the latest AI model releases, pin the AI custom timeline. It’s personalized for you, ranked and labeled by Grok. The best way to monitor the situation as it’s happening.\n\n![Tweet Image](https://pbs.twimg.com/media/HNajOYYasAA0zcu.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/nikitabier/status/2078027748011086021)\n\n💬1🔄0❤️1👀741📊1",
+      "tags": [
+        "AI时间线",
+        "Grok"
+      ],
+      "score": 40,
+      "summary": "宝玉转发Nikita Bier关于使用Grok AI时间线追踪模型发布的建议。",
+      "fetched_at": "2026-07-18T05:04:44.241917+08:00"
+    },
+    {
+      "title": "Claude Code 刚才短暂下架了 Fable 5，然后又恢复了。有个朋友比较倒霉，因为开启了“Usage credits”，一个正在进行中的任务就开始使用 API 额度了，一小会轻松 $18 就...",
+      "link": "https://x.com/dotey/status/2078199263415205978",
+      "published": "2026-07-18T03:24:50+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Claude Code 刚才短暂下架了 Fable 5，然后又恢复了。有个朋友比较倒霉，因为开启了“Usage credits”，一个正在进行中的任务就开始使用 API 额度了，一小会轻松 $18 就没了。  \n  \n他们要真下了也挺好，我周末就可以好好放松一下了，现在要忙于把剩余额度在周末消耗完，不然 19 日到期就不能再在 Claude Code 内用了。  \n  \n忠告：千万别打开“Usage credits”\n\n![Tweet Image](https://pbs.twimg.com/media/HNc-P7sXIAAuKUb.png)![Tweet Image](https://pbs.twimg.com/media/HNc-opDXsAAFYwI.jpg)![Tweet Image](https://pbs.twimg.com/media/HNc_GMjXUAAtUxA.jpg)\n\n💬6🔄1❤️16👀2724📊7",
+      "tags": [
+        "Claude Code",
+        "Fable 5",
+        "Usage credits"
+      ],
+      "score": 60,
+      "summary": "宝玉分享Claude Code短暂下架Fable 5及Usage credits导致高额费用的经历。",
+      "fetched_at": "2026-07-18T05:04:44.241920+08:00"
     }
   ]
 }
