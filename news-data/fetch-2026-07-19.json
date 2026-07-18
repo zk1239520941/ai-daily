@@ -1,0 +1,280 @@
+{
+  "meta": {
+    "date": "2026-07-19"
+  },
+  "entries": [
+    {
+      "title": "MCP vs A2A vs ACP: How AI Agents Actually Talk to Each Other",
+      "link": "https://blog.bytebytego.com/p/mcp-vs-a2a-vs-acp-how-ai-agents-actually",
+      "published": "2026-07-19T00:46:13+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [Your AI agent has a blind spot (Sponsored)](https://go.bytebytego.com/XWeather_071826CTA)\n\n[![](https://substackcdn.com/image/fetch/$s_!Vd0c!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F43e2259d-44dd-4098-98f1-5b00b204ad60_1600x840.jpeg)](https://go.bytebytego.com/XWeather_071826CTA)\n\nAs AI agents take on decision-making, they need awareness of real-world conditions.\n\nA weather delay can reroute deliveries. Lightning can pause field operations. Road conditions can affect autonomous vehicles. These signals shape decisions, yet most AI systems can’t observe them.\n\nBut context is only as valuable as the data behind it. Enterprise applications need trusted, real-time weather intelligence—not just generic forecasts. Signals like lightning activity, road conditions, hail risk, and weather impacts often matter more than temperature alone.\n\nXweather’s MCP-ready weather API gives AI agents access to trusted weather intelligence and the real-world context behind weather-driven decisions. [Learn how it works in this technical guide](https://go.bytebytego.com/XWeather_071826Guide).\n\n[Get your free API key](https://go.bytebytego.com/XWeather_071826CTA)\n\n---\n\nThis week’s system design refresher:\n\n* MCP vs A2A vs ACP: How AI Agents Actually Talk to Each Other\n* 8 Frontier Open Models I’m Most Excited About\n* LLM vs RAG vs Agent evals\n* How Distributed Tracing Works at the High Level?\n* The Life of a Redis Query\n\n---\n\n## MCP vs A2A vs ACP: How AI Agents Actually Talk to Each Other\n\nAgents are capable on their own. Combined with tools and other agents, their capabilities compound. But how should they communicate?\n\n[![Image](https://substackcdn.com/image/fetch/$s_!lpxK!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9fb99a2-ec71-476d-a9cb-6c1a43339d90_2484x3002.png \"Image\")](https://substackcdn.com/image/fetch/$s_!lpxK!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9fb99a2-ec71-476d-a9cb-6c1a43339d90_2484x3002.png)\n\n1. MCP: agent to tool communication.   \n   The host app receives the user request, its embedded MCP client formats and routes it to the right MCP server, the server executes the tool call and returns a structured response. The agent uses the result to continue reasoning.\n2. A2A: agent to agent communication.   \n   An agent that can't complete a task alone discovers a capable peer via its Agent Card (published at a well-known URL), delegates the task, and receives a structured result back. If the second agent needs more input mid-task, it pauses in the input-required state and loops back to the first.\n3. ACP: agent to agent communication over REST (merged into A2A).   \n   ACP took a REST-first approach. Peers were discovered through an Agent Manifest, called directly over HTTP, and responded to sync for low-latency tasks or via async SSE stream.\n\nIn production, MCP and A2A are complementary. MCP handles tool access, A2A handles agent communication.  \n  \nAre you running MCP and A2A together in your agent stack?\n\n---\n\n## [Introducing Attio: the agentic CRM. (Sponsored)](https://go.bytebytego.com/Attio_071426)\n\n[![](https://substackcdn.com/image/fetch/$s_!47nM!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa99590e6-cb09-4389-b5e3-4e0bb5c62a2c_2870x1091.png)](https://go.bytebytego.com/Attio_071426)\n\nAttio, the agentic CRM, makes it incredibly easy for anyone to run workflows for any GTM play they need.\n\nDescribe what you want, and Attio builds it. I just built a workflow that runs every morning, surfaces the deals that need my attention today, like anything with a stage change or a new signal in the last 24 hours.\n\nHundreds of thousands of automations already run on Attio every day. Ready to try now?\n\n[Try it today](https://go.bytebytego.com/Attio_071426)\n\n---\n\n## LLM vs RAG vs Agent evals\n\nLLMs, RAG pipelines, and agents are different systems, but the recipe for evaluating them is the same: pick a task, collect eval data, develop a grader.\n\nThe diagram below breaks it down across four popular AI systems.\n\n[![](https://substackcdn.com/image/fetch/$s_!LZtJ!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6456348c-5d92-4524-8dd6-d75b4dc7feaf_1280x1547.png)](https://substackcdn.com/image/fetch/$s_!LZtJ!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6456348c-5d92-4524-8dd6-d75b4dc7feaf_1280x1547.png)\n\n1. LLMs: Input is a prompt, output is text. Tasks focus on what a raw model can do on its own: safety, code, instruction-following. Grader is often LLM-as-judge on the final answer.\n2. RAG: Adds a retriever before the LLM. So you grade two things: retrieval (right docs?) and generation (faithful answer?).\n3. Coding Agents: The LLM gets tools and a loop. Tasks become end-to-end like bug fixing and long-horizon planning. Grading is mostly code-based: run unit tests on the final patch.\n4. Multi-Agent Systems: Multiple agents coordinating through an orchestrator. Tasks shift to coordination and role adherence. Grading blends code tests, LLM-as-judge, and human review.\n\nEvery new component in the pipeline is a new place for things to go wrong, and a new thing your evals need to catch.\n\nOver to you: What's your go-to evaluation metric for multi-agent systems?\n\n---\n\n## 8 Frontier Open Models I’m Most Excited About\n\n[![table](https://substackcdn.com/image/fetch/$s_!J6cY!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F41f09609-e481-44eb-a3aa-91db1e272f67_1280x1546.jpeg \"table\")](https://substackcdn.com/image/fetch/$s_!J6cY!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F41f09609-e481-44eb-a3aa-91db1e272f67_1280x1546.jpeg)\n\n* Inkling (Thinking Machines): released this week, now the strongest American open model. Text, image, and audio input.\n* Nemotron 3 Ultra (NVIDIA): a solid choice for long-running agents. The Mamba hybrid keeps long-context inference cheap.\n* GLM-5.2 (**[Z.ai](http://z.ai/)**): currently the best open model for coding.\n* Kimi K2.6 (Moonshot): strong on long agent tasks. Holds up over hundreds of tool calls.\n* DeepSeek-V4 Pro: a very cheap way to get frontier-level quality over an API.\n* Qwen3.6-35B (Alibaba): the best model to run on your own machine. A single 24 GB GPU is enough.\n* Gemma 4 31B (Google): the best choice for on-device multimodal. Takes image and audio input on a gaming GPU.\n* MiniMax M3: the only open model with native video input.\n\nOver to you: Which open model are you most excited about?\n\n---\n\n## How Distributed Tracing Works at the High Level?\n\n[![](https://substackcdn.com/image/fetch/$s_!ULeT!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe81b4572-820e-4790-8861-8efe14f38700_2252x2752.png)](https://substackcdn.com/image/fetch/$s_!ULeT!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe81b4572-820e-4790-8861-8efe14f38700_2252x2752.png)\n\n1. Services generate telemetry data (traces, logs, metrics) as they handle requests.\n2. The OpenTelemetry Collector receives this data from all services in a unified format.\n3. The collector splits the data into three streams: traces, logs, and metrics.\n4. Each stream is sent to a Receive & Process unit that prepares it for storage and analysis.\n5. Processed data is stored in a Log Database for querying and long-term access.\n6. Data from the database is visualized through a Visualization dashboard for monitoring and debugging.\n\nOver to you: What else will you add to better understand distributed tracing?\n\n---\n\n## The Life of a Redis Query\n\nRedis is an in-memory database, which means all data lives in RAM for speed. However, if the server crashes or restarts, data could be lost.\n\n[![Image](https://substackcdn.com/image/fetch/$s_!6UyI!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9f8ea7bf-2170-4466-92f3-edd7eab11de4_3000x3900.png \"Image\")](https://substackcdn.com/image/fetch/$s_!6UyI!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9f8ea7bf-2170-4466-92f3-edd7eab11de4_3000x3900.png)\n\nTo solve this problem, Redis provides two persistence mechanisms to write data to disk:\n\n1. AOF (Append-Only File)\n\n   When a client sends a command, Redis first executes it in memory (RAM). After that, Redis logs the command by appending it to an AOF file on disk. This ensures every operation can be replayed later to rebuild the dataset. Since the command is executed first and logged afterward, writes are non-blocking. The recovery process uses the event log to replay the recorded commands.\n2. RDB (Redis Database)\n\n   Instead of writing every command, Redis can periodically take snapshots of the entire dataset.\n\n   The main thread forks a subprocess (bgsave) that shares all the in-memory data of the main thread. The bgsave subprocess reads the data from the main thread and writes it to the RDB file.\n\n   Redis uses copy-on-write. When the main thread modifies data, a copy of the data is created, and the process works on that so that writes don’t get blocked. The snapshot is then written as an RDB file on disk, allowing Redis to quickly reload the snapshot into memory when needed.\n3. Mixed Approach\n\n   In production, Redis often uses both AOF and RDB. RDB provides fast reloads with compact snapshots. AOF guarantees durability by recording every operation since the last snapshot.\n\nOver to you: Have you used Redis in your project?",
+      "tags": [
+        "MCP",
+        "A2A",
+        "ACP"
+      ],
+      "score": 79,
+      "summary": "ByteByteGo 对比 MCP、A2A、ACP 三种 AI Agent 通信协议。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!lpxK!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9fb99a2-ec71-476d-a9cb-6c1a43339d90_2484x3002.png",
+      "fetched_at": "2026-07-19T01:06:59.510091+08:00"
+    },
+    {
+      "title": "正式开源！美团 LongCat-2.0 同步开放国产卡推理代码",
+      "link": "https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "**本周，美团万亿参数大模型 LongCat-2.0 正式开源！**\n\n[HuggingFace](https://huggingface.co/meituan-longcat/LongCat-2.0) | [GitHub](https://github.com/meituan-longcat/LongCat-2.0) | [ModelScope](https://www.modelscope.cn/collections/meituan-longcat/LongCat-20)\n\n作为业界首个在五万卡国产算力集群上完成推理的万亿参数模型，LongCat-2.0 已全面开源。**针对显存与带宽受限的国产算力芯片，我们在模型架构、芯片适配到部署策略上进行了深度协同优化，让万亿参数模型在存量卡上同样跑得稳、跑得快。** 我们希望以真实 Agentic Coding 任务中的稳定表现为依托，通过开源将模型能力与推理优化成果完整开放，盘活更多存量国产算力，释放国产算力生态的长期价值。\n\n美团 LongCat-2.0 总参数 1.6T，平均激活约 48B，为真实的 Agentic Coding 任务而生，架构上创新性引入 LongCat 稀疏注意力和 N-gram Embedding，提升长上下文处理效率与 Token 级表示能力的同时，结合动态激活进一步强化了代码理解、生成以及执行的表现。\n\n## 01 模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理\n\n面对显存、带宽和互联的多重限制，LongCat-2.0 结合国产芯片特性，**从模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理：**\n\n* **模型层面：** Attention 通过 absorb 计算模式、Indexer 与 MLA prolog 并行处理以及 KVP 切分 KV-cache，有效缓解了超长上下文的 I/O 与显存压力。ScMoE 则利用国产芯片的控核能力，让 Dense 与 MoE 分支实现物理核心级并行执行，进一步压缩端到端延迟，实现了百万上下文在国产芯片上的高效推理；\n* **芯片适配层面：** 通过 Super Kernel 减少算子数量以降低启动开销，并以 Weight Prefetch 将 I/O 延迟隐藏在前序计算中；同时基于高速片间互联完成 layer-wise 的 KV-cache 传输，TP/SP/KVP 均在 scale-up 互联域内完成，在受限的显存和带宽条件下将硬件利用率最大化；\n* **部署策略层面：** 采用 PD 分离部署兼顾 TTFT 与 TPOT：Prefill 端通过缩小 Expert-Parallel 域与序列并行分担长序列计算压力，Decode 端以 KV-cache 切分与高并行度降低单卡显存占用，配合异步化 Expert-Parallel Load Balancing 解决大 EP 度下的负载不均。上述并行方案均已适配 constrained decoding、multi-step scheduling 和 MTP 等推理优化特性，实现了万亿参数模型在国产算力上的稳定服务。\n\nLongCat-2.0 验证了国产芯片承载复杂大模型任务的成熟能力，并希望通过开源为行业提供一条可复现的技术路径，推动存量算力在真实场景中的应用价值。\n\n## 02 模型全面升级，会执行、会推理、懂交互\n\nLongCat-2.0 沿用了 LongCat-Flash 的整体设计，并围绕 LongCat-2.0 在长上下文、代码任务和智能体场景中的进一步升级，做了三项关键优化：\n\n### 2.1 LongCat 稀疏注意力机制，提升上下文处理效率\n\n面向智能体任务中的长输入场景，LongCat-2.0 引入 LongCat 稀疏注意力机制（LSA），通过流感知索引、跨层索引和层级化索引三项策略减少碎片化访存和重复索引计算，在保持模型质量的前提下，加速百万级长上下文的训练与推理。\n\n![](https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png)\n\n### 2.2 引入 N-gram Embedding，提升参数利用效率\n\nLongCat-2.0 在 MoE 专家之外引入 N-gram Embedding 作为新的参数扩展路径。在 MoE 稀疏度已接近 97% 的情况下，将 135B 参数投入 N-gram Embedding 的收益远超继续扩充专家。该模块占比控制在总参数 10% 以内，兼顾了参数收益与结构稳定性。\n\n![](https://p1.meituan.net/meituantechblog/84d46b968d89efb8fd1bb66d3005680c29580.png)\n\n### 2.3 通过 MOPD 架构在国产算力集群上无缝融合，让模型会执行、会推理、懂交互\n\n后训练阶段，LongCat-2.0 采用多教师在线蒸馏，将专家分为 Agent、推理和交互三类，分别聚焦自主执行、自适应推理和安全对齐等核心能力。最终通过 MOPD 架构在国产算力集群上无缝融合，使模型兼具深度推理、自主执行与精准交互的综合表现。\n\n![](https://p0.meituan.net/meituantechblog/7e5f64947ed21d4b1c24d3e94d855844154812.png)\n\n## 03 开源开放\n\nLongCat-2.0 的开源，是一次技术路径的公开，也是一次生态邀约。\n\n本次开源同步提供 BF16、FP8 以及 INT8 等多精度版本，全面覆盖不同算力平台的部署需求。同时，我们深度拥抱开源社区，将针对国产算力极致优化的推理成果同步开源。这意味着，即使手上没有最新算力，也能基于现有硬件将 LongCat-2.0 稳定跑起来。\n\n我们希望通过这套开箱即用的推理栈，让更多的国产卡包括老卡，都能流畅部署万亿大模型推理服务，在真实生产力场景发挥更大价值。\n\n### 🚀 开源链接\n\n**Tech Blog：** <https://longcat.ai/blog/longcat-2.0/>\n\n**Model Weights：**\n\n* HuggingFace: <https://huggingface.co/meituan-longcat/LongCat-2.0>\n* GitHub: <https://github.com/meituan-longcat/LongCat-2.0>\n* ModelScope: <https://www.modelscope.cn/collections/meituan-longcat/LongCat-20>\n\n**Inference Code:**\n\n* GPU: <https://github.com/sgl-project/sglang/pull/30042>\n* NPU: <https://github.com/meituan-longcat/SGLang-FluentLLM/tree/npu>\n\n**API Platform：**\n\n* <https://longcat.chat/platform/product>",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团正式开源万亿参数大模型 LongCat-2.0，同步开放国产卡推理代码。",
+      "image_url": "https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png",
+      "fetched_at": "2026-07-19T01:06:59.510099+08:00"
+    },
+    {
+      "title": "直播回放·含 ACL&apos;26 杰出论文 | 美团 AI 顶会论文 32 篇精讲",
+      "link": "https://tech.meituan.com/2026/07/11/2026-meituan-32-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "🏆 近日，ACL 2026 杰出论文奖在圣地亚哥揭晓，全球仅 18 篇入选，美团履约技术团队的《GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR》上榜啦，一键直达视频回放👉🏻 [小红书](https://www.xiaohongshu.com/discovery/item/6a3b54740000000006030031?source=webshare&xhsshare=pc_web&xsec_token=ABh2ziW0cX7XYIsQ1VpYHUl5aZzXTt2-o0yyamYge4z-4=&xsec_source=pc_share) | [B站](https://www.bilibili.com/video/BV1v7jc6BENd/?spm_id_from=333.1387.upload.video_card.click&vd_source=8dac43659650af56650d7a9bc5f083d3)\n\n![图2](https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png)\n\n如果你正在关注 AI 前沿，这篇内容值得收藏。\n\n2026 年，美团技术团队数十篇论文被 ACL、SIGIR、ICML、KDD 等顶会收录。我们精选 32 篇，进行了 5 大专场直播。\n\n内容涵盖了大模型推理、智能体记忆与自进化、代码智能、多模态交互、超高清视频生成、本地生活搜索等方向——既有底层能力的突破，也有贴近生活服务的落地探索。\n\n如果你错过了直播，或者想再看一遍👇 五场回放都在这里啦，找到你感兴趣的议题，随时开始。\n\n特别感谢所有讲师与筹备团队的倾力支持！也感谢每一位关注美团技术成长的你！❤️\n\n## 专场一：ACL'26 综合专场\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b729b0de8000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783330950&share_id=e51dd478f4b34506aed7a49ca74b9113) ｜ [B站](https://space.bilibili.com/18937923/lists/8321546?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&sn=77c72b469a871b499a46fe06be73225f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/fe16b3191f6276cdf692c76bb2b04308356559.png)\n\n## 专场二：ACL'26 履约团队前沿技术专场\n\n**出品人｜** Jichong Gao 美团高级技术专家、Jun Xu 美团高级技术专家\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72d90de6000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783331038&share_id=ca3358c821584b34a480efd8350ed035) ｜ [B站](https://space.bilibili.com/18937923/lists/8370607?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782810&idx=2&sn=aeb92a7c0c0bcf2befa7a201f1d4ece9&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/87835a72dafb62eb0c93a17fdab075ca674240.png)\n\n## 专场三：搜推 ASX 团队专场\n\n**出品人｜** Guojun Yin 美团研究员\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72f50e97000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783478239&share_id=196398bf22d742bda21e83ee981f6615) ｜ [B站](https://space.bilibili.com/18937923/lists/8427999?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782896&idx=2&sn=ce2cb30b2d2b0e9ea12d03561124dd05&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/6498214ebe581bcea5541619c1cd145d359417.png)\n\n## 专场四：ICML'26 通用 Agent 前沿技术专场\n\n**出品人｜** Qi Gu 美团研究员\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8471639?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/247700c227d0b4f4c7f88bb02adecdbe344171.png)\n\n## 专场五：ICML'26 综合专场\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8485771?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/cbd47f8df818779808c61e614f6087f7351215.png)",
+      "tags": [
+        "ACL 2026",
+        "美团",
+        "32篇论文"
+      ],
+      "score": 79,
+      "summary": "美团技术团队精选 32 篇顶会论文进行直播精讲，含 ACL 2026 杰出论文。",
+      "image_url": "https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png",
+      "fetched_at": "2026-07-19T01:06:59.510103+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团发布万亿参数大模型 LongCat-2.0，在五万卡国产算力集群上完成全流程训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-19T01:06:59.510106+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "美团",
+        "ASX",
+        "顶会论文"
+      ],
+      "score": 79,
+      "summary": "美团搜推 ASX 团队分享 6 篇顶会论文，涵盖 RLVR、Agentic 强化学习等方向。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-19T01:06:59.510109+08:00"
+    },
+    {
+      "title": "ACL 2026 精选论文分享：美团履约团队前沿技术专场",
+      "link": "https://tech.meituan.com/2026/06/11/ACL-2026-Agent.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "## 团队介绍\n\n美团业务研发平台/履约 AI 算法团队，聚焦构建大模型为基础的 Agent 技术体系，用 AI 赋能美团履约业务， 构建 Agent 自进化的运营系统。在大模型 CPT、Post-training、Agentic RL 以及多模态理解等核心前沿方向持续深耕，已在 ACL、EMNLP 等AI领域的国际顶会发表数十篇高质量研究成果。本文分享了美团履约团队专场聚焦 ACL 会议论文以及前沿技术实践。\n\n## 01 GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR\n\n**低秩高效：冻结残差分量，高效稠密计算**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2601.09361)\n\n![](https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png)\n\n**论文简介**：基于可验证奖励的强化学习（RLVR）是提升大规模推理模型能力的关键范式。与监督微调（SFT）不同，RLVR 展现出截然不同的优化动力学，其对预训练几何结构的保持高度敏感。然而，现有的参数高效方法在这一范式下面临着关键的局限性。一方面，像 PiSSA 和 MiLoRA 这样的低秩适配方法主要面向监督微调设计，未能考虑到 RLVR 独特的优化动力学与几何结构；直接将它们应用于 RLVR 往往会导致谱塌缩和训练不稳定。另一方面，直接去微调那些受 RLVR 青睐的非结构化稀疏参数子空间，又会在现代硬件上遭遇效率瓶颈。\n\n为解决这些挑战，我们提出了 GeoRA（几何感知低秩适配），一种专为 RLVR 定制的低秩适配方法。具体而言，GeoRA 利用了 RL 更新子空间的各向异性与可压缩结构，并通过奇异值分解（SVD）提取其主方向来初始化低秩适配器。在 RLVR 训练期间，残差分量被冻结作为结构锚点。该设计既保留了预训练结构，又实现了高效的稠密计算。在参数规模从 1.5B 到 32B 的 Qwen 和 Llama 模型上的实验表明，GeoRA 在数学、医学和代码等 RLVR 场景中持续优于强有力的低秩基线方法，同时在域外任务上展现出更强的泛化能力和更少的遗忘。\n\n## 02 Efficient Paths and Dense Rewards: Probabilistic Flow Reasoning for Large Language Models\n\n**Infra的引擎是数学：离散推理步骤建模为连续概率流，推动推理过程是逼近目标的“速度向量”**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09260)\n\n![](https://p1.meituan.net/meituantechblog/1437e163c0cfec3bb322c2ebc0704ff6492492.png)\n\n**论文简介**：高质量的思维链（CoT）在激发大语言模型推理能力方面展现出了巨大的潜力 。然而，现有的推理范式通常将推理过程视为不可分割的序列，缺乏量化每一步信息增益的内在机制 。这种细粒度的缺失导致了两个关键瓶颈：一是在缺乏明确引导的情况下，模型容易进行冗余探索，造成推理效率低下；二是由于结果监督信号稀疏或外部验证器成本高昂，导致模型优化困难 。\n\n为解决上述问题，本论文提出了一种名为 CoT-Flow 的全新理论框架，将离散的推理步骤重新概念化为连续的概率流 。受整流流（Rectified Flow）理论的启发，该框架将推理过程建模为将模型的信息状态从初始问题平滑传输到真实答案的连续过程 。在此视角下，每一个推理步骤都被视为一个推动推理过程逼近目标的“速度向量”，以严格量化每一步对生成最终正确答案的瞬时信息增益 。基于这样的量化指标，实现了一种基于对比解码的贪心解码策略，回答长度平均减少 10% ~ 15%，并且在 AIME24 上能够获得高达 15.9% 的准确率提升。同一框架下导出的 RL loss，和 GRPO, VeriFree 等 baseline 相比，在 AIME24, GPQA 等 benchmark 上取得接近或更高的准确率，同时实现 11% ~ 37% 的长度压缩，训练加速 32%。\n\n## 03 UserLM-R1: Modeling Human Reasoning in User Language Models with Multi-Reward Reinforcement Learning\n\n**可以进化的RL环境：像人一样思考的用户模拟器**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09215)\n\n![](https://p0.meituan.net/meituantechblog/7b56191c592435d903f4775d86c9cf18488821.png)\n\n**论文简介**：用户模拟器是智能体后训练的核心交互环境，理想的用户模拟器应具备跨领域泛化能力，并能主动通过质疑或议价等方式参与协商。然而，现有方法存在两个问题：其一，依赖静态且缺乏上下文感知的用户画像，在面对新场景时需要大量人工重新设计，泛化能力有限；其二，忽视人类的策略性思维，导致智能体易于对用户模拟器进行操控。\n\n为此，我们提出UserLM-R1——一种具备推理能力的新型用户语言模型。具体而言，我们首先构建兼顾静态角色与动态场景目标的综合用户画像，以适应多样化场景；进而提出目标驱动的决策策略，在生成回复前先产生高质量的推理链，并通过监督微调与多奖励强化学习进一步提升推理能力与策略水平。大量实验结果表明，UserLM-R1显著优于各竞争基线方法，在更具挑战性的对抗测试集上尤为突出。\n\n## 04 Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management\n\n**自进化的心脏：基于因果反馈对齐的通用Agent记忆管理系统**\n\n论文下载：[PDF](https://arxiv.org/abs/2601.08435)\n\n![](https://p0.meituan.net/meituantechblog/1c5c09ef9ebab017268bdf9aa478b4ac210795.png)\n\n**论文简介**：有效的内存管理对于大型语言模型代理执行长期任务至关重要。近期研究探索了使用强化学习来开发专门的内存管理器代理。然而，现有方法主要依赖最终任务性能作为主要奖励，这导致奖励稀疏且信用分配无效，无法为单个内存操作提供足够的指导。\n\n为此，我们提出了Fine-Mem，一个专为细粒度反馈对齐设计的统一框架。首先，我们引入了“块级步骤奖励”，通过辅助的特定块问题回答任务提供即时的步骤级监督。其次，我们设计了“基于证据的奖励归因”，通过将信用锚定到关键记忆操作，基于推理中用作证据的特定记忆项，重新分配全局奖励。这些组件共同实现了稳定的策略优化，并将局部记忆操作与记忆的长期效用相统一。在Memalpha和MemoryAgentBench上的实验表明，Fine-Mem在各种子任务中均优于强大的基线模型，取得了更高的成功率。进一步分析揭示了其在不同模型配置和主干网络中的适应性和强大的泛化能力。\n\n## 05 DuplexOmni: Real-Time Listening, Seeing, Thinking, and Speaking for Full-Duplex Interaction\n\n**不止像人：神奇的看、听、说、想、做并行推理全模态大模型**\n\n**论文下载**：[PDF](http://arxiv.org/abs/2606.09186)\n\n![](https://p0.meituan.net/meituantechblog/4780307ea3e0765e53b012b45976b4a8741349.png)\n\n**论文简介**：人类交互本质上是连续、多模态和全双工的。尽管近期通用模型在语音、视觉和文本建模方面取得了实质性进展，但在统一系统中将低延迟实时交互与复杂推理和工具使用相结合仍然具有挑战性。\n\n我们提出了DuplexOmni，一种用于实时多模态全双工交互的方法。DuplexOmni将模型能力划分为交互层和思考层，并通过异步并行协作将它们连接起来。交互层由DuplexOmni模型实现，该模型接收流式音频和视频输入，并实时生成文本和语音响应。思考层作为可插拔的外部模块，提供复杂推理和工具使用功能。为了支持这种交互范式，我们进一步研发了一个Writer-Director数据管道，用于构建连续交互训练数据。实验表明，DuplexOmni在多个公开基准测试上表现出色，并展现出自然的双工交互能力。",
+      "tags": [
+        "ACL 2026",
+        "美团",
+        "Agent"
+      ],
+      "score": 79,
+      "summary": "美团履约团队分享 ACL 2026 精选论文，包括 GeoRA、CoT-Flow 等。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png",
+      "fetched_at": "2026-07-19T01:06:59.510112+08:00"
+    },
+    {
+      "title": "Vol.272｜预测可以全错，规则不能乱改：世界杯里的体育、政治与商业｜主播：孟庆延",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a5b1ae76356eb2d9be47b2e",
+      "published": "2026-07-19T00:00:00+08:00",
+      "source": "东腔西调",
+      "content": "![](https://image.xyzcdn.net/FrmaTrwUQxLhBe3smZ39WtIFGgEG.png)\n\n*\\*反向预测的神，翻出了他压箱底的98年法国世界杯吉祥物*\n\n⚽️\n\n2026年世界杯决赛前夕，阿根廷绝杀英格兰，与西班牙会师。而我们熟悉的孟庆延老师，凭借“每把预测都反了”的玄学体质，成功把自己送上了反向预测的神坛。在最终决战之前，孟老师进行了一次真诚的自我检讨：西班牙的足球风格发生了怎样的变化？39岁的梅西，为什么仍然是任何技战术分析都无法穷尽的变量？这场决赛，究竟会成为老球王的最后一舞，还是亚马尔接过权杖的时刻？\n\n不过这一期想谈的并不只是胜负，特朗普一个电话让国际足联缓刑红牌，阿根廷球员赛后打出争议横幅，本期节目将继续以社会学视角切入足球世界，探讨无法远离政治的现代体育。足球从来不只是90分钟的竞技，它是经济，是政治，更是最真实的情感共同体。我们所期待的“纯粹体育”，或许从来不是让体育脱离社会，而是尽可能守住赛场内的规则与公平。\n\n⚽️\n\n主播：孟庆延（中国政法大学社会学院教授）\n\n![](https://image.xyzcdn.net/FvjKBJoXnjVPkjMKPNBXgV95kse7.png)\n\n欢迎前往B站[@孟庆延](https://space.bilibili.com/1641320270?spm_id_from=333.337.0.0)收看本期视频播客！\n\n### 【收听指南】\n\n00:00 反向预测？足球是圆的，什么事情都可能发生\n\n06:40 这支阿根廷很像1990年那支阿根廷，球员、球队与主教练的关系如出一辙\n\n08:08 从阿根廷球员赛后横幅说起：足球天然带有国家的政治属性\n\n10:50 川普介入，巴洛贡红牌被国际足联“缓刑一年”，改变的不只是一场比赛\n\n14:40 从钱穆《中国历代政治得失》理解世界杯预选赛的名额分配\n\n16:25 以参与为核心、高度产业化、以国家为单位的体育竞技，天然与政治有着关联\n\n18:56 国家队是“family”，俱乐部就是“上班”\n\n23:09 场外因素也很可能会影响世界杯球队赛事的走向\n\n25:05 体育比赛能够做到在场内的90分钟是纯粹的，就已经很不容易了\n\n### 【相关往期】\n\n[Vol.270｜满场“六边形”却赢不了球？锐评传统强队挣扎，预测夺冠热门｜主播：孟庆延](https://www.xiaoyuzhoufm.com/episode/6a4903692e335a35a80e00b3)\n\n[Vol.269｜巴西队差点翻车？30年老球迷眼中的足球全球化与“诸神黄昏”｜主播：孟庆延](https://www.xiaoyuzhoufm.com/episode/6a43c5de2e335a35a80bea2b?s=eyJ1IjogIjVmZjNkYTk2ZTBmNWU3MjNiYjQ1NGYwYyJ9)\n\n[Vol.268｜当足球遇上地缘：美加墨能靠足球走到一起吗？｜嘉宾：施展](https://www.xiaoyuzhoufm.com/episode/6a39158a2e335a35a8076ef4)**【** [**⚽️ 点击此处和播客见一面！**](http://xhslink.com/o/A11e2D2IYEO)**】**\n\n[串台·日谈公园｜把我的生活恢复到zhuī佳zuàng态｜孟庆延×小伙子](https://www.xiaoyuzhoufm.com/episode/6a0fea63aba2b42473c6f309)\n\n[Vol.232｜苏超：一场超越胜负的足球狂欢与城市破圈｜嘉宾：孟庆延](https://www.xiaoyuzhoufm.com/episode/685e0459bef90978ec1fe5d1)\n\n[Vol.163｜男篮男足化？职业化、体育精神与现代社会的商业逻辑｜社会病理学](https://www.xiaoyuzhoufm.com/episode/65321494206650fc6b68b4a7)\n\n[Vol.83丨“中国足球啥风格？没风格！”](https://www.xiaoyuzhoufm.com/episode/6206370286b4c5f6254d1751)\n\n[Vol.28丨为什么现在的足球赛会被踢成“遛猴赛”？](https://www.xiaoyuzhoufm.com/episode/60d5a93825da4f997b8b9861)\n\n### 【关于我们】\n\n一样的世界，不一样的思考。「东腔西调」是一档由爱道思EIDOS制作播出的轻文化播客，每周五更新，不定期加更，感谢你的收听。你可以在[小宇宙](https://www.xiaoyuzhoufm.com/podcast/5f72b66083c34e85dd14fde9?s=eyJ1IjoiNWVlZjIxMmU5MmQ3MDIzNzY3OGUwY2JjIn0%3D)、[喜马拉雅](https://www.ximalaya.com/album/41153937)、[苹果播客](https://podcasts.apple.com/cn/podcast/%E4%B8%9C%E8%85%94%E8%A5%BF%E8%B0%83/id1533768416)、[网易云音乐](https://music.163.com/#/djradio?id=958700257)、[QQ音乐](https://c6.y.qq.com/base/fcgi-bin/u?__=Agx83FY2JSqp)、[三联中读](http://ny.zdline.cn/mobile/bookList/?artId=3339#/)、[荔枝FM](https://www.lizhi.fm/user/5151894109385928748)、虎嗅等平台找到我们。欢迎关注、评论、转发，我们真诚感谢所有反馈，同时也期待更多脑洞。\n\n[微信公众号](https://mp.weixin.qq.com/s/8Qa9McK9tjbcRSZwwR-8lg)、[小红书](https://mp.weixin.qq.com/s/8Qa9McK9tjbcRSZwwR-8lg)、[微博](https://weibo.com/u/1342455020)、[B站](https://b23.tv/gisgCvI)、抖音、视频号：东腔西调\n\n听友群：添加小助手eidos000（备注「播客」）\n\n今日头条：[东腔西调图文志](https://profile.zjurl.cn/rogue/ugc/profile/?active_tab=dongtai&app_name=news_article&device_id=65&media_id=1675968434151437&module_name=iOS_tt_url&request_source=1&share_token=8B757808-AF34-4DF4-A224-99067BEAAFC9&tt_from=copy_link&upstream_biz=iOS_url&user_id=1494941893147864&utm_campaign=client_share&utm_medium=toutiao_ios&utm_source=copy_link&version_code=14.4.0&version_name=140400)\n\n商务合作：media@eidos.wiki\n\n![](https://image.xyzcdn.net/FlZebq2JAKlVY31Cmmt9oMmWADTA.jpg)",
+      "tags": [
+        "世界杯",
+        "政治",
+        "商业"
+      ],
+      "score": 0,
+      "summary": "播客讨论世界杯中的体育、政治与商业，与 AI 无关。",
+      "fetched_at": "2026-07-19T01:06:59.510114+08:00"
+    },
+    {
+      "title": "🗽 AI Engineer returns to NYC!\n\nOct 12-14, a beautiful time to visit.\n\nTickets go on sale soon, but ...",
+      "link": "https://x.com/aiDotEngineer/status/2078502554200359344",
+      "published": "2026-07-18T23:30:00+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🗽 AI Engineer returns to NYC!  \n  \nOct 12-14, a beautiful time to visit.  \n  \nTickets go on sale soon, but the Call for Speakers is now open!  \n[ai.engineer/cfp](https://ai.engineer/cfp)g  \n  \nIf you do leading AI work in NYC, especially for AI x Finance, speaker applications for AIE NYC 2026 opened today.  \n  \nFor mainstage keynotes, we are actively soliciting the top AI native companies and AI transformations in:  \n  \n- Investment Banking  \n- Commercial Banking  \n- Consumer Banking  \n- Hedge Funds  \n- Private Equity  \n- Financial Data  \n- Insurance  \n- Venture Capital  \n- Agentic Commerce  \n- Accounting  \n- Payments  \n- Compliance  \n- Mid/Back Office  \n  \nIf you are NOT in Finance, don't worry, we will still be running our regular AI Engineering and AI Leadership tracks, covering all the latest in coding, generative media, evals, infra, and more. But if you want to meet some of the largest AI native banks and financial institutions in the world, this will be the #1 place to be this fall!\n\n💬0🔄2❤️9👀1155📊2",
+      "tags": [
+        "AI Engineer",
+        "NYC",
+        "2026"
+      ],
+      "score": 79,
+      "summary": "AI Engineer 大会宣布 2026 年纽约站，征集演讲者，聚焦 AI x 金融。",
+      "fetched_at": "2026-07-19T01:06:59.510117+08:00"
+    },
+    {
+      "title": "new X bug: because i used a $ tag i can’t see the results of my own poll 🤦‍♂️",
+      "link": "https://x.com/GaryMarcus/status/2078504309701087684",
+      "published": "2026-07-18T23:36:58+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "new X bug: because i used a $ tag i can’t see the results of my own poll 🤦‍♂️\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nWill $SPCX drop below 100 before the end of the year, at least briefly?\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2078131008533328028)\n\n💬10🔄1❤️18👀3538📊8",
+      "tags": [
+        "X bug",
+        "poll"
+      ],
+      "score": 0,
+      "summary": "Gary Marcus 抱怨 X 平台 bug 导致无法查看自己投票结果。",
+      "fetched_at": "2026-07-19T01:06:59.510119+08:00"
+    },
+    {
+      "title": "基于 FastAPI + Vue Vben Admin 的全栈后台管理模板。自带 RBAC 权限、多租户、文件存储、审计日志这些企业级功能，拿来就能快速搭中后台。\n\nhttps://t.co/JW3f...",
+      "link": "https://x.com/geekbb/status/2078497772282802450",
+      "published": "2026-07-18T23:11:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "基于 FastAPI + Vue Vben Admin 的全栈后台管理模板。自带 RBAC 权限、多租户、文件存储、审计日志这些企业级功能，拿来就能快速搭中后台。  \n  \n[github.com/LoD-Dawn/Fast-…](https://github.com/LoD-Dawn/Fast-Vben-Admin)\n\n![Tweet Image](https://pbs.twimg.com/media/HNg6UaEbQAAXBZs.jpg)\n\n💬4🔄2❤️25👀4043📊14",
+      "tags": [
+        "FastAPI",
+        "Vue Vben Admin",
+        "后台模板"
+      ],
+      "score": 0,
+      "summary": "分享一个基于 FastAPI 和 Vue Vben Admin 的全栈后台管理模板。",
+      "fetched_at": "2026-07-19T01:06:59.510122+08:00"
+    },
+    {
+      "title": "Tsinghua is the MIT of china, xi jingping went there, everyone i've met from there is cracked (inclu...",
+      "link": "https://x.com/jerryjliu0/status/2078512795138785579",
+      "published": "2026-07-19T00:10:41+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "Tsinghua is the MIT of china, xi jingping went there, everyone i've met from there is cracked (including my parents lol)\n\n![Linghua Jin 🥥 🌴](https://pbs.twimg.com/profile_images/1865533970286510080/SoJUb-we_normal.jpg)\n\nLinghua Jin 🥥 🌴@LinghuaJ\n\nTsinghua is absolutely the best in China, competition is insane, lots of legends. Grateful to work with one [@georgehe0](https://x.com/georgehe0) ! My amazing cofounder, and best engineer I’ve ever worked with :) Also top 10 in China NOIP. I’m a big fan 🔥.\n\n[🔗 View Quoted Tweet](https://x.com/LinghuaJ/status/2078350394141573248)\n\n💬1🔄0❤️5👀645📊2",
+      "tags": [
+        "清华",
+        "MIT",
+        "评论"
+      ],
+      "score": 0,
+      "summary": "Jerry Liu 评论清华是中国的 MIT，与 AI 无关。",
+      "fetched_at": "2026-07-19T01:06:59.510124+08:00"
+    },
+    {
+      "title": "9 great new model launches this week, including Kimi K3, Muse Spark, and Thinking Machines Inkling.\n...",
+      "link": "https://x.com/OpenRouter/status/2078496699849335157",
+      "published": "2026-07-18T23:06:44+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "9 great new model launches this week, including Kimi K3, Muse Spark, and Thinking Machines Inkling.  \n  \nExplore them here: [openrouter.ai/models](https://openrouter.ai/models)\n\n![Tweet Image](https://pbs.twimg.com/media/HNhNKSAWkAAGvr0.jpg)\n\n💬2🔄4❤️70👀4670📊9",
+      "tags": [
+        "Kimi K3",
+        "Muse Spark",
+        "Inkling"
+      ],
+      "score": 79,
+      "summary": "OpenRouter 汇总本周 9 个新模型发布，包括 Kimi K3、Muse Spark 等。",
+      "fetched_at": "2026-07-19T01:06:59.510127+08:00"
+    },
+    {
+      "title": "My 8 year old and I want that basketball so we are cooking",
+      "link": "https://x.com/petergyang/status/2078517217248088216",
+      "published": "2026-07-19T00:28:16+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "My 8 year old and I want that basketball so we are cooking\n\n![Tweet Image](https://pbs.twimg.com/media/HNhgYAHagAAQncv.jpg)\n\n![ChatGPT](https://pbs.twimg.com/profile_images/2071324354856841216/3Ix8Fjn0_normal.jpg)\n\nChatGPT@ChatGPTapp\n\nCreate something worth sharing with ChatGPT sites.  \n  \nShare your site with us for a chance to win a limited-edition swag box, including the sold out ChatGPT basketball 🏀  \n  \nGiveaway closes this Sunday at 11:59PT, winner will be chosen randomly.  \n  \nHappy building.[…ite-swag-giveaway.openai.chatgpt.site](https://chatgpt-site-swag-giveaway.openai.chatgpt.site/)q\n\n![Tweet Image](https://pbs.twimg.com/media/HNdoiIyaAAAHGTv.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ChatGPTapp/status/2078264521748312302)\n\n💬0🔄0❤️1👀1870",
+      "tags": [
+        "ChatGPT",
+        "篮球",
+        "抽奖"
+      ],
+      "score": 0,
+      "summary": "Peter Yang 参与 ChatGPT 网站抽奖活动，与 AI 技术无关。",
+      "fetched_at": "2026-07-19T01:06:59.510130+08:00"
+    },
+    {
+      "title": "One of my biggest takeaways from chatting with @trq212 is how much effort he puts into understanding...",
+      "link": "https://x.com/petergyang/status/2078502566095474807",
+      "published": "2026-07-18T23:30:03+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "One of my biggest takeaways from chatting with [@trq212](https://x.com/trq212) is how much effort he puts into understanding what AI is doing.  \n  \nIt’s easy to let AI build something magical and feel like you’re making progress. But if you want to get better, you need to read its output, identify your unknowns, and fill those gaps.  \n  \nFor example, Thariq sometimes asks Claude to generate an HTML report explaining what it changed and then quiz him to make sure he understands it.  \n  \nThis is just one of many things I learned from Thariq in our interview.  \n  \n📌 Subscribe to get the full episode tomorrow:[youtube.com/@PeterYangYT?s…](https://www.youtube.com/@PeterYangYT?sub_confirmation=1)0\n\n![Tweet Image](https://pbs.twimg.com/media/HNhTEb0a4AAtd2N.jpg)\n\n💬8🔄2❤️21👀2438📊10",
+      "tags": [
+        "AI学习",
+        "Thariq",
+        "Claude"
+      ],
+      "score": 79,
+      "summary": "Peter Yang 分享与 Thariq 的访谈，强调理解 AI 输出而非盲目使用。",
+      "fetched_at": "2026-07-19T01:06:59.510132+08:00"
+    },
+    {
+      "title": "49 replies to this and hard to be confident that ANY of them were posted by an actual human",
+      "link": "https://x.com/simonw/status/2078513714270191942",
+      "published": "2026-07-19T00:14:21+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "49 replies to this and hard to be confident that ANY of them were posted by an actual human\n\n![Simon Willison](https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_normal.jpeg)\n\nSimon Willison@simonw\n\nI am begging [@AnthropicAI](https://x.com/AnthropicAI) please add an automated test suite somewhere that ensures Claude Code on the web never blocks me from cloning or interacting with other public repos from within my existing sessions\n\n![Tweet Image](https://pbs.twimg.com/media/HNfC2anbUAAV0z2.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/simonw/status/2078343997119172705)\n\n💬9🔄0❤️12👀2534📊7",
+      "tags": [
+        "Claude Code",
+        "Simon Willison",
+        "回复机器人"
+      ],
+      "score": 79,
+      "summary": "Simon Willison 怀疑其推文下的回复全是机器人，并抱怨 Claude Code 限制。",
+      "fetched_at": "2026-07-19T01:06:59.510135+08:00"
+    },
+    {
+      "title": "现在AI能够赋能的领域，要求使用人本来就很强。或者说，AI只是一个武器附魔，这个附魔，跟没有武器的人关系不大。\n\n我认为AI应该是综合器的智能。有人说AI应该承担编译器。\n\n不论如何，在严肃领域，现在...",
+      "link": "https://x.com/feltanimalworld/status/2078521237387571561",
+      "published": "2026-07-19T00:44:14+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "现在AI能够赋能的领域，要求使用人本来就很强。或者说，AI只是一个武器附魔，这个附魔，跟没有武器的人关系不大。  \n  \n我认为AI应该是综合器的智能。有人说AI应该承担编译器。  \n  \n不论如何，在严肃领域，现在摩擦还是挺大的。今天早上我因为昨天晚上一个简单的螺纹没打好，要求text to CAD 重新生成，居然耗掉了50分钟，没做出来。我自己一切，原来有一个90度的悬空体。\n\n![Tweet Image](https://pbs.twimg.com/media/HNhkBxSXQAArGj2.jpg)![Tweet Image](https://pbs.twimg.com/media/HNhkBxEXcAAwtXC.jpg)\n\n![何頻](https://pbs.twimg.com/profile_images/1065463366179831808/MW1AcqzP_normal.jpg)\n\n何頻@MJTVHoPin\n\n當 AI 化身科研狂魔：啃掉那些人類跨不過去的「硬骨頭」！  \n  \n過去幾百年，材料學、物理、數學界，甚至難纏的癌症領域，總有幾座大山擋在人類面前，怎麼鑿也鑿不開。但現在，AI 這位新晉「科研狂魔」進場了，它根本不跟你講什麼「靈感枯竭」，它只管把海量數據往肚子裡吞，然後——把那些硬骨頭啃得嘎嘣脆。  \n  \n科技界的超級掃地僧  \n  \nAI 正在重塑科學發現的效率。在材料科學領域，它能從千萬種分子組合中，直接揪出最穩定、導電性最好的那一個，節省幾十年的實驗時間。物理定律的推導、數學難題的演算，在 AI 的強大算力下，那些曾經被認為「人類智慧極限」的邊界，正在被一點點推開。甚至在生物醫學上，AI 透過分析海量蛋白質結構，為攻克癌症提供了前所未有的精準線索。  \n來源參考：Nature, Science 綜合學術研究報導  \n  \n石爺的觀點  \n  \n這哪是什麼工具，簡直是人類文明的「作弊碼」。我們過去太迷信「科學家靈光一現」的浪漫，卻忘了科學本質上就是數據與邏輯的堆疊。AI 不會累、不會情緒化、不會因為失敗而放棄，它能把這幾百年來人類積累的龐大知識庫，重新排列組合出我們沒想到的答案。  \n  \n當然，這也讓我有點擔憂。當人類連思考的路徑都開始依賴 AI，我們是在加速通往真理，還是正在喪失那種「徒手攀岩」般的探索樂趣？未來的科學家，恐怕得先學會怎麼跟這個「超級大腦」討價還價。  \n  \n如果有一天，所有重大的科學發現都由 AI 完成，你認為人類在科學研究中，還剩下什麼核心價值是 AI 永遠無法替代的？\n\n[🔗 View Quoted Tweet](https://x.com/MJTVHoPin/status/2078513240766611896)\n\n💬3🔄0❤️2👀231📊3",
+      "tags": [
+        "AI赋能",
+        "text to CAD",
+        "个人体验"
+      ],
+      "score": 0,
+      "summary": "用户分享 AI 在 CAD 生成中的低效体验，属于个人观点。",
+      "fetched_at": "2026-07-19T01:06:59.510137+08:00"
+    },
+    {
+      "title": "上海还是Fashion一点",
+      "link": "https://x.com/vista8/status/2078504280575906094",
+      "published": "2026-07-18T23:36:51+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "上海还是Fashion一点\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2078504164636971009/vid/avc1/1080x1920/bbVYIHiBSewLHNr5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2078504280575906094/video/1)\n\n💬7🔄0❤️3👀1501📊6",
+      "tags": [
+        "上海",
+        "时尚"
+      ],
+      "score": 0,
+      "summary": "分享上海时尚视频，与 AI 无关。",
+      "fetched_at": "2026-07-19T01:06:59.510140+08:00"
+    },
+    {
+      "title": "每周限制提高 50% 的活动时间延长，额度跟之前一致",
+      "link": "https://x.com/op7418/status/2078513418676707465",
+      "published": "2026-07-19T00:13:10+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "每周限制提高 50% 的活动时间延长，额度跟之前一致\n\n![Tweet Image](https://pbs.twimg.com/media/HNhc1SXbwAAE1MC.jpg)\n\n💬0🔄0❤️0👀40",
+      "tags": [
+        "每周限制",
+        "活动"
+      ],
+      "score": 0,
+      "summary": "某活动每周限制提高 50% 且时间延长，未说明具体内容。",
+      "fetched_at": "2026-07-19T01:06:59.510142+08:00"
+    }
+  ]
+}
