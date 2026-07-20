@@ -767,6 +767,593 @@
       "score": 65,
       "summary": "个人评价ChatGPT GPT-5.6 Sol Pro模式代码Review能力最强。",
       "fetched_at": "2026-07-21T00:41:01.276098+08:00"
+    },
+    {
+      "title": "Custom OS installation now available on AWS DeepRacer devices",
+      "link": "https://aws.amazon.com/blogs/machine-learning/custom-os-installation-now-available-on-aws-deepracer-devices/",
+      "published": "2026-07-21T01:25:24+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "With the stock firmware and software, developers couldn’t modify their [AWS DeepRacer](https://aws.amazon.com/deepracer/) devices to use the latest operating systems. Now, developers can upgrade or install a custom operating system (OS) by using a newly released bootloader, which extends the life of these hardware devices.\n\nAWS DeepRacer devices are fully autonomous 1/18th scale race cars driven by models trained through reinforcement learning. These hardware devices, when paired with a cloud environment for training and evaluation of neural network models, provide an education and development environment intended to help developers get started with machine learning. As shipped, secure firmware on the AWS DeepRacer devices boots AWS-signed operating systems, including versions of Ubuntu 16.04 and 20.04. These versions of Ubuntu are no longer supported, making ongoing experimentation and research difficult. To keep these devices useful as long as possible, you need a way to authorize custom and modified software to run.\n\nWith our developer bootloader, you can install custom operating systems outside of those originally provided. You can also install modern Linux distributions, add custom hardware drivers, run custom and more modern software stacks, build novel educational projects, and develop prototypes for new vehicle algorithms. In this post, we introduce the bootloader, discuss how to use it, and share links to a community distribution that uses it.\n\n## Our solution\n\nOur team developed a bootloader that provides self-service developer access. The bootloader is based on the [open-source shim project](https://github.com/rhboot/shim). With this developer shim, you can install custom or third-party distributions onto your AWS DeepRacer device.\n\nThe developer shim targets developers familiar with Linux boot processes and certificate management. It’s particularly valuable for community members who want to create and distribute custom AWS DeepRacer installation distributions and media.\n\nOn bootup, the developer shim blinks “DEVELOPER MODE” in Morse code on the AWS DeepRacer device’s built-in lights. After completing this indicator, the shim transfers control to the installed OS. The intent is for transparency through clear visual indicators whenever developer mode is active. These indicators help you understand your device’s security posture.\n\nShould you need to return to the original configuration, the process is completely reversible. You can follow the directions for [Update Your Vehicle](https://docs.aws.amazon.com/solutions/latest/deepracer-on-aws/update-and-restore-vehicle.html) to return the device to stock configuration.\n\nThe developer shim works through three key elements:\n\n### 1. Self-service certificate management\n\nWhen built-in signature verification fails, the developer shim checks for developer certificates in `/EFI/DEVELOPER/certs/` on the device’s boot partition. You can manage your own certificates using standard tools (OpenSSL, sbsign) while maintaining proper cryptographic verification.\n\n### 2. Clear visual warnings\n\nWhen developer certificates are in use, the system provides a clear indication:\n\n* **On-screen warning** **(through HDMI) –** Informs you of developer mode.\n* **Hardware indication** – Device lights blink “DEVELOPER MODE” in Morse code.\n* **Boot delay** – Gives you time to observe the developer mode activation.\n\n### 3. Standard verification workflow\n\nThe solution uses standard certificate-based signing tools, making it accessible to developers already working with secure boot processes. With this method, you can provide your own certificates while maintaining the cryptographic integrity of the boot chain and operating system.\n\n## Community impact\n\nThe open source AWS DeepRacer community at [deepracing.io](https://deepracing.io) used this developer shim to create a new custom distribution for AWS DeepRacer devices, built on an Ubuntu 24.04 / ROS2 Jazzy software stack and featuring a Cloudscape-based user interface. As a practical demonstration of the self-service bootloader approach, it offers a ready-to-use solution for developers who want to get started quickly.\n\nPre-packaged and using an installation process very similar to the original AWS distribution, it comes ready to deploy out of the box. The community prioritized racing performance, removing non-essential packages, including the X Window System graphical interface. You can add the desktop experience back in yourself if needed. Refer to the [README](https://github.com/aws-deepracer-community/deepracer-custom-car/blob/main/README.md) for installation instructions.\n\nThe developer shim allows the DeepRacing community to maintain and distribute updated software for AWS DeepRacer devices, extending their useful life well beyond the original distributions. The distribution can be found at <https://github.com/aws-deepracer-community/deepracer-custom-car>.\n\n## How to use it\n\nYou can use the bootloader with your AWS DeepRacer device across multiple usage patterns. You can upgrade using a community distribution, use a standard third-party OS, or even create your own custom OS. The exact steps depend on your choice.\n\n### Option A: Install a community distribution\n\nYou can get started by installing a community distribution, such as the Ubuntu 24.04 [Community Distribution](https://github.com/aws-deepracer-community/deepracer-custom-car#installation). This option provides an installation method without requiring the developer to custom install Linux and reconfigure its boot processes.\n\n### Option B: Third-party distributions\n\nYou can use the developer shim when installing a third-party distribution such as Ubuntu. Choose this option if you want control over the installation process. After installing the OS, replace the `BOOTX64.EFI` file with the developer shim and add the appropriate certificates. This might need to be done twice: once for the installation media, and again after installation. Consult the `USAGE.md` file in the developer shim package for guidance.\n\n### Option C: Custom OS\n\nIf you’re building a custom OS for the AWS DeepRacer device, create a boot volume on the device. Place the developer shim under `EFI/BOOT/BOOTX64.EFI` and your OS kernel or bootloader as `EFI/BOOT/GRUBX64.EFI`. Then install your public certificate under the `DEVELOPER/certs` path. Consult the `USAGE.md` file in the developer shim package for guidance.\n\n## What to expect during early boot sequence\n\nThe device goes through several stages on boot. Upon power-on, the device firmware loads the developer shim (`BOOTX64.EFI`) and transfers execution to it. The shim then displays a warning on the screen (when an HDMI monitor is attached) and blinks “DEVELOPER MODE” in Morse code on the device’s lights. This stage takes approximately 21 seconds. Much like the original firmware’s bootloader or a shim bootloader on a standard PC install, the developer bootloader then loads the operating system’s kernel. However, unlike the firmware, the developer bootloader checks the signature of this kernel against a local customizable certificate store kept in `/EFI/DEVELOPER/certs`. If the signature matches, the developer shim transfers execution to this operating system kernel, and boot continues normally.\n\n## Pairing with self-managed AWS DeepRacer\n\nWith the bootloader shim and the self-managed solution released on January 26, 2026, you now have full control over both the cloud-based training environments and your physical devices. Developers can customize the on-device software stack, experiment with new ROS2 packages, and iterate on racing models with total end-to-end flexibility. Visit [DeepRacer on AWS](https://docs.aws.amazon.com/solutions/deepracer-on-aws/) for details on the self-managed solution.\n\n## Getting started\n\nTo get started, first explore the [DeepRacer on AWS Solution](https://docs.aws.amazon.com/solutions/latest/deepracer-on-aws/solution-overview.html) and then download the developer shim at [deepracer-developer-shim.zip](https://s3.amazonaws.com/deepracer-public/shim/deepracer-developer-shim.zip). To create or modify the boot medium for the new custom operating system, place the `BOOTX64.EFI` shim file into the `EFI/BOOT` directory. Store your chosen operating system kernel as `GRUBX64.EFI`, and store the kernel’s public certificate in `EFI/DEVELOPER/CERTS` in x509 DER format. This might need to be done for both the operating system installation media and again on the device itself after installing from media. For more detailed technical documentation, troubleshooting, and advanced usage, refer to the bootloader’s `USAGE.md` file contained within the zip file.\n\nAlternatively, download the community distribution linked in the preceding *How to use it* section and follow the directions for a fresh install with the developer bootloader already incorporated.\n\n## Conclusion\n\nUsing the bootloader, you can unlock your AWS DeepRacer device and continue to use it as an education and development environment with the latest modern operating systems, tools, and software stacks. You can also customize your own operating system install or use community distributions.\n\nTo get started, download the developer bootloader at [deepracer-developer-shim.zip](https://s3.amazonaws.com/deepracer-public/shim/deepracer-developer-shim.zip) and follow the instructions in the `USAGE.md` file. After that, check out the [Community Distribution](https://github.com/aws-deepracer-community/deepracer-custom-car) and continue your machine learning (ML) journey with the [DeepRacer on AWS Solution](https://docs.aws.amazon.com/solutions/latest/deepracer-on-aws/solution-overview.html).\n\nWith the flexibility introduced with the new bootloader, your imagination is the limit on what you can implement on the device. What will you build? Feel free to share on <https://builder.aws.com/>.\n\n---\n\n## About the authors\n\n![Don Barber](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/16/ML-20957-1.jpg)\n\n### Don Barber\n\nDon is a Senior Solutions Architect Manager working with AWS Strategic Accounts. Along with helping customers implement disruptive technology at scale, Don was an inaugural member of the AWS DeepRacer pitcrew, ran the first corporate league events, helped invent community racing and virtual live racing, and designed many of the AWS DeepRacer workshops, directly impacting thousands of developers to get started with AIML. Don is proud to help extend the lifespan of the AWS DeepRacer devices through this release.\n\n![Lars Lorentz Ludvigsen](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/16/ML-20957-2.png)\n\n### Lars Lorentz Ludvigsen\n\nLars is a technology enthusiast who was introduced to AWS DeepRacer in late 2019 and was instantly hooked. Lars works as a Managing Director at Accenture, where he helps clients build the next generation of smart connected products. In addition to his role at Accenture, he’s an AWS Community Builder who focuses on developing and maintaining the AWS DeepRacer community’s software solutions. Lars’s AWS Community Builder blog is available at https://aws.amazon.com/blogs/machine-learning/author/larslorentzludvigsenamazon-com/.",
+      "tags": [
+        "AWS DeepRacer",
+        "自定义OS",
+        "引导加载程序"
+      ],
+      "score": 70,
+      "summary": "AWS DeepRacer设备现支持安装自定义操作系统，延长硬件寿命。",
+      "fetched_at": "2026-07-21T03:01:04.433482+08:00"
+    },
+    {
+      "title": "Build specialized agent workflows for your business with Amazon Quick and NVIDIA NeMo Agent Toolkit",
+      "link": "https://aws.amazon.com/blogs/machine-learning/build-specialized-agent-workflows-for-your-business-with-amazon-quick-and-nvidia-nemo-agent-toolkit/",
+      "published": "2026-07-21T01:01:32+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Fast-growing companies and enterprise supply-chain teams often have enough data to see that something is wrong, but not enough time to manually investigate every disruption. A supplier delay can require a planner to check purchase orders, inventory, customer commitments, contract rules, logistics options, and approval policies before deciding what to do next.\n\nDashboards help teams see what’s happening. The harder part is turning that signal into a reliable decision workflow that recommends what to do next and shows the evidence behind the recommendation.\n\nIn this post, we show how [Amazon Quick](https://aws.amazon.com/quick) can serve as the business-user front door for specialized agent workflows. We use the [NVIDIA NeMo Agent Toolkit](https://docs.nvidia.com/nemo/agent-toolkit/latest/index.html) to build a supply-chain risk example that helps a planner move from an Amazon Quick dashboard and knowledge context to a guided mitigation recommendation.\n\n## Solution overview\n\nTo address this challenge, we combine Amazon Quick and NVIDIA NeMo Agent Toolkit. Amazon Quick gives business users a single conversational workspace for [structured data](https://docs.aws.amazon.com/quick/latest/userguide/supported-data-sources.html) and [unstructured enterprise knowledge](https://docs.aws.amazon.com/quick/latest/userguide/knowledge-base-integrations.html). Knowledge sources can include Amazon Simple Storage Service (Amazon S3), Google Drive, Microsoft SharePoint, Atlassian Confluence, and internal web content. In that workspace, users can connect to [over 100 pre-built action connectors](https://docs.aws.amazon.com/quick/latest/userguide/supported-integrations.html) to perform actions in [third-party systems](https://docs.aws.amazon.com/quick/latest/userguide/action-connector-apis-supported-types.html) such as Microsoft Outlook, Slack, Jira, and Asana. They can also invoke agentic workflows exposed through [Model Context Protocol (MCP)](https://docs.aws.amazon.com/quick/latest/userguide/mcp-integration.html). NVIDIA NeMo Agent Toolkit is an open source, framework-agnostic library for connecting, evaluating, profiling, and optimizing agentic workflows. It works alongside popular frameworks such as LangChain, LlamaIndex, CrewAI, Microsoft Semantic Kernel, Google ADK, and custom Python agents.\n\nIn this solution, supply-chain analysts use an Amazon Quick chat agent to diagnose issues through an [Amazon Quick Sight](https://aws.amazon.com/quick/quicksight/) NeMo Agent Toolkit workflow. The workflow investigates the disruption, calls supply-chain tools, validates the recommendation, and returns a ranked mitigation plan to the planner.\n\nIf you’re a supply-chain operations leader, analyst, or builder, you can use this post to learn how to move from dashboard context to a mitigation plan in Amazon Quick. If you’re an engineering leader or developer, you can see how to build the backend agentic workflow with NVIDIA NeMo Agent Toolkit while Amazon Quick serves as the front door for business users. If you’re part of a startup, you can also use this approach to scale operations without adding large planning teams. As order volume, suppliers, and customer commitments grow, the same architecture can help your team make faster and more repeatable supply-chain decisions.\n\nYou can also use NVIDIA NeMo Agent Toolkit to inspect and evaluate agentic workflows with telemetry, per-step latency, and evaluation results. These signals help you tune the workflow, its tools, and its orchestration logic. This observability becomes more important as teams move from simple chat assistants to agentic workflows.\n\n## Architecture overview\n\nIn this architecture, Amazon Quick provides the business-user interface, dashboard context, knowledge access, and action trigger. Amazon Bedrock AgentCore provides the MCP gateway and runtime hosting path. NeMo Agent Toolkit owns the backend agentic workflow: registering tools, orchestrating the supply-chain investigation, capturing execution traces, and supporting evaluation and profiling so developers can improve the workflow before production.\n\nFigure 1 illustrates how Amazon Quick, AgentCore Gateway, AgentCore Runtime, and NeMo Agent Toolkit work together.\n\n![Solution architecture connecting Amazon Quick, AgentCore Gateway, AgentCore Runtime, and the NeMo Agent Toolkit workflow](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-1.png)\n\n*Figure 1 — Solution architecture. Amazon Quick provides the dashboard, knowledge context, and action trigger. AgentCore Gateway exposes the MCP action, and AgentCore Runtime hosts the NeMo Agent Toolkit workflow container*\n\nThere are two user patterns in the solution. First, the analyst asks diagnostic questions that Amazon Quick can answer from the dashboard and Amazon S3 knowledge source.\n\n![Diagnostic flow where Amazon Quick answers questions from dashboard and knowledge context](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-2.png)\n\n*Figure 2 — Diagnostic flow. Amazon Quick uses dashboard and knowledge context to answer “what is happening?” questions before a backend action is triggered*\n\nSecond, when the analyst asks what to do next, Amazon Quick invokes the NeMo-backed MCP action.\n\n![Action flow where Amazon Quick calls the MCP action and NeMo returns a mitigation plan](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-3.png)\n\n*Figure 3 — Action flow. Amazon Quick calls the MCP action, AgentCore invokes the runtime, and NeMo runs the backend decision workflow to return a mitigation plan*\n\nFor readers new to [NeMo Agent Toolkit](https://docs.nvidia.com/nemo/agent-toolkit/latest/index.html), the backend workflow has three code layers: registered functions, a workflow configuration file, and an orchestrator. [Registered functions](https://docs.nvidia.com/nemo/agent-toolkit/1.2/extend/functions.html) are reusable capabilities such as purchase order risk, inventory exposure, customer impact, policy lookup, logistics options, and mitigation recommendation. The [workflow configuration](https://docs.nvidia.com/nemo/agent-toolkit/1.2/workflows/workflow-configuration.html) names those functions and wires them into one decision workflow. The orchestrator receives the request, calls the functions in sequence, and returns the mitigation plan with evidence, trace, latency, and evaluator metadata.\n\nStep 3 moves into those implementation details and explains what runs inside the NeMo Agent Toolkit workflow container.\n\n## Implementation steps\n\nThe accompanying repository includes the [AWS CloudFormation](https://aws.amazon.com/cloudformation/) template, deployment scripts, sample data, the NeMo Agent Toolkit workflow plugin, and Quick setup notes.\n\n### Prerequisites\n\nTo deploy and test the sample, you need:\n\n* An AWS account with access to Amazon Quick, Amazon Bedrock AgentCore Runtime, and Amazon Bedrock AgentCore Gateway.\n* [AWS Command Line Interface (AWS CLI) v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).\n* Python 3.11+ for optional local NeMo validation. Docker is not required locally because the quickstart uses [AWS CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html) to build and push the AgentCore Runtime container image.\n* AWS Identity and Access Management (IAM) permissions to deploy AWS CloudFormation stacks that create IAM roles, [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) buckets, [Amazon Elastic Container Registry (Amazon ECR)](https://docs.aws.amazon.com/ecr/) repositories, AWS CodeBuild projects, [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) functions, and Amazon Bedrock AgentCore resources.\n* An Amazon Quick or Amazon Quick Sight user with permissions to create analyses, datasets, knowledge integrations, chat agents, and MCP action integrations.\n\n### Step 1: Clone the repository\n\nClone the repository so the deployment scripts, AWS CloudFormation template, sample data, and NeMo Agent Toolkit workflow code are available locally.\n\n```\ngit clone https://github.com/aws-samples/sample-amazon-quick-nvidia-nemo-agent-toolkit\ncd amazon-quick-nemo-supply-chain-risk\n```\n\n### Step 2: Authenticate to AWS\n\nAuthenticate with the AWS account where you plan to deploy the sample. These commands configure an [IAM Identity Center / SSO](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html) profile, start a browser-based sign-in flow, set the active CLI profile, and verify the account identity before the infrastructure is created. For Mac or Linux:\n\n```\naws configure sso\naws sso login --profile <your-profile-name>\nexport AWS_PROFILE=<your-profile-name>\naws sts get-caller-identity\n```\n\nFor Windows PowerShell:\n\n```\naws configure sso\naws sso login --profile <your-profile-name>\n$env:AWS_PROFILE=\"<your-profile-name>\"\naws sts get-caller-identity\n```\n\nThe aws sso login command starts authentication in your browser. If you already have an active AWS SSO session, use that browser session to complete authentication. Verify that the returned AWS account is the account where you want to deploy the sample.\n\n### Step 3: Deploy the sample solution\n\nSet the AWS Region and stack name before running the deployment script. The Region determines where the sample infrastructure is created, and the stack name keeps the generated resources grouped for later cleanup.\n\nMac or Linux:\n\n```\nexport AWS_REGION=us-east-1\nexport STACK_NAME=sc-risk-copilot-dev\n./scripts/deploy.sh\n```\n\nWindows PowerShell:\n\n```\n$env:AWS_REGION=\"us-east-1\"\n$env:STACK_NAME=\"sc-risk-copilot-dev\"\n.\\scripts\\deploy.ps1\n```\n\nThe deployment script performs the following tasks:\n\n* Deploys the base [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html) stack.\n* Uploads the sample datasets and knowledge documents to Amazon S3.\n* Uses [AWS CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html) to build and push the NeMo backend container image to [Amazon ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html), so Docker isn’t required locally.\n* Updates the CloudFormation stack to deploy [Amazon Bedrock AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html).\n* Creates an [Amazon Bedrock AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html) MCP Lambda target.\n* Writes the manual Amazon Quick setup values to outputs/quick-setup.txt.\n\nThe script uses AWS CloudFormation for the AWS infrastructure. See steps 5 through 7 for guidance to set up the Amazon Quick dashboard, knowledge source, chat agent, and MCP action connection.\n\n### What runs inside the NeMo Agent Toolkit workflow\n\nThe NeMo Agent Toolkit workflow runs inside an [Amazon Bedrock AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html) container. Amazon Quick invokes the MCP action through [Amazon Bedrock AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html). Gateway calls a Lambda target adapter, and the adapter invokes the runtime endpoint. Inside the container, FastAPI receives the /invocations request and loads the NeMo Agent Toolkit workflow. The **supply\\_chain\\_risk\\_orchestrator** composes the following registered functions into one workflow and returns the ranked mitigation plan with evidence, trace, latency, and evaluator metadata.\n\n* po\\_risk\\_tool: Finds delayed purchase orders and affected SKUs.\n* inventory\\_exposure\\_tool: Calculates days of supply and stockout risk.\n* customer\\_impact\\_tool: Maps constrained SKUs to customer orders, revenue, priority, and SLA exposure.\n* contract\\_policy\\_tool: Checks contract, sourcing, freight approval, and substitution rules.\n* logistics\\_options\\_tool: Finds expedite, transfer, or alternate supplier options.\n* mitigation\\_recommendation\\_tool: Ranks mitigation options and returns critic checks.\n\n![NeMo Agent Toolkit workflow with the orchestrator coordinating six registered supply-chain functions](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-4.png)\n\n*Figure 4 — NeMo Agent Toolkit workflow inside the runtime container. The supply\\_chain\\_risk\\_orchestrator coordinates the registered supply-chain functions and returns both the mitigation decision package and reliability metadata to Amazon Quick*\n\n### NeMo Agent Toolkit workflow configuration\n\nThe backend decision logic is defined as a [NeMo Agent Toolkit workflow configuration](https://docs.nvidia.com/nemo/agent-toolkit/latest/build-workflows/about-building-workflows.html). The YAML gives each registered function a local name, then the orchestrator resolves the configured functions in its Python registration code. For more detail, see the NeMo Agent Toolkit docs on [custom functions](https://docs.nvidia.com/nemo/agent-toolkit/latest/build-workflows/functions-and-function-groups/functions.html).\n\n```\n# Each entry under functions configures a function available to the workflow\n# The _type value maps to a registered NeMo function in the plugin code.\nfunctions:\n  po_risk:\n    _type: po_risk_tool\n  inventory_exposure:\n    _type: inventory_exposure_tool\n  customer_impact:\n    _type: customer_impact_tool\n  contract_policy:\n    _type: contract_policy_tool\n  logistics_options:\n    _type: logistics_options_tool\n  mitigation_recommendation:\n    _type: mitigation_recommendation_tool\n\n# The workflow section defines the entry point and wires in the functions.\nworkflow:\n  _type: supply_chain_risk_orchestrator\n  po_risk_fn: po_risk_tool\n  inventory_fn: inventory_exposure_tool\n  customer_impact_fn: customer_impact_tool\n  contract_policy_fn: contract_policy_tool\n  logistics_fn: logistics_options_tool\n  mitigation_fn: mitigation_recommendation_tool\n```\n\nThis makes the workflow explicit and testable: the functions can be instrumented, tested, reused, and included in NeMo Agent Toolkit evaluation and profiling workflows. In production, replace the sample CSV-backed functions with governed data tools such as Amazon Athena queries, RDS queries, ERP APIs, WMS/TMS APIs, or other MCP tools.\n\n### Step 4: Review the outputs\n\nReview the generated setup file:\n\n```\namazon-quick-nemo-supply-chain-risk/outputs/quick-setup.txt\n```\n\nThe file includes the Amazon S3 location of the dashboard CSV, the S3 prefix for knowledge documents, the S3 prefix for evaluation data, the AgentCore Gateway MCP endpoint URL, the demo authentication guidance, and the suggested Quick test prompts.\n\n### Step 5: Create the Amazon Quick Sight dashboard\n\nUse the flattened CSV dataset that’s already included in the repo:\n\n```\namazon-quick-nemo-supply-chain-risk/sample-data/quick/supply_chain_risk_view.csv\n```\n\nThe deployment also stages the same file in the Amazon S3 bucket created by AWS CloudFormation. You can find that path in `outputs/quick-setup.txt` as Quick dashboard CSV. To use the deployed copy instead of the local repo file, download it first:\n\n```\naws s3 cp s3://<data-bucket>/quick/supply_chain_risk_view.csv ./supply_chain_risk_view.csv\n```\n\nFrom Amazon Quick, choose **Analyses**, choose **[Generate analysis](https://docs.aws.amazon.com/quick/latest/userguide/generating-an-analysis.html)**, **add data**, **create a dataset**, and **upload** `supply_chain_risk_view.csv`. Figure 5 shows the Generate analysis experience with the sample dashboard prompt.\n\n![Amazon Quick Generate analysis screen with the sample dashboard prompt](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-5.png)\n\n*Figure 5 — Generate analysis prompt. The sample prompt asks Amazon Quick to create an executive supply-chain risk dashboard from the uploaded CSV dataset*\n\nUse this prompt:\n\n```\nCreate an executive supply-chain risk dashboard for supplier delays and stockout risk. Include visuals for late purchase orders by supplier, revenue at risk by customer priority, high-risk SKUs by distribution center, days of supply by SKU, mitigation type, approval required, and supplier on-time rate. Add filters for supplier, SKU, risk level, and distribution center. Organize the dashboard for a supply-chain leader who needs to know what is at risk and where to act first.\n```\n\nChoose **Preview analysis outline**, review the outline, and then choose **Generate**. Figures 6 and 7 show examples of the generated dashboard pages.\n\n![Dashboard overview showing revenue at risk, delayed orders, critical SKUs, and supplier exposure](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-6.png)\n\n*Figure 6 — Dashboard overview. The dashboard summarizes revenue at risk, delayed orders, critical SKUs, and supplier exposure*\n\n![Dashboard view comparing supplier delay performance and mitigation options](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-7.png)\n\n*Figure 7 — Supplier and mitigation view. The dashboard helps planners compare supplier delay performance and mitigation options*\n\n### Step 6: Create the knowledge source for Amazon Quick\n\nThe knowledge source gives the chat agent access to unstructured context such as supplier notices, contract excerpts, logistics approval policies, SKU substitution rules, and customer SLA summaries.\n\nIn Amazon Quick:\n\n1. Choose **Knowledge**.\n2. Under Amazon S3, choose **Add**.\n3. Choose the Quick account if the S3 bucket is in the same account as Amazon Quick.\n4. Enter the S3 bucket URL from the DataBucketName output in outputs/quick-setup.txt.\n5. On **Create knowledge base**, give it a name such as Supply Chain Risk KB.\n6. Choose **Add specific content**.\n7. Enter **kb/** as the content filter. Filters are case-sensitive.\n8. Choose **Create** and wait for the sync to complete.\n9. Add the knowledge source to the chat agent that you create in step 8.\n\n### Step 7: Register the NeMo Agent Toolkit workflow as an MCP action in Amazon Quick\n\n**Important note:** This sample deploys AgentCore Gateway with AuthorizerType=NONE, which performs no authentication or authorization. Use it only in a private, isolated demo environment with synthetic, non-sensitive data. Treat the endpoint as unauthenticated and accessible to anyone who obtains its URL. Never use this configuration in a shared, staging, or production environment. For non-demo deployment, configure a supported inbound authorizer, such as CUSTOM\\_JWT, and use Amazon Quick user or service OAuth authentication. For derived deployments, make authenticated access the default and require an explicit opt-in to enable AuthorizerType=NONE for private demo testing.\n\nThe MCP action is the bridge between Amazon Quick and the NeMo Agent Toolkit workflow running on AgentCore Runtime. The following screenshot shows the registered MCP integration with the supply-chain risk action enabled.\n\n![Registered MCP integration in Amazon Quick with the supply-chain risk action enabled](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-8.png)\n\n*Figure 8 — MCP action integration. Amazon Quick discovers the supply-chain risk action exposed by AgentCore Gateway*\n\nIn Amazon Quick:\n\n1. Choose **Integrations**.\n2. Add a [Model Context Protocol](https://docs.aws.amazon.com/quick/latest/userguide/mcp-integration.html) action integration.\n3. Paste the AgentCore Gateway URL from outputs/quick-setup.txt as the MCP server endpoint.\n4. On the Authenticate step, use the authentication mode that matches the AgentCore Gateway.\n5. For this demo, the Gateway is deployed with AuthorizerType=NONE. If the console requires authentication settings, choose **User authentication**, set **Auth configuration** to **Custom headers**, and enter:\n   1. Header name: x-quick-demo-auth\n   2. Header value: quick-demo\n\n> These are demo placeholder values only. The demo Gateway doesn’t validate them. For production, configure AgentCore Gateway with a production-ready authorizer, such as [CUSTOM\\_JWT](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-inbound-auth.html) and require OAuth/OIDC-based user or service authentication in Amazon Quick.\n\n6. Review the discovered actions, enable the supply-chain risk action, and share the integration with the correct Quick space or users.\n\n### Step 8: Create a supply-chain risk chat agent in Amazon Quick\n\nCreate a chat agent so analysts can use the dashboard, knowledge source, and NeMo-backed action from one place. Figure 9 shows the chat-agent creation experience with a short summary.\n\n![Amazon Quick chat agent creation screen with a short summary of the assistant](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-9.png)\n\n*Figure 9 — Chat agent creation. A short summary tells Amazon Quick what the assistant does and which resources it should use*\n\nUse this short summary:\n\n```\nCreate a supply-chain risk assistant for planners and operations leaders. The assistant helps users understand supplier delays, inventory exposure, customer orders at risk, revenue impact, mitigation options, and required approvals. Connect it to the Supply Chain Risk Overview dashboard, the Amazon Quick S3 knowledge source for supplier notices and policies, and the supply-chain risk investigation MCP action powered by NVIDIA NeMo Agent Toolkit. Use the dashboard and knowledge source for diagnostic questions. Use the NeMo action when the user asks what to do next, which customer orders are at risk, what mitigation to take, or what approvals are required.\n```\n\nAfter the agent is created, confirm that it has access to the Supply Chain Risk Overview dashboard, the Amazon Quick S3 knowledge source, and the supply-chain risk MCP action. If the knowledge source isn’t attached to the agent, add it from the chat agent configuration pane:\n\n1. Open the chat agent configuration.\n2. Choose **Knowledge sources**.\n3. Choose **Create** to create a [space](https://docs.aws.amazon.com/quick/latest/userguide/creating-spaces.html).\n4. On the space creation page, in the left navigation menu, select **Dashboards**, and add the dashboard that you created in step 5.\n5. On the space creation page, in the left navigation menu, select **Knowledge base**, and add the knowledge base that you created in step 6.\n6. Go back to the chat agent and choose **link space** to link the dashboard and knowledge base to the chat agent.\n\n### Step 9: Test the end-user flow in Amazon Quick\n\nUse three prompts to show the difference between diagnostic questions and the NeMo-backed action. The analyst first understands the current state, then reviews policy context, and then asks for an action recommendation.\n\n#### Prompt 1: Query the dashboard\n\n```\nWhich suppliers have the most delayed purchase orders and highest revenue at risk?\n```\n\nExpected result: Amazon Quick uses the Amazon Quick Sight dashboard to summarize supplier delay performance, inventory exposure, and revenue at risk. Figure 10 shows an example dashboard-based response.\n\n![Amazon Quick dashboard response summarizing supplier delays and revenue at risk](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-10.png)\n\n*Figure 10 — Dashboard response. Amazon Quick answers from dashboard data without invoking the NeMo action*\n\n#### Prompt 2: Query the knowledge source\n\n```\nWhat does Supplier A's delay notice say, and what does the logistics approval policy say about emergency air freight?\n```\n\nExpected result: Amazon Quick uses the Amazon S3 knowledge source to summarize the supplier notice and logistics approval standard operating procedure (SOP). Figure 11 shows a knowledge-grounded response.\n\n![Amazon Quick knowledge-source response summarizing the supplier notice and air freight policy](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-11.png)\n\n*Figure 11 — Knowledge-source response. Amazon Quick summarizes the Supplier A delay notice and the emergency air freight approval policy*\n\n#### Prompt 3: Trigger the NeMo action\n\n```\nSupplier A delayed the July inbound shipment. Which customer orders are at risk and what should we do?\n```\n\nExpected result: Amazon Quick invokes the NeMo-backed MCP action. The response should include a risk summary, revenue impact, affected customers, recommended mitigations, required approvals, and evidence from purchase orders, inventory, customer orders, policy context, and logistics options. Figure 12 shows the action approval prompt before the MCP tool runs.\n\n![Amazon Quick prompt asking the user to approve the NeMo-backed supply-chain risk action](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-12.png)\n\n*Figure 12 — MCP action approval. Amazon Quick asks the user to approve the NeMo-backed supply-chain risk action before invoking it*\n\nA successful NeMo-backed response should identify three aggregated risk items for the sample Supplier A scenario: SKU-1044 at high risk with partial air freight and finance approval, SKU-8831 at high risk with an inventory transfer and operations approval, and SKU-7177 at medium risk with monitor-and-recheck guidance. Figure 13 shows the response from the NeMo Agent Toolkit workflow.\n\n![NeMo Agent Toolkit workflow response with ranked risks and a mitigation plan](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-13.png)\n\n*Figure 13 — NeMo Agent Toolkit workflow response. The workflow investigates the disruption, calls supply-chain tools, validates the recommendation, and returns a ranked mitigation plan to the planner*\n\n### Step 10: Inspect NeMo trace, latency, and evaluation results\n\nAfter the Amazon Quick action works, inspect what happened inside the backend NeMo Agent Toolkit workflow. This optional step helps developers and reviewers. The trace shows the workflow path. Latency data shows how long each tool took. The [eval harness](https://docs.nvidia.com/nemo/agent-toolkit/latest/improve-workflows/evaluate.html) checks whether the workflow returns the expected risk level, mitigation action, and approval routing for known sample cases.\n\nNeMo Agent Toolkit provides the workflow runtime used by this local evaluation harness, and also supports the official nat eval path, custom evaluators, dataset loaders, and profiling output for deeper workflow evaluation and optimization.\n\n**Important:** This step inspects the backend workflow, not the full Amazon Quick chat-agent experience. The trace and latency outputs show what happened inside the AgentCore Runtime and NeMo Agent Toolkit workflow after the MCP action was invoked. The eval harness tests whether the specialized NeMo Agent Toolkit workflow returns the expected risk, mitigation, approval, and evidence decisions. For broader Amazon Quick usage, adoption, action invocation, and dashboard performance monitoring, you can use Amazon Quick administration monitoring and Amazon CloudWatch metrics, see [associated blog post](https://aws.amazon.com/blogs/business-intelligence/create-centralized-monitoring-for-amazon-quick-suite-administration/).\n\n#### Inspect the deployed runtime trace and latency\n\nRun the following command from the repo root:\n\n```\nexport AWS_REGION=us-east-1\nexport STACK_NAME=sc-risk-copilot-dev\n./scripts/inspect-runtime.sh\n```\n\nThis writes:\n\n```\noutputs/runtime-response.json\noutputs/runtime-summary.txt\n```\n\nThe `runtime-response.json` file contains the detailed NeMo Agent Toolkit workflow response, including trace, latency, evidence coverage, evaluator flags, risks, recommendations, and approval routing.\n\nStart with the trace array. Each item should map to one registered function in the orchestration path. For the Supplier A sample, confirm that the workflow ran purchase order risk lookup, inventory exposure, customer impact, contract policy, logistics options, and mitigation recommendation. Missing or repeated steps usually point to an orchestration or tool-registration issue.\n\nNext, sort the latency fields from highest to lowest. Treat the slowest tool as the first optimization target, for example by caching policy lookups, narrowing data queries, or combining repeated reads. These per-step timings act as profiling hooks for the demo workflow because they show where code, data access, or prompt changes will have the biggest effect.\n\n#### Run the NeMo Agent Toolkit eval harness\n\nThis sample uses a lightweight local evaluation harness instead of invoking nat eval directly. The script loads the same registered NeMo Agent Toolkit workflow used by the deployed container, runs each JSONL test case through the workflow, and scores the structured output against expected risk level, mitigation action, and approval routing.\n\n```\nPYTHON_CMD=python3.12 ./scripts/eval-nemo-local.sh\n```\n\nThis writes:\n\n```\noutputs/local-eval-report.json\n```\n\nThe evaluation dataset is:\n\n```\nsample-data/eval/supply_chain_eval.jsonl\n```\n\nEach test case checks whether the workflow returns the expected risk level, recommended mitigation action, approval route, and evidence coverage. To interpret `local-eval-report.json`, start with the overall pass/fail result, then review the case-level evaluator outputs. A failure means the workflow returned a risk level, action, approval route, or evidence set that differs from the expected sample result. Use the failing case ID to compare expected fields with actual output, then adjust tool logic, policy data, or critic rules before rerunning the evaluation.\n\n#### Visualize the results in Amazon Quick\n\nIn the same Amazon Quick chat where you tested the supply-chain action, upload these JSON files:\n\n```\noutputs/runtime-response.json\noutputs/local-eval-report.json\n```\n\nThen ask Quick:\n\n```\nUsing the uploaded runtime-response.json and local-eval-report.json files, create a dashboard-style visual summary of the NeMo Agent Toolkit workflow trace, latency, risk recommendations, evidence coverage, evaluator flags, and eval pass/fail results.\n```\n\nAmazon Quick can turn the generated JSON artifacts into a visual review surface. Figure 14 uses sample run data, not a benchmark. In that sample, the NeMo Agent Toolkit workflow completed in 657 ms end-to-end. The PO risk lookup (267 ms) and contract policy retrieval (196 ms) accounted for over 70 percent of total latency.\n\n![Horizontal bar chart of per-tool execution time across the six-step orchestration pipeline](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-14.png)\n\n*Figure 14 — NeMo Agent Toolkit workflow step latency. Horizontal bar chart showing per-tool execution time across the six-step supply-chain risk orchestration pipeline*\n\n## Security considerations\n\nWe designed this sample for demo deployment. Review and harden it before production.\n\nRecommended production changes include:\n\n* Replace the demo AuthorizerType=NONE setting with a production-ready AgentCore Gateway authorizer, such as CUSTOM\\_JWT, and configure [OAuth/OIDC](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-inbound-auth.html) for Amazon Quick user or service authentication with token validation, issuer validation, audience validation, and key rotation. The custom-header option shown in the demo is only a low-friction setup path for a no-auth demo Gateway and shouldn’t be treated as an authorization control.\n* Scope IAM policies to the exact resources and actions required.\n* Put data sources behind governed APIs or data-access tools. Treat NeMo Agent Toolkit tools as governed interfaces: validate tool inputs against expected schemas. Validate supplier IDs and SKU codes against explicit allow lists. Parameterize every data query to prevent injection. Validate tool outputs before returning them. And grant each tool access only to the data sources and operations required for that function.\n* Apply the same row-level and column-level authorization rules to Amazon Quick Sight datasets and backend data tools, including tenant, region, customer, and supplier filters.\n* Use private networking where required.\n* Store evaluation artifacts and traces in governed buckets or observability systems.\n* Add human approval before write actions, such as supplier changes, ticket creation, customer notification, or ERP updates.\n\n## Clean up resources\n\nTo delete the stack, run:\n\n```\n./scripts/cleanup.sh\n```\n\nWindows PowerShell:\n\n```\n.\\scripts\\cleanup.ps1\n```\n\nThe Amazon S3 bucket is retained by the AWS CloudFormation template. Empty and delete it manually if this was a temporary demo.\n\n## Conclusion\n\nThis post showed how Amazon Quick and NVIDIA NeMo Agent Toolkit work together to turn supply-chain visibility into a guided decision workflow. Planners work in a governed business workspace with dashboards, knowledge context, chat agents, and action triggering. NeMo Agent Toolkit runs the backend decision workflow. Its trace, per-step latency output, and evaluation metadata help teams find bottlenecks, identify failed checks, and improve the workflow before production use.\n\nThe pattern is useful for startups and enterprise teams that need to scale operational decision-making without adding manual review steps for every disruption. You can adapt the same architecture to other domains, such as customer renewal risk, incident response, manufacturing quality, or logistics exception handling.\n\n---\n\n## About the authors\n\n![Ebbey Thomas](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-15.png)\n\n### Ebbey Thomas\n\n[Ebbey](https://www.linkedin.com/in/ebbeythomas/) is a Senior Generative AI Specialist Solutions Architect at AWS. He works with ISVs and customers to identify practical use cases for AI agents and co-build production-grade generative AI solutions. He helps developers turn the agents and workflows they build into experiences business users can use every day. Ebbey holds a BS in Computer Engineering and an MS in Information Management from Syracuse University. Outside of work, he enjoys coffee, the outdoors, workouts, road trips, and spending time with his family.\n\n![Wenqi Glantz](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-21387-16.png)\n\n### Wenqi Glantz\n\n[Wenqi](https://www.linkedin.com/in/wenqi-glantz-b5448a5a/) is a tech engagement lead on the NVIDIA Super AI Startups team. Wenqi serves as the technical liaison for AI labs adopting the NVIDIA full acceleration stack spanning GPU architectures, CUDA-X libraries, NeMo frameworks, training, and inference optimization. With over two decades of experience in software engineering, enterprise architecture, and Generative AI, Wenqi brings deep hands-on expertise to the intersection of high-performance infrastructure and AI.",
+      "tags": [
+        "Amazon Quick",
+        "NVIDIA NeMo",
+        "供应链Agent"
+      ],
+      "score": 80,
+      "summary": "AWS与NVIDIA合作，使用Amazon Quick和NeMo Agent Toolkit构建供应链Agent工作流。",
+      "fetched_at": "2026-07-21T03:01:04.433495+08:00"
+    },
+    {
+      "title": "Scaling document classification to 100k+ labels",
+      "link": "https://www.databricks.com/blog/scaling-document-classification-100k-labels",
+      "published": "2026-07-21T02:15:00+08:00",
+      "source": "Databricks",
+      "content": "Across Databricks, thousands of customers build production workloads that map freeform...",
+      "tags": [
+        "Databricks",
+        "文档分类",
+        "10万标签"
+      ],
+      "score": 70,
+      "summary": "Databricks博客介绍如何将文档分类扩展到10万+标签。",
+      "fetched_at": "2026-07-21T03:01:04.433500+08:00"
+    },
+    {
+      "title": "Unifying Structured and Unstructured Data Insights with BQ Search Innovations",
+      "link": "https://cloud.google.com/blog/products/data-analytics/bigquery-search-innovations-unify-structured-unstructured-data/",
+      "published": "2026-07-21T02:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Modern enterprises possess a vast amount of unstructured data, yet they frequently encounter significant challenges in managing and extracting value from it. Historically, unlocking the insights hidden within PDFs, audio files, images, and unstructured text required a fragmented architecture: moving data out of your warehouse, stitching together complex LLM pipelines, and managing disparate search indexes.\n\nBigQuery has worked with many enterprises to make sense of their unstructured data sources. For example, consider an **advanced healthcare company** **managing thousands of clinical trial documents in PDF** form. BigQuery helps unlock insights from these documents through a simple, five-step lifecycle: **Access, Process, Ground, Relate, and Activate**.\n\nIn this post, we are highlighting three major milestones focused heavily on the **\"Ground\"** phase of this framework:\n\n1. **General Availability (GA) of Autonomous Embedding Generation**\n2. **General Availability (GA) of AI.SEARCH with massive single-query performance gains**\n3. **Public Preview of Hybrid Search**\n\nLet’s dive into how these features work together to simplify your AI architecture, using a real-world clinical trial research platform as an example.\n\n## **Simplify Pipelines with Autonomous Embedding Generation (GA)**\n\nBuilding a retrieval-augmented generation (RAG) pipeline or search application usually requires managing complex, asynchronous embedding infrastructure. You have to handle retries, error logging, and pipeline orchestration every time a new record arrives.\n\nWith the General Availability of **Autonomous Embedding Generation**, BigQuery manages this entirely for you. By simply defining a column in your schema, BigQuery asynchronously and continuously generates embeddings as new data is ingested. You have the flexibility to choose external models (like Vertex AI text-embeddings) or natively utilize **Gemma embedding models** directly within BigQuery.\n\n**How it works in practice:**\n\nImagine you are building a research platform analyzing clinical trial PDFs stored in Google Cloud Storage. After extracting the study titles and disease areas into a table, you can automatically embed those titles:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"CREATE OR REPLACE TABLE mydataset.clinical\\_trials\\r\\n(\\r\\n trial\\_id STRING,\\r\\n study\\_title STRING,\\r\\n study\\_embedding STRUCT<result ARRAY<FLOAT64>, status STRING>\\r\\n GENERATED ALWAYS AS (AI.EMBED(\\r\\n study\\_title,\\r\\n connection\\_id => 'myconnection',\\r\\n endpoint => 'text-embedding-005'\\r\\n ))\\r\\n STORED\\r\\n OPTIONS( asynchronous = TRUE )\\r\\n);\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f0c68402d30>)])]>\n\nBigQuery eliminates the need for complex third-party vector databases by managing enterprise-scale processing with one configuration. This autonomous embedding generation keeps data synchronized automatically as source text changes, removing the need for manual machine learning pipelines. This integrated approach streamlines workflows for dynamic datasets and reduces the operational burden of maintaining custom data scripts.\n\nFinally, with this GA launch, Autonomous Embedding Generation now also supports generating embeddings natively over images using [ObjectRefs](https://cloud.google.com/bigquery/docs/object-tables), unlocking true multimodal search and analytics.\n\n## **Natural Language Search at Scale with AI.SEARCH (GA)**\n\nTo truly enable conversational analytics agents and snappier user experiences, your underlying search infrastructure needs to be intuitive and performant.\n\nOnce your data is seamlessly embedded, you need an efficient way to query it. Today, we are announcing the **General Availability of** [**AI.SEARCH()**](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-ai-search). This function provides a streamlined, natural-language-focused search experience, allowing you to easily find semantically related records without generating embeddings in your search path. In pairing this with the Autonomous Embedding Generation, we leverage the same embedding model used in your dataset for easier use. \n\nFurthermore, as part of efficiency investments in the last year, we have heavily optimized AI.SEARCH for single-query execution. For online applications and single-query searches (those most common in agentic searches), we have observed **up to a 133x gain in slot efficiency..**\n\nThis means you can serve highly concurrent, user-facing natural language searches directly out of BigQuery faster and more cost-effectively than ever before.\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'SELECT base.trial\\_id, base.study\\_title, distance\\r\\nFROM\\r\\n AI.SEARCH(\\r\\n TABLE mydataset.clinical\\_trials,\\r\\n \\'study\\_title\\',\\r\\n \"What treatments are available for advanced tumors?\"\\r\\n );'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f0c68402640>)])]>\n\n## **Unifying Keyword and Vector with Hybrid Search (Public Preview)**\n\nSemantic (vector) search is incredibly powerful; for example, the query above will successfully return conceptually related terms like \"chemotherapy.\" However, semantic search isn't always enough. What if a researcher is searching for a specific, highly technical immunotherapy drug designation like \"MK3475\"? Because this alphanumeric string lacks broad semantic meaning, pure vector search might struggle to rank it correctly.\n\nBy merging lexical search with existing semantic capabilities, BigQuery's [hybrid search](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/search_functions#hybrid-search) allows for data retrieval based on both keyword similarity and underlying meaning. This approach unites the conceptual depth of semantic vector search with the pinpoint accuracy of lexical matching, utilizing algorithms such as Reciprocal Rank Fusion and BM25. The result is a significant boost in search precision and a reduction in LLM hallucination costs through the reranking of results based on keyword frequency and semantic relevance. Users can implement this via the AI.SEARCH and VECTOR\\_SEARCH functions by employing the `hybrid mode` or `lexical_search_columns` parameters. Furthermore, performance can be optimized by extending vector indexes to include keyword data, which accelerates the lexical search process.\n\nYou can now perform hybrid searches effortlessly using the AI.SEARCH() function by simply setting the mode to HYBRID:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', 'SELECT base.trial\\_id, base.study\\_title, distance\\r\\nFROM\\r\\n AI.SEARCH(\\r\\n TABLE mydataset.clinical\\_trials,\\r\\n \\'study\\_title\\',\\r\\n \"Cancer treated by MK-3475\",\\r\\n mode => \\'HYBRID\\'\\r\\n );'), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f0c68281b50>)])]>\n\nTo speed up these hybrid queries at scale, you can easily [extend your CREATE VECTOR INDEX DDL](https://docs.cloud.google.com/bigquery/docs/vector-index#use_vector_indexes_with_hybrid_search) to include the keyword columns you want to use for the lexical portion of the search, natively combining your indexes.\n\n### **Building an End-to-End Unstructured Data Analytics Platform**\n\nThe search and embedding features launching today are part of a much broader vision. We are building an end-to-end unstructured data analytics platform. One common type of unstructured data is documents, and BigQuery now provides the complete toolset to manage this workflow from end to end:\n\n![image1](https://storage.googleapis.com/gweb-cloudblog-publish/original_images/image1_bQnyG2Q.gif)\n\n* **Access:** Enable zero-ETL workflows by querying unstructured PDFs and documents directly where they live in Google Cloud Storage using Object Tables.\n* **Process:** Utilize embedded AI capabilities like AI.PARSE\\_DOCUMENT (coming soon) for layout-aware chunking (perfect for RAG), AI.GENERATE for entity extraction, and AI.CLASSIFY to instantly categorize records using foundational models directly in your SQL pipelines.\n* **Ground:** Build highly accurate context using Autonomous Embeddings and Hybrid Search. Hybrid search combines the conceptual understanding of semantic vector search with the exact precision of lexical keyword matching By reranking results based on both semantic relevance and keyword frequency, you drastically increase search precision and drive down LLM hallucinations.\n* **Relate:** Uncover hidden multi-hop insights by mapping extracted entities (like Sponsors, Trials, and Drugs) into a [BigQuery Graph](https://docs.cloud.google.com/bigquery/docs/graph-overview)—no specialized graph database required.\n* **Activate:** Bring it all together with [BigQuery's Conversational Analytics](https://docs.cloud.google.com/bigquery/docs/conversational-analytics) agents. Using functions like [AI.AGG](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-ai-agg), you can chat directly with your complex data, generate visualizations, and perform trend analysis at massive scale.\n\nWith unstructured data as a first-class citizen in BigQuery, you can finally bridge the gap between your raw documents and conversational AI.\n\n**Ready to get started?**\n\n* **Explore the Code:** Check out the complete end-to-end clinical trials demonstration in our [Document Analytics on BigQuery GitHub Repository](https://github.com/GoogleCloudPlatform/document-analytics-on-bigquery).\n* **Read the Docs:** Dive into the official documentation for [Autonomous Embeddings](https://docs.cloud.google.com/bigquery/docs/autonomous-embedding-generation) and [Hybrid Search](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/search_functions#hybrid-search) to start building your own unified data pipelines today.",
+      "tags": [
+        "BigQuery",
+        "嵌入生成",
+        "混合搜索"
+      ],
+      "score": 75,
+      "summary": "BigQuery推出自主嵌入生成GA、AI.SEARCH性能提升和混合搜索公测。",
+      "fetched_at": "2026-07-21T03:01:04.433503+08:00"
+    },
+    {
+      "title": "Who’s Afraid of Chinese Models?",
+      "link": "https://simonwillison.net/2026/Jul/20/afraid-of-chinese-models/#atom-everything",
+      "published": "2026-07-21T01:09:19+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Who’s Afraid of Chinese Models?](https://stratechery.com/2026/whos-afraid-of-chinese-models/)**\n\nInteresting proposal from Ben Thompson that both addresses the hypocrisy of labs outlawing distillation against their models despite training on unlicensed data, and could help US open models compete more effectively with their Chinese counterparts:\n> The U.S. should pass a law that (1) makes explicit that collecting data for training models is fair use, and (2) bars terms of service that forbid distillation, for U.S. companies at a minimum. Stopping distillation — which is literally just querying the API — is nearly impossible; the U.S. should go the other way and lean into a new copyright policy that both indemnifies the labs and also guarantees that what they learned fuels further innovation for everyone else.\n\nBen also theorizes that Alibaba's decision to release Qwen 3.8 Max as open weights - a reversal from their decision [not to release Qwen 3.7 Max](https://qwen.ai/blog?id=qwen3.7) in May - may have been influenced by a [recent speech](http://english.scio.gov.cn/topnews/2026-07/18/content_118605932.html) by Xi Jinping, who said:\n\n> We should seize this rare, historic opportunity to encourage open source, openness, collaboration and sharing.\n\nVia [John Gruber](https://daringfireball.net/linked/2026/07/20/thompson-chinese-models-distillation)\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [training-data](https://simonwillison.net/tags/training-data), [qwen](https://simonwillison.net/tags/qwen), [ai-ethics](https://simonwillison.net/tags/ai-ethics), [ai-in-china](https://simonwillison.net/tags/ai-in-china)",
+      "tags": [
+        "Ben Thompson",
+        "中国模型",
+        "蒸馏合法化"
+      ],
+      "score": 80,
+      "summary": "Ben Thompson提议美国立法将模型蒸馏合法化，以应对中国开源模型竞争。",
+      "fetched_at": "2026-07-21T03:01:04.433506+08:00"
+    },
+    {
+      "title": "🆕 Live now: our entire AI x Security Track!\n\nhttps://t.co/WcO6qG6Dye\n\n- @Steve_Yegge, Legendary AI ...",
+      "link": "https://x.com/aiDotEngineer/status/2079259695509029343",
+      "published": "2026-07-21T01:38:36+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕 Live now: our entire AI x Security Track!  \n[youtube.com/playlist?list=…](https://www.youtube.com/playlist?list=PLM1x6AvuYX54)e  \n  \n- [@Steve\\_Yegge](https://x.com/Steve_Yegge), Legendary AI Engineer/Speaker  \n- [@mnair1](https://x.com/mnair1), CTO/CIO Snyk  \n- [@eugeneyan](https://x.com/eugeneyan), MTS [@AnthropicAI](https://x.com/AnthropicAI)  \n- [@KimMaida](https://x.com/KimMaida), Founding GTEM [@keyboardlabs](https://x.com/keyboardlabs)  \n- [@ethansutin](https://x.com/ethansutin), Head of AI, [@bee\\_\\_computer](https://x.com/bee__computer)  \n- Aaron Stanley, CISO [@DBT](https://x.com/DBT)  \n- Lovina Dmello, NVIDIA  \n- Moritz Johner, Form3  \n- Ezra Tanzer, Snyk  \n  \nthanks also Ethan Cha of [@OneCarlyle](https://x.com/OneCarlyle) for being our first Private Equity speaker\n\n💬0🔄1❤️4👀753📊1",
+      "tags": [
+        "AI x Security",
+        "演讲者列表"
+      ],
+      "score": 65,
+      "summary": "AI Engineer发布AI x Security Track完整演讲者名单。",
+      "fetched_at": "2026-07-21T03:01:04.433508+08:00"
+    },
+    {
+      "title": "🆕 Live now: our entire AI x Security Track!\n\n- @Steve_Yegge, Legendary AI Engineer/Speaker\n- @mnair...",
+      "link": "https://x.com/aiDotEngineer/status/2079259574331384035",
+      "published": "2026-07-21T01:38:07+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕 Live now: our entire AI x Security Track!  \n  \n- [@Steve\\_Yegge](https://x.com/Steve_Yegge), Legendary AI Engineer/Speaker  \n- [@mnair1](https://x.com/mnair1), CTO/CIO Snyk  \n- [@eugeneyan](https://x.com/eugeneyan), MTS [@AnthropicAI](https://x.com/AnthropicAI)   \n- [@KimMaida](https://x.com/KimMaida), Founding GTEM [@keyboardlabs](https://x.com/keyboardlabs)   \n- [@ethansutin](https://x.com/ethansutin), Head of AI, [@bee\\_\\_computer](https://x.com/bee__computer)  \n- Aaron Stanley, CISO [@DBT](https://x.com/DBT)  \n- Lovina Dmello, NVIDIA  \n- Moritz Johner, Form3  \n- Ezra Tanzer, Snyk  \n  \nthanks also Ethan Cha of [@OneCarlyle](https://x.com/OneCarlyle) for being our first Private Equity speaker  \n  \nfull track drop below\n\n![Tweet Image](https://pbs.twimg.com/media/HNsCCk6asAAB9jt.jpg)\n\n💬2🔄2❤️17👀4453📊6",
+      "tags": [
+        "AI x Security",
+        "演讲者列表"
+      ],
+      "score": 65,
+      "summary": "AI Engineer发布AI x Security Track演讲者名单及图片。",
+      "fetched_at": "2026-07-21T03:01:04.433511+08:00"
+    },
+    {
+      "title": "Underrated @NotionHQ update: you can now upload files to give it external context, then use Computer...",
+      "link": "https://x.com/akothari/status/2079273480550490541",
+      "published": "2026-07-21T02:33:23+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "Underrated [@NotionHQ](https://x.com/NotionHQ) update: you can now upload files to give it external context, then use Computer tools to export what you create as a PDF (or any other file format)  \n  \nHere’s me finally turning a database into a beautiful, printable PDF!!!! 🙃\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079270012867756032/vid/avc1/1584x1080/HDPc7oDYXSvjlhdM.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/akothari/status/2079273480550490541/video/1)\n\n💬1🔄0❤️8👀314📊2",
+      "tags": [
+        "Notion",
+        "文件上传",
+        "Computer tools"
+      ],
+      "score": 70,
+      "summary": "Notion更新支持上传文件作为外部上下文，并使用Computer tools导出PDF。",
+      "fetched_at": "2026-07-21T03:01:04.433514+08:00"
+    },
+    {
+      "title": "We're offering grants of up to $50,000 in Claude usage credits to researchers accelerating cures for...",
+      "link": "https://x.com/AnthropicAI/status/2079256626771665098",
+      "published": "2026-07-21T01:26:25+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "We're offering grants of up to $50,000 in Claude usage credits to researchers accelerating cures for rare diseases.  \n  \nThis is our first focused call within AI for Science, our program supporting scientists using Claude to speed up discovery. [anthropic.com/news/rare-dise…](https://www.anthropic.com/news/rare-disease-research-grants)\n\n💬158🔄124❤️995👀63700📊240",
+      "tags": [
+        "Anthropic",
+        "罕见病研究",
+        "5万美元资助"
+      ],
+      "score": 90,
+      "summary": "Anthropic提供最高5万美元Claude积分资助罕见病研究人员。",
+      "fetched_at": "2026-07-21T03:01:04.433516+08:00"
+    },
+    {
+      "title": "We had a team of agents rebuild SQLite from its 835-page manual.\n\nIt created a replica in Rust which...",
+      "link": "https://x.com/cursor_ai/status/2079256614238814551",
+      "published": "2026-07-21T01:26:22+08:00",
+      "source": "Cursor(@cursor_ai)",
+      "content": "We had a team of agents rebuild SQLite from its 835-page manual.  \n  \nIt created a replica in Rust which passed 100% of a held-out test suite.  \n  \nInterestingly, cost varied 15x depending on which model mix we used.\n\n![Tweet Image](https://pbs.twimg.com/media/HNsAbwFWAAASV5a.jpg)\n\n💬173🔄181❤️2990👀125552📊552",
+      "tags": [
+        "Cursor",
+        "SQLite",
+        "Rust重写"
+      ],
+      "score": 85,
+      "summary": "Cursor用Agent团队从手册重写SQLite为Rust，通过全部测试，成本差异达15倍。",
+      "fetched_at": "2026-07-21T03:01:04.433519+08:00"
+    },
+    {
+      "title": "https://t.co/GktfUOjNgL",
+      "link": "https://x.com/cursor_ai/status/2079256616407273801",
+      "published": "2026-07-21T01:26:22+08:00",
+      "source": "Cursor(@cursor_ai)",
+      "content": "[cursor.com/blog/agent-swa…](https://cursor.com/blog/agent-swarm-model-economics)\n\n💬10🔄7❤️144👀17132📊38",
+      "tags": [
+        "Cursor",
+        "Agent经济",
+        "模型成本"
+      ],
+      "score": 80,
+      "summary": "Cursor发布博客分析Agent团队重写SQLite时不同模型组合的成本差异。",
+      "fetched_at": "2026-07-21T03:01:04.433521+08:00"
+    },
+    {
+      "title": "Spent all weekend thinking about what the US should do about the threat from China. Here’s what I ca...",
+      "link": "https://x.com/GaryMarcus/status/2079257745111310613",
+      "published": "2026-07-21T01:30:51+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Spent all weekend thinking about what the US should do about the threat from China. Here’s what I came up with.   \n  \n(To read it type the link that you can see in bottom right, and blame Elon for his anti-competitive walled-garden link policies.)\n\n![Tweet Image](https://pbs.twimg.com/media/HNsB5p9aAAA4wQ_.jpg)\n\n💬6🔄6❤️35👀3477📊12",
+      "tags": [
+        "Gary Marcus",
+        "中国威胁",
+        "美国对策"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus思考美国应对中国AI威胁的策略。",
+      "fetched_at": "2026-07-21T03:01:04.433524+08:00"
+    },
+    {
+      "title": "Amid all the competing concerns about AI, including geopolitical tensions, the risks of unemployment...",
+      "link": "https://x.com/GaryMarcus/status/2079250376721879065",
+      "published": "2026-07-21T01:01:35+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Amid all the competing concerns about AI, including geopolitical tensions, the risks of unemployment, cybercrime, and disinformation, and the complexities of open-source, to say nothing of the risk of runaway AI, it's pretty clear that the highest priority in the Trump administration is ... protecting Josh Kushner's multibillion dollar investment in OpenAI, at all costs.\n\n![Andrew Curran](https://pbs.twimg.com/profile_images/1596945208058744833/_X3LT7fb_normal.jpg)\n\nAndrew Curran@AndrewCurran\\_\n\nThe Trump administration is considering an executive order, and other means, to ban Chinese open-source models within in the United States. Kimi K3 has reignited this debate. Reporting this morning by Axios. Commerce is also considering adding Chinese AI labs to the Entity List.\n\n![Tweet Image](https://pbs.twimg.com/media/HNrPVz2bcAA0T3T.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/AndrewCurran_/status/2079202168448659764)\n\n💬15🔄17❤️91👀6652📊20",
+      "tags": [
+        "Gary Marcus",
+        "特朗普",
+        "OpenAI投资"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus评论特朗普政府优先保护Kushner在OpenAI的投资。",
+      "fetched_at": "2026-07-21T03:01:04.433527+08:00"
+    },
+    {
+      "title": "Which slash commands have you found most helpful?",
+      "link": "https://x.com/antigravity/status/2079271417808384022",
+      "published": "2026-07-21T02:25:11+08:00",
+      "source": "Google Antigravity(@antigravity)",
+      "content": "Which slash commands have you found most helpful?\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079271294298685440/vid/avc1/720x1280/7nTLk7DEiTmgesIF.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/antigravity/status/2079271417808384022/video/1)\n\n💬18🔄7❤️53👀4816📊23",
+      "tags": [
+        "Google Antigravity",
+        "斜杠命令"
+      ],
+      "score": 55,
+      "summary": "Google Antigravity询问用户最有用的斜杠命令。",
+      "fetched_at": "2026-07-21T03:01:04.433529+08:00"
+    },
+    {
+      "title": "LangSmith Engine is our in product agent that runs over traces, clusters them into issues, and propo...",
+      "link": "https://x.com/hwchase17/status/2079256852534362193",
+      "published": "2026-07-21T01:27:19+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "LangSmith Engine is our in product agent that runs over traces, clusters them into issues, and proposes fixes  \n  \nIt's a long running, complex, ambiguous process  \n  \nWe wrote about how we evaluate it!\n\n![Brace](https://pbs.twimg.com/profile_images/1694931592505085952/i14SGO0t_normal.jpg)\n\nBrace@BraceSproul\n\n[x.com/i/article/2079…](http://x.com/i/article/2079227323434577920)\n\n[🔗 View Quoted Tweet](https://x.com/BraceSproul/status/2079250350700413305)\n\n💬5🔄2❤️23👀3048📊7",
+      "tags": [
+        "LangSmith Engine",
+        "Agent评估",
+        "IssueBench"
+      ],
+      "score": 80,
+      "summary": "Harrison Chase介绍LangSmith Engine产品内Agent及其评估方法。",
+      "fetched_at": "2026-07-21T03:01:04.433532+08:00"
+    },
+    {
+      "title": "https://t.co/tqKgBvEiwl",
+      "link": "https://x.com/HeyGen/status/2079251321484722675",
+      "published": "2026-07-21T01:05:20+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "[x.com/i/article/2079…](http://x.com/i/article/2079241611800875014)\n\n💬2🔄7❤️41👀3035📊14",
+      "tags": [
+        "HeyGen",
+        "文章链接"
+      ],
+      "score": 60,
+      "summary": "HeyGen发布一篇未指明内容的文章链接。",
+      "fetched_at": "2026-07-21T03:01:04.433534+08:00"
+    },
+    {
+      "title": "This is awesome. Instead of doing work this morning, I spent some time brushing up on math to provid...",
+      "link": "https://x.com/jerryjliu0/status/2079261741649969223",
+      "published": "2026-07-21T01:46:44+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "This is awesome. Instead of doing work this morning, I spent some time brushing up on math to provide a handwavy overview to anyone else who like me doesn't have a math background and is rusty:   \n  \nAt a distance, the conjecture is basically that if a n-dimensional polynomial function (e.g. F(x, y, z) map to some output (x', y', z')) meets some special conditions, then 1) it is invertible, and 2) the inverse is polynomial.   \n  \nDisproving the conjecture requires finding a n-dimensional polynomial function that meets these special conditions, but is either 1) not invertible at all, or 2) is invertible but not polynomial. (2) is actually not a possibility due to some other math theorem - if there is an inverse, the inverse has to be polynomial.   \n  \nInvertibility just means the function can be \"undone\" at every single input point - if input (x1, y1, z1) maps to output (x2, y2, z2), then output (x2, y2, z2) can map to input (x1, y1, z1). A function is not invertible if multiple input points (x, y, z)'s map to the same output (x, y, z)  \n  \nHere Fable 5 presumably did some search and found a function that was not invertible.   \n  \nThat function is this:   \nF(x, y, z) = (  \nz(1+xy)^3 + y^2(1+xy)(4+3xy),  \ny+3x(1+xy)^2z + 3xy^2(4+3xy),  \n2x-3x^2y-x^3z  \n)  \n  \nThis function meets the special conditions (jacobian determinant is a non-zero constant for every point), but has multiple input points that map to the same output:   \n  \nInputs: (0, 0, -1/4), (1, -3/2, 13/2), and (-1, 3/2, 13/2)  \nall map to the same output: (-1/4, 0, 0)  \n  \n-----  \n  \nThe Jacobian is the multivariable version of a derivative, so it is a function of a specific input point. When the Jacobian determinant is non-zero at a specific input point, there is local invertibility around that point. This conjecture was stronger in that if it was non-zero (and constant, due to being over the complex numbers, which I don't quite get and I ran out of time to understand), then the function is globally invertible.   \n  \n-----  \n  \nWhat's interesting here is that finding counterexamples seem like the type of math work that agentic models excel at. It involves generating and crawling a large search space, using priors to narrow it down, and a bit of brute force and raw compute power. Machines can process a wide set of possibilities faster than humans, which is helpful for finding counterexamples.\n\n![levent](https://pbs.twimg.com/profile_images/1824948681877155840/VqVHY3gF_normal.jpg)\n\nlevent@\\_\\_alpoge\\_\\_\n\nhello there the jacobian conjecture is false thanx to my close friend akhil for asking about it and my other close friend fable for working during the world cup final  \n  \n((1+xy)^3 z + y^2 (1+xy) (4+3xy), y + 3 x (1+xy)^2 z + 3 x y^2 (4+3xy), 2 x - 3 x^2 y - x^3 z): \\C^3\\to \\C^3, has jacobian determinant -2, and sends (0, 0, -1/4), (1, -3/2, 13/2), and (-1, 3/2, 13/2) to (-1/4, 0, 0)\n\n[🔗 View Quoted Tweet](https://x.com/__alpoge__/status/2079028340955197566)\n\n💬5🔄1❤️21👀2056📊7",
+      "tags": [
+        "Jacobian猜想",
+        "反例",
+        "多项式函数"
+      ],
+      "score": 70,
+      "summary": "Jerry Liu解释Jacobian猜想及Fable 5找到的反例。",
+      "fetched_at": "2026-07-21T03:01:04.433537+08:00"
+    },
+    {
+      "title": "Hosting a small founder dinner in sf on july 28 with @dexhorthy - first in a monthly series.\n\nTopic ...",
+      "link": "https://x.com/jerryjliu0/status/2079250071451795883",
+      "published": "2026-07-21T01:00:22+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "Hosting a small founder dinner in sf on july 28 with [@dexhorthy](https://x.com/dexhorthy) - first in a monthly series.  \n  \nTopic is loop engineering: context management, compaction, evals, human-in-the-loop handoffs.  \n  \nApproval-only and most seats are spoken for, but if you're a founder building agents in production: [luma.com/llamai-c6of](https://luma.com/llamai-c6of)\n\n![Tweet Image](https://pbs.twimg.com/media/HNr668IWAAESdwc.jpg)\n\n💬3🔄1❤️11👀877📊5",
+      "tags": [
+        "创始人晚宴",
+        "循环工程"
+      ],
+      "score": 60,
+      "summary": "Jerry Liu宣布7月28日举办创始人晚宴，主题为循环工程。",
+      "fetched_at": "2026-07-21T03:01:04.433540+08:00"
+    },
+    {
+      "title": "The right business gives you control over your income, time, and energy.\n\nSo I distilled 250+ essays...",
+      "link": "https://x.com/thejustinwelsh/status/2079265226940153881",
+      "published": "2026-07-21T02:00:35+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "The right business gives you control over your income, time, and energy.  \n  \nSo I distilled 250+ essays, hours of voice notes, and 10+ interviews into a free field manual on the seven capacities behind my $15M solo business without destroying my life:  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬0🔄2❤️2👀754📊1",
+      "tags": [
+        "Justin Welsh",
+        "商业指南"
+      ],
+      "score": 40,
+      "summary": "Justin Welsh发布免费商业指南，分享1500万美元个人业务经验。",
+      "fetched_at": "2026-07-21T03:01:04.433542+08:00"
+    },
+    {
+      "title": "IssueBench is a detailed evaluation suite we built for Engine (continual learning agent in LangSmith...",
+      "link": "https://x.com/LangChain/status/2079252429707903079",
+      "published": "2026-07-21T01:09:44+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "IssueBench is a detailed evaluation suite we built for Engine (continual learning agent in LangSmith, runs on your traces, automatically improves your agent)  \n  \nEvaluating Engine was a tricky problem due to the type of data it needs to run on, so we wrote this blog outlining what the benchmark is, and how we made it:\n\n![Brace](https://pbs.twimg.com/profile_images/1694931592505085952/i14SGO0t_normal.jpg)\n\nBrace@BraceSproul\n\n[x.com/i/article/2079…](http://x.com/i/article/2079227323434577920)\n\n[🔗 View Quoted Tweet](https://x.com/BraceSproul/status/2079250350700413305)\n\n💬2🔄1❤️20👀3661📊4",
+      "tags": [
+        "IssueBench",
+        "LangSmith Engine",
+        "评估套件"
+      ],
+      "score": 80,
+      "summary": "LangChain发布IssueBench评估套件，用于持续学习Agent Engine。",
+      "fetched_at": "2026-07-21T03:01:04.433545+08:00"
+    },
+    {
+      "title": "Thank you to our wonderful sponsors @WorkOS and @Mercury for supporting the podcast:\n🏆 @WorkOS — Ma...",
+      "link": "https://x.com/lennysan/status/2079250284677869946",
+      "published": "2026-07-21T01:01:13+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Thank you to our wonderful sponsors [@WorkOS](https://x.com/WorkOS) and [@Mercury](https://x.com/Mercury) for supporting the podcast:  \n🏆 [@WorkOS](https://x.com/WorkOS) — Make your app Enterprise Ready, with SSO, SCIM, RBAC, and more:[workos.com/lenny](https://workos.com/lenny)H  \n🏆 [@mercury](https://x.com/mercury) — Radically different banking, now with Command[mercury.com](https://mercury.com)wR  \n  \nAlso available on:  \n• Spotify[open.spotify.com/episode/4WipPx…](https://open.spotify.com/episode/4WipPxfkVnQBVnzn8qf5a7?si=D5pJMbLGTmO9AOGz_UmITg)Gz  \n• Apple[podcasts.apple.com/us/podcast/net…](https://podcasts.apple.com/us/podcast/netflix-cpto-on-ai-and-the-future-of-product/id1627920305?i=1000777423324)eA\n\n![Tweet Image](https://pbs.twimg.com/media/HNn5bpibUAEWCTg.jpg)\n\n💬0🔄2❤️1👀1641📊1",
+      "tags": [
+        "Lenny",
+        "播客赞助"
+      ],
+      "score": 50,
+      "summary": "Lenny Rachitsky感谢播客赞助商WorkOS和Mercury。",
+      "fetched_at": "2026-07-21T03:01:04.433547+08:00"
+    },
+    {
+      "title": "Elizabeth Stone's first visit to the podcast was my second most popular episode of all time (right b...",
+      "link": "https://x.com/lennysan/status/2079250282899517855",
+      "published": "2026-07-21T01:01:12+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Elizabeth Stone's first visit to the podcast was my second most popular episode of all time (right behind [@bchesky](https://x.com/bchesky)). Her second visit is already trending far beyond that.  \n  \nA lot has changed since I first spoke with Elizabeth 2.5 years ago. She was promoted to CPTO at [@Netflix](https://x.com/Netflix), taking on product and design orgs, on top of the engineering and data orgs she already led. Also, AI.  \n  \nIn our in-depth conversation, we discuss:  \n🔸 Why all the top AI labs converged on Netflix’s culture  \n🔸 Why Netflix is hiring more \"systems thinkers\" — and fewer narrow specialists  \n🔸 How she protects quality when AI makes output nearly infinite (\"If I had more time, I would've written a shorter letter\")  \n🔸 The most impactful AI use cases internally  \n🔸 How Elizabeth builds \"excellence as an operating system\"   \n  \nListen n[youtu.be/t0GiTyz4syY](https://youtu.be/t0GiTyz4syY)hDfldl\n\n💬4🔄2❤️16👀5196📊8",
+      "tags": [
+        "Netflix CPTO",
+        "AI",
+        "播客"
+      ],
+      "score": 70,
+      "summary": "Lenny Rachitsky与Netflix CPTO Elizabeth Stone讨论AI对Netflix的影响。",
+      "fetched_at": "2026-07-21T03:01:04.433550+08:00"
+    },
+    {
+      "title": "We're kicking off a founder dinner series in SF. First one's July 28 - one table, 16 seats, invite-o...",
+      "link": "https://x.com/llama_index/status/2079250003248263360",
+      "published": "2026-07-21T01:00:06+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "We're kicking off a founder dinner series in SF. First one's July 28 - one table, 16 seats, invite-only, co-hosted by [@jerryjliu0](https://x.com/jerryjliu0) and [@dexhorthy](https://x.com/dexhorthy). Topic is loop engineering.  \n  \nA room of founders and CTOs building agents in production, comparing notes on what holds up.\n\n![Tweet Image](https://pbs.twimg.com/media/HNr6216WwAAcFVi.jpg)\n\n💬4🔄1❤️9👀1436📊5",
+      "tags": [
+        "LlamaIndex",
+        "创始人晚宴"
+      ],
+      "score": 60,
+      "summary": "LlamaIndex在旧金山启动创始人晚宴系列，首场7月28日。",
+      "fetched_at": "2026-07-21T03:01:04.433553+08:00"
+    },
+    {
+      "title": "Where is AI most useful in your work today?",
+      "link": "https://x.com/NotionHQ/status/2079273050311418221",
+      "published": "2026-07-21T02:31:40+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Where is AI most useful in your work today?\n\n💬4🔄1❤️10👀1759📊4",
+      "tags": [
+        "Notion",
+        "AI用途"
+      ],
+      "score": 50,
+      "summary": "Notion询问用户工作中AI最有用的地方。",
+      "fetched_at": "2026-07-21T03:01:04.433556+08:00"
+    },
+    {
+      "title": "We’re live for the final Build Week stream. \n\nSee Sites in action and make your final push.\n\nhttps:/...",
+      "link": "https://x.com/OpenAIDevs/status/2079266484044648949",
+      "published": "2026-07-21T02:05:35+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "We’re live for the final Build Week stream.   \n  \nSee Sites in action and make your final push.  \n  \n[x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1nJOLLqvroExR)\n\n💬12🔄8❤️98👀11746📊24",
+      "tags": [
+        "OpenAI",
+        "Build Week",
+        "Sites"
+      ],
+      "score": 70,
+      "summary": "OpenAI Developers进行Build Week最终直播，展示Sites功能。",
+      "fetched_at": "2026-07-21T03:01:04.433559+08:00"
+    },
+    {
+      "title": "Submissions close in 30 hours:\nhttps://t.co/0Pifa5ZRay",
+      "link": "https://x.com/OpenAIDevs/status/2079266485655249092",
+      "published": "2026-07-21T02:05:35+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Submissions close in 30 hours:  \n[openai.com/build-week/](https://openai.com/build-week/)\n\n💬1🔄0❤️9👀3210📊2",
+      "tags": [
+        "OpenAI",
+        "Build Week",
+        "提交截止"
+      ],
+      "score": 65,
+      "summary": "OpenAI Build Week提交截止时间剩余30小时。",
+      "fetched_at": "2026-07-21T03:01:04.433561+08:00"
+    },
+    {
+      "title": "Use one agent to do the work and another to review it against a rubric.\n\n@trq212 explains how this w...",
+      "link": "https://x.com/petergyang/status/2079257646939742542",
+      "published": "2026-07-21T01:30:28+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Use one agent to do the work and another to review it against a rubric.  \n  \n[@trq212](https://x.com/trq212) explains how this works for video shorts:  \n  \n“For something like, ‘Is this a good video short or not?’ you don’t have a deterministic answer.  \n  \nYou should have a separate verification agent read a rubric, review the short, and give feedback.  \n  \nWe call it self-preferential bias. When a model prefers its own output, it’s going to be more lenient at verifying it.”  \n  \n📌 Watch the full episode here:[youtu.be/aVO6E181cNU](https://youtu.be/aVO6E181cNU)7\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079257542392446976/vid/avc1/720x1280/uosBx_9TQYjAN_pD.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2079257646939742542/video/1)\n\n![Peter Yang](https://pbs.twimg.com/profile_images/1454103621516206083/_klMwpkk_normal.jpg)\n\nPeter Yang@petergyang\n\n“We’ve got /loop, /goal, and workflows. They all get the agent to run for long periods of time.”  \n  \nHere’s my new episode with [@trq212](https://x.com/trq212) from the Claude Code team, where he shared how he plans, builds, and runs loops with Claude Code:  \n  \n→ How /loop, /goal, and workflows work differently  \n  \n→ Live demo: Editing launch videos with Claude  \n  \n→ Using HTML artifacts to plan and learn  \n  \nSome quotes from Thariq:  \n  \n“We cut Claude Code’s system prompt by 80%. As models have gotten smarter, they need less direction, fewer constraints, and fewer examples.”  \n  \n“Planning is an iterative process of exploring, investigating, and finding out what you don’t know.”  \n  \n“One failure mode I see is that people glaze over AI’s plans. You want to make sure it’s something you read.”  \n  \nI've been wanting to interview Thariq for a long time and I learned so much from this epsiode.  \n  \n📌 Watch now:[youtu.be/aVO6E181cNU](https://youtu.be/aVO6E181cNU)7  \n  \nThanks to our sponsors:  \n  \n[@RiversidedotFM](https://x.com/RiversidedotFM): All-in-one AI studio for podcasts and video[creators.riverside.com/PeterYang](https://creators.riverside.com/PeterYang)E  \n  \n[@WisprFlow](https://x.com/WisprFlow): 4x faster than typing with your voice[ref.wisprflow.ai/peteryang](https://ref.wisprflow.ai/peteryang)l\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2078846070206152704/vid/avc1/1280x720/Hv_nsxv8efJnoZo6.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2078846124828545179/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/petergyang/status/2078846124828545179)\n\n💬2🔄0❤️8👀2332📊3",
+      "tags": [
+        "Claude Code",
+        "验证Agent",
+        "自偏好偏差"
+      ],
+      "score": 75,
+      "summary": "Peter Yang分享Claude Code团队使用双Agent架构（工作+验证）的经验。",
+      "fetched_at": "2026-07-21T03:01:04.433564+08:00"
+    },
+    {
+      "title": "it is good now!",
+      "link": "https://x.com/sama/status/2079258683884917013",
+      "published": "2026-07-21T01:34:35+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "it is good now!\n\n![samir](https://pbs.twimg.com/profile_images/1971845878060404742/gr6MFBEx_normal.jpg)\n\nsamir@\\_samirism\n\nthroughout june we rolled out major updates to chatgpt memory   \n  \nit can be hard to tell the difference initially   \n  \nbut alot of folks are clearly feeling the improvements now\n\n![Tweet Image](https://pbs.twimg.com/media/HNpRbL7agAA-J4b.jpg)![Tweet Image](https://pbs.twimg.com/media/HNpRbL3bUAApywi.jpg)![Tweet Image](https://pbs.twimg.com/media/HNpRgAWbAAAWfK3.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/_samirism/status/2079199143868960823)\n\n💬266🔄49❤️1177👀153839📊234",
+      "tags": [
+        "ChatGPT",
+        "记忆更新",
+        "Sam Altman"
+      ],
+      "score": 80,
+      "summary": "Sam Altman确认ChatGPT记忆功能在6月更新后效果良好。",
+      "fetched_at": "2026-07-21T03:01:04.433567+08:00"
+    },
+    {
+      "title": "Replit CEO Amjad Masad on why going direct wins:\n\n\"Whenever there's a piece of communication or a st...",
+      "link": "https://x.com/a16z/status/2079261229877711222",
+      "published": "2026-07-21T01:44:42+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Replit CEO Amjad Masad on why going direct wins:  \n  \n\"Whenever there's a piece of communication or a story I wanna tell, and there's a choice between public and private, I might bias towards public. I often write something publicly and then paste it on Slack.\"  \n  \n\"Being yourself is kind of a big radical thing that maybe started happening with Elon maybe 10 years ago. CEOs were supposed to be this very polished thing. They had to be filtered through this prism of PR, and journalists were kind of the way to get to the public.\"  \n  \n\"Zuck changed the entire narrative around him by just being himself and actually talking directly to people.\"  \n  \n[@amasad](https://x.com/amasad)[@eriktorenberg](https://x.com/eriktorenberg)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079260510285901824/vid/avc1/1920x1080/kjG4R8iLzWdZoU1V.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079261229877711222/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nAmjad Masad on Going Direct & Founder Storytelling  \n  \nReplit CEO Amjad Masad joins a16z's Erik Torenberg on how he went from crippling stage fright to one of the most famous CEOs on X, which platforms actually matter and why, and what founders get wrong about building in public.  \n  \n00:50 Memeing a dream into reality  \n03:02 Conquering stage fright  \n04:00 Make your mistakes early  \n05:23 Building in public  \n06:41 The authenticity edge: Elon, Zuck, Trump  \n08:42 Become uncancellable  \n10:47 Advice for Anthropic and OpenAI  \n15:09 The day AI deleted prod  \n17:39 Who should go direct?  \n19:37 X vs Instagram vs YouTube  \n22:52 Go direct role models  \n  \n[@amasad](https://x.com/amasad)[@eriktorenberg](https://x.com/eriktorenberg)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079249135128195072/vid/avc1/1920x1080/M3wA24vzHNS8ibE_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079250292420571308/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2079250292420571308)\n\n💬3🔄0❤️22👀10175📊4",
+      "tags": [
+        "Replit CEO",
+        "直接沟通",
+        "创始人故事"
+      ],
+      "score": 70,
+      "summary": "a16z发布Replit CEO Amjad Masad关于创始人直接沟通的访谈视频。",
+      "fetched_at": "2026-07-21T03:01:04.433570+08:00"
+    },
+    {
+      "title": "Amjad Masad on Going Direct & Founder Storytelling\n\nReplit CEO Amjad Masad joins a16z's Erik Torenbe...",
+      "link": "https://x.com/a16z/status/2079250292420571308",
+      "published": "2026-07-21T01:01:14+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Amjad Masad on Going Direct & Founder Storytelling  \n  \nReplit CEO Amjad Masad joins a16z's Erik Torenberg on how he went from crippling stage fright to one of the most famous CEOs on X, which platforms actually matter and why, and what founders get wrong about building in public.  \n  \n00:50 Memeing a dream into reality  \n03:02 Conquering stage fright  \n04:00 Make your mistakes early  \n05:23 Building in public  \n06:41 The authenticity edge: Elon, Zuck, Trump  \n08:42 Become uncancellable  \n10:47 Advice for Anthropic and OpenAI  \n15:09 The day AI deleted prod  \n17:39 Who should go direct?  \n19:37 X vs Instagram vs YouTube  \n22:52 Go direct role models  \n  \n[@amasad](https://x.com/amasad)[@eriktorenberg](https://x.com/eriktorenberg)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079249135128195072/vid/avc1/1920x1080/M3wA24vzHNS8ibE_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079250292420571308/video/1)\n\n💬5🔄2❤️46👀19533📊16",
+      "tags": [
+        "Replit CEO",
+        "直接沟通",
+        "创始人故事"
+      ],
+      "score": 70,
+      "summary": "a16z发布Replit CEO Amjad Masad关于创始人直接沟通的访谈视频。",
+      "fetched_at": "2026-07-21T03:01:04.433572+08:00"
+    },
+    {
+      "title": "The cybersecurity debate on open-source AI is backwards. Open models aren't the risk, they're the de...",
+      "link": "https://x.com/ClementDelangue/status/2079253659108409587",
+      "published": "2026-07-21T01:14:37+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "The cybersecurity debate on open-source AI is backwards. Open models aren't the risk, they're the defense! Attackers can already jailbreak any API or guardrails. Defenders can't secure systems with black boxes they can't control, inspect, test, or run locally.\n\n![Tweet Image](https://pbs.twimg.com/media/HNr-Bk7WgAA1-Lf.jpg)\n\n💬13🔄29❤️90👀6290📊29",
+      "tags": [
+        "开源AI",
+        "网络安全",
+        "Clement Delangue"
+      ],
+      "score": 75,
+      "summary": "Clement Delangue认为开源AI模型是网络安全防御而非风险。",
+      "fetched_at": "2026-07-21T03:01:04.433575+08:00"
+    },
+    {
+      "title": "Wanted to add that I care about this problem. As an independent researcher, I've been working hard a...",
+      "link": "https://x.com/omarsar0/status/2079268433980469731",
+      "published": "2026-07-21T02:13:20+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Wanted to add that I care about this problem. As an independent researcher, I've been working hard at [@dair\\_ai](https://x.com/dair_ai) on AI-powered research tools that help with things like forming hypotheses, finding interesting research directions, formulating strong research questions, compiling literature, reproducing works with coding agents, and much more. We are launching several tools in the coming months to help with all of this. Stay tuned.\n\n💬0🔄2❤️3👀587📊1",
+      "tags": [
+        "DAIR AI",
+        "研究工具"
+      ],
+      "score": 55,
+      "summary": "Elvis宣布DAIR AI即将推出AI驱动的研究工具。",
+      "fetched_at": "2026-07-21T03:01:04.433577+08:00"
+    },
+    {
+      "title": "Learn more about the causal tracing methodology for Agent Arena on our blog: https://t.co/bpIkMhEeKL",
+      "link": "https://x.com/arena/status/2079254076714578418",
+      "published": "2026-07-21T01:16:17+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Learn more about the causal tracing methodology for Agent Arena on our blog: [arena.ai/blog/agent-are…](http://arena.ai/blog/agent-arena-methodology)\n\n💬0🔄0❤️1👀1573",
+      "tags": [
+        "Agent Arena",
+        "因果追踪",
+        "方法论"
+      ],
+      "score": 75,
+      "summary": "lmarena.ai发布Agent Arena因果追踪方法论博客。",
+      "fetched_at": "2026-07-21T03:01:04.433580+08:00"
+    },
+    {
+      "title": "See the full Agent Arena leaderboard at https://t.co/sE9q4FSYAt",
+      "link": "https://x.com/arena/status/2079253217633018181",
+      "published": "2026-07-21T01:12:52+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "See the full Agent Arena leaderboard at [arena.ai/leaderboard/ag…](https://arena.ai/leaderboard/agent)\n\n💬1🔄1❤️6👀2177📊2",
+      "tags": [
+        "Agent Arena",
+        "排行榜"
+      ],
+      "score": 75,
+      "summary": "lmarena.ai提供Agent Arena完整排行榜链接。",
+      "fetched_at": "2026-07-21T03:01:04.433583+08:00"
+    },
+    {
+      "title": "Exciting update: Kimi K3 has landed at #4 on the Agent Arena leaderboard, matching Claude Opus 4.8 a...",
+      "link": "https://x.com/arena/status/2079253211077300736",
+      "published": "2026-07-21T01:12:50+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Exciting update: Kimi K3 has landed at #4 on the Agent Arena leaderboard, matching Claude Opus 4.8 and GPT-5.6 Sol. If Kimi K3's weights are released on schedule by July 27, it will become the #1 open-weight model.  \n  \nThis release marks a major leap in agentic performance over Kimi K2.7 Code (#23 to #4). Based on 8K+ live agentic sessions, Kimi K3 leads on confirmed task success rate (#1). It also posts a strong +20.6% on praise vs. complaint (#3). It currently lags the field in steerability (#14) and bash recovery (#17).  \n  \nAgent Arena measures models on millions of real-world, long-horizon agentic tasks. Models get web search, filesystem, and terminal tools to complete complex workflows: writing code, creating slide decks, researching the web, building apps, and analyzing documents.  \n  \nWe use causal tracing methodology to measure a model's net improvement, which indicates how much it improves outcomes relative to the average model.  \n  \nHere's a primer on the 5 signals:  \n  \nUser-satisfaction proxies  \n- Confirmed Success: an explicit \"yes that worked\" feedback from the user  \n- Praise vs. Complaint: implicit sentiment in users reactions  \n- Steerability: can the model course-correct when you push back?  \n  \nTool-use proxies  \n- Bash Recovery: how it recovers from CLI errors (primary signal for tool use)  \n- Tool Hallucination: does it call tools that don't exist  \n  \nBelow we break down how Kimi K3 scored across the 5 signals, drawn from tasks submitted by a global community of users.  \n  \nCongrats [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) on another big milestone!\n\n![Tweet Image](https://pbs.twimg.com/media/HNr8zgWaEAADQ0J.jpg)\n\n💬34🔄37❤️403👀37061📊83",
+      "tags": [
+        "Kimi K3",
+        "Agent Arena",
+        "排名第四"
+      ],
+      "score": 85,
+      "summary": "Kimi K3在Agent Arena排名第四，匹配Claude Opus 4.8和GPT-5.6 Sol。",
+      "fetched_at": "2026-07-21T03:01:04.433585+08:00"
+    },
+    {
+      "title": "这样就能直接调用三个模型生成结果。",
+      "link": "https://x.com/vista8/status/2079260094508720333",
+      "published": "2026-07-21T01:40:11+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "这样就能直接调用三个模型生成结果。\n\n![Tweet Image](https://pbs.twimg.com/media/HNsEBgvWUAAoj9q.jpg)\n\n💬0🔄0❤️1👀538",
+      "tags": [
+        "多模型调用"
+      ],
+      "score": 50,
+      "summary": "用户展示直接调用三个模型生成结果的方法。",
+      "fetched_at": "2026-07-21T03:01:04.433588+08:00"
+    },
+    {
+      "title": "集中在Codex中用各种模型，开源地址\n\nhttps://t.co/FT6937EA9D",
+      "link": "https://x.com/vista8/status/2079256497838604566",
+      "published": "2026-07-21T01:25:54+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "集中在Codex中用各种模型，开源地址  \n  \n[github.com/joeseesun/qiao…](https://github.com/joeseesun/qiaomu-model-cli)\n\n💬0🔄0❤️1👀244",
+      "tags": [
+        "Codex",
+        "多模型",
+        "开源"
+      ],
+      "score": 55,
+      "summary": "用户开源在Codex中调用多种模型的工具。",
+      "fetched_at": "2026-07-21T03:01:04.433591+08:00"
+    },
+    {
+      "title": "一句话调用Grok、Kimi、Claude，把三个模型塞到Codex\n\n写了个Skill，只需说用什么模型做什么事情。\n\n自动调用本机Cli 执行，获得结果给Codex，完全合规。\n\n好处是充分不同模...",
+      "link": "https://x.com/vista8/status/2079256252979515827",
+      "published": "2026-07-21T01:24:56+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "一句话调用Grok、Kimi、Claude，把三个模型塞到Codex  \n  \n写了个Skill，只需说用什么模型做什么事情。  \n  \n自动调用本机Cli 执行，获得结果给Codex，完全合规。  \n  \n好处是充分不同模型优势。比如K3 前端，Grok4.5的搜索，Claude Opus 4.8 /Fable 跟GPT讨论定方案等。  \n  \nSkill 安装指令  \nnpx skills add joeseesun/qiaomu-model-cli  \n  \n开源地址见评论\n\n![Tweet Image](https://pbs.twimg.com/media/HNr_-PIXYAEDhEB.jpg)\n\n💬6🔄1❤️9👀1279📊9",
+      "tags": [
+        "Codex",
+        "Skill",
+        "多模型"
+      ],
+      "score": 60,
+      "summary": "用户编写Skill实现一句话调用Grok、Kimi、Claude三个模型。",
+      "fetched_at": "2026-07-21T03:01:04.433593+08:00"
+    },
+    {
+      "title": "开源首先解决的是信任问题，其次是流量。\n\n能不能赚钱取决于这东西有没有价值，是不是开源是其次的。",
+      "link": "https://x.com/dotey/status/2079253422348419078",
+      "published": "2026-07-21T01:13:41+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "开源首先解决的是信任问题，其次是流量。  \n  \n能不能赚钱取决于这东西有没有价值，是不是开源是其次的。\n\n💬6🔄1❤️11👀3666📊8",
+      "tags": [
+        "开源",
+        "信任",
+        "流量"
+      ],
+      "score": 50,
+      "summary": "宝玉评论开源解决信任和流量问题，但赚钱取决于价值。",
+      "fetched_at": "2026-07-21T03:01:04.433596+08:00"
+    },
+    {
+      "title": "Java News Roundup: Value Objects, WildFly 41, TornadoVM, LangChain4j, Oracle AI Agent Studio",
+      "link": "https://www.infoq.com/news/2026/07/java-news-roundup-jul13-2026/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-21T02:45:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/java-news-roundup-jul13-2026/en/headerimage/java-news-roundup-image-1784573126569.jpg)\n\nThis week's Java roundup for July 13th, 2026, features news highlighting: a reintroduction of Value Objects (Preview); the GA release of WildFly 41; the July 2026 edition of Open Liberty 26.0.0.7; point releases of TornadoVM, Apache TomEE, Java Operator SDK and LangChain4j; a maintenance release of Micronaut; a new extension, Quarkus Shim; and a new Oracle AI Agent Studio for Fusion Applications.\n\n*By Michael Redlich*",
+      "tags": [
+        "Java",
+        "Value Objects",
+        "Oracle AI Agent"
+      ],
+      "score": 70,
+      "summary": "Java新闻汇总：Value Objects预览、WildFly 41发布、Oracle AI Agent Studio。",
+      "fetched_at": "2026-07-21T03:01:04.433598+08:00"
     }
   ]
 }
