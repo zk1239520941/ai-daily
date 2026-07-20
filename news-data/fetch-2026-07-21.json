@@ -1,0 +1,772 @@
+{
+  "meta": {
+    "date": "2026-07-21"
+  },
+  "entries": [
+    {
+      "title": "The three ways AI unlocks transformation in Retail, Travel, and Consumer Goods",
+      "link": "https://www.databricks.com/blog/three-ways-ai-unlocks-transformation-retail-travel-and-consumer-goods",
+      "published": "2026-07-20T23:01:00+08:00",
+      "source": "Databricks",
+      "content": "It is 5:45 on a Friday morning, and a store manager is standing in the back office...",
+      "tags": [
+        "AI零售",
+        "Databricks",
+        "行业报告"
+      ],
+      "score": 70,
+      "summary": "Databricks博客探讨AI在零售、旅游和消费品行业的三种转型方式。",
+      "fetched_at": "2026-07-21T00:41:01.275948+08:00"
+    },
+    {
+      "title": "Accelerating automotive innovation with C4A-metal and Panasonic Automotive vSkipGen",
+      "link": "https://cloud.google.com/blog/topics/partners/panasonic-automotive-vskipgen-runs-on-axion-based-c4a-metal/",
+      "published": "2026-07-21T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "As the automotive landscape accelerates toward software-defined vehicles, Cockpit Domain Controllers (CDCs) are becoming the core of next-generation in-cabin experiences. The ability to rapidly develop, test, and validate CDC software in a flexible, hardware-independent environment is critical for innovation and time-to-market. However, physical hardware constraints and the requirement for high-performance graphics present significant challenges for global development teams. \n\nPanasonic Automotive’s vSkipGen™ addresses these challenges as a next-generation CDC virtualization platform, now validated on Google Cloud’s C4A-metal, our Axion bare-metal offering. By integrating Panasonic Automotive’s advanced Unified HMI™ remote GPU offload technology with support for Android Automotive OS (AAOS) and Android SDV, vSkipGen delivers a robust, cloud-native solution for cockpit software development and validation — empowering teams to innovate without hardware limitations.\n\nAt Google Cloud, we provide workload-optimized infrastructure to help ensure the right resources for every task. Similar to the entire [Axion virtual machine family](https://cloud.google.com/products/axion?e=48754805&hl=en), C4A-metal instances are built on Google Cloud’s custom Arm-based Axion architecture. C4A-metal offers 96 vCPUs, two DDR5 memory configurations (384GB and 768GB), and up to 100Gbps of networking bandwidth. It also provides full support for [Google Cloud Hyperdisk](https://docs.cloud.google.com/compute/docs/disks/hyperdisks), including Balanced, Extreme, Throughput, and ML types. And like the rest of the bare metal portfolio, C4A-metal is powered by [Titanium](https://cloud.google.com/titanium), a key component for multi-tier offloads and security that is foundational to our infrastructure. \n\n### **High performance for demanding workloads**\n\nC4A-metal is particularly well-suited for complex tasks such as creating digital twins of vehicle cockpits where performance must accurately mirror real-world behavior. Traditionally, the transition to software-defined vehicles has relied on expensive and scarce physical prototypes; C4A-metal overcomes this by offering the high performance and hardware-level access of bare metal with the scalability of the cloud. \n\nPanasonic Automotive leverages C4A-metal to bypass traditional hardware bottlenecks, enabling their teams to execute complex virtualization tasks and accelerate the development of next-generation cockpit software.\n\n\"Google Cloud’s Axion Bare Metal has been a game-changer for our vSkipGen™ platform. By providing scalable, high-performance Arm-based infrastructure, C4A-metal allows our teams to develop and test production-intent software in the cloud with behavior that closely matches target automotive hardware. This cloud-to-car bit parity reduces dependence on costly physical prototypes, improves validation efficiency, increases test coverage and accelerates time-to-market for next-generation cockpit platforms.” - Andrew Poliak, CTO, Panasonic Automotive Systems America.\n\nBy leveraging vSkipGen and Unified HMI on C4A-metal, automotive manufacturers can now build, test, and validate full AAOS stacks in a hardware-independent, cloud-native environment, moving from physical dependency to scalable digital twins.\n\n![1](https://storage.googleapis.com/gweb-cloudblog-publish/images/1_rib6Qrb.max-1000x1000.png)\n\nFigure 1: Unified HMI solution overview\n\n### **How vSkipGen works: Virtualizing the cockpit with Cuttlefish**\n\nPanasonic Automotive’s vSkipGen acts as a digital twin for physical CDC hardware. To provide a hardware-agnostic environment for Android virtual machines, vSkipGen uses components of Android Cuttlefish. At its core, vSkipGen leverages a cloud-optimized Virtual Machine Monitor (VMM) built on crosvm (the open-source, security-focused VMM originally developed for Chrome OS) which utilizes Linux KVM (Kernel-based Virtual Machine) for hardware-assisted virtualization. The VMM backend is implemented in Rust for enhanced security, scalability, and performance. By running the full stack on C4A-metal (see Figure 2), Panasonic lets developers boot a full AAOS image in the cloud, which behaves exactly like the software running in a physical vehicle.\n\nThe platform virtualizes all essential peripherals, such as the audio, GPU, sensors, cameras, Controller Area Network (CAN), Bluetooth, and Wi-Fi, using the [VirtIO](https://docs.kernel.org/driver-api/virtio/virtio.html) standard. This VirtIO-native approach allows developers to interact with the virtual devices exactly as they would with the physical hardware. Furthermore, vSkipGen seamlessly connects with automotive simulators and software-in-the-loop (SiL) environments for comprehensive scenario and edge-case validation, enabling teams to conduct software validation and run automated test suites without needing early access to physical prototypes.\n\n![2](https://storage.googleapis.com/gweb-cloudblog-publish/images/2_kUn1gPH.max-1000x1000.png)\n\nFigure 2: vSkipGen Cockpit virtualization architecture\n\n![3](https://storage.googleapis.com/gweb-cloudblog-publish/images/3_fb7zIDL.max-1000x1000.png)\n\nFigure 3: Remote GPU rendering flow\n\n### **Accelerating graphics on the go with Unified HMI**\n\nHigh-performance graphics is central to the modern driving experience, but rendering it in a virtual environment can be challenging. Panasonic’s Unified HMI solves this by decoupling HMI rendering from specific hardware. A lightweight Unified HMI component operates outside the VM to offload OpenGL ES commands (the specific data being rendered) from the Cuttlefish instance to GPU-equipped compute resources on Google Cloud, which handle the workloads with hardware acceleration. The rendered UI is then streamed to any standard browser using low-latency [WebRTC](https://webrtc.org/). This helps ensure that global development teams can experience high-fidelity visuals in real time, regardless of their location.\n\nUnified HMI establishes a unified virtual display layer across multipleElectronic Control Units (ECUs) and virtual machines, allowing applications to render to different displays from anywhere within the system.\n\n### **Benefits for software-defined vehicle development**\n\nWith C4A-metal and Panasonic Automotive’s vSkipGen, manufacturers building software-defined vehicles can: \n\n* Build and validate AAOS-based software in the cloud using Cuttlefish before physical hardware is available\n* Use industry-standard VirtIO to emulate critical CDC devices for robust, production-grade validation\n* Stream interactive cockpit experiences to any browser to support distributed engineering teams\n* Run multiple isolated CDC instances in parallel to support large-scale automated testing and CI/CD pipelines\n* Reduce cost and environmental impact by minimizing the need for expensive physical hardware prototypes, supporting sustainable development practices\n* Enjoy a future-ready architecture built on open standards, crosvm, and Rust for enhanced security, performance, and long-term adaptability\n\n### **Get started**\n\nC4A-metal is generally available worldwide; please refer to the [public documentation](https://docs.cloud.google.com/compute/docs/instances/bare-metal-instances#c4a-metal) for additional information. Panasonic Automotive’s vSkipGen with Unified HMI for Google Cloud will soon be available for evaluation access. To explore how these solutions can help you speed up cockpit software development, contact the team at [vSkipGenSupport@panasonicautomotive.com](mailto:vSkipGenSupport@panasonicautomotive.com). \n\n---\n\n**Disclaimer***All trademarks, tradenames, and service marks used herein are the property of their respective owners.*",
+      "tags": [
+        "C4A-metal",
+        "Panasonic vSkipGen",
+        "汽车虚拟化"
+      ],
+      "score": 70,
+      "summary": "Google Cloud宣布Panasonic Automotive vSkipGen在C4A-metal上验证，加速汽车软件开发。",
+      "fetched_at": "2026-07-21T00:41:01.275956+08:00"
+    },
+    {
+      "title": "Making highly available, multi-region Cloud Run services just got easier",
+      "link": "https://cloud.google.com/blog/products/serverless/cloud-run-multi-region-services-enhanced-for-high-availability/",
+      "published": "2026-07-21T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Application downtime for mission-critical services can directly impact your reputation and bottom line. To avoid that, you need to be able to deploy regionally resilient workloads that detect and automatically recover from failures. But setting up multi-region, highly available deployments often involves complex configurations, and responding to incidents or outages is usually a manual process. \n\n[**Multi-region services** on Cloud Run](https://docs.cloud.google.com/run/docs/multiple-regions) provide a one-command approach to deploying the same service configuration across multiple regions. When deployed with a global external application load balancer, you can serve traffic from different regions.\n\nNow, we’ve made it easier to detect regional service disruptions and automatically fail over to a healthy region within seconds with new capabilities:\n\n1. **Readiness probes** provide instance-level health checks for your Cloud Run service to determine exactly when your containers are ready to serve traffic. You can also use these probes to monitor how many healthy or unhealthy instances exist for your service in each region.\n2. **Service health** aggregates instance-level health checks from readiness probes to calculate the health of your service in each region. This aggregate health is exposed via serverless network endpoint groups (NEGs) in each region. When your service is connected to a global application load balancer, traffic automatically fails away from regions with unhealthy services. Service health can be used with both single and multi-region services.\n\nLet’s take a closer look at some scenarios where these new capabilities can come in handy.\n\n### **Use cases**\n\nTo make your Cloud Run applications highly available, it is essential to minimize the downtime for each incident. In high availability scenarios, readiness probes can help you detect regional service failures and automatically fail over, minimizing service degradation or disruptions. \n\nTo achieve automated failover, one key thing to consider is whether you plan to support application traffic from the public internet or from within your private network (VPC).\n\n* **Public internet applications**: When you have a public-facing website or API, configure Cloud Run with a global external application load balancer for automatic detection and failover capabilities.\n* **Private network applications**: When you have private applications with internal traffic, configure Cloud Run with a cross-regional internal application load balancer for automatic detection and failover capabilities.\n\n### **Design Considerations**\n\nCloud Run’s new service health excels at quickly detecting and recovering outages in active-active configurations, where two or more regions are actively configured to serve traffic. Some things to consider when designing your multi-region setup:\n\n* **Single points of failure**: As you design your application, ensure that each layer of your application, including your database layer, has regional redundancies to avoid any single points of failure. For three-tiered applications on Cloud Run, consider setting up your web tier and application tier with distinct multi-region architectures to handle public internet and private networking respectively.\n* **Data replication**: When replicating data across regions and evaluating your recovery point objective (RPO), consider whether you require zero data loss. Cloud Run service health works best with read- and write-heavy applications that actively synchronize data across regions.\n* **Data residency**: Google Cloud offers several multi-region database configurations with managed multi-region solutions including [Firestore](https://docs.cloud.google.com/firestore/native/docs/locations#location-mr), [Spanner](https://docs.cloud.google.com/spanner/docs/instance-configurations#multi-region-configurations), [Cloud Storage](https://docs.cloud.google.com/storage/docs/locations#considerations), and [Cloud SQL](https://docs.cloud.google.com/sql/docs/postgres/locations#location-mr). These all work great for multi-region architectures on Cloud Run that have strict data sovereignty requirements.\n\n### **Get started**\n\nCloud Run’s enhanced multi-region high availability services are currently available in all Cloud Run regions at no additional cost. You only pay for the standard CPU and memory required to run the readiness probes. To learn more, check out our [documentation](https://docs.cloud.google.com/run/docs/tutorials/configure-service-health).",
+      "tags": [
+        "Cloud Run",
+        "多区域服务",
+        "高可用"
+      ],
+      "score": 70,
+      "summary": "Google Cloud Run推出多区域服务增强功能，支持自动故障切换。",
+      "fetched_at": "2026-07-21T00:41:01.275960+08:00"
+    },
+    {
+      "title": "Introducing Cosmos 3 Edge",
+      "link": "https://huggingface.co/blog/nvidia/cosmos3edge",
+      "published": "2026-07-20T23:58:51+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "Cosmos 3 Edge",
+        "NVIDIA",
+        "世界模型"
+      ],
+      "score": 90,
+      "summary": "NVIDIA发布开源世界模型Cosmos 3 Edge，4B参数，可运行于边缘设备。",
+      "fetched_at": "2026-07-21T00:41:01.275964+08:00"
+    },
+    {
+      "title": "$100 million for open source: A milestone built by the community",
+      "link": "https://github.blog/open-source/maintainers/100-million-for-open-source-a-milestone-built-by-the-community/",
+      "published": "2026-07-21T00:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "We launched GitHub Sponsors in 2019 with a simple belief: the people who build and maintain open source software deserve to be supported for their work. Since then, tens of thousands of sponsors—individuals and organizations alike—have turned that belief into action.\n\nWe’re proud to announce that more than $100 million has been invested in open source maintainers and projects through GitHub Sponsors. This milestone belongs to the developers, organizations, and maintainers who have invested in a more sustainable open source ecosystem, and it signals that the way we value open source is changing.\n\n## How we got here\n\nGitHub Sponsors started with individuals. We wanted to make it possible for any developer to directly support the maintainers they depend on. In 2023, we made organization-funded sponsorships generally available and saw organizations like Shopify step up to fund their dependencies at scale. The program expanded to 103 regions, partnered with Patreon, and introduced tools like bulk sponsorships and invoice payments to make it easy to participate.\n\nThe result: a global funding network that supports over 70,000 maintainers and organizations, and includes more than 280,000 sponsors spanning individual developers to Fortune 500 companies.\n\nThe pace is accelerating, too. The first $10 million took nearly two years. The most recent $10 million took just five months.\n\n## The people behind the number\n\nWhile $100 million is a meaningful number, the real measure of impact is what it’s made possible for real people.\n\n> GitHub Sponsors changed how I think about open source. It gave me a direct, sustainable way to fund the time it takes to build and maintain projects, instead of treating it like side work. That has let me invest more consistently in the projects and build with a much longer-term view. Thanks to GitHub Sponsors, I am able to give back to our community, build a business, and actually make a difference in OSS.\n>\n> Kelvin Tegelaar, Maintainer, Lime Networks\n\n> Shopify invests in open source because our platform, our merchants, and our engineering culture all depend on a healthy open source ecosystem. GitHub Sponsors gives us a direct way to support the maintainers and projects that move the industry forward, from foundational technologies to smaller tools that make developers’ daily work better. For us, sponsorship is both practical and values-driven: it helps sustain the software we rely on while strengthening our connection to the people building it.\n>\n> Shopify\n\n> As strong advocates of open source software, Mercedes-Benz recognizes the incredible contributions made by developers and maintainers worldwide. Through GitHub Sponsors, we aim to support and empower these dedicated individuals and projects that drive innovation, collaboration, and the advancement of open source. By providing financial assistance to these projects, we hope to enable them to dedicate more time and resources to their impactful work, thereby making open source more sustainable and contributing to the overall health and longevity of the projects. We extend our deep gratitude to all the participants and celebrate their dedication. Together, we can continue to foster a vibrant and sustainable open source ecosystem that benefits our teams, developers and users alike.\n>\n> Dr. Wolfgang Gehring, OSPO Lead & FOSS Ambassador, Mercedes-Benz Tech Innovation GmbH\n\n> GitHub Sponsors has meant many things for me and my open source. First, it showed me people’s appreciation and motivated me. Then it showed me I could and should figure out how to do more open source. And then, for the past years, it has also allowed me to sub-sponsor many of the open source tools that power mine, to share that appreciation and support.\n>\n> Sebastián Ramírez, tiangolo\n\n> My projects wouldn’t be what they are today without GitHub Sponsors. Sponsorships allowed me to quit my job and work on them full time. GitHub Sponsors opened my eyes to the opportunities available for passionate people working on projects that people care about.\n>\n> Caleb Porzio, Livewire & Alpine.js\n\nOpen source careers shouldn’t depend on geography or circumstance. They should depend on the value of the work. Increasingly, the community is making that possible.\n\n## What we’ve learned\n\nBuilding GitHub Sponsors over the past seven years has taught us a few things:\n\n**Organizations move the needle**. In 2022, nearly 40% of sponsorship funding came from organizations, with each organization-funded sponsorship worth an average of nearly 15x more than the average individual sponsorship. As more companies recognize their dependence on open source, this share continues to grow.\n\n**Reducing friction matters**. Every time we’ve made it easier to sponsor (e.g. adding invoice payments, expanding regions, enabling bulk sponsorships) we’ve seen a corresponding increase in funding. The demand to support open source is there. We aim to make that easy to do.\n\n## What’s next\n\nThis milestone proves that when the community shows up for open source, the impact is real. But the work isn’t done. The open source funding gap is still enormous, many critical projects remain underfunded, and maintainer burnout continues to be one of the biggest risks to the software supply chain. This $100 million is proof that the community can change how open source is sustained, one sponsorship at a time.\n\nThe best way to keep this momentum going? Start sponsoring the projects you depend on or encourage your organization to do the same.\n\n## How you can get involved\n\nBehind the scenes, maintainers are working daily to make open source better for all of us. If you or your organization depend on open source — and you almost certainly do — there’s no better time to invest in the people who make it possible.\n\nVisit the [Sponsors Explore page](https://github.com/sponsors/explore) to discover which maintainers you depend on and start supporting them today. If you’re a maintainer and haven’t set up your Sponsors profile yet, visit [github.com/sponsors](https://github.com/sponsors) to get started.\n\nThank you to every sponsor and every maintainer who has been part of this $100 million journey. This is what happens when a community decides that open source is worth investing in. We can’t wait to see where it goes from here.\n\nThe post [$100 million for open source: A milestone built by the community](https://github.blog/open-source/maintainers/100-million-for-open-source-a-milestone-built-by-the-community/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub Sponsors",
+        "开源资助",
+        "1亿美元"
+      ],
+      "score": 70,
+      "summary": "GitHub Sponsors宣布已向开源维护者投资超过1亿美元。",
+      "fetched_at": "2026-07-21T00:41:01.275966+08:00"
+    },
+    {
+      "title": "正式开源！美团 LongCat-2.0 同步开放国产卡推理代码",
+      "link": "https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "**本周，美团万亿参数大模型 LongCat-2.0 正式开源！**\n\n[HuggingFace](https://huggingface.co/meituan-longcat/LongCat-2.0) | [GitHub](https://github.com/meituan-longcat/LongCat-2.0) | [ModelScope](https://www.modelscope.cn/collections/meituan-longcat/LongCat-20)\n\n作为业界首个在五万卡国产算力集群上完成推理的万亿参数模型，LongCat-2.0 已全面开源。**针对显存与带宽受限的国产算力芯片，我们在模型架构、芯片适配到部署策略上进行了深度协同优化，让万亿参数模型在存量卡上同样跑得稳、跑得快。** 我们希望以真实 Agentic Coding 任务中的稳定表现为依托，通过开源将模型能力与推理优化成果完整开放，盘活更多存量国产算力，释放国产算力生态的长期价值。\n\n美团 LongCat-2.0 总参数 1.6T，平均激活约 48B，为真实的 Agentic Coding 任务而生，架构上创新性引入 LongCat 稀疏注意力和 N-gram Embedding，提升长上下文处理效率与 Token 级表示能力的同时，结合动态激活进一步强化了代码理解、生成以及执行的表现。\n\n## 01 模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理\n\n面对显存、带宽和互联的多重限制，LongCat-2.0 结合国产芯片特性，**从模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理：**\n\n* **模型层面：** Attention 通过 absorb 计算模式、Indexer 与 MLA prolog 并行处理以及 KVP 切分 KV-cache，有效缓解了超长上下文的 I/O 与显存压力。ScMoE 则利用国产芯片的控核能力，让 Dense 与 MoE 分支实现物理核心级并行执行，进一步压缩端到端延迟，实现了百万上下文在国产芯片上的高效推理；\n* **芯片适配层面：** 通过 Super Kernel 减少算子数量以降低启动开销，并以 Weight Prefetch 将 I/O 延迟隐藏在前序计算中；同时基于高速片间互联完成 layer-wise 的 KV-cache 传输，TP/SP/KVP 均在 scale-up 互联域内完成，在受限的显存和带宽条件下将硬件利用率最大化；\n* **部署策略层面：** 采用 PD 分离部署兼顾 TTFT 与 TPOT：Prefill 端通过缩小 Expert-Parallel 域与序列并行分担长序列计算压力，Decode 端以 KV-cache 切分与高并行度降低单卡显存占用，配合异步化 Expert-Parallel Load Balancing 解决大 EP 度下的负载不均。上述并行方案均已适配 constrained decoding、multi-step scheduling 和 MTP 等推理优化特性，实现了万亿参数模型在国产算力上的稳定服务。\n\nLongCat-2.0 验证了国产芯片承载复杂大模型任务的成熟能力，并希望通过开源为行业提供一条可复现的技术路径，推动存量算力在真实场景中的应用价值。\n\n## 02 模型全面升级，会执行、会推理、懂交互\n\nLongCat-2.0 沿用了 LongCat-Flash 的整体设计，并围绕 LongCat-2.0 在长上下文、代码任务和智能体场景中的进一步升级，做了三项关键优化：\n\n### 2.1 LongCat 稀疏注意力机制，提升上下文处理效率\n\n面向智能体任务中的长输入场景，LongCat-2.0 引入 LongCat 稀疏注意力机制（LSA），通过流感知索引、跨层索引和层级化索引三项策略减少碎片化访存和重复索引计算，在保持模型质量的前提下，加速百万级长上下文的训练与推理。\n\n![](https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png)\n\n### 2.2 引入 N-gram Embedding，提升参数利用效率\n\nLongCat-2.0 在 MoE 专家之外引入 N-gram Embedding 作为新的参数扩展路径。在 MoE 稀疏度已接近 97% 的情况下，将 135B 参数投入 N-gram Embedding 的收益远超继续扩充专家。该模块占比控制在总参数 10% 以内，兼顾了参数收益与结构稳定性。\n\n![](https://p1.meituan.net/meituantechblog/84d46b968d89efb8fd1bb66d3005680c29580.png)\n\n### 2.3 通过 MOPD 架构在国产算力集群上无缝融合，让模型会执行、会推理、懂交互\n\n后训练阶段，LongCat-2.0 采用多教师在线蒸馏，将专家分为 Agent、推理和交互三类，分别聚焦自主执行、自适应推理和安全对齐等核心能力。最终通过 MOPD 架构在国产算力集群上无缝融合，使模型兼具深度推理、自主执行与精准交互的综合表现。\n\n![](https://p0.meituan.net/meituantechblog/7e5f64947ed21d4b1c24d3e94d855844154812.png)\n\n## 03 开源开放\n\nLongCat-2.0 的开源，是一次技术路径的公开，也是一次生态邀约。\n\n本次开源同步提供 BF16、FP8 以及 INT8 等多精度版本，全面覆盖不同算力平台的部署需求。同时，我们深度拥抱开源社区，将针对国产算力极致优化的推理成果同步开源。这意味着，即使手上没有最新算力，也能基于现有硬件将 LongCat-2.0 稳定跑起来。\n\n我们希望通过这套开箱即用的推理栈，让更多的国产卡包括老卡，都能流畅部署万亿大模型推理服务，在真实生产力场景发挥更大价值。\n\n### 🚀 开源链接\n\n**Tech Blog：** <https://longcat.ai/blog/longcat-2.0/>\n\n**Model Weights：**\n\n* HuggingFace: <https://huggingface.co/meituan-longcat/LongCat-2.0>\n* GitHub: <https://github.com/meituan-longcat/LongCat-2.0>\n* ModelScope: <https://www.modelscope.cn/collections/meituan-longcat/LongCat-20>\n\n**Inference Code:**\n\n* GPU: <https://github.com/sgl-project/sglang/pull/30042>\n* NPU: <https://github.com/meituan-longcat/SGLang-FluentLLM/tree/npu>\n\n**API Platform：**\n\n* <https://longcat.chat/platform/product>",
+      "tags": [
+        "LongCat-2.0",
+        "美团",
+        "万亿参数开源"
+      ],
+      "score": 95,
+      "summary": "美团正式开源万亿参数大模型LongCat-2.0，同步开放国产卡推理代码。",
+      "image_url": "https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png",
+      "fetched_at": "2026-07-21T00:41:01.275969+08:00"
+    },
+    {
+      "title": "直播回放·含 ACL&apos;26 杰出论文 | 美团 AI 顶会论文 32 篇精讲",
+      "link": "https://tech.meituan.com/2026/07/11/2026-meituan-32-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "🏆 近日，ACL 2026 杰出论文奖在圣地亚哥揭晓，全球仅 18 篇入选，美团履约技术团队的《GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR》上榜啦，一键直达视频回放👉🏻 [小红书](https://www.xiaohongshu.com/discovery/item/6a3b54740000000006030031?source=webshare&xhsshare=pc_web&xsec_token=ABh2ziW0cX7XYIsQ1VpYHUl5aZzXTt2-o0yyamYge4z-4=&xsec_source=pc_share) | [B站](https://www.bilibili.com/video/BV1v7jc6BENd/?spm_id_from=333.1387.upload.video_card.click&vd_source=8dac43659650af56650d7a9bc5f083d3)\n\n![图2](https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png)\n\n如果你正在关注 AI 前沿，这篇内容值得收藏。\n\n2026 年，美团技术团队数十篇论文被 ACL、SIGIR、ICML、KDD 等顶会收录。我们精选 32 篇，进行了 5 大专场直播。\n\n内容涵盖了大模型推理、智能体记忆与自进化、代码智能、多模态交互、超高清视频生成、本地生活搜索等方向——既有底层能力的突破，也有贴近生活服务的落地探索。\n\n如果你错过了直播，或者想再看一遍👇 五场回放都在这里啦，找到你感兴趣的议题，随时开始。\n\n特别感谢所有讲师与筹备团队的倾力支持！也感谢每一位关注美团技术成长的你！❤️\n\n## 专场一：ACL'26 综合专场\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b729b0de8000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783330950&share_id=e51dd478f4b34506aed7a49ca74b9113) ｜ [B站](https://space.bilibili.com/18937923/lists/8321546?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&sn=77c72b469a871b499a46fe06be73225f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/fe16b3191f6276cdf692c76bb2b04308356559.png)\n\n## 专场二：ACL'26 履约团队前沿技术专场\n\n**出品人｜** Jichong Gao 美团高级技术专家、Jun Xu 美团高级技术专家\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72d90de6000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783331038&share_id=ca3358c821584b34a480efd8350ed035) ｜ [B站](https://space.bilibili.com/18937923/lists/8370607?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782810&idx=2&sn=aeb92a7c0c0bcf2befa7a201f1d4ece9&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/87835a72dafb62eb0c93a17fdab075ca674240.png)\n\n## 专场三：搜推 ASX 团队专场\n\n**出品人｜** Guojun Yin 美团研究员\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72f50e97000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783478239&share_id=196398bf22d742bda21e83ee981f6615) ｜ [B站](https://space.bilibili.com/18937923/lists/8427999?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782896&idx=2&sn=ce2cb30b2d2b0e9ea12d03561124dd05&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/6498214ebe581bcea5541619c1cd145d359417.png)\n\n## 专场四：ICML'26 通用 Agent 前沿技术专场\n\n**出品人｜** Qi Gu 美团研究员\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8471639?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/247700c227d0b4f4c7f88bb02adecdbe344171.png)\n\n## 专场五：ICML'26 综合专场\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8485771?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/cbd47f8df818779808c61e614f6087f7351215.png)",
+      "tags": [
+        "ACL'26",
+        "美团",
+        "32篇论文"
+      ],
+      "score": 75,
+      "summary": "美团技术团队精选32篇顶会论文进行5场直播精讲，含ACL'26杰出论文。",
+      "image_url": "https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png",
+      "fetched_at": "2026-07-21T00:41:01.275972+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "美团",
+        "万亿参数"
+      ],
+      "score": 95,
+      "summary": "美团发布万亿参数大模型LongCat-2.0，在五万卡国产算力集群上完成训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-21T00:41:01.275974+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "美团",
+        "搜索推荐",
+        "Agent论文"
+      ],
+      "score": 75,
+      "summary": "美团搜推ASX团队分享6篇顶会论文，涵盖强化学习、奖励建模等方向。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-21T00:41:01.275977+08:00"
+    },
+    {
+      "title": "ACL 2026 精选论文分享：美团履约团队前沿技术专场",
+      "link": "https://tech.meituan.com/2026/06/11/ACL-2026-Agent.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "## 团队介绍\n\n美团业务研发平台/履约 AI 算法团队，聚焦构建大模型为基础的 Agent 技术体系，用 AI 赋能美团履约业务， 构建 Agent 自进化的运营系统。在大模型 CPT、Post-training、Agentic RL 以及多模态理解等核心前沿方向持续深耕，已在 ACL、EMNLP 等AI领域的国际顶会发表数十篇高质量研究成果。本文分享了美团履约团队专场聚焦 ACL 会议论文以及前沿技术实践。\n\n## 01 GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR\n\n**低秩高效：冻结残差分量，高效稠密计算**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2601.09361)\n\n![](https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png)\n\n**论文简介**：基于可验证奖励的强化学习（RLVR）是提升大规模推理模型能力的关键范式。与监督微调（SFT）不同，RLVR 展现出截然不同的优化动力学，其对预训练几何结构的保持高度敏感。然而，现有的参数高效方法在这一范式下面临着关键的局限性。一方面，像 PiSSA 和 MiLoRA 这样的低秩适配方法主要面向监督微调设计，未能考虑到 RLVR 独特的优化动力学与几何结构；直接将它们应用于 RLVR 往往会导致谱塌缩和训练不稳定。另一方面，直接去微调那些受 RLVR 青睐的非结构化稀疏参数子空间，又会在现代硬件上遭遇效率瓶颈。\n\n为解决这些挑战，我们提出了 GeoRA（几何感知低秩适配），一种专为 RLVR 定制的低秩适配方法。具体而言，GeoRA 利用了 RL 更新子空间的各向异性与可压缩结构，并通过奇异值分解（SVD）提取其主方向来初始化低秩适配器。在 RLVR 训练期间，残差分量被冻结作为结构锚点。该设计既保留了预训练结构，又实现了高效的稠密计算。在参数规模从 1.5B 到 32B 的 Qwen 和 Llama 模型上的实验表明，GeoRA 在数学、医学和代码等 RLVR 场景中持续优于强有力的低秩基线方法，同时在域外任务上展现出更强的泛化能力和更少的遗忘。\n\n## 02 Efficient Paths and Dense Rewards: Probabilistic Flow Reasoning for Large Language Models\n\n**Infra的引擎是数学：离散推理步骤建模为连续概率流，推动推理过程是逼近目标的“速度向量”**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09260)\n\n![](https://p1.meituan.net/meituantechblog/1437e163c0cfec3bb322c2ebc0704ff6492492.png)\n\n**论文简介**：高质量的思维链（CoT）在激发大语言模型推理能力方面展现出了巨大的潜力 。然而，现有的推理范式通常将推理过程视为不可分割的序列，缺乏量化每一步信息增益的内在机制 。这种细粒度的缺失导致了两个关键瓶颈：一是在缺乏明确引导的情况下，模型容易进行冗余探索，造成推理效率低下；二是由于结果监督信号稀疏或外部验证器成本高昂，导致模型优化困难 。\n\n为解决上述问题，本论文提出了一种名为 CoT-Flow 的全新理论框架，将离散的推理步骤重新概念化为连续的概率流 。受整流流（Rectified Flow）理论的启发，该框架将推理过程建模为将模型的信息状态从初始问题平滑传输到真实答案的连续过程 。在此视角下，每一个推理步骤都被视为一个推动推理过程逼近目标的“速度向量”，以严格量化每一步对生成最终正确答案的瞬时信息增益 。基于这样的量化指标，实现了一种基于对比解码的贪心解码策略，回答长度平均减少 10% ~ 15%，并且在 AIME24 上能够获得高达 15.9% 的准确率提升。同一框架下导出的 RL loss，和 GRPO, VeriFree 等 baseline 相比，在 AIME24, GPQA 等 benchmark 上取得接近或更高的准确率，同时实现 11% ~ 37% 的长度压缩，训练加速 32%。\n\n## 03 UserLM-R1: Modeling Human Reasoning in User Language Models with Multi-Reward Reinforcement Learning\n\n**可以进化的RL环境：像人一样思考的用户模拟器**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.09215)\n\n![](https://p0.meituan.net/meituantechblog/7b56191c592435d903f4775d86c9cf18488821.png)\n\n**论文简介**：用户模拟器是智能体后训练的核心交互环境，理想的用户模拟器应具备跨领域泛化能力，并能主动通过质疑或议价等方式参与协商。然而，现有方法存在两个问题：其一，依赖静态且缺乏上下文感知的用户画像，在面对新场景时需要大量人工重新设计，泛化能力有限；其二，忽视人类的策略性思维，导致智能体易于对用户模拟器进行操控。\n\n为此，我们提出UserLM-R1——一种具备推理能力的新型用户语言模型。具体而言，我们首先构建兼顾静态角色与动态场景目标的综合用户画像，以适应多样化场景；进而提出目标驱动的决策策略，在生成回复前先产生高质量的推理链，并通过监督微调与多奖励强化学习进一步提升推理能力与策略水平。大量实验结果表明，UserLM-R1显著优于各竞争基线方法，在更具挑战性的对抗测试集上尤为突出。\n\n## 04 Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management\n\n**自进化的心脏：基于因果反馈对齐的通用Agent记忆管理系统**\n\n论文下载：[PDF](https://arxiv.org/abs/2601.08435)\n\n![](https://p0.meituan.net/meituantechblog/1c5c09ef9ebab017268bdf9aa478b4ac210795.png)\n\n**论文简介**：有效的内存管理对于大型语言模型代理执行长期任务至关重要。近期研究探索了使用强化学习来开发专门的内存管理器代理。然而，现有方法主要依赖最终任务性能作为主要奖励，这导致奖励稀疏且信用分配无效，无法为单个内存操作提供足够的指导。\n\n为此，我们提出了Fine-Mem，一个专为细粒度反馈对齐设计的统一框架。首先，我们引入了“块级步骤奖励”，通过辅助的特定块问题回答任务提供即时的步骤级监督。其次，我们设计了“基于证据的奖励归因”，通过将信用锚定到关键记忆操作，基于推理中用作证据的特定记忆项，重新分配全局奖励。这些组件共同实现了稳定的策略优化，并将局部记忆操作与记忆的长期效用相统一。在Memalpha和MemoryAgentBench上的实验表明，Fine-Mem在各种子任务中均优于强大的基线模型，取得了更高的成功率。进一步分析揭示了其在不同模型配置和主干网络中的适应性和强大的泛化能力。\n\n## 05 DuplexOmni: Real-Time Listening, Seeing, Thinking, and Speaking for Full-Duplex Interaction\n\n**不止像人：神奇的看、听、说、想、做并行推理全模态大模型**\n\n**论文下载**：[PDF](http://arxiv.org/abs/2606.09186)\n\n![](https://p0.meituan.net/meituantechblog/4780307ea3e0765e53b012b45976b4a8741349.png)\n\n**论文简介**：人类交互本质上是连续、多模态和全双工的。尽管近期通用模型在语音、视觉和文本建模方面取得了实质性进展，但在统一系统中将低延迟实时交互与复杂推理和工具使用相结合仍然具有挑战性。\n\n我们提出了DuplexOmni，一种用于实时多模态全双工交互的方法。DuplexOmni将模型能力划分为交互层和思考层，并通过异步并行协作将它们连接起来。交互层由DuplexOmni模型实现，该模型接收流式音频和视频输入，并实时生成文本和语音响应。思考层作为可插拔的外部模块，提供复杂推理和工具使用功能。为了支持这种交互范式，我们进一步研发了一个Writer-Director数据管道，用于构建连续交互训练数据。实验表明，DuplexOmni在多个公开基准测试上表现出色，并展现出自然的双工交互能力。",
+      "tags": [
+        "ACL'26",
+        "美团履约",
+        "Agent论文"
+      ],
+      "score": 75,
+      "summary": "美团履约团队分享ACL 2026精选论文，包括GeoRA、CoT-Flow等。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ef0321e1c1e32a860c73077fa426d9ad136942.png",
+      "fetched_at": "2026-07-21T00:41:01.275979+08:00"
+    },
+    {
+      "title": "🆕In the Land of AI Agents, the Verifiers Are King\n\nhttps://t.co/XAesWQUMEn\n\n@tariqshaukat, CEO of @...",
+      "link": "https://x.com/aiDotEngineer/status/2079229920849576103",
+      "published": "2026-07-20T23:40:18+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕In the Land of AI Agents, the Verifiers Are King  \n[youtube.com/watch?v=VrpEyg…](https://www.youtube.com/watch?v=VrpEyglYgeU)n  \n  \n[@tariqshaukat](https://x.com/tariqshaukat), CEO of [@SonarSource](https://x.com/SonarSource), takes to the keynote stage to answer [@trq212](https://x.com/trq212)'s challenge of extracting AI utility from slop! Backed by CMU and Sonar productivity studies, he proposes a 3-stage framework  \n  \n- Stage 1: Guide (Providing context and constraints)  \n- Stage 2: Verify (Zero-trust, multi-layered verification)  \n- Stage 3: Solve (Maintenance loops and technical debt control)  \n  \nEchoing [@headinthebox](https://x.com/headinthebox) and [@varun\\_pant\\_](https://x.com/varun_pant_)'s talks - he is keen on systems thinking and code verification as the key to success with AI. When done right, they have been seeing as much as 92% reduction in issues with disciplined verification with an agent centric development cycle (yes, the ACDC). Closing the full loop is not just needed for the software factory, but for AI Engineering to progress from tokenmaxxing to provably useful code.\n\n💬0🔄0❤️1👀315",
+      "tags": [
+        "AI Agent",
+        "验证器",
+        "SonarSource"
+      ],
+      "score": 80,
+      "summary": "SonarSource CEO在AI Engineer大会提出AI Agent验证三阶段框架。",
+      "fetched_at": "2026-07-21T00:41:01.275982+08:00"
+    },
+    {
+      "title": "Well said!",
+      "link": "https://x.com/AravSrinivas/status/2079228415073219063",
+      "published": "2026-07-20T23:34:19+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "Well said!\n\n![Bill Gurley](https://pbs.twimg.com/profile_images/1338587084911767554/Le6JNY5F_normal.jpg)\n\nBill Gurley@bgurley\n\nThe way to think about “open” in software is being a low-cost producer (vs a high margin one). When a company (or 2) achieves record valuations in record time, that rightfully attracts competition (as it should). We need to let the free market work.   \n  \n[wapo.st/4pvR0mJ](https://wapo.st/4pvR0mJ)\n\n[🔗 View Quoted Tweet](https://x.com/bgurley/status/2079202357049790551)\n\n💬6🔄0❤️25👀4514📊6",
+      "tags": [
+        "开源",
+        "低成本",
+        "竞争"
+      ],
+      "score": 60,
+      "summary": "Perplexity CEO转发Bill Gurley关于开源软件低成本竞争的观点。",
+      "fetched_at": "2026-07-21T00:41:01.275984+08:00"
+    },
+    {
+      "title": "苹果已经彻底放弃了传统的“塔式工作站” Mac Pro，转而把高端专业需求全部压在 Mac Studio 这个更小、更便宜、性能接近的机型上。\n\nMac Pro 这个经典产品线正式画上了句号。",
+      "link": "https://x.com/berryxia/status/2079220494126215578",
+      "published": "2026-07-20T23:02:50+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "苹果已经彻底放弃了传统的“塔式工作站” Mac Pro，转而把高端专业需求全部压在 Mac Studio 这个更小、更便宜、性能接近的机型上。  \n  \nMac Pro 这个经典产品线正式画上了句号。\n\n![MacRumors.com](https://pbs.twimg.com/profile_images/1171574992821194752/rVrN8JVA_normal.jpg)\n\nMacRumors.com@MacRumors\n\nApple Shelved Two Mac Pro Models, Including an Intel-Based One [macrumors.com/2026/07/20/app…](https://www.macrumors.com/2026/07/20/apple-shelved-two-mac-pro-models/)\n\n![Tweet Image](https://pbs.twimg.com/media/HNrK5_9acAAaiEZ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/MacRumors/status/2079197278167060511)\n\n💬1🔄0❤️1👀998📊1",
+      "tags": [
+        "Mac Pro",
+        "苹果",
+        "停产"
+      ],
+      "score": 60,
+      "summary": "苹果放弃Mac Pro产品线，将高端需求转向Mac Studio。",
+      "fetched_at": "2026-07-21T00:41:01.275987+08:00"
+    },
+    {
+      "title": "网上太多人评价这个大模型很行，那个大模型不行，其实意义不大。Grok 4.5 的性价比没人觉得不好，Kimi 评价两极分化，主要还是性价比确实一般般。\n\n就像新能源市场，很多车卖那个价钱狗都不看，降价...",
+      "link": "https://x.com/dingyi/status/2079231025755176969",
+      "published": "2026-07-20T23:44:41+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "网上太多人评价这个大模型很行，那个大模型不行，其实意义不大。Grok 4.5 的性价比没人觉得不好，Kimi 评价两极分化，主要还是性价比确实一般般。  \n  \n就像新能源市场，很多车卖那个价钱狗都不看，降价 10 万立马真香抢到爆单，它的缺点都不是缺点了，用户可以自适应受着。\n\n💬0🔄0❤️0👀522",
+      "tags": [
+        "Grok 4.5",
+        "Kimi",
+        "性价比"
+      ],
+      "score": 55,
+      "summary": "个人评论Grok 4.5性价比好，Kimi性价比一般。",
+      "fetched_at": "2026-07-21T00:41:01.275989+08:00"
+    },
+    {
+      "title": "If you hated @deanwball’s post, you will hate this even more.",
+      "link": "https://x.com/GaryMarcus/status/2079232649848406373",
+      "published": "2026-07-20T23:51:08+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "If you hated [@deanwball](https://x.com/deanwball)’s post, you will hate this even more.\n\n![Chubby♨️](https://pbs.twimg.com/profile_images/1728327996375719936/RW7VBJfD_normal.jpg)\n\nChubby♨️@kimmonismus\n\nThe Trump administration is showing signs it could ban cutting-edge Chinese AI models  \n  \nVia Axios  \n  \nThe Trump administration is reportedly reviving efforts to restrict cutting-edge Chinese AI models such as Kimi through Entity List designations, procurement rules, security advisories, liability requirements, and public pressure.  \n  \nMeasures that could amount to a de facto ban without formally outlawing them.\n\n![Tweet Image](https://pbs.twimg.com/media/HNqvR5JXoAALtxu.jpg)![Tweet Image](https://pbs.twimg.com/media/HNqvbiSWAAAHF23.png)\n\n[🔗 View Quoted Tweet](https://x.com/kimmonismus/status/2079167072571978033)\n\n💬0🔄0❤️9👀711📊1",
+      "tags": [
+        "Kimi",
+        "美国禁令",
+        "中国AI"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus转发报道：特朗普政府可能禁止中国先进AI模型如Kimi。",
+      "fetched_at": "2026-07-21T00:41:01.275992+08:00"
+    },
+    {
+      "title": "Spent most yesterday in a jetlagged stupor trying to think about what the US should do about Kimi, m...",
+      "link": "https://x.com/GaryMarcus/status/2079229070915887159",
+      "published": "2026-07-20T23:36:55+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Spent most yesterday in a jetlagged stupor trying to think about what the US should do about Kimi, mostly despairing.  \n  \nI think I finally have an answer; may post in my newsletter later today.\n\n💬6🔄0❤️6👀1350📊6",
+      "tags": [
+        "Kimi",
+        "美国应对",
+        "思考"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus思考美国应如何应对Kimi，计划发布newsletter。",
+      "fetched_at": "2026-07-21T00:41:01.275994+08:00"
+    },
+    {
+      "title": "So i didn’t really know what graph engineering is, and i still don’t really… but it’s basically just...",
+      "link": "https://x.com/hwchase17/status/2079219804951683380",
+      "published": "2026-07-20T23:00:06+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "So i didn’t really know what graph engineering is, and i still don’t really… but it’s basically just langgraph?\n\n![Shann³](https://pbs.twimg.com/profile_images/2018272759122440192/JJPUdPDs_normal.jpg)\n\nShann³@shannholmberg\n\nwhat's the difference between a loop and a graph? (marketing edition)  \n  \nboth are ways to run an agent, the difference is who decides the path, the agent or you.  \n  \na loop still starts with you. you set the goal, the brief, and the bar it has to clear. what the agent owns is the path.  \n  \ntake writing an SEO article: hand it the brief and it drafts, reads the draft back against that brief, rewrites the weak parts, checks again, and keeps circling until it clears the bar. the one thing you did not write is the step-by-step it took to get there.  \n  \na graph is you drawing the steps and the routes between them ahead of time. same article, but now you set the map: research the keyword and the competitors ranking for it. draft from what you find. score that draft against your rubric.  \n  \nif it clears, add the internal links and publish. if it misses, back to the draft. the agent still decides how to handle each step, it just travels the routes you laid down.  \n  \nthe shape of this has a name, a state machine. every node is a state the work can be in, and a check at each one decides where it goes next, forward when it clears or back to an earlier node when it misses.  \n  \nif you have built a workflow in n8n, you have already drawn one. nodes wired together, branches that fire on a condition, a step that loops until it clears, that picture is a graph. an agent graph is the same shape, the nodes hold agents doing the work instead of single api calls.  \n  \nthe way I think about it, a graph is a map of loops and checkpoints. some nodes run once, others are their own loop where the agent works something out, and the checkpoints between them read the result and route the work. you keep laying down nodes and checkpoints until the map reliably gives you the output you want.  \n  \nthe vault accelerator I run at my agency is one of these maps, 3 sessions that hand off in a fixed order:  \n  \n> research session: reads our company brain and past campaign results, pulls in competitor and market context, and builds the cohort we go after  \n> landing page session: takes that research and builds the page from it  \n> content session: uses the research and the page to write the copy, illustrations, and slides for the live sessions we run  \n  \ninside the content session runs a loop, a critic scores each draft against a rubric and sends it back until it clears the bar. that is one node on the map, the checkpoints between the sessions carry the work from one to the next  \n  \na graph earns its extra setup on anything you run every week:  \n  \n> validation gates the work cannot skip  \n> a fixed set of routes the job can take  \n> a clear failure point, you see the exact step something broke on  \n  \na loop on its own is enough for the work you only do once, where you don't know the path yet, let the agent find it. graphs earn their place on the jobs you repeat, the content pipeline, the SEO and AEO funnel step by step, the vault accelerator  \n  \nonce the map works you reuse it, feed it the next cohort and the whole pipeline runs again  \n  \npast the loop, the next thing you design is the map it runs inside.\n\n![Tweet Image](https://pbs.twimg.com/media/HNpvTpXbMAAvNka.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/shannholmberg/status/2079096565344739643)\n\n💬14🔄2❤️18👀2203📊12",
+      "tags": [
+        "LangGraph",
+        "Agent图",
+        "状态机"
+      ],
+      "score": 75,
+      "summary": "LangChain创始人讨论Agent中loop与graph的区别，本质是状态机。",
+      "fetched_at": "2026-07-21T00:41:01.275996+08:00"
+    },
+    {
+      "title": "You don’t need more time.\n\nYou need to find where your week is over-programmed and make a few hard c...",
+      "link": "https://x.com/thejustinwelsh/status/2079234992656220513",
+      "published": "2026-07-21T00:00:27+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "You don’t need more time.  \n  \nYou need to find where your week is over-programmed and make a few hard cuts.  \n  \nI put together a free guide with seven places to look, one specific cut for each, three email templates, and a two-minute weekly reset:  \n  \n[justinwelsh.me/guides/free-up…](https://justinwelsh.me/guides/free-up-ten-hours)\n\n💬0🔄1❤️0👀746",
+      "tags": [
+        "时间管理",
+        "指南"
+      ],
+      "score": 50,
+      "summary": "Justin Welsh发布免费时间管理指南，建议减少过度安排。",
+      "fetched_at": "2026-07-21T00:41:01.275999+08:00"
+    },
+    {
+      "title": "I wonder what Bay Area real estate was like when the list price represented what you could actually ...",
+      "link": "https://x.com/venturetwins/status/2079240207694696713",
+      "published": "2026-07-21T00:21:10+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "I wonder what Bay Area real estate was like when the list price represented what you could actually expect to pay for something\n\n💬4🔄0❤️5👀860📊4",
+      "tags": [
+        "湾区房价",
+        "闲聊"
+      ],
+      "score": 40,
+      "summary": "个人感慨湾区房价标价与实际不符。",
+      "fetched_at": "2026-07-21T00:41:01.276001+08:00"
+    },
+    {
+      "title": "Kitty… enjoying your new face? 😼",
+      "link": "https://x.com/Kling_ai/status/2079219783690498225",
+      "published": "2026-07-20T23:00:01+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "Kitty… enjoying your new face? 😼\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079144879003725824/vid/avc1/1080x1920/Sk3vI_S0NQBUH4S_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2079219783690498225/video/1)\n\n💬1🔄0❤️10👀2013📊2",
+      "tags": [
+        "Kling AI",
+        "视频生成",
+        "猫"
+      ],
+      "score": 65,
+      "summary": "Kling AI发布猫咪换脸视频，展示AI视频生成能力。",
+      "fetched_at": "2026-07-21T00:41:01.276004+08:00"
+    },
+    {
+      "title": "We’re making LangSmith Sandboxes available to try for free.\n\nStart today: https://t.co/arJLavvyXM",
+      "link": "https://x.com/LangChain/status/2079220134103638209",
+      "published": "2026-07-20T23:01:24+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We’re making LangSmith Sandboxes available to try for free.  \n  \nStart today: [smith.langchain.com](https://smith.langchain.com/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079187093687836672/vid/avc1/1920x1080/Ffg2ufeQrS3fMltn.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2079220134103638209/video/1)\n\n💬7🔄6❤️32👀2758📊11",
+      "tags": [
+        "LangSmith",
+        "Sandbox",
+        "免费试用"
+      ],
+      "score": 75,
+      "summary": "LangChain宣布LangSmith Sandbox免费试用。",
+      "fetched_at": "2026-07-21T00:41:01.276006+08:00"
+    },
+    {
+      "title": "err did codex stall out at 10M?  or are we due a super big announcement today...",
+      "link": "https://x.com/latentspacepod/status/2079233603134013904",
+      "published": "2026-07-20T23:54:55+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "err did codex stall out at 10M? or are we due a super big announcement today...\n\n![Tweet Image](https://pbs.twimg.com/media/HNrr6JNa4AAeWgY.jpg)![Tweet Image](https://pbs.twimg.com/media/HNrr68_a8AAwRFn.jpg)\n\n💬0🔄0❤️0👀93",
+      "tags": [
+        "Codex",
+        "用户数",
+        "猜测"
+      ],
+      "score": 50,
+      "summary": "猜测Codex用户数停滞在10M，或有重大公告。",
+      "fetched_at": "2026-07-21T00:41:01.276009+08:00"
+    },
+    {
+      "title": "New: Our newly launched Google Workspace connector now supports Multi-Account functionality. You can...",
+      "link": "https://x.com/ManusAI/status/2079219785259155579",
+      "published": "2026-07-20T23:00:01+08:00",
+      "source": "ManusAI(@ManusAI_HQ)",
+      "content": "New: Our newly launched Google Workspace connector now supports Multi-Account functionality. You can now securely link up to 10 different accounts at the same time.  \n  \nOne Manus, multiple workspaces.\n\n![Manus](https://pbs.twimg.com/profile_images/1972973045393592322/e11bi-fE_normal.jpg)\n\nManus@ManusAI\n\nNew: Google Drive connector got upgraded to Google Workspace!   \n  \nNow you can connect Drive, Docs, Sheets, Slides, and Forms, all through a single connector.  \n  \nBefore connecting, control access levels:   \n• Off: Manus can't see it  \n• Read: Manus can search and read, never edit  \n• Full: Manus can read and write  \n  \nYour files, your boundaries.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2074871805798481921/vid/avc1/1280x720/KWVQFy0fvp_1NGhm.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/ManusAI/status/2074871873683243465/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/ManusAI/status/2074871873683243465)\n\n💬5🔄1❤️34👀7261📊7",
+      "tags": [
+        "Manus",
+        "Google Workspace",
+        "多账户"
+      ],
+      "score": 80,
+      "summary": "Manus AI更新Google Workspace连接器，支持最多10个账户。",
+      "fetched_at": "2026-07-21T00:41:01.276011+08:00"
+    },
+    {
+      "title": "𝗛𝗼𝘄 𝗱𝗼 𝘆𝗼𝘂 𝗰𝗼𝗺𝗯𝗶𝗻𝗲 𝗮𝗴𝗲𝗻𝘁 𝗺𝗲𝗺𝗼𝗿𝘆 𝘄𝗶𝘁𝗵 𝘀𝗸𝗶𝗹𝗹𝘀? 𝗧𝗿𝘆 𝗼𝘂𝗿 ...",
+      "link": "https://x.com/milvusio/status/2079227332259373115",
+      "published": "2026-07-20T23:30:00+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "𝗛𝗼𝘄 𝗱𝗼 𝘆𝗼𝘂 𝗰𝗼𝗺𝗯𝗶𝗻𝗲 𝗮𝗴𝗲𝗻𝘁 𝗺𝗲𝗺𝗼𝗿𝘆 𝘄𝗶𝘁𝗵 𝘀𝗸𝗶𝗹𝗹𝘀? 𝗧𝗿𝘆 𝗼𝘂𝗿 𝗼𝗽𝗲𝗻-𝘀𝗼𝘂𝗿𝗰𝗲 𝘁𝗼𝗼𝗹 𝗺𝗲𝗺𝘀𝗲𝗿𝗮𝗰𝗵 𝘁𝗵𝗮𝘁'𝘀 𝘂𝗽𝗱𝗮𝘁𝗲𝗱 𝘁𝗵𝗲 𝗳𝗲𝗮𝘁𝘂𝗿𝗲, 𝗺𝗲𝗺𝗼𝗿𝘆-𝘁𝗼-𝘀𝗸𝗶𝗹𝗹.  \n  \n𝗔𝗴𝗲𝗻𝘁 𝗺𝗲𝗺𝗼𝗿𝘆 𝘁𝗵𝗮𝘁'𝘀 𝗮𝗰𝘁𝘂𝗮𝗹𝗹𝘆 𝘃𝗮𝗹𝘂𝗮𝗯𝗹𝗲 𝗰𝗮𝗽𝘁𝘂𝗿𝗲𝘀 𝘁𝗵𝗿𝗲𝗲 𝘁𝗵𝗶𝗻𝗴𝘀: 𝘄𝗵𝗮𝘁 𝘁𝗵𝗲 𝗮𝗴𝗲𝗻𝘁 𝗸𝗻𝗼𝘄𝘀, 𝘄𝗵𝗮𝘁 𝗶𝘁 𝗵𝗮𝘀 𝗲𝘅𝗽𝗲𝗿𝗶𝗲𝗻𝗰𝗲𝗱, 𝗮𝗻𝗱 𝗵𝗼𝘄 𝗶𝘁 𝗱𝗼𝗲𝘀 𝘁𝗵𝗶𝗻𝗴𝘀.  \n  \nDevelopers used to keep those in three separate systems: knowledge went into RAG, experience piled up in an agent memory layer, and procedures were written down as skill files.  \n  \nBut those memories — debug sessions, API integrations, releases, user corrections — are essentially part of the agent's skills too. Each one carries the scenario, the feedback, and the outcome. Plenty of reusable workflows are already hiding in there.  \n  \n𝗦𝗼 𝘄𝗲 𝗯𝘂𝗶𝗹𝘁 𝗠𝗲𝗺𝗼𝗿𝘆-𝘁𝗼-𝗦𝗸𝗶𝗹𝗹 𝗶𝗻𝘁𝗼 𝗠𝗲𝗺𝗦𝗲𝗮𝗿𝗰𝗵, 𝘁𝗵𝗲 𝗮𝗴𝗲𝗻𝘁 𝗺𝗲𝗺𝗼𝗿𝘆 𝗹𝗶𝗯𝗿𝗮𝗿𝘆 𝘄𝗲 𝗼𝗽𝗲𝗻-𝘀𝗼𝘂𝗿𝗰𝗲𝗱 𝗲𝗮𝗿𝗹𝗶𝗲𝗿 𝘁𝗵𝗶𝘀 𝘆𝗲𝗮𝗿.  \n  \nAn opt-in background pass mines your history for the workflows that keep recurring and are worth capturing, then automatically distills them into candidate skills. If a release workflow keeps showing up, the system recognizes it can be abstracted into a skill and writes it up as a candidate file. When the workflow changes later, the candidate evolves with it.  \n  \n𝗕𝘂𝘁 𝗻𝗼 𝗮𝗴𝗲𝗻𝘁 𝗲𝘃𝗲𝗿 𝗮𝘂𝘁[github.com/zilliztech/mem…](http://github.com/zilliztech/memsearch)𝗱𝗶𝗱𝗮𝘁𝗲 𝘀𝗸𝗶𝗹𝗹. It stays a draft. You review it, edit it, confirm it, and then install it into the skill directory of Claude Code, Codex, or other agents you use.  \n  \n𝗠𝗲𝗺𝗦𝗲𝗮𝗿𝗰𝗵 𝗶𝘀 𝗼𝗽𝗲𝗻 𝘀𝗼𝘂𝗿𝗰𝗲. 𝗜𝗳 𝘆𝗼𝘂'𝗿𝗲 𝗮𝗹𝘀𝗼 𝘄𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗻 𝗮𝗴𝗲𝗻𝘁 𝗺𝗲𝗺𝗼𝗿𝘆, 𝗹𝗼𝗻𝗴-𝘁𝗲𝗿𝗺 𝗰𝗼𝗻𝘁𝗲𝘅𝘁, 𝗼𝗿 𝗰𝗿𝗼𝘀𝘀-𝗽𝗹𝗮𝘁𝗳𝗼𝗿𝗺 𝗔𝗜 𝘄𝗼𝗿𝗸𝗳𝗹𝗼𝘄𝘀, 𝗴𝗶𝘃𝗲 𝗶𝘁 𝗮 𝘁𝗿𝘆: <https://t.co/eGAavvLonV>\n\n![Tweet Image](https://pbs.twimg.com/media/HNq8lWMaUAAgljW.jpg)\n\n💬0🔄0❤️0👀65",
+      "tags": [
+        "MemSearch",
+        "Agent记忆",
+        "技能提取"
+      ],
+      "score": 80,
+      "summary": "Milvus开源MemSearch，新增记忆到技能功能，自动提取Agent工作流。",
+      "fetched_at": "2026-07-21T00:41:01.276014+08:00"
+    },
+    {
+      "title": "As always, Cosmos 3 Edge is fully open. This includes model weights, post-training recipes and code....",
+      "link": "https://x.com/NVIDIAAI/status/2079236218638770641",
+      "published": "2026-07-21T00:05:19+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "As always, Cosmos 3 Edge is fully open. This includes model weights, post-training recipes and code.  \n  \nAvailable now on [@huggingface](https://x.com/huggingface) 🤗   \n[nvda.ws/4bMtY59](https://nvda.ws/4bMtY59)y\n\n💬0🔄2❤️8👀896📊2",
+      "tags": [
+        "Cosmos 3 Edge",
+        "开源",
+        "NVIDIA"
+      ],
+      "score": 90,
+      "summary": "NVIDIA AI宣布Cosmos 3 Edge完全开源，包含权重、训练代码。",
+      "fetched_at": "2026-07-21T00:41:01.276016+08:00"
+    },
+    {
+      "title": "Among open models of a similar size, Cosmos 3 Edge ranks #1 on VANTAGE-Bench for vision analytics.",
+      "link": "https://x.com/NVIDIAAI/status/2079236213110723048",
+      "published": "2026-07-21T00:05:18+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Among open models of a similar size, Cosmos 3 Edge ranks #1 on VANTAGE-Bench for vision analytics.\n\n![Tweet Image](https://pbs.twimg.com/media/HNruURSWEAAOzHX.jpg)\n\n💬1🔄0❤️5👀568📊1",
+      "tags": [
+        "Cosmos 3 Edge",
+        "VANTAGE-Bench",
+        "第一"
+      ],
+      "score": 85,
+      "summary": "NVIDIA AI称Cosmos 3 Edge在VANTAGE-Bench视觉分析中排名第一。",
+      "fetched_at": "2026-07-21T00:41:01.276018+08:00"
+    },
+    {
+      "title": "Introducing Cosmos 3 Edge: our open frontier world model built to run on-device.\n\nCosmos 3 Edge help...",
+      "link": "https://x.com/NVIDIAAI/status/2079236204743053592",
+      "published": "2026-07-21T00:05:16+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Introducing Cosmos 3 Edge: our open frontier world model built to run on-device.  \n  \nCosmos 3 Edge helps robots learn and act, autonomous vehicles understand road scenes and predict intent, and vision AI agents reason across live video for smart infrastructure.  \n  \nWith 4B parameters and a 2B Nemotron-based reasoner, you can run it on DGX Spark, NVIDIA Jetson, and more.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079236168617467905/vid/avc1/1280x720/gG9jYIHEK_kL5oW2.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/NVIDIAAI/status/2079236204743053592/video/1)\n\n💬4🔄4❤️30👀1702📊9",
+      "tags": [
+        "Cosmos 3 Edge",
+        "世界模型",
+        "边缘设备"
+      ],
+      "score": 90,
+      "summary": "NVIDIA AI发布Cosmos 3 Edge，4B参数世界模型，可运行于边缘设备。",
+      "fetched_at": "2026-07-21T00:41:01.276021+08:00"
+    },
+    {
+      "title": "How do you run vector search at 20B+ vectors across 5 regions for 38 teams?\n\n@HubSpot built VAST - V...",
+      "link": "https://x.com/qdrant_engine/status/2079235007667929176",
+      "published": "2026-07-21T00:00:30+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "How do you run vector search at 20B+ vectors across 5 regions for 38 teams?  \n  \n[@HubSpot](https://x.com/HubSpot) built VAST - Vector as a Service, entirely on Qdrant. 150 clusters, 2K+ pods, 9.5B vectors in a single collection, 5K writes/sec with spikes to 100K.  \n  \nthe real story: they outgrew Helm fast. Helm can't call the Qdrant API to transfer shards, maintain replication factor, or handle state-aware scaling. cluster creation took hours.  \n  \nso they built a Kubernetes operator specifically for Qdrant. shard management, replication, lifecycle automation, all handled automatically. cluster spin-up: hours → minutes.  \n  \nresult: 65% reduction in resource skew on a 3B+ point BM42 sparse vector collection.  \n  \nfull talk here:  \n[youtube.com/watch?v=46aQff…](http://youtube.com/watch?v=46aQff4pxRE)  \n  \nthanks Oleg Tereshin and Xin Liu from [@HubSpot](https://x.com/HubSpot) team, for sharing at Vector Space Day SF 🙌\n\n![Tweet Image](https://pbs.twimg.com/media/HNrtMm1bUAEfpjv.jpg)\n\n💬1🔄0❤️3👀117📊2",
+      "tags": [
+        "Qdrant",
+        "HubSpot",
+        "向量搜索"
+      ],
+      "score": 75,
+      "summary": "HubSpot基于Qdrant构建VAST向量搜索服务，管理200亿+向量。",
+      "fetched_at": "2026-07-21T00:41:01.276023+08:00"
+    },
+    {
+      "title": "congrats to @Haystack_AI on 3.0 🎉. If you're building with Haystack 3.0, Qdrant integrates natively...",
+      "link": "https://x.com/qdrant_engine/status/2079228673727803501",
+      "published": "2026-07-20T23:35:20+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "congrats to [@Haystack\\_AI](https://x.com/Haystack_AI) on 3.0 🎉. If you're building with Haystack 3.0, Qdrant integrates natively with dense, sparse, and hybrid retrieval. the Haystack team put together a great movie recommendation agent demo showing exactly this pattern with Qdrant:[qdrant.tech/course/essenti…](http://qdrant.tech/course/essentials/day-7/haystack/)8\n\n![Haystack](https://pbs.twimg.com/profile_images/2002051027088887808/Dsqn_9wS_normal.jpg)\n\nHaystack@Haystack\\_AI\n\nHaystack 3.0 is here 🚀  \n  \nAgents move to the center of the framework:  \n🤖 Pre-built agents: deep research + advanced RAG, ready out of the box  \n 🪝 Hooks to control the agent loop  \n 🧰 First-class skills with progressive disclosure  \n 📉 A leaner core: we deleted 3 lines for every 1 we added  \n  \nAnd this is just Day 1. New drops every day this week at 3 PM CEST.  \nFull announceme[haystack.deepset.ai/blog/haystack-…](https://haystack.deepset.ai/blog/haystack-3-release)p7lEnp\n\n![Tweet Image](https://pbs.twimg.com/media/HNrE4vCWUAEs-tW.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Haystack_AI/status/2079191015743771108)\n\n💬0🔄1❤️6👀198📊1",
+      "tags": [
+        "Haystack 3.0",
+        "Qdrant",
+        "集成"
+      ],
+      "score": 70,
+      "summary": "Qdrant祝贺Haystack 3.0发布，并展示原生集成。",
+      "fetched_at": "2026-07-21T00:41:01.276026+08:00"
+    },
+    {
+      "title": "I was asked, how do I manage stress from economic shocks, geopolitical shocks, and all the things th...",
+      "link": "https://x.com/RayDalio/status/2079222656298107089",
+      "published": "2026-07-20T23:11:26+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "I was asked, how do I manage stress from economic shocks, geopolitical shocks, and all the things that are going on?  \n  \nWhile my typical approaches like \"pain plus reflection equals progress\" and meditation are highly effective, I’ll pass along another principle that I think is the best advice: The Serenity Prayer.  \n  \nI view this almost like a game. These macro things are happening, but there are also a lot of joyous things and choices that exist with us. It’s really up to me to navigate them.  \n  \nWhat can I control that's really important to me? What can't I control? I can't live forever, so I’m not going to get stressed out about that. But on the other hand, I can control certain things. Having that equanimity allows me to approach life in a way where I don't get hijacked.  \n  \nIt is logical, real, and practical. Look around you. You’ve got wonderful things and things you aspire to. Don't get so attached. If you navigate your life well, you're going to be fine.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079221570128515072/vid/avc1/2160x3840/vaJ9zVonslKQul1f.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/RayDalio/status/2079222656298107089/video/1)\n\n💬21🔄31❤️220👀40578📊49",
+      "tags": [
+        "压力管理",
+        "人生建议"
+      ],
+      "score": 40,
+      "summary": "Ray Dalio分享压力管理建议：使用宁静祷文。",
+      "fetched_at": "2026-07-21T00:41:01.276028+08:00"
+    },
+    {
+      "title": "Prompt 1:\nMasterpiece, futuristic explorer wearing an oversized orange expedition jacket and mirrore...",
+      "link": "https://x.com/recraftai/status/2079218805176234149",
+      "published": "2026-07-20T22:56:07+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Prompt 1:  \nMasterpiece, futuristic explorer wearing an oversized orange expedition jacket and mirrored visor reflecting distant landscapes, standing beneath a deep blue twilight sky, cinematic outdoor portrait, luxury adventure aesthetic, advanced survival gear, soft atmospheric lighting, contemporary sci-fi fashion photography, dramatic contrast between cool blue environment and warm orange clothing, visual confidence, hyper realistic materials, premium editorial style, atmospheric depth, museum-quality composition, cinematic color grading, award-winning image, ultra realistic.  \n  \nPrompt 2:  \nMasterpiece, delicate green plant growing inside transparent crystal cubes arranged in geometric space, iridescent rainbow light refracting through glass surfaces, deep black background, futuristic botanical architecture, holographic reflections, luxury design photography, dreamlike technological nature, hyper detailed transparent materials, cinematic illumination, elegant minimalism, optical diffraction effects, atmospheric depth, contemporary gallery installation, visual poetry, premium editorial aesthetic, refined composition, ultra realistic, cinematic color grading, award-winning image.  \n  \nPrompt 3:  \nMasterpiece, futuristic deep-sea diver surrounded by streams of rising bubbles, polished copper diving helmet reflecting underwater light, dark aquatic environment fading into shadow, cinematic underwater photography, warm metallic highlights contrasting against cool blue depths, atmospheric immersion, retro-futuristic exploration aesthetic, luxury sci-fi imagery, hyper realistic materials, dreamlike underwater atmosphere, visual tension, soft volumetric lighting, museum-quality composition, cinematic color grading, award-winning image, ultra realistic.  \n  \nPrompt 4:  \nMasterpiece, futuristic fashion portrait of an androgynous model wearing a sculpted liquid-chrome face mask and an oversized white faux-fur coat, pale platinum hair, glossy porcelain skin, deep black background, luxury couture aesthetic, dramatic studio lighting, metallic reflections dancing across the mask, ultra-premium fashion campaign, cinematic contrast, editorial photography for a futuristic luxury house, rich textures, hyper detailed fur fibers, elegant composition, high-fashion surrealism, polished silver surfaces, visual sophistication, ultra realistic, cinematic color grading, award-winning image.\n\n💬0🔄0❤️0👀162",
+      "tags": [
+        "Recraft V4.1",
+        "图像生成",
+        "提示词"
+      ],
+      "score": 65,
+      "summary": "Recraft展示V4.1模型生成的4张图像及其提示词。",
+      "fetched_at": "2026-07-21T00:41:01.276031+08:00"
+    },
+    {
+      "title": "Recraft V4.1 never stops surprising.\n\nFrom cinematic fashion portraits and crystal-clear product vis...",
+      "link": "https://x.com/recraftai/status/2079218737316520375",
+      "published": "2026-07-20T22:55:51+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Recraft V4.1 never stops surprising.  \n  \nFrom cinematic fashion portraits and crystal-clear product visuals to atmospheric underwater scenes and futuristic concepts — all created with a single model.  \n  \nPrompts ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HNreZL5WIAAgi1P.jpg)![Tweet Image](https://pbs.twimg.com/media/HNreZKmWAAAD8iS.jpg)![Tweet Image](https://pbs.twimg.com/media/HNreZKkWIAAG0dB.jpg)![Tweet Image](https://pbs.twimg.com/media/HNreZLzXwAAP6cl.jpg)\n\n💬2🔄0❤️7👀426📊3",
+      "tags": [
+        "Recraft V4.1",
+        "图像生成",
+        "展示"
+      ],
+      "score": 65,
+      "summary": "Recraft展示V4.1模型生成的多样化图像。",
+      "fetched_at": "2026-07-21T00:41:01.276033+08:00"
+    },
+    {
+      "title": "When you're done, it drives back to its dock, recharges, refills, and empties its waste into the hom...",
+      "link": "https://x.com/rowancheung/status/2079230669268635926",
+      "published": "2026-07-20T23:43:16+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "When you're done, it drives back to its dock, recharges, refills, and empties its waste into the home’s plumbing  \n  \nIf the dock has no drainage, an extending arm pumps the waste into a regular toilet instead\n\n![Tweet Image](https://pbs.twimg.com/media/HNrpRmzaIAAOesQ.jpg)\n\n💬1🔄0❤️2👀2269📊1",
+      "tags": [
+        "机器人马桶",
+        "自主",
+        "中国公司"
+      ],
+      "score": 60,
+      "summary": "中国公司展示自主机器人马桶，可自动返回底座充电排污。",
+      "fetched_at": "2026-07-21T00:41:01.276035+08:00"
+    },
+    {
+      "title": "It uses the same technology found in advanced robot vacuums -- lidar, ultrasonic sensors, and cliff ...",
+      "link": "https://x.com/rowancheung/status/2079230652311110101",
+      "published": "2026-07-20T23:43:12+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "It uses the same technology found in advanced robot vacuums -- lidar, ultrasonic sensors, and cliff detection  \n  \nThis helps the toilet plan safe routes and steer around obstacles and stairs\n\n![Tweet Image](https://pbs.twimg.com/media/HNrpQhEaMAANQv6.jpg)\n\n💬2🔄0❤️4👀2467📊2",
+      "tags": [
+        "机器人马桶",
+        "技术",
+        "传感器"
+      ],
+      "score": 60,
+      "summary": "机器人马桶使用激光雷达、超声波传感器和悬崖检测技术。",
+      "fetched_at": "2026-07-21T00:41:01.276038+08:00"
+    },
+    {
+      "title": "A Chinese company just revealed this autonomous robot toilet\n\nIt literally drives itself to you when...",
+      "link": "https://x.com/rowancheung/status/2079230632534933961",
+      "published": "2026-07-20T23:43:07+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "A Chinese company just revealed this autonomous robot toilet  \n  \nIt literally drives itself to you when you summon it by voice or remote  \n  \nWhat a time to be alive\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079230603460059136/vid/avc1/720x1280/x6woqfz-hJOPDOuz.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/rowancheung/status/2079230632534933961/video/1)\n\n💬16🔄0❤️26👀7678📊18",
+      "tags": [
+        "机器人马桶",
+        "自主",
+        "中国公司"
+      ],
+      "score": 60,
+      "summary": "中国公司发布自主机器人马桶，可通过语音或遥控召唤。",
+      "fetched_at": "2026-07-21T00:41:01.276040+08:00"
+    },
+    {
+      "title": "If Chinese AI gets added to the entity list it's going to be hard for any American corporation to us...",
+      "link": "https://x.com/Suhail/status/2079237905290293334",
+      "published": "2026-07-21T00:12:01+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "If Chinese AI gets added to the entity list it's going to be hard for any American corporation to use anything remotely tied to these openweight models. This means total market capture by the few American labs.  \n  \nIf you own intelligence, you can tax humanity.\n\n![Tweet Image](https://pbs.twimg.com/media/HNrvad3akAAejVZ.jpg)\n\n💬0🔄0❤️1👀519",
+      "tags": [
+        "中国AI",
+        "实体清单",
+        "市场垄断"
+      ],
+      "score": 70,
+      "summary": "Suhail评论若中国AI被列入实体清单，将导致美国实验室垄断。",
+      "fetched_at": "2026-07-21T00:41:01.276043+08:00"
+    },
+    {
+      "title": "Detailed release notes for 1.11.0 can be found at https://t.co/8TlrZxZDdf\nI really look forward to t...",
+      "link": "https://x.com/HiTw93/status/2079216911683043462",
+      "published": "2026-07-20T22:48:36+08:00",
+      "source": "Tw93(@HiTw93)",
+      "content": "Detailed release notes for 1.11.0 can be found at [mole.fit/releases](https://mole.fit/releases)  \nI really look forward to this update helping you with every aspect of Mac optimization and maintenance.\n\n![Tweet Image](https://pbs.twimg.com/media/HNrcrLxaUAAxZaj.jpg)\n\n💬0🔄0❤️1👀975",
+      "tags": [
+        "Mole",
+        "Mac优化",
+        "更新"
+      ],
+      "score": 50,
+      "summary": "Mole 1.11.0发布，用于Mac优化和维护。",
+      "fetched_at": "2026-07-21T00:41:01.276045+08:00"
+    },
+    {
+      "title": "YC and Together AI are partnering to bring the first dedicated YC GPU cluster online, giving YC star...",
+      "link": "https://x.com/ycombinator/status/2079233101453296021",
+      "published": "2026-07-20T23:52:56+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "YC and Together AI are partnering to bring the first dedicated YC GPU cluster online, giving YC startups easier access to the compute they need to build and scale.  \n  \nIn this Founder Fireside, YC's [@agupta](https://x.com/agupta) and [@togethercompute](https://x.com/togethercompute) co-founder & CEO [@vipulved](https://x.com/vipulved) dig into why compute has become one of the biggest bottlenecks for modern AI companies, how Together AI is helping more than 8,000 customers—from early-stage research teams to companies like Cursor, Cognition, and ElevenLabs—train, fine-tune, and serve AI models, and why flexible access to GPUs is becoming a competitive advantage for the next generation of founders.  \n  \n00:00 — Partnering on a GPU Cluster  \n00:26 — What Together AI Does  \n01:22 — From Research Labs to Cursor: Together's 8,000 Customers  \n01:58 — The Landscape of AI Native Startups  \n03:24 — How Building an AI Company Has Changed Since 2018  \n04:56 — Why the Cost of Compute Keeps Going Up  \n05:29 — YC as the Biggest Seed Funder of Research Companies  \n08:47 — Flash Attention, Mamba, and the Science of Production AI  \n10:43 — Compute Planning Advice for Early Stage Companies  \n12:39 — When Your Compute Bill Is Bigger Than Your Cash Balance  \n13:31 — How Companies Are Using the Cluster Today  \n14:24 — What's Next\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079229712308793344/vid/avc1/3840x2160/SnM2e4Kr8ebubabc.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079233101453296021/video/1)\n\n💬1🔄0❤️4👀2419📊1",
+      "tags": [
+        "YC",
+        "Together AI",
+        "GPU集群"
+      ],
+      "score": 85,
+      "summary": "YC与Together AI合作推出首个YC专用GPU集群，为初创公司提供算力。",
+      "fetched_at": "2026-07-21T00:41:01.276047+08:00"
+    },
+    {
+      "title": "Tune in: https://t.co/c11N5dSuTM",
+      "link": "https://x.com/ycombinator/status/2079233104024342951",
+      "published": "2026-07-20T23:52:56+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Tune in: [youtu.be/tOhkv307Pm0](https://youtu.be/tOhkv307Pm0)\n\n![Tweet Image](https://pbs.twimg.com/media/HNro5K5a0AAYUee.png)\n\n💬0🔄0❤️0👀264",
+      "tags": [
+        "YC",
+        "Together AI",
+        "视频"
+      ],
+      "score": 60,
+      "summary": "YC发布与Together AI合作的创始人炉边谈话视频。",
+      "fetched_at": "2026-07-21T00:41:01.276050+08:00"
+    },
+    {
+      "title": "@AndrewCurran_ 🤬😡",
+      "link": "https://x.com/ylecun/status/2079228439182156094",
+      "published": "2026-07-20T23:34:24+08:00",
+      "source": "Yann LeCun(@ylecun)",
+      "content": "[@AndrewCurran\\_](https://x.com/AndrewCurran_) 🤬😡\n\n💬5🔄6❤️150👀7636📊16",
+      "tags": [
+        "Yann LeCun",
+        "情绪"
+      ],
+      "score": 40,
+      "summary": "Yann LeCun对某推文回复愤怒表情。",
+      "fetched_at": "2026-07-21T00:41:01.276052+08:00"
+    },
+    {
+      "title": "There are basically two kinds of companies now. The ones built before coding agents showed up, scram...",
+      "link": "https://x.com/zarazhangrui/status/2079225776545968166",
+      "published": "2026-07-20T23:23:49+08:00",
+      "source": "Zara Zhang(@zarazhangrui)",
+      "content": "There are basically two kinds of companies now. The ones built before coding agents showed up, scrambling to retrofit. And the ones founded after.   \n  \nThe second type is different from day one:  \n- Teams under ten people because they actually don't need more  \n- Work organized by projects, not departments  \n- Each person closes their own loop  \n- Almost no internal meetings\n\n💬9🔄5❤️48👀2543📊18",
+      "tags": [
+        "AI公司",
+        "编码Agent",
+        "组织变革"
+      ],
+      "score": 70,
+      "summary": "Zara Zhang观察：编码Agent出现后，新公司组织方式不同，团队小、无部门。",
+      "fetched_at": "2026-07-21T00:41:01.276055+08:00"
+    },
+    {
+      "title": "A pattern I keep seeing: the most AI-driven employees pay for the best tools out of pocket. Which me...",
+      "link": "https://x.com/zarazhangrui/status/2079217955737637352",
+      "published": "2026-07-20T22:52:45+08:00",
+      "source": "Zara Zhang(@zarazhangrui)",
+      "content": "A pattern I keep seeing: the most AI-driven employees pay for the best tools out of pocket. Which means if the company doesn't provide them, your best people are piping company data into external tools on personal cards\n\n💬32🔄9❤️119👀8208📊52",
+      "tags": [
+        "AI工具",
+        "员工自费",
+        "数据安全"
+      ],
+      "score": 70,
+      "summary": "Zara Zhang指出最AI驱动的员工自费购买工具，导致公司数据外流。",
+      "fetched_at": "2026-07-21T00:41:01.276057+08:00"
+    },
+    {
+      "title": "The 7 hires a hardware startup needs to get right:\n\n1. Manufacturing: the talent is in bottling plan...",
+      "link": "https://x.com/a16z/status/2079233870302724147",
+      "published": "2026-07-20T23:55:59+08:00",
+      "source": "a16z(@a16z)",
+      "content": "The 7 hires a hardware startup needs to get right:  \n  \n1. Manufacturing: the talent is in bottling plants and syringe factories, seek analogs instead of job titles  \n  \n2. Deployments: hire when you can see ten deployments coming, not after one goes badly  \n  \n3. Supply Chain: the supplier that stops your line is the tier-five one nobody checked  \n  \n4. Finance: your first hire is a controller, not a CFO  \n  \n5. Sales: founders own it until they understand why it works  \n  \n6. Policy: technical enough to understand the product, DC enough to know how to present it  \n  \n7. Marketing: lead with the hard parts, honesty filters out the hires you don't want  \n  \n\"Get these hires wrong and a remarkable product stalls out. Get them right and the rest of the company compounds.\"  \n  \nFull piece from [@zabie\\_e](https://x.com/zabie_e): [a16z.news/p/the-7-hires-…](https://www.a16z.news/p/the-7-hires-a-hardware-startup-needs)\n\n![Zabie Elmgren](https://pbs.twimg.com/profile_images/1430763091264868354/z9XqusT7_normal.jpg)\n\nZabie Elmgren@zabie\\_e\n\n[x.com/i/article/2079…](http://x.com/i/article/2079208845059211264)\n\n[🔗 View Quoted Tweet](https://x.com/zabie_e/status/2079211366775197787)\n\n💬0🔄0❤️21👀7362📊3",
+      "tags": [
+        "硬件初创",
+        "招聘",
+        "a16z"
+      ],
+      "score": 70,
+      "summary": "a16z列出硬件初创公司需要招聘的7个关键职位。",
+      "fetched_at": "2026-07-21T00:41:01.276060+08:00"
+    },
+    {
+      "title": "We're excited to lead Neo's Seed round.\n\nAI agents now run directly on the endpoint with the same pr...",
+      "link": "https://x.com/a16z/status/2079222562807005369",
+      "published": "2026-07-20T23:11:03+08:00",
+      "source": "a16z(@a16z)",
+      "content": "We're excited to lead Neo's Seed round.  \n  \nAI agents now run directly on the endpoint with the same privileges as the user they serve.  \n  \nEvery control built on the old assumption (EDR, DLP, Zero Trust) breaks the moment it can no longer tell whether an action came from the person at the keyboard or the agent acting in their name.  \n  \n[@neo\\_ai\\_security](https://x.com/neo_ai_security) is pioneering agentic software control for a world where AI agents act continuously, often outnumbering the humans they serve.  \n  \nNeo's founders are as strong as they come in security. Nick Warner scaled SentinelOne through its IPO. Shlomi Salem ran threat research there for 11+ years. Eran Shirazi previously co-founded and ran engineering at EasySend.  \n  \nCongrats, Nick, Shlomi, Eran, and the Neo team.  \n  \nBy [@zanelackey](https://x.com/zanelackey) and Joel de la Garza\n\n![Tweet Image](https://pbs.twimg.com/media/HNrJqfXWEAI71bC.jpg)\n\n![Neo Security](https://pbs.twimg.com/profile_images/2078168516747055104/MlL9gVRN_normal.jpg)\n\nNeo Security@neo\\_ai\\_security\n\nHi, we’re Neo.  \n  \n[wsj.com/pro/cybersecur…](https://www.wsj.com/pro/cybersecurity/neo-raises-100-million-from-stealth-as-investors-back-battle-tested-cyber-execs-07e2780e?st=SCpEE5&reflink=desktopwebshare_permalink)\n\n[🔗 View Quoted Tweet](https://x.com/neo_ai_security/status/2079175785999712579)\n\n💬7🔄5❤️86👀27883📊14",
+      "tags": [
+        "Neo",
+        "a16z",
+        "Agent安全"
+      ],
+      "score": 85,
+      "summary": "a16z领投Neo种子轮，Neo提供AI Agent端点安全控制。",
+      "fetched_at": "2026-07-21T00:41:01.276062+08:00"
+    },
+    {
+      "title": "The daily routine.",
+      "link": "https://x.com/a16z/status/2079218955236041113",
+      "published": "2026-07-20T22:56:43+08:00",
+      "source": "a16z(@a16z)",
+      "content": "The daily routine.\n\n![Tweet Image](https://pbs.twimg.com/media/HNrensDbgAE5TJF.jpg)\n\n![levent](https://pbs.twimg.com/profile_images/1824948681877155840/VqVHY3gF_normal.jpg)\n\nlevent@\\_\\_alpoge\\_\\_\n\nhello there the jacobian conjecture is false thanx to my close friend akhil for asking about it and my other close friend fable for working during the world cup final  \n  \n((1+xy)^3 z + y^2 (1+xy) (4+3xy), y + 3 x (1+xy)^2 z + 3 x y^2 (4+3xy), 2 x - 3 x^2 y - x^3 z): \\C^3\\to \\C^3, has jacobian determinant -2, and sends (0, 0, -1/4), (1, -3/2, 13/2), and (-1, 3/2, 13/2) to (-1/4, 0, 0)\n\n[🔗 View Quoted Tweet](https://x.com/__alpoge__/status/2079028340955197566)\n\n💬2🔄1❤️98👀16098📊9",
+      "tags": [
+        "数学",
+        "雅可比猜想"
+      ],
+      "score": 40,
+      "summary": "a16z转发关于雅可比猜想反例的数学内容。",
+      "fetched_at": "2026-07-21T00:41:01.276082+08:00"
+    },
+    {
+      "title": "Watch the speedrun of a second example using a real engineering task: https://t.co/IJpOwvCbbm",
+      "link": "https://x.com/arena/status/2079220274038464878",
+      "published": "2026-07-20T23:01:58+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Watch the speedrun of a second example using a real engineering task: [youtu.be/niAql9hW664](https://youtu.be/niAql9hW664)\n\n💬0🔄1❤️5👀3129📊1",
+      "tags": [
+        "AI编程",
+        "成本降低",
+        "lmarena"
+      ],
+      "score": 70,
+      "summary": "lmarena展示AI编程任务成本从$8000降至$20，时间从2周降至45分钟。",
+      "fetched_at": "2026-07-21T00:41:01.276086+08:00"
+    },
+    {
+      "title": "STEP-CHANGE ECONOMICS: Six months ago, he spent $8,000 and 2 weeks of a senior engineer's time. Now ...",
+      "link": "https://x.com/arena/status/2079220272608247855",
+      "published": "2026-07-20T23:01:57+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "STEP-CHANGE ECONOMICS: Six months ago, he spent $8,000 and 2 weeks of a senior engineer's time. Now the same job takes $20 and 45 minutes.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079217995315019776/vid/avc1/1920x1080/PxqHsMSaGg1elgx_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/arena/status/2079220272608247855/video/1)\n\n💬7🔄4❤️35👀9608📊12",
+      "tags": [
+        "AI编程",
+        "成本降低",
+        "lmarena"
+      ],
+      "score": 70,
+      "summary": "lmarena展示AI编程任务成本从$8000降至$20，时间从2周降至45分钟。",
+      "fetched_at": "2026-07-21T00:41:01.276088+08:00"
+    },
+    {
+      "title": "Github开源库：https://t.co/EVAB5t1DU7",
+      "link": "https://x.com/vista8/status/2079226292344352778",
+      "published": "2026-07-20T23:25:52+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Github开源库：[github.com/ltaoo/wx\\_chann…](https://github.com/ltaoo/wx_channels_download)\n\n💬0🔄1❤️2👀367📊1",
+      "tags": [
+        "微信视频号",
+        "下载器",
+        "开源"
+      ],
+      "score": 50,
+      "summary": "分享一个GitHub开源库，用于下载微信视频号视频。",
+      "fetched_at": "2026-07-21T00:41:01.276090+08:00"
+    },
+    {
+      "title": "这个Github库真不错，任何视频号视频，在微信内置浏览器打开。\n\n点击转发-&gt;复制URL，粘贴址就能下载。\n\n人人都可以配置一个自己专属的视频号下载器，用Cloudflare 部署就行。",
+      "link": "https://x.com/vista8/status/2079226176531267750",
+      "published": "2026-07-20T23:25:25+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "这个Github库真不错，任何视频号视频，在微信内置浏览器打开。  \n  \n点击转发->复制URL，粘贴址就能下载。  \n  \n人人都可以配置一个自己专属的视频号下载器，用Cloudflare 部署就行。\n\n![Tweet Image](https://pbs.twimg.com/media/HNrkq6oWMAAMcmM.jpg)\n\n💬3🔄4❤️8👀679📊6",
+      "tags": [
+        "微信视频号",
+        "下载器",
+        "教程"
+      ],
+      "score": 50,
+      "summary": "介绍一个GitHub库，可配置个人视频号下载器。",
+      "fetched_at": "2026-07-21T00:41:01.276093+08:00"
+    },
+    {
+      "title": "FDE 和以前的consulting 什么区别？",
+      "link": "https://x.com/dotey/status/2079224106860400832",
+      "published": "2026-07-20T23:17:11+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "FDE 和以前的consulting 什么区别？\n\n![tao](https://pbs.twimg.com/profile_images/1945677442934607872/gzx7Y0i4_normal.jpg)\n\ntao@apexlearn\\_org\n\n和以前的consulting 没有本质区别： consultants 赚的比软件license fee少多了，但是别忘了沉淀下来的不光是后来被集成进软件的best practices 还有consultants 本身的能力和行业洞见。FDE是整个工业界少有的凭技术就能直接和业务接轨的机会，可以看作是技术背景的人加持一个MBA的捷径，而且门槛比成为顾问低多了。\n\n[🔗 View Quoted Tweet](https://x.com/apexlearn_org/status/2079211035676790952)\n\n💬5🔄0❤️3👀4822📊4",
+      "tags": [
+        "FDE",
+        "咨询",
+        "区别"
+      ],
+      "score": 55,
+      "summary": "讨论FDE（全栈工程师）与咨询的区别。",
+      "fetched_at": "2026-07-21T00:41:01.276095+08:00"
+    },
+    {
+      "title": "可能很多人不知道，其实现在做代码Review最牛逼的，是ChatGPT网页版上的GPT-5.6 Sol Pro模式。\n其Review水平和深度，让Fable 5都甘拜下风。。。",
+      "link": "https://x.com/Khazix0918/status/2079221234718630178",
+      "published": "2026-07-20T23:05:47+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "可能很多人不知道，其实现在做代码Review最牛逼的，是ChatGPT网页版上的GPT-5.6 Sol Pro模式。  \n其Review水平和深度，让Fable 5都甘拜下风。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HNrgMLUbsAAOume.jpg)\n\n💬43🔄6❤️127👀19311📊78",
+      "tags": [
+        "GPT-5.6",
+        "代码Review",
+        "Fable 5"
+      ],
+      "score": 65,
+      "summary": "个人评价ChatGPT GPT-5.6 Sol Pro模式代码Review能力最强。",
+      "fetched_at": "2026-07-21T00:41:01.276098+08:00"
+    }
+  ]
+}
