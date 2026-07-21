@@ -1,0 +1,1180 @@
+{
+  "meta": {
+    "date": "2026-07-22"
+  },
+  "entries": [
+    {
+      "title": "Exploring self-distilled reasoning for supervised fine-tuning with Amazon Nova",
+      "link": "https://aws.amazon.com/blogs/machine-learning/exploring-self-distilled-reasoning-for-supervised-fine-tuning-with-amazon-nova/",
+      "published": "2026-07-22T00:23:12+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "When you fine-tune a model using Supervised Fine-Tuning (SFT), creating high-quality chain-of-thought (CoT) reasoning traces for your training data is often impractical and can be prohibitively expensive. As a result, you might choose to skip reasoning during SFT and train with only inputs and outputs. However, reasoning is a key capability of the [Amazon Nova 2](https://aws.amazon.com/nova/models/) family of models, and it’s been shown to significantly enhance prediction performance in Nova and other frontier models, often with performance gains on hard problems like coding and math. With Amazon Nova 2 customization, you can use the power of thinking models on your specific domains through techniques such as SFT and Reinforcement Fine-Tuning (RFT). For SFT, a key requirement to unlock these gains is the availability of golden CoT traces in the SFT dataset, that is, thinking traces from a strong teacher model that have been further validated and cleaned.\n\nIn this post, we explore an idea for generating thinking tokens for datasets that lack reasoning traces in SFT customization. We first examine the reasoning suppression problem, then introduce Self-Distilled Reasoning (SDR), validate it across three benchmarks, and provide practical recommendations. SDR re-uses the chain of thought from the base Amazon Nova 2 Lite model as a stand-in for non-reasoning datasets. Through our experiments we make a few observations on the impact of introducing SDR, from improving target performance to mitigating [catastrophic forgetting](https://arxiv.org/abs/2501.17161). This is in line with a growing body of work that is discovering the importance of distilling information from a model into itself during training, otherwise known as [self-distillation](https://arxiv.org/html/2601.19897v1).\n\nThe following figure illustrates how SDR compares with vanilla SFT and model merging across target performance and math retention. Model merging is a straightforward approach to retain previously acquired skills, that takes an SFT checkpoint and merges it back to the base model (before SFT). However, merging often comes at the expense of forgoing gains obtained on the SFT checkpoint because of catastrophic forgetting which manifests as a trade-off between target and general performance. SDR on the other hand mitigates this issue with similar or better target performance as pure SFT (with no merging) while retaining most of general performance.\n\n![Chart comparing SDR, vanilla SFT, and model merging across target performance and math retention](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/21/ML-20897-1-1-1.png)\n\nBecause of catastrophic forgetting, we observe that SFT on a dataset can lead to previous knowledge being completely lost. For instance, we find that vanilla SFT leads to Math performance dropping from 70 percent (base) to 6 percent on average (Table 2). With SDR, we’re able to almost entirely recover it back. Self-distilled reasoning allows us to retain the base model’s capabilities without compromising on target performance, and in many cases it improves target performance as well. Model merging is a common solution to mitigate catastrophic forgetting, but SDR achieves this retention more effectively.\n\nSDR provides in-training regularization by augmenting the dataset with the model’s own reasoning traces. It doesn’t require a separate teacher model or post-hoc interpolation. This approach requires no human annotation, is applicable to existing SFT datasets regardless of domain, and is more effective than model merging at preserving both target and general performance.\n\nCompared with model merging, self-distillation yields nearly identical math performance (70 percent compared to 68 percent) while improving target performance by over 6.5 percent on average at the same time. This finding aligns with recent [research](https://arxiv.org/html/2601.19897v1) that advocates self-distillation as a powerful mechanism to mitigate catastrophic forgetting.\n\n## Background: SFT on datasets without reasoning tokens may result in loss of reasoning ability\n\nBefore introducing the approach, it is important to understand why SFT on datasets without reasoning traces leads to degraded model performance. This section examines the reasoning suppression problem, quantifies the impact of reasoning on target performance, and discusses model merging as an existing recovery mechanism.\n\n### The reasoning suppression problem\n\nSFT training on non-reasoning datasets with reasoning mode active leads to a critical issue: the model loses its ability to reason during inference, even when you explicitly turn on reasoning mode. We hypothesize that this phenomenon occurs because the training objective calculates loss on both reasoning and output tokens together. When training data contains only input-output pairs without intermediate reasoning steps, the model receives no supervision signal for generating coherent reasoning traces. The loss function effectively penalizes tokens that don’t directly contribute to the final output, training the model to bypass its reasoning mechanisms. This behavior [exemplifies shortcut learning](https://arxiv.org/abs/2004.07780), where models rely on spurious correlations rather than learning robust reasoning patterns.\n\n### Quantifying the impact of reasoning\n\nDespite the suppression issue, turning on reasoning during both training and inference produces significant benefits in target performance. To confirm fair comparison, we maintain consistency between train and inference settings: comparing reasoning-on during both training and inference versus reasoning-off during both training and inference. Our experiments reveal that turning on reasoning during training and inference leads to a significant improvement. The following table demonstrates this effect on the LLaVA CoT dataset with varying LoRA (Low-Rank Adaptation) merge weights.\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| **Merge weight** | **Target perf (reasoning on)** | **Target perf (reasoning off)** | **Delta** |\n| 0.0 (base) | 12.30% | 12.30% | 0% |\n| 0.3 | 34.38% | 35.28% | -0.9% |\n| 0.5 | 60.51% | 48.80% | +11.7% |\n| 0.7 | 66.67% | 54.05% | +12.6% |\n| 1.0 (full merge) | 65.17% | 47.90% | +17.3% |\n\nTable 1: Impact of reasoning and merging weight on target performance. Training and inference reasoning modes are kept consistent.\n\n### Model merging as a recovery mechanism\n\nOur current recommended approach to address the reasoning suppression issue for SFT use cases without reasoning tokens is to use model merging as a mechanism to recover the reasoning skill. Similar to how model merging can restore mathematical or coding capabilities after domain-specific fine-tuning, we find that reasoning capability can be recovered through weighted interpolation between the fine-tuned model and the base model. This recovery is strongly correlated with the restoration of general performance metrics (such as math and coding benchmarks), suggesting that reasoning is a fundamental capability that underlies multiple downstream skills.\n\nTo understand this better, we use the following benchmarks in this experiment:\n\n**ToolACE** – Tool-calling benchmark (10K samples). Evaluates the model’s ability to generate correct function calls with proper argument names and values given a user query and available tool definitions. Short context (approximately 2K tokens). Scored on strict success rate (exact match of function name and all arguments). Requires [precise structured output and argument value inference](https://huggingface.co/datasets/Team-ACE/ToolACE).\n\n**CoCoHD** – Long-context structured extraction (730 samples). Evaluates extraction of 10 metadata fields (title, chamber, committee, members, dates) from U.S. congressional hearing transcripts in JSON format. Long context (35K–85K characters). Scored on key/value overlap between predicted and target JSON. Requires parsing very long documents and producing schema-conformant structured output. Extracted from [GitHub](https://github.com/gtfintechlab/CoCoHD).\n\n**GovReport** – Long-context abstractive summarization (17K samples). Evaluates generation of 250–450 word plain-text summaries of U.S. government reports (GAO, CRS). Long context (35K–85K characters input). Scored on ROUGE-L (longest common subsequence overlap with reference summary). Requires synthesizing dense policy documents into concise, factual narratives. Extracted from [HuggingFace](https://huggingface.co/datasets/ccdv/govreport-summarization).\n\n**Invoice-OCR** – Multimodal document understanding (approximately 500 samples, image and text). Evaluates extraction of structured fields from scanned invoice images. Short context (single image and prompt). Scored on ANLS (Average Normalized Levenshtein Similarity). Requires visual text recognition and field-level extraction from varied document layouts. Extracted from [Kaggle](https://www.kaggle.com/datasets/osamahosamabdellatif/high-quality-invoice-images-for-ocr).\n\n**CaptionGen** – Video captioning (1800 samples, video and text). Evaluates generation of descriptive captions for video clips. Variable context (video frames and prompt). Scored using automated evaluation (likely CIDEr/METEOR or LLM-judge). Requires temporal understanding across video frames and natural language generation. Extracted from [HuggingFace.](https://huggingface.co/datasets/friedrichor/MSVD)\n\nWe investigate whether reasoning emerges with model merging. On an Instruction Following benchmark, we count the number of reasoning tokens on a model that is trained without reasoning. The x-axis shows the merging weight between the custom and the base model, where 0.0 corresponds to the base model and 1.0 is the SFT model without merging.\n\n![Chart of reasoning token count versus merge weight between the custom and base model](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-2-1.jpeg)\n\n### Implications for customization\n\nThese findings have important implications if you’re deploying customized models. First, maintaining the same reasoning mode during training and inference is critical for optimal performance. Second, without intervention, domain-specific SFT can significantly degrade general reasoning abilities. Third, model merging offers a post-hoc solution, but requires careful tuning of the merging weight to balance competing objectives. These trade-offs motivated us to develop a training approach that preserves reasoning capability without requiring post-hoc interventions.\n\n### Role of reasoning in SFT\n\nReasoning traces in SFT serve three critical functions that connect reinforcement fine-tuning (RFT), regularization, and self-distillation paradigms.\n\nFirst, reasoning traces act as implicit policy regularization by constraining the fine-tuned model to stay close to the base model’s policy. This prevents catastrophic forgetting and capability degradation in a manner similar to [KL-regularization in RLHF](https://arxiv.org/html/2501.17161v1). Second, reasoning provides process supervision, analogous to step-by-step reward shaping in RFT, rather than just outcome supervision. This leads to [more robust generalization](https://arxiv.org/html/2509.22230v1). Third, self-distillation, where a model learns from its own predictions, has proven effective across domains from Born-Again Networks to Constitutional AI. Reasoning traces offer particularly rich self-supervision by capturing the model’s problem-solving process rather than just final outputs, as demonstrated in [recent continual learning research](https://arxiv.org/html/2601.19897v1).\n\nRecent work shows that effective fine-tuned models maintain proximity to the base model in [parameter space](https://arxiv.org/html/2501.17161v1), and our approach uses this insight by applying the base model’s own reasoning traces as training targets, creating a learning signal consistent with the model’s internal representations while providing dense token-level supervision throughout the reasoning process.\n\n### Self-distilled reasoning\n\nWe propose an effective approach that uses self-distilled reasoning (SDR) for SFT customization on datasets without reasoning traces. The process works in three stages. First, you use the base reasoning model (such as Amazon Nova 2 Lite) to generate reasoning traces for each example in the SFT dataset. Next, you augment the training data by prepending the generated reasoning traces to the original outputs. Finally, you fine-tune the model with reasoning mode turned on, providing supervision on both reasoning and output tokens.\n\nSDR offers several advantages for your SFT workflow. There is zero annotation cost because no human effort is required to create the reasoning traces. The reasoning traces are consistent with the base model’s own problem-solving approach. The technique scales to existing SFT datasets regardless of domain and gives you flexibility to use different teacher models.\n\n## Constructing reasoning traces for SFT\n\nWe query Amazon Bedrock to obtain reasoning traces for a given dataset. There are two approaches to construct chain-of-thought reasoning, each with different trade-offs.\n\n### Basic reasoning\n\nThis approach generates reasoning traces in a forward manner, where the model naturally produces its reasoning given only the question. This mimics how the model would reason during inference. The prompt template is:\n\n```\nThink through this question naturally and show your reasoning:\n{user_text}\nFormat your response with <thinking> tags for reasoning and <answer> tags for the final answer.\nUse a consistent reasoning style.\n```\n\n### Guided reasoning\n\nThis approach uses the availability of ground-truth answers to guide reasoning generation in a backward manner. By providing both the question and answer, we ask the model to reconstruct plausible reasoning that connects them, similar to hindsight learning approaches. The prompt template is:\n\n```\nGenerate natural reasoning for solving this question.\nAct as if you don't know the answer yet.\nQuestion:\n{user_text}\nAnswer to arrive at:\n{assistant_content}\nFormat your response with <thinking> tags for reasoning\nand <answer> tags for the final answer. Write natural\nreasoning that works toward this answer without assuming\nyou know it beforehand. Use a consistent reasoning style.\n```\n\nTo verify the model does not accidentally leak the answer into the reasoning trace (which would introduce noise), we perform a secondary filtering step that removes mentions of the answer to obtain the final reasoning trace.\n\n### Implementation pipeline\n\nThe following code shows how to implement guided reasoning using the Amazon Bedrock Converse API. The pipeline reads your SFT training data, generates Chain-of-Thought (CoT) reasoning traces, and assembles the final dataset with `reasoningContent` blocks.\n\n#### Setup and CoT prompt generation\n\n```\nimport json, re, boto3, time\n\nMODEL_ID = \"amazon.nova-lite-v1:0\"\nbedrock = boto3.client(\"bedrock-runtime\", region_name=\"us-east-1\")\n\nCOT_SYSTEM = \"\"\"You are an expert evaluator. Provide a\ndetailed Chain-of-Thought explaining why the given\nground truth answer is correct and makes sense.\"\"\"\n\nCOT_USER_TEMPLATE = \"\"\"Given the task context and ground\ntruth annotation, provide a Chain-of-Thought.\n**Original System Context:** {system_prompt}\n**Original User Request:** {user_prompt}\n**Ground Truth Annotation:**\n```json\n{ground_truth}\n```\nONLY provide your justification within\n<justification></justification> tags.\"\"\"\n```\n\n#### Invoke Amazon Bedrock and assemble the final dataset\n\n```\n# Invoke Bedrock for each CoT prompt\nfor req in cot_requests:\n    response = bedrock.converse(\n        modelId=MODEL_ID,\n        system=[{\"text\": req[\"system\"]}],\n        messages=[{\"role\":\"user\",\n        \"content\":[{\"text\":req[\"query\"]}]}],\n        inferenceConfig={\"maxTokens\":4096,\"temperature\":0.3,\"topP\": 0.9,\"topK\": 50})\n    output = response[\"output\"][\"message\"][\"content\"][0][\"text\"]\n    time.sleep(2) # rate limit\n\n# Parse <justification> tags and build SFT dataset\nfor idx, item in enumerate(original_data):\n    tags = extract_xml_tag(inference[idx], \"justification\")\n    reasoning_block = {\"reasoningContent\": {\"reasoningText\":\n        {\"text\": \"Based on the provided context, lets think\"\n        \" step by step \" + tags[0].strip()}}}\n    sft_dataset.append({\n        \"schemaVersion\": \"bedrock-conversation-2024\",\n        \"system\": item[\"system\"],\n        \"messages\": [item[\"messages\"][0],\n        {\"role\": \"assistant\",\n        \"content\": [reasoning_block, original_text]}]})\n```\n\n#### Inference configuration parameters\n\n* **temperature: 0.3** Low randomness produces consistent, deterministic reasoning traces suitable for training data.\n* **topP: 0.9** Nucleus sampling that retains the top 90 percent probability mass. Balances coherence with enough diversity to avoid degenerate repetitions.\n* **topK: 50** Limits token candidates to the top 50 at each step. Prevents unlikely tokens from appearing in reasoning traces while keeping natural language flow.\n\n#### Sample input (no reasoning)\n\n```\n{\"schemaVersion\": \"bedrock-conversation-2024\",\n\"system\": [{\"text\": \"You are a legal expert...\"}],\n\"messages\": [\n{\"role\": \"user\", \"content\": [{\"text\":\n\"Review this clause: Company shall not disclose\ndata to third parties.\"}]},\n{\"role\": \"assistant\", \"content\": [{\"text\":\n\"[{\"comment_id\": \"001\", \"severity\": \"Medium\",\n\"comment\": \"Add standard confidentiality\nexceptions...\", ...}]\"}]}]}\n```\n\n#### Sample output (with reasoning prepended)\n\n```\n{\"role\": \"assistant\", \"content\": [\n{\"reasoningContent\": {\"reasoningText\": {\"text\":\n\"Based on the provided context, lets think step by\nstep: 1. Correctness: The annotation correctly\nidentifies an issue with the clause by suggesting\nstandard confidentiality exceptions... 2. Severity:\nMedium is appropriate because... 3. Category:\nPrivacy fits because data protection is a core\nprivacy concern... 6. References: std-clauses.pdf\nvalidates the need for exceptions.\"}}},\n{\"text\": \"[{\"comment_id\": \"001\", ...}]\"}]}\n```\n\nOur experiments (discussed in the next section) demonstrate that this approach leads to significant improvements in both target domain performance and general capability preservation, validating the hypothesis that self-distilled reasoning provides valuable inductive bias during fine-tuning.\n\n## Experiments\n\nWe run experiments on three benchmarks that do not have reasoning.\n\n* [MedMCQA](https://medmcqa.github.io/) is a Q&A style dataset that contains 10k training samples.\n* [CoCoHD](https://github.com/gtfintechlab/CoCoHD) is a congressional hearing dataset that has long context (20-60k tokens) and has a task of producing a JSON with specific fields.\n* [Invoice-OCR](https://www.kaggle.com/datasets/osamahosamabdellatif/high-quality-invoice-images-for-ocr) is a multimodal dataset that has images of invoices and requires a JSON output with the fields from the image.\n\nThe following table summarizes our SDR results across three benchmarks. Each column captures a specific dimension of the experimental setup: *Model* refers to the dataset used for fine-tuning (or the base Nova 2 Lite model when no fine-tuning is applied). *Reasoning Traces* indicates which model generated the chain-of-thought traces prepended to the training data. “None” means no reasoning was added to the dataset. *Training Reasoning* specifies whether reasoning mode was enabled during the SFT training process. *Inference Reasoning* specifies whether reasoning mode was enabled at prediction time. *Merging* indicates whether model merging (weighted interpolation between the fine-tuned checkpoint and the base model) was applied after training to recover lost general capabilities. *Target* reports accuracy on the domain-specific benchmark the model was fine-tuned for. *Math ↑ (control)* reports accuracy on a math benchmark used as a control metric to measure catastrophic forgetting. The base model scores 70 percent, so any significant drop signals that general reasoning ability has been lost during fine-tuning.\n\n|  |  |  |  |  |  |  |\n| --- | --- | --- | --- | --- | --- | --- |\n| **Dataset** | **Reasoning Traces** | **Training Reasoning** | **Inference Reasoning** | **Merging** | **Target** | **Math ↑**  (control) |\n| Nova 2 Lite | None | No | No | – | 55.60% | 12.90% |\n| Nova 2 Lite | None | No | Yes | – | 55.40% | 70% |\n| MedMCQA | None | No | Yes | Yes | 60.50% | 8.30% |\n| MedMCQA | None | No | Yes | No | 63.80% | 0% |\n|  | | | | | | |\n| MedMCQA | Nova 2 Lite Basic | Yes | Yes | No | 66.60% | 67.90% |\n| MedMCQA | Nova 2 Lite Guided | Yes | Yes | No | 65.70% | 59.60% |\n|  | | | | | | |\n| Nova 2 Lite | None | No | No | – | 45% | 12.90% |\n| Nova 2 Lite | None | No | Yes | – | 45% | 70% |\n| CoCoHD | None | No | Yes | Yes | 59.30% | 70% |\n| CoCoHD | None | No | Yes | No | 61.30% | 6.30% |\n|  | | | | | | |\n| CoCoHD | Nova 2 Lite Basic | Yes | Yes | No | 55.40% | 73.80% |\n| CoCoHD | Nova 2 Lite Supervised | Yes | Yes | No | 61.30% | 65.80% |\n|  | | | | | | |\n| Nova 2 Lite | None | No | No | – | 82.10% | 12.90% |\n| Nova 2 Lite | None | No | Yes | – | 81.40% | 70% |\n| Invoice-OCR | None | No | Yes | Yes | 82.30% | 70.80% |\n| Invoice-OCR | None | No | Yes | No | 88.10% | 9.60% |\n|  | | | | | | |\n| Invoice-OCR | Nova 2 Lite Basic | Yes | Yes | No | 86.10% | 67.10% |\n| Invoice-OCR | Nova 2 Lite Supervised | Yes | Yes | No | 87.90% | 67.90% |\n\nTable 2: SDR results across three benchmarks. Rows are grouped by dataset. All SDR rows use merge weight 1.0 (no merging needed).\n\n## SFT with partial or missing reasoning traces\n\nReasoning data can be expensive or difficult to curate, and as a result we often encounter situations where only a portion of the SFT dataset contains reasoning. To better understand how SFT behaves in this situation we conduct an ablation study next. We also explore how SDR can help in this situation as a low-overhead and cost-effective alternative.\n\n#### SFT training with only partial reasoning traces\n\nIn this study, we examine the effect of SFT when only a subset of the dataset contains reasoning, which simulates common real-world scenarios for many users. We ran ablations with reasoning traces for LoRA SFT on 10k training samples from LLaVA CoT benchmark. The eval benchmark for this is MathVista where the base model struggles (12.3 percent) mainly because of formatting inconsistencies and LoRA SFT shows a large improvement (34.4 percent).\n\n#### Math (control) benchmark — catastrophic forgetting\n\nThe Math (control) benchmark measures whether the model retains general mathematical reasoning capability after SFT. This is a notable finding: without SDR prefill, general math capability collapses from 68% to 3% as you reduce the percentage of reasoning data in training. With SDR, it stays stable at 65–72 percent regardless of how much reasoning data you include.\n\n![Chart showing Math control accuracy staying stable with SDR versus collapsing without SDR as reasoning data decreases](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-3-1.png)\n\n#### Key insight\n\n**Without SDR:** Reducing reasoning data below 75 percent causes catastrophic forgetting on Math control: 66.6 percent to 21.7 percent to 3.3 percent to 2.5 percent. The model loses its general math capability entirely.\n\n**With SDR:** Math (control) stays stable at 64–72 percent across all data percentages, even with 0 percent reasoning data. SDR prefill completely prevents catastrophic forgetting.\n\n#### Median reasoning tokens at inference\n\nThis chart shows the token budget spent on reasoning traces during inference. SDR models produce more reasoning tokens (400–860). Models trained with less than or equal to (≤) 25 percent reasoning data and no prefill produce zero reasoning tokens. This means they have completely lost the ability to reason step-by-step.\n\n![Chart of median reasoning tokens at inference across training reasoning-data percentages, with and without SDR prefill](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-4-1.png)\n\n#### Key insight\n\n**SDR teaches reasoning behavior:** Even with 0 percent reasoning data in training, SDR prefill causes the model to produce 859 median reasoning tokens. Without SDR at less than or equal to (≤) 25 percent reasoning data, the model produces zero tokens. It has forgotten how to reason.\n\n**Base model comparison:** The base Amazon Nova 2 Lite model produces 1,254 median reasoning tokens. After SFT with 100 percent reasoning data, this drops to 367, and the model becomes more efficient (fewer tokens for the same or better accuracy).\n\n#### MathVista (target) — reasoning on versus off\n\nThis chart compares MathVista accuracy with reasoning enabled and disabled at inference time. Enabling reasoning at inference has the greatest impact. It roughly doubles performance regardless of training data composition.\n\n![Chart comparing MathVista accuracy with reasoning enabled and disabled across training data compositions](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-5-1.png)\n\n#### Key insight\n\nReasoning on at inference consistently delivers 35–47 percent accuracy, compared to 14–22 percent with reasoning off. This is roughly a 2x improvement.\n\n**Best configuration:** 50 percent reasoning data plus SDR prefill achieves 45.2 percent MathVista with 70.4 percent Math control, avoiding forgetting while maximizing target performance.\n\n**Without reasoning at inference,** performance drops to near base-model levels (approximately 15–22 percent), regardless of training composition. The model needs the reasoning step to perform well on this benchmark. A notable observation here is that training with SDR prefill (that is, with reasoning enabled) results in better eval performance even with reasoning disabled during inference time. For example, when only 75 percent of the dataset is missing CoT supervision, SDR prefill boosts eval performance by over 5pp even with reasoning disabled at inference (16.4 percent to 21.3 percent), indicating that SDR has an impact in how the model solves a task even when reasoning is disabled.\n\n## Conclusions and recommendations\n\nOur experiments across three benchmarks (MedMCQA, CoCoHD, Invoice-OCR) and an ablation on partial-reasoning datasets (LLaVA-CoT) converge on a consistent finding: Self-Distilled Reasoning (SDR) offers a zero-cost approach that simultaneously improves target performance and preserves general capabilities, without requiring model merging.\n\nThe starting point for these findings is that reasoning is fragile under vanilla SFT. Training on data without reasoning traces causes reasoning suppression: the model shortcuts to the answer and loses general skills, with Math accuracy collapsing from 70 percent to 0 percent. Model merging partially recovers these skills, but it introduces a trade-off between target and general performance that is hard to tune and adds a checkpoint-mixing step to the training pipeline.\n\nSDR removes this trade-off. By augmenting the dataset with the base model’s own reasoning traces, SDR retains general performance at Math ≈ 68 percent while delivering a over 6.5 percent relative gain in target performance over the best model-merging checkpoints, with no additional annotation cost. The approach holds up even when the base model is weak on the target domain: on MedMCQA, where the base model scores 55.6 percent, SDR lifts target accuracy by approximately three pp (63.8 percent to 66.6 percent) and recovers Math from 0 percent to 67.9 percent. In other words, SDR works both when the base model has latent domain skill to unlock and when it doesn’t.\n\nThe benefit extends to mixed-reasoning training, where only a fraction of the SFT samples carry reasoning traces. This is a common real-world setting since reasoning data is expensive to curate, and our LLaVA-CoT ablation shows it is also fragile. General capability holds up at 75 percent reasoning coverage (Math 66.6 percent) but collapses sharply below that: at 50 percent Math drops to 21.7 percent, at 25 percent to 3.3 percent, and at 0 percent to 2.5 percent. Target accuracy moves non-monotonically across these mixes, so there is no safe dilution point. Pre-filling the missing traces with Nova 2 Lite removes the cliff entirely: Math stays in the 65–71 percent range across all mixes, and 50 percent SDR reaches 45.2 percent target accuracy, higher than the 34.4 percent seen with 100 percent human-authored reasoning. The gain also transfers to reasoning-disabled inference, so teams can patch their datasets once and keep their existing serving path.\n\nOne caveat shapes the recommendation on which teacher to use. A stronger teacher isn’t always better: Amazon Nova 2 Pro (Preview) traces improve target accuracy but cause a proportional drop in general performance, consistent with prior findings that a [large student-teacher gap hurts distillation](https://aclanthology.org/2025.findings-acl.1301.pdf). Lite-generated traces offer the most balanced outcome across target and general performance and are the default we recommend.\n\nTaken together, these results point to a practical practitioner path: use SDR with same-family traces (Amazon Nova 2 Lite for Amazon Nova 2 Lite customers) as the default SFT recipe, apply it as a gap-filler whenever reasoning coverage is below roughly 75 percent, and reserve stronger-teacher or guided-reasoning variants for cases where the base model is weak on the target domain and the general-capability cost is acceptable. The broader implication is that SDR is a useful inductive bias for continual learning settings where new skills arrive over time and previously learned skills need to be preserved. Combining it with data mixing and light merging is a natural next step to explore.\n\n## Practitioner decision guide\n\nUse this guide to determine when to use Self-Distilled Reasoning (SDR), model merging, or standard SFT based on your data composition and latency constraints.\n\n|  |  |  |\n| --- | --- | --- |\n|  | **Scenario** | **Recommendation** |\n| 1 | **Default or new SFT job without reasoning, but seeing regression on general performance** | If latency sensitive: Use model merging to recover general performance regression. If latency constraints accommodate reasoning: Use SDR with Nova 2 Lite-generated reasoning traces. This gives the best balance of target performance and general capability preservation (often higher than with model merging) |\n| 2 | **Base model is weak on target domain** | Consider guided reasoning to provide additional signal during trace generation. |\n| 3 | **Dataset already has partial reasoning (≥ 50%)** | We recommend training with reasoning turned on. The existing traces are sufficient to preserve general skills. |\n| 4 | **Dataset has < 50% reasoning traces** | If latency constraints allow for reasoning during inference, pre-fill missing traces with Nova 2 Lite reasoning (one-time, offline). Without this, general performance will collapse. |\n| 5 | **You do not need general capabilities** | Reasoning data has minimal impact on target performance. Standard SFT is fine. |\n| 6 | **Continual learning or multi-skill preservation** | Consider combining SDR with data mixing and a small (or zero) merge weight for the best retention of previously learned skills. |\n| 7 | **You still want to use model merging** | We recommend using a smaller merge weight when SDR is applied. SDR already provides the regularization that merging was compensating for. |\n\nFor more information about Amazon Nova models and customization options, see the [Amazon Bedrock documentation](https://docs.aws.amazon.com/bedrock/). To get started with SFT customization, see the [Amazon Bedrock model customization guide](https://docs.aws.amazon.com/bedrock/latest/userguide/custom-models.html). If you have questions or want to share your experience with SDR, reach out to your AWS account team.\n\n---\n\n## About the authors\n\n![Rushil Anirudh](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-6-1.jpg)\n\n### Rushil Anirudh\n\nRushil is an Applied Scientist on the Forge team, where he works on the science behind SFT — making LoRA and full fine-tuning more accurate and reliable for frontier model customization. His research spans generative models across vision and language, model robustness, and uncertainty quantification. Outside work, he’s usually hunting down good food in the Bay Area or reading history and first-contact sci-fi.\n\n![Shiva Mahalingam](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-7-1.jpg)\n\n### Shiva Mahalingam\n\nShiva is a Senior Solutions Architect in the Engineering, Construction, Real Estate, and Transportation (ECRT) segment at AWS. He works with enterprise customers to design and implement cloud-native architectures, with a focus on data for agents, model customization, and agentic AI solutions. He helps organizations navigate the complexities of fine-tuning, prompt engineering, and domain adaptation to unlock business value from their data. He is passionate about enabling customers to move from experimentation to production-ready AI workloads on AWS. When not working, he listens to music and plays percussion instruments.\n\n![Anupam Dewan](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/14/ML-20897-8-1.jpg)\n\n### Anupam Dewan\n\nAnupam is a Senior Solutions Architect working in Amazon Nova team with a passion for generative AI and its real-world applications. He focuses on Nova customization and Amazon Nova Forge, helping enterprises realize the true potential of LLMs with power of customization. He is also passionate about teaching data science, and analytics and helping Enterprise build LLMs that work for their businesses. Outside of work, you can find him hiking, volunteering or enjoying nature.",
+      "tags": [
+        "Amazon Nova 2",
+        "Self-Distilled Reasoning",
+        "SFT"
+      ],
+      "score": 82,
+      "summary": "AWS提出Self-Distilled Reasoning方法，利用Nova 2模型自身思维链提升SFT性能。",
+      "fetched_at": "2026-07-22T01:39:49.005907+08:00"
+    },
+    {
+      "title": "Cursor now shows you demos, not diffs",
+      "link": "https://youtu.be/XbZvC4KTH68?si=sEDqt3JtV0PoqLei",
+      "published": "2026-07-22T01:38:14+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "demos"
+      ],
+      "score": 70,
+      "summary": "Cursor现在展示演示而非差异。",
+      "fetched_at": "2026-07-22T01:39:49.005913+08:00"
+    },
+    {
+      "title": "John Schulman on dead ends, scaling RL, and building research institutions",
+      "link": "https://youtu.be/29BYxvvF1iM?si=LRmoeWAwilHKmjGY",
+      "published": "2026-07-22T01:38:14+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "John Schulman",
+        "RL",
+        "研究机构"
+      ],
+      "score": 82,
+      "summary": "John Schulman讨论强化学习扩展和研究机构建设。",
+      "fetched_at": "2026-07-22T01:39:49.005917+08:00"
+    },
+    {
+      "title": "Our designer built an operating system with Cursor",
+      "link": "https://youtu.be/TQhv6Wol6Ns?si=bb8_Jr5u7Kb8n6jk",
+      "published": "2026-07-22T01:38:14+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "操作系统"
+      ],
+      "score": 70,
+      "summary": "设计师用Cursor构建了一个操作系统。",
+      "fetched_at": "2026-07-22T01:39:49.005919+08:00"
+    },
+    {
+      "title": "AI Foundations: Introduction",
+      "link": "https://youtu.be/IccjZDV93lw?si=f3mepO4Ptiqdg4F8",
+      "published": "2026-07-22T01:38:14+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "AI Foundations"
+      ],
+      "score": 70,
+      "summary": "AI基础介绍视频。",
+      "fetched_at": "2026-07-22T01:39:49.005922+08:00"
+    },
+    {
+      "title": "Supercharging pgvector: 4x faster HNSW vector search with AlloyDB",
+      "link": "https://cloud.google.com/blog/products/databases/supercharge-pgvector-4x-faster-hnsw-with-alloydb/",
+      "published": "2026-07-22T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "[AlloyDB](https://cloud.google.com/alloydb) is a fully managed, PostgreSQL-compatible database service built for your most demanding enterprise workloads. It combines the best of open source PostgreSQL with Google’s advanced technology, offering massive scalability, high availability, and native AI capabilities. It serves as a performant relational store, a unified backend for vector and full text search, and an analytics engine that is up to 100x faster than standard PostgreSQL. \n\nVector search is the foundation of modern AI and Retrieval Augmented Generation (RAG) applications. For developers using AlloyDB and other PostgreSQL databases, [`pgvector`](https://github.com/pgvector/pgvector) is a widely adopted extension for storing, indexing, and querying vector embeddings, and HNSW (Hierarchical Navigable Small World) is a highly efficient graph-based algorithm designed for approximate nearest neighbor search across multi-layered structures. With [columnar engine accelerated HNSW](https://docs.cloud.google.com/alloydb/docs/ai/accelerate-with-ce) in AlloyDB (now in preview), you can achieve up to 4x higher queries per second (QPS) for vector search compared to standard PostgreSQL HNSW.\n\nEnterprise AI applications face a constant trade-off between speed and accuracy. When searching through millions or billions of vectors, maximizing Queries per Second (QPS) without sacrificing search quality (recall) is critical for scaling production workloads. The PostgreSQL `pgvector` extension offers HNSW as one of the indexes that can speed up Approximate Nearest Neighbor (ANN) searches. Let’s dive deep into how AlloyDB solves the speed vs. accuracy trade-off.  \n\nNote: While this post focuses on HNSW performance, it’s worth noting that HNSW is just one part of AlloyDB’s advanced vector toolkit. AlloyDB also features [ScaNN](https://docs.cloud.google.com/alloydb/docs/ai/create-scann-index)—a cutting-edge index backed by over 14 years of Google Research—giving you the flexibility to choose the perfect index for your workload. Additionally, for use cases demanding absolute precision, standard k-nearest neighbor (KNN) search is always available for 100% recall. Check out our [Choose a Vector Index Guide](https://docs.cloud.google.com/alloydb/docs/ai/choose-index-strategy) to see how they stack up.\n\naside\\_block\n:   <ListValue: [StructValue([('title', 'Get started with a 30-day AlloyDB free trial instance'), ('body', <wagtail.rich\\_text.RichText object at 0x7f1300e15f70>), ('btn\\_text', 'Start building for free'), ('href', 'http://goo.gle/try\\_alloydb'), ('image', None)])]>\n\n### **First, what is the AlloyDB columnar engine?**\n\nThe [AlloyDB columnar engine](https://docs.cloud.google.com/alloydb/docs/columnar-engine/about) is a built-in, in-memory cache that automatically stores frequently queried data in a specialized, scan-optimized columnar format. It allows AlloyDB to handle heavy analytical queries up to 100x faster than standard PostgreSQL. Additionally, it accelerates ANN searches by storing the index in memory, using a vectorized memory layout for fast traversals, and bypassing standard PostgreSQL buffer manager overhead. \n\n### **Performance visualization**\n\nTo understand the real-world performance characteristics of columnar engine Accelerated HNSW, we plotted standard QPS vs Recall curves for the GloVe 100 Angular dataset by searching more than 1M records with a limit of 100.\n\nRunning this [benchmark script](https://colab.research.google.com/github/GoogleCloudPlatform/python-docs-samples/blob/main/alloydb/notebooks/columnar_engine_accelerated_hnsw_vector_search_benchmark.ipynb) yields the following visualization:\n\n![1](https://storage.googleapis.com/gweb-cloudblog-publish/images/1_r57mjyN.max-1000x1000.png)\n\nNote: These measurements were taken on an AlloyDB C4A 16vCPU machine. Due to the inherent randomness in HNSW graph building, results may slightly vary across runs.\n\nThe data reveals two transformative benefits:\n\n1. **Massive performance throughput gains:** For any given target recall (e.g. 0.95), QPS is increased by approximately **4.2x to 4.9x**. This allows you to handle significantly more concurrent vector searches on the same hardware.\n2. **Significant recall (accuracy) improvement:** Conversely, at a fixed QPS level, columnar engine accelerated HNSW provides a substantial boost in recall. For example, we saw that at ~350 QPS (in the above chart), enabling the columnar engine improves recall from roughly **0.78 to over 0.94** – a **0.163 recall gain**. This means your AI applications get much more accurate results without any latency impact.\n\nIt is important to note that the baseline (blue line) already represents the index being fully cached in the PostgreSQL shared buffer cache. The performance gains shown here are not the result of moving data from disk to RAM, but rather the result of a more efficient memory architecture.\n\n### **How it works: Columnar engine Accelerated HNSW**\n\nIn standard PostgreSQL architectures, index operations utilize the shared buffer cache. Even when data is fully in-memory, the database still incurs significant overhead from the buffer manager, which must handle operations such as page pinning and unpinning, lock acquisition, buffer table lookups, and Least Recently Used (LRU) management.\n\nAlloyDB's **columnar engine** is a built-in, in-memory cache that stores data in a specialized, scan-optimized format.\n\nWith this release, AlloyDB can use **columnar engine accelerated HNSW** to:\n\n* **Pin the index:** The `pgvector` HNSW index is pinned (kept persistently in-memory to ensure fast access) directly into the columnar engine’s memory.\n* **Vectorized access:** It utilizes a memory layout specifically designed for the high-concurrency, pointer-heavy traversals required by HNSW graphs.\n* **Bypass buffer overhead:** By navigating the graph in a specialized memory space, AlloyDB avoids the standard buffer manager bottlenecks. This architectural shift is what enables the dramatic QPS and recall improvements shown above, even when comparing against a fully-cached standard index.\n\n### **Why it Matters**\n\nFor enterprise-scale applications, this isn't just about a faster database—it's about cost and quality:\n\n* **Reduced infrastructure costs:** Achieve the same performance with significantly lower compute resources.\n* **Better AI accuracy:** Reach higher recall and quality at speeds that were previously only possible for \"draft\" (high-speed, lower-accuracy results) quality search.\n* **No application changes required:** Because this is built into AlloyDB, you get these gains using the same standard `pgvector` SQL syntax.\n\nNote that the columnar engine does utilize memory, but it is highly compressed and meticulously managed. Because the engine stores vector data in an efficient columnar format, the memory footprint is minimal compared to the massive performance gains—making it a highly favorable trade-off for enterprise workloads.\n\n### **Quick Start Guide**\n\nTo try out [**columnar engine accelerated HNSW**](https://docs.cloud.google.com/alloydb/docs/ai/accelerate-with-ce) in AlloyDB, follow these steps:\n\n1. **[Enable the columnar engine](https://docs.cloud.google.com/alloydb/docs/ai/accelerate-with-ce) and index caching**\n\nEnsure that both `google_columnar_engine.enabled` and `google_columnar_engine.enable_index_caching` flags are set to `on` for your AlloyDB instance.\n\n2. **Add the HNSW Index to columnar engine**\n\nOnce your HNSW index is created via `pgvector`, execute the following SQL command to cache it in the columnar engine:\n\ncode\\_block\n:   <ListValue: [StructValue([('code', \"SELECT google\\_columnar\\_engine\\_add\\_index('<hnsw\\_index\\_name>');\"), ('language', ''), ('caption', <wagtail.rich\\_text.RichText object at 0x7f1300e15b50>)])]>\n\n3. **Additional Resources**\n\n* New to AlloyDB? Discover AlloyDB with a [30-day free trial](https://docs.cloud.google.com/alloydb/docs/free-trial-cluster).\n* [Google Colab Notebook](https://colab.research.google.com/github/GoogleCloudPlatform/python-docs-samples/blob/main/alloydb/notebooks/columnar_engine_accelerated_hnsw_vector_search_benchmark.ipynb): An end-to-end Python script to ingest the GloVe dataset, create indexes, and plot Recall vs QPS curves.\n* Is HNSW the right vector index choice for your use case? Check our ‘[Choose a vector index in AlloyDB AI](https://docs.cloud.google.com/alloydb/docs/ai/choose-index-strategy)’ guide.",
+      "tags": [
+        "AlloyDB",
+        "HNSW",
+        "pgvector"
+      ],
+      "score": 75,
+      "summary": "Google Cloud AlloyDB通过列式引擎加速HNSW向量搜索，QPS提升4倍。",
+      "fetched_at": "2026-07-22T01:39:49.005924+08:00"
+    },
+    {
+      "title": "How to build interactive experiences with canvases",
+      "link": "https://github.blog/ai-and-ml/github-copilot/how-to-build-interactive-experiences-with-canvases/",
+      "published": "2026-07-22T00:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "Most developers are now working alongside agents, or are at least familiar with how to do so. Agents help you explore ideas and turn them into action, from planning projects to automating workflows. Oftentimes, a conversation is all you need to move your work forward.\n\nBut what about tasks that don’t quite fit the conversation mold?\n\nSome tasks are easier when you can see and interact with the information. You may need to triage a backlog, visualize complex information, or bring information together from multiple sources. A visual interface makes it easier to understand patterns, spot connections, and take action.\n\nInstead of working through a long chain of prompts and responses, you can use canvases to interact directly with the information in front of you.\n\n## Working with canvases\n\nThese shared, interactive surfaces are extensions of the Copilot app called canvases. A canvas is an interface in the GitHub Copilot app where developers and agents can collaborate in real time. These shared, interactive surfaces are called canvas extensions.\n\nThe agent can update the canvas as it works, and you can interact with that same workspace through clicks, edits, and other actions. Your interactions can be sent back to the agents *or* processed locally by the canvas.\n\nYou can continuously shape the experience by asking Copilot to iterate on your canvas—adding new functionality, refining existing features, and more. The canvas can evolve alongside your work.\n\nTo create a canvas, use `/create-canvas` in your agent session in the GitHub Copilot app, then describe what you want it to create and what capabilities it should be able to support.\n\nBecause canvases are generated from a prompt and evolve alongside your workflow, they can take many forms. Some help you visualize information, some help you take action, others provide a more entertaining way to tackle your backlog.\n\nHere’s some examples of what’s possible with canvas extensions:\n\n## Issue triage helper\n\n**Goal**: Quickly triage GitHub Issues in a fast, visual way.\n\n**Prompt**: `/create-canvas Create an interface that allows me to easily swipe through issues in a repo in card format. Can swipe right to ship, left to reject.`\n\n![Canvas showing issue triage in card format.](https://github.blog/wp-content/uploads/2026/07/1-issues.png?resize=1024%2C562)\n\n**Result**: The canvas shows a card-based interface where each issue is surfaced one at a time. You can take action directly from the UI. As you swipe, the canvas updates in real time, tracking decisions and moving the items into the appropriate buckets.\n\n## Interactive codebase diagram\n\n**Goal**: Visualize how a project is structured and how its components relate to each other.\n\n**Prompt**: `/create-canvas Render a colorful, interactive diagram showing how the code in this project is working together, show how things are related, etc.`\n\n![Canvas showing interactive codebase diagram.](https://github.blog/wp-content/uploads/2026/07/2-diagram.png?resize=1024%2C560)\n\n**Result**: The canvas generates a dynamic diagram of the codebase where each node represents a different part of the system. You can hover, drag, and filter to explore the different layers. You can interact with the architecture directly, turning a static understanding of a codebase into something you can actively explore.\n\n## Sessions worktree view\n\n**Goal**: Visualize all active GitHub Copilot app sessions and their associated git worktrees, clearly indicating which are active and which are stale, with the ability to easily clean things up where needed.\n\n**Prompt**: `/create-canvas Create a worktree view that will help me see all of my current sessions and whether or not they are active or orphaned. Allow me to clean them up with a few clicks where needed`\n\n![Canvas showing a worktree view of Copilot sessions.](https://github.blog/wp-content/uploads/2026/07/3-worktree.png?resize=1024%2C561)\n\n**Result**: The canvas generates a visual showing my worktrees with clear indication of what is active and what is currently stale or orphaned. I can clean up stale worktrees with the click of a button.\n\n## Agent prompt coach\n\n**Goal**: Improve prompt quality by reviewing past interactions and suggesting clearer, more effective ways to work with agents.\n\n**Prompt**: `/create-canvas Create an interactive prompt coach that suggests to you how you could have improved your previous prompts in your sessions with skills, mcp servers, etc. Make note of any spelling errors, syntax errors, etc.`\n\n![Canvas showing a prompt coach to help improve wording of previous prompts.](https://github.blog/wp-content/uploads/2026/07/5-coach.png?resize=1024%2C562)\n\n**Result**: The canvas shows a list of previous prompts and analyzes each one, suggesting improvements such as missing context, spelling issues, and more. You can use these tips to refine your future prompts, improve clarity, and get more consistent results from the agent.\n\n## Knowledge finder\n\n**Goal**: Find people who have context on a specific file or topic by searching across Slack, Teams, email, and documentation.\n\n**Prompt**: `/create-canvas Create a way that I can search across Slack, Teams, Email and docs to find people with knowledge of a specific file or someone that would have more context.`\n\n![Canvas showing a knowledge finder that helps search across multiple workspaces.](https://github.blog/wp-content/uploads/2026/07/6-knowledge.png?resize=1024%2C547)\n\n**Result**: Based on the search, the canvas looks across multiple tools and surfaces the people that are most connected to a given file or subject. It highlights who the person is, and where the connection was found. This allows you to quickly understand someone’s connection to a topic and make it easier to reach out for more information.\n\n## Take this with you\n\nThese examples only scratch the surface of what you can do with canvases. Canvases can turn AI from a conversational tool into a place where you can visualize information, explore different workflows, and turn boring tasks into fun experiences that you’ll actually want to complete.\n\nCanvases are a fun, shared workspace where you and the agent can think, explore, and take action together.\n\n**Want to try out canvas extensions?** You can get started in the [GitHub Copilot app](https://github.com/features/ai/github-app). [Read the docs](https://docs.github.com/en/copilot/how-tos/github-copilot-app/working-with-canvas-extensions) for more information >\n\nThe post [How to build interactive experiences with canvases](https://github.blog/ai-and-ml/github-copilot/how-to-build-interactive-experiences-with-canvases/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub Copilot",
+        "canvases"
+      ],
+      "score": 75,
+      "summary": "GitHub Copilot推出canvas扩展，支持交互式可视化与协作。",
+      "fetched_at": "2026-07-22T01:39:49.005926+08:00"
+    },
+    {
+      "title": "RubyMine 2026.2: Agentic Debugging, Native GitHub Copilot Integration, Default Symbol-Based Code Insight, and More",
+      "link": "https://blog.jetbrains.com/ruby/2026/07/rubymine-2026-2-agentic-debugging-native-github-copilot-integration-default-symbol-based-code-insight-and-more/",
+      "published": "2026-07-22T00:05:46+08:00",
+      "source": "The JetBrains Blog",
+      "content": "RubyMine 2026.2 is out!\n\nRubyMine 2026.2 introduces agentic debugging, native GitHub Copilot integration, AI completion with third-party providers, and symbol-based code insight enabled by default. You’ll also find improvements across the Ruby ecosystem and everyday IDE workflows.\n\nYou can download RubyMine 2026.2 from our [website](https://www.jetbrains.com/ruby/download) or update via the [Toolbox App.](https://www.jetbrains.com/toolbox/app/)\n\nLet’s look at what’s new.\n\n## **AI**\n\n### **Agentic debugging**\n\nInstead of manually stepping through your application, you can now ask an AI agent to investigate a problem using the RubyMine debugger.\n\nAgentic debugging is powered by **bundled skills** – predefined workflows that give compatible AI agents access to IDE capabilities. RubyMine 2026.2 includes the new `rubymine-debugger` skill, allowing agents to launch debug sessions, inspect runtime state, and analyze application behavior on their own. This helps them identify issues that are difficult to understand from source code and logs alone.\n\n[](https://blog.jetbrains.com/wp-content/uploads/2026/07/ai_debugs.mp4)\n\n### **AI completion with third-party providers**\n\nAI-based code completion is available to all JetBrains AI users out of the box and provides inline suggestions and next edit suggestions that go beyond the cursor without consuming AI credits.\n\nWith RubyMine 2026.2, you can now use your own OpenAI-compatible model providers for AI completion, making it easier to integrate your preferred models into your development workflow.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/third_party.png)\n\n### **Native GitHub Copilot integration**\n\nThanks to our partnership with Microsoft, Copilot is now built into RubyMine and available directly from the AI chat.\n\nJust pick *GitHub Copilot* from the agent selector, sign in with your GitHub account, and you’re ready to go.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/copliot.png)\n\n## **Smarter code insight, now enabled by default**\n\nIn RubyMine 2026.1, we introduced a new symbol-based code insight engine as an experimental feature. Starting with 2026.2, it’s enabled by default.\n\nThe new engine changes how RubyMine understands Ruby classes, modules, and constants, providing more accurate navigation and documentation while serving as the foundation for future improvements.\n\nThe new release expands symbol-based modeling across the IDE and makes it even more efficient.\n\n**Richer** ***Quick Documentation***\n\n*Quick Documentation* now presents definitions more clearly and displays additional type information whenever it’s available.\n\n*Ctrl/Cmd+Hover* has also become more informative and now shows type information for more Ruby symbols, including constants and global variables.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/type_info.png)\n\n### **Better support for partially resolved code**\n\nEven if a class, module, or constant cannot be completely resolved, features like *Go to Declaration*, *Find Usages*, *Rename*, and *Quick Documentation* continue to work whenever meaningful information is available.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/unresolved.png)\n\n### **Parameter definitions**\n\nParameter definitions now use the same symbol-based modeling as the rest of the engine.\n\nBesides the performance improvements, this also brings more accurate *Rename* refactoring, better fuzzy completion, and smarter handling of complex names inside string literals.\n\nIf necessary, you can still switch back to the previous implementation in *Settings | Languages & Frameworks | Ruby | Code Insight*.\n\n## **Ruby ecosystem improvements**\n\n### **Better RBS experience**\n\nRubyMine 2026.2 brings several improvements to the RBS experience:\n\n* Type parameter hints now display variance modifiers, upper bounds, and default values.\n* Module self-types are shown directly in Ruby code.\n* Managing RBS hints is easier thanks to new editor actions available directly from the code.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/rbs.png)\n\n### **Expanded RSpec 4 support**\n\nRubyMine now offers broader support for RSpec 4, making it easier to migrate existing projects.\n\nThe IDE detects deprecated syntax, highlights compatibility issues, and provides quick-fixes for common upgrade scenarios.\n\nInspections now cover top-level DSL declarations, deprecated should expectations, and other RSpec 4 compatibility changes, making it easier to modernize test suites before they become a problem.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/rspec.png)\n\n### **Skipping non-project code while debugging**\n\nWhen stepping through code, you usually care about your own application – not framework internals.\n\nThe *Ignore non-project sources* option now works much more reliably. RubyMine skips Ruby standard library code, framework internals, third-party gems, and excluded directories, allowing you to stay focused on the code you’re actually debugging.\n\nThe result is less manual stepping and cleaner debugging sessions.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/ignore_on.gif)\n\n## **User experience improvements**\n\n### **Faster gem environment updates**\n\nGem environment refreshes now happen in the background, reducing UI freezes and keeping RubyMine responsive while SDK and dependency information is updated.\n\n### **Simpler project opening**\n\nOpening existing projects now requires less manual setup.\n\nRubyMine can automatically detect the appropriate Ruby interpreter from project configuration files, reducing unnecessary setup notifications and helping you get started faster.\n\n### **More efficient RuboCop processing**\n\nBackground RuboCop analysis has been optimized to reduce unnecessary CPU usage, improving IDE responsiveness during everyday development.\n\n## Stay in touch\n\nTo learn about the latest features as they come out, please follow [RubyMine on X](https://twitter.com/rubymine).\n\nWe invite you to share your thoughts in the comments below and to suggest and vote for new features in the [issue tracker](https://youtrack.jetbrains.com/issues/ruby).\n\nHappy developing!\n\nThe RubyMine team",
+      "tags": [
+        "RubyMine",
+        "Agentic Debugging",
+        "GitHub Copilot"
+      ],
+      "score": 70,
+      "summary": "RubyMine 2026.2引入代理调试、原生GitHub Copilot集成等新功能。",
+      "fetched_at": "2026-07-22T01:39:49.005928+08:00"
+    },
+    {
+      "title": "What’s New in PyCharm 2026.2",
+      "link": "https://blog.jetbrains.com/pycharm/2026/07/what-s-new-in-pycharm-2026-2/",
+      "published": "2026-07-21T23:53:12+08:00",
+      "source": "The JetBrains Blog",
+      "content": "In PyCharm 2026.2, you can build Python extensions with the new Rust plugin and debug them using debugpy, which is now the default engine. Running external utilities is now managed through a redesigned settings UI for `uvx`, while multi-project setups are supported out of the box for uv, Poetry, and Hatch workspaces. This release also introduces an editor minimap, integrates the Pyrefly engine for faster type insights, adds AI project generation, and more.\n\n[Read the full What’s New](https://www.jetbrains.com/pycharm/whatsnew/)\n\n### Python extension development with the Rust plugin [Beta][Pro]\n\nWork seamlessly with Python projects that leverage Rust modules to speed up performance-critical components.\n\n### debugpy as the default debugger\n\nFollowing its introduction as an optional backend in 2026.1, debugpy is now enabled by default for all Python projects and Jupyter notebooks, using the Debug Adapter Protocol (DAP).\n\n### Support for uv-backed tools and `uvx`\n\nPyCharm now leverages the uv toolchain to streamline how you run your external development utilities, eliminating manual package setups that clutter your local environment.\n\n### Support for uv, Poetry, and Hatch multi-projects and uv workspaces [Beta]\n\nPreviously available as an [optional feature in PyCharm 2026.1.1](https://blog.jetbrains.com/pycharm/2026/05/support-for-uv-poetry-and-hatch-workspaces-beta/), this functionality is enabled by default in version 2026.2. It streamlines your subproject management and provides richer dependency insights directly within your configuration files.\n\n### Editor minimap\n\nNavigate complex source files and notebooks more efficiently with the official editor minimap. It provides a high-level visual overview of your document structure across all supported file types – while offering a dedicated layout built just for Jupyter notebooks.\n\n### Pyrefly type engine integration\n\nUse Pyrefly as an external type engine to significantly accelerate code insight features for large-scale Python codebases.\n\n### Start new projects with AI\n\nIf you have a JetBrains AI license, you can now generate fully configured, runnable projects from scratch using natural language prompts directly from the Welcome screen.\n\n### Agent skills manager\n\nAI agents are only as useful as the context they have. When they don’t have knowledge of your frameworks, conventions, and tooling, you end up re-explaining the same setup in every new chat window.\n\nAgent skills fix that. Install them once in PyCharm, and your agents carry that domain knowledge across every project and session – automatically. Browse and manage skills directly from the IDE, expand the built-in library with external registries like public GitHub repositories, or let PyCharm import skills you’ve already set up for Claude Code or Codex.\n\n[Read the full What’s New](https://www.jetbrains.com/pycharm/whatsnew/)",
+      "tags": [
+        "PyCharm",
+        "Rust插件",
+        "debugpy"
+      ],
+      "score": 70,
+      "summary": "PyCharm 2026.2支持Rust插件、默认debugpy调试器及多项目管理。",
+      "fetched_at": "2026-07-22T01:39:49.005930+08:00"
+    },
+    {
+      "title": "ICML 2026 | 美团技术团队学术论文精选",
+      "link": "https://tech.meituan.com/2026/06/29/ICML-2026.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "ICML（International Conference on Machine Learning，国际机器学习大会）是机器学习领域最具影响力的国际顶级学术会议之一。大会旨在探讨机器学习未来发展所面临的关键挑战与核心问题，并通过征集和评估具有重要理论价值和实际影响的前沿研究成果，推动领域发展并引领未来研究方向。2026年，ICML共收到全球篇论文23918投稿，最终6352篇被接收，接收率约为26.6%。本文解读了美团技术团队被收录的13篇论文，覆盖智能体推理、强化学习训练、复杂任务生成、智能体基准测试、监督微调等技术方向。\n\n## 01 MemOCR: Layout-Aware Visual Memory for Efficient Long-Horizon Reasoning\n\n**MemOCR：面向高效长程推理的版面感知视觉记忆机制**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.21468)\n\n![](https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp)\n\n**论文简介**：长时间跨度的智能体推理需要将不断增长的交互历史有效压缩到有限的上下文窗口中。现有的大多数记忆系统将历史序列化为文本，其中token级别的开销是均匀的，且与长度线性增长。为此，我们提出了MemOCR，一种多模态记忆智能体，通过视觉布局实现自适应信息密度的记忆空间分配，从而在紧张的上下文预算下提升长时间跨度推理能力。在长上下文多跳和单跳问答基准测试中，MemOCR优于强文本基线方法，并在极端预算条件下实现了更有效的上下文利用。\n\n## 02 ScaleEnv: Scaling Environment Synthesis from Scratch for Generalist Interactive Tool-Use Agent Training\n\n**ScaleEnv: 从零开始构建可扩展的环境合成系统用于通用交互式工具使用智能体的训练**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.06820)\n\n![](https://p1.meituan.net/meituantechblog/ccceeac77d665e5ffea65436222decc7118744.webp)\n\n**论文简介**：为智能体配备交互式环境和可验证任务以进行自我探索，对于培养能够适应多样化场景的通用智能体至关重要。我们提出了ScaleEnv，一个完全从零开始构建全交互式环境和可验证任务的框架。ScaleEnv通过程序化测试确保环境的可靠性，通过工具依赖图扩展和可执行动作验证来保证任务的完整性和可解性。在未见过的多轮工具使用基准测试上展示了显著的性能提升，突显了强大的泛化能力。\n\n## 03 V\\_0: A Generalist Value Model for Any Policy at State Zero\n\n**V\\_0：一种适用于任意策略在初始状态下的通用价值模型**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.03584)\n\n![](https://p0.meituan.net/meituantechblog/78419c635c8bc694f07882566afb116176626.webp)\n\n**论文简介**：大语言模型的强化学习训练中的价值模型面临耦合困境：它们需要与更新中的策略同步训练。我们提出了V\\_0，一种通用价值模型，通过将任务重新定义为上下文学习来预测未见策略的性能，从而将价值估计与特定策略参数解耦。实验结果表明，V\\_0在GRPO训练过程中追踪策略演化方面优于耦合价值模型，能够优化冷启动预算分配，并在推理路由中逼近性能-成本的帕累托前沿。\n\n## 04 Learning to Self-Verify Makes Language Models Better Reasoners\n\n**学习自我验证使语言模型成为更好的推理者**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.07594)\n\n![](https://p1.meituan.net/meituantechblog/75add83935b72c67529dc96ae4b6a9b268520.webp)\n\n**论文简介**：近期的大语言模型在为复杂任务生成有前景的推理路径方面表现出色，但在验证自身答案方面仍然薄弱。我们发现学习自我验证能够有效提升生成性能，产生更高效的推理轨迹。我们提出了一个多任务强化学习框架，将生成和自我验证作为两个独立但互补的目标进行联合优化。实验表明，该方法在生成和验证能力上均优于仅进行生成训练的方法。\n\n## 05 AgentNoiseBench: Benchmarking Robustness of Tool-Using LLM Agents Under Noisy Condition\n\n**AgentNoiseBench：噪声条件下工具使用型大语言模型智能体的鲁棒性基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.11348)\n\n![](https://p0.meituan.net/meituantechblog/31e3e86e970c5c79e9b4d762b09326dd118430.webp)\n\n**论文简介**：随着基于大语言模型的智能体越来越多地部署在实际工作流程中，现有的智能体基准测试不足以刻画智能体在不完美用户指令和不可靠工具反馈下的鲁棒性。我们提出了AgentNoiseBench，一个用于系统评估大语言模型智能体交互式噪声鲁棒性的框架。该基准建模了用户侧指令噪声和工具侧结果噪声两种主要噪声来源，提供模块化噪声注入管道和多维度评估指标。通过对25个工具使用模型的评估，发现工具侧噪声通常比用户侧噪声引起更大幅度的性能下降。\n\n## 06 AJ-Bench: Benchmarking Agent-as-a-Judge for Environment-Aware Evaluation\n\n**AJ-Bench：面向环境感知评估的智能体裁判基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.18240)\n\n![](https://p1.meituan.net/meituantechblog/2b3544e8ab174ad18492a3a6c98ed6b9127010.webp)\n\n**论文简介**：随着强化学习不断推动基于大语言模型的智能体训练规模化，在复杂环境中可靠地验证智能体行为变得日益困难。现有方法依赖基于规则的验证器或 LLM-as-a-Judge 模型，但这些方法难以泛化到狭窄领域之外。Agent-as-a-Judge 通过主动与环境和工具交互以获取可验证的证据来解决这一局限性，但其能力仍未得到充分探索。 我们提出了一个基准测试 AJ-Bench，用于系统性地评估\"智能体充当评判者\"在三个领域——搜索、数据系统和图形用户界面——中的表现，涵盖155个任务和516条标注轨迹。该基准全面评估了评判智能体在信息获取、状态验证和过程验证方面的能力。实验表明，相比 LLM-as-a-Judge 基线方法，该方法取得了稳定的性能提升，同时也揭示了基于智能体的验证中仍存在的重大开放性挑战。\n\n## 07 LUVE : Latent-Cascaded Ultra-High-Resolution Video Generation with Dual Frequency Experts\n\n**LUVE：基于双频率专家的潜空间级联超高分辨率视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.11564)\n\n![](https://p0.meituan.net/meituantechblog/adcdda2e2386d052a06f76362ffc24df164210.webp)\n\n**论文简介**：为解决超高分辨率视频生成中连贯性与算力难以兼顾的难题，该论文提出了基于双频专家的潜空间级联框架LUVE。该框架创新性地采用三阶段架构：先通过低分辨率生成保障运动一致性；接着利用潜空间上采样直接提升分辨率，大幅降低内存与计算开销；最后融合高低频专家细化高分辨内容，全面增强全局语义与局部细节。实验表明，LUVE展现出了卓越的逼真度与内容保真度，其核心思想现已成功应用于美团LongCat-Video模型中。\n\n## 08 Infinite-World: Scaling Interactive World Models to 1000-Frame Horizons via Pose-Free Hierarchical Memory\n\n**Infinite-World：通过无位姿层次化记忆将交互式世界模型扩展至1000帧**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.02393)\n\n![](https://p0.meituan.net/meituantechblog/7e37532eff0ab36936a1b9cd21f869e7119212.webp)\n\n**论文简介**：Infinite-World 是面向真实场景中的长程交互式世界模型，其目标是在 1000+ 帧生成中保持稳定的视觉记忆和动作响应。针对真实视频中位姿噪声大、视角回访稀少的问题，论文提出三点创新：用无位姿层级记忆压缩器将历史 latent 压缩为固定预算记忆，降低长程建模成本；用不确定性感知动作标注提升噪声轨迹下的动作学习；再通过高回访数据微调增强 loop closure 能力。整体上，它让世界模型更适合从真实视频学习长时空一致性。\n\n## 09 WildActor: Unconstrained Identity-Preserving Video Generation\n\n**WildActor：无约束身份保持视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2603.00586)\n\n![](https://p1.meituan.net/meituantechblog/24933777ccb49e8a29a709b287221cd8309446.webp)\n\n**论文简介**：本文提出 WildActor，一种面向无约束身份保留的视频生成新框架，旨在应对现有方法在动态长镜头和视角剧烈切换时面临的全身体态不一致、面部漂移及姿态僵死伪影。在机制层面，WildActor 构建了含1.6M视频和18M多视角图像的大规模数据集 Actor-18M，有效解决原始数据中的正脸偏置；同时引入非对称身份保留注意力（AIPA）解耦身份与运动生成，并结合身份感知3D旋转位置编码（I-ROPE）显式分离时空 Token，配合视角自适应蒙特卡洛采样实现了鲁棒的任意视角条件控制。实验表明，WildActor 在新构建的 Actor-Bench 连贯叙事与泛化测试中，不仅全身一致性与文本对齐度显著超越现有开源及商业大模型，还验证了其在复杂现实场景下保持物理恒常性的优越性。\n\n## 10 Navigating the Pareto Frontier of Alignment: Spectrum-Adaptive Fine-Tuning for LLMs\n\n**SAFT：面向大语言模型的谱自适应微调方法**\n\n**论文下载**：[PDF](https://github.com/sjtu-scx/SAFT/blob/main/SAFT.pdf)\n\n![](https://p0.meituan.net/meituantechblog/f7b88b332a240ef7176c970b7c6879cd170832.webp)\n\n**论文简介**：监督微调常用交叉熵作为目标函数，虽然学习高效，但它并非正确率的光滑近似，还会因为特别关注预测概率低的样本从而容易对噪音过度拟合并过度自信。DFT则在梯度层面等同优化正确率的光滑近似函数，在保持训推一致性的同时提升了鲁棒性，但也会削弱对可学习的难样本的学习效率。因此，SFT 与 DFT 构成效率—鲁棒性两个端点，而真实数据应选择哪种折中取决于其未知的内在 SNR。我们提出轻量的 pre-test protocol：用少量训练数据分别训练 SFT/DFT 并在验证集比较表现，SFT 更优则判定为高 SNR 并选择几何插值Geo-SAFT，DFT 更优则判定为低 SNR 并选择调和插值Har-SAFT。相比仍保留低置信梯度发散的线性插值，SAFT 通过数据自适应的几何/调和非线性插值匹配不同噪声 regime，从而获得更优的鲁棒性—效率 Pareto trade-off。\n\n## 11 TRIP-Bench: A Benchmark for Long-Horizon Interactive Agents in Real-World Scenarios\n\n**TRIP-Bench：真实场景中长时域交互式智能体的基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.01675)\n\n![](https://p0.meituan.net/meituantechblog/99f9fc23599da395c9ace3cba6c7d90787516.webp)\n\n**论文简介**：本论文提出了 TRIP-Bench，一个面向长程交互式 Agent 的旅行规划评测基准。它基于真实世界数据构建，包含 18 个工具和 40 多类旅行约束，重点考察模型在多轮对话中保持全局约束、调用工具、处理用户需求变化和方案反复修改的能力。其困难任务最长可达 15 轮用户交互、150 次以上工具调用，甚至超过 20 万 tokens 上下文。实验表明，现有先进模型在该基准上仍表现有限。论文进一步提出 GTPO 多轮强化学习方法，通过奖励归一化和轮次级奖励差分提升模型鲁棒性，使 Qwen2.5-32B-Instruct 在评测中超过 Gemini-3-Pro。\n\n## 12 InfVSR: Toward Consistency-Driven Streaming Generative Video Super-Resolution\n\n**InfVSR：面向一致性驱动的流式生成视频超分辨率**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2510.00948)\n\n![](https://p0.meituan.net/meituantechblog/8120868b5fc25080dc2c2986f2323c5468146.webp)\n\n**论文简介**：本文提出了 InfVSR，一种面向一致性驱动的流式生成视频超分辨率新框架，旨在解决扩散式视频超分方法在长视频场景中存在的推理效率低、显存占用大和时序不一致问题。其核心机制包括：将预训练视频 DiT 改为因果流式架构，引入滚动 KV 缓存以维持局部过渡平滑性；设计联合视觉引导通过交叉注意力注入全局语义锚点，抑制累积误差漂移。训练阶段结合分块像素监督与跨块分布匹配，双重约束时序一致性，并将扩散过程蒸馏为高效单步推理。实验表明，InfVSR 在多项基准上取得 SOTA 性能，时序一致性显著领先，推理速度提升 58 倍且长序列显存占用恒定。\n\n## 13 DRIVE: Distributional and Retrieval-Augmented Bidding with Value Evaluation\n\n**DRIVE**：基于混合分布与检索增强的价值评估出价策略\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.14192)\n\n![](https://p0.meituan.net/meituantechblog/3c5da2f5bb1f05cb0e55acd180e633f544634.webp)\n\n**论文简介**：针对标准Decision Transformer (DT)在复杂竞价环境中的三大痛点（“平均动作”陷阱、长尾幻觉、缺乏推理优化），提出“生成—检索—评估”闭环框架：1）用高斯混合模型替代确定性输出，解决多模态策略坍缩问题；2）引入检索机制增强长尾场景记忆，避免参数化模型幻觉；3）通过IQL Critic实现闭环择优，对生成动作与历史动作进行实时评估。该方案显著提升决策鲁棒性。",
+      "tags": [
+        "ICML 2026",
+        "美团",
+        "智能体推理"
+      ],
+      "score": 82,
+      "summary": "美团13篇论文被ICML 2026收录，覆盖智能体推理、强化学习等方向。",
+      "image_url": "https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp",
+      "fetched_at": "2026-07-22T01:39:49.005932+08:00"
+    },
+    {
+      "title": "LongCat 开源 VitaBench 2.0：长期动态智能体基准新标杆",
+      "link": "https://tech.meituan.com/2026/06/29/LongCat-VitaBench-2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "一个经常加班的白领，一个带着孩子出游的父亲，你的AI助理能分清他们需要什么样的服务吗？\n\n现实是，它常常分不清。\n\nAI能执行你明确的指令，却很难记住那些藏在场景和身份背后的真实需求。它们是真的无法理解，还是“情商”不够高呢？\n\n自去年10月发布了 **VitaBench 1.0**，首次定义了生活场景下智能体任务的复杂度，美团 Longcat 团队再次推出 VitaBench 2.0，它不再仅仅关注任务有多难，而是将目光投向了更深层次的挑战。\n\n**VitaBench 2.0 是首个真实生活场景下面向长期动态用户建模的智能体评测基准，它系统性地评测大语言模型在长期、真实、动态的用户互动中个性化与主动性的能力**。\n\n**VitaBench 2.0 的 核心“硬核”看点**：\n\n* 高难度业界首创：首次将智能体场景与丰富用户生态相结合，打造面向长期动态用户建模的智能体基准。其包含56名真实特征用户、819个复杂任务、超2000个动态偏好及66个可执行工具。\n* 超长跨度动态追踪：平均每位用户包含 2093 个交互事件，平均时间跨度长达 1580 天，严格按时间线向 Agent 暴露，真实还原用户偏好的演进与漂移。\n* 统一评测生态：针对长文本上下文学习（In-context learning）与智能体记忆策略（Memory Strategy）的统一评测平台。\n\n## 01 设计原理：VitaBench 2.0的三维解构\n\n能得出这些结论，得益于VitaBench 2.0的核心设计。它不再是简单的问答，而是围绕三大创新构建了一个前所未有的评测体系。\n\n![图1：VitaBench 2.0 概览图](https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp)\n\n### 1.1 搭建“人生副本”：让AI在真实用户轨迹中接受考验\n\n不同于一次性的问答，VitaBench 2.0为56位虚拟用户，在送餐、到店、差旅等多个真实领域中，构建了包含2000多种动态偏好、跨度长达数年的生活轨迹。\n\n这背后是庞大而真实的数据支撑。如下图所示，这些图表直观地展示了我们构建的用户画像和偏好分布的真实性与复杂性。\n\n![图2：VitaBench 2.0 用户画像统计图](https://p0.meituan.net/meituantechblog/54c8ca3a15f23f55b88d079885aedf63148034.webp)\n\n![图3：VitaBench 2.0 用户偏好统计图](https://p0.meituan.net/meituantechblog/765450b81465c59972ae583ca0946e64149788.webp)\n\n具体来说，这个数据生态包含：\n\n* 56个拟真用户，每个用户都拥有基于真实世界统计数据构建的独特身份、习惯和需求。\n* 819个可执行任务，贯穿于用户的整个生命周期。\n* 用户的偏好不是静态标签，而是会随着时间、事件而动态演变，平均每个用户的偏好会发生超过48次动态变化。\n\n这些偏好被巧妙地嵌入到碎片化的互动历史中，包括对话记录和行为日志（如浏览、搜索、下单）。智能体必须像侦探一样，从这些混杂着“信号”与“噪音”的线索中，持续对用户进行理解。\n\n### 1.2 引入“时间标尺”：将持续理解作为核心目标\n\n传统的Agent评测关注“单个任务是否完成”，而VitaBench 2.0的核心目标是评测**智能体是否在持续理解一个动态的人**。\n\n为此，我们将评测的时间轴拉长到了前所未有的尺度，用户的平均交互周期长达**1580天（约4.3年）**，最长甚至达到 **2,974** 天。在这漫长的时间线里，智能体需要不断地**提取、利用、并更新**对用户的理解，才能在后续的任务中做出正确决策。这从根本上改变了评测的焦点，从单次任务的成功，转向了对用户偏好的考核。\n\n### 1.3 设立“记忆擂台”：对决AI的两种记忆模式\n\n为了探究记忆在长期用户建模中的作用，VitaBench 2.0搭建了首个真实用户场景下的统一长期智能体评测平台，通过可扩展的接口，让两种代表性机制在此对决：\n\n* **智能体记忆**： AI自己决定记住什么、忘记什么，主动维护一个精炼的用户档案。\n* **RAG记忆**： 像一个外部搜索引擎，根据当前任务检索最相关的历史片段。\n\n通过对比这两种模式，我们可以清晰地看到不同记忆架构，以及同架构下的不同设计对个性化决策的真实影响，从而回答“AI应该如何记忆”这一关键问题。同时，为了考验AI的“眼力劲”，我们还设计了主动性任务。在这些任务中，AI必须意识到信息不足并主动提问，而不是盲目决策。\n\n## 02 核心洞察：用数据看清模型的短板\n\nVitaBench 2.0不仅给出了总分，更用数据揭示了模型们犯错的具体原因。如表1所示，这是主要模型在不同记忆设置下的性能排行榜。\n\n![表1：主要模型在不同记忆设置下的性能表现](https://p1.meituan.net/meituantechblog/521cabb68ee8fad43452344cba3bb4a1649960.webp)\n\n从排行榜（表1）可以看出，即使在能看到全部历史记录的“开卷”模式下，最强的模型Claude-Opus-4.6的平均分也刚过0.5，说明从海量信息中准确提炼偏好本身就比较困难。而一旦切换到更真实的记忆模式，模型的表现出现了不同程度的下滑。\n\n**洞察一：时间越长，AI忘得越快**\n\n如下图所示，随着任务序列索引增加（即时间推移），所有模型的平均性能都在下降。这说明，无论是处理超长上下文的能力，还是记忆模块的累积误差，都严重限制了AI的长期服务能力。\n\n**更关键的是，记忆并没有成为解药**。对比实验结果发现，大部分模型在接入Agentic Memory或RAG Memory后，性能反而低于直接使用全历史记录的场景——**记忆不是装上就好**，如何正确更新、检索和利用，才是真正的挑战。\n\n![图4：模型性能随任务序列（时间）的衰减分析](https://p1.meituan.net/meituantechblog/212aa3a638a9bcacbbcadea7718d77d628306.webp)\n\n**洞察二：高“智商”不等于高“情商”**\n\n一个常见的假设是，开启模型的“思考模式”能提升其表现。然而，VitaBench 2.0 的实验结果给出了相反的答案：**开启思考模式，在个性化任务上并不总是有帮助**。\n\n下图展示了模型在开启/关闭思考模式下的性能与效率关系。横轴是完成任务所需的交互轮数（越少越好），纵轴是平均性能（越高越好），理想的模型应位于左上角。可以看到，开启思考模式的点并没有稳定地比关闭模式更优越。\n\n![图5：开启/关闭思考模式下的模型性能与效率](https://p0.meituan.net/meituantechblog/5e633bfcc648e2d8d5b34eaaa9469a7048792.webp)\n\n**洞察三：AI普遍缺乏“主动沟通”的意愿**\n\n模型普遍缺乏在信息不足时主动提问的“眼力见”。所有模型家族在需要主动提问的任务上，得分都出现了“断崖式”下跌。例如，Claude家族的平均分从46.0骤降至27.4。这表明，AI倾向于“想当然”，而不是在不确定时“多问一句”。\n\n![图6：模型在主动性任务上的性能表现](https://p0.meituan.net/meituantechblog/dc9b1835d1107a759336fabf3ba6870074674.webp)\n\n**洞察四：就算“喂到嘴边”，AI也未必会吃**\n\n为了分离“提取偏好”和“利用偏好”这两个难题，我们直接把真实用户偏好告诉模型。虽然性能有所提升，但仍有很大进度空间。**即便把真实偏好直接告诉模型，多数模型仍然失败**。这说明，即使拥有了准确的用户画像，在高压、多约束的决策中正确应用这些偏好，本身就是一个巨大的挑战。\n\n![图7：在提供真实偏好下的模型性能](https://p1.meituan.net/meituantechblog/cf75832fa9983f74bb404bf899cac91223446.webp)\n\n**洞察五：从“工具失误”到“情商不足”的瓶颈转移**\n\n我们对模型的失败原因进行了分类统计。在由**66个真实工具**构成的复杂生活服务场景中，早期模型更多地犯下工具使用错误（A类），例如选错API或填错参数。而更强的模型（如DeepSeek-V4-Pro）虽然工具用得更好了，但在偏好理解和应用（B类）上的失败却成了主要矛盾。这表明随着模型基础能力的提升，**个性化已是当前 Agent 的最大瓶颈**。\n\n![图8：模型失败模式分析（DeepSeek家族为例）](https://p1.meituan.net/meituantechblog/8cdd5784d215584793d4eabed47c184f59698.webp)\n\n## 03 总结：定义下一代智能体评测范式\n\nVitaBench 2.0清晰地揭示了，当前AI在成为“高情商助理”的路上，依然任重道远。\n\n它的核心价值，在于推动了评测范式的演进：**从单点任务到长期陪伴，从被动执行到主动沟通，从黑盒到透明**。这使得VitaBench 2.0成为一座连接技术与产品的“桥梁”，它用可量化的数据回答了“我的AI为什么不够好用”的问题，并为开发者指明了模型在“服务于人”这一终极目标上的具体短板。\n\n我们希望，VitaBench 2.0能成为一个起点，激发更多研究关注智能体的个性化、记忆和主动性，共同推动AI从一个强大的“工具”进化为一个有温度的“伙伴”。\n\n**VitaBench 2.0 已全面开源，欢迎各大模型前来接受“情商”大考**。\n\n**开源地址**\n\n* **项目主页**： <https://vitabench2.github.io/>\n* **论文链接**： <https://arxiv.org/abs/2605.27141>\n* **GitHub**： <https://github.com/meituan-longcat/vitabench-2.0>\n* **HuggingFace**：<https://huggingface.co/datasets/meituan-longcat/VitaBench-2.0>",
+      "tags": [
+        "VitaBench 2.0",
+        "智能体基准",
+        "长期动态"
+      ],
+      "score": 82,
+      "summary": "美团LongCat发布VitaBench 2.0，首个面向长期动态用户建模的智能体评测基准。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp",
+      "fetched_at": "2026-07-22T01:39:49.005934+08:00"
+    },
+    {
+      "title": "美团海报生成 AIGC 技术创新与实践",
+      "link": "https://tech.meituan.com/2026/06/18/AIGC-poster.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "一张商业海报，对设计师来说可能是半天工作；对百万中小商家来说，却可能是一道迈不过去的门槛。外包一张专业海报，少则数百、多则数千元；临时促销要求分钟级交付，传统设计流水线却要1到3天；好不容易批量生产出来，质量又参差不齐——这是美团平台上数百万商家每天都在面对的真实困境。AIGC 给了我们一个新的答案，但「生成一张看起来还行的图」和「生成一张真正可用的商业海报」之间，横亘着精准文字渲染、和谐版式布局、多任务统一支持、质量可量化评估等多项相互交织的技术挑战。过去两年，美团智能创作团队围绕这一问题，构建了覆盖「能生成、能编辑、能评判」的完整技术体系：\n\n* PosterCraft（ICLR 2026）：摒弃模块化流水线，端到端统一优化文字、视觉与版式，在文字渲染准确率上接近Top级别的闭源商业系统；\n* PosterOmni（CVPR 2026）：单一模型覆盖扩图、补全、比例调整、风格迁移等六类设计任务，更接近\"基于参考稿工作的智能设计助手\"；\n* PosterReward（CVPR 2026）：首个专门面向海报质量评估的奖励模型，在专项评测基准上达到 86% 准确率，远超现有基线，既驱动生成模型持续进化，也承担线上质检把关。\n\n三者形成「生成-编辑-评判」的技术闭环，相互支撑、持续自我进化。目前三项工作均已全部开源于 MeiGen-AI 仓库，并在美团外卖套餐图生成、品牌 IP 袋鼠团团、点评信息流治理等多个真实业务场景中完成落地。本文将系统拆解这套技术体系的核心思路、关键创新与实战经验。\n\n## 一、背景与挑战\n\n### 1.1 业务背景：百万商家的\"创意平权\"难题\n\n美团连接数百万商家与数亿消费者，海报作为核心视觉营销载体，贯穿商家日常运营全场景。然而，百万商家普遍面临四重困境：\n\n* **设计资源匮乏**：专业营销海报外包动辄数百至数千元，中小商家难以承受；即便是大型连锁品牌，面对多城市、多门店的差异化营销需求，设计师团队同样捉襟见肘。\n* **时效性要求苛刻**：天气突变、突发热点、临时促销等本地生活场景要求海报\"分钟级\"交付，传统设计流水线 1–3 天的周期已严重脱节。\n* **内容同质化严重**：大量商家依赖固定模板做简单文字替换，海报千篇一律，在信息爆炸时代难以触达消费者，营销转化率持续走低。\n* **批量生产质量失控**：从精雕细琢转向规模化生产后，如何保证每张海报达到商业可用标准，成为新的运营难题。\n\n### 1.2 技术挑战：高质量海报生成的多维难题\n\nAIGC 为上述问题提供了新思路，但**高质量海报生成**远非简单的文生图任务，面临五大相互交织的技术挑战。\n\n**挑战一：精准的文字渲染**\n\n海报文字要求\"零容错\"——任何错误、缺失或模糊都导致整张海报不可用。主流扩散模型在多行文字、中文字符和小字号文本上仍有明显短板，中文场景下难度尤甚。\n\n**挑战二：和谐的版式布局**\n\n优秀海报遵循对比、重复、对齐、亲密性等设计原则，这种\"设计感\"难以规则化，更多依赖对大量优秀作品的隐式学习，是一个开放性难题。\n\n**挑战三：统一的美学风格**\n\n色彩和谐、视觉层次、品牌调性等多维度共同构成美学判断，且不同行业标准迥异：餐饮要\"食欲感\"，美妆要\"精致感\"，科技要\"未来感\"。模型需在保持整体美学水准的同时适配多样化风格需求。\n\n**挑战四：多任务场景的统一**\n\n真实设计需求横跨\"局部编辑\"（文字排版叠加、局部填充）和\"全局创作\"（风格迁移、版式重组）两大范畴，如何在单一模型中同时支持所有场景，是模型设计和训练策略上的重大挑战。\n\n**挑战五：质量评估的可量化**\n\n现有图像质量指标（FID、IS 等）无法捕捉海报特有的排版质量、文字准确性和设计规范性，而人工评估成本高昂且难以规模化。我们需要一套既能驱动模型优化（作为 RL 奖励信号），又能承担线上质检的自动化评估体系。\n\n### 1.3 我们的解法：构建\"生成-编辑-评判\"技术闭环\n\n面对上述挑战，我们团队围绕海报生成构建了一套完整的技术体系，覆盖**基础模型能力提升**、**多任务统一模型融合**和**质量评估模型**三大核心环节，形成了\"能生成、能编辑、能评判\"的技术闭环。\n\n* **能生成**：端到端高美感海报生成，精准文字渲染；技术方案→ [PosterCraft](https://arxiv.org/pdf/2506.10741)｜[Code](https://github.com/MeiGen-AI/PosterCraft)（ICLR 2026）\n* **能编辑**：六大任务统一，局部编辑与全局创作融合；技术方案→ [PosterOmni](https://arxiv.org/pdf/2602.12127)｜[Code](https://github.com/MeiGen-AI/PosterOmni)（CVPR 2026）\n* **能评判**：真实海报结构化解析 + 生成海报偏好评估；技术方案→营销海报结构化 + [PosterReward](https://arxiv.org/pdf/2603.29855)（CVPR 2026）\n\n三者相互支撑、协同进化：评估驱动生成优化，生成拓展编辑边界，编辑反哺评估标准，共同构成一个持续自我进化的后训练系统。相关工作已产出三篇顶级学术会议论文，并全部开源于[MeiGen-AI仓库](https://github.com/MeiGen-AI)。\n\n## 二、技术体系全景\n\n我们的海报生成技术体系遵循一个清晰的演进路径：\n\n![](https://p0.meituan.net/meituantechblog/861434cef3a148ae0093da6666e149361816826.png)\n\n各层相互支撑：**PosterCraft** 奠定端到端生成基础；**PosterOmni** 在此之上拓展至多任务统一编辑；质量评估层构建\"双线并行\"体系——**营销海报结构化**面向线上存量海报，提供构图、配色、氛围感的结构化解析与美学评分；**PosterReward** 面向 AI 生成内容，提供偏好评估信号，既驱动生成模型持续进化（RL 奖励函数），也承担工业化生产的质检把关。\n\n## 三、端到端高美感海报生成：PosterCraft（ICLR 2026）\n\n### 3.1 核心思想\n\n过去的海报生成方法大多采用**模块化设计**——先由视觉语言模型规划布局，再将文字叠加到单独生成的背景上。这种流水线方案存在根本性缺陷：美学一致性难以保证，视觉质量受限于各模块的短板拼接。\n\nPosterCraft 的核心思路是：**摒弃模块化流水线，让模型端到端地自由探索视觉连贯的设计组合**。渐进式的组件级改进不足以带来美学层面的质的飞跃，需要一套统一框架来协同优化文字、视觉和版式。\n\n### 3.2 四阶段级联优化工作流\n\nPosterCraft 设计了四阶段训练流程，每个阶段针对一个关键瓶颈：\n\n![](https://p0.meituan.net/meituantechblog/1f7bf60eec315936b2067365a7c074d31158073.png)\n\n**阶段一：大规模文字渲染优化**\n\n构建 **Text-Render-2M** 数据集（200 万样本，涵盖多样文字内容、大小、位置和旋转角度）。通过 Flow Matching 微调，显著提升文字渲染准确率，有效解决基础模型常见的文字缺失、重复和错误问题。\n\n![](https://p1.meituan.net/meituantechblog/ca634a457456cbb9a9cf9f1cd5f84649110870.png)\n\n**阶段二：高质量海报微调 + 区域感知校准**\n\n构建 **HQ-Poster-100K**，经多级管线筛选超过 10 万张高质量海报。关键创新是区域感知校准（Region-Aware Calibration）机制，对不同区域差异化加权：非文字区域（1.0）、主要文字区域（0.6）、次要文字区域（0.2），在保持文字准确的同时更注重整体艺术性。\n\n**阶段三：美学-文本强化学习**\n\n构建 **Poster-Preference-100K**：对每个 prompt 生成 5 张海报，用 HPSv2 打分结合 Gemini 验证文字准确性，筛选出 6000 个高质量偏好对。采用 Best-of-N 偏好优化（DPO），让模型学习色彩和谐、版式平衡等高阶美学偏好。\n\n**阶段四：视觉-语言反馈精炼**\n\n构建 **Poster-Reflect-120K**：对每个 prompt 生成 6 张海报，由 Gemini 选择最优并生成结构化反馈建议。利用 InternVL-3-8B 微调为 VLM 评论家，在推理时提供迭代式反馈优化。\n\n### 3.3 核心成果\n\nPosterCraft 在文字召回率、F-score 和准确率上**显著超越所有开源基线**，接近 SOTA 闭源商业系统（如 Gemini 2.0-Flash-Gen）的水平，证明了统一端到端框架在海报生成任务上的巨大潜力。\n\n![](https://p0.meituan.net/meituantechblog/da0ef43ee67c6680870a987f778393fd4129254.png)\n\n## 四、多任务统一的图像到海报创作：PosterOmni（CVPR 2026）\n\n### 4.1 核心思想：从 Text-to-Poster 到 Image-to-Poster\n\n不少 AI 海报生成方法将输入设定为文本提示（Text-to-Poster），但真实设计场景中，更常见的起点是**一张参考图、旧版海报或产品主视觉**——设计目标不是完全重做，而是在保留核心主体的基础上完成扩图、补全、比例调整、风格迁移和版式重组。\n\nPosterOmni 的核心定位：\n\n> **A unified open model for versatile multi-task image/poster-to-poster generation.**\n\n它通过一个统一的开源模型覆盖多类设计需求，既能处理局部编辑，也能完成风格重塑和版式重构——更接近一个\"**基于参考稿工作的智能设计助手**\"，而非\"编辑模块 + 生成模块\"的简单拼接。\n\n![](https://p0.meituan.net/meituantechblog/d5db45749034556fffac53e65fd393991778168.png)\n\n### 4.2 统一\"图到海报\"范式：单一模型覆盖六类典型设计需求\n\nPosterOmni 将 image/poster-to-poster 场景中的常见需求整理为 **6 类任务**，统一由一个模型完成：\n\n![](https://p0.meituan.net/meituantechblog/64f8c774a7d1659fac7c754a1d85ea4d223570.png)\n\n这些能力共同对应了一个真实的设计流程：\n\n![](https://p0.meituan.net/meituantechblog/734a4d8143a2ed82fefb9955ee99e57e1995735.png)\n\n### 4.3 核心难点：多任务冲突的缓解\n\n多任务统一建模的核心难点在于**任务间的相互干扰**：局部编辑强调像素级一致性和自然过渡，全局创作则关注风格抽象和大幅度重构。直接混合训练容易导致模型\"什么都会一点\"，但整体不稳定。\n\nPosterOmni 采用\"数据—蒸馏—奖励\"闭环：\n\n1. 分别训练局部编辑和全局创作两类专家模型。\n2. 通过任务蒸馏整合为统一学生模型（PosterOmni-SFT）。\n3. 加入统一奖励与强化学习，对齐审美偏好、编辑准确性和指令遵循能力。\n\n### 4.4 方法论：四阶段训练流水线\n\n#### 阶段 1：自动化数据构建（PosterOmni-200K）\n\n构建 **PosterOmni-200K**，形成完整数据闭环：创意描述生成 → 候选图生成 → 多模态筛选 → 任务配对整理。\n\n**（1）提示词与基础图生成：贴近真实设计 brief**\n\n组合主体/品类/场景/风格标签，借助 VLM（GPT、Qwen3）扩展为带版式约束的结构化描述，再用强 T2I 模型（Qwen-Image 等）渲染候选图，并过滤主体缺失、文字崩坏等不合格样本。\n\n**（2）多模态过滤：噪声控制是合成数据的真正瓶颈**\n\n对于合成数据而言，真正的瓶颈往往不在数量，而在噪声控制。我们设计了一套分层过滤机制：\n\n* **训练集**：PaddleOCR 检查文本可读性 + jina-clip-v2 图文一致性判断。\n* **评测集**：额外引入 Gemini 2.5 Flash 评估\"任务匹配度\"。\n* **结构信号**：SAM 2 生成分割区域，为补全、扩图等任务提供 mask 级监督。\n\n**（3）六类任务配对构建**\n\n基于经过过滤的\"文本→海报\"基础数据，进一步构造六类 image/poster-to-poster 训练任务。每一类任务对应一个模块化的数据生成器：\n\n* **Extending / Filling**：SAM2 构造局部 mask。\n* **Rescaling**：借鉴 BrushNet，构建\"比例变化→内容重排\"监督对。\n* **ID-driven**：PaddleDet 提取主体 + 增强编辑器构造\"主体不变、其余可调\"样本。\n* **Layout / Style-driven**：prompt-controlled rerendering，继承布局或风格但不直接复制。\n\n最终覆盖商品、美食、活动/旅行、自然、教育、娱乐六大海报主题，产出超过 **20 万个高质量配对样本**。\n\n![](https://p0.meituan.net/meituantechblog/94e267f5110d845ebdeb3e6d46053e7c2588744.png)\n\n#### 阶段 2：任务蒸馏——先拆开学，再合到一起\n\n如果直接把六类任务混在一起联合训练，最容易出现的问题就是任务冲突：局部任务强调像素对齐与细节保真，全局任务则更关注构图重组与风格抽象，两者在同一个参数空间中往往会互相拉扯。为了解决这个问题，PosterOmni 采用：**先训练专家，再蒸馏成统一学生模型**。\n\n**（1）专家训练：**\n\n* **局部编辑专家**：负责 Extending / Filling / Rescaling / ID-driven，学习主体一致性与可控编辑能力。\n* **全局创作专家**：负责 Layout-driven / Style-driven，学习版式组织逻辑与风格协调性。\n\n同时加入辅助文本渲染训练信号，保证文字可读性。\n\n**（2）蒸馏到单一学生：PosterOmni-SFT**\n\n最终的统一模型不是简单做\"参数拼接\"，而是训练一个学生网络去逼近专家模型的速度场/预测行为。整体损失由两部分组成：\n\n```\nL_total = L_text_render (辅助文本渲染损失，保证文字稳定清晰)\n        + λ · L_distill  (任务蒸馏损失，复现专家输出)\n```\n\nPosterOmni-SFT 同时具备\"局部精修的稳定性\"和\"全局创作的生成性\"，不再依赖多个模型串联。\n\n![](https://p0.meituan.net/meituantechblog/ae87c984e187bfb13cfa2fc65c738c871590352.png)\n\n#### 阶段 3：统一奖励模型训练（RomniR\\_{omni}Romni​）\n\nSFT 使模型\"会做\"，但难以进一步学会\"做得更美观\"。我们训练统一奖励模型 RomniR\\_{omni}Romni​，**同时输出通用审美质量与任务完成度的综合分数**。\n\n**偏好数据构建：** PosterOmni-SFT 生成多个候选，Gemini-2.5-Pro 初筛后由标注者选优。关键创新是 **negative-pair 策略**：将\"输入参考图\"记为 rejected、\"编辑后输出\"记为 chosen，显式强化\"有效修改本身有价值\"的认知，防止模型在 layout/style 任务中直接拷贝参考图投机。\n\n**模型结构：** 基于 Qwen3-VL 编码器 + 轻量 MLP head，编码\"视觉质量 + 指令 + 任务类型\"，采用 Bradley-Terry 目标优化排序损失 LBTL\\_{BT}LBT​。最终，RomniR\\_{omni}Romni​ 学到的不只是\"什么更好看\"，还有\"对这个任务来说什么算做对、什么算偷懒\"。\n\n#### 阶段 4：Omni-Edit 强化学习\n\n沿用 **DiffusionNFT** 思路，在正向扩散过程中直接优化，用对比式 Diffusion Loss 将速度预测器推向高奖励行为：从旧策略 voldv\\_{old}vold​ 构造隐式正/负策略，用奖励 r∈[0,1]r \\in [0,1]r∈[0,1] 对目标加权，同时做归一化以稳定训练尺度。\n\n将 DiffusionNFT 适配到 image-to-poster 条件输入（输入图 + 指令 + 任务类型），在统一机制下同时处理局部编辑和全局创作。\n\n**与通用 VLM 奖励的关键区别**：通用 VLM 打分不理解 poster 任务的完成标准，容易出现\"看起来像但任务没做对\"的投机解。RomniR\\_{omni}Romni​ 给出 **task-aware** 分数，使 RL 优化方向不仅是\"更好看\"，也是\"更像完成了这个任务\"。\n\n### 4.5 PosterOmni-Bench：统一评测基准\n\n**PosterOmni-Bench** 是首个面向多任务设计场景的统一测试基准：\n\n* **规模**：中英文共 **1020 条**测试指令（540 中文 + 480 英文）。\n* **覆盖**：六类核心任务 × 六大海报主题，同时覆盖单/多参考图输入。\n* **评测**：Gemini-2.5-Pro 打分，1–5 分范围内综合评价审美质量与任务完成情况。\n\n这个 Benchmark 测的不是\"能不能生成一张图\"，而是\"能不能像设计师一样完成海报修改与再设计\"。\n\n### 4.6 实验结果\n\n**定量结果：六项任务全面领先**\n\n在 PosterOmni-Bench 上对比主流开源方法（Qwen-Image-Edit、FLUX.1 Kontext、BAGEL、UniWorld-V2 等）及闭源系统（Seedream 系列）：\n\n* **PosterOmni 在全部六类任务上均取得开源模型最佳表现**，整体评分超过部分闭源模型。\n* 提升来自\"局部精修 + 全局创作\"两类能力的**同时增强**，而非集中于某一子任务。\n* 相较 Qwen-Image-Edit：在 Layout-driven / Style-driven 上增幅最大，说明模型真正学到了布局与风格背后的生成规则。\n* 相较 Seedream-4.0：整体平均已实现反超，单一开源模型已具备处理复杂设计需求的实际可用性。\n\n![](https://p0.meituan.net/meituantechblog/d3043c6dd6453d62e3d2566d8ccbeefd334071.png)\n\n**定性对比：学风格/学布局 ≠ 直接 copy**\n\n**Style-driven 的常见失败**：很多 baseline 会把参考图的局部元素直接\"贴\"过来。PosterOmni 更偏向学习配色、材质感、字体气质等\"风格本质\"，再迁移到新主体上。\n\n**Rescale / Layout-driven 的常见失败**：很多系统只做裁剪/拉伸。PosterOmni 更像在做\"改比例→重排版\"：标题层级、留白、元素间距随之调整，主体也更稳定。\n\n![](https://p1.meituan.net/meituantechblog/c09df87d809bdcc92683b549f1423c843511341.png)\n\n## 五、海报质量评估：PosterReward（CVPR 2026）\n\n海报评估是整个技术体系的\"质量守门人\"，沿两条互补路线展开——核心差异不在于处理对象，而在于**质量信号的来源方式**：\n\n* **真实海报的结构化评估**：面向线上运营海报素材，以**专业设计规范的显式标准**为锚，通过多维度结构化解析实现智能质检与规范管理\n* **生成海报的奖励模型**：面向 AI 生成内容，以**用户主观偏好对齐**为驱动，通过端到端学习提供精准质量信号，驱动生成模型持续进化\n\n两者共同构成\"存量评估 + 增量优化\"的完整评估体系。\n\n![](https://p0.meituan.net/meituantechblog/face43475149dfc38233ca2e0badef5e1945335.png)\n\n### 5.1 真实海报的结构化评估：营销海报图像结构化\n\n#### 5.1.1 问题定义\n\n营销海报是\"人工制作\"的信息载体，具有明确的信息要素和规则搭配，简单的整图美学评分存在显著局限。\n\n我们提出**营销海报图像结构化**解析方案：将海报从多维度拆解分析，把视觉信息转换为规范化的结构化描述，并输出各维度量化美学评分。整套方案围绕三大核心维度展开：**排版构图、色系搭配、氛围风格**。\n\n![](https://p0.meituan.net/meituantechblog/cf3831dceb0c82644d32de0051c4c3802491234.png)\n\n#### 5.1.2 排版构图解析\n\n营销海报设计遵循页面排版四大基础原则：**对比、重复、对齐、亲密性**。要理解海报构图的好坏，首先需要对海报内容元素做精准解析。\n\n**内容定位算法**\n\n构建营销海报内容定位模型（准确率 90%+），定位 **12 种常见元素**：\n\n> 文案、价格、修饰、卡通动漫、美团Logo、其他Logo、人像、美团IP、红包、菜品、商品\n\n模型对任意输入的海报图，返回各元素在图中的位置坐标及对应类别，覆盖不同类型、不同尺寸的营销海报。\n\n![](https://p0.meituan.net/meituantechblog/c9b31b0191c8275ead99023af304ade92117053.png)\n\n**构图美学评价算法**\n\n基于元素定位结果，通过 CNN 回归模型拟合设计师主观评价，输出量化构图美学分数：\n\n* 5 分制构图得分误差仅 **0.3794**（归一化误差 0.0759）。\n* 近 **90%** 的图片得分误差控制在 1 分以内。\n\n算法可判断海报构图手法（上下/左右/居中构图等），并评估主体占比、布局紧凑度、画面留白等维度。\n\n![营销海报构图人机打分差异](https://p0.meituan.net/meituantechblog/f7105bd1f74cbaf157f97c44bbe1197c969668.png)\n\n#### 5.1.3 色系搭配识别\n\n色彩是营销海报传达情感的重要介质。不同业务类型适配不同的色系——粉色系营造浪漫/女生氛围，绿色系迎合健康环保调性，黑色系打造科技感或高端奢华风格。\n\n**主色系识别算法**\n\n模型准确率96.2%，支持识别 **11 种色系**：\n\n> 粉色系、绿色系、黑色系、白色系、橙黄系、蓝色系、银灰系、红色系、紫色系、棕色系、多色系\n\n同时输出各色系置信度，对多色系海报也有良好理解能力。\n\n![海报主色系识别算法结果展示](https://p0.meituan.net/meituantechblog/23f462713dff153b7cbb319fca6a8a0c1469655.png)\n\n**色彩解析算法**\n\n支持 12 种基础颜色的占比识别，以及基于 HSV 色彩空间的冷暖色调判断，为色彩和谐度评估提供基础数据。\n\n![海报色彩解析算法结果展示](https://p0.meituan.net/meituantechblog/36981484e1059d142e51f3739374ff4c488816.png)\n\n**色彩美学评价**\n\n将色彩美学拆解为**色彩饱和度**和**颜色和谐度**两个维度，通过深度学习拟合设计师主观评价，输出量化色彩美学分值。\n\n![色彩美学评价得分展示](https://p0.meituan.net/meituantechblog/29ef0ea5ed74ebf86230b06dabfc94ce1306535.png)\n\n#### 5.1.4 氛围感风格识别\n\n一张优秀的营销海报需要告别千篇一律的模板感，让消费者感受到身临其境的独特氛围——这也是海报从\"能看\"到\"吸引人\"的关键跃迁。\n\n**风格识别算法**\n\n模型准确率91.50%，支持识别 **12 种常见海报风格**：\n\n> 节日、卡通、简洁、多彩、科技、柔美、素雅、促销、撞色、实拍、标准、其他\n\n海报风格与文案/商品内容无关，由海报模板及装饰元素营造的**整体氛围感**决定。\n\n![营销海报常见风格定义](https://p0.meituan.net/meituantechblog/2102cc97980395624f9cba2a4d638bdb1862841.png)\n\n#### 5.1.5 整体美学综合评价\n\n在构图、色彩、氛围感等主观维度，以及清晰度、分辨率等客观维度的基础上，综合输出**整体美学评分**，基本拟合设计师的主观评价标准。\n\n![海报整体美学得分展示](https://p0.meituan.net/meituantechblog/e5cb33dbf135c193a5882ae45f723b0c1261786.png)\n\n### 5.2 生成海报的奖励模型\n\n#### 5.2.1 核心思想\n\nPosterReward 是**首个专门面向海报质量评估的奖励模型**，集成结构布局、文字渲染准确性和美学表达三个维度的统一评分能力。现有通用奖励模型主要关注全局图像美学，忽略了海报特有的排版质量和文字渲染维度，加之领域偏好数据极度稀缺，生成海报评估长期是制约生成质量提升的核心瓶颈。PosterReward 的评估维度继承了结构化评估的实践经验——构图、色彩、整体美学在两套方案中形成概念对齐与技术递进。\n\n#### 5.2.2 AI 偏好数据集自动构建（Poster-Preference-70K）\n\n![](https://p0.meituan.net/meituantechblog/97c08edd5d0c4542353c48e491b4e1d8892964.png)\n\n高质量偏好数据是训练奖励模型的基石。我们设计了一套自动化偏好数据构建管线：\n\n**数据来源**：Seedream 3.0、Seedream 4.0 和 Qwen-Image-Lightning 生成的海报池（覆盖影视类和非影视类两大场景）。\n\n**级联式过滤**：\n\n* 影视海报：HPSv3 初筛 → Kendall's W 一致性筛选 → 轻量闭源模型多轮排序 → 最终多模型验证。\n* 非影视海报：同尺寸过滤 → CLIP+DINOv3 差异性筛选 → 多模型最终验证。\n\n**最终多模型验证**：四个开源模型（CLIP、DINOv3、HPSv3、GLM-4.5V）和三个闭源模型（Gemini-2.5-Flash-Lite、Gemini-2.5-Pro、GPT-5）进行多维度共识判定，最终产出 **7万高质量海报偏好对**，覆盖文字渲染、布局设计、美学价值、指令一致性等多个维度。\n\n#### 5.2.3 级联式多阶段训练\n\n![](https://p1.meituan.net/meituantechblog/6289aff1230af0e3fc1da9b0844c3fd41016894.png)\n\nPosterReward 采用四阶段级联训练策略：\n\n**阶段一：联合监督微调（Joint SFT）** 双任务并行——单图分析 + 配对比较，使用 24.6万 单图分析样本 + 16万 配对偏好样本微调 Qwen3-VL-8B。\n\n**阶段二：联合拒绝采样微调（Joint RSFT）**\n每个 prompt 采样三个回答，由 Gemini-2.5-Flash-Lite 选择最高质量响应精炼。\n\n**阶段三：评分模块训练（Score Module Training）**\n训练判别式评分模块（Qwen3-VL-8B + 两层 MLP），采用 Bradley-Terry 损失优化。\n\n**阶段四：强化学习精炼（GRPO）**\n以冻结的评分模块为奖励函数，通过 GRPO 对分析模块进行强化学习微调。\n\n#### 5.2.4 多变体适配\n\n为适应不同应用场景，PosterReward 提供三种变体：\n\n![](https://p1.meituan.net/meituantechblog/f8633fc74396af81573ebd9eaf8ddbc0157579.png)\n\n#### 5.2.5 评测基准与核心成果\n\n我们发布了两个评测基准：**PosterRewardBench**（Basic + Advanced 两个难度级别，评估奖励模型偏好判断准确性）和 **PosterBench**（评估文生图模型的海报生成能力）。\n\n在 PosterRewardBench-Advanced 上，PosterReward 达到 **86.0% 准确率**，远超现有基线（大多在 40%–53% 之间）。**PosterReward-Pairwise** 在 pairwise 评测中保持强竞争力，位置偏置更小，平衡式数据构造和顺序交换策略有效提升了判断稳定性。\n\n![](https://p0.meituan.net/meituantechblog/dcc87144886a18086ef2e796ceeac72f116735.png)\n\n![](https://p0.meituan.net/meituantechblog/4f4db6535bd77ebf92f82afb51630a32129708.png)\n\n### 5.3 评估体系的演进逻辑\n\n回顾整个评估体系的建设路径，可以看到一条清晰的技术演进线：\n\n![](https://p0.meituan.net/meituantechblog/acdfb97a94f12c35dd61412d0aff9741196537.png)\n\n结构化评估积累的维度定义经验（构图、色彩、氛围感）为 PosterReward 的多维度分析模块提供了领域知识参照；PosterReward 的端到端学习能力则克服了传统结构化评估在泛化性和可优化性上的瓶颈。两者的融合是未来评估体系演进的方向。\n\n## 六、技术闭环：各模块如何协同？\n\n整个技术体系并非独立存在的几块工作，而是构成了一个**自我进化的后训练系统**：\n\n![](https://p0.meituan.net/meituantechblog/a810a1f3854bc8468b49dc94d5a0bb281739540.png)\n\n1. **PosterCraft** 建立端到端生成的基础能力，四阶段工作流已引入奖励模型驱动的美学优化。\n2. **PosterOmni** 在 PosterCraft 基础上拓展至多任务场景，其统一 Reward 模型是 PosterReward 理念的任务特化。\n3. **营销海报结构化** 从构图、配色、氛围感等维度提供可解释的设计规范标准，为生成链路的评估维度提供领域知识支撑。\n4. **PosterReward** 将设计知识内化为端到端奖励信号，既驱动生成模型持续进化（RL 奖励函数），也承担线上\"质检线\"的品质保障。\n\n## 七、落地实践\n\n**实际案例 1：与美团设计师合作上线美团品牌IP（PosterCraft生成能力）**\n\n> 生图 prompt（下左）：给我设计一张袋鼠团团的大寒的节日节气海报。\n\n![](https://p0.meituan.net/meituantechblog/3a32d65cc8fea6d91dc99487a3ba284b2230619.png)\n\n> 生图 prompt（上右）：袋鼠团团三维C4D风格，2026年马年新年主视觉，整体节日氛围浓厚，主色调为红色与金色。画面中央是袋鼠团团骑着白马（红色的马鞍，无马缰绳，马蹄上有金和红穗子配饰点缀，呼应生肖主题，活力精神的马年生肖，），面带开心、喜庆的表情，角色主体有柔和的轮廓光，氛围强，作为画面核心主体。画面中点缀烟花、红灯笼等新年元素。背景为中国唐代风格的古建筑群，具有浓厚的东方传统节日氛围。整体画面呈现热闹、喜庆、隆重的新年庆祝场景。主标题： “马年大吉”顶部居中，毛笔创意字体金色，笔触流畅设计感强，大师字体，副标题：“Happy New Year 2026”主标题下面。\n\n**实际案例 2：图生商品海报（PosterOmni 的主体保持能力）**\n\n![](https://p1.meituan.net/meituantechblog/bae54b0cde7b24ce35d25b170098db603218537.png)\n\n## 八、总结与展望\n\n我们通过 PosterCraft、PosterOmni 和 PosterReward 三项工作，构建了覆盖\"**基础生成能力 → 多任务统一融合 → 精准质量评估**\"的完整技术体系，三项工作全部开源，期待推动海报/图形设计生成领域的共同发展。\n\n**未来，我们将继续探索：**\n\n* **更强的可控性**：支持更精细的设计意图传达。\n* **更广的场景覆盖**：从静态海报延伸至动态视觉内容，从零售电商拓展到酒旅、丽人等服务电商场景。\n* **更深的评估维度**：将结构化设计规范知识持续注入奖励模型，实现\"可解释 + 可优化\"的统一。\n* **更紧的产业闭环**：让规范标准与奖励模型的 RL 信号深度融合，直接驱动生成模型自我进化。\n\n从效率到效能，从\"能用\"到\"好用\"，AIGC 海报生成正在重新定义百万商家的创意生产方式。",
+      "tags": [
+        "PosterCraft",
+        "PosterOmni",
+        "海报生成"
+      ],
+      "score": 82,
+      "summary": "美团构建海报生成-编辑-评判技术闭环，相关论文被ICLR/CVPR 2026接收。",
+      "image_url": "https://p0.meituan.net/meituantechblog/861434cef3a148ae0093da6666e149361816826.png",
+      "fetched_at": "2026-07-22T01:39:49.005937+08:00"
+    },
+    {
+      "title": "从月球漫步到赛博都市，WBench 测出了世界模型的边界",
+      "link": "https://tech.meituan.com/2026/06/12/LongCat-WBench.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "AI 视频的进化速度突飞猛进。是否想过有一天能真正走进这些由 AI 生成的世界里，亲自感受一下？\n\n[点击查看视频](https://mp.weixin.qq.com/s/tQFM4yay6wmIMnQ_dpDaoQ)\n\n> 像这样，在月球上自由漫步，是什么感觉？它们是真的理解了世界，还是仅仅在模仿视频？目前的模型距离这个目标还有多远？\n\n为了彻底搞清这个问题，美团 LongCat 团队提出了 **WBench**，它是首个面向交互式视频世界模型的系统性多轮评测基准。它就像一台“CT扫描仪”，能精准定位当前世界模型在从“被动观看”到“主动交互”的过程中，到底卡在了哪里。\n\n我们用 WBench 对 20 个前沿模型（包括 Kling 3.0、HY-World 1.5、Genie 3 等）进行了全面\"扫描\"，最核心的发现可以总结为以下几点：\n\n* **不存在全能模型：** 不同模型各有专长，文本驱动模型更擅长理解场景，而专用世界模型在交互控制上突出。\n* **导航是一项独立的技能：** 模型的视频画质好坏，和它的导航控制能力基本没关系。\n* **多轮交互是核心难点：** 所有模型在连续交互后表现都会变差，导航能力尤其严重，平均分下降了整整 33 点。\n* **开源模型表现出色：** 在一些特定能力上，开源模型甚至超过了闭源模型，比如 HY-World 1.5 的导航能力在所有模型里突出。\n\n## 01 WBench 是如何测出这些问题的？\n\n能得出这些结论，得益于 WBench 的核心设计。我们认为，一个强大的世界模型评测框架，应包含四大核心要素：\n\n> 世界模型评测框架 = 世界定义 (World Definition) + 指令集 (Instruction Set) + 统一交互接口 (Unified Interaction Interface) + 评测套件 (Evaluation Suite)。\n\n![](https://p1.meituan.net/meituantechblog/79b310e499852c000fa62a969b4702e8728356.png)\n\nWBench 正是基于这一理念构建的，下图完整展示了它的设计蓝图：\n\n![](https://p0.meituan.net/meituantechblog/3d146f34e6b0d40a1651529945d5c91c515467.png)\n\n### 1.1 全面多样的“测试用例”\n\nWBench 包含 **289 个测试案例**和 **1058 个交互轮次**，覆盖了丰富的世界定义和指令集。\n\n![](https://p0.meituan.net/meituantechblog/610751ae9950d4d2eddda75f90a18b70184254.png)\n\n你可以让 AI 在充满未来感的城市中穿梭，也可以让它置身于一幅流动的油画里。\n\n![](https://p0.meituan.net/meituantechblog/8ead690965d666a5e39b98de02f3a7821305157.png)\n\n![](https://p1.meituan.net/meituantechblog/efd82e4e91678710342070b841ef5a10830918.png)\n\n你不仅可以选择成为游戏中的主角，以第三人称视角掌控一切；还可以化身第一人称，身临其境地探索世界。\n\n![](https://p1.meituan.net/meituantechblog/40b1c62e83fc07da1e3d4ec663283519827342.png)\n\n![](https://p0.meituan.net/meituantechblog/fbc79f3b35ad83b7e1dcc899937c10e7623342.png)\n\n### 1.2 交互方式：在舞台上设计丰富的“剧本”\n\n有了舞台，还需要丰富的“剧本”。WBench 设计了**导航、主体动作、事件编辑和视角切换**这四种核心交互方式，它们可以像搭积木一样自由组合，形成一个复杂的多轮任务。\n\n比如，除了常规的移动（导航），你还可以让角色完成特定动作（主体动作）。\n\n甚至改变整个环境（事件编辑）。\n\n最酷的是，你还可以在不同视角间无缝切换（视角切换），比如从第一人称视角瞬间切换到第三人称视角。\n\n通过这种“舞台”与“剧本”分离的设计，WBench 实现了对**视频质量、设定遵循度、交互遵循度、一致性、物理真实性**这五个维度的精准测量。我们为每个指标都设计了严谨的计算方法，更多关于 NavScore、Gated Spatial Consistency 等硬核指标的实现细节，欢迎访问我们的[项目主页](https://meituan-longcat.github.io/WBench/)。\n\n## 02 核心洞察：用数据看清模型的“短板”\n\nWBench 不仅给出了结论，更用数据揭示了这些问题的根源。从具体模型表现来看，普通用户最关心的“谁最强”这个问题，答案是“看情况”。\n\n![](https://p0.meituan.net/meituantechblog/19eb964f761ba28a7fdb6601c7673d7a474977.png)\n\n* **如果你追求模型能精准理解你的想法：** 那么 Kling 3.0 和 Wan 2.7 无疑是第一梯队。它们在设定遵循度和主体动作/事件编辑上表现突出。\n* **如果你想要丝滑的运镜和精准的导航控制：** 那么专用的世界模型优势明显。HY-World 1.5 和 Genie 3 在这一项上遥遥领先，远超文本驱动模型。\n* **在保持一致性上：** LingBot-World 表现较为突出，是所有模型里最\"稳\"的。\n* **在物理真实性方面：** Wan 2.7 表现最佳，尤其在因果关系上理解得更深刻。\n* **所有模型都面临一个共同的难题：** 视角切换，这是所有交互类型中最难的一项，平均分只有 30.7，说明这块技术还远未成熟。\n\n### 洞察一：导航能力为何与其他维度“脱钩”？\n\n这张相关性矩阵图非常直观。导航那一列/行，与其他所有维度（如视频质量 Qual、一致性 Cons）的相关系数都接近于零。\n\n这说明，当前模型在学习渲染一个好看的世界时，**并没有顺便学会如何在其中可控地移动**。究其原因，是因为导航能力依赖于一个独立的、专门的\"空间状态表示\"能力，而其他能力（如画质、语义理解）则更多依赖于模型的通用生成先验。\n\n换句话说，模型\"知道\"世界长什么样，但并不\"理解\"自己在世界中的位置和方向。\n\n![](https://p0.meituan.net/meituantechblog/90802118c784f70828b7d693f9cebd73103744.png)\n\n### 洞察二：模型在多轮交互中如何“迷路”？\n\n![](https://p0.meituan.net/meituantechblog/4a084c3e31f53fc8177f941775b96eef121303.png)\n\n这张图展示了模型在连续交互中的能力衰减情况。导航曲线的\"雪崩式\"下跌清晰可见，从第一轮到第四轮及以后，**分数下降了 33 点**。这有力地证明了位姿误差逐轮累积是当前迭代式生成范式的结构性缺陷。\n\n## 洞察三：并非所有“世界”都生而平等\n\n分析还发现，不同的世界设定会带来结构性的难度差异。例如：第一人称视角让导航更容易（z=+1.0），但保持场景设定更难；动物主体（z=-1.9）因其复杂的动态性，对模型挑战最大。\n\n![](https://p0.meituan.net/meituantechblog/707eea2416b8a13316c50ff1911aacfb262450.png)\n\n## 03 WBench 的价值：定义下一代评测范式\n\n### 3.1 范式转移：从“被动生成”到“主动交互”\n\nWBench 不仅是一个评测工具，更代表了研究范式的一次重要演进。通过与同类基准的对比可以看出，WBench 是目前**唯一一个真正统一的评测基准**。\n\n它不仅同时覆盖了开放域、双视角、四种交互类型和多轮闭环评测，更重要的是，它还首次实现了对不同输入范式模型的统一评测。无论模型是接收文本指令、相机位姿，还是离散的键盘按键，WBench 都能通过其统一交互接口进行公平评估。\n\n这打破了不同技术流派之间的壁垒，让所有\"选手\"都能在同一个\"赛场\"上竞技。\n\n![](https://p0.meituan.net/meituantechblog/967635160dea367ff58b57d756e23026168992.png)\n\n### 3.2 可靠性验证：与人类偏好高度对齐\n\n至关重要的是，WBench 的自动评分结果与 **400 名人类标注者**的偏好判断高度一致（Spearman ρ ≥ 0.94），证明了这把\"标尺\"的准确性和可靠性。\n\n![](https://p0.meituan.net/meituantechblog/6b4ddd9707d13c685a4167d0a4db207873154.png)\n\n## 04 总结与展望\n\nWBench 的提出，算是我们向真正的\"交互世界\"迈出的一小步尝试。它清晰地揭示了当前技术的边界。我们希望它能成为交互式世界模型走向系统化评测的一个起点，激发更多后续研究，推动世界模型的发展。\n\n**WBench 已开源，欢迎所有世界模型来跑分。**\n\n* **Paper：** <https://huggingface.co/papers/2605.25874>\n* **GitHub：** <https://github.com/meituan-longcat/WBench>\n* **HomePage：** <https://meituan-longcat.github.io/WBench/>\n* **HuggingFace：** <https://huggingface.co/datasets/meituan-longcat/WBench>",
+      "tags": [
+        "WBench",
+        "世界模型",
+        "交互式视频"
+      ],
+      "score": 82,
+      "summary": "美团LongCat提出WBench，首个交互式视频世界模型多轮评测基准。",
+      "image_url": "https://p1.meituan.net/meituantechblog/79b310e499852c000fa62a969b4702e8728356.png",
+      "fetched_at": "2026-07-22T01:39:49.005939+08:00"
+    },
+    {
+      "title": "ACL 2026美团论文精选：从能力评测到推理优化，构建生成新范式",
+      "link": "https://tech.meituan.com/2026/06/05/ACL-2026.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "ACL（Annual Meeting of the Association for Computational Linguistics）是计算语言学和自然语言处理（NLP）领域的国际顶级学术会议。自 1962 年创办以来，ACL 已成为 NLP 领域规模最大、影响力最高的学术盛会，汇聚了来自全球学术界和工业界的顶尖研究者。\n\n本文解读了被 ACL 顶会收录的其中 6 篇论文，技术方向覆盖**大模型评测、复杂流程推理、竞赛级数学思维优化、强化学习优化、生成式推荐**等领域，欢迎大家一起交流学习。\n\n## 01 CoreCodeBench: Decoupling Code Intelligence via Fine-Grained Repository-Level Tasks\n\n**CoreCodeBench：通过细粒度仓库级任务解耦代码智能**\n\n**论文下载**：[PDF](https://mp.weixinbridge.com/mp/wapredirect?url=https%3A%2F%2Farxiv.org%2Fabs%2F2507.05281&action=appmsg_redirect&uin=MjA1NzkzMDYwMA==&biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&type=1&scene=0)\n\n![](https://p1.meituan.net/meituantechblog/35efbf027537c65e69fa6e395e11825d366277.png)\n\n**论文简介：** 本论文提出了 CoreCodeBench，一种面向大语言模型编程能力的细粒度评测基准。该基准利用 COREPIPE 框架，从 12 个 Python 开源库自动生成 1,524 个结构化任务，涵盖开发、修复、测试驱动开发等多种软件工程场景，有效区分不同认知负载并动态调整任务复杂度。实验表明，其有效性达 78.55%，显著优于现有方法，揭示了模型在不同任务类型上的能力错配现象。CoreCodeBench 还支持多任务组合评测，模拟真实开发环境，具备高自动化、强鲁棒性和可复现性，为代码智能评测提供了更全面、精准的框架。\n\n## 02 SOP-Maze: Evaluating Large Language Models on Complicated Business Standard Operating Procedures\n\n**SOP-Maze：评估大语言模型在复杂业务标准操作流程上的表现**\n\n**论文下载**：[PDF](https://mp.weixinbridge.com/mp/wapredirect?url=https%3A%2F%2Farxiv.org%2Fabs%2F2510.08942&action=appmsg_redirect&uin=MjA1NzkzMDYwMA==&biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&type=1&scene=0)\n\n![](https://p0.meituan.net/meituantechblog/f80c6d532dd6a6e62cdfcd6e1b054a0e396234.png)\n\n**论文简介：** 随着大模型越来越多地被用作各领域的智能体，现有的评测大多关注它们遵循指令、做决策的能力，但真实业务场景往往涉及复杂的标准操作流程（SOP），而这方面的能力评估还没有被充分探索。为填补这一空白，研究者基于真实业务数据构建了 SOP-Maze，包含来自 23 个复杂 SOP 场景的 397 个实例和 3422 个子任务。\n\n论文把 SOP 任务分成两大类：「侧根系统」（LRS）代表选项众多、需要精准选择的宽广型任务；「主根系统」（HRS）则强调带有复杂分支的深度逻辑推理。\n\n实验结果显示，几乎所有最先进的模型在 SOP-Maze 上都表现吃力。作者归纳出三类主要错误：一是「路线盲区」（难以遵循流程）；二是「对话脆弱性」（无法处理真实对话中的细微之处）；三是「计算错误」（在复杂语境下的时间或算术推理出错）。\n\n简单来说，这是一个聚焦「模型能不能真正照着复杂业务流程办事」的评测，既考验广度也考验深度，结果表明当前模型在这方面还有明显短板。\n\n## 03 AMO-Bench: Large Language Models Still Struggle in High School Math Competitions\n\n**AMO-Bench：大语言模型在高中数学竞赛中仍面临挑战**\n\n**论文下载**：[PDF](https://openreview.net/pdf?id=r9PvVERCnZ)\n\n![](https://p1.meituan.net/meituantechblog/cefe6ad1b34a8674d0a1c44d219f3ca853500.jpg)\n\n**论文简介：** 本文提出 AMO-Bench，一个包含 50 道人工命题的极高难度数学推理基准。鉴于顶尖大模型在 AIME 等现有竞赛上性能趋于饱和，本基准确保：\n\n1. 经专家验证达国际奥数（IMO）或更高难度；\n2. 完全原创以杜绝数据污染；\n3. 仅需最终答案，支持自动评测。\n\n对 26 款大模型的评测显示，最强模型准确率仅 52.4%，多数不足 40%。尽管增加「测试时计算」展现出良好的扩展潜力，大模型推理能力仍有巨大提升空间。\n\n## 04 The Evolution of Thought: Tracking LLM Overthinking via Reasoning Dynamics Analysis\n\n**思维的进化：通过推理动态分析追踪大语言模型的过度思考**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2508.17627)\n\n![](https://p0.meituan.net/meituantechblog/898ee14104b4c4de8b76e759505f3547355481.png)\n\n**论文简介：** 论文研究大语言模型长链推理中的过度思考现象，分析模型在答案已经形成后为何仍继续生成冗余 thinking。论文从两类 reasoning dynamics 入手：一是 thinking 长度与 content 长度之间的补偿关系，二是语义表示从探索到收敛的轨迹变化。\n\n基于这些现象，论文提出实例级 Reasoning Completion Point（RCP），用于区分答案形成前的有效探索和答案稳定后的冗余延伸，并进一步设计 RCP 检测器，在 AIME、GPQA 等任务上减少生成 token，同时基本保持模型准确率。\n\n## 05 MASPO: Unifying Gradient Utilization, Probability Mass, and Signal Reliability for Robust and Sample-Efficient LLM Reasoning\n\n**MASPO：统一梯度利用、概率质量和信号可靠性以实现鲁棒且样本高效的大语言模型推理**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.17550)\n\n![](https://p0.meituan.net/meituantechblog/00cc68f2d6e52680a073922d1baef378362868.png)\n\n**论文简介：** MASPO 提出了一种面向大模型推理后训练的强化学习优化方案。它在 RLVR（可验证奖励的强化学习）场景下，旨在解决现有 GRPO 等方法在训练稳定性和样本效率上的不足。现有方法依赖固定、对称的硬截断信任域，与 token 长尾分布、稀疏奖励及正负样本可靠性差异不匹配。\n\n为此，MASPO 提出三大创新：\n\n1. **Soft Gaussian Gating** 替代硬裁剪，保留有效梯度；\n2. **Mass-Adaptive Limiter** 根据 token 概率动态调整约束，提升长尾探索；\n3. **Asymmetric Risk Controller** 区分正负样本可靠性，谨慎处理噪声负样本。\n\n实验证明，MASPO 在多个数学推理基准和不同模型规模上，相比基线取得了更优的 Avg@32 与 Pass@32 表现，展现出更好的鲁棒性和可扩展性。\n\n## 06 Factorized Latent Reasoning for LLM-based Recommendation\n\n**基于分解式隐式推理的生成式推荐**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.26760)\n\n![](https://p0.meituan.net/meituantechblog/2de4d5ffb2871bb97978eb5798ce17a9576820.png)\n\n**论文简介：** 在生成式推荐任务中，现有的隐式推理方法通常采用单一隐向量来表征用户意图，这难以捕捉用户偏好中固有的多维性。\n\n本文提出 FLR，将隐式推理分解为多个语义解耦的偏好因子，并引入轻量级多因子注意力模块，在隐式思维空间中进行多维推理。进一步提出 FLR-GRPO，利用噪声注入与无噪声组内对比实现稳定对齐。在 Amazon 数据集上，FLR 相比最强基线 LatentR3 平均提升 3.2%，其中 Games 子集提升达 10.26%，实现了隐式推理的语义透明化与性能提升。",
+      "tags": [
+        "ACL 2026",
+        "美团",
+        "代码智能"
+      ],
+      "score": 82,
+      "summary": "美团6篇论文被ACL 2026收录，涵盖代码评测、SOP推理等方向。",
+      "image_url": "https://p1.meituan.net/meituantechblog/35efbf027537c65e69fa6e395e11825d366277.png",
+      "fetched_at": "2026-07-22T01:39:49.005941+08:00"
+    },
+    {
+      "title": "#640. 美国视角下的 Kimi K3：一个 AI 斯普特尼克时刻的诞生",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a5f8f00a3fec224d5a13421",
+      "published": "2026-07-22T00:51:00+08:00",
+      "source": "跨国串门儿计划",
+      "content": "📝 本期播客简介\n\n本期我们克隆了：知名播客 Peter H. Diamandis Urgent Update- AI Sputnik Moment: Kimi K3 Released w/ Emad Mostaque | Ep. 272 【存在大量删减】\n\n原内容更新时间：2026-07-19\n\n本期是《Moonshots》播客的一期紧急加更，由奇点大学联合创始人 Peter Diamandis 主持，常驻嘉宾投资人 Salim Ismail、计算机科学家 Alexander Wissner-Gross 与 Dave Blundin 悉数到场，并特别邀请了前 Stability AI 创始人 Emad Mostaque 参与讨论。节目围绕中国 AI 实验室月之暗面（Moonshot AI）发布的开源模型 Kimi K3 展开，深入探讨了这个被称为“AI 斯普特尼克时刻”的事件将如何重塑全球 AI 竞争格局。\n\nKimi K3 以 2.8 万亿参数、开放权重的形态直接冲上多项基准测试榜首，在美国对华芯片禁令的背景下实现了对前沿的跨越式追赶。五位嘉宾从技术架构、地缘政治、商业估值、开源生态、量化压缩、人形机器人乃至太空数据中心等多个维度，展开了一场高密度、高信息量的深度对谈。如果你关心 AI 竞赛的未来走向、开源与闭源模型的商业逻辑，以及智能爆炸时代的人类处境，这期节目不容错过。\n\n👨‍⚕️ 本期嘉宾\n\n本期嘉宾阵容强大。Peter H. Diamandis 是 XPRIZE 基金会与奇点大学的联合创始人，长期关注指数级增长技术与人类未来。Salim Ismail 是 Open ExO 创始人兼 Exponential Venture Capital 合伙人，专注于组织奇点与指数型组织研究。Dave Blundin 是 Link Ventures 创始合伙人，对量化投资与前沿技术有深刻洞察。Alexander Wissner-Gross 是计算机科学家、Reified 创始人，在物理智能与算法效率领域建树颇丰。特邀嘉宾 Emad Mostaque 是前 Stability AI 创始人，对开源模型生态与全球 AI 竞争格局有着一手经验和独到见解。\n\n⏱️ 时间戳\n\nKimi K3：一个 AI 斯普特尼克时刻的诞生\n\n01:21 美国刚刚经历了一个 AI 斯普特尼克时刻\n\n05:54 Kimi K3 用史上最大开放权重模型直接冲上第一\n\n06:20 他们不只是缩小了差距，而是直接翻过了围墙\n\n06:42 K3 跃升 17 个名次，在多个领域登顶第一\n\n技术架构与工程突破：没有魔法，只有极致的工程\n\n07:50 K3 架构里没有什么魔法，本质上仍然是 Transformer\n\n08:41 美国前沿实验室把钱都花在哪儿了？\n\n10:12 打造扎实的好模型，就是尖端制造\n\n11:57 K3 实际上为下一代设计了一颗芯片给自己用\n\n开源冲击波：前沿智能变成易逝资产\n\n18:20 前沿智能现在完全是一种易逝资产\n\n21:59 人们为什么还要为 IBM 付钱？为什么还要买非中国产的汽车？\n\n34:53 一亿、两亿的下载量，围绕它长出了一整个生态\n\n42:05 智能也渴望自由，这事挡不住的\n\n估值崩塌与商业逻辑重构\n\n29:23 Kimi 估值 200 亿，Anthropic 和 OpenAI 大概一万亿\n\n01:35:19 Kimi K3 能让美国前沿模型贬值大概 75%\n\n01:36:45 任何有资源的人都可以自己构建一个内部模型当作护城河\n\n01:47:19 每家公司都应该立刻启动一个紧急项目来评估这件事\n\n量化革命：把前沿智能装进口袋\n\n59:22 Bonsai 27B，第一个完全在智能手机上运行的 270 亿参数模型\n\n01:00:35 他们把模型压到了三进制，精度只掉了 5%\n\n01:06:01 到明年年底，这个模型的能力水平就是 Kimi K3 的水平\n\n01:08:03 未来 3 年内，仅靠量化，原始算力就能提升 100 到 10000 倍\n\n地缘政治与人才争夺\n\n43:57 任何人拿到博士学位，绿卡就应该直接钉在学位证背面\n\n01:41:52 美国会出台法律禁止下载 Kimi K3 吗？\n\n01:50:16 应该是美国向世界倾洒开源权重，而不是中国\n\n人形机器人与太空数据中心\n\n01:22:22 中国在人形机器人上已经全面押注了\n\n01:24:28 西方必须在人形机器人上追赶上来\n\n01:28:51 Sam Altman 说太空数据中心在这十年内不会有什么规模化影响\n\n01:30:19 Elon 说这个交叉点会在两到三年内到来\n\n🌟 精彩内容\n\n💡 “前沿智能现在完全是一种易逝资产”\n\nSalim 指出，任何冲到最前沿的模型，保质期只有几周。企业根本来不及评估、走招标流程、内部开会讨论部署，模型就已经往前走了三代。这彻底改变了 AI 商业化的底层逻辑，价值不再属于模型本身，而是属于能灵活切换模型的架构层。\n\n“前沿智能现在完全是一种易逝资产。对任何冲到最前沿的人来说，保质期就几周。”\n\n💡 “打造扎实的好模型，就是尖端制造”\n\nEmad 用中国电动车的崛起类比 Kimi K3 的成功：不是靠某个超新星级别的技术突破，而是靠极致的工程执行、数据配比优化和在限制条件下的 relentless 打磨。这解释了为什么在美国芯片禁令之下，中国实验室反而能实现跳跃式反超。\n\n“打造扎实的好模型，就是尖端制造。为什么中国电动车比福特好？这次感觉是同一回事。”\n\n💡 “智能也渴望自由”\n\nSalim 从进化历程出发，指出从生物智能到个体智能再到集体智能，智能的扩散是不可阻挡的自然法则。任何试图限制它的实体或政府，永远都会失败。这一观点为开源模型的必然崛起提供了哲学层面的注脚。\n\n“信息渴望自由，本质上，智能也渴望自由。任何实体、政府，想限制它，永远都会失败。”\n\n💡 “美国前沿实验室把钱都花在哪儿了？”\n\nAlex 在看到 Kimi K3 用可辨认的 Transformer 架构几乎匹敌 GPT-5.5 Max 后，反复追问这个问题。他指出，知道这条路能走通本身就是巨大的“存在性证明”，能砍掉 90% 以上的研发成本，而美国的出口管制反而激励中国实验室更快地挖掘出了这些效率。\n\n“如果你能用一个 Transformer 就接近到这个程度，那美国实验室到底把钱都花在什么上面了？”\n\n💡 “任何人拿到博士学位，绿卡就应该直接钉在学位证背面”\n\nPeter 对月之暗面创始人杨植麟的故事感慨万千：他在 CMU 拿到博士后因签证问题回国创业，最终打造出震惊美国的 AI 模型。这暴露了美国在人才争夺上的巨大失败，AI 竞赛不仅是芯片和算力的竞赛，更是人才的竞赛。\n\n“我们为什么要把最聪明、跑来我们这里受教育的人送回老家？为什么不让他们留下来，在这里创业？”\n\n💡 “到明年年底，这个模型的能力水平就是 Kimi K3 的水平”\n\nEmad 描绘了一条清晰的量化压缩路径：从 16 位到 8 位、4 位，再到三进制甚至二进制，模型精度只掉 5%，但速度和部署效率提升数倍。这意味着到明年年底，一部普通手机就能跑出今天最前沿模型的智能水平，智能将真正无处不在。\n\n“当你做到三进制甚至二进制时，你可以定制光子芯片，甚至直接在硅片上蚀刻。”\n\n💡 “这完全就是一场无休止的消耗战”\n\nAlex 用“消耗战”形容当前前沿实验室的处境。谷歌在前沿领域基本查无此人，研究人员在各家实验室之间频繁跳槽。Kimi K3 的出现不是终点，而是这场永无止境的竞赛的最新注脚，模型发布频率正从几个月加速到几周甚至几天。\n\n“这完全就是一场无休止的消耗战。谷歌现在在模型前沿领域基本是查无此人、完全掉队了。”\n\n🌐 播客信息补充\n\n本播客采用原有人声声线进行播客音频制作，也可能会有一些地方听起来怪怪的\n\n使用 AI 进行翻译，因此可能会有一些地方不通顺；\n\n如果有后续想要听中文版的其他外文播客，也欢迎联系微信：iEvenight",
+      "tags": [
+        "Kimi K3",
+        "开源模型",
+        "AI斯普特尼克"
+      ],
+      "score": 85,
+      "summary": "播客讨论Kimi K3发布被视为AI斯普特尼克时刻，影响全球AI竞争格局。",
+      "fetched_at": "2026-07-22T01:39:49.005943+08:00"
+    },
+    {
+      "title": "\"Cost is now a first-class engineering constraint.\"\n\n🆕 @barrnanas returns for the third annual Stat...",
+      "link": "https://x.com/aiDotEngineer/status/2079603671474876925",
+      "published": "2026-07-22T00:25:27+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "\"Cost is now a first-class engineering constraint.\"  \n  \n🆕 [@barrnanas](https://x.com/barrnanas) returns for the third annual State of AI Engineering, this time supported by [@NotionHQ](https://x.com/NotionHQ) and [@vercel](https://x.com/vercel)!  \n[youtube.com/watch?v=RGe6Ej…](https://www.youtube.com/watch?v=RGe6EjucbzI)i  \n  \nSome findings:  \n- generative images has 2x'ed in adoption  \n- audio/voice AI is the next highest adoption target   \n- 87% of AIEs use multiple models, mixing closed and open weight  \n- 95% of teams use agents, with write access tripling since last year  \n- 67% of AIEs expect AGI in 5 years\n\n💬1🔄2❤️3👀902📊2",
+      "tags": [
+        "AI工程状态",
+        "成本约束",
+        "代理采用"
+      ],
+      "score": 80,
+      "summary": "AI工程年度报告：成本成为首要约束，95%团队使用代理，87%使用多模型。",
+      "fetched_at": "2026-07-22T01:39:49.005945+08:00"
+    },
+    {
+      "title": "To accelerate scientific discovery and support @ENERGY’s Genesis Mission, the @BerkeleyLab-led SYNAP...",
+      "link": "https://x.com/AIatMeta/status/2079614176725442912",
+      "published": "2026-07-22T01:07:11+08:00",
+      "source": "AI at Meta(@AIatMeta)",
+      "content": "To accelerate scientific discovery and support [@ENERGY](https://x.com/ENERGY)’s Genesis Mission, the [@BerkeleyLab](https://x.com/BerkeleyLab)-led SYNAPS-I project is using SAM 3 and DINOv3 to automate image segmentation.  \n  \nBy pairing DINOv3’s global semantic context and fine-grained spatial localization with SAM 3’s pixel-level boundary extraction, the researchers are able to compress 3D volume labeling from a month of manual effort to ~15 minutes.  \n  \nLearn more about their work: [go.meta.me/01aed3](https://go.meta.me/01aed3)\n\n![Tweet Image](https://pbs.twimg.com/media/HNxF03MWkAAtKQ3.jpg)\n\n💬4🔄2❤️18👀3573📊6",
+      "tags": [
+        "SAM 3",
+        "DINOv3",
+        "科学发现"
+      ],
+      "score": 82,
+      "summary": "Meta的SAM 3和DINOv3用于自动化图像分割，将3D标注从一个月压缩至15分钟。",
+      "fetched_at": "2026-07-22T01:39:49.005946+08:00"
+    },
+    {
+      "title": "me: let's rewrite the API in Rust\nOpus (as advisor): it's an I/O-bound CRUD API, you're mid-feature,...",
+      "link": "https://x.com/adocomplete/status/2079603428251328566",
+      "published": "2026-07-22T00:24:29+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "me: let's rewrite the API in Rust  \nOpus (as advisor): it's an I/O-bound CRUD API, you're mid-feature, and your iOS app depends on the contract. don't.  \nme: all the cool kids are doing it  \nClaude: \"cool kids\" isn't a reason  \n  \nthe advisor tool in action!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079601279937204224/vid/avc1/1404x1080/j7eeu4i4d1IH4fcV.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/adocomplete/status/2079603428251328566/video/1)\n\n💬2🔄1❤️13👀885📊4",
+      "tags": [
+        "Claude",
+        "advisor工具"
+      ],
+      "score": 60,
+      "summary": "用户展示Claude advisor工具劝阻用Rust重写API。",
+      "fetched_at": "2026-07-22T01:39:49.005948+08:00"
+    },
+    {
+      "title": "Escalate hard decisions with the advisor tool.\n\nLearn more: https://t.co/LzIGu2o6FQ",
+      "link": "https://x.com/adocomplete/status/2079603429622919346",
+      "published": "2026-07-22T00:24:29+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Escalate hard decisions with the advisor tool.  \n  \nLearn more: [code.claude.com/docs/en/advisor](https://code.claude.com/docs/en/advisor)\n\n💬0🔄0❤️2👀259📊1",
+      "tags": [
+        "advisor工具"
+      ],
+      "score": 60,
+      "summary": "推广Claude advisor工具用于决策升级。",
+      "fetched_at": "2026-07-22T01:39:49.005950+08:00"
+    },
+    {
+      "title": "One pattern I find useful for working with LLMs is a nice long ramble session. Sometimes the LLM nee...",
+      "link": "https://x.com/karpathy/status/2079610838143623371",
+      "published": "2026-07-22T00:53:55+08:00",
+      "source": "Andrej Karpathy(@karpathy)",
+      "content": "One pattern I find useful for working with LLMs is a nice long ramble session. Sometimes the LLM needs more bits to understand what you're trying to achieve, but you're too lazy to type them. In these cases I like to lean back, switch to /voice and just ramble for like 10 minutes, total mess, anything goes, full stream of consciousness. Sometimes I declare it up top, something like \"switching to speech recognition sorry for any typos...\". Sometimes I turn it into a small interview of a few turns. But I find that the LLMs are somehow very good at reconstructing long incoherent rambles and often their echo of your own tangle of thoughts comes out quite a bit cleaner than what you started with. The result is that you improve the mind meld and have to correct things less from that point on.\n\n💬177🔄101❤️1038👀37814📊261",
+      "tags": [
+        "Karpathy",
+        "语音交互",
+        "LLM工作流"
+      ],
+      "score": 80,
+      "summary": "Karpathy分享使用语音与LLM长谈以提升理解的工作模式。",
+      "fetched_at": "2026-07-22T01:39:49.005952+08:00"
+    },
+    {
+      "title": "卧槽！看来这次Qwen 3.8 Max 强制改版 UI，是真的下了功夫啊！\n\n总算摆脱了此前饱受吐槽、充满浓重 AI 模板感的设计。\n\n我用它做了一个儿童显微镜小项目，自行设计的页面和显微镜交互体验都...",
+      "link": "https://x.com/berryxia/status/2079601160638615853",
+      "published": "2026-07-22T00:15:28+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "卧槽！看来这次Qwen 3.8 Max 强制改版 UI，是真的下了功夫啊！  \n  \n总算摆脱了此前饱受吐槽、充满浓重 AI 模板感的设计。  \n  \n我用它做了一个儿童显微镜小项目，自行设计的页面和显微镜交互体验都很不错，配色质感高级。  \n视频展示如下👇🏻\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079600420671090688/vid/avc1/1920x1080/2HQetvMX1nhsZJKK.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079601160638615853/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n哈哈！蝗虫群的必测项目就是3D 台球😄  \n  \n好久没有用新模型测试了，我拿Qwen 3.8 Max 搞了一下，完整度居然非常高，并且还给我的台球增加了桌子腿和灯光，光影效果也是不错。  \n  \n音效，画面交互还挺丝滑的， 看来这种项目已经都可以轻松拿捏了。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079596780719845376/vid/avc1/1820x1080/Q87yqByoO095qQev.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079597189937217665/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2079597189937217665)\n\n💬1🔄1❤️1👀347📊1",
+      "tags": [
+        "Qwen 3.8 Max",
+        "UI改版"
+      ],
+      "score": 65,
+      "summary": "用户测试Qwen 3.8 Max UI改版，认为设计提升明显。",
+      "fetched_at": "2026-07-22T01:39:49.005954+08:00"
+    },
+    {
+      "title": "不是，你们嘴咋这么严啊？\n没有一个人说啊！\n\n没有人说Qwen 3.8 Max 这次前端网页提升感觉有点明显啊？🤔比Gemini 3.6 Flash 好看些~\n\n刚刚那这个非常随意的Promot测试...",
+      "link": "https://x.com/berryxia/status/2079598691334406641",
+      "published": "2026-07-22T00:05:39+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "不是，你们嘴咋这么严啊？  \n没有一个人说啊！  \n  \n没有人说Qwen 3.8 Max 这次前端网页提升感觉有点明显啊？🤔比Gemini 3.6 Flash 好看些~  \n  \n刚刚那这个非常随意的Promot测试了一下：  \n  \n设计一款TOB Sales Agent 的landing page 风格时尚且符合当前的需求。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079598423993647104/vid/avc1/3620x2160/fDbuUSDEyZTd52a4.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079598691334406641/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n随手测试了一下Landing Page 页，完整性不错。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079592771825065984/vid/avc1/3612x2160/T-ZeLPMTlBdPsPmr.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079592907934437418/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2079592907934437418)\n\n💬2🔄0❤️1👀605📊2",
+      "tags": [
+        "Qwen 3.8 Max",
+        "前端网页"
+      ],
+      "score": 65,
+      "summary": "用户评价Qwen 3.8 Max前端网页能力优于Gemini 3.6 Flash。",
+      "fetched_at": "2026-07-22T01:39:49.005956+08:00"
+    },
+    {
+      "title": "哈哈！蝗虫群的必测项目就是3D 台球😄\n\n好久没有用新模型测试了，我拿Qwen 3.8 Max 搞了一下，完整度居然非常高，并且还给我的台球增加了桌子腿和灯光，光影效果也是不错。\n\n音效，画面交互还...",
+      "link": "https://x.com/berryxia/status/2079597189937217665",
+      "published": "2026-07-21T23:59:41+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "哈哈！蝗虫群的必测项目就是3D 台球😄  \n  \n好久没有用新模型测试了，我拿Qwen 3.8 Max 搞了一下，完整度居然非常高，并且还给我的台球增加了桌子腿和灯光，光影效果也是不错。  \n  \n音效，画面交互还挺丝滑的， 看来这种项目已经都可以轻松拿捏了。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079596780719845376/vid/avc1/1820x1080/Q87yqByoO095qQev.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079597189937217665/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n卧槽~终于圆梦了啊！  \n这下我真的给做了个幻灯片放映机啊，别人都说Qwen3.8 Max的3D不太行，于是乎我试试。  \n  \n用它做了个3D放映机，动画交互，和细节的刻画我觉得还不错啊，也不是不行啊！  \n  \n关键这玩意支持本地上传PDF、影片MP4、PPT等都可以直接让你梦回胶片时代哈哈。  \n  \nPS：谁知道末尾的彩蛋的名字😄\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079450134870626306/vid/avc1/1796x1080/4mYhuR6TJILnB58V.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079450659011862884/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2079450659011862884)\n\n💬1🔄0❤️1👀771📊1",
+      "tags": [
+        "Qwen 3.8 Max",
+        "3D台球"
+      ],
+      "score": 65,
+      "summary": "用户用Qwen 3.8 Max生成3D台球游戏，完整度较高。",
+      "fetched_at": "2026-07-22T01:39:49.005958+08:00"
+    },
+    {
+      "title": "随手测试了一下Landing Page 页，完整性不错。",
+      "link": "https://x.com/berryxia/status/2079592907934437418",
+      "published": "2026-07-21T23:42:40+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "随手测试了一下Landing Page 页，完整性不错。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079592771825065984/vid/avc1/3612x2160/T-ZeLPMTlBdPsPmr.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079592907934437418/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n我去，Gemini 3.6 Flash 这个效果也是不错的啊！  \n关键是速度贼快就完成了啊！关键是应该会便宜很多吧！\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079589228581990400/vid/avc1/1808x1080/hikIEGks_HetAIlX.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2079589570069635109/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2079589570069635109)\n\n💬3🔄0❤️2👀1182📊3",
+      "tags": [
+        "Qwen 3.8 Max",
+        "Landing Page"
+      ],
+      "score": 65,
+      "summary": "用户测试Qwen 3.8 Max生成Landing Page，完整性不错。",
+      "fetched_at": "2026-07-22T01:39:49.005960+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash is here, and it's the best price-to-performance model we've tested for browser agen...",
+      "link": "https://x.com/browser_use/status/2079602472516264010",
+      "published": "2026-07-22T00:20:41+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Gemini 3.6 Flash is here, and it's the best price-to-performance model we've tested for browser agents.  \n  \nOn our BU Benchmark it hits 68%, beating GPT-5.6-sol (67%) and Sonnet 4.6 (62%). Second only to Opus 4.8 (74%), at a fraction of the cost.  \n  \nFrontier-level web agents at Flash pricing. [@GoogleDeepMind](https://x.com/GoogleDeepMind)\n\n![Tweet Image](https://pbs.twimg.com/media/HNw7RZ1bsAE74Kw.jpg)\n\n![Google DeepMind](https://pbs.twimg.com/profile_images/1695024885070737408/-M-HSH5P_normal.jpg)\n\nGoogle DeepMind@GoogleDeepMind\n\nWe’re rolling out three new models to make AI agents faster, smarter, and cheaper at scale:  \n  \n🔵 Gemini 3.6 Flash: It uses fewer tokens than 3.5 Flash to deliver higher quality work at the exact same cost.  \n  \n🔵 Gemini 3.5 Flash-Lite: A fast, cost-effective option for everyday tasks like processing documents and agentic search.  \n  \n🔵 Gemini 3.5 Flash Cyber: A cybersecurity model built to find and patch critical software vulnerabilities.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNwoY8MW8AAubRO.jpg)](https://video.twimg.com/tweet_video/HNwoY8MW8AAubRO.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleDeepMind/status/2079589698490572961)\n\n💬5🔄2❤️21👀1151📊7",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "浏览器代理",
+        "性价比"
+      ],
+      "score": 85,
+      "summary": "Browser Use评测：Gemini 3.6 Flash在浏览器代理任务中性价比最佳，得分68%。",
+      "fetched_at": "2026-07-22T01:39:49.005962+08:00"
+    },
+    {
+      "title": "New in Claude Cowork: teach Claude a skill.\n\nRecord your screen while you do a task, talk through it...",
+      "link": "https://x.com/claudeai/status/2079595988998554047",
+      "published": "2026-07-21T23:54:55+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "New in Claude Cowork: teach Claude a skill.  \n  \nRecord your screen while you do a task, talk through it as you go, and Claude turns it into a skill it can run again. Find it under Record a skill in the + menu of the Claude desktop app.   \n  \nAvailable on Pro, Max, and Team plans.\n\n![Tweet Image](https://pbs.twimg.com/media/HNwzRgjWkAA4tKq.jpg)\n\n💬434🔄659❤️11086👀600999📊1988",
+      "tags": [
+        "Claude Cowork",
+        "录制技能",
+        "自动化"
+      ],
+      "score": 90,
+      "summary": "Claude Cowork新增录制技能功能，可录制屏幕操作并自动复现。",
+      "fetched_at": "2026-07-22T01:39:49.005964+08:00"
+    },
+    {
+      "title": "The world is not just made of words, and spatial intelligence was never just about perceiving and ge...",
+      "link": "https://x.com/drfeifei/status/2079597384510898377",
+      "published": "2026-07-22T00:00:28+08:00",
+      "source": "Fei-Fei Li(@drfeifei)",
+      "content": "The world is not just made of words, and spatial intelligence was never just about perceiving and generating worlds. It's about interacting with them.  \n  \nToday, SceniX is joining World Labs. 🌎🤖👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079596750088847360/vid/avc1/1920x1080/YuRd-iysj4iS0Dky.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/drfeifei/status/2079597384510898377/video/1)\n\n💬29🔄52❤️421👀44893📊90",
+      "tags": [
+        "SceniX",
+        "World Labs",
+        "空间智能"
+      ],
+      "score": 85,
+      "summary": "Fei-Fei Li宣布SceniX加入World Labs，专注空间智能与机器人仿真。",
+      "fetched_at": "2026-07-22T01:39:49.005966+08:00"
+    },
+    {
+      "title": "@YunzhuLiYZ, @fast_sploosh, and @xhsonny have built a remarkable team that is training and evaluatin...",
+      "link": "https://x.com/drfeifei/status/2079597386616471682",
+      "published": "2026-07-22T00:00:28+08:00",
+      "source": "Fei-Fei Li(@drfeifei)",
+      "content": "[@YunzhuLiYZ](https://x.com/YunzhuLiYZ), [@fast\\_sploosh](https://x.com/fast_sploosh), and [@xhsonny](https://x.com/xhsonny) have built a remarkable team that is training and evaluating robots in high-fidelity simulation – proven not only in lab demos, but in live deployments on real hardware.  \n  \nLast month, we wrote that the boundaries between rendering, simulation, and planning are beginning to blur. Bringing our world models together with SceniX's simulation and robotics expertise is an important step in our quest for spatial intelligence.  \n  \nWelcome to the team. Read the full announcement:  \n  \n[worldlabs.ai/blog/scenix](https://www.worldlabs.ai/blog/scenix)\n\n💬2🔄4❤️36👀4127📊7",
+      "tags": [
+        "SceniX",
+        "World Labs",
+        "机器人仿真"
+      ],
+      "score": 85,
+      "summary": "SceniX团队加入World Labs，在真实硬件上部署机器人。",
+      "fetched_at": "2026-07-22T01:39:49.005968+08:00"
+    },
+    {
+      "title": "We'll see you in an hour!",
+      "link": "https://x.com/FireworksAI_HQ/status/2079597642435395889",
+      "published": "2026-07-22T00:01:29+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "We'll see you in an hour!\n\n![Sinan Ozdemir](https://pbs.twimg.com/profile_images/1729212251255738368/NcP86bFn_normal.jpg)\n\nSinan Ozdemir@Prof\\_OZ\n\nWant to chat live with me about fine-tuning, Kimi K3, or really anything else AI?  \n  \nCome to our first of many [@FireworksAI\\_HQ](https://x.com/FireworksAI_HQ) office hours tomorrow @ 10am PT  \n  \nSee you there!  \n[fireworks.ai/event/office-h…](https://fireworks.ai/event/office-hours-fine-tuning)\n\n[🔗 View Quoted Tweet](https://x.com/Prof_OZ/status/2079295975429222724)\n\n💬0🔄0❤️2👀937",
+      "tags": [
+        "Fireworks AI",
+        "office hours"
+      ],
+      "score": 50,
+      "summary": "Fireworks AI预告即将举办办公时间活动。",
+      "fetched_at": "2026-07-22T01:39:49.005970+08:00"
+    },
+    {
+      "title": "this is important and true. and if you don’t understand it you don’t really understand what’s going ...",
+      "link": "https://x.com/GaryMarcus/status/2079608310177628359",
+      "published": "2026-07-22T00:43:53+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "this is important and true. and if you don’t understand it you don’t really understand what’s going on.\n\n![Kareem Nassar](https://pbs.twimg.com/profile_images/1644144595528474626/n9I9sKI__normal.jpg)\n\nKareem Nassar@kimocode\n\n[@GaryMarcus](https://x.com/GaryMarcus) Yes — model makers quietly went from benchmarking LLMs to benchmarking LLM+harness, without relabeling. Same leaderboard, different system under test. [x.com/kimocode/statu…](https://x.com/kimocode/status/2079430018107945283?s=46&t=JwmWZd3XzF5OX18sY2I39A)\n\n[🔗 View Quoted Tweet](https://x.com/kimocode/status/2079606035481080114)\n\n💬1🔄1❤️11👀1987📊2",
+      "tags": [
+        "Gary Marcus",
+        "LLM基准",
+        "评测"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus评论LLM基准测试已从评测模型转向评测模型+工具链。",
+      "fetched_at": "2026-07-22T01:39:49.005972+08:00"
+    },
+    {
+      "title": "this is confused. it’s not LLMs that are good at math; it’s LLMs merged with (neuro)symbolic tools t...",
+      "link": "https://x.com/GaryMarcus/status/2079595467269373965",
+      "published": "2026-07-21T23:52:51+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "this is confused. it’s not LLMs that are good at math; it’s LLMs merged with (neuro)symbolic tools that are good at math.  \n  \namazing that people feel free to clutch their pearls without understanding even the basic technical details.\n\n![Austen Allred](https://pbs.twimg.com/profile_images/2074335689458450432/uWXcowh-_normal.jpg)\n\nAusten Allred@Austen\n\nI’m old enough to remember when very smart people were arguing LLMs wouldn’t be helpful in math because they’re probabilistic in nature and can hallucinate.  \n  \nThis was two years ago.\n\n[🔗 View Quoted Tweet](https://x.com/Austen/status/2079237340451442918)\n\n💬15🔄2❤️51👀3942📊14",
+      "tags": [
+        "Gary Marcus",
+        "LLM数学",
+        "神经符号"
+      ],
+      "score": 75,
+      "summary": "Gary Marcus指出LLM擅长数学是因为结合了神经符号工具，而非纯LLM。",
+      "fetched_at": "2026-07-22T01:39:49.005973+08:00"
+    },
+    {
+      "title": "Gemini 3.5 Flash-Lite is our fastest and most cost-effective model for low-latency, high-throughput ...",
+      "link": "https://x.com/googleaidevs/status/2079602872195621101",
+      "published": "2026-07-22T00:22:16+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Gemini 3.5 Flash-Lite is our fastest and most cost-effective model for low-latency, high-throughput developer workflows. It is optimized for scaling repetitive tasks, parallel subagents, agentic search, and high-volume document processing.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079590878109454336/vid/avc1/1920x1080/Izv7DhAbv2nuH1ys.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2079602872195621101/video/1)\n\n💬2🔄0❤️6👀853📊2",
+      "tags": [
+        "Gemini 3.5 Flash-Lite",
+        "低成本",
+        "高吞吐"
+      ],
+      "score": 85,
+      "summary": "Google发布Gemini 3.5 Flash-Lite，专为高吞吐、低延迟开发者工作流优化。",
+      "fetched_at": "2026-07-22T01:39:49.005975+08:00"
+    },
+    {
+      "title": "Both Gemini 3.6 Flash and 3.5 Flash-Lite are available starting today in the Gemini API via @GoogleA...",
+      "link": "https://x.com/googleaidevs/status/2079602873487569367",
+      "published": "2026-07-22T00:22:16+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Both Gemini 3.6 Flash and 3.5 Flash-Lite are available starting today in the Gemini API via [@GoogleAIStudio](https://x.com/GoogleAIStudio) and [@AndroidStudio](https://x.com/AndroidStudio). You can also build with 3.6 Flash in [@Antigravity](https://x.com/Antigravity) and the Gemini Enterprise Agent Platform.  \n  \nLearn more ↓  \n[x.com/GoogleAIStudio…](https://x.com/GoogleAIStudio/status/2079602327103676445)\n\n![Google AI Studio](https://pbs.twimg.com/profile_images/2056588677363765248/ATA2alUA_normal.jpg)\n\nGoogle AI Studio@GoogleAIStudio\n\n[x.com/i/article/2079…](http://x.com/i/article/2079567735466430464)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleAIStudio/status/2079602327103676445)\n\n💬2🔄6❤️16👀1881📊4",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Gemini 3.5 Flash-Lite",
+        "API可用"
+      ],
+      "score": 85,
+      "summary": "Gemini 3.6 Flash和3.5 Flash-Lite即日起在Gemini API中可用。",
+      "fetched_at": "2026-07-22T01:39:49.005977+08:00"
+    },
+    {
+      "title": "Building production AI agents requires scalable intelligence with token efficiency and lower latency...",
+      "link": "https://x.com/googleaidevs/status/2079602868886417490",
+      "published": "2026-07-22T00:22:15+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Building production AI agents requires scalable intelligence with token efficiency and lower latency. Today, we’re releasing Gemini 3.6 Flash and Gemini 3.5 Flash-Lite built to scale agentic workflows.  \n  \nRead the 🧵to learn more ↓\n\n💬10🔄9❤️47👀8524📊15",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Gemini 3.5 Flash-Lite",
+        "代理工作流"
+      ],
+      "score": 85,
+      "summary": "Google发布Gemini 3.6 Flash和3.5 Flash-Lite，专为扩展代理工作流设计。",
+      "fetched_at": "2026-07-22T01:39:49.005979+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash builds directly on feedback from 3.5 Flash.\n\nWatch how it compares on quality and t...",
+      "link": "https://x.com/GoogleDeepMind/status/2079615466356580535",
+      "published": "2026-07-22T01:12:19+08:00",
+      "source": "Google DeepMind(@GoogleDeepMind)",
+      "content": "Gemini 3.6 Flash builds directly on feedback from 3.5 Flash.  \n  \nWatch how it compares on quality and token usage ↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079614096748564480/vid/avc1/1920x1080/QEn_xKW9wQ4PgmqQ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GoogleDeepMind/status/2079615466356580535/video/1)\n\n💬3🔄3❤️22👀4094📊6",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "质量",
+        "Token效率"
+      ],
+      "score": 85,
+      "summary": "Google DeepMind展示Gemini 3.6 Flash在质量和Token使用上的改进。",
+      "fetched_at": "2026-07-22T01:39:49.005981+08:00"
+    },
+    {
+      "title": "It’s much better at writing production-ready code faster without getting stuck in loops.\n\nPlus, it e...",
+      "link": "https://x.com/GoogleDeepMind/status/2079615468294320365",
+      "published": "2026-07-22T01:12:19+08:00",
+      "source": "Google DeepMind(@GoogleDeepMind)",
+      "content": "It’s much better at writing production-ready code faster without getting stuck in loops.  \n  \nPlus, it excels at multimodal tasks like analyzing charts, understanding documents, and report drafting.  \n  \n3.6 Flash is rolling out in the [@GeminiApp](https://x.com/GeminiApp) and developers can start building in [@Antigravity](https://x.com/Antigravity), with API access in [@GoogleAIStudio](https://x.com/GoogleAIStudio) and [@AndroidStudio](https://x.com/AndroidStudio).  \n  \nFind out more → [goo.gle/4yyNkoi](https://goo.gle/4yyNkoi)\n\n![Tweet Image](https://pbs.twimg.com/media/HNxGPRPXQAAI4AX.png)\n\n💬0🔄1❤️5👀409📊1",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "代码生成",
+        "多模态"
+      ],
+      "score": 85,
+      "summary": "Gemini 3.6 Flash在代码生成和多模态任务上表现提升，现已可用。",
+      "fetched_at": "2026-07-22T01:39:49.005983+08:00"
+    },
+    {
+      "title": "Try it by selecting “3.6 Flash” from the model dropdown menu at https://t.co/382WL5xSvc or in the ap...",
+      "link": "https://x.com/GeminiApp/status/2079597376747294883",
+      "published": "2026-07-22T00:00:26+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "Try it by selecting “3.6 Flash” from the model dropdown menu at [gemini.google](http://gemini.google) or in the app.\n\n💬1🔄8❤️45👀6740📊7",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "可用"
+      ],
+      "score": 85,
+      "summary": "Gemini 3.6 Flash可在gemini.google或应用中选择使用。",
+      "fetched_at": "2026-07-22T01:39:49.005985+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash can quickly understand context and help you create your own custom creative tools.\n...",
+      "link": "https://x.com/GeminiApp/status/2079597340223320373",
+      "published": "2026-07-22T00:00:17+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "Gemini 3.6 Flash can quickly understand context and help you create your own custom creative tools.  \n  \nFor example, it can extract real natural textures from photos of your environment to build prints and design elements, then quickly export them to use directly in your workflows.\n\n💬31🔄67❤️517👀32049📊103",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "创意工具",
+        "纹理提取"
+      ],
+      "score": 85,
+      "summary": "Gemini 3.6 Flash可快速理解上下文并创建自定义创意工具，如纹理提取。",
+      "fetched_at": "2026-07-22T01:39:49.005986+08:00"
+    },
+    {
+      "title": "You can just drop things",
+      "link": "https://x.com/rauchg/status/2079600788356145656",
+      "published": "2026-07-22T00:13:59+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "You can just drop things\n\n![Vercel](https://pbs.twimg.com/profile_images/1767351110228918272/3Pndc5OT_normal.png)\n\nVercel@vercel\n\nDrop to deploy.  \nNow also on our homepage.  \n[vercel.com/home](http://vercel.com/home)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079600387095728128/vid/avc1/1280x720/X3Z-tXBUsDPLSZxW.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/vercel/status/2079600432947802318/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/vercel/status/2079600432947802318)\n\n💬24🔄7❤️196👀24908📊32",
+      "tags": [
+        "Vercel",
+        "部署"
+      ],
+      "score": 60,
+      "summary": "Vercel推出拖拽部署功能。",
+      "fetched_at": "2026-07-22T01:39:49.005988+08:00"
+    },
+    {
+      "title": "Local AI 201 https://t.co/AgKvdJMqWv",
+      "link": "https://x.com/huggingface/status/2079597899592438209",
+      "published": "2026-07-22T00:02:30+08:00",
+      "source": "Hugging Face(@huggingface)",
+      "content": "Local AI 201 [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1kKzDDbaQyeJv)\n\n💬4🔄3❤️38👀4909📊11",
+      "tags": [
+        "Hugging Face",
+        "Local AI"
+      ],
+      "score": 60,
+      "summary": "Hugging Face举办Local AI 201直播。",
+      "fetched_at": "2026-07-22T01:39:49.005990+08:00"
+    },
+    {
+      "title": "Why it took Odysseus 10 years to get home 💀\n\nIncredible work by @jeremyrmccarthy - full video is on...",
+      "link": "https://x.com/venturetwins/status/2079615382395224259",
+      "published": "2026-07-22T01:11:59+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Why it took Odysseus 10 years to get home 💀  \n  \nIncredible work by [@jeremyrmccarthy](https://x.com/jeremyrmccarthy) - full video is on his IG (same handle)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079598144099418112/vid/avc1/1920x1080/2BOBnU9GVqqzL0g-.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2079615382395224259/video/1)\n\n💬3🔄2❤️27👀2378📊6",
+      "tags": [
+        "AI视频"
+      ],
+      "score": 50,
+      "summary": "分享AI生成视频，内容为奥德修斯回家故事。",
+      "fetched_at": "2026-07-22T01:39:49.005992+08:00"
+    },
+    {
+      "title": "Voice agents are exploding. Don’t let them be a black box in production.\n\nToday, we’re launching Lan...",
+      "link": "https://x.com/LangChain/status/2079608632887447889",
+      "published": "2026-07-22T00:45:09+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Voice agents are exploding. Don’t let them be a black box in production.  \n  \nToday, we’re launching LangSmith tracing for 4 voice frameworks:  \n🎙️ [@pipecat\\_ai](https://x.com/pipecat_ai)  \n🎙️ [@livekit](https://x.com/livekit)  \n🎙️ [@OpenAI](https://x.com/OpenAI) Realtime  \n🎙️ [@GeminiApp](https://x.com/GeminiApp) Live (Google ADK)  \n  \nLearn mo[langchain.com/blog/trace-voi…](https://www.langchain.com/blog/trace-voice-agents-in-langsmith)Fkmj\n\n![Tweet Image](https://pbs.twimg.com/media/HNw3WK0XgAAsBd8.jpg)\n\n💬0🔄3❤️6👀1298📊2",
+      "tags": [
+        "LangSmith",
+        "语音代理",
+        "追踪"
+      ],
+      "score": 80,
+      "summary": "LangSmith推出对4个语音代理框架的追踪支持。",
+      "fetched_at": "2026-07-22T01:39:49.005994+08:00"
+    },
+    {
+      "title": "My newsletter and podcast wouldn’t exist if I hadn’t taken a sabbatical.\n\nSeven years into my time a...",
+      "link": "https://x.com/lennysan/status/2079606037930512648",
+      "published": "2026-07-22T00:34:51+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "My newsletter and podcast wouldn’t exist if I hadn’t taken a sabbatical.  \n  \nSeven years into my time at Airbnb, I took a three-month break. It was the first time I’d taken more than two weeks off in my more than 15-year career. I spent those months tinkering, reading, and traveling—and even snuck in a 10-day silent meditation retreat.   \n  \nAt the end of it, I realized my heart wasn’t in the work anymore and that it was time for something new. So I left my job without much of a plan and spent the next six months exploring. Those six months turned into a year, that year turned into my newsletter, and the rest is history.  \n  \nLooking back, I can say those were among the three most important months of my life, because they led me to what I do now—the most interesting, fulfilling, and impactful work I can ever imagine.  \n  \nLife makes it hard to get off the default path and back onto a road of your own design. Sometimes that looks like leaving your job, like I did. Other times, it means reconnecting to why you’re doing the work you’re already doing. Either way, in my experience and that of many friends, significant time away from your day-to-day is necessary for the mental, physical, or emotional shift that will reveal what’s next. What you need is what today’s newsletter guest author [@djdidonna](https://x.com/djdidonna) calls “Big Time Off.”  \n  \nDJ is the founder of The Sabbatical Project, and today DJ’s book Big Time Off comes out! It’s a deeply researched, beautifully written book on the value of taking time off, with tangible advice, real-world case studies, and practical considerations for anyone who wants to shake things up.  \n  \nIn today's newsletter, DJ shares some excerpts from his book to help you start thinking about what a sabbatical might look like for you now or down the road.  \n  \nI’ve always wished there were a guide to help me think through this decision and make the most of this precious time off. We finally have one.  \n  \nEnjoy: [lennysnewsletter.com/p/how-to-take-…](https://www.lennysnewsletter.com/p/how-to-take-a-sabbatical)\n\n![Tweet Image](https://pbs.twimg.com/media/HNw9m-haUAAxOH0.jpg)\n\n💬0🔄1❤️15👀1896📊3",
+      "tags": [
+        "休假",
+        "职业"
+      ],
+      "score": 50,
+      "summary": "Lenny Rachitsky分享休假经历如何促成其新闻通讯。",
+      "fetched_at": "2026-07-22T01:39:49.005996+08:00"
+    },
+    {
+      "title": "We have started our most ambitious pre-training run yet, for Gemini 4, and are excited by the progre...",
+      "link": "https://x.com/OfficialLoganK/status/2079594867161022817",
+      "published": "2026-07-21T23:50:27+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "We have started our most ambitious pre-training run yet, for Gemini 4, and are excited by the progress : )\n\n💬374🔄206❤️3904👀207128📊750",
+      "tags": [
+        "Gemini 4",
+        "预训练",
+        "Google DeepMind"
+      ],
+      "score": 90,
+      "summary": "Google DeepMind已开始Gemini 4的预训练，称是最雄心勃勃的一次。",
+      "fetched_at": "2026-07-22T01:39:49.005998+08:00"
+    },
+    {
+      "title": "3.5 Flash-Lite runs at nearly 350 output tokens per second which feels so smooth on many latency sen...",
+      "link": "https://x.com/OfficialLoganK/status/2079591801066008685",
+      "published": "2026-07-21T23:38:16+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "3.5 Flash-Lite runs at nearly 350 output tokens per second which feels so smooth on many latency sensitive UI experiences and is now also a viable option to drive agent harnesses!\n\n💬9🔄3❤️119👀9401📊18",
+      "tags": [
+        "Gemini 3.5 Flash-Lite",
+        "350 tokens/s"
+      ],
+      "score": 85,
+      "summary": "Gemini 3.5 Flash-Lite输出速度近350 tokens/s，适合延迟敏感场景。",
+      "fetched_at": "2026-07-22T01:39:49.005999+08:00"
+    },
+    {
+      "title": "On Jaleel’s daily walks, he noticed a problem: the local restaurants in his city were struggling.\n\nS...",
+      "link": "https://x.com/Lovable/status/2079600915175399687",
+      "published": "2026-07-22T00:14:29+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "On Jaleel’s daily walks, he noticed a problem: the local restaurants in his city were struggling.  \n  \nSo, he built an entire tool stack for independent restaurants to market and retain customers.  \n  \nTen months after launch, it was acquired. This is QuickTables.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079599559697960960/vid/avc1/3840x2160/fvHOGyM_ulOYxy3S.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Lovable/status/2079600915175399687/video/1)\n\n💬1🔄10❤️29👀4075📊9",
+      "tags": [
+        "Lovable",
+        "创业故事"
+      ],
+      "score": 60,
+      "summary": "Lovable分享用户用其平台构建餐厅工具并被收购的故事。",
+      "fetched_at": "2026-07-22T01:39:49.006001+08:00"
+    },
+    {
+      "title": "Mistral is announcing an expanded global strategic partnership with @Microsoft to give enterprises a...",
+      "link": "https://x.com/MistralAI/status/2079598447234064801",
+      "published": "2026-07-22T00:04:41+08:00",
+      "source": "Mistral AI(@MistralAI)",
+      "content": "Mistral is announcing an expanded global strategic partnership with [@Microsoft](https://x.com/Microsoft) to give enterprises and regulated industries frontier AI they can control.  \n  \nAs Mistral is expanding its AI compute capacity in Europe, the companies are expanding their strategic partnership with Microsoft’s commitment to leverage part of this capacity, bringing Mistral’s frontier and efficient models across Microsoft’s AI platform and giving customers flexible deployment options from cloud to fully disconnected environments.  \n  \nLearn more from [@arthurmensch](https://x.com/arthurmensch) and [@BradSmi](https://x.com/BradSmi) on what this means for enterprises.  \n  \nWatch here: [youtube.com/watch?v=xr4VUV…](https://www.youtube.com/watch?v=xr4VUV-7rN0)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079593480674779136/vid/avc1/1920x1080/v2yVt8x0KOEL3QUe.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/MistralAI/status/2079598447234064801/video/1)\n\n💬13🔄29❤️143👀11272📊33",
+      "tags": [
+        "Mistral",
+        "Microsoft",
+        "战略合作"
+      ],
+      "score": 90,
+      "summary": "Mistral与微软扩大全球战略合作，提供可控前沿AI。",
+      "fetched_at": "2026-07-22T01:39:49.006003+08:00"
+    },
+    {
+      "title": "Congrats to the @poolsideai team on their latest release, Laguna S 2.1.\n\nIt’s open-weight, delivers ...",
+      "link": "https://x.com/NVIDIAAI/status/2079614410969301331",
+      "published": "2026-07-22T01:08:07+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Congrats to the [@poolsideai](https://x.com/poolsideai) team on their latest release, Laguna S 2.1.  \n  \nIt’s open-weight, delivers way beyond its size, runs great locally and you can customize it with NVIDIA NeMo.   \n  \nGo try it out on [@OpenRouter](https://x.com/OpenRouter) or download from [@huggingface](https://x.com/huggingface) �[huggingface.co/poolside/Lagun…](https://huggingface.co/poolside/Laguna-S-2.1-NVFP4)O\n\n![Poolside](https://pbs.twimg.com/profile_images/2067710536024748032/zGfDHU4Y_normal.jpg)\n\nPoolside@poolsideai\n\nToday we're releasing Laguna S 2.1, our most capable model to date.  \n  \nIt's a 118B total parameter Mixture-of-Experts model with 8B activated per token, a context window of up to 1M tokens, and thinking and no-thinking modes.  \n  \nCapable enough to hold its own against models many times its size. Small enough to run on a single [@NVIDIAAI](https://x.com/NVIDIAAI) DGX Spark.  \n  \nLaguna S 2.1 is fully open under OpenMDW-1.1, with weights available today on [@huggingface](https://x.com/huggingface)[poolside.ai/blog/introduci…](https://poolside.ai/blog/introducing-laguna-s-2-1)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079612009239175168/vid/avc1/1920x1080/jZO91Dm6-PiUmQYT.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/poolsideai/status/2079613777343848465/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/poolsideai/status/2079613777343848465)\n\n💬3🔄11❤️66👀5083📊10",
+      "tags": [
+        "Laguna S 2.1",
+        "poolside",
+        "开源"
+      ],
+      "score": 85,
+      "summary": "NVIDIA祝贺poolside发布开源模型Laguna S 2.1，118B参数MoE。",
+      "fetched_at": "2026-07-22T01:39:49.006005+08:00"
+    },
+    {
+      "title": "A few more updates:\n— Drafts stay with you when you switch tasks\n— Search shortcuts get you back to ...",
+      "link": "https://x.com/OpenAIDevs/status/2079595646550753305",
+      "published": "2026-07-21T23:53:33+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "A few more updates:  \n— Drafts stay with you when you switch tasks  \n— Search shortcuts get you back to the right place faster  \n— Path breadcrumbs are clickable, so you can jump through files without retracing steps  \n— Previews open in the right task, keeping review context attached  \n— Automations follow local time\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079595625772208129/vid/avc1/1280x720/DedsnMvBKKh-aXGm.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenAIDevs/status/2079595646550753305/video/1)\n\n💬3🔄1❤️55👀6227📊8",
+      "tags": [
+        "Codex",
+        "更新",
+        "导航"
+      ],
+      "score": 80,
+      "summary": "OpenAI Codex更新：草稿跨任务保留、搜索快捷键、路径面包屑等。",
+      "fetched_at": "2026-07-22T01:39:49.006007+08:00"
+    },
+    {
+      "title": "Side chats and subagents are easier to follow too: active state shows sooner, and queued follow-ups ...",
+      "link": "https://x.com/OpenAIDevs/status/2079595612572627340",
+      "published": "2026-07-21T23:53:25+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Side chats and subagents are easier to follow too: active state shows sooner, and queued follow-ups can become side chats without copy and paste.\n\n💬3🔄1❤️49👀6098📊7",
+      "tags": [
+        "Codex",
+        "侧边聊天",
+        "子代理"
+      ],
+      "score": 80,
+      "summary": "Codex改进侧边聊天和子代理的跟踪与排队。",
+      "fetched_at": "2026-07-22T01:39:49.006009+08:00"
+    },
+    {
+      "title": "Codex is getting faster and easier to navigate.\n\nWe shipped updates across long chats, the sidebar, ...",
+      "link": "https://x.com/OpenAIDevs/status/2079595537658151209",
+      "published": "2026-07-21T23:53:07+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Codex is getting faster and easier to navigate.  \n  \nWe shipped updates across long chats, the sidebar, reviews, side chats, and the everyday workflows.\n\n![Tweet Image](https://pbs.twimg.com/media/HNw1HxYaoAAmPg9.png)\n\n💬73🔄41❤️729👀44474📊145",
+      "tags": [
+        "Codex",
+        "速度",
+        "导航"
+      ],
+      "score": 80,
+      "summary": "Codex更新提升速度和导航体验，涉及长聊天、侧边栏等。",
+      "fetched_at": "2026-07-22T01:39:49.006011+08:00"
+    },
+    {
+      "title": "This past weekend, OpenRouter saved 22,000 users over $100,000 on just a single model.\n\nWe're contin...",
+      "link": "https://x.com/OpenRouter/status/2079604004854673854",
+      "published": "2026-07-22T00:26:46+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "This past weekend, OpenRouter saved 22,000 users over $100,000 on just a single model.  \n  \nWe're continuously sourcing the best prices in the market for open-weight models, and it will get even better very soon!\n\n![Shashank Goyal](https://pbs.twimg.com/profile_images/1353870820058128384/xmZH7XRA_normal.jpg)\n\nShashank Goyal@shashankgoyal95\n\nOpenRouter is the best way to source inference. Period.   \n  \nOver the weekend we saved 22000 users over $100,000 on GLM 5.2 because providers gave discounts during low demand periods  \n  \nUsers had to do nothing, they just got way better prices! Over a 50% drop from weekday pricing.\n\n![Tweet Image](https://pbs.twimg.com/media/HNuITwmXEAAZP7R.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/shashankgoyal95/status/2079405728259789196)\n\n💬2🔄2❤️16👀1900📊3",
+      "tags": [
+        "OpenRouter",
+        "成本节省",
+        "GLM 5.2"
+      ],
+      "score": 75,
+      "summary": "OpenRouter周末为22000用户节省超10万美元推理成本。",
+      "fetched_at": "2026-07-22T01:39:49.006012+08:00"
+    },
+    {
+      "title": "been building with 3.6 Flash over the last couple of weeks, and it's noticeably better and more toke...",
+      "link": "https://x.com/patloeber/status/2079595400143442026",
+      "published": "2026-07-21T23:52:35+08:00",
+      "source": "Patrick Loeber(@patloeber)",
+      "content": "been building with 3.6 Flash over the last couple of weeks, and it's noticeably better and more token efficient (and thus also often faster)⚡️  \n  \nwe wrote a dev guide with all the details: [ai.google.dev/gemini-api/doc…](https://ai.google.dev/gemini-api/docs/latest-model)\n\n![Logan Kilpatrick](https://pbs.twimg.com/profile_images/1943787288955084800/QOl7OJMc_normal.jpg)\n\nLogan Kilpatrick@OfficialLoganK\n\nSay hello to Gemini 3.6 Flash, designed to be higher intelligence, more token efficient, and with a new lower price, based directly on developer feedback!  \n  \n3.6 Flash continues our progress towards models that are deeply usable in real world scenarios!\n\n![Tweet Image](https://pbs.twimg.com/media/HNwo7c1a8AA5h9d.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/OfficialLoganK/status/2079590123038204255)\n\n💬3🔄1❤️24👀1884📊6",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "开发者指南"
+      ],
+      "score": 80,
+      "summary": "开发者分享Gemini 3.6 Flash使用体验，称其更高效。",
+      "fetched_at": "2026-07-22T01:39:49.006014+08:00"
+    },
+    {
+      "title": "Lfg!! Google has just released Gemini 3.6 Flash 🔥\n\nMany are waiting for Pro (me too) but this thing...",
+      "link": "https://x.com/itsPaulAi/status/2079597536155668890",
+      "published": "2026-07-22T00:01:04+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "Lfg!! Google has just released Gemini 3.6 Flash 🔥  \n  \nMany are waiting for Pro (me too) but this thing is suprisingly capable  \n  \n- really fast  \n- good for frontend tasks  \n- surprisingly token efficient  \n  \nAnd it can even manage to create pretty convincing 3D stuff like this simple Subway Surfers replica!  \n  \nPro tip: make sure to enable \"extended thinking\" in Gemini to improve the results when it comes to coding.  \n  \nThanks a lot to Google for the early access 🫶\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079595879170744320/vid/avc1/1724x1080/ndvjzObksqzNLsPt.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/itsPaulAi/status/2079597536155668890/video/1)\n\n![Logan Kilpatrick](https://pbs.twimg.com/profile_images/1943787288955084800/QOl7OJMc_normal.jpg)\n\nLogan Kilpatrick@OfficialLoganK\n\nSay hello to Gemini 3.6 Flash, designed to be higher intelligence, more token efficient, and with a new lower price, based directly on developer feedback!  \n  \n3.6 Flash continues our progress towards models that are deeply usable in real world scenarios!\n\n![Tweet Image](https://pbs.twimg.com/media/HNwo7c1a8AA5h9d.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/OfficialLoganK/status/2079590123038204255)\n\n💬1🔄0❤️7👀3633📊2",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "评测"
+      ],
+      "score": 75,
+      "summary": "KOL评测Gemini 3.6 Flash，认为速度快、前端任务表现好。",
+      "fetched_at": "2026-07-22T01:39:49.006016+08:00"
+    },
+    {
+      "title": "We wrote a Gemini 3.6 Flash &amp; Gemini 3.5 Flash-lite Developer Guide. All you need to know about ...",
+      "link": "https://x.com/_philschmid/status/2079593948842995752",
+      "published": "2026-07-21T23:46:49+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "We wrote a Gemini 3.6 Flash & Gemini 3.5 Flash-lite Developer Guide. All you need to know about the new models 👇🏻  \n  \n<https://t.co/IYUEfJc9WH>\n\n![Tweet Image](https://pbs.twimg.com/media/HNwzqZVWUAAkm00.jpg)\n\n💬3🔄3❤️25👀1682📊6",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Gemini 3.5 Flash-Lite",
+        "开发者指南"
+      ],
+      "score": 80,
+      "summary": "发布Gemini 3.6 Flash和3.5 Flash-Lite开发者指南。",
+      "fetched_at": "2026-07-22T01:39:49.006018+08:00"
+    },
+    {
+      "title": "At Vector Space Day SF, Dave Nielsen from @cognee_ gave an amazing talk on where AI memory is headin...",
+      "link": "https://x.com/qdrant_engine/status/2079597269901365695",
+      "published": "2026-07-22T00:00:00+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "At Vector Space Day SF, Dave Nielsen from [@cognee\\_](https://x.com/cognee_) gave an amazing talk on where AI memory is heading: from simple prompt storage to full knowledge graphs built on the fly, combining RAG, GraphRAG, and short-term memory into one unified layer.  \n  \nA few things that stood out:  \n  \n→ [@cognee\\_](https://x.com/cognee_) builds knowledge graphs automatically, extracting entities and relationships from chats, prompts, agent interactions, and pipelines, storing vectors in [@qdrant\\_engine](https://x.com/qdrant_engine) and graph relationships in [@neo4j](https://x.com/neo4j)   \n  \n→ AI memory is expanding beyond individual agents to teams and organizations, think onboarding systems that learn from prompts, or shared knowledge bases that grow smarter over time  \n  \n→ The cognee x Qdrant connector now includes TurboQuant support, and the impact is even bigger for knowledge graphs than regular vector storage, because graph data explodes in size and quantization cuts it down significantly  \n  \nFull talk is live on our youtube channel: [youtube.com/watch?v=UKw6PU…](https://www.youtube.com/watch?v=UKw6PUgsUTQ)\n\n![Tweet Image](https://pbs.twimg.com/media/HNwDEUBbIAArPrD.jpg)\n\n💬1🔄0❤️2👀117📊2",
+      "tags": [
+        "Qdrant",
+        "cognee",
+        "AI记忆"
+      ],
+      "score": 70,
+      "summary": "Qdrant与cognee合作，构建结合RAG和知识图谱的AI记忆层。",
+      "fetched_at": "2026-07-22T01:39:49.006020+08:00"
+    },
+    {
+      "title": "https://t.co/AmvCw7Z3TG",
+      "link": "https://x.com/Replit/status/2079597485333385449",
+      "published": "2026-07-22T00:00:52+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "[x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1AGRnnklYarGl)\n\n💬0🔄3❤️6👀1814📊1",
+      "tags": [
+        "Replit",
+        "直播"
+      ],
+      "score": 60,
+      "summary": "Replit进行直播。",
+      "fetched_at": "2026-07-22T01:39:49.006022+08:00"
+    },
+    {
+      "title": "In case you missed it, Demis wrote an article on X around a framework for regulating frontier AI res...",
+      "link": "https://x.com/rowancheung/status/2079594586025148456",
+      "published": "2026-07-21T23:49:20+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "In case you missed it, Demis wrote an article on X around a framework for regulating frontier AI responsibly  \n  \nHe also mentioned cybersecurity risks, and named nuclear and bio as threats that may emerge as capabilities advance:\n\n![Demis Hassabis](https://pbs.twimg.com/profile_images/1990472620614053888/xrAu0wQL_normal.jpg)\n\nDemis Hassabis@demishassabis\n\n[x.com/i/article/2076…](http://x.com/i/article/2076946210397552640)\n\n[🔗 View Quoted Tweet](https://x.com/demishassabis/status/2076957440109625718)\n\n💬1🔄1❤️5👀5024📊2",
+      "tags": [
+        "Demis Hassabis",
+        "AI监管",
+        "网络安全"
+      ],
+      "score": 75,
+      "summary": "Rowan Cheung引用Demis Hassabis关于前沿AI监管框架的文章。",
+      "fetched_at": "2026-07-22T01:39:49.006024+08:00"
+    },
+    {
+      "title": "AI models pushing the frontier are a growing challenge for cybersecurity.\n\nA few weeks ago, I asked ...",
+      "link": "https://x.com/rowancheung/status/2079594573920419923",
+      "published": "2026-07-21T23:49:18+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "AI models pushing the frontier are a growing challenge for cybersecurity.  \n  \nA few weeks ago, I asked Demis what's underhyped in AI right now and on his mind:  \n  \n\"I'm very excited about this new agentic era and you can see us leaning into that\"  \n  \n\"But of course we've also gotta think about the security side of that, too\"  \n  \n\"You're seeing it a little bit with the cyber worries about some of the models, and I think that's just the beginning of some of the issues that we need to make sure we guard against\"  \n  \n\"So I think that's playing a little bit on my mind. Maybe this is the time now to try and push some standards and maybe international cooperation\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079594501337952256/vid/avc1/1280x720/KsTRWnMsGSjJ0iHH.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/rowancheung/status/2079594573920419923/video/1)\n\n💬15🔄3❤️27👀11102📊16",
+      "tags": [
+        "Demis Hassabis",
+        "网络安全",
+        "代理时代"
+      ],
+      "score": 80,
+      "summary": "Demis Hassabis谈AI代理时代网络安全挑战，呼吁国际合作。",
+      "fetched_at": "2026-07-22T01:39:49.006026+08:00"
+    },
+    {
+      "title": "Really excited about our expanded partnership with @MistralAI, which is all about bringing customers...",
+      "link": "https://x.com/satyanadella/status/2079602597565280691",
+      "published": "2026-07-22T00:21:11+08:00",
+      "source": "Satya Nadella(@satyanadella)",
+      "content": "Really excited about our expanded partnership with [@MistralAI](https://x.com/MistralAI), which is all about bringing customers more choice in how and where they deploy AI!\n\n![Brad Smith](https://pbs.twimg.com/profile_images/675796491571560448/0EoCkMRa_normal.jpg)\n\nBrad Smith@BradSmi\n\nToday, [@MistralAI](https://x.com/MistralAI) and [@Microsoft](https://x.com/Microsoft) are expanding our partnership to bring Mistral’s frontier models across Azure, Microsoft Foundry, Copilot Studio, and Azure Local.  \n  \nEurope should have access to the world’s most capable AI without compromising control over their data, operations, or digital future. By bringing Mistral’s frontier European models into our environment, we are providing customers with a trusted foundation for AI, one that offers both leading-edge innovation and the freedom to operate on their own terms.  \n  \nLearn more: [news.microsoft.com/source/2026/07…](https://news.microsoft.com/source/2026/07/21/microsoft-and-mistral-expand-strategic-partnership-to-give-enterprises-and-regulated-industries-frontier-ai-they-can-control/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079543871198093312/vid/avc1/1080x1920/1iOSCfhl0SO0oe8G.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/BradSmi/status/2079544838257881527/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/BradSmi/status/2079544838257881527)\n\n💬19🔄18❤️60👀16697📊18",
+      "tags": [
+        "Mistral",
+        "Microsoft",
+        "合作"
+      ],
+      "score": 85,
+      "summary": "Satya Nadella宣布与Mistral扩大合作，为客户提供更多AI部署选择。",
+      "fetched_at": "2026-07-22T01:39:49.006028+08:00"
+    },
+    {
+      "title": "Anthropic has figured out the main game is making everyone operate in a state of fear. It's a consta...",
+      "link": "https://x.com/Suhail/status/2079614638724129171",
+      "published": "2026-07-22T01:09:01+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Anthropic has figured out the main game is making everyone operate in a state of fear. It's a constant source of PR. The government optimizes for minimizing downside risk, not upside.  \n  \nInternal government IT systems insecure? Chinese lead in cyber warfare? Chinese IP theft at the expense of American co? Capture of American data? Check. Check. Check. Check. Say it all, see what sticks.  \n  \nHow do you thread the needle between those things, American regulatory capture, and ensuring your revenue machine? Easy!  \n  \nBan the open model weights we can make safe, can operate within American, and create competition for Anthropic. Even the government \\*wants\\* competition to avoid Anthropic's policy / monopolization of intelligence.  \n  \nDo this instead of limiting usage of Chinese API based services which would be a more \\*nuanced\\* policy. Don't explain the difference between model weights, APIs, apps (like TikTok) to policy makers who aren't as savvy - just ban it if it has anything to do China.\n\n![Suhail](https://pbs.twimg.com/profile_images/1898611158330077184/oCfpUSm-_normal.jpg)\n\nSuhail@Suhail\n\nThe main thing I've learned this week is that Anthropic's lobbyists are world-class. They are absolutely killing it at a level this website cannot begin to comprehend. Level 0 is posting on X. These guys are Jedi master level playing the game.\n\n[🔗 View Quoted Tweet](https://x.com/Suhail/status/2079608136340754853)\n\n💬6🔄2❤️31👀2185📊7",
+      "tags": [
+        "Anthropic",
+        "游说",
+        "政策"
+      ],
+      "score": 70,
+      "summary": "Suhail评论Anthropic游说策略，称其利用恐惧推动监管。",
+      "fetched_at": "2026-07-22T01:39:49.006029+08:00"
+    },
+    {
+      "title": "The main thing I've learned this week is that Anthropic's lobbyists are world-class. They are absolu...",
+      "link": "https://x.com/Suhail/status/2079608136340754853",
+      "published": "2026-07-22T00:43:11+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "The main thing I've learned this week is that Anthropic's lobbyists are world-class. They are absolutely killing it at a level this website cannot begin to comprehend. Level 0 is posting on X. These guys are Jedi master level playing the game.\n\n💬10🔄5❤️101👀9907📊21",
+      "tags": [
+        "Anthropic",
+        "游说"
+      ],
+      "score": 70,
+      "summary": "Suhail称Anthropic游说团队世界级。",
+      "fetched_at": "2026-07-22T01:39:49.006031+08:00"
+    },
+    {
+      "title": "Google's latest model drop is here: Gemini 3.6 Flash, Gemini 3.5 Flash Lite, and a Flash-cyber model...",
+      "link": "https://x.com/TheRundownAI/status/2079604234052358500",
+      "published": "2026-07-22T00:27:41+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Google's latest model drop is here: Gemini 3.6 Flash, Gemini 3.5 Flash Lite, and a Flash-cyber model coming soon.   \n  \nThe release focuses on efficiency and price, with upgrades over the previous Flash and Pro models.   \n  \nBut most benchmarks come in lower than mid-tier rivals like Grok 4.5 and GPT-5.6 Luna.   \n  \nGoogle also said it has started its \"most ambitious pre-training run yet\" for Gemini 4.   \n  \nStill no word on the long-awaited Gemini 3.5 Pro.\n\n![Tweet Image](https://pbs.twimg.com/media/HNw8-_3WYAAXAT6.jpg)\n\n💬3🔄1❤️7👀2129📊3",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Gemini 3.5 Flash-Lite",
+        "评测"
+      ],
+      "score": 75,
+      "summary": "The Rundown AI汇总Google新模型发布，指出基准低于竞品。",
+      "fetched_at": "2026-07-22T01:39:49.006033+08:00"
+    },
+    {
+      "title": "A slow search query doesn't 𝘁𝗲𝗹𝗹 𝘆𝗼𝘂 𝘄𝗵𝗮𝘁 𝘁𝗼 𝗼𝗽𝘁𝗶𝗺𝗶𝘇𝗲.\n\nThe latency could be co...",
+      "link": "https://x.com/weaviate_io/status/2079597487497650675",
+      "published": "2026-07-22T00:00:52+08:00",
+      "source": "Weaviate • vector database(@weaviate_io)",
+      "content": "A slow search query doesn't 𝘁𝗲𝗹𝗹 𝘆𝗼𝘂 𝘄𝗵𝗮𝘁 𝘁𝗼 𝗼𝗽𝘁𝗶𝗺𝗶𝘇𝗲.  \n  \nThe latency could be coming from filter evaluation, HNSW traversal, compressed-vector rescoring, BM25 scoring, or reading final objects from disk. Each points to a completely different fix.  \n  \nWeaviate now has 𝗽𝗲𝗿-𝗾𝘂𝗲𝗿𝘆 𝗽𝗿𝗼𝗳𝗶𝗹𝗶𝗻𝗴 to make that breakdown concrete.  \n  \nSet one opt-in flag on a search and the timing profile comes back directly on 'response.query\\_profile'. The coordinating node collects profiles from every participating shard and node, so you get a cluster-wide view in one response.  \n  \nNo restart, latency threshold, waiting for the query to be slow again, or manually stitching together logs across nodes.  \n  \n𝗪𝗵𝗮𝘁 𝘁𝗵𝗲 𝗽𝗿𝗼𝗳𝗶𝗹𝗲 𝗰𝗮𝗻 𝘁𝗲𝗹𝗹 𝘆𝗼𝘂:  \n  \n- objects\\_took is high: object hydration is disk-bound. Check page-cache misses, result limits, or large payloads.  \n- filters\\_build\\_allow\\_list\\_took is high: the where filter is expensive. filters\\_ids\\_matched helps separate a broad cardinality problem from disk reads.  \n- vector\\_search\\_took is high: inspect HNSW layer timings. Layer 0 normally dominates, with ef, dimensionality, and filter strategy as the relevant tuning levers.  \n- knn\\_search\\_rescore\\_took is high: compressed candidates are expensive to rescore, potentially because full-precision vectors are being read from disk.  \n  \nFor example, one profile might show:  \n  \n• 48.2ms total  \n• 36.8ms reading objects  \n• 8.4ms in vector search  \n• 2.1ms building the filter allow-list  \n  \nThe vector index isn't the bottleneck. Tuning HNSW would be a guess. The profile points toward storage, page cache, result limit, or payload size instead.  \n  \nSlow query logging is still useful for passively catching regressions across a fleet. But when one specific query is slow, profiling gives you the actual[weaviate.io/blog/query-pro…](https://weaviate.io/blog/query-profiling?utm_source=channels&utm_medium=w_social&utm_campaign=search&utm_content=blog_annoucement_680317730)  \nRead th[docs.weaviate.io/weaviate/searc…](https://docs.weaviate.io/weaviate/search/query-profile?utm_source=channels&utm_medium=w_social&utm_campaign=search&utm_content=blog_annoucement_680317730)orbach: <https://t.co/ygpB4Eb2l8>  \n  \nDocs: <https://t.co/70FsH62A3G>\n\n![Tweet Image](https://pbs.twimg.com/media/HNw25MTXwAA0Xfa.jpg)\n\n💬1🔄2❤️4👀242📊3",
+      "tags": [
+        "Weaviate",
+        "查询分析",
+        "性能优化"
+      ],
+      "score": 70,
+      "summary": "Weaviate推出每查询分析功能，帮助定位搜索延迟瓶颈。",
+      "fetched_at": "2026-07-22T01:39:49.006035+08:00"
+    },
+    {
+      "title": "创业去哪儿找合伙人？\n\n你有没有听过这个故事，你想遇见一起跑步的人，最简单的方法就是先自己去跑步\n你只要开始上路了，路上就会遇到同路人，可能终点不一样，但多数都能同行一阵子\n唐僧去西天取经之前，去哪儿...",
+      "link": "https://x.com/yangyi/status/2079595967926677818",
+      "published": "2026-07-21T23:54:50+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "创业去哪儿找合伙人？  \n  \n你有没有听过这个故事，你想遇见一起跑步的人，最简单的方法就是先自己去跑步  \n你只要开始上路了，路上就会遇到同路人，可能终点不一样，但多数都能同行一阵子  \n唐僧去西天取经之前，去哪儿找合伙人了  \n那不也是走着走着遇到的  \n  \n先上路，然后遇到人，然后一起走，随着历经磨难就会遇到各种离别，经过考验留下的，才是真正能合伙的人  \n  \n创业是这样，婚姻也是这样\n\n💬1🔄0❤️6👀1047📊2",
+      "tags": [
+        "创业",
+        "合伙人"
+      ],
+      "score": 30,
+      "summary": "分享创业找合伙人的感悟。",
+      "fetched_at": "2026-07-22T01:39:49.006037+08:00"
+    },
+    {
+      "title": ".@AppliedInt Co-founder @qasar: \"Our mission is to put intelligence on a billion machines, and we th...",
+      "link": "https://x.com/a16z/status/2079616543537951018",
+      "published": "2026-07-22T01:16:36+08:00",
+      "source": "a16z(@a16z)",
+      "content": ".[@AppliedInt](https://x.com/AppliedInt) Co-founder [@qasar](https://x.com/qasar): \"Our mission is to put intelligence on a billion machines, and we think that can have a profound impact on society.\"  \n  \n\"We've seen the unlock in the digital world, and everyone's super excited about it, and you have trillion-dollar companies emerging.\"  \n  \n\"When we look back in 25 years, the companies that impact the physical world might actually be bigger than the companies that impact the digital world.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079616490035425280/vid/avc1/1280x720/ygs0ManN3ornnwOv.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079616543537951018/video/1)\n\n![Marc Andreessen 🇺🇸](https://pbs.twimg.com/profile_images/1820716712234303489/9GpKDZjq_normal.jpg)\n\nMarc Andreessen 🇺🇸@pmarca\n\n[x.com/i/article/2079…](http://x.com/i/article/2079573119904415744)\n\n[🔗 View Quoted Tweet](https://x.com/pmarca/status/2079583099135156603)\n\n💬0🔄1❤️13👀6984📊2",
+      "tags": [
+        "AppliedInt",
+        "物理世界AI",
+        "a16z"
+      ],
+      "score": 75,
+      "summary": "a16z分享AppliedInt观点：物理世界AI公司可能比数字世界更大。",
+      "fetched_at": "2026-07-22T01:39:49.006039+08:00"
+    },
+    {
+      "title": "Open-source is not the cause of the cybersecurity crisis, it's the solution! https://t.co/YpykmLGv7B",
+      "link": "https://x.com/ClementDelangue/status/2079608792996511770",
+      "published": "2026-07-22T00:45:48+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Open-source is not the cause of the cybersecurity crisis, it's the solution! [huggingface.co/fdtn-ai](https://huggingface.co/fdtn-ai)\n\n![Tweet Image](https://pbs.twimg.com/media/HNxA-MLWYAA6Jwv.jpg)\n\n💬10🔄15❤️126👀4533📊27",
+      "tags": [
+        "开源",
+        "网络安全",
+        "Hugging Face"
+      ],
+      "score": 75,
+      "summary": "Clement Delangue称开源是网络安全危机的解决方案。",
+      "fetched_at": "2026-07-22T01:39:49.006041+08:00"
+    },
+    {
+      "title": "This is a neat feature. \n\nI wrote an article a few weeks back about how I built this into my agent o...",
+      "link": "https://x.com/omarsar0/status/2079606576751526027",
+      "published": "2026-07-22T00:36:59+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "This is a neat feature.   \n  \nI wrote an article a few weeks back about how I built this into my agent orchestrator:  \n[x.com/omarsar0/statu…](https://x.com/omarsar0/status/2073404610501329247?s=20)  \n  \nBut I made it multimodal from the ground up. Text, screenshots, audio, video, and annotations can all be wired up as a reusable skill. Magical!\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nNew in Claude Cowork: teach Claude a skill.  \n  \nRecord your screen while you do a task, talk through it as you go, and Claude turns it into a skill it can run again. Find it under Record a skill in the + menu of the Claude desktop app.   \n  \nAvailable on Pro, Max, and Team plans.\n\n![Tweet Image](https://pbs.twimg.com/media/HNwzRgjWkAA4tKq.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2079595988998554047)\n\n💬2🔄0❤️17👀2491📊4",
+      "tags": [
+        "Claude Cowork",
+        "录制技能",
+        "多模态"
+      ],
+      "score": 70,
+      "summary": "用户评论Claude Cowork录制技能功能，并展示其多模态实现。",
+      "fetched_at": "2026-07-22T01:39:49.006042+08:00"
+    },
+    {
+      "title": "This is a radical improvement in how to use AI.\n\n@magicX_ai's AI Autocomplete predicts the actions a...",
+      "link": "https://x.com/omarsar0/status/2079603684359495691",
+      "published": "2026-07-22T00:25:30+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "This is a radical improvement in how to use AI.  \n  \n[@magicX\\_ai](https://x.com/magicX_ai)'s AI Autocomplete predicts the actions a user could take from any text box and surfaces them in real time as they type, with responses in 200ms. Any product can drop it in through an SDK.  \n  \nSearch captures intent after you already know what you want. AI Autocomplete reads it while you are still forming the thought.   \n  \nThis opens great experiences on AI-powered products like search and customer service. Worth a look.\n\n![brad](https://pbs.twimg.com/profile_images/1818866228586594307/5CQgN-i__normal.jpg)\n\nbrad@bradkowalk\n\nWe just solved the biggest UX problem in AI.  \n  \nToday, we're releasing AI Autocomplete, a SDK that gives every text box a brain.  \n  \nIt boosts your conversions by 50%+ by guiding your users as they type with what your product can do, and 500+ companies have already signed up.  \n  \nSo check it out if you have a search box or assistant.  \n  \nAdd it in under 5 mins ↓  \n  \n[ai-autocomplete.com](http://ai-autocomplete.com)  \n  \n(or comment your product name, and we'll reply with a demo of it working on your product)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079593046992384000/vid/avc1/3840x2160/0UUTKb4nQzqrUiPJ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/bradkowalk/status/2079597230445773048/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/bradkowalk/status/2079597230445773048)\n\n💬2🔄1❤️12👀2070📊3",
+      "tags": [
+        "AI Autocomplete",
+        "magicX",
+        "UX"
+      ],
+      "score": 70,
+      "summary": "magicX推出AI Autocomplete SDK，预测用户操作并实时响应。",
+      "fetched_at": "2026-07-22T01:39:49.006044+08:00"
+    },
+    {
+      "title": "Octen's web search latency is pretty insane. \n\nDeep research tools like OpenAI, Gemini, Grok, and Pe...",
+      "link": "https://x.com/omarsar0/status/2079598697298489631",
+      "published": "2026-07-22T00:05:41+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Octen's web search latency is pretty insane.   \n  \nDeep research tools like OpenAI, Gemini, Grok, and Perplexity can take up to an hour to finish tasks.  \n  \nOcten can return a full source-backed report in under 3 minutes, and scores 10 to 17 points higher than all four on DeepResearch Bench.  \n  \nLanding both speed and accuracy is rare in web search. Highly recommend AI devs check it out if building with web search.\n\n![Tweet Image](https://pbs.twimg.com/media/HNw29sjXcAAs19K.jpg)\n\n![Kuan Zou](https://pbs.twimg.com/profile_images/2079056395945885696/aB7_OhiW_normal.jpg)\n\nKuan Zou@KZouAPT\n\n[x.com/i/article/2079…](http://x.com/i/article/2079303167490342913)\n\n[🔗 View Quoted Tweet](https://x.com/KZouAPT/status/2079569508549673409)\n\n💬1🔄1❤️10👀2832📊3",
+      "tags": [
+        "Octen",
+        "网页搜索",
+        "低延迟"
+      ],
+      "score": 70,
+      "summary": "Octen网页搜索工具在3分钟内返回报告，DeepResearch Bench得分高。",
+      "fetched_at": "2026-07-22T01:39:49.006046+08:00"
+    },
+    {
+      "title": "Dive into all the leaderboard details at: https://t.co/PjWOaDEXWR",
+      "link": "https://x.com/arena/status/2079594278414917895",
+      "published": "2026-07-21T23:48:07+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Dive into all the leaderboard details at: [arena.ai/leaderboard](http://arena.ai/leaderboard)\n\n💬0🔄0❤️3👀3859📊1",
+      "tags": [
+        "lmarena",
+        "排行榜"
+      ],
+      "score": 70,
+      "summary": "lmarena.ai排行榜详情。",
+      "fetched_at": "2026-07-22T01:39:49.006048+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash has landed in the Text Arena Top 20 at #12 with 1485 pts.\n\nIn categories it ranks:\n...",
+      "link": "https://x.com/arena/status/2079594275051049212",
+      "published": "2026-07-21T23:48:06+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Gemini 3.6 Flash has landed in the Text Arena Top 20 at #12 with 1485 pts.  \n  \nIn categories it ranks:  \n- #10 Instruction Following  \n- Within Occupational: #4 in mathematics, #8 in Legal & Government, and #9 in Medical & Healthcare  \n  \nGemini 3.5 Flash-Lite is also available in the Text Arena, with a 26-point improvement over Gemini 3.1 Flash-Lite (#81->#42).\n\n![Tweet Image](https://pbs.twimg.com/media/HNwwUEwbEAAp-mB.jpg)\n\n💬2🔄2❤️42👀5199📊6",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Text Arena",
+        "排名"
+      ],
+      "score": 80,
+      "summary": "Gemini 3.6 Flash在Text Arena排名第12，指令遵循第10。",
+      "fetched_at": "2026-07-22T01:39:49.006050+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash has landed #12 with 1537 pts in the Frontend Code Arena.\n\nThis release is a signifi...",
+      "link": "https://x.com/arena/status/2079594271045455947",
+      "published": "2026-07-21T23:48:05+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Gemini 3.6 Flash has landed #12 with 1537 pts in the Frontend Code Arena.  \n  \nThis release is a significant improvement from Gemini 3.5 Flash (#21->#12).  \n  \nAcross domains it ranks:  \n- #8 Reference-Based Design  \n- #9 Content Creation Tools  \n- #10 Brand & Marketing  \n- #12 Simulations  \n- #13 Gaming  \n- In the top 20 for Data & Analytics and Consumer Product  \n  \nClick into the thread to see the results for Gemini 3.6 Flash and Gemini 3.5 Flash-Lite in the Text Arena.  \n  \nCongrats to the [@GoogleDeepMind](https://x.com/GoogleDeepMind) team on this launch!\n\n![Tweet Image](https://pbs.twimg.com/media/HNwwMIxakAAFNPz.jpg)\n\n![Google DeepMind](https://pbs.twimg.com/profile_images/1695024885070737408/-M-HSH5P_normal.jpg)\n\nGoogle DeepMind@GoogleDeepMind\n\nWe’re rolling out three new models to make AI agents faster, smarter, and cheaper at scale:  \n  \n🔵 Gemini 3.6 Flash: It uses fewer tokens than 3.5 Flash to deliver higher quality work at the exact same cost.  \n  \n🔵 Gemini 3.5 Flash-Lite: A fast, cost-effective option for everyday tasks like processing documents and agentic search.  \n  \n🔵 Gemini 3.5 Flash Cyber: A cybersecurity model built to find and patch critical software vulnerabilities.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNwoY8MW8AAubRO.jpg)](https://video.twimg.com/tweet_video/HNwoY8MW8AAubRO.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleDeepMind/status/2079589698490572961)\n\n💬57🔄57❤️631👀61554📊109",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Frontend Code Arena",
+        "排名"
+      ],
+      "score": 80,
+      "summary": "Gemini 3.6 Flash在Frontend Code Arena排名第12，较前代显著提升。",
+      "fetched_at": "2026-07-22T01:39:49.006052+08:00"
+    },
+    {
+      "title": "一些评测数据",
+      "link": "https://x.com/shao__meng/status/2079594786160578768",
+      "published": "2026-07-21T23:50:08+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "一些评测数据\n\n![Tweet Image](https://pbs.twimg.com/media/HNw0bKbbMAAr139.jpg)![Tweet Image](https://pbs.twimg.com/media/HNw0bj7aIAAAi6u.jpg)\n\n💬0🔄0❤️0👀301",
+      "tags": [
+        "评测数据"
+      ],
+      "score": 60,
+      "summary": "分享一些评测数据图片。",
+      "fetched_at": "2026-07-22T01:39:49.006054+08:00"
+    },
+    {
+      "title": "牛啊，连玩乐队都牛，主力鼓手。\n\n平克弗洛伊德著名专辑月之暗面，没想到成了一家大模型公司的名字。",
+      "link": "https://x.com/vista8/status/2079609504875106530",
+      "published": "2026-07-22T00:48:37+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "牛啊，连玩乐队都牛，主力鼓手。  \n  \n平克弗洛伊德著名专辑月之暗面，没想到成了一家大模型公司的名字。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079608896642236416/vid/avc1/544x752/YNdS_tRW056mKwB4.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2079609504875106530/video/1)\n\n💬0🔄0❤️0👀431",
+      "tags": [
+        "月之暗面",
+        "乐队"
+      ],
+      "score": 40,
+      "summary": "提及月之暗面公司名称源自平克弗洛伊德专辑。",
+      "fetched_at": "2026-07-22T01:39:49.006056+08:00"
+    },
+    {
+      "title": "Claude Cowork 也发发布了一个类似Codex的看屏幕学习你操作的新功能：\n\n教 会Claude 一项技能\n\n你可以把你经常需要重复的操作，在你在执行任务时录制屏幕，边做边讲解\n\nClaud...",
+      "link": "https://x.com/xiaohu/status/2079599223922974934",
+      "published": "2026-07-22T00:07:46+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Claude Cowork 也发发布了一个类似Codex的看屏幕学习你操作的新功能：  \n  \n教 会Claude 一项技能  \n  \n你可以把你经常需要重复的操作，在你在执行任务时录制屏幕，边做边讲解  \n  \nClaude 会学习你的操作，并将其转化为一项它可以再次运行的技能  \n  \n下次只需要告诉他运行这个技能即可，它就能模仿你...  \n  \n你可以在 Claude 桌面应用的 + 菜单下找到它：  \n  \n“Record a skill 录制技能”\n\n![Tweet Image](https://pbs.twimg.com/media/HNw3_bPa8AA0LUj.jpg)\n\n💬2🔄0❤️9👀1323📊4",
+      "tags": [
+        "Claude Cowork",
+        "录制技能"
+      ],
+      "score": 75,
+      "summary": "中文用户介绍Claude Cowork录制技能功能。",
+      "fetched_at": "2026-07-22T01:39:49.006057+08:00"
+    },
+    {
+      "title": "Gemini 3.5 Flash Cyber：网络安全“修补匠”\n\n定位：专门针对网络安全漏洞检测与修复进行微调的特定模型。\n\n应用场景：搭载在 Google 的安全 Agent 平台 CodeMen...",
+      "link": "https://x.com/xiaohu/status/2079594436783423519",
+      "published": "2026-07-21T23:48:45+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Gemini 3.5 Flash Cyber：网络安全“修补匠”  \n  \n定位：专门针对网络安全漏洞检测与修复进行微调的特定模型。  \n  \n应用场景：搭载在 Google 的安全 Agent 平台 CodeMender 中，多个 Cyber 模型协作，能在极低成本下自动找漏洞、修 Bug。\n\n![Tweet Image](https://pbs.twimg.com/media/HNwzu1eaYAAcSC2.jpg)\n\n💬0🔄0❤️5👀1235📊1",
+      "tags": [
+        "Gemini 3.5 Flash Cyber",
+        "网络安全"
+      ],
+      "score": 80,
+      "summary": "介绍Gemini 3.5 Flash Cyber，专用于漏洞检测与修复。",
+      "fetched_at": "2026-07-22T01:39:49.006059+08:00"
+    },
+    {
+      "title": "Google 一口气发布三款模型 \n\n但是没有 Gemini 3.5 Pro\n\n三款新模型：Gemini 3.6 Flash、3.5 Flash-Lite 和专攻网络安全的 3.5 Flash Cyb...",
+      "link": "https://x.com/xiaohu/status/2079594431922184326",
+      "published": "2026-07-21T23:48:44+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Google 一口气发布三款模型   \n  \n但是没有 Gemini 3.5 Pro  \n  \n三款新模型：Gemini 3.6 Flash、3.5 Flash-Lite 和专攻网络安全的 3.5 Flash Cyber  \n  \n版本号现在很诡异...  \n  \nGemini 3.6 Flash：最大亮点（极致省 Token）：比上一代 3.5 Flash 节省了约 17% 的输出 Token（部分编程场景甚至少用 65% 的 Token）  \n  \n价格：输入 $1.50 / 百万 Token，输出 $7.50 / 百万 Token。  \n  \n能力提升：  \n  \n代码与科研：写代码准确度更高，减少了无效修改和死循环  \n  \n电脑操作能力（Computer Use）：提升至 83% 的成功率，且直接内置为 Gemini API 和企业版的客户端工具  \n  \n更安全：加强了防越狱和防滥用（如生物、化学、网络攻击等风险）的安全机制，同时减少了正常使用时的误拒\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079594161767129089/vid/avc1/1280x720/jbRtwbj-ovWoz7qo.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2079594431922184326/video/1)\n\n💬8🔄1❤️11👀8009📊9",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Gemini 3.5 Flash-Lite",
+        "发布"
+      ],
+      "score": 80,
+      "summary": "中文总结Google发布三款模型，强调3.6 Flash的Token效率。",
+      "fetched_at": "2026-07-22T01:39:49.006061+08:00"
+    },
+    {
+      "title": "Gemini 3.5 Flash-Lite：极致性价比与速度\n\n定位：主打极速、高吞吐量，专门用来支撑大规模、高并发的 Agent 任务（如大规模商品数据提取、批量单据翻译与摘要）。\n\n速度极快：输出...",
+      "link": "https://x.com/xiaohu/status/2079594434187162053",
+      "published": "2026-07-21T23:48:44+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Gemini 3.5 Flash-Lite：极致性价比与速度  \n  \n定位：主打极速、高吞吐量，专门用来支撑大规模、高并发的 Agent 任务（如大规模商品数据提取、批量单据翻译与摘要）。  \n  \n速度极快：输出速度高达 350 Token/秒  \n  \n价格：输入 $0.30 输出 $2.50\n\n![Tweet Image](https://pbs.twimg.com/media/HNwzy8NaYAALssy.jpg)![Tweet Image](https://pbs.twimg.com/media/HNwz0S-akAAIAx5.jpg)\n\n💬1🔄0❤️3👀1366📊2",
+      "tags": [
+        "Gemini 3.5 Flash-Lite",
+        "速度",
+        "价格"
+      ],
+      "score": 80,
+      "summary": "介绍Gemini 3.5 Flash-Lite，输出速度350 tokens/s，价格低廉。",
+      "fetched_at": "2026-07-22T01:39:49.006063+08:00"
+    },
+    {
+      "title": "Introducing the ChatGPT for small business program",
+      "link": "https://openai.com/index/introducing-chatgpt-small-business-program",
+      "published": "2026-07-22T01:00:00+08:00",
+      "source": "OpenAI News",
+      "content": "OpenAI launches the ChatGPT for Small Businesses program, helping entrepreneurs build AI skills, automate work, and grow with ChatGPT Work.",
+      "tags": [
+        "ChatGPT",
+        "小企业",
+        "OpenAI"
+      ],
+      "score": 85,
+      "summary": "OpenAI推出ChatGPT小企业计划，帮助创业者提升AI技能。",
+      "fetched_at": "2026-07-22T01:39:49.006065+08:00"
+    }
+  ]
+}
