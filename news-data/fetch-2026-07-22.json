@@ -1175,6 +1175,600 @@
       "score": 85,
       "summary": "OpenAI推出ChatGPT小企业计划，帮助创业者提升AI技能。",
       "fetched_at": "2026-07-22T01:39:49.006065+08:00"
+    },
+    {
+      "title": "Why R&D Data Belongs in the Lakehouse - and Why Agents Need It There",
+      "link": "https://www.databricks.com/blog/why-rd-data-belongs-lakehouse-and-why-agents-need-it-there",
+      "published": "2026-07-22T03:45:00+08:00",
+      "source": "Databricks",
+      "content": "The setupAt cellcentric, a joint venture of Daimler Truck and Volvo Group, we develop...",
+      "tags": [
+        "Databricks",
+        "Lakehouse",
+        "Agent"
+      ],
+      "score": 70,
+      "summary": "Databricks 博客讨论 R&D 数据为何应放在 Lakehouse 中，以及 Agent 为何需要它。",
+      "fetched_at": "2026-07-22T03:45:05.875216+08:00"
+    },
+    {
+      "title": "How Dow Built a Carbon Footprint Ledger on Databricks to Accelerate Sustainability at Scale",
+      "link": "https://www.databricks.com/blog/how-dow-built-carbon-footprint-ledger-databricks-accelerate-sustainability-scale",
+      "published": "2026-07-22T03:45:00+08:00",
+      "source": "Databricks",
+      "content": "Why we built the Carbon Footprint LedgerAt Dow, our ambition is to be the most innovative,...",
+      "tags": [
+        "Databricks",
+        "碳足迹",
+        "可持续发展"
+      ],
+      "score": 70,
+      "summary": "Dow 在 Databricks 上构建碳足迹分类账以加速可持续发展。",
+      "fetched_at": "2026-07-22T03:45:05.875232+08:00"
+    },
+    {
+      "title": "Announcing the Public Preview of Discover and Domains, powered by Unity Catalog",
+      "link": "https://www.databricks.com/blog/announcing-public-preview-discover-and-domains-powered-unity-catalog",
+      "published": "2026-07-22T03:10:00+08:00",
+      "source": "Databricks",
+      "content": "Today, we're announcing the Public Preview of Domains and the Discover page, powered...",
+      "tags": [
+        "Databricks",
+        "Unity Catalog",
+        "Public Preview"
+      ],
+      "score": 70,
+      "summary": "Databricks 宣布由 Unity Catalog 驱动的 Discover 和 Domains 公开预览。",
+      "fetched_at": "2026-07-22T03:45:05.875238+08:00"
+    },
+    {
+      "title": "Causal Models Need Causal Data - Xaira’s X-Cell model for Drug Discovery (Bo Wang & Ci Chu, Chief Discovery Officer & Chief AI Scientist)",
+      "link": "https://www.latent.space/p/xaira",
+      "published": "2026-07-22T03:34:06+08:00",
+      "source": "Latent Space",
+      "content": "# Bet on information\n\nIf *test loss flatlines* after 1.5B parameters while *training loss continues to drop* as you scale, that tells you that your model is *limited by the amount of information* in your data.\n\n[![](https://substackcdn.com/image/fetch/$s_!4Uba!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe6c52f8c-8d38-4f63-8daa-ff6ab52e3aa5_827x883.png)](https://substackcdn.com/image/fetch/$s_!4Uba!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe6c52f8c-8d38-4f63-8daa-ff6ab52e3aa5_827x883.png)\n\nTraining on a single, smallish data set exposed an information gap: the 3.1B model falls off the scaling trend. Neither parameters nor compute will improve performance past this wall. For predicting changes to gene expression, you need more *information rich data*.\n\nThis is what Chu and Bo’s teams have done, and here is what ~30x the information buys you:\n\n[![](https://substackcdn.com/image/fetch/$s_!G4wV!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F034901bc-82c1-4711-8be6-547c1db9cfef_491x856.png)](https://substackcdn.com/image/fetch/$s_!G4wV!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F034901bc-82c1-4711-8be6-547c1db9cfef_491x856.png)\n\nNow we can scale with parameters and training compute! We don’t know how much this effort costed, but we can guess that data collection experiments and infrastructure was a few tens of millions, and compute + headcount + research was a few million. The budget looks like a RL rollout budget, rather than a data rich pre-training one.\n\nWe were lucky enough to have the two central figures in this story on our podcast. Taking the lead from Ci Chu and Bo Wang, Xaira Therapeutics is betting that *information rich* data is the key to AI-driven drug development. Chu [was recently promoted](https://www.businesswire.com/news/home/20260706699581/en/Xaira-Therapeutics-Announces-the-Appointment-of-Dr.-Ian-McCaffery-as-SVP-Translational-Science-and-Early-Clinical-Development-and-the-Promotions-of-Dr.-Ci-Chu-to-Chief-Discovery-Officer-and-Dr.-Bo-Wang-to-Chief-AI-Scientist) to Chief Discovery Officer and Bo to Chief AI Scientist[1](https://www.latent.space/p/xaira#footnote-1), underscoring just how strategic Xaira considers this bet.\n\n## Reverse engineering the human cell\n\nIf you had to figure out how a human cell works, what would you do? A good place to start might be by documenting what genes are expressed (e.g. what RNA is floating around) in different kinds of cells, in different circumstances.\n\nThat is [CELLxGENE](https://cellxgene.cziscience.com/), a database of 168M cells built by Chan Zuckerberg Institute that maps each cell to a count of how many times 20K-30K genes were detected in that cell, plus detailed metadata about *every cell*. A ~4 trillion-entry matrix.\n\nIf the Protein Data Bank (PDB) unlocked structural biology models [link Boltz, BioHub], CellXGene has done the same thing for Virtual Cell models. Like PDB, CELLxGENE has inspired a zoo of AI models of RNA expression; so much so that RNA expression models have become synonymous with Virtual Cell models. Bo Wang built one of the most influential, [scGPT](https://www.nature.com/articles/s41592-024-02201-0), that became the starting point for Xaira’s new model.\n\n## RNA expression ≠ Virtual Cell\n\nModels trained on CELLxGENE *describe* the relationship between cell types and cell states, but they are not good at *predicting* what will happen if we make changes to RNA expression. Changes in gene expression are *highly* correlated, and its is difficult (impossible) to figure out what causes what in most cases.\n\nIf you could “turn the dial down” on one gene at a time, however, then you would be able to observe what is upstream and downstream of a given gene[2](https://www.latent.space/p/xaira#footnote-2). You could tell if A → B & C or B → A & C or B → A, C → B → … If you did this for all of the genes, then maybe you could train a model that could predict what would happen to a cell if you change a gene (e.g. with a drug or a gene edit). Or maybe you could figure out the least invasive way to change a particular gene’s expression.\n\n## X-Atlas → X-Cell\n\nThis is exactly what Chu and Bo’s teams have done. The data set is called X-Atlas and the model is called X-Cell.\n\nIn this episode, we discuss:\n\n* Why the team abandoned autoregression for diffusion\n* The CRISPR-based experiments that run millions of tests in parallel, and generate the raw data for X-Atlas and X-cell\n* Generalization to real lab experiments in real human cells\n* Beating the linear baseline that has outperformed previous models\n* Justifying a kitchen-sink of priors, and how that stacks up vs. data and architecture\n\nBo also shared with us some of the (major) advantages he has as an academic vs. industry leader, and how his labs keep up with the breakneck pace of AI innovation.\n\nCheck out the full episode on YouTube, or your favorite podcasting platform!\n\n[1](https://www.latent.space/p/xaira#footnote-anchor-1)\n\nThese promotions happened after we recorded the episode\n\n[2](https://www.latent.space/p/xaira#footnote-anchor-2)\n\nThere can be cycles in the chain reaction, of course, and there can be second, third, etc. order effects (meaning things that only happen when multiple genes change at once), but the first order effects are a great place to start, and might tell us a lot of what we need to know.",
+      "tags": [
+        "Xaira",
+        "X-Cell",
+        "药物发现"
+      ],
+      "score": 80,
+      "summary": "Latent Space 播客采访 Xaira 首席科学家，讨论信息丰富数据对 AI 药物发现的关键作用。",
+      "fetched_at": "2026-07-22T03:45:05.875242+08:00"
+    },
+    {
+      "title": "Jimothy on the move",
+      "link": "https://x.com/figma/status/2079648511872958715",
+      "published": "2026-07-22T03:23:37+08:00",
+      "source": "Figma(@figma)",
+      "content": "Jimothy on the move\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079648457472794625/vid/avc1/1080x1080/xp7SJsvJKjWLMKXL.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/figma/status/2079648511872958715/video/1)\n\n💬7🔄14❤️57👀3854📊15",
+      "tags": [
+        "Figma",
+        "Jimothy"
+      ],
+      "score": 60,
+      "summary": "Figma 发布 Jimothy 相关视频，内容未明确。",
+      "fetched_at": "2026-07-22T03:45:05.875246+08:00"
+    },
+    {
+      "title": "Full details https://t.co/bFj6TKhaTa",
+      "link": "https://x.com/FireworksAI_HQ/status/2079636130933457402",
+      "published": "2026-07-22T02:34:26+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Full details [fireworks.ai/blog/kimik3-fa…](https://fireworks.ai/blog/kimik3-fable)\n\n💬0🔄1❤️2👀271📊1",
+      "tags": [
+        "Fireworks AI",
+        "Kimi K3",
+        "Fable"
+      ],
+      "score": 60,
+      "summary": "Fireworks AI 发布 Kimi K3 与 Fable 对比的详细信息链接。",
+      "fetched_at": "2026-07-22T03:45:05.875249+08:00"
+    },
+    {
+      "title": "We ran Kimi K3 against Fable on ~1,000 agentic tasks, expecting a catch-up story. We got a specializ...",
+      "link": "https://x.com/FireworksAI_HQ/status/2079636032535036377",
+      "published": "2026-07-22T02:34:02+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "We ran Kimi K3 against Fable on ~1,000 agentic tasks, expecting a catch-up story. We got a specialization story instead.  \n  \n[@kimi\\_moonshot](https://x.com/kimi_moonshot)'s K3 outperformed on security, crypto, and long terminal loops. Fable beat on multi-lang + web/data viz. Per-task routing hits 93% accuracy, above BOTH models, at up to 50x lower cost than Fable on long loops.  \n  \nThe part nobody's pricing in yet: the router sends 72-96% of traffic to K3. The frontier model becomes the fallback rather than the default.  \n  \nKimi K3, coming to Fireworks July 27.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxR5SsaoAA_lFC.jpg)\n\n💬3🔄2❤️19👀1654📊7",
+      "tags": [
+        "Kimi K3",
+        "Fable",
+        "Agent路由"
+      ],
+      "score": 85,
+      "summary": "Fireworks AI 测试显示 Kimi K3 在安全、加密等任务上优于 Fable，路由可节省成本。",
+      "fetched_at": "2026-07-22T03:45:05.875252+08:00"
+    },
+    {
+      "title": "The team @tryheidi didn't want to keep renting someone else's intelligence.\n\nSo Heidi fine-tuned an ...",
+      "link": "https://x.com/FireworksAI_HQ/status/2079634078115283313",
+      "published": "2026-07-22T02:26:16+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "The team [@tryheidi](https://x.com/tryheidi) didn't want to keep renting someone else's intelligence.  \n  \nSo Heidi fine-tuned an open model that beat Gemini Pro on quality in their internal evals, and ran with 3.5x faster latency (25s → 7s). From POC to production in 4 weeks.  \n  \nGet the full scoop → [fireworks.ai/blog/Heidi-Hea…](https://fireworks.ai/blog/Heidi-Health)\n\n![Tweet Image](https://pbs.twimg.com/media/HNxX9cCbAAAzged.jpg)\n\n💬0🔄1❤️11👀1619📊3",
+      "tags": [
+        "Heidi",
+        "微调",
+        "Gemini Pro"
+      ],
+      "score": 80,
+      "summary": "Heidi 微调开源模型在内部评估中击败 Gemini Pro，延迟降低 3.5 倍。",
+      "fetched_at": "2026-07-22T03:45:05.875255+08:00"
+    },
+    {
+      "title": "The only way out is through.\n\nInstead of splitting the world between two spheres of AI influence cre...",
+      "link": "https://x.com/GaryMarcus/status/2079623960627753237",
+      "published": "2026-07-22T01:46:04+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "The only way out is through.  \n  \nInstead of splitting the world between two spheres of AI influence creating a new Cold War, we should come together, to create a global collaboration on AI for good.  \n  \nI discuss this - and why it could actually happen and why all other alternatives are worse -- here:  \n  \n[open.substack.com/pub/garymarcus…](https://open.substack.com/pub/garymarcus/p/china-has-all-but-caught-up-the-us?r=8tdk6&utm_medium=ios)\n\n![Tweet Image](https://pbs.twimg.com/media/HNxNRKqasAAMs8G.jpg)\n\n💬10🔄3❤️22👀2692📊13",
+      "tags": [
+        "Gary Marcus",
+        "AI合作",
+        "全球协作"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus 呼吁全球 AI 合作以避免新冷战。",
+      "fetched_at": "2026-07-22T03:45:05.875259+08:00"
+    },
+    {
+      "title": "Jimothy spotted",
+      "link": "https://x.com/github/status/2079642984925290962",
+      "published": "2026-07-22T03:01:40+08:00",
+      "source": "GitHub(@github)",
+      "content": "Jimothy spotted\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079639229374910464/vid/avc1/1920x1080/rniOai88AMPFJo4A.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/github/status/2079642984925290962/video/1)\n\n💬27🔄37❤️138👀8181📊43",
+      "tags": [
+        "GitHub",
+        "Jimothy"
+      ],
+      "score": 60,
+      "summary": "GitHub 发布 Jimothy 相关视频，内容未明确。",
+      "fetched_at": "2026-07-22T03:45:05.875262+08:00"
+    },
+    {
+      "title": "If you’re using an AI model router or gateway other than\n@vercel AI Gateway - tell me why! Reply or ...",
+      "link": "https://x.com/rauchg/status/2079632564579385679",
+      "published": "2026-07-22T02:20:15+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "If you’re using an AI model router or gateway other than  \n[@vercel](https://x.com/vercel) AI Gateway - tell me why! Reply or DM\n\n![Guillermo Rauch](https://pbs.twimg.com/profile_images/1783856060249595904/8TfcCN0r_normal.jpg)\n\nGuillermo Rauch@rauchg\n\nBet on every model at once  \n[vercel.com/ai-gateway](http://vercel.com/ai-gateway)\n\n![Tweet Image](https://pbs.twimg.com/media/HNl-oiAW8AALWjC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rauchg/status/2078832108907139399)\n\n💬36🔄6❤️96👀20753📊34",
+      "tags": [
+        "Vercel",
+        "AI Gateway",
+        "模型路由"
+      ],
+      "score": 70,
+      "summary": "Guillermo Rauch 询问用户为何不使用 Vercel AI Gateway。",
+      "fetched_at": "2026-07-22T03:45:05.875265+08:00"
+    },
+    {
+      "title": "Everyone is now a programmer, because the present and future programming language is your natural la...",
+      "link": "https://x.com/rauchg/status/2079629095428669450",
+      "published": "2026-07-22T02:06:28+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Everyone is now a programmer, because the present and future programming language is your natural language. If you can write or speak, you can build. This is the most important evolution in our field since its creation. And it's a tsunami that has \\*just\\* started.\n\n💬77🔄54❤️631👀24649📊146",
+      "tags": [
+        "Guillermo Rauch",
+        "自然语言编程"
+      ],
+      "score": 70,
+      "summary": "Guillermo Rauch 称自然语言是未来编程语言，人人都是程序员。",
+      "fetched_at": "2026-07-22T03:45:05.875268+08:00"
+    },
+    {
+      "title": ".@useapolloio cut dev-to-launch work for new AI Assistant skills by 80-85%, by tearing out a hand-wi...",
+      "link": "https://x.com/LangChain/status/2079642638790078689",
+      "published": "2026-07-22T03:00:17+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": ".[@useapolloio](https://x.com/useapolloio) cut dev-to-launch work for new AI Assistant skills by 80-85%, by tearing out a hand-wired supervisor for Deep Agents.  \n  \nFull story: [langchain.com/blog/how-apoll…](https://www.langchain.com/blog/how-apollo-rebuilt-its-ai-assistant-on-deep-agents-to-power-the-full-gtm-loop)\n\n![Tweet Image](https://pbs.twimg.com/media/HNxf8EtXUAAPcjU.jpg)\n\n💬0🔄0❤️0👀381",
+      "tags": [
+        "LangChain",
+        "Deep Agents",
+        "Apollo"
+      ],
+      "score": 80,
+      "summary": "Apollo 使用 LangChain Deep Agents 将 AI 助手技能开发时间减少 80-85%。",
+      "fetched_at": "2026-07-22T03:45:05.875271+08:00"
+    },
+    {
+      "title": "The team flew into SF for a week onsite. 🌉\n\n2x'd in size since we last did this — first time this m...",
+      "link": "https://x.com/llama_index/status/2079626293360853494",
+      "published": "2026-07-22T01:55:20+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "The team flew into SF for a week onsite. 🌉  \n  \n2x'd in size since we last did this — first time this many of us have been in the same room.  \n  \nThe recap:  \n🧠 Locked in our roadmap for AI agent document infra  \n🎨 Spraypainting, Topgolf, soccer, & escape rooms  \n⚽️ Caught a few World Cup matches between sessions  \n🍗 Raising Cane's for lunch  \n🎯 Darts + way too many dinners across the city  \n  \nReady for Q3.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxREqMWsAAzEdC.jpg)![Tweet Image](https://pbs.twimg.com/media/HNxRE_YXcAEJ6Lf.jpg)![Tweet Image](https://pbs.twimg.com/media/HNxRE4LXYAEBj-P.jpg)![Tweet Image](https://pbs.twimg.com/media/HNxRE3vWYAAYaTh.jpg)\n\n💬1🔄1❤️6👀1070📊2",
+      "tags": [
+        "LlamaIndex",
+        "团队活动"
+      ],
+      "score": 60,
+      "summary": "LlamaIndex 团队在 SF 进行一周 onsite，更新路线图。",
+      "fetched_at": "2026-07-22T03:45:05.875275+08:00"
+    },
+    {
+      "title": "Congratulations to the students who competed at the International Mathematical Olympiad (IMO) 2026. ...",
+      "link": "https://x.com/NVIDIAAI/status/2079642933058244704",
+      "published": "2026-07-22T03:01:27+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Congratulations to the students who competed at the International Mathematical Olympiad (IMO) 2026. 👏  \n  \nWe put Nemotron 3 Ultra to the test to take on the same problems in the same time limit, with no internet or external tools.  \n  \nThe IMO team graded its solutions 30/42, above the 29-point gold threshold. 🥇\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNxgNVvW8AIn00l.jpg)](https://video.twimg.com/tweet_video/HNxgNVvW8AIn00l.mp4)\n\n💬3🔄3❤️18👀2246📊5",
+      "tags": [
+        "Nemotron 3 Ultra",
+        "IMO",
+        "金牌"
+      ],
+      "score": 85,
+      "summary": "NVIDIA Nemotron 3 Ultra 在 IMO 2026 试题中获得 30/42 分，超过金牌线。",
+      "fetched_at": "2026-07-22T03:45:05.875278+08:00"
+    },
+    {
+      "title": "Devin Outposts are now available on NVIDIA Brev.\n\nWrite and profile kernels, run experiments, serve ...",
+      "link": "https://x.com/NVIDIAAI/status/2079630151206506525",
+      "published": "2026-07-22T02:10:40+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Devin Outposts are now available on NVIDIA Brev.  \n  \nWrite and profile kernels, run experiments, serve and fine-tune OSS models, and test against real hardware.   \n  \nTry it out: [brev.nvidia.com/launchable/dep…](https://brev.nvidia.com/launchable/deploy?launchableID=env-3Ge1ZXazlZQuJHfQed2od9IT8R5)\n\n![Cognition](https://pbs.twimg.com/profile_images/1765909640364068865/MvH-m0gd_normal.jpg)\n\nCognition@cognition\n\nIntroducing Devin Outposts: run Devin on any machine.  \n  \nYour Mac mini, a GPU box in your lab, a VM inside your private network, or a Kubernetes cluster next to your internal services.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HNxCW9Sb0AAVgAY.jpg)](https://video.twimg.com/tweet_video/HNxCW9Sb0AAVgAY.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/cognition/status/2079612226252726615)\n\n💬4🔄2❤️28👀5117📊6",
+      "tags": [
+        "Devin Outposts",
+        "NVIDIA Brev",
+        "Cognition"
+      ],
+      "score": 80,
+      "summary": "Devin Outposts 现可在 NVIDIA Brev 上使用，支持内核编写和模型微调。",
+      "fetched_at": "2026-07-22T03:45:05.875281+08:00"
+    },
+    {
+      "title": "Tune the Harness, Before Tuning the Model with LangChain | Nemotron Labs https://t.co/0Wja9NSwui",
+      "link": "https://x.com/NVIDIAAI/status/2079627467032338731",
+      "published": "2026-07-22T02:00:00+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Tune the Harness, Before Tuning the Model with LangChain | Nemotron Labs [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1MJgNNeWbklGL)\n\n💬3🔄16❤️65👀4982📊16",
+      "tags": [
+        "NVIDIA",
+        "LangChain",
+        "Nemotron"
+      ],
+      "score": 70,
+      "summary": "NVIDIA 举办关于使用 LangChain 调整模型前先调整测试框架的直播。",
+      "fetched_at": "2026-07-22T03:45:05.875284+08:00"
+    },
+    {
+      "title": "Codex Code Review can now use custom repository rules in AGENTS.md.\n\nStart with a check your reviewe...",
+      "link": "https://x.com/OpenAIDevs/status/2079627776722981348",
+      "published": "2026-07-22T02:01:14+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Codex Code Review can now use custom repository rules in AGENTS.md.  \n  \nStart with a check your reviewers keep repeating. Keep it concise and scoped so Codex can catch repository-specific issues even when the relevant context is siloed.  \n  \n[developers.openai.com/blog/custom-co…](https://developers.openai.com/blog/custom-code-review-rules-for-codex)\n\n💬20🔄17❤️346👀18414📊74",
+      "tags": [
+        "Codex",
+        "Code Review",
+        "AGENTS.md"
+      ],
+      "score": 85,
+      "summary": "OpenAI Codex 代码审查现支持自定义仓库规则（AGENTS.md）。",
+      "fetched_at": "2026-07-22T03:45:05.875288+08:00"
+    },
+    {
+      "title": "Contrastive SDF gives copies of the same model opposing beliefs about what the grader prefers, then ...",
+      "link": "https://x.com/OpenAI/status/2079647254701634028",
+      "published": "2026-07-22T03:18:38+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Contrastive SDF gives copies of the same model opposing beliefs about what the grader prefers, then measures how their behavior changes.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxjtRZbUAA71aa.jpg)\n\n💬1🔄0❤️16👀4769📊2",
+      "tags": [
+        "Contrastive SDF",
+        "奖励寻求",
+        "对齐"
+      ],
+      "score": 85,
+      "summary": "OpenAI 介绍 Contrastive SDF 方法，测量模型对评分者偏好的敏感度。",
+      "fetched_at": "2026-07-22T03:45:05.875291+08:00"
+    },
+    {
+      "title": "We had guessed reward seeking might increase over the course of capabilities-focused RL training, bu...",
+      "link": "https://x.com/OpenAI/status/2079647256941412817",
+      "published": "2026-07-22T03:18:38+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We had guessed reward seeking might increase over the course of capabilities-focused RL training, but had no way of measuring it until now.  \n  \nWe’re continuing to collaborate with Apollo Research to improve how reward-seeking is measured during training—and better detect whether models are doing the right thing for the right reason.\n\n💬2🔄0❤️9👀3418📊2",
+      "tags": [
+        "OpenAI",
+        "奖励寻求",
+        "Apollo Research"
+      ],
+      "score": 85,
+      "summary": "OpenAI 发现能力导向的 RL 训练中奖励寻求行为增加，将改进测量方法。",
+      "fetched_at": "2026-07-22T03:45:05.875294+08:00"
+    },
+    {
+      "title": "We’re sharing new research with @apolloaievals on reward-seeking—when models follow what they believ...",
+      "link": "https://x.com/OpenAI/status/2079647251677536324",
+      "published": "2026-07-22T03:18:37+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We’re sharing new research with [@apolloaievals](https://x.com/apolloaievals) on reward-seeking—when models follow what they believe a grader rewards rather than what users or developers want—and a new method, Contrastive SDF, for measuring how strongly such beliefs shape behavior.  \n[alignment.openai.com/measuring-rewa…](https://alignment.openai.com/measuring-reward-seeking/)\n\n💬25🔄20❤️148👀28498📊40",
+      "tags": [
+        "OpenAI",
+        "奖励寻求",
+        "Contrastive SDF"
+      ],
+      "score": 90,
+      "summary": "OpenAI 与 Apollo Research 发布关于奖励寻求行为的新研究及 Contrastive SDF 方法。",
+      "fetched_at": "2026-07-22T03:45:05.875297+08:00"
+    },
+    {
+      "title": "Contrastive SDF gives copies of the same model opposing beliefs about what the grader prefers, then ...",
+      "link": "https://x.com/OpenAI/status/2079628888209322430",
+      "published": "2026-07-22T02:05:39+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Contrastive SDF gives copies of the same model opposing beliefs about what the grader prefers, then measures how their behavior changes.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxTQktaMAA2n9s.jpg)\n\n💬3🔄2❤️67👀14803📊8",
+      "tags": [
+        "Contrastive SDF",
+        "奖励寻求",
+        "对齐"
+      ],
+      "score": 85,
+      "summary": "OpenAI 介绍 Contrastive SDF 方法，测量模型对评分者偏好的敏感度。",
+      "fetched_at": "2026-07-22T03:45:05.875300+08:00"
+    },
+    {
+      "title": "Among the pre-safety checkpoints we tested, sensitivity to grader preferences increased over the cou...",
+      "link": "https://x.com/OpenAI/status/2079628889866068361",
+      "published": "2026-07-22T02:05:39+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Among the pre-safety checkpoints we tested, sensitivity to grader preferences increased over the course of RL training.  \n  \nWe’re continuing to collaborate with [@apolloaievals](https://x.com/apolloaievals) to improve how reward-seeking is measured during training—and better detect when models do the right thing for the wrong reason.\n\n💬3🔄1❤️60👀11696📊8",
+      "tags": [
+        "OpenAI",
+        "奖励寻求",
+        "RL训练"
+      ],
+      "score": 85,
+      "summary": "OpenAI 发现 RL 训练中模型对评分者偏好的敏感度增加。",
+      "fetched_at": "2026-07-22T03:45:05.875303+08:00"
+    },
+    {
+      "title": "We’re sharing new research with @apolloaievals on reward-seeking—when models follow what they believ...",
+      "link": "https://x.com/OpenAI/status/2079628886950994005",
+      "published": "2026-07-22T02:05:38+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We’re sharing new research with [@apolloaievals](https://x.com/apolloaievals) on reward-seeking—when models follow what they believe a grader rewards rather than what users or developers want—and a new method, Contrastive SDF, for measuring how strongly those beliefs shape behavior.  \n  \n[alignment.openai.com/measuring-rewa…](https://alignment.openai.com/measuring-reward-seeking/)\n\n💬50🔄27❤️347👀49975📊83",
+      "tags": [
+        "OpenAI",
+        "奖励寻求",
+        "Contrastive SDF"
+      ],
+      "score": 90,
+      "summary": "OpenAI 与 Apollo Research 发布关于奖励寻求行为的新研究及 Contrastive SDF 方法。",
+      "fetched_at": "2026-07-22T03:45:05.875307+08:00"
+    },
+    {
+      "title": "Or use it for free:\nhttps://t.co/BIpIDxumOr\n\nFree requests may be used by Poolside to train and impr...",
+      "link": "https://x.com/OpenRouter/status/2079632457620705629",
+      "published": "2026-07-22T02:19:50+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Or use it for free:  \n[openrouter.ai/poolside/lagun…](https://openrouter.ai/poolside/laguna-s-2.1:free)  \n  \nFree requests may be used by Poolside to train and improve its models.\n\n💬0🔄1❤️3👀1200📊1",
+      "tags": [
+        "OpenRouter",
+        "Poolside",
+        "Laguna S 2.1"
+      ],
+      "score": 70,
+      "summary": "OpenRouter 提供 Poolside Laguna S 2.1 免费使用，请求可能用于训练。",
+      "fetched_at": "2026-07-22T03:45:05.875310+08:00"
+    },
+    {
+      "title": "Laguna S 2.1 from @poolsideai is live on OpenRouter!\n\nAn open-weight 118B-A8B MoE for agentic coding...",
+      "link": "https://x.com/OpenRouter/status/2079632445411106970",
+      "published": "2026-07-22T02:19:47+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Laguna S 2.1 from [@poolsideai](https://x.com/poolsideai) is live on OpenRouter!  \n  \nAn open-weight 118B-A8B MoE for agentic coding and long-horizon work, with a 1M context window. Scores: 70.2% on Terminal-Bench 2.1 and 40.4% on DeepSWE.  \n  \nTry it:  \n[openrouter.ai/poolside/lagun…](https://openrouter.ai/poolside/laguna-s-2.1)\n\n💬6🔄4❤️51👀3967📊12",
+      "tags": [
+        "Laguna S 2.1",
+        "Poolside",
+        "Agent编码"
+      ],
+      "score": 85,
+      "summary": "Poolside 发布开源 118B MoE 模型 Laguna S 2.1，专为 Agent 编码设计。",
+      "fetched_at": "2026-07-22T03:45:05.875313+08:00"
+    },
+    {
+      "title": "I just got an investor update from a nuclear reactor startup that measures their LOIs in gigawatts. ...",
+      "link": "https://x.com/paulg/status/2079631941863673896",
+      "published": "2026-07-22T02:17:47+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "I just got an investor update from a nuclear reactor startup that measures their LOIs in gigawatts. That's a new one.\n\n💬34🔄5❤️312👀32867📊51",
+      "tags": [
+        "Paul Graham",
+        "核反应堆",
+        "LOI"
+      ],
+      "score": 60,
+      "summary": "Paul Graham 收到核反应堆初创公司以吉瓦计量的意向书。",
+      "fetched_at": "2026-07-22T03:45:05.875316+08:00"
+    },
+    {
+      "title": "We rebuilt the app around how you actually build on a phone:\n\n🏠 A refreshed home screen: pick up ri...",
+      "link": "https://x.com/Replit/status/2079627629636796729",
+      "published": "2026-07-22T02:00:39+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "We rebuilt the app around how you actually build on a phone:  \n  \n🏠 A refreshed home screen: pick up right where you left off  \n🎙️ Voice input: talk to your app, watch Agent build it  \n👆 Swipe between chat, tasks, and preview  \n🔔 Live Activities that follow Agent's progress  \n  \nDownload it, talk to it, and build something on your way home.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxSP2CW4AANysA.jpg)\n\n💬0🔄0❤️0👀205",
+      "tags": [
+        "Replit",
+        "移动应用",
+        "语音输入"
+      ],
+      "score": 70,
+      "summary": "Replit 重新设计移动应用，新增语音输入和实时活动功能。",
+      "fetched_at": "2026-07-22T03:45:05.875319+08:00"
+    },
+    {
+      "title": "Your ideas. Anywhere they find you.\n \nThe redesigned Replit mobile app is available now on iOS and A...",
+      "link": "https://x.com/Replit/status/2079627627132817882",
+      "published": "2026-07-22T02:00:38+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Your ideas. Anywhere they find you.  \n   \nThe redesigned Replit mobile app is available now on iOS and Android.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2079627562125279233/pu/vid/avc1/1280x720/WeEbBIyxwjNje1VB.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2079627627132817882/video/1)\n\n💬1🔄0❤️2👀838📊1",
+      "tags": [
+        "Replit",
+        "移动应用",
+        "iOS"
+      ],
+      "score": 70,
+      "summary": "Replit 重新设计的移动应用现已在 iOS 和 Android 上可用。",
+      "fetched_at": "2026-07-22T03:45:05.875322+08:00"
+    },
+    {
+      "title": "Download it today:\n\niOS: https://t.co/rIUcjy1usG\n\nGoogle Play: https://t.co/yvPzP2MDQg\n(Android user...",
+      "link": "https://x.com/Replit/status/2079627628453986509",
+      "published": "2026-07-22T02:00:38+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Download it today:  \n  \niOS: [apps.apple.com/us/app/replit-…](https://apps.apple.com/us/app/replit-vibe-code-with-ai-fast/id1614022293)  \n  \nGoogle Play: [play.google.com/store/apps/det…](https://play.google.com/store/apps/details?id=com.replit.app&pli=1)  \n(Android users - we're rolling out the new experience gradually, so hang tight if you don't see it yet.)\n\n💬1🔄0❤️0👀208📊1",
+      "tags": [
+        "Replit",
+        "移动应用",
+        "下载"
+      ],
+      "score": 70,
+      "summary": "Replit 提供重新设计的移动应用下载链接。",
+      "fetched_at": "2026-07-22T03:45:05.875326+08:00"
+    },
+    {
+      "title": "Welcome to Cognition!",
+      "link": "https://x.com/ScottWu46/status/2079628441775944026",
+      "published": "2026-07-22T02:03:52+08:00",
+      "source": "Scott Wu(@ScottWu46)",
+      "content": "Welcome to Cognition!\n\n![Jared Palmer](https://pbs.twimg.com/profile_images/2046675016805203968/isnDn3_Y_normal.jpg)\n\nJared Palmer@jaredpalmer\n\nPersonal update: I’ve joined [@Cognition](https://x.com/Cognition) to lead engineering.   \n  \nI’m grateful to [@asha\\_shar](https://x.com/asha_shar) and everyone at Xbox for an amazing year.   \n  \nExcited for this next chapter with [@ScottWu46](https://x.com/ScottWu46) and team.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxFNMBaYAAiIZ6.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/jaredpalmer/status/2079613224463503635)\n\n💬1🔄4❤️41👀3680📊4",
+      "tags": [
+        "Cognition",
+        "Jared Palmer",
+        "工程领导"
+      ],
+      "score": 70,
+      "summary": "Jared Palmer 加入 Cognition 担任工程负责人。",
+      "fetched_at": "2026-07-22T03:45:05.875329+08:00"
+    },
+    {
+      "title": "@stanfordnlp https://t.co/vjW3mwDouq",
+      "link": "https://x.com/StanfordAILab/status/2079648103259660763",
+      "published": "2026-07-22T03:22:00+08:00",
+      "source": "Stanford AI Lab(@StanfordAILab)",
+      "content": "[@stanfordnlp](https://x.com/stanfordnlp)[cs336.stanford.edu](https://cs336.stanford.edu)\n\n💬0🔄0❤️0👀199",
+      "tags": [
+        "Stanford",
+        "CS 336",
+        "LLM"
+      ],
+      "score": 60,
+      "summary": "Stanford AI Lab 分享 CS 336 课程链接。",
+      "fetched_at": "2026-07-22T03:45:05.875332+08:00"
+    },
+    {
+      "title": "@marcelroed casually just dropped the world’s fastest tokenizer implementation! He's also co-author ...",
+      "link": "https://x.com/StanfordAILab/status/2079648101229601064",
+      "published": "2026-07-22T03:21:59+08:00",
+      "source": "Stanford AI Lab(@StanfordAILab)",
+      "content": "[@marcelroed](https://x.com/marcelroed) casually just dropped the world’s fastest tokenizer implementation! He's also co-author for Stanford’s CS 336 (LLMs from Scratch), where implementing a tokenizer from scratch is the first assignment. Fitting! 💪\n\n![Marcel Rød](https://pbs.twimg.com/profile_images/1426130011963207680/i73RnRES_normal.jpg)\n\nMarcel Rød@marcelroed\n\nIntroducing the world's fastest tokenizer implementation, Gigatoken!  \n  \nGigatoken is ~500-1000x faster than HuggingFace, and ~100x faster than OpenAI's tiktoken for most tokenizer definitions on most machines.  \n  \nThese baselines are already multithreaded Rust implementations! 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HNxfhRHbMAAOxeD.png)\n\n[🔗 View Quoted Tweet](https://x.com/marcelroed/status/2079642154960564352)\n\n💬1🔄0❤️3👀734📊2",
+      "tags": [
+        "Gigatoken",
+        "Tokenizer",
+        "Stanford"
+      ],
+      "score": 80,
+      "summary": "Stanford 研究员发布世界最快 tokenizer 实现 Gigatoken，比 HuggingFace 快 500-1000 倍。",
+      "fetched_at": "2026-07-22T03:45:05.875335+08:00"
+    },
+    {
+      "title": "Alibaba's Qwen just launched Qwen-Image-3.0, a new highly capable-looking image model. \n\nFeatures in...",
+      "link": "https://x.com/TheRundownAI/status/2079626850968465510",
+      "published": "2026-07-22T01:57:33+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Alibaba's Qwen just launched Qwen-Image-3.0, a new highly capable-looking image model.   \n  \nFeatures include a 4.5k prompt input limit, world knowledge, and multilingual, long text rendering.  \n  \nNo public benchmarks yet, but some impressive examples on the blog.   \n  \nA few below: a nine-panel grid of scenes and text all rendered in one-shot as a single image, a super-realistic fake PDF of a scientific paper, an infographic, and a portrait photo.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxPwzOWcAAoZmY.jpg)![Tweet Image](https://pbs.twimg.com/media/HNxP3KDW8AAXjGm.jpg)![Tweet Image](https://pbs.twimg.com/media/HNxQJ9DXQAE9apm.jpg)![Tweet Image](https://pbs.twimg.com/media/HNxQSP7WsAAKUjA.jpg)\n\n💬2🔄2❤️11👀2400📊4",
+      "tags": [
+        "Qwen-Image-3.0",
+        "Alibaba",
+        "图像生成"
+      ],
+      "score": 80,
+      "summary": "Alibaba 发布 Qwen-Image-3.0 图像模型，支持 4.5k 提示输入和多语言渲染。",
+      "fetched_at": "2026-07-22T03:45:05.875338+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash is out on Antigravity! We just reset everyone's weekly quotas, enjoy building.",
+      "link": "https://x.com/_mohansolo/status/2079636156589994347",
+      "published": "2026-07-22T02:34:32+08:00",
+      "source": "Varun Mohan(@_mohansolo)",
+      "content": "Gemini 3.6 Flash is out on Antigravity! We just reset everyone's weekly quotas, enjoy building.\n\n💬56🔄13❤️302👀11220📊96",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Antigravity"
+      ],
+      "score": 70,
+      "summary": "Gemini 3.6 Flash 在 Antigravity 上可用，重置每周配额。",
+      "fetched_at": "2026-07-22T03:45:05.875341+08:00"
+    },
+    {
+      "title": ".@AppliedInt Co-founders @qasar and Peter Ludwig on why tools like Dana will make building autonomou...",
+      "link": "https://x.com/a16z/status/2079642205988479146",
+      "published": "2026-07-22T02:58:34+08:00",
+      "source": "a16z(@a16z)",
+      "content": ".[@AppliedInt](https://x.com/AppliedInt) Co-founders [@qasar](https://x.com/qasar) and Peter Ludwig on why tools like Dana will make building autonomous robots as easy as building iPhone apps:  \n  \n\"Why can't a ninth grader make a delivery robot in their home?\"  \n  \n\"The robot runs into the wall. Okay, what happened there? The loop closes.\"  \n  \n\"That platform for designing and developing is what we're launching, it's called Dana.\"  \n  \n\"If you look at how tooling has changed in the digital AI world... now everything has moved into a very different, almost IDE. We think the same thing's going to happen in the physical world.\"  \n  \n\"Fundamentally, Dana is our agentic platform for physical AI. And everything that we've built and developed over the past nearly a decade, every tool, every technique, that's available in Dana.\"  \n  \n\"And it's very easy to use with the agentic interface. And so workflows that used to maybe take days or weeks to run, you can now run those in minutes in many cases.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079642027097231360/vid/avc1/1280x720/a3VUIQGbub9ply7a.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079642205988479146/video/1)\n\n![Qasar Younis](https://pbs.twimg.com/profile_images/1150626700310401026/VdpifBmB_normal.png)\n\nQasar Younis@qasar\n\nFor 9+ years we’ve been building simulators, data engines, data pipelines, scenario editors, RL environments, what's now world models... and dozens of other products.  \n  \nNow we’ve connected them all under one agentic layer.  \n  \nIt is not just another harness but also the broader system to safely design, develop, and deploy Physical AI.  \n  \nI continue to believe a modern, AI-first development environment is one of the biggest bottlenecks to putting intelligence on a billion machines.  \n  \nUnsurprisingly, we’ve been using it internally for a while now and the impact has been profound in almost every measurable way.  \n  \nAs you might know, our old office was on the corner of Pioneer and Dana – and calling it Pioneer would be too cliche. Introducing Dana :)  \n  \n[applied.co/dana-blog](http://applied.co/dana-blog)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079604775277219841/vid/avc1/3840x2160/xaMRQ9PK6wxTY3rE.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/qasar/status/2079605638980940231/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/qasar/status/2079605638980940231)\n\n💬6🔄2❤️17👀9145📊5",
+      "tags": [
+        "Applied Int",
+        "Dana",
+        "物理AI"
+      ],
+      "score": 80,
+      "summary": "a16z 采访 Applied Int 联合创始人，介绍物理 AI 平台 Dana。",
+      "fetched_at": "2026-07-22T03:45:05.875345+08:00"
+    },
+    {
+      "title": "Thesean just launched Ship in beta, an endpoint that cuts your LLM bill in half.\n\nYou keep the model...",
+      "link": "https://x.com/omarsar0/status/2079645153665662997",
+      "published": "2026-07-22T03:10:17+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Thesean just launched Ship in beta, an endpoint that cuts your LLM bill in half.  \n  \nYou keep the model name you already use. Change model=\"original\" to model=\"ship-like/original\" and every request costs a fixed 50% less.  \n  \nShip is built to preserve your prompts, output formats, and tool behavior.  \n  \nBehind the scenes, Ship picks the most efficient way to run each request while matching the quality of the model you named. If a request costs more to execute than you paid, Thesean covers the difference.  \n  \nThe savings can go two ways. Cut the bill, or keep the same budget and run twice as many agents, retries, and verification passes to further improve output quality.\n\n![Martian](https://pbs.twimg.com/profile_images/1777883055933587456/GaxZvBO7_normal.jpg)\n\nMartian@withmartian\n\nAnnouncing Ship: an endpoint with the highest intelligence per dollar of any frontier model.  \n  \nToday, Ship makes using Opus and GPT 5.6 Sol 50% cheaper guaranteed by a quality SLA.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079633593392148480/vid/avc1/3840x2160/i83lQbTueMDbaQJy.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/withmartian/status/2079636656425165024/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/withmartian/status/2079636656425165024)\n\n💬0🔄0❤️2👀545",
+      "tags": [
+        "Ship",
+        "LLM成本",
+        "Martian"
+      ],
+      "score": 80,
+      "summary": "Thesean 推出 Ship 端点，将 LLM 账单减半，保证质量。",
+      "fetched_at": "2026-07-22T03:45:05.875348+08:00"
+    },
+    {
+      "title": "Not because Andrej is saying it but I think voice is goated.\n\nAnd you can mix it with other modaliti...",
+      "link": "https://x.com/omarsar0/status/2079635981200719919",
+      "published": "2026-07-22T02:33:50+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Not because Andrej is saying it but I think voice is goated.  \n  \nAnd you can mix it with other modalities for even richer prompting.  \n  \nI recorded a session a few weeks back to demo the power of multimodal prompting [x.com/omarsar0/statu…](https://x.com/omarsar0/status/2073404610501329247?s=46&t=lM541_vvE8ML-ozRBlFUDg)\n\n![Andrej Karpathy](https://pbs.twimg.com/profile_images/1296667294148382721/9Pr6XrPB_normal.jpg)\n\nAndrej Karpathy@karpathy\n\nOne pattern I find useful for working with LLMs is a nice long ramble session. Sometimes the LLM needs more bits to understand what you're trying to achieve, but you're too lazy to type them. In these cases I like to lean back, switch to /voice and just ramble for like 10 minutes, total mess, anything goes, full stream of consciousness. Sometimes I declare it up top, something like \"switching to speech recognition sorry for any typos...\". Sometimes I turn it into a small interview of a few turns. But I find that the LLMs are somehow very good at reconstructing long incoherent rambles and often their echo of your own tangle of thoughts comes out quite a bit cleaner than what you started with. The result is that you improve the mind meld and have to correct things less from that point on.\n\n[🔗 View Quoted Tweet](https://x.com/karpathy/status/2079610838143623371)\n\n💬4🔄0❤️7👀1624📊3",
+      "tags": [
+        "Andrej Karpathy",
+        "语音",
+        "多模态"
+      ],
+      "score": 65,
+      "summary": "Elvis 转发 Andrej Karpathy 关于语音与 LLM 交互有用的观点。",
+      "fetched_at": "2026-07-22T03:45:05.875351+08:00"
+    },
+    {
+      "title": "Great to see more people finding success with multimodal prompting",
+      "link": "https://x.com/omarsar0/status/2079634542176915557",
+      "published": "2026-07-22T02:28:07+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Great to see more people finding success with multimodal prompting\n\n![Andrej Karpathy](https://pbs.twimg.com/profile_images/1296667294148382721/9Pr6XrPB_normal.jpg)\n\nAndrej Karpathy@karpathy\n\nOne pattern I find useful for working with LLMs is a nice long ramble session. Sometimes the LLM needs more bits to understand what you're trying to achieve, but you're too lazy to type them. In these cases I like to lean back, switch to /voice and just ramble for like 10 minutes, total mess, anything goes, full stream of consciousness. Sometimes I declare it up top, something like \"switching to speech recognition sorry for any typos...\". Sometimes I turn it into a small interview of a few turns. But I find that the LLMs are somehow very good at reconstructing long incoherent rambles and often their echo of your own tangle of thoughts comes out quite a bit cleaner than what you started with. The result is that you improve the mind meld and have to correct things less from that point on.\n\n[🔗 View Quoted Tweet](https://x.com/karpathy/status/2079610838143623371)\n\n💬1🔄0❤️3👀687📊1",
+      "tags": [
+        "多模态",
+        "提示"
+      ],
+      "score": 60,
+      "summary": "Elvis 评论多模态提示的成功。",
+      "fetched_at": "2026-07-22T03:45:05.875354+08:00"
+    },
+    {
+      "title": "Android Studio Quail 2 Redesigns Agent Mode, Streamlines AI-Assisted Coding",
+      "link": "https://www.infoq.com/news/2026/07/android-studio-quail-2/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-22T03:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/android-studio-quail-2/en/headerimage/android-studio-quail2-1784654356718.jpeg)\n\nThe latest release of Android Studio, Quail 2, now stable, expands Gemini/AI Agent Mode inside the IDE by enabling multiple AI conversations in parallel and further advancing Google's push to integrate AI-powered workflows directly into Android Studio. It also enhances debugging and profiling capabilities and makes it easier to explore experimental features.\n\n*By Sergio De Simone*",
+      "tags": [
+        "Android Studio",
+        "Quail 2",
+        "AI编码"
+      ],
+      "score": 70,
+      "summary": "Android Studio Quail 2 稳定版发布，增强 Gemini/AI Agent 模式。",
+      "fetched_at": "2026-07-22T03:45:05.875357+08:00"
     }
   ]
 }
