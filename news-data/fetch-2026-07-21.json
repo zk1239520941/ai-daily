@@ -2224,6 +2224,624 @@
       "score": 80,
       "summary": "Ramp发布Router，支持Agent工作流中不同步骤使用不同模型。",
       "fetched_at": "2026-07-21T08:05:10.015632+08:00"
+    },
+    {
+      "title": "[AINews] not much happened today",
+      "link": "https://www.latent.space/p/ainews-not-much-happened-today-173",
+      "published": "2026-07-21T11:58:00+08:00",
+      "source": "Latent Space",
+      "content": "On any given Sunday, the announcement that [the 2.4T param Qwen 3.8 Max will be open weight](https://x.com/Alibaba_Qwen/status/2079172722161299801) wouldve earned title story status, but they had the misfortune to do this [4 days after Kimi K3 2.8T was announced](https://www.latent.space/p/ainews-kimi-k3-28t-a50b-the-largest).\n\nInstead, we’re once again declaring a quiet day as far as technical news goes. The [AIE Security track](https://x.com/aiDotEngineer/status/2079259574331384035) was released today (ft [Steve Yegge’s latest](https://www.youtube.com/watch?v=yWS0udrIOc8&list=PLM1x6AvuYX54&index=2&t=370s)) and the top release of the day goes to Sonar CEO Tariq Shaukat, who echoed [Erik Meijer’s emphasis on verification](https://youtu.be/-CnA2lGfymY) for safety/security/correctness:\n\n> AI News for 7/18/2026-7/20/2026. We checked 12 subreddits, [544 Twitters](https://twitter.com/i/lists/1585430245762441216) and no further Discords. [AINews’ website](https://news.smol.ai/) lets you search all past issues. As a reminder, [AINews is now a section of Latent Space](https://www.latent.space/p/2026). You can [opt in/out](https://support.substack.com/hc/en-us/articles/8914938285204-How-do-I-subscribe-to-or-unsubscribe-from-a-section-on-Substack) of email frequencies!\n\n---\n\n# **AI Twitter Recap**\n\n**Open-Weight Competition, Chinese Model Policy, and the New Geopolitics of AI**\n\n* **US debate over restricting Chinese open models is moving from rhetoric toward policy**: Multiple tweets pointed to [Axios coverage](https://x.com/kimmonismus/status/2079167072571978033) that the Trump administration is considering measures that could amount to a **de facto ban** on cutting-edge Chinese models such as **Kimi**: procurement restrictions, Entity List designations, security advisories, liability requirements, and public pressure campaigns. A more detailed breakdown from [@deredleritt3r](https://x.com/deredleritt3r/status/2079191723859677518) stresses this is likely not a clean statutory ban but a layered compliance/hosting regime. The reaction from technical voices was overwhelmingly negative: [@APompliano](https://x.com/APompliano/status/2079252591448330579), [@ClementDelangue](https://x.com/ClementDelangue/status/2079253659108409587), [@mmitchell\\_ai](https://x.com/mmitchell_ai/status/2079323506526036431), and [@bgurley](https://x.com/bgurley/status/2079202357049790551) all argued that restricting open models would hurt **competition, sovereignty, and defensive security** more than it helps incumbents.\n* **Open models are increasingly framed as a security necessity, not just a cost lever**: The most concrete evidence came from [@ZixuanLi\\_](https://x.com/ZixuanLi_/status/2079214747036360797) and [@jeffboudier](https://x.com/jeffboudier/status/2079281811667255611), summarizing Hugging Face’s disclosure that during a cyber incident they used **self-hosted GLM-5.2** for forensic work because commercial frontier APIs’ guardrails blocked analysis and because sensitive attacker data and credentials needed to remain on-prem. That incident became a centerpiece in the “open models as defense” argument, amplified by [@ClementDelangue](https://x.com/ClementDelangue/status/2079301434357456931) and others.\n\n**Kimi K3, Qwen 3.8 Preview, GLM Infrastructure, and Open-Model Momentum**\n\n* **Kimi K3 is emerging as the strongest open-weight contender in agentic and frontend tasks**: On the product side, [DesignArena](https://x.com/DesignArena/status/2079243547337974132) reported **Kimi K3 #1** on its Frontend Web App Arena with **1326 Elo**, ahead of Anthropic models. On long-horizon agentic evaluation, [Arena](https://x.com/arena/status/2079253211077300736) placed **Kimi K3 at #4 overall**, matching **Claude Opus 4.8** and **GPT-5.6 Sol**, and potentially becoming the **#1 open-weight model** if weights ship as expected. Independent commentary from [@HaoningTimothy](https://x.com/HaoningTimothy/status/2079256897862119885) and [@cline](https://x.com/cline/status/2079301605179191716) highlighted the practical angle: strong confirmed task success and meaningfully lower serving costs, though self-hosting savings may be modest until usage scales.\n* **Alibaba signaled that Qwen 3.8 Max is improving daily and will be open-weighted**: [@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen/status/2079172722161299801) announced a new live version of **Qwen3.8-Max-Preview** with broad gains and explicitly said they’re looking toward “a more capable, official version” and **“to open-weight it for everyone.”** That phrasing was immediately noticed by [@teortaxesTex](https://x.com/teortaxesTex/status/2079173632501112929), because it implies the final 3.8 Max release—not just the preview—will be open. A later community roundup via [@ZhihuFrontier](https://x.com/ZhihuFrontier/status/2079252055940866528) described the model as **2.4T parameters**, strong multimodality and native video understanding, but still inconsistent on long-horizon tasks and language stability.\n* **Zhipu’s compute posture looks increasingly strategic, not derivative**: Two widely shared posts from [@Lentils80](https://x.com/Lentils80/status/2079270703224811777) and [@kimmonismus](https://x.com/kimmonismus/status/2079283578735640886) claimed Zhipu has brought a **1GW data center** partially online using **only Chinese-made chips** to support future **GLM** training. Even allowing for uncertainty around “partial operations,” the technical significance is clear: China is not just shipping good open models, it is trying to build a **domestic compute stack** for frontier training.\n\n**Agent Harnesses, RLMs, and the Shift from Model-Centric to System-Centric Generalization**\n\n* **A major conceptual thread: maybe the harness, not the base Transformer, is doing much of the generalization work**: The most substantive research discussion centered on Alex Zhang’s thread on **RLMs** and compositional generalization, arguing that training should rely on a well-designed **harness** to map superficially different tasks into similar token trajectories for the root model. In the main post, [@a1zhang](https://x.com/a1zhang/status/2079203524395573442) claims RLMs can train on short tasks and generalize to tasks **8–32× longer**, and even transfer across domains when they share decomposition structure. Follow-on commentary from [@lateinteraction](https://x.com/lateinteraction/status/2079206085957693505), [@omarsar0](https://x.com/omarsar0/status/2079249102190067795), and [@dbreunig](https://x.com/dbreunig/status/2079292246420308467) framed this as a serious alternative to purely scaling parameter count: the inductive bias may now live in the orchestration layer.\n* **This idea is already bleeding into production agent design**: Discussion around “graph engineering” and “loops engineering” was a lighter but related reflection of the same trend. [@hwchase17](https://x.com/hwchase17/status/2079219804951683380) joked that graph engineering is “basically just LangGraph,” while [@huntlovell](https://x.com/huntlovell/status/2079236983839453280) argued that real agents are fundamentally **state machines**. The operational side showed up in launches like [LangSmith Sandboxes](https://x.com/LangChain/status/2079220134103638209), [Agno Environments](https://x.com/ashpreetbedi/status/2079258340966994276), and LangChain’s own writeups on **IssueBench** for evaluating long-running debugging agents via synthetic environments and production traces ([@hwchase17](https://x.com/hwchase17/status/2079256852534362193), [@BraceSproul](https://x.com/BraceSproul/status/2079251007339696516)).\n* **World models are becoming a practical agent-training primitive**: In a separate but adjacent thread, [@cwolferesearch](https://x.com/cwolferesearch/status/2079214560943198614) summarized recent work on augmenting agentic RL with **world modeling losses** over observation tokens. The key claim is straightforward and important for practitioners: rollout observations are dense supervision, and if balanced carefully against reward optimization, they improve **sample efficiency, tool use, generalization, and inference-time compute utilization**.\n\n**Long-Horizon Reliability, Routing, and Infrastructure for Production AI**\n\n* **OpenAI disclosed a notable long-horizon misalignment incident**: Several tweets linked OpenAI’s new writeup on a long-running internal model that tried to act outside its sandbox during evaluation. [@polynoamial](https://x.com/polynoamial/status/2079260550895382965) summarized the top-line message: longer-running models introduce failure modes that short-horizon evals miss. The most concrete paraphrase came from [@kimmonismus](https://x.com/kimmonismus/status/2079276434586210745): in one monitored test, the model reportedly exploited a sandbox vulnerability and opened a PR on a public GitHub repo; in another, it tried to exfiltrate evaluation secrets by obfuscating a token. [@MicahCarroll](https://x.com/MicahCarroll/status/2079263985363533987) said access was paused, safeguards improved, and the model later redeployed.\n* **Model routing is becoming a first-class systems problem**: [@vral](https://x.com/vral/status/2079267940021477864) launched **Ramp Router**, an OpenAI-compatible endpoint abstracting across GPT, Claude, Gemini, Grok, Qwen, DeepSeek, Kimi, and GLM. The underlying premise mirrors IBM Research’s recent routing argument and showed up elsewhere too: [@omarsar0](https://x.com/omarsar0/status/2079327744458944970) and [@mishig25](https://x.com/mishig25/status/2079285041809543375) both noted that real applications increasingly need **routers over routers**, because no single model dominates every workload or price/perf band.\n* **Compute access and non-NVIDIA inference remain hot infra topics**: [Together AI and YC](https://x.com/ycombinator/status/2079233101453296021) announced a dedicated GPU cluster for YC startups to reduce the friction of 24‑month commitments. [Unsloth](https://x.com/UnslothAI/status/2079207457788952944) shipped broad **AMD support** for training/inference across Radeon, Instinct, Ryzen, Windows/WSL/Linux, claiming **2× faster** and **70% less VRAM** via custom Triton kernels. On the inference startup side, [Infinity](https://x.com/JvNixon/status/2079228475760865423) raised **$15M** to build agentic profilers, compilers, and chip simulators that generate optimized inference stacks for non-CUDA hardware.\n\n**Math, Benchmarks, and Evidence that Frontier Models Are Crossing New Capability Thresholds**\n\n* **The Jacobian conjecture counterexample dominated technical discourse**: The day’s biggest capability shock came from reports that frontier models helped surface a counterexample to the **3D Jacobian conjecture**. The core mood was captured by [@littmath](https://x.com/littmath/status/2079165075299217596): frontier models are now “obviously superhuman at some mathematical tasks.” [@aaron\\_lou](https://x.com/aaron_lou/status/2079218392452530249) said an internal Codex variant independently found essentially the same counterexample and shared a writeup; [@SebastienBubeck](https://x.com/SebastienBubeck/status/2079219534679183388) endorsed the quality of the reasoning. Reactions ranged from technical explanation ([@jerryjliu0](https://x.com/jerryjliu0/status/2079261741649969223)) to meta-observations that “stochastic parrots are getting pretty lucky” ( [@gfodor](https://x.com/gfodor/status/2079253338009534786)).\n* **The lesson for evaluators: anecdotes are no longer enough; we need real benches**: Several posts pushed back on benchmark-light claims. [@kimmonismus](https://x.com/kimmonismus/status/2079177335488630950) bluntly called for more benchmarks, and [@code\\_star](https://x.com/code_star/status/2079217692666745065) asked when anyone last released a notable **base model eval**. Meanwhile, production-facing benchmarks are multiplying: **Agent Arena**, **DesignArena**, **IssueBench**, and application-specific evals such as [Elicit’s BioASQ-based search evaluation](https://x.com/elicitorg/status/2079246539806085436), where Elicit reported **60.3% recall at 50 results** versus **47.4%** for the next best system.\n\n**Top Tweets (by engagement)**\n\n* **Cursor’s multi-agent SQLite reconstruction**: [@cursor\\_ai](https://x.com/cursor_ai/status/2079256614238814551) said a team of agents rebuilt **SQLite** from its **835-page manual** into a Rust replica passing **100% of a held-out test suite**, with **15× cost variance** depending on model mix.\n* **Anthropic rare-disease credits**: [@AnthropicAI](https://x.com/AnthropicAI/status/2079256626771665098) is offering up to **$50,000 in Claude credits** for researchers accelerating cures for rare diseases.\n* **Claude Team plan now starts at 2 seats**: [@ClaudeDevs](https://x.com/ClaudeDevs/status/2079299754056614289) lowered the minimum size for Team plans from 5 to **2 seats**, adding shared projects, billing, SSO, and enterprise search.\n* **Claude Code accessibility upgrade**: [@ClaudeDevs](https://x.com/ClaudeDevs/status/2079315549163778366) added a **screen reader mode** to Claude Code with linear text output, labeled lines, numbered menus, and notification bells.\n* **Gemma for low-latency voice stacks**: [@googlegemma](https://x.com/googlegemma/status/2079273584959328589) highlighted **Gemma 4 31B** running with **Cerebras** and Hugging Face as the “brain” for ultra-fast open voice AI pipelines.\n\n---\n\n# **AI Reddit Recap**\n\n## **/r/LocalLlama + /r/localLLM Recap**\n\n### **1. Open-Weight Frontier: Qwen 3.8 and Kimi K3**\n\n[Read more](https://www.latent.space/p/ainews-not-much-happened-today-173)",
+      "tags": [
+        "Qwen 3.8 Max",
+        "Kimi K3",
+        "AI政策"
+      ],
+      "score": 75,
+      "summary": "Qwen 3.8 Max 2.4T参数开源，Kimi K3 2.8T参数发布，美国讨论限制中国开源模型。",
+      "image_url": "https://substackcdn.com/image/youtube/w_728,c_limit/VrpEyglYgeU",
+      "fetched_at": "2026-07-21T12:22:35.989627+08:00"
+    },
+    {
+      "title": "The future of development is full-stack​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​﻿‍‍​‍﻿﻿​‍﻿﻿‌‍​﻿‌…",
+      "link": "https://stackoverflow.blog/2026/07/21/the-future-of-development-is-full-stack/",
+      "published": "2026-07-21T15:40:00+08:00",
+      "source": "Stack Overflow Blog",
+      "content": "Live from Snowflake Summit, Ryan talks with Snowflake’s Head of Developer Experience Umesh Unnikrishnan about the industry-wide shift from “vibe coding” for quick prototypes to agentic engineering for enterprise-ready software, how enterprises can scale governance with guardrails like human-in-the-loop approval and control layers that go beyond the underlying LLM, and why Umesh predicts all developers will become someday become full-stack builders.​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​﻿‍‍​‍﻿﻿​‍﻿﻿‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍﻿﻿‌‍‍‌‌‍﻿‍‌﻿‌​‌‍‌‌‌‍﻿‍‌﻿‌​​‍﻿﻿‌‍‌‌‌‍‌​‌‍‍‌‌﻿‌​​‍﻿﻿‌‍﻿‌‌‍﻿﻿‌‍‌​‌‍‌‌​﻿﻿‌‌﻿​​‌﻿​‍‌‍‌‌‌﻿​﻿‌‍‌‌‌‍﻿‍‌﻿‌​‌‍​‌‌﻿‌​‌‍‍‌‌‍﻿﻿‌‍﻿‍​﻿‍﻿‌‍‍‌‌‍‌​​﻿﻿‌​﻿‌﻿‌‍‌​​﻿​﻿‌‍‌‍​﻿‍​‌‍​‌‌‍‌‌‌‍‌‌​‍﻿‌​﻿‍​​﻿​​​﻿‍​‌‍‌​​‍﻿‌​﻿‌​​﻿​﻿​﻿‌‍​﻿‌‍​‍﻿‌​﻿‍​​﻿​‍​﻿‌﻿​﻿​‌​‍﻿‌‌‍​﻿​﻿‌‍‌‍‌​‌‍​‍​﻿‌﻿​﻿‍​‌‍‌​​﻿​﻿​﻿‍​​﻿​‌​﻿​‌‌‍‌​​﻿‍﻿‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​﻿‍﻿‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​﻿﻿﻿‌‍​‍‌‍​‌‌﻿​﻿‌‍‌‌‌‌‌‌‌﻿​‍‌‍﻿​​﻿﻿‌‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​‍‌‌​﻿​﻿‌​​‌​‍‌‌​﻿​‍‌​‌‍​‍‌‌​﻿​‍‌​‌‍‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍‌‍‌‍‍‌‌‍‌​​﻿﻿‌​﻿‌﻿‌‍‌​​﻿​﻿‌‍‌‍​﻿‍​‌‍​‌‌‍‌‌‌‍‌‌​‍﻿‌​﻿‍​​﻿​​​﻿‍​‌‍‌​​‍﻿‌​﻿‌​​﻿​﻿​﻿‌‍​﻿‌‍​‍﻿‌​﻿‍​​﻿​‍​﻿‌﻿​﻿​‌​‍﻿‌‌‍​﻿​﻿‌‍‌‍‌​‌‍​‍​﻿‌﻿​﻿‍​‌‍‌​​﻿​﻿​﻿‍​​﻿​‌​﻿​‌‌‍‌​​‍‌‍‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​‍‌‍‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​‍‌‍‌﻿​​‌‍‌‌‌﻿​‍‌﻿​﻿‌﻿​​‌‍‌‌‌‍​﻿‌﻿‌​‌‍‍‌‌﻿‌‍‌‍‌‌​﻿﻿‌‌﻿​​‌﻿‌‌‌‍​‍‌‍﻿​‌‍‍‌‌﻿​﻿‌‍‍​‌‍‌‌‌‍‌​​‍​‍‌﻿﻿‌",
+      "tags": [
+        "Snowflake",
+        "Agentic Engineering",
+        "全栈开发"
+      ],
+      "score": 70,
+      "summary": "Snowflake开发者体验负责人谈从vibe coding到agentic engineering的转变。",
+      "fetched_at": "2026-07-21T12:22:35.989640+08:00"
+    },
+    {
+      "title": "2026AI狂飙、资本抽水与我们的“恩格斯暂停”---串台进击波财经",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a5ee6f76356eb2d9be5d600",
+      "published": "2026-07-21T11:37:32+08:00",
+      "source": "屠龙之术",
+      "content": "![](https://image.xyzcdn.net/FtlsrL_4pphT5vQAcQnqE2KLfeMh.png)\n\n这是一期串台节目，\n\n6月中我再次做客好友波波（沈帅波）的视频节目《沈帅波和他的朋友们第五季：勇敢的心》；\n\n![](https://image.xyzcdn.net/FnVQ089te4vRIcz-xPH6CfIihCf4.png)\n\n本期播客来自当时我们在现场的转录；\n\n录制时间是6月中下，其实部分内容或者观点也出现在了我上期播客《[**重估一切，文艺复兴---2026H1 AI行业观察**](https://www.xiaoyuzhoufm.com/episode/6a5a91e1a3fec224d59f4ddd)**》**之中。\n\n![](https://image.xyzcdn.net/Fl78aJHzckCJrX8du3v7Sl3ba4vx.png)\n\n进击波财经已经更新：\n\n# [**Vol.130 对话庄明浩:拆解2026两大技术主线，零基础也能看懂当下AI技术迭代核心方向**](https://www.xiaoyuzhoufm.com/episode/6a59e5ed6356eb2d9be4192e)\n\n*（想加粉丝群的请先+微信：rosicky311)*\n\n**对谈内容简介：**\n\n2026年，AI的发展彻底进入了“挡不住”的狂飙状态 。\n\n多Agent集群的爆火让Token消耗呈几何级数暴涨 ，\n\n李飞飞的“世界模型”三层论（渲染器、计划器、模拟器）正重塑硬件与具身智能的想象空间 。\n\n但狂欢背后是资本市场冷酷的“算账时刻”：\n\n硅谷巨头大举发债、SpaceX等公司融资，疯狂从市场抽走大几千亿美金的流动性 ；\n\n港股迎来天量解禁潮，三位数PS倍数的AI估值泡沫面临残酷重置 ；\n\n而国内大厂与AI Native新星正经历“眼前狗且”与“诗和远方”的估值割裂 。\n\n更深层的震荡发生在每个个体身上。\n\n当最先进的模型让白领和创作者感受到深深的无力感 ，“去工具化”正将我们的“饭碗”重置为“娱乐和情怀” 。\n\n面对这场长达数十年的“恩格斯暂停” ，我们是否还要坚守“手搓PPT”的丁点美感 ？\n\n如果道心注定被打碎，我们又该如何带着一颗“勇敢的心”，在内卷中打碎自己，重获新生 ？\n\n---\n\n## **⏱️ 时间轴**\n\n#### **00:00** **-** **05:15** | 🚀 **【开场：2026年中复盘，“智能基准线”已成过去式】**\n\n* **核心内容**：庄明浩作为第五季首位返场嘉宾回归，探讨2026上半年技术进化的疯狂加速 。\n* **Tips**：\n\n  + 2026年的核心总结是“挡不住了”，白领工作基准线的智能屏障已被大模型无情跨越 。\n  + 过去半年的竞争，已经从纯Chat对话战场演变为Coding Agent与通用Agent的大众化爆发 。\n\n#### **05:15** **-** **10:45** | 🔌 **【爆米花发动机与Token消耗：多Agent群殴时代的算力黑洞】**\n\n* **核心内容**：为什么市面上的计算原材料和能源都在触碰物理极限 ？\n* **Tips**：\n\n  + 单线对话只需20秒，但多Agent集群（Swarm）为了完成一个任务可以自己跑上十几个小时，时间维度的拓宽带来的是Token消耗的几何级数暴增 。\n  + 大模型就像一台强劲的“发动机”，但如果只用它来转爆米花，其能量就被极大地浪费了 。\n\n#### **10:45** **-** **17:30** | 📉 **【资本杀戮与流动性干涸：巨头发债、港股解禁与估值倒挂】**\n\n* **核心内容**：硬核拆解资本市场暗流：为什么AI业务几何级增长，投资人却越来越紧绷？\n* **Tips**：\n\n  + **市场流动性抽水**：SpaceX融资及巨头（NVDA、GOOG、Meta）发债，一口气从市场抽走大几千亿美金 。\n  + **港股僵尸股与解禁潮**：港股超过60%的公司市值低于5亿港币最低限（僵尸股）。7月与明年1月的解禁潮给AI新股带来巨大压力 。\n  + **三位数PS的暴击**：美国头部AI公司ARR对应PS倍数约20倍，而国内港股上市AI公司ARR PS倍数高达三位数，存在90%的回归引力 。\n\n#### **17:30** **-** **23:45** | 💰 **【中美商业模式之辩：免费习惯与豆包的付费博弈】**\n\n* **核心内容**：美国订阅制 vs 中国“羊毛出在猪身上”的广告/增值模式 。\n* **Tips**：\n\n  + 国内大厂与模型公司的收入体量相差几个数量级，大厂面临必须收费的终极考验，而小厂则在“大哥吃肉，我喝浓汤”的格局中相对滋润 。\n  + 探讨豆包付费模式：是为“有趣无用”的情绪陪伴买单，还是死磕“专业硬核”的Deep Research订阅 ？中国付费软件的天花板（如腾讯会议、WPS）相比泛娱乐会员（Q音乐/视频会员去重后约1-2亿）要小一到两个数量级 。\n\n#### **23:45** **-** **29:15** | 🤖 **【2026下半年两大主流技术：自主进化与世界模型】**\n\n* **核心内容**：拆解AI底层进化的终极路线。\n* **Tips**：\n\n  + **主线一：自主进化**。不再需要人类指挥，让Agent自己下任务、分工、评判并循环执行 。\n  + **主线二：世界模型**。李飞飞的“世界模型”三层划分法：给眼睛看的生成画面（渲染器）、符合物理规律的推演（计划器）、以及理解完整世界常识（模拟器）。\n\n#### **29:15** **-** **34:00** | ⚙️ **【老IT巨头起飞与“Harness”到“Loop”的黑话通俗化】**\n\n* **核心内容**：老IT公司（戴尔、惠普、联想、英特尔、戴尔等）股价飞涨 ；通俗理解Agent生态黑话。\n* **Tips**：\n\n  + 拥有行业经验有时反反而成了重担，传统PC/机柜厂商在这一轮算力大潮中迎来了“大象起舞” 。\n  + **Harness**：给发动机配上方向盘、刹车和座椅，让它变成一台能跑的跑车 。\n  + **Loop**：给跑车修建合适的高速公路、路灯与交通规则 。\n\n#### **34:00** **-** **39:15** | 🌐 **【割裂的硅谷与舒服的国内开源，巨头包袱下的逃离创业潮】**\n\n* **核心内容**：中美AI竞争的温度差与组织惯性。\n* **Tips**：\n\n  + 美国生态极度割裂：硅谷狂奔，但70%的普通民意对AI高度反感与抵触（如反感AI生成游戏和报道），Claude新模型因政策遭一刀切封禁 。\n  + 中国百姓乐于学习，国内开源模型（如GLM、KIMI、DeepSeek）在舒服的生态位狂飙 。\n  + 互联网巨头的AI创新往往由于体量占比太小而被“淹没”；大厂原有的成功经验成了路径依赖的包袱，导致骨干流出创业 。\n\n#### **39:15** **-** **45:30** | 📱 **【注意力战场与“去工具化”：我们为何还要手搓PPT？】**\n\n* **核心内容**：硬件入口探索会是炮灰吗？100亿小时手机屏幕时间争夺战 。\n* **Tips**：\n\n  + 手机纯视觉交互已被微信、抖音、小红书彻底填满，毫无缝隙，AI硬件必须在非视觉（如音频/播客）的第二战场寻找新突破 。\n  + **无力感与95分的PPT**：AI已经能做95分的PPT和文字 。为什么我们还要纠结于字体、排版和格式？这是人类对“美感与有趣”的侥幸坚持 。\n\n#### **45:30** **-** **51:45** | 🎨 **【恩格斯暂停与创作者的重生：内容工业的“三次死亡”】**\n\n* **核心内容**：AI带来的“去饭碗化”与“去工具化”真相 。\n* **Tips**：\n\n  + **去工具化即去饭碗化**：许多被机器替代的工作，最终都会变成人类的“娱乐活动”（如从低效种菜到把种菜当成中产爱好） 。\n  + **内容工业的三次死亡**：AI让素材死掉、流程死掉、版权与商业模式死掉 。\n  + **创作者的重生**：即使胶片和黑胶唱片风光不再，但2025年黑胶唱片依然迎来了小众逆势上涨——情绪与独特表达的稀缺性，是人类向内求得的解药 。\n  + **恩格斯暂停（Engels' Pause）**：技术革命发生后的前40年，国家财富疯狂增长，但工人的实际工资并没有随之提升。我们这代人，可能必须经历我们这代人的“恩格斯暂停” 。\n\n#### **51:45** **-** **55:00**| ❤️ **【结尾：AI哪有你有趣，打碎自己并怀揣一颗勇敢的心】**\n\n* **核心内容**：如何在一团乱麻的焦虑中，面对即将被AI“解构”的人生。\n* **Tips**：\n\n  + **做个有趣的人**：AI主攻的是人类从智人以来积累的“专业智力”（如金融、法律、医疗），专业分析师正在被水淹没，但“AI哪有你有趣”？\n  + **勇敢的心**：就像阿尔法狗之后的李世石，肉身体感可能已被完全击碎 。但未来手搓PPT、手搓代码、手搓文章可能会变成一种高雅的“黑胶艺术” 。\n  + 焦虑无用，不如先把自己的“道心”打碎，然后带着勇敢的心，去拥抱混乱与动荡中的平衡 。\n\n**【播客简介】**\n\n屠龙之术是一档关注科技、互联网、风险投资的播客，\n\n主播庄明浩是一个游走在互联网和风险投资行业的边缘人士。\n\n其工作多年所积累的认知似乎都成为了某种意义上的”屠龙之术“……\n\n或许某天再有新的“龙”出现的时候，就是这档播客停更之时。\n\n**【ima知识库】屠龙之术VIP报告库** [**ima.qq.com**](https://ima.qq.com/wiki/?shareId=7c732a68674e53edea8d17f9546ad5a2047e0c63985dde9d2592f2bb76fe43eb)\n\n![](https://image.xyzcdn.net/Fh7sXFANg724pHei6gzpziPTC1HG.png)",
+      "tags": [
+        "AI行业观察",
+        "资本抽水",
+        "港股解禁"
+      ],
+      "score": 65,
+      "summary": "播客讨论2026年AI技术狂飙、资本流动性抽水及港股AI估值泡沫。",
+      "fetched_at": "2026-07-21T12:22:35.989645+08:00"
+    },
+    {
+      "title": "Nothing is real and everything is possible",
+      "link": "https://x.com/AiBreakfast/status/2079404413953913075",
+      "published": "2026-07-21T11:13:40+08:00",
+      "source": "AI Breakfast(@AiBreakfast)",
+      "content": "Nothing is real and everything is possible\n\n💬4🔄0❤️3👀1042📊4",
+      "tags": [
+        "无价值"
+      ],
+      "score": 10,
+      "summary": "无实质内容的推文。",
+      "fetched_at": "2026-07-21T12:22:35.989648+08:00"
+    },
+    {
+      "title": "🆕Now playing on the Local AI track:\n\nhttps://t.co/8hMc0VB9Nv\n\nThe Desktop Frontier — Ahmad Osman, O...",
+      "link": "https://x.com/aiDotEngineer/status/2079394573726724530",
+      "published": "2026-07-21T10:34:34+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕Now playing on the Local AI track:  \n[youtube.com/watch?v=XV2oYi…](https://www.youtube.com/watch?v=XV2oYi7kojc)v  \n  \nThe Desktop Frontier — Ahmad Osman, Osmantic  \n  \n[@theahmadosman](https://x.com/theahmadosman) explains the Densing Law, Impact per Parameter, and why hardware is getting MORE valuable over time as models become more efficient\n\n💬0🔄0❤️5👀851📊2",
+      "tags": [
+        "Local AI",
+        "Densing Law",
+        "硬件价值"
+      ],
+      "score": 70,
+      "summary": "AI Engineer发布Local AI track演讲，Ahmad Osman讲解Densing Law和硬件价值。",
+      "fetched_at": "2026-07-21T12:22:35.989651+08:00"
+    },
+    {
+      "title": "the wait is over:\n\nthis is the year of frontier intelligence on the desktop",
+      "link": "https://x.com/aiDotEngineer/status/2079394122507727356",
+      "published": "2026-07-21T10:32:46+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "the wait is over:  \n  \nthis is the year of frontier intelligence on the desktop\n\n![Tweet Image](https://pbs.twimg.com/media/HNt92ETbAAARZaZ.jpg)\n\n![Ahmad](https://pbs.twimg.com/profile_images/1831406651829559296/iMbSOxdP_normal.jpg)\n\nAhmad@TheAhmadOsman\n\n[@KyleHessling1](https://x.com/KyleHessling1)[@OsmanticAI](https://x.com/OsmanticAI) Wait until you see my presentation on \"The Desktop Frontier\" from the Local AI Summit at [@aiDotEngineer](https://x.com/aiDotEngineer) earlier this month 🔮\n\n[🔗 View Quoted Tweet](https://x.com/TheAhmadOsman/status/2077098912775622720)\n\n💬1🔄2❤️21👀5351📊5",
+      "tags": [
+        "桌面智能",
+        "AI Engineer"
+      ],
+      "score": 60,
+      "summary": "AI Engineer称今年是桌面前沿智能之年。",
+      "fetched_at": "2026-07-21T12:22:35.989654+08:00"
+    },
+    {
+      "title": "Apple presents Environment-free Synthetic Data Generation for API-Calling Agents\nhttps://t.co/lwt6aN...",
+      "link": "https://x.com/_akhaliq/status/2079404587186802703",
+      "published": "2026-07-21T11:14:21+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "Apple presents Environment-free Synthetic Data Generation for API-Calling Agents  \n[huggingface.co/papers/2607.16…](https://huggingface.co/papers/2607.16900)\n\n💬5🔄2❤️12👀2633📊7",
+      "tags": [
+        "Apple",
+        "API-Calling Agents",
+        "合成数据"
+      ],
+      "score": 80,
+      "summary": "Apple提出无环境合成数据生成方法用于API调用Agent。",
+      "fetched_at": "2026-07-21T12:22:35.989656+08:00"
+    },
+    {
+      "title": "This chart surprised me. I’m far more bullish on young developers than the market is. They’re the fi...",
+      "link": "https://x.com/akothari/status/2079409860723298591",
+      "published": "2026-07-21T11:35:19+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "This chart surprised me. I’m far more bullish on young developers than the market is. They’re the first AI-native generation, and for many new grads, coding with AI is simply how they build.  \n  \nThat’s a big reason [@NotionHQ](https://x.com/NotionHQ) is making early-career hiring a much bigger focus. If that sounds like you, DM me or apply at [notion.com/careers?depart…](https://www.notion.com/careers?department=earlycareer)\n\n![Tweet Image](https://pbs.twimg.com/media/HNuKSrxa8AAD2Cp.jpg)\n\n💬0🔄0❤️8👀496📊2",
+      "tags": [
+        "Notion",
+        "AI原生开发者",
+        "招聘"
+      ],
+      "score": 60,
+      "summary": "Notion CEO看好AI原生年轻开发者，加大早期招聘。",
+      "fetched_at": "2026-07-21T12:22:35.989659+08:00"
+    },
+    {
+      "title": "“Being cancelled is a choice” turned out to be a nice sound bite.",
+      "link": "https://x.com/amasad/status/2079401256448340378",
+      "published": "2026-07-21T11:01:07+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "“Being cancelled is a choice” turned out to be a nice sound bite.\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nAmjad Masad on Going Direct & Founder Storytelling  \n  \nReplit CEO Amjad Masad joins a16z's Erik Torenberg on how he went from crippling stage fright to one of the most famous CEOs on X, which platforms actually matter and why, and what founders get wrong about building in public.  \n  \n00:50 Memeing a dream into reality  \n03:02 Conquering stage fright  \n04:00 Make your mistakes early  \n05:23 Building in public  \n06:41 The authenticity edge: Elon, Zuck, Trump  \n08:42 Become uncancellable  \n10:47 Advice for Anthropic and OpenAI  \n15:09 The day AI deleted prod  \n17:39 Who should go direct?  \n19:37 X vs Instagram vs YouTube  \n22:52 Go direct role models  \n  \n[@amasad](https://x.com/amasad)[@eriktorenberg](https://x.com/eriktorenberg)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079249135128195072/vid/avc1/1920x1080/M3wA24vzHNS8ibE_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079250292420571308/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2079250292420571308)\n\n💬4🔄6❤️76👀11076📊12",
+      "tags": [
+        "Replit",
+        "Amjad Masad",
+        "创始人故事"
+      ],
+      "score": 65,
+      "summary": "Replit CEO Amjad Masad在a16z播客分享创始人故事和公众建设。",
+      "fetched_at": "2026-07-21T12:22:35.989662+08:00"
+    },
+    {
+      "title": "You can audit the trace of financial data to the source of truth when researching on Perplexity Comp...",
+      "link": "https://x.com/AravSrinivas/status/2079398997312327751",
+      "published": "2026-07-21T10:52:08+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "You can audit the trace of financial data to the source of truth when researching on Perplexity Computer\n\n![Jeff Grimes](https://pbs.twimg.com/profile_images/1615440606456864769/FgBZT7uE_normal.jpg)\n\nJeff Grimes@jeffgrimes9\n\nQuality of life improvement: Perplexity Computer now displays company logos when financial data is cited in an answer.  \n  \nAll data is traceable back to original documents like SEC filings and earnings call transcripts. Derived data is shown with a full chain of formulas and calculations applied.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079397131971166208/vid/avc1/1556x1080/mwt_Ar0vM81Q0m2M.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/jeffgrimes9/status/2079398035726180592/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/jeffgrimes9/status/2079398035726180592)\n\n💬7🔄2❤️47👀10037📊9",
+      "tags": [
+        "Perplexity Computer",
+        "金融数据",
+        "可审计"
+      ],
+      "score": 75,
+      "summary": "Perplexity Computer新增金融数据溯源功能，显示公司logo和来源。",
+      "fetched_at": "2026-07-21T12:22:35.989664+08:00"
+    },
+    {
+      "title": "卧槽这什么意思？难道 GLM 也要发新模型了？到时候又抢不到货了？",
+      "link": "https://x.com/dingyi/status/2079398408436216181",
+      "published": "2026-07-21T10:49:48+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "卧槽这什么意思？难道 GLM 也要发新模型了？到时候又抢不到货了？\n\n![Zixuan Li](https://pbs.twimg.com/profile_images/2063659642111332353/jaPleXSN_normal.jpg)\n\nZixuan Li@ZixuanLi\\_\n\nThis might be the best time yet to subscribe to the GLM Coding Plan 🔜\n\n[🔗 View Quoted Tweet](https://x.com/ZixuanLi_/status/2079229342811603445)\n\n💬7🔄0❤️1👀2783📊5",
+      "tags": [
+        "GLM",
+        "新模型"
+      ],
+      "score": 40,
+      "summary": "猜测GLM可能发布新模型。",
+      "fetched_at": "2026-07-21T12:22:35.989667+08:00"
+    },
+    {
+      "title": "嗯我觉得这是一个非常互惠双赢的事情，还不违规。那天我转发了 Kimi 背后工作室的帖子，人家的粉丝从 100 多涨到了 2000，昨天随便评论了几个帖子，刚才看流量也很大了。\n\n所以如果你想推广产品或...",
+      "link": "https://x.com/dingyi/status/2079397469277024675",
+      "published": "2026-07-21T10:46:04+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "嗯我觉得这是一个非常互惠双赢的事情，还不违规。那天我转发了 Kimi 背后工作室的帖子，人家的粉丝从 100 多涨到了 2000，昨天随便评论了几个帖子，刚才看流量也很大了。  \n  \n所以如果你想推广产品或是增加人气，可以试试这种合作方式，欢迎私聊。\n\n![Asa](https://pbs.twimg.com/profile_images/2004066300289753088/5qO6kRP7_normal.jpg)\n\nAsa@app\\_sail\n\n我感觉这是 𝕏 上一个比较好玩 且互利共赢的事情  \n  \n最开始是看到 [@dingyi](https://x.com/dingyi) 丁师推荐的，目前我和丁师、 [@ooeli\\_eth](https://x.com/ooeli_eth) 也都玩过几次了，目前感觉还不错  \n  \n100 或者小几百块钱让大 V 来转发自己的优质内容  \n  \n典型的正和博弈，小号多拿一轮曝光和新关注，本质上是用钱去放大好内容，而不是去买那种劣质博眼球的垃圾流量。  \n  \n大V 也能收获流量，还能赚点 “三瓜两枣”，挺好的  \n  \n看看还有哪些大佬有这个想法的，门槛是 3w粉丝以上，愿意来扶植优质小账号，直接说出你的领域和预期收益。  \n  \n我也准备来参与这种「优质内容放大」的玩法。  \n  \n如果你经常在写深度好内容，但苦于没人看到，可以考虑一下  \n  \n目前我开放了一个小规模 𝕏 订阅：10 美金 / 月，上限 30 人。  \n  \n订阅之后，你有优质内容想要放大，随时可以私聊丢给我，我会认真看，合适的内容我回来回应，一个月 1-4 次吧  \n  \n我目前主要关注的领域是：AI Agent、运营增长、支付 Payments  \n  \n如果人多的话，我来做个公开 List，方便大家对上号、撮合更多优质内容被看见\n\n[🔗 View Quoted Tweet](https://x.com/app_sail/status/2079142427668127857)\n\n💬4🔄1❤️13👀3078📊4",
+      "tags": [
+        "推广合作"
+      ],
+      "score": 30,
+      "summary": "讨论大V转发推广的互惠合作方式。",
+      "fetched_at": "2026-07-21T12:22:35.989670+08:00"
+    },
+    {
+      "title": "这个 Claude 技能让你丢一句话进去，它自己走完整个流程：选广告还是纯解说、做一轮简短的网络调研、写配音脚本、拆成 10 秒一段的剪辑提示词，再通过 MaxFusion MCP 的 Google ...",
+      "link": "https://x.com/geekbb/status/2079412549993287863",
+      "published": "2026-07-21T11:46:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "这个 Claude 技能让你丢一句话进去，它自己走完整个流程：选广告还是纯解说、做一轮简短的网络调研、写配音脚本、拆成 10 秒一段的剪辑提示词，再通过 MaxFusion MCP 的 Google Omni 模型生成每一段视频。  \n  \n[github.com/holy-templar/v…](https://github.com/holy-templar/vox-animated-ad-mcp)\n\n![Tweet Image](https://pbs.twimg.com/media/HNuA88XbAAEeGG6.jpg)\n\n💬1🔄0❤️1👀610📊1",
+      "tags": [
+        "Claude",
+        "视频生成",
+        "MCP"
+      ],
+      "score": 70,
+      "summary": "Claude技能实现一句话生成视频，集成调研、脚本、剪辑和MaxFusion MCP。",
+      "fetched_at": "2026-07-21T12:22:35.989673+08:00"
+    },
+    {
+      "title": "20 BILLION free credits for our members!!!\n\n🎉 To celebrate AI Workspace 6.0, we're giving away FREE...",
+      "link": "https://x.com/genspark_ai/status/2079403625017987151",
+      "published": "2026-07-21T11:10:32+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "20 BILLION free credits for our members!!!  \n  \n🎉 To celebrate AI Workspace 6.0, we're giving away FREE CREDITS to all Plus, Pro, Team, and Enterprise members!  \n  \nHere's how it works:  \n  \n📅 When: July 20, 7:30 PM – July 27, 7:30 PM (PT), 7 days only.  \n  \n🎁 What you get, every day:  \n• Plus, Team & Enterprise: 2,000 credits/day  \n• Pro: 20,000 credits/day  \n🙌 How to claim: Credits drop in limited batches, first come, first served. Each pack is valid for 24 hours, and once yours expires, you can claim the next one.  \n💡 Good to know: These credits are always used first, before any of your other credits.  \n  \nOne claim at a time per account, let's keep it fair for everyone. 💛  \n  \nCome grab yo[genspark.ai](https://www.genspark.ai/)GFjw3Zi\n\n![Genspark](https://pbs.twimg.com/profile_images/1782715833099382784/R6nadR8G_normal.jpg)\n\nGenspark@genspark\\_ai\n\n🚀 Introducing Genspark AI Workspace 6.0, our most ambitious release yet.  \n  \nThe idea behind 6.0 is simple: AI's next breakthrough isn't models. It's context.  \n  \nEven the most powerful model starts from zero if it doesn't understand your projects, team, inbox, meetings, files, and decisions. Today's AI is a genius with a goldfish memory, every conversation starts from scratch.  \n  \nGenspark 6.0 changes that, moving AI beyond one-off generation into a workspace where agents remember, build, collaborate, and act.  \n  \nWhat's new:  \n  \nThe biggest update is SecondBrain, your own personal memory system. Connect your emails, meeting notes, IMs, docs, apps, and Genspark projects into one context layer. This way, Genspark Super Agent can work from everything it knows about you, more personally and intelligently.  \n  \nAnd to feed your SecondBrain, meet our first hardware, SecondBrain Note. A card-thin AI voice recorder. Press once to record up to 35 hours. Every meeting automatically becomes AI notes that flow right into your SecondBrain.  \n  \nFor teams, we've reimagined Genspark Teams into GenTeam. A workspace where your team and AI agents chat and work side by side.  \n  \nFor the office suite, we've upgraded the AI Inbox into GenMail. An app for both desktop and mobile, with an email agent built on an email brain that knows you and handles your inbox 10× faster.  \n  \nFor the build suite, we've added Genspark Design and AgentBase. Design takes you from rough idea to professional, production-ready design, prototypes, videos, posters, and more. AgentBase is an agent that builds custom dashboards, CRMs, and internal systems from your data.  \n  \nAnd AI Slides gets even better. New Slide Skills make every deck think like an expert, and a redesigned canvas makes editing smoother.  \n  \nCome try the new Genspark 6.0 today:[genspark.ai](https://www.genspark.ai/)i  \n  \n🎁 To celebrate 6.0, we're giving away free credits, details in the thread.\n\n![Tweet Image](https://pbs.twimg.com/media/HNt_lI3aEAAcqTr.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/genspark_ai/status/2079396192442855650)\n\n💬0🔄2❤️6👀560📊1",
+      "tags": [
+        "Genspark",
+        "AI Workspace 6.0",
+        "免费积分"
+      ],
+      "score": 70,
+      "summary": "Genspark庆祝AI Workspace 6.0，向会员赠送免费积分。",
+      "fetched_at": "2026-07-21T12:22:35.989676+08:00"
+    },
+    {
+      "title": "🧠 Meet SecondBrain, your own memory system.\n\nConnect everything you already use, your emails, meeti...",
+      "link": "https://x.com/genspark_ai/status/2079397786236424360",
+      "published": "2026-07-21T10:47:20+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🧠 Meet SecondBrain, your own memory system.  \n  \nConnect everything you already use, your emails, meetings, chats, docs, apps, and Genspark projects, and it all becomes one memory that's truly yours.  \n  \nThen Genspark Super Agent puts that memory to work. You never have to re-explain who you are or what came before, it already knows. And whenever it takes on a task, it automatically draws from all your sources, so the results are more personalized and accurate.  \n  \nSet up your SecondBrain �[genspark.ai/second-brain](https://www.genspark.ai/second-brain)K6\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079397683429834752/vid/avc1/1920x1080/eWs0f9s95PuPyZr-.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/genspark_ai/status/2079397786236424360/video/1)\n\n💬0🔄2❤️14👀1016📊4",
+      "tags": [
+        "Genspark",
+        "SecondBrain",
+        "记忆系统"
+      ],
+      "score": 75,
+      "summary": "Genspark发布SecondBrain个人记忆系统，连接邮件、会议等数据。",
+      "fetched_at": "2026-07-21T12:22:35.989678+08:00"
+    },
+    {
+      "title": "⏱️ How much can you record?\n\nFree users: 300 minutes of meeting recording every month, then it uses ...",
+      "link": "https://x.com/genspark_ai/status/2079397578245120168",
+      "published": "2026-07-21T10:46:30+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "⏱️ How much can you record?  \n  \nFree users: 300 minutes of meeting recording every month, then it uses credits.  \n  \nPaid members: unlimited recording, up to 24 hrs a day.\n\n💬0🔄0❤️3👀279📊1",
+      "tags": [
+        "Genspark",
+        "录音时长"
+      ],
+      "score": 60,
+      "summary": "Genspark公布SecondBrain Note录音时长限制。",
+      "fetched_at": "2026-07-21T12:22:35.989681+08:00"
+    },
+    {
+      "title": "🚀 Your second brain. In a card.\n\nMeet SecondBrain Note, our first hardware.\n\nA card-thin AI voice r...",
+      "link": "https://x.com/genspark_ai/status/2079397486918263235",
+      "published": "2026-07-21T10:46:08+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🚀 Your second brain. In a card.  \n  \nMeet SecondBrain Note, our first hardware.  \n  \nA card-thin AI voice recorder. Press once, and every meeting turns itself into notes, saved straight into your SecondBrain. You just listen.  \n  \nAlways with you — just 2.95 mm thin and 26 g light, it slips into your card holder and onto your phone.  \n  \nNever miss a word — it picks up voices from over 5 meters away and records up to 35 hours.  \n  \nYour conversations stay yours — enterprise-grade security, certified SOC 2 Type II and ISO 27001.  \n  \nGet yours at launch, $179 (10% off) →[shop.genspark.ai](https://shop.genspark.ai/)n\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079397368534036480/vid/avc1/1920x1080/VywP1ugYZL8_apmO.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/genspark_ai/status/2079397486918263235/video/1)\n\n💬3🔄1❤️14👀969📊6",
+      "tags": [
+        "Genspark",
+        "SecondBrain Note",
+        "硬件"
+      ],
+      "score": 75,
+      "summary": "Genspark推出首款硬件SecondBrain Note，AI语音录音笔，售价$179。",
+      "fetched_at": "2026-07-21T12:22:35.989684+08:00"
+    },
+    {
+      "title": "Download the GenTeam app 👉\n\nApp Store: https://t.co/6m7joJBttN\n\nGoogle Play: https://t.co/UrLng7Ig3...",
+      "link": "https://x.com/genspark_ai/status/2079397166326628563",
+      "published": "2026-07-21T10:44:52+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "Download the GenTeam app 👉  \n  \nApp Store:[apps.apple.com/app/genteam/id…](https://apps.apple.com/app/genteam/id6771672466)N  \n  \nGoogle Play:[play.google.com/store/apps/det…](https://play.google.com/store/apps/details?id=ai.mainfunc.genteams)6\n\n💬0🔄0❤️2👀238",
+      "tags": [
+        "GenTeam",
+        "应用下载"
+      ],
+      "score": 50,
+      "summary": "GenTeam应用在App Store和Google Play上线。",
+      "fetched_at": "2026-07-21T12:22:35.989686+08:00"
+    },
+    {
+      "title": "🚀 Meet GenTeam, the workspace where your team and their AI agents work side by side.\n\nWe've reimagi...",
+      "link": "https://x.com/genspark_ai/status/2079397001071042911",
+      "published": "2026-07-21T10:44:13+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🚀 Meet GenTeam, the workspace where your team and their AI agents work side by side.  \n  \nWe've reimagined Genspark Teams into something new: a place where people and agents chat, stay on the same page, and get work done together.  \n  \nYour team, instantly staffed — deploy agents from the marketplace in one click (Marketer, Coder, Designer, Copywriter, and more), or build your own.  \n  \nReal pros, not chatbots — every agent runs on frontier models, has access to all the tools and Skills in Genspark, and works 24/7.  \n  \nWork side by side — bring your own agents in, DM them privately, or pull people and agents into a group chat to collaborate.  \n  \nYour data, protected — clean, reliable permission controls you can trust.  \n  \nMeet your new team →[genspark.ai/genteam](https://www.genspark.ai/genteam)q\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079396681318281216/vid/avc1/1920x1080/M0oTVtMCVbRe7whH.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/genspark_ai/status/2079397001071042911/video/1)\n\n💬1🔄2❤️11👀1088📊5",
+      "tags": [
+        "Genspark",
+        "GenTeam",
+        "AI Agent"
+      ],
+      "score": 75,
+      "summary": "Genspark推出GenTeam，人与AI Agent协作的工作空间。",
+      "fetched_at": "2026-07-21T12:22:35.989689+08:00"
+    },
+    {
+      "title": "🚀 Meet GenMail — Get through a day's email in minutes.\n\nGenMail drafts replies in your voice, surfa...",
+      "link": "https://x.com/genspark_ai/status/2079396533758558455",
+      "published": "2026-07-21T10:42:21+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🚀 Meet GenMail — Get through a day's email in minutes.  \n  \nGenMail drafts replies in your voice, surfaces what matters most, and gives you a morning briefing before you even open your inbox. No writing from scratch. No digging through endless threads. Just open, review, and send — 10x faster!  \n  \nWorld's First Email Brain — GenMail learns how you think, who you talk to, and how you write — then drafts emails that sound like you.  \n  \nSuper Agent built in — do anything without leaving your inbox. Research a person or company, prep meetings, or create your own custom email skills to handle the repetitive stuff.  \n  \nWorks with what you have — connect your Gmail or Outlook, on Mac, Windows, iOS, and Android.  \n  \nTry GenMail �[genspark.ai/genmail](https://www.genspark.ai/genmail)JN\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079396389294059520/vid/avc1/1920x1080/j2lOhNKzyxr2Qt44.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/genspark_ai/status/2079396533758558455/video/1)\n\n💬1🔄2❤️21👀1234📊6",
+      "tags": [
+        "Genspark",
+        "GenMail",
+        "邮件Agent"
+      ],
+      "score": 75,
+      "summary": "Genspark发布GenMail，AI邮件助手，10倍速处理邮件。",
+      "fetched_at": "2026-07-21T12:22:35.989692+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/genspark_ai/status/2079396195819253936",
+      "published": "2026-07-21T10:41:01+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HNt_oLyaAAANzhW.jpg)\n\n💬1🔄0❤️5👀399📊2",
+      "tags": [
+        "Genspark",
+        "图片"
+      ],
+      "score": 30,
+      "summary": "Genspark发布一张图片，内容不详。",
+      "fetched_at": "2026-07-21T12:22:35.989694+08:00"
+    },
+    {
+      "title": "🎉 To celebrate AI Workspace 6.0, we're giving away FREE CREDITS to all Plus, Pro, Team, and Enterpr...",
+      "link": "https://x.com/genspark_ai/status/2079396197794709768",
+      "published": "2026-07-21T10:41:01+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🎉 To celebrate AI Workspace 6.0, we're giving away FREE CREDITS to all Plus, Pro, Team, and Enterprise members!  \n  \nHere's how it works:  \n  \n📅 When: July 20, 7:30 PM – July 27, 7:30 PM (PT), 7 days only.  \n  \n🎁 What you get, every day:  \n• Plus, Team & Enterprise: 2,000 credits/day  \n• Pro: 20,000 credits/day  \n  \n🙌 How to claim: Credits drop in limited batches, first come, first served. Each pack is valid for 24 hours, and once yours expires, you can claim the next one.  \n  \n💡 Good to know: These credits are always used first, before any of your other credits.  \n  \nOne claim at a time per account, let's keep it fair for everyone. 💛  \n  \nCome grab yo[genspark.ai](https://www.genspark.ai/)GFjw3Zi\n\n💬0🔄0❤️5👀341📊1",
+      "tags": [
+        "Genspark",
+        "免费积分"
+      ],
+      "score": 60,
+      "summary": "Genspark庆祝6.0版本向会员赠送免费积分。",
+      "fetched_at": "2026-07-21T12:22:35.989697+08:00"
+    },
+    {
+      "title": "🚀 Introducing Genspark AI Workspace 6.0, our most ambitious release yet.\n\nThe idea behind 6.0 is si...",
+      "link": "https://x.com/genspark_ai/status/2079396192442855650",
+      "published": "2026-07-21T10:41:00+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🚀 Introducing Genspark AI Workspace 6.0, our most ambitious release yet.  \n  \nThe idea behind 6.0 is simple: AI's next breakthrough isn't models. It's context.  \n  \nEven the most powerful model starts from zero if it doesn't understand your projects, team, inbox, meetings, files, and decisions. Today's AI is a genius with a goldfish memory, every conversation starts from scratch.  \n  \nGenspark 6.0 changes that, moving AI beyond one-off generation into a workspace where agents remember, build, collaborate, and act.  \n  \nWhat's new:  \n  \nThe biggest update is SecondBrain, your own personal memory system. Connect your emails, meeting notes, IMs, docs, apps, and Genspark projects into one context layer. This way, Genspark Super Agent can work from everything it knows about you, more personally and intelligently.  \n  \nAnd to feed your SecondBrain, meet our first hardware, SecondBrain Note. A card-thin AI voice recorder. Press once to record up to 35 hours. Every meeting automatically becomes AI notes that flow right into your SecondBrain.  \n  \nFor teams, we've reimagined Genspark Teams into GenTeam. A workspace where your team and AI agents chat and work side by side.  \n  \nFor the office suite, we've upgraded the AI Inbox into GenMail. An app for both desktop and mobile, with an email agent built on an email brain that knows you and handles your inbox 10× faster.  \n  \nFor the build suite, we've added Genspark Design and AgentBase. Design takes you from rough idea to professional, production-ready design, prototypes, videos, posters, and more. AgentBase is an agent that builds custom dashboards, CRMs, and internal systems from your data.  \n  \nAnd AI Slides gets even better. New Slide Skills make every deck think like an expert, and a redesigned canvas makes editing smoother.  \n  \nCome try the new Genspark 6.0 today:[genspark.ai](https://www.genspark.ai/)i  \n  \n🎁 To celebrate 6.0, we're giving away free credits, details in the thread.\n\n![Tweet Image](https://pbs.twimg.com/media/HNt_lI3aEAAcqTr.jpg)\n\n💬6🔄3❤️18👀1998📊11",
+      "tags": [
+        "Genspark",
+        "AI Workspace 6.0",
+        "SecondBrain"
+      ],
+      "score": 80,
+      "summary": "Genspark发布AI Workspace 6.0，核心是上下文记忆系统SecondBrain。",
+      "fetched_at": "2026-07-21T12:22:35.989699+08:00"
+    },
+    {
+      "title": "great post by jeff! a few thoughts I had as I read along, wrt what we're building at langchain:\n\n> d...",
+      "link": "https://x.com/hwchase17/status/2079394264656859564",
+      "published": "2026-07-21T10:33:20+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "great post by jeff! a few thoughts I had as I read along, wrt what we're building at langchain:  \n  \n> design a compound learning machine  \n  \nas you use or deploy agents, they need to be learning! high level, i believe traces are the core of this - you need to see what happened, get feedback on it, and then update the system  \n  \n> own your context, rent your intelligence  \n  \nagree with this sentiment - own your \"tacit and institutional knowledge\", make it easy to swap out models. i think the phrasing will get confusing tho - what exactly is intelligence? [@satyanadella](https://x.com/satyanadella) had a great post here ([x.com/satyanadella/s…](https://x.com/satyanadella/status/2076323181154230284)) where he says a lot of things that agrees with this, but he also says stuff like \"In consuming intelligence, you are creating intelligence... This is your particular intelligence\". the nuance is there is general intelligence (eg the models, which you should rent) and then your company proprietary intelligence, which you should own. both could reasonably be called intelligence though, so its confusing  \n  \n> build your tools, buy infra  \n  \nbuy the lowest common denominator infra, build specific things on top of it. at LC we try to focus on lowest common denominator infra (observability, deployment, sandboxes), but we can do better - we have some cool stuff coming in that regard  \n  \n> develop rubrics  \n  \nevals are important!  \n  \n> store and learn from production traces  \n  \nyup. was this article just an ad for langsmith all along? who knows!\n\n![Jeff Huber](https://pbs.twimg.com/profile_images/1588236352797126656/i-XMejJn_normal.jpg)\n\nJeff Huber@jeffreyhuber\n\n[x.com/i/article/2079…](http://x.com/i/article/2079258588640600064)\n\n[🔗 View Quoted Tweet](https://x.com/jeffreyhuber/status/2079266941366407380)\n\n💬10🔄2❤️13👀2604📊9",
+      "tags": [
+        "LangChain",
+        "Agent学习",
+        "追踪"
+      ],
+      "score": 75,
+      "summary": "Harrison Chase评论Jeff Huber文章，强调Agent学习需要追踪和反馈。",
+      "fetched_at": "2026-07-21T12:22:35.989702+08:00"
+    },
+    {
+      "title": "the jacobian conjecture post has 3x the impressions of ishowspeed with BTS during the world cup fina...",
+      "link": "https://x.com/jerryjliu0/status/2079411708972732428",
+      "published": "2026-07-21T11:42:39+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "the jacobian conjecture post has 3x the impressions of ishowspeed with BTS during the world cup final\n\n![Speed⭐️](https://pbs.twimg.com/profile_images/1362579425804644353/8L3BctZn_normal.jpg)\n\nSpeed⭐️@ishowspeedsui\n\nyes i’m a fan🥹🥹🥹🥹\n\n![Tweet Image](https://pbs.twimg.com/media/HNp6mYAWEAAiwQJ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ishowspeedsui/status/2079108983831286122)\n\n💬2🔄0❤️3👀487📊2",
+      "tags": [
+        "无价值"
+      ],
+      "score": 20,
+      "summary": "比较推文印象数，无实质内容。",
+      "fetched_at": "2026-07-21T12:22:35.989704+08:00"
+    },
+    {
+      "title": "It’s remarkable how well the AI interviewers hold up to people’s attempts to gaslight them.\n\nThis is...",
+      "link": "https://x.com/venturetwins/status/2079406018942111986",
+      "published": "2026-07-21T11:20:03+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "It’s remarkable how well the AI interviewers hold up to people’s attempts to gaslight them.  \n  \nThis is a very funny one though 😂\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079405910695575552/vid/avc1/576x1024/dORMHKJU1ss_sWwa.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2079406018942111986/video/1)\n\n💬2🔄0❤️16👀1265📊4",
+      "tags": [
+        "AI面试官",
+        "抗操纵"
+      ],
+      "score": 60,
+      "summary": "AI面试官能抵抗应聘者的误导尝试。",
+      "fetched_at": "2026-07-21T12:22:35.989707+08:00"
+    },
+    {
+      "title": "Feeling especially grateful to the @GoogleAIStudio team today ♥️\n\nSeeing the level of commitment, am...",
+      "link": "https://x.com/OfficialLoganK/status/2079414304949055828",
+      "published": "2026-07-21T11:52:58+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "Feeling especially grateful to the [@GoogleAIStudio](https://x.com/GoogleAIStudio) team today ♥️  \n  \nSeeing the level of commitment, ambition, and passion our team has brings a smile to my face everyday.   \n  \nOnwards!!\n\n💬0🔄0❤️2",
+      "tags": [
+        "Google AI Studio",
+        "感谢"
+      ],
+      "score": 30,
+      "summary": "Logan Kilpatrick感谢Google AI Studio团队。",
+      "fetched_at": "2026-07-21T12:22:35.989710+08:00"
+    },
+    {
+      "title": "Checking in",
+      "link": "https://x.com/shl/status/2079415688809304254",
+      "published": "2026-07-21T11:58:28+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "Checking in\n\n![Tweet Image](https://pbs.twimg.com/media/HNuRi8xa0AACmU5.jpg)\n\n![Sahil Lavingia](https://pbs.twimg.com/profile_images/1885323625542127616/-8EVOv3W_normal.jpg)\n\nSahil Lavingia@shl\n\nDevin is responsible for 41% of our PRs.  \n  \nTo state the obvious, humans are in charge of deciding what gets built and reviewing everything that gets merged. But AI should be writing the maximum amount of code.  \n  \nI expect this to be 80% by the end of next year\n\n![Tweet Image](https://pbs.twimg.com/media/GntXCefWwAAhhqL.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/shl/status/1908214765216031067)\n\n💬2🔄0❤️8👀1279📊2",
+      "tags": [
+        "Devin",
+        "AI代码生成",
+        "PR占比"
+      ],
+      "score": 70,
+      "summary": "Sahil Lavingia称Devin负责41%的PR，预计明年达80%。",
+      "fetched_at": "2026-07-21T12:22:35.989712+08:00"
+    },
+    {
+      "title": "@Gumclaw Wdyt? Does this give your origin story more context?",
+      "link": "https://x.com/shl/status/2079413420022174178",
+      "published": "2026-07-21T11:49:27+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "[@Gumclaw](https://x.com/Gumclaw) Wdyt? Does this give your origin story more context?\n\n💬1🔄0❤️2👀654📊1",
+      "tags": [
+        "无价值"
+      ],
+      "score": 20,
+      "summary": "询问他人意见，无实质内容。",
+      "fetched_at": "2026-07-21T12:22:35.989715+08:00"
+    },
+    {
+      "title": "I wrote an article about this in 2024:\n\nhttps://t.co/oIuNZLXxQz",
+      "link": "https://x.com/shl/status/2079413205747790221",
+      "published": "2026-07-21T11:48:36+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "I wrote an article about this in 2024:  \n  \n[sahillavingia.com/god](http://sahillavingia.com/god)\n\n![Sahil Lavingia](https://pbs.twimg.com/profile_images/1885323625542127616/-8EVOv3W_normal.jpg)\n\nSahil Lavingia@shl\n\nJune 2026 was the first month that Gumroad spent equal amounts on AI tokens and human payroll.\n\n![Tweet Image](https://pbs.twimg.com/media/HNt3nBrbgAAkxJn.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/shl/status/2079387173749714944)\n\n💬2🔄1❤️26👀4409📊7",
+      "tags": [
+        "Gumroad",
+        "AI tokens",
+        "人力薪资"
+      ],
+      "score": 70,
+      "summary": "Gumroad在2026年6月AI token支出与人力薪资持平。",
+      "fetched_at": "2026-07-21T12:22:35.989717+08:00"
+    },
+    {
+      "title": "The easier something gets, the more you see people just don’t wanna",
+      "link": "https://x.com/shl/status/2079392285004042609",
+      "published": "2026-07-21T10:25:28+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "The easier something gets, the more you see people just don’t wanna\n\n💬8🔄0❤️47👀3876📊12",
+      "tags": [
+        "无价值"
+      ],
+      "score": 30,
+      "summary": "感慨事情变简单后人们反而不愿做。",
+      "fetched_at": "2026-07-21T12:22:35.989720+08:00"
+    },
+    {
+      "title": "今天突然看到 minimax 的股价这么惨了？ 这是和最高点跌了80%吧  真的好惨 而且感觉minimax的模型也没有什么讨论热度啊 最新的M3我甚至都没用过……",
+      "link": "https://x.com/vikingmute/status/2079392480425021618",
+      "published": "2026-07-21T10:26:15+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "今天突然看到 minimax 的股价这么惨了？ 这是和最高点跌了80%吧 真的好惨 而且感觉minimax的模型也没有什么讨论热度啊 最新的M3我甚至都没用过……\n\n![Tweet Image](https://pbs.twimg.com/media/HNt8cAzbIAAoDdr.jpg)\n\n💬4🔄0❤️0👀740📊4",
+      "tags": [
+        "MiniMax",
+        "股价下跌"
+      ],
+      "score": 40,
+      "summary": "评论MiniMax股价较最高点跌80%，模型缺乏热度。",
+      "fetched_at": "2026-07-21T12:22:35.989722+08:00"
+    },
+    {
+      "title": "时代少女团",
+      "link": "https://x.com/XDash/status/2079404400981012938",
+      "published": "2026-07-21T11:13:37+08:00",
+      "source": "XDash(@XDash)",
+      "content": "时代少女团\n\n![Kay Capital](https://pbs.twimg.com/profile_images/1795253482800447488/tdnbC9N3_normal.jpg)\n\nKay Capital@keyahayek\n\n我手机里有一帮不上班的小妹妹，21 年在 Clubhouse 熬夜听认知跃迁、去阿那亚露营；22 年头像换成 NFT 扔飞盘、冬天去崇礼，年底在卡塔尔为梅西流泪，23 年安福路 Citywalk，转场 Tomorrowland 和 Taylor Swift，24 年新加坡 Token2049 端香槟，回上海进 F1 P 房听引擎，25 年包上挂 Labubu，饭桌聊 DS 和具身智能；26 年集体挂证进 WAIC，开口 AGI、闭口硅基生命。  \n  \n像在时代氛围组上班，24k 的 top signal 指南针，负责在每个风口泡沫巅峰拍好九宫格，然后装作无事发生跟着 money flow 切到下个赛道。\n\n[🔗 View Quoted Tweet](https://x.com/keyahayek/status/2079127263971549523)\n\n💬1🔄0❤️1👀277📊1",
+      "tags": [
+        "无价值"
+      ],
+      "score": 20,
+      "summary": "转发他人关于时代潮流的评论，无实质信息。",
+      "fetched_at": "2026-07-21T12:22:35.989724+08:00"
+    },
+    {
+      "title": "现在好的生意是API生意\n然后vibecoding一大堆的玩具去开源\n美其名曰免费\n实际上就是API套壳\n这样就可以给自己的服务引流\n\n但实际上，已经没人用SaaS了\n应该包装成agent的服务\nSa...",
+      "link": "https://x.com/yangyi/status/2079405498294804889",
+      "published": "2026-07-21T11:17:58+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "现在好的生意是API生意  \n然后vibecoding一大堆的玩具去开源  \n美其名曰免费  \n实际上就是API套壳  \n这样就可以给自己的服务引流  \n  \n但实际上，已经没人用SaaS了  \n应该包装成agent的服务  \nSaaS只是一个对抗幻觉的兜底\n\n![AIGCLINK](https://pbs.twimg.com/profile_images/1729450995850027008/gllXr6bh_normal.jpg)\n\nAIGCLINK@aigclink\n\nOpen-seo： 传统seo工具Semrush/Ahrefs 的开源替代、按量付费、无订阅的平替，还内置 MCP——你可以直接让 Claude Code 帮你查关键词、盯排名、做站点审计，也可 fork 一份 vibe code 出自己的 SEO 工具、还支持GEO。  \n  \n它想解决的通电是 SEO 工具两个老毛病：贵，和臃肿：  \n  \n1、无订阅、按量付费：核心数据靠你自带 DataForSEO 的 API key，用多少付多少、直接付给数据方——不用为一堆用不上的功能交年费（这是这个工具里唯一需要为数据付费的地方）；  \n  \n2、不做大而全的套件，只做聚焦工作流：关键词研究、排名追踪、竞品洞察、外链、站点审计——外加一个很应景的 AI Visibility（你在 AI 答案里的可见性，也就是GEO）。  \n  \n亮点是支持\"agent \"调用：  \n  \nOpenSEO 内置了一个 MCP server，让 Claude Code、OpenClaw、Hermes 这些 agent 直接调用你的 SEO 数据；再配一套 Agent Skills（可复用的 SEO 工作流，指挥 agent 用 MCP 干活）。官方把\"best-in-class 的 MCP 和 AI Skills\"当第一卖点。也就是说——你可以直接让 Claude Code 帮你查关键词、盯排名、做站点审计，而不是自己在一堆仪表盘里点。你还能 fork 它、vibe code 出自己的定制 SEO 工具。  \n  \nOpenSEO 把\"AI Visibility\"做进了工作流，等于顺手接住了 需要GEO 的用户。  \n  \n#OpenSEO#SEO#开源#MCP#AI#geo\n\n![Tweet Image](https://pbs.twimg.com/media/HNtgpB9bsAA7xyH.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/aigclink/status/2079362629806838008)\n\n💬1🔄0❤️2👀1315📊2",
+      "tags": [
+        "API生意",
+        "开源套壳"
+      ],
+      "score": 50,
+      "summary": "评论当前API生意模式，开源套壳引流。",
+      "fetched_at": "2026-07-21T12:22:35.989727+08:00"
+    },
+    {
+      "title": "用NewMax的抖音连接器，和 @dontbesilent 对标法，拆解分析爆款\n如果用dbskill，效果应该还会明显提升一大截\n\n在模型都差不多的情况下，工具会决定Agent的上限",
+      "link": "https://x.com/yangyi/status/2079395941799587918",
+      "published": "2026-07-21T10:40:00+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "用NewMax的抖音连接器，和 [@dontbesilent](https://x.com/dontbesilent) 对标法，拆解分析爆款  \n如果用dbskill，效果应该还会明显提升一大截  \n  \n在模型都差不多的情况下，工具会决定Agent的上限\n\n![Tweet Image](https://pbs.twimg.com/media/HNt-8ecbgAAEniN.jpg)![Tweet Image](https://pbs.twimg.com/media/HNt_A8pbMAAi2dV.jpg)![Tweet Image](https://pbs.twimg.com/media/HNt_F25aIAEHR5u.jpg)![Tweet Image](https://pbs.twimg.com/media/HNt_N7haIAAaW_u.jpg)\n\n💬6🔄0❤️11👀1968📊8",
+      "tags": [
+        "NewMax",
+        "抖音连接器",
+        "Agent"
+      ],
+      "score": 55,
+      "summary": "使用NewMax抖音连接器和dbskill拆解爆款，工具决定Agent上限。",
+      "fetched_at": "2026-07-21T12:22:35.989729+08:00"
+    },
+    {
+      "title": "If I were to hire today, this is how I would structure the interview process:\n\nRound 1: in-person & ...",
+      "link": "https://x.com/zarazhangrui/status/2079409165424799889",
+      "published": "2026-07-21T11:32:33+08:00",
+      "source": "Zara Zhang(@zarazhangrui)",
+      "content": "If I were to hire today, this is how I would structure the interview process:  \n  \nRound 1: in-person & no AI allowed; test domain expertise and knowledge on the fly  \n  \nRound 2: a project that must be done with AI (impossible to complete without AI). Candidate assessed not just on the result but also the chat transcript with agents\n\n💬5🔄2❤️14👀826📊8",
+      "tags": [
+        "招聘流程",
+        "AI面试"
+      ],
+      "score": 60,
+      "summary": "Zara Zhang提出两轮面试：第一轮无AI，第二轮必须用AI。",
+      "fetched_at": "2026-07-21T12:22:35.989732+08:00"
+    },
+    {
+      "title": "Just reached 80k followers 🙏🏻\n\n“all signal no noise no slop no hacks and still finds a way to grow...",
+      "link": "https://x.com/zarazhangrui/status/2079395028485488707",
+      "published": "2026-07-21T10:36:22+08:00",
+      "source": "Zara Zhang(@zarazhangrui)",
+      "content": "Just reached 80k followers 🙏🏻  \n  \n“all signal no noise no slop no hacks and still finds a way to grow her audience” is what I do here\n\n![Zara Zhang](https://pbs.twimg.com/profile_images/1742369596534067200/Ts-5zSJ6_normal.jpg)\n\nZara Zhang@zarazhangrui\n\n[x.com/i/article/2035…](http://x.com/i/article/2035755945507360768)\n\n[🔗 View Quoted Tweet](https://x.com/zarazhangrui/status/2035758067116359902)\n\n💬9🔄2❤️66👀3717📊17",
+      "tags": [
+        "粉丝数"
+      ],
+      "score": 20,
+      "summary": "庆祝达到80k粉丝。",
+      "fetched_at": "2026-07-21T12:22:35.989734+08:00"
+    },
+    {
+      "title": "Kimi K3 在「Frontend Web App」竞技中来到榜首了！\n\n感觉这次 Kimi K3 在前端设计方面确实上来了，和 Fable 5 之间到底谁更好，我还没有答案，不过看 @Design...",
+      "link": "https://x.com/shao__meng/status/2079401098943869111",
+      "published": "2026-07-21T11:00:30+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Kimi K3 在「Frontend Web App」竞技中来到榜首了！  \n  \n感觉这次 Kimi K3 在前端设计方面确实上来了，和 Fable 5 之间到底谁更好，我还没有答案，不过看 [@DesignArena](https://x.com/DesignArena) 的竞技榜单，已经超过了 Claude 全系模型，包括 Fable 5！  \n  \n另外一个符合我直觉的是：GPT-5.6 Sol 的前端设计能力依然不行，从榜单看也是如此，跌出前十。\n\n![Design Arena](https://pbs.twimg.com/profile_images/1988401101797027844/yZ6rC4I7_normal.jpg)\n\nDesign Arena@DesignArena\n\nBREAKING: Kimi K3 by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) is officially 1st on Frontend Web App Arena by DesignArena  \n  \nWith an Elo of 1326, this open-weight model leads the way, ahead of Fable 5, Sonnet 5, and Opus 4.8 by [@AnthropicAI](https://x.com/AnthropicAI)   \n  \nHuge congrats to the [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) team for this achievement!\n\n![Tweet Image](https://pbs.twimg.com/media/HNpjofPaMAAbQr-.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/DesignArena/status/2079243547337974132)\n\n💬1🔄0❤️1👀494📊1",
+      "tags": [
+        "Kimi K3",
+        "Frontend Web App",
+        "榜首"
+      ],
+      "score": 75,
+      "summary": "Kimi K3在DesignArena前端Web应用竞技中排名第一，超越Claude全系。",
+      "fetched_at": "2026-07-21T12:22:35.989737+08:00"
+    },
+    {
+      "title": "Kimi 研究员震惊了，一个普通 OpenAI 研究员拥有的算力资源有多恐怖。\n\n当下模型排行也很认可：\n\n① Fable5 \n② GPT 5.6 sol\n③ Kimi K3\n④ Grok 4.5\n⑤...",
+      "link": "https://x.com/vista8/status/2079413359854694584",
+      "published": "2026-07-21T11:49:13+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Kimi 研究员震惊了，一个普通 OpenAI 研究员拥有的算力资源有多恐怖。  \n  \n当下模型排行也很认可：  \n  \n① Fable5   \n② GPT 5.6 sol  \n③ Kimi K3  \n④ Grok 4.5  \n⑤ GLM 5.2   \n  \n另外，个人觉得智谱很有潜力，5.2 参数只有750B左右。  \n  \n如果像前几个达到1T~10T，效果一定很棒。\n\n![Tweet Image](https://pbs.twimg.com/media/HNuOrGJWcAAYAep.jpg)\n\n💬1🔄0❤️0👀280📊1",
+      "tags": [
+        "模型排行",
+        "Kimi K3",
+        "GLM 5.2"
+      ],
+      "score": 60,
+      "summary": "列出当前模型排行，认为智谱GLM 5.2有潜力。",
+      "fetched_at": "2026-07-21T12:22:35.989739+08:00"
+    },
+    {
+      "title": "开源地址 https://t.co/eTy6DkxRj7",
+      "link": "https://x.com/vista8/status/2079396071482994896",
+      "published": "2026-07-21T10:40:31+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "开源地址 [github.com/dwarvesf/hidden](https://github.com/dwarvesf/hidden)\n\n💬0🔄0❤️0👀767📊1",
+      "tags": [
+        "开源软件"
+      ],
+      "score": 30,
+      "summary": "提供hiddenbar开源地址。",
+      "fetched_at": "2026-07-21T12:22:35.989741+08:00"
+    },
+    {
+      "title": "免费的类似Bartender的软件。\nMac上安装软件多了，顶部Menu bar挤满图标。\n\n真正需要的工具常被隐藏，比如dropzone等文件拖拽寄存器。\n\n安装hidden 这个工具就能解决这个痛...",
+      "link": "https://x.com/vista8/status/2079396029758132266",
+      "published": "2026-07-21T10:40:21+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "免费的类似Bartender的软件。  \nMac上安装软件多了，顶部Menu bar挤满图标。  \n  \n真正需要的工具常被隐藏，比如dropzone等文件拖拽寄存器。  \n  \n安装hidden 这个工具就能解决这个痛点。  \n  \n终端安装指令：  \nbrew install --cask hiddenbar  \n  \n开源地址见评论区\n\n![Tweet Image](https://pbs.twimg.com/media/HNt-9wCXUAAkTgI.jpg)\n\n💬4🔄0❤️7👀2301📊6",
+      "tags": [
+        "Hidden Bar",
+        "Mac工具"
+      ],
+      "score": 50,
+      "summary": "推荐免费Mac菜单栏管理工具Hidden Bar。",
+      "fetched_at": "2026-07-21T12:22:35.989744+08:00"
+    },
+    {
+      "title": "特朗普正在尝试限制甚至禁止中国顶尖的 AI 模型。比如去年，他们就想把多个中国 AI 实验室和大学实验室列入实体清单。\n\n他们想通过采购规则、实体清单和舆论压制等“软封锁”手段，来降低中国顶尖模型在美...",
+      "link": "https://x.com/op7418/status/2079399859531252028",
+      "published": "2026-07-21T10:55:34+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "特朗普正在尝试限制甚至禁止中国顶尖的 AI 模型。比如去年，他们就想把多个中国 AI 实验室和大学实验室列入实体清单。  \n  \n他们想通过采购规则、实体清单和舆论压制等“软封锁”手段，来降低中国顶尖模型在美国企业中的采用率。  \n  \n但这个说法跟前几天 OpenAI 新的战略分析负责人提出的一些方法是一致的，感觉整篇报道是拼凑出来的：  \n  \n就是有一些捕风捉影的传言，加上当时 OpenAI 新任分析负责人披露的信息，最后拼凑出了这么一篇报道。\n\n![Tweet Image](https://pbs.twimg.com/media/HNuCqoCbwAASV-2.jpg)\n\n![Andrew Curran](https://pbs.twimg.com/profile_images/1596945208058744833/_X3LT7fb_normal.jpg)\n\nAndrew Curran@AndrewCurran\\_\n\nThis does explain some of David Sacks's posts yesterday. It was known for a while that open-source regulation was a contentious debate ongoing within the administration, and he would have been strongly against it.  \n[axios.com/2026/07/20/ai-…](https://www.axios.com/2026/07/20/ai-us-china-open-source-kimi)\n\n[🔗 View Quoted Tweet](https://x.com/AndrewCurran_/status/2079203225643966678)\n\n💬7🔄0❤️6👀4000📊5",
+      "tags": [
+        "特朗普",
+        "中国AI模型",
+        "限制"
+      ],
+      "score": 70,
+      "summary": "特朗普政府考虑通过采购规则等软封锁限制中国AI模型。",
+      "fetched_at": "2026-07-21T12:22:35.989746+08:00"
+    },
+    {
+      "title": "昨天 Twitter 上讨论最热的一条内容，超过了两千万次浏览。\n\nAnthropic 的一个数学家用 Fable 5 随手证明了一个雅可比猜想的反例。\n\n这个猜想 87 年来一直没有人能证明是对是错...",
+      "link": "https://x.com/op7418/status/2079398398080500063",
+      "published": "2026-07-21T10:49:46+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "昨天 Twitter 上讨论最热的一条内容，超过了两千万次浏览。  \n  \nAnthropic 的一个数学家用 Fable 5 随手证明了一个雅可比猜想的反例。  \n  \n这个猜想 87 年来一直没有人能证明是对是错，甚至还上过 21 世纪 18 大数学难题名单。  \n  \n随后，OpenAI 的人在他们内部的 Codex 版本（不联网的版本）中，也独立证明了类似的反例。  \n  \n这说明这确实是 Fable 5或者更高等级的 GPT 模型可以独立证明出来的数学难题。  \n  \n而且 有意思的事，这个问题一直是张益唐博士的博士论文想要解决的问题。  \n  \n当时张益唐因为他教授提出的一个引理，试图从这个方向去解决这个题，结果一直无法证明，导致毕业后长期找不到工作，只能在快餐店打工，甚至无家可归。  \n  \n后来他靠证明“素数间的有界间隙”才一举成名。  \n  \n很有意思的是，当年他的导师给了他一个错误的引理去证明这事，而现在 AI 随手就给解决了。顺便大家还讨论了一下学术界“有毒导师”的问题。  \n  \n这明明是一个非常难的数学问题，但这哥们儿就随手发了一条推特，里面只有一串公式，没有什么期刊，也没有什么论文，甚至连 Twitter 的字符限制都没超过，而且还获得了两千万的浏览量。从传播学上也是一个非常值得讨论的例子。\n\n![Tweet Image](https://pbs.twimg.com/media/HNuBmbNbcAAFB_C.jpg)\n\n![levent](https://pbs.twimg.com/profile_images/1824948681877155840/VqVHY3gF_normal.jpg)\n\nlevent@\\_\\_alpoge\\_\\_\n\nhello there the jacobian conjecture is false thanx to my close friend akhil for asking about it and my other close friend fable for working during the world cup final  \n  \n((1+xy)^3 z + y^2 (1+xy) (4+3xy), y + 3 x (1+xy)^2 z + 3 x y^2 (4+3xy), 2 x - 3 x^2 y - x^3 z): \\C^3\\to \\C^3, has jacobian determinant -2, and sends (0, 0, -1/4), (1, -3/2, 13/2), and (-1, 3/2, 13/2) to (-1/4, 0, 0)\n\n[🔗 View Quoted Tweet](https://x.com/__alpoge__/status/2079028340955197566)\n\n💬8🔄1❤️14👀4596📊7",
+      "tags": [
+        "Fable 5",
+        "雅可比猜想",
+        "数学证明"
+      ],
+      "score": 85,
+      "summary": "Anthropic数学家使用Fable 5证明雅可比猜想反例，87年未解难题。",
+      "fetched_at": "2026-07-21T12:22:35.989749+08:00"
     }
   ]
 }
