@@ -788,6 +788,743 @@
       "score": 70,
       "summary": "歸藏预告Codepilot新版，支持为每个SubAgent指定不同模型。",
       "fetched_at": "2026-07-23T00:28:44.090582+08:00"
+    },
+    {
+      "title": "Building a serverless AI assistant at Pelago: concept to care in two weeks",
+      "link": "https://aws.amazon.com/blogs/architecture/building-a-serverless-ai-assistant-at-pelago-concept-to-care-in-two-weeks/",
+      "published": "2026-07-23T01:12:27+08:00",
+      "source": "AWS Architecture Blog",
+      "content": "Healthcare organizations face a critical scaling challenge – how to maintain deeply personalized patient interactions as member bases grow, without overwhelming care teams or compromising quality. At [Pelago](https://www.pelagohealth.com/), a digital health company specializing in substance use disorder support, the engineering team found a way to build an AI-powered solution to address this challenge using AWS services in just two weeks.\n\nIn this post, you will learn how Pelago used AWS serverless and AI services, such as [Amazon Bedrock](https://aws.amazon.com/bedrock) and [AWS Lambda](https://aws.amazon.com/lambda/), to build and deploy an event-driven AI assistant. The result is a service that generates contextually aware suggested considerations for the care team. This system preserves the human-in-the-loop oversight that healthcare demands while removing months of traditional development work and overhead of managing complex infrastructure.\n\n## The challenge overview\n\nPelago is a digital clinic for substance use treatment that provides comprehensive support including 1:1 coaching, medication management, and behavioral therapy. It serves members across the US to support recovery journeys for alcohol, tobacco, stimulants, cannabis, and opioid use disorder, and adjacent behaviors often associated with substance use. The Pelago care team coaches members through substance use recovery. A single coach may hold active conversations with dozens of members at once. Each message a coach sends needs to reflect weeks of prior context and drafting that response manually from scratch takes time the care team doesn’t always have.\n\nWhen the Pelago engineering team set out to build an AI assistant for the care team, they faced a set of interconnected constraints. Behavioral health conversations build over weeks and months. Coaches need to account for that history in every reply. An AI assistant that only understands the most recent messages isn’t useful here – it must grasp the full long-term conversation history. That depth of context is also why human oversight is non-negotiable. The system had to generate *suggestions for Pelago’s care team*, not automated responses. Every piece of feedback must be read, evaluated, and adapted by a human coach before it reaches a member.\n\nProtected Health Information (PHI) requirements added another layer of complexity – data could not leave Pelago’s AWS environment. All AI integrations must operate entirely within existing [Amazon Virtual Private Cloud (VPC)](https://aws.amazon.com/vpc/) infrastructure with no exposure to the public internet.\n\nBeyond compliance and clinical safety, there were also practical constraints. Care team members need information the moment they open a conversation but generating relevant content processing dozens, sometimes hundreds, of prior messages through a large language model. A long wait was not acceptable when coaches open dozens of conversations per shift.\n\nThe engineering team needed to deliver all this quickly with full audit trails and security controls in a highly regulated environment. They had to solve the problem of pre-generating contextual suggestions without blocking the user experience while maintaining the compliance posture.\n\n## Solution design: Event-driven serverless architecture\n\nThe Pelago team separated concerns using event-driven architecture. The care team needed suggested responses instantly when accessing the system but generating them synchronously in real-time blocked the user experience for tens of seconds because of LLM processing time. By treating each incoming member message as an asynchronous event, the system can fan out processing to independent consumers without coupling them to the message delivery path. A new consumer, such as the AI assistant, can be added without affecting existing components or code. And because each processing step runs in its own Lambda function, a spike in inference requests doesn’t affect message delivery or processing.\n\n![End-to-end solution architecture showing the event-driven flow from member messages through SNS fanout to AI suggestion generation and retrieval](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/16/ARCHBLOG-1403-1.png)\n\n*Figure 1 — The full end-to-end solution architecture*\n\nThe architecture uses [Amazon Simple Notification Service (Amazon SNS)](https://aws.amazon.com/sns/) for message fanout and Lambda functions for processing. Here’s how it works:\n\n1. Members send messages through [AWS AppSync](https://aws.amazon.com/appsync/), forwarded to a Lambda function.\n2. The Lambda function stores messages in an [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) table.\n3. The Lambda function publishes messages to an SNS topic.\n4. SNS fans out messages to multiple Lambda subscriber functions, such as Metadata storage, Amplitude analytics, and Chat assistant responsible for AI-based suggested message generation.\n5. The Chat Assistant Lambda runs asynchronously. It retrieves the full conversation history from DynamoDB, invokes Amazon Bedrock to generate contextual suggestions, and stores the result in MySQL hosted on [Amazon Relational Database Service (Amazon RDS)](https://aws.amazon.com/products/databases). This flow happens in the background without blocking user experience and typically completing in under 10 seconds.\n6. When a care team member opens a conversation (often minutes or hours later), the request flows through [Amazon API Gateway](https://aws.amazon.com/api-gateway/).\n7. A Lambda function retrieves pre-generated suggestions from MySQL.\n8. The front end displays the suggestion in under 100 milliseconds.\n\nThis pattern keeps message delivery, analytics, and AI generation decoupled. Each member’s PHI is processed separately and stays fully within the Pelago AWS boundary. A failure or spike in feedback generation for one member does not disrupt or impact processing for other members.\n\nBecause inference happens asynchronously in the background, the care team does not wait for LLM processing. Suggested messages are pre-generated, stored, and ready to use when a coach opens a conversation. This keeps retrieval times under 100 milliseconds regardless of how long the AI generation took.\n\nThis serverless architecture also provides organic scaling. Each Lambda function automatically scales horizontally based on current traffic – scaling up during spikes and back down when demand drops, with no pre-provisioning or scaling configuration required. Adding a new event-driven downstream capability, like the AI assistant itself, requires only a new SNS subscription with no changes to existing message-publishing or handling code.\n\n## Event-driven fanout with Amazon SNS\n\nThe foundation of the Pelago chat architecture is an SNS topic that acts as a message bus for conversation events. SNS is a fully managed pub/sub messaging service. When a message is published to a topic, SNS automatically delivers it to subscribed consumers in parallel. This means a single incoming message can trigger multiple independent processing steps simultaneously.\n\nWhen a user or coach sends a message, the system publishes a standardized payload to the SNS topic, for example:\n\n```\n{\n    \"identityId\": \"085cdc3c-f223-419a-9c80-5535c9983549\",\n    \"messageId\": \"7a4d2b8e-1c9f-4e3a-b5d6-8f2e1a3c4b5d\",\n    \"sender\": \"user\",\n    \"timestamp\": \"2025-07-15T14:32:18Z\",\n    \"conversationId\": \"conv-abc123\"\n}\n```\n\nSNS delivers this event to four Lambda function subscribers. The **Metadata Storage** Lambda writes message metadata to MySQL for reporting. The **Analytics Lambda** sends events to Amplitude for product analytics. The **Push Notification** Lambda triggers mobile notifications for coaches. The **Chat Assistant** Lambda generates Assistant-based suggestions using Amazon Bedrock.\n\n![SNS topic delivering events to four Lambda subscriber functions for metadata storage, analytics, push notifications, and AI suggestion generation](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/16/ARCHBLOG-1403-2.png)\n\n*Figure 2 — Using SNS for message fan-out and decoupled processing*\n\nThis fanout pattern allowed the Pelago team to add the AI Chat Assistant feature with zero changes to existing message-handling code. The team simply created a new Lambda function and added it as an SNS subscription. The publisher doesn’t need to know how many consumers exist or what they do, so new capabilities can be built and deployed independently without risking regressions in the message processing path.\n\n## Async AI generation with Amazon Bedrock\n\nThe Chat Assistant Lambda handles computationally expensive AI generation. The function implements a multi-step workflow:\n\n![Chat Assistant Lambda workflow showing conversation history retrieval from DynamoDB, context formatting, Bedrock inference, and suggestion storage](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/16/ARCHBLOG-1403-3.png)\n\n*Figure 3 — The chat assistant architecture and workflow*\n\nThe first step is to retrieve conversation history. Behavioral health conversations can span dozens or even hundreds of messages over weeks, and the AI assistant needs all that context to generate a useful suggestion to Pelago’s care team. The function queries DynamoDB for previous messages in the conversation. The DynamoDB single-digit millisecond read performance means even lengthy conversations (50+ messages) are typically retrieved in under 20ms.\n\n```\n# Simplified pseudocode\nconversation_messages = dynamodb.query(\n    TableName='conversations-messages',\n    IndexName='identityId-index',\n    KeyConditionExpression='identityId = :id',\n    ExpressionAttributeValues={':id': identity_id}\n)\n```\n\nThe next step is to prepare and format context for inference. The function transforms the retrieved messages structure into a conversation history format that provides Amazon Bedrock with full context, for example:\n\n```\n[User]: Hi, I'm struggling with cravings today\n\n[Coach]: I hear you. Cravings can be really tough. What's happening right now that's making this moment difficult?\n\n[User]: I'm at a party and everyone is drinking. I feel left out.\n\n[Coach]: That's a really challenging situation, and it's completely understandable to feel that way...\n\n[User]: I ended up leaving early. Feeling proud but also kind of sad.\n```\n\nAfter formatting the conversation, the Lambda function uses the [Amazon Bedrock Runtime API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html) to invoke Claude models. The prompt engineering focuses on empathy and validation – it helps the model acknowledge what the member is feeling rather than jumping to advice. It is tuned to maintain contextual continuity – picking up things the member mentioned in earlier messages instead of treating each exchange without prior context. It also steers the model away from false optimism or dismissive language and keeps suggestions short, more like a text message than an email. This matches how coaching conversations flow on the application.\n\n```\nresponse = bedrock_runtime.invoke_model(\n    body=json.dumps({\n        \"anthropic_version\": \"bedrock-2023-05-31\",\n        \"max_tokens\": 4096,\n        \"temperature\": 0.7,\n        \"system\": \"You are a supportive coach...\",\n        \"messages\": [{\n            \"role\": \"user\",\n            \"content\": f\"\"\"\nHere is the conversation history:\n\n<chatHistory>\n{chat_history_string}\n</chatHistory>\n\nProvide the next coach message suggestion as plain text.\n\"\"\"\n        }]\n    })\n)\n```\n\n## Measuring system performance and business impact\n\nThis entire flow, from SNS trigger to a suggestion stored in MySQL, typically completes in less than 4 seconds, well within acceptable processing time. When a care team member opens a conversation on the dashboard, the front end instantly retrieves pre-generated suggested messages. Total response time perceived by the care team is under 100 milliseconds.\n\nThe Pelago team went from technical designs to first production deployment in 2 weeks. Two days on architecture and model selection with the clinical team, three days building the core Lambdas, three days on integration testing and prompt refinement, and two final days on deployment and monitoring.\n\nThe system delivered strong early results. From the business perspective, response preparation times dropped 40% on average, and the care team rated 79.6% of AI suggestions as helpful, based on internal Pelago measurements. Operationally, using serverless services introduced no new overhead. There was no new infrastructure to manage, servers to patch, or scaling configurations to maintain. The architecture successfully handled an 8x message volume spike during a seasonal campaign without configuration changes.\n\n## Implementation details and key decisions\n\nWith the core event-driven architecture in place, the Pelago team made several implementation choices to satisfy healthcare industry requirements, handle traffic patterns unique to the application, and maintain reliability across the system.\n\n### PHI must stay secured\n\nPelago uses multiple AWS security features to maintain HIPAA eligibility while using AI models. One requirement is for PHI to never traverse the public internet. To address this, the Pelago team uses VPC endpoints for Amazon Bedrock, so model invocations stay within the private network. The Boto3 client in the Python Lambda automatically routes traffic through the private endpoint. Data is encrypted at rest on DynamoDB and RDS, service communications use TLS 1.2+, and IAM policies are scoped with least-privilege permissions to specific resource actions and ARNs. Audit logs of model invocations are emitted to [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) and capture message IDs only, not content.\n\n### Polyglot cross-runtime implementation\n\nThe team used Python for Lambda functions that invoke Amazon Bedrock models. Boto3 native Amazon Bedrock support and simpler string manipulation made Python the right choice for building and iterating on prompts. The retrieval function is written in TypeScript to stay consistent with most of the Pelago backend code and to reuse shared libraries and Zod schemas for type-safe API contracts. This split let the team use the best language for each job without forcing a single runtime across the entire system.\n\n### Spiky traffic and pay-per-invocation compute\n\nThe Pelago application serves heavily US-based traffic. Message volume concentrates during weekday working hours, with peak hours seeing 10x or more the volume of quiet periods. The pay-per-invocation model of Lambda fits this well. During a Monday morning surge, Lambda scales out automatically with no pre-provisioning required. During off-peak hours, Lambda functions automatically scale down, so Pelago avoids idle compute costs. Using alternative long-lived compute would mean either over-provisioning for peak load or maintaining auto scaling policies that can lag during sudden spikes. With Lambda, the solution costs are directly proportional to member engagement with no idle cost.\n\n### Picking the right storage and handling idempotency\n\nThe team chose to use DynamoDB for conversation messages and MySQL for assistant suggestions based on different access patterns of each scenario. Conversation messages require high write throughput (100+ writes/sec at peak), single-digit millisecond reads, and automatic scaling. These requirements made DynamoDB a good fit. Assistant suggestions have a lighter write load (10-20 writes/sec) but need structured queries, foreign key relationships, and nested analytics joins that a relational database supports naturally.\n\nBecause SNS can deliver messages more than once, the Chat Assistant Lambda checks MySQL for an existing message before generating a new one. This idempotency check helps prevent duplicate Amazon Bedrock invocations, which would waste compute and could surface conflicting suggestions to coaches. If an Amazon Bedrock invocation fails because of throttling or model unavailability, the function logs the error without blocking message flow. A built-in retry mechanism handles transient failures, so suggestions are eventually generated even when Amazon Bedrock experiences momentary capacity constraints.\n\n### Monitoring and observability\n\nThe team tracks multiple business and operational metrics. CloudWatch metrics capture suggestion generation latency, which helps the team identify when model response times exceed acceptable thresholds. Retrieval rate measures what percentage of generated message suggestions are used by coaches. This gives insights into how well the async timing aligns with real usage patterns. The system also allows coaches to rate each suggestion with thumbs up or down. These ratings are stored in MySQL for future prompt tuning and model evaluation. CloudWatch alarms monitor error rates for Amazon Bedrock throttling and database connection failures. These alarms alert the engineering team before operational issues impact the care team experience.\n\n## Conclusion\n\nManaged AI services like Amazon Bedrock and serverless architectures let healthcare organizations move quickly while maintaining compliance controls. The Pelago chat assistant shows what’s possible when you combine serverless event-driven processing with async AI generation and fast synchronous retrieval. The key patterns that made this work are SNS fanout to decouple processing and make new features straightforward to add, pre-generating message suggestions asynchronously so the care team does not wait, VPC endpoints to keep PHI off the public internet, and starting with foundation models and prompt engineering instead of spending months on custom model training.\n\nThe Pelago journey from concept to production deployment shows how small engineering teams in regulated industries can balance moving fast and maintaining their compliance posture.\n\n## Useful links\n\n* [Serverless patterns and architectures](https://serverlessland.com/).\n* [Getting started with Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/getting-started.html).\n* [Getting started with AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/getting-started.html).\n\n---\n\n## About the authors",
+      "tags": [
+        "Amazon Bedrock",
+        "serverless AI",
+        "Pelago"
+      ],
+      "score": 79,
+      "summary": "AWS博客介绍Pelago使用Amazon Bedrock和Lambda在两周内构建无服务器AI助手。",
+      "fetched_at": "2026-07-23T02:16:02.429073+08:00"
+    },
+    {
+      "title": "🆕 Claude for Long-Horizon Tasks\n\nhttps://t.co/hr5Fg6yugz\n\n@RLanceMartin returns for the third(!) ti...",
+      "link": "https://x.com/aiDotEngineer/status/2079991017043112038",
+      "published": "2026-07-23T02:04:37+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕 Claude for Long-Horizon Tasks  \n[youtube.com/watch?v=9Qebvr…](https://www.youtube.com/watch?v=9QebvrrY3KY)z  \n  \n[@RLanceMartin](https://x.com/RLanceMartin) returns for the third(!) time to discuss the four core themes for effective agents and claws:  \n  \n1. Decoupling Brain and Hands (3:21)  \n2. Using Verifiers (6:20)  \n3. Self-Learning and Memory (10:11)  \n4. Global/Org-Level Harnesses (16:08)  \n  \nWelcome back Lance!\n\n💬1🔄1❤️2👀609📊2",
+      "tags": [
+        "Claude",
+        "long-horizon tasks",
+        "agent"
+      ],
+      "score": 70,
+      "summary": "AI Engineer频道发布视频，讨论Claude用于长周期任务的四个核心主题。",
+      "fetched_at": "2026-07-23T02:16:02.429087+08:00"
+    },
+    {
+      "title": "Our first AI Engineer event in Shanghai China is on Nov 5 - 6, 2026, at the Hilton Shanghai Hongqiao...",
+      "link": "https://x.com/aiDotEngineer/status/2079971402434916605",
+      "published": "2026-07-23T00:46:40+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Our first AI Engineer event in Shanghai China is on Nov 5 - 6, 2026, at the Hilton Shanghai Hongqiao.  \n  \nTwo tracks: Open Source Models / Infrastructure and Physical AI.  \n  \nChina and the US are building AI through different playbooks. It's worth getting engineers from both perspectives in the same room.  \n  \n[ai.engineer/shanghai/2026](http://ai.engineer/shanghai/2026)  \n  \nWorking with [@StandupPartners](https://x.com/StandupPartners) for AIEi Shanghai\n\n![Tweet Image](https://pbs.twimg.com/media/HN1-48aXgAIXpoB.jpg)\n\n💬1🔄2❤️8👀1108📊3",
+      "tags": [
+        "AI Engineer Shanghai",
+        "event"
+      ],
+      "score": 70,
+      "summary": "AI Engineer宣布2026年11月在上海举办活动，设开源模型和物理AI两个主题。",
+      "fetched_at": "2026-07-23T02:16:02.429090+08:00"
+    },
+    {
+      "title": "DataFlow-Harness\n\nA Grounded Code-Agent Platform for Constructing Editable LLM Data Pipelines",
+      "link": "https://x.com/_akhaliq/status/2079980795071000858",
+      "published": "2026-07-23T01:24:00+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "DataFlow-Harness  \n  \nA Grounded Code-Agent Platform for Constructing Editable LLM Data Pipelines\n\n![Tweet Image](https://pbs.twimg.com/media/HN2Tc2uWIAABs7K.jpg)\n\n💬3🔄3❤️7👀2919📊4",
+      "tags": [
+        "DataFlow-Harness",
+        "code-agent",
+        "LLM data pipeline"
+      ],
+      "score": 80,
+      "summary": "AK介绍DataFlow-Harness，一个用于构建可编辑LLM数据管道的代码代理平台。",
+      "fetched_at": "2026-07-23T02:16:02.429092+08:00"
+    },
+    {
+      "title": "paper: https://t.co/cj7YLJFP1s",
+      "link": "https://x.com/_akhaliq/status/2079980796782236046",
+      "published": "2026-07-23T01:24:00+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "paper: [huggingface.co/papers/2607.16…](https://huggingface.co/papers/2607.16617)\n\n💬0🔄0❤️1👀1087📊1",
+      "tags": [
+        "DataFlow-Harness",
+        "paper"
+      ],
+      "score": 70,
+      "summary": "AK分享DataFlow-Harness论文链接。",
+      "fetched_at": "2026-07-23T02:16:02.429094+08:00"
+    },
+    {
+      "title": "We invented mobile coding — now we’re taking it to the next level.",
+      "link": "https://x.com/amasad/status/2079978232024301848",
+      "published": "2026-07-23T01:13:49+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "We invented mobile coding — now we’re taking it to the next level.\n\n![Replit ⠕](https://pbs.twimg.com/profile_images/2031733558952464384/ERrHv3jK_normal.jpg)\n\nReplit ⠕@Replit\n\nYour ideas. Anywhere they find you.  \n   \nThe redesigned Replit mobile app is available now on iOS and Android.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2079974998953873408/pu/vid/avc1/1280x720/57lI7zVJxRWWFuIo.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2079975095120900285/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Replit/status/2079975095120900285)\n\n💬7🔄4❤️89👀8112📊13",
+      "tags": [
+        "Replit",
+        "mobile app",
+        "redesign"
+      ],
+      "score": 70,
+      "summary": "Amjad Masad宣布Replit移动应用重新设计，支持语音输入和Agent构建。",
+      "fetched_at": "2026-07-23T02:16:02.429095+08:00"
+    },
+    {
+      "title": "You can now ask Claude about the Anthropic Economic Index, our public dataset measuring how AI is us...",
+      "link": "https://x.com/claudeai/status/2079979809606664564",
+      "published": "2026-07-23T01:20:05+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "You can now ask Claude about the Anthropic Economic Index, our public dataset measuring how AI is used across the economy.  \n  \nAsk which occupations use AI the most, or what kinds of tasks people are automating, and the answers draw directly from the Index data.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079973875807301633/vid/avc1/1920x1080/2leywvdqoqWp2uKb.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2079979809606664564/video/1)\n\n💬149🔄109❤️1302👀76773📊291",
+      "tags": [
+        "Claude",
+        "Anthropic Economic Index",
+        "connector"
+      ],
+      "score": 85,
+      "summary": "Claude官方宣布用户可询问Anthropic经济指数数据，了解AI在各职业的使用情况。",
+      "fetched_at": "2026-07-23T02:16:02.429097+08:00"
+    },
+    {
+      "title": "To turn it on, open the connectors menu and find the Anthropic Economic Index in the directory. It w...",
+      "link": "https://x.com/claudeai/status/2079979810881728759",
+      "published": "2026-07-23T01:20:05+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "To turn it on, open the connectors menu and find the Anthropic Economic Index in the directory. It works in any conversation, and the full datasets remain free to download on our website.  \n  \nRead more: [anthropic.com/news/anthropic…](https://www.anthropic.com/news/anthropic-economic-index-connector)\n\n💬7🔄4❤️119👀19224📊19",
+      "tags": [
+        "Claude",
+        "Anthropic Economic Index",
+        "connector"
+      ],
+      "score": 80,
+      "summary": "Claude官方说明如何启用经济指数连接器，数据免费下载。",
+      "fetched_at": "2026-07-23T02:16:02.429098+08:00"
+    },
+    {
+      "title": "Brazil to the world: our new São Paulo hub is officially open\n\nVamos comemorar!",
+      "link": "https://x.com/figma/status/2079974754510053822",
+      "published": "2026-07-23T01:00:00+08:00",
+      "source": "Figma(@figma)",
+      "content": "Brazil to the world: our new São Paulo hub is officially open  \n  \nVamos comemorar!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079943435063087104/vid/avc1/1920x1080/ELDs-dQwY9lo2thL.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/figma/status/2079974754510053822/video/1)\n\n💬3🔄2❤️28👀3754📊5",
+      "tags": [
+        "Figma",
+        "São Paulo hub"
+      ],
+      "score": 60,
+      "summary": "Figma宣布在圣保罗开设新办公室。",
+      "fetched_at": "2026-07-23T02:16:02.429099+08:00"
+    },
+    {
+      "title": "My first time in 🇨🇦, land of maple syrup, hockey, and S-tier commerce infrastructure.\n\nOn this sta...",
+      "link": "https://x.com/rauchg/status/2079972624524849601",
+      "published": "2026-07-23T00:51:32+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "My first time in 🇨🇦, land of maple syrup, hockey, and S-tier commerce infrastructure.  \n  \nOn this stage [@tobi](https://x.com/tobi) and I will be discussing the future of the web, agents, CEO tech stacks, and more.\n\n![Tweet Image](https://pbs.twimg.com/media/HN2MDZUXYAA4kYA.jpg)\n\n💬15🔄2❤️123👀11127📊24",
+      "tags": [
+        "Guillermo Rauch",
+        "web future",
+        "agents"
+      ],
+      "score": 65,
+      "summary": "Guillermo Rauch将在加拿大讨论Web、Agent和CEO技术栈的未来。",
+      "fetched_at": "2026-07-23T02:16:02.429101+08:00"
+    },
+    {
+      "title": "Introducing companion mode\n\nThe difference between ordering a video and directing one\n\nNow your agen...",
+      "link": "https://x.com/HeyGen/status/2079979510783688953",
+      "published": "2026-07-23T01:18:54+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "Introducing companion mode  \n  \nThe difference between ordering a video and directing one  \n  \nNow your agent can pitch five angles, check in with a storyboard, then sketch frames to review  \n  \nYou steer every step and only build when approved  \n  \n$ npx hyperframes[@latest](https://x.com/latest) skills\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079978858418483200/vid/avc1/1080x1080/brWCjWTe0OEFabS6.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/HeyGen/status/2079979510783688953/video/1)\n\n💬281🔄205❤️372👀234155📊369",
+      "tags": [
+        "HeyGen",
+        "companion mode",
+        "hyperframes"
+      ],
+      "score": 85,
+      "summary": "HeyGen推出companion mode，允许Agent分步生成视频并交互式审查。",
+      "fetched_at": "2026-07-23T02:16:02.429102+08:00"
+    },
+    {
+      "title": "The repo:\nhttps://t.co/7fySD0Y8gN",
+      "link": "https://x.com/HeyGen/status/2079979512549511558",
+      "published": "2026-07-23T01:18:54+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "The repo:  \n[github.com/heygen-com/hyp…](https://github.com/heygen-com/hyperframes)\n\n💬0🔄0❤️51👀4799📊5",
+      "tags": [
+        "HeyGen",
+        "hyperframes",
+        "repo"
+      ],
+      "score": 75,
+      "summary": "HeyGen发布hyperframes的GitHub仓库链接。",
+      "fetched_at": "2026-07-23T02:16:02.429103+08:00"
+    },
+    {
+      "title": "Elle est tellement nulle qu'elle rate même sa démission.",
+      "link": "https://x.com/julien_c/status/2079969105839345705",
+      "published": "2026-07-23T00:37:33+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Elle est tellement nulle qu'elle rate même sa démission.\n\n![Agence France-Presse](https://pbs.twimg.com/profile_images/1665736545620328448/tt2qqGul_normal.png)\n\nAgence France-Presse@afpfr\n\n🇫🇷 La ministre de la Transition écologique Monique Barbut a présenté mercredi sa démission à Emmanuel Macron qui \"ne l'a pas acceptée\", et elle a décidé de \"poursuivre sa mission à la demande\" du président \"qui l'a assurée de son soutien\", a annoncé son cabinet à l'AFP.\n\n![Tweet Image](https://pbs.twimg.com/media/HN01iRCWwAAGPKd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/afpfr/status/2079877468446413026)\n\n💬0🔄3❤️14👀2791📊3",
+      "tags": [
+        "French politics"
+      ],
+      "score": 30,
+      "summary": "Julien Chaumond评论法国部长辞职未被接受。",
+      "fetched_at": "2026-07-23T02:16:02.429105+08:00"
+    },
+    {
+      "title": "We’re launching the Eval Engineering Skill, a skill that helps coding agents build evals using conte...",
+      "link": "https://x.com/LangChain/status/2079976932536414656",
+      "published": "2026-07-23T01:08:39+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We’re launching the Eval Engineering Skill, a skill that helps coding agents build evals using context from a repository + agent traces.  \n  \nEverything you need to know from [@vtrivedy10](https://x.com/vtrivedy10) ⤵️\n\n![Viv](https://pbs.twimg.com/profile_images/1805079750873923584/7sTh63Eo_normal.jpg)\n\nViv@Vtrivedy10\n\n[x.com/i/article/2079…](http://x.com/i/article/2079797742168150017)\n\n[🔗 View Quoted Tweet](https://x.com/Vtrivedy10/status/2079976006644072796)\n\n💬2🔄1❤️7👀1104📊2",
+      "tags": [
+        "LangChain",
+        "Eval Engineering Skill",
+        "coding agent"
+      ],
+      "score": 80,
+      "summary": "LangChain推出Eval Engineering Skill，帮助编码代理构建评估。",
+      "fetched_at": "2026-07-23T02:16:02.429106+08:00"
+    },
+    {
+      "title": "Code is speech. The people pushing to ban open source and free speech are the bad guys.",
+      "link": "https://x.com/naval/status/2079979965232160784",
+      "published": "2026-07-23T01:20:42+08:00",
+      "source": "Naval(@naval)",
+      "content": "Code is speech. The people pushing to ban open source and free speech are the bad guys.\n\n![Elon Musk](https://pbs.twimg.com/profile_images/2053244804520427520/m8mdWZCG_normal.jpg)\n\nElon Musk@elonmusk\n\nThose against freedom of speech are the bad guys!\n\n[🔗 View Quoted Tweet](https://x.com/elonmusk/status/1842729851872031167)\n\n💬62🔄64❤️712👀63742📊93",
+      "tags": [
+        "Naval",
+        "open source",
+        "free speech"
+      ],
+      "score": 65,
+      "summary": "Naval表示代码即言论，反对禁止开源和言论自由。",
+      "fetched_at": "2026-07-23T02:16:02.429108+08:00"
+    },
+    {
+      "title": "Coming soon to a foldable phone near you 😘",
+      "link": "https://x.com/Gemini_Notebook/status/2079970114141917434",
+      "published": "2026-07-23T00:41:33+08:00",
+      "source": "NotebookLM(@NotebookLM)",
+      "content": "Coming soon to a foldable phone near you 😘\n\n![Android](https://pbs.twimg.com/profile_images/2056417083861422080/r0ST1nl8_normal.jpg)\n\nAndroid@Android\n\nDrag, drop, & get things done 🪄 [@Gemini\\_Notebook](https://x.com/Gemini_Notebook) comes on the Galaxy Z series. Drag & drop sources right into the app to turn them into a podcast, slide deck, quiz, and more. Plus, get 6 months of Google AI Pro for all your side passions. #Gemini#GeminiIntelligenceyUnpacked\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079932425191268353/vid/avc1/720x720/jSFkedGghla2P95T.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/Android/status/2079932451820900789/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Android/status/2079932451820900789)\n\n💬4🔄8❤️118👀9802📊14",
+      "tags": [
+        "NotebookLM",
+        "Galaxy Z",
+        "foldable"
+      ],
+      "score": 80,
+      "summary": "NotebookLM即将登陆三星Galaxy Z系列折叠屏手机。",
+      "fetched_at": "2026-07-23T02:16:02.429109+08:00"
+    },
+    {
+      "title": "https://t.co/d4MpSoeTns",
+      "link": "https://x.com/OpenAIDevs/status/2079981413063909534",
+      "published": "2026-07-23T01:26:27+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "[x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1DxleegbXYjKL)\n\n💬13🔄18❤️176👀14256📊35",
+      "tags": [
+        "OpenAI",
+        "broadcast"
+      ],
+      "score": 70,
+      "summary": "OpenAI开发者账号分享了一个直播链接。",
+      "fetched_at": "2026-07-23T02:16:02.429111+08:00"
+    },
+    {
+      "title": "Sure. Deeply concerning. Anyway.",
+      "link": "https://x.com/itsPaulAi/status/2079965474956423626",
+      "published": "2026-07-23T00:23:07+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "Sure. Deeply concerning. Anyway.\n\n![Tweet Image](https://pbs.twimg.com/media/HN2FkwIbEAAObYh.jpg)\n\n![Director Michael Kratsios](https://pbs.twimg.com/profile_images/2036415476335833088/WPlUcJxT_normal.jpg)\n\nDirector Michael Kratsios@mkratsios47\n\nWe have information that Moonshot AI distilled Anthropic’s Fable for the development of its K3 model.   \n  \nTo do this they developed a sophisticated internal platform to conduct large scale distillation against U.S. models, allowing them to quickly switch between multiple methods of access to avoid detection. Moonshot AI has also acquired GB300-equipped servers and has accessed GB300s in Thailand, likely to train its AI models.  \n   \nThe United States strongly supports the free and fair development of AI, including a thriving competitive ecosystem that spans frontier models, specialized systems, open-source frameworks, and open-weight models. Legitimate AI distillation used to create smaller, more efficient models plays a vital role in this open innovation ecosystem. However, large-scale, covert industrial distillation aimed at stealing proprietary U.S. technology and undermining American research is unacceptable.\n\n[🔗 View Quoted Tweet](https://x.com/mkratsios47/status/2079933645888880708)\n\n💬2🔄1❤️8👀2811📊2",
+      "tags": [
+        "Moonshot AI",
+        "distillation",
+        "Anthropic"
+      ],
+      "score": 70,
+      "summary": "Paul Couvert转发美国官员指控Moonshot AI蒸馏Anthropic模型的消息。",
+      "fetched_at": "2026-07-23T02:16:02.429112+08:00"
+    },
+    {
+      "title": "@kevinleeme If you want to try this yummy ramen, here's the link - Kevin is not paying me for this I...",
+      "link": "https://x.com/petergyang/status/2079971761979113918",
+      "published": "2026-07-23T00:48:06+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "[@kevinleeme](https://x.com/kevinleeme) If you want to try this yummy ramen, here's the link - Kevin is not paying me for this I promise   \n  \n[shop.immieats.com/pages/physical…](https://shop.immieats.com/pages/physical-fitness-lp-v3?utm_campaign=search_branded&tw_source=google&tw_adid=740155163487&tw_campaign=22354569033&tw_kwdid=kwd-859776176628&gad_source=1&gad_campaignid=22354569033&gbraid=0AAAAACjfxKw2RRXhp3jZORglgNDjdss88&gclid=CjwKCAjw1IHTBhAaEiwA4AYNFgcMhYOZ2QC7tmUu_Wmbt5sYzC2tNzonSnL2SEtNAaKWNIsqBN4MOhoCkw4QAvD_BwE)\n\n💬1🔄0❤️1👀630📊1",
+      "tags": [
+        "ramen",
+        "promotion"
+      ],
+      "score": 20,
+      "summary": "Peter Yang推广拉面产品链接。",
+      "fetched_at": "2026-07-23T02:16:02.429114+08:00"
+    },
+    {
+      "title": "TICKR App: https://t.co/12DpSDOn0D\n\nDocs: https://t.co/tpyziKMyxy",
+      "link": "https://x.com/_philschmid/status/2079987694482972888",
+      "published": "2026-07-23T01:51:25+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "TICKR App: [aistudio.google.com/apps/bundled/t…](https://aistudio.google.com/apps/bundled/tickr)  \n  \nDocs: [ai.google.dev/gemini-api/doc…](https://ai.google.dev/gemini-api/docs/managed-agents-quickstart)\n\n💬0🔄0❤️0👀156",
+      "tags": [
+        "Gemini Managed Agents",
+        "TICKR",
+        "finance"
+      ],
+      "score": 75,
+      "summary": "Philipp Schmid分享TICKR金融多代理应用和文档链接。",
+      "fetched_at": "2026-07-23T02:16:02.429115+08:00"
+    },
+    {
+      "title": "Gemini 3.6 Flash is officially the new default model in Gemini Managed Agents. Your agents will run ...",
+      "link": "https://x.com/_philschmid/status/2079987692603945286",
+      "published": "2026-07-23T01:51:24+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Gemini 3.6 Flash is officially the new default model in Gemini Managed Agents. Your agents will run on 3.6 Flash automatically with zero code changes.   \n  \nYou can still route back to 3.5 Flash or use Gemini 3.5 Flash-Lite anytime by setting the target model ID directly in your agent config.  \n  \nTry out Gemini 3.6 Flash in Managed Agents right now using our interactive TICKR finance multi-agent app (video) in [@GoogleAIStudio](https://x.com/GoogleAIStudio), link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079987459627126784/vid/avc1/1920x1080/0kUvKcUwx2SVNNC6.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/_philschmid/status/2079987692603945286/video/1)\n\n💬1🔄0❤️5👀581📊2",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "Managed Agents",
+        "default model"
+      ],
+      "score": 85,
+      "summary": "Google将Gemini 3.6 Flash设为Managed Agents默认模型，零代码切换。",
+      "fetched_at": "2026-07-23T02:16:02.429117+08:00"
+    },
+    {
+      "title": "So much of our current political and economic climate can be explained by debt cycles— and how those...",
+      "link": "https://x.com/RayDalio/status/2079973819922489718",
+      "published": "2026-07-23T00:56:17+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "So much of our current political and economic climate can be explained by debt cycles— and how those cycles build on each other over time.  \n  \nIf you’d like more context on how all of these pieces come together, I recommend you watch my 30-minute explainer “How the Economic Machine Works” on here:   \n[youtube.com/watch?v=PHe0bX…](https://www.youtube.com/watch?v=PHe0bXAIuk0&t=1444s)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079944832194072576/vid/avc1/1080x1920/sECc1iwS697SMWDa.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/RayDalio/status/2079973819922489718/video/1)\n\n💬9🔄23❤️124👀26055📊29",
+      "tags": [
+        "Ray Dalio",
+        "debt cycles"
+      ],
+      "score": 50,
+      "summary": "Ray Dalio解释债务周期对政治经济的影响。",
+      "fetched_at": "2026-07-23T02:16:02.429118+08:00"
+    },
+    {
+      "title": "We rebuilt the app around how you actually build on a phone:\n\n🏠 A refreshed home screen: pick up ri...",
+      "link": "https://x.com/Replit/status/2079975097687810132",
+      "published": "2026-07-23T01:01:22+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "We rebuilt the app around how you actually build on a phone:  \n  \n🏠 A refreshed home screen: pick up right where you left off  \n🎙️ Voice input: talk to your app, watch Agent build it  \n👆 Swipe between chat, tasks, and preview  \n🔔 Live Activities that follow Agent's progress  \n  \nDownload it, talk to it, and build something on your way home.\n\n![Tweet Image](https://pbs.twimg.com/media/HN2OPDMWgAAVf09.jpg)\n\n💬0🔄1❤️2👀595📊1",
+      "tags": [
+        "Replit",
+        "mobile app",
+        "voice input"
+      ],
+      "score": 75,
+      "summary": "Replit详细介绍移动应用新功能：语音输入、滑动切换、实时活动。",
+      "fetched_at": "2026-07-23T02:16:02.429119+08:00"
+    },
+    {
+      "title": "Your ideas. Anywhere they find you.\n \nThe redesigned Replit mobile app is available now on iOS and A...",
+      "link": "https://x.com/Replit/status/2079975095120900285",
+      "published": "2026-07-23T01:01:21+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Your ideas. Anywhere they find you.  \n   \nThe redesigned Replit mobile app is available now on iOS and Android.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2079974998953873408/pu/vid/avc1/1280x720/57lI7zVJxRWWFuIo.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2079975095120900285/video/1)\n\n💬3🔄8❤️50👀10146📊12",
+      "tags": [
+        "Replit",
+        "mobile app",
+        "redesign"
+      ],
+      "score": 75,
+      "summary": "Replit宣布重新设计的移动应用在iOS和Android上线。",
+      "fetched_at": "2026-07-23T02:16:02.429121+08:00"
+    },
+    {
+      "title": "Download it today:\n\niOS: https://t.co/rIUcjy1usG\n\nGoogle Play: https://t.co/yvPzP2MDQg\n(Android user...",
+      "link": "https://x.com/Replit/status/2079975096236532134",
+      "published": "2026-07-23T01:01:21+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Download it today:  \n  \niOS: [apps.apple.com/us/app/replit-…](https://apps.apple.com/us/app/replit-vibe-code-with-ai-fast/id1614022293)  \n  \nGoogle Play: [play.google.com/store/apps/det…](https://play.google.com/store/apps/details?id=com.replit.app&pli=1)  \n(Android users - we're rolling out the new experience gradually, so hang tight if you don't see it yet.)\n\n💬1🔄0❤️2👀619📊1",
+      "tags": [
+        "Replit",
+        "mobile app",
+        "download"
+      ],
+      "score": 70,
+      "summary": "Replit提供移动应用下载链接。",
+      "fetched_at": "2026-07-23T02:16:02.429122+08:00"
+    },
+    {
+      "title": "Looking forward to Ignite this Fall! Join me in San Francisco or online - Nov. 18. https://t.co/QhWV...",
+      "link": "https://x.com/satyanadella/status/2079981377882361876",
+      "published": "2026-07-23T01:26:19+08:00",
+      "source": "Satya Nadella(@satyanadella)",
+      "content": "Looking forward to Ignite this Fall! Join me in San Francisco or online - Nov. 18. [ignite.microsoft.com/home?wt.mc\\_ID=…](https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_scl_twi_REGSatya)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079978072212926465/vid/avc1/1080x1080/KTNGIiCaEBkbkHt1.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/satyanadella/status/2079981377882361876/video/1)\n\n💬16🔄12❤️98👀14965📊23",
+      "tags": [
+        "Microsoft Ignite",
+        "Satya Nadella"
+      ],
+      "score": 70,
+      "summary": "Satya Nadella宣布Ignite 2026将于11月18日在旧金山举行。",
+      "fetched_at": "2026-07-23T02:16:02.429124+08:00"
+    },
+    {
+      "title": "Excited to see our first @Android Gemini Intelligence features rolling out to @SamsungMobile foldabl...",
+      "link": "https://x.com/sundarpichai/status/2079980789450555753",
+      "published": "2026-07-23T01:23:59+08:00",
+      "source": "Sundar Pichai(@sundarpichai)",
+      "content": "Excited to see our first [@Android](https://x.com/Android) Gemini Intelligence features rolling out to [@SamsungMobile](https://x.com/SamsungMobile) foldable devices. That includes task automation now expanding to 40+ popular apps to help handle everything from shopping and making dinner reservations to booking travel and buying concert tickets.\n\n![Sameer Samat](https://pbs.twimg.com/profile_images/1780061878586351616/o9kc6Yrj_normal.jpg)\n\nSameer Samat@ssamat\n\nCongrats to the [@SamsungMobile](https://x.com/SamsungMobile) team on another great #GalaxyUnpacked! Today, we introduced the first capabilities of Gemini Intelligence coming to Samsung’s new foldable devices, along with other updates:  \n  \n✨ Task automation: Delegate daily \"life admin\" (reservations, shopping, travel) across 40+ popular apps.   \n  \n📚 Gemini Notebook: Pre-installed on every new foldable device, you can drag-and-drop sources side-by-side to generate slide decks, podcasts, and custom study guides. Plus, get a 6-month trial of Google AI Pro!  \n  \n⌚️👓 Gemini on the go: Access Gemini on the Galaxy Watch9 by simply raising your wrist. We also shared two more frame designs of the upcoming intelligent eyewear collections with Gentle Monster and Warby Parker.  \n  \n📲 Easier switching: Our native migration tool now lets you switch from iPhone wirelessly, now transferring passwords, Wi-Fi credentials, and eSIMs.  \n  \nExcited to keep building the future of mobile with [@SamsungMobile](https://x.com/SamsungMobile). And thank you to the [@Android](https://x.com/Android) and [@GeminiApp](https://x.com/GeminiApp) teams for all the hard work!   \n  \nCheck out the blog post to learn more about today’s update[blog.google/products-and-p…](https://blog.google/products-and-platforms/platforms/android/galaxy-unpacked-2026)occ\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079933008878952448/vid/avc1/720x720/h_7VvYpnRYIcupNH.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/ssamat/status/2079933042718617782/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/ssamat/status/2079933042718617782)\n\n💬27🔄14❤️187👀32822📊30",
+      "tags": [
+        "Gemini Intelligence",
+        "Samsung",
+        "foldable"
+      ],
+      "score": 85,
+      "summary": "Sundar Pichai宣布Gemini Intelligence功能登陆三星折叠屏设备，支持40+应用任务自动化。",
+      "fetched_at": "2026-07-23T02:16:02.429125+08:00"
+    },
+    {
+      "title": ".....我自己给自己开发了一套。但我认为离消费市场还太远。",
+      "link": "https://x.com/feltanimalworld/status/2079984352490831889",
+      "published": "2026-07-23T01:38:08+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": ".....我自己给自己开发了一套。但我认为离消费市场还太远。\n\n![沐阳](https://pbs.twimg.com/profile_images/1986002260447707136/lf3UN9Xp_normal.jpg)\n\n沐阳@yyyole\n\n现下很多AI产品都是一厢情愿的自嗨，还是离用户太远了！！  \n  \n摩尔线程新发布的家庭AI中枢，产品经理直接被一大哥问懵了！  \n  \n合着卖一万多，就只是“比闹钟好”。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079927217426149376/vid/avc1/576x762/8CBnD0i2tuvlWZQ3.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yyyole/status/2079927428424864218/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/yyyole/status/2079927428424864218)\n\n💬0🔄0❤️1👀184",
+      "tags": [
+        "AI product",
+        "consumer market"
+      ],
+      "score": 30,
+      "summary": "Susan STEM评论AI产品离消费市场太远。",
+      "fetched_at": "2026-07-23T02:16:02.429126+08:00"
+    },
+    {
+      "title": "这个主要是因为一开始RepRap一开始是非常开放的社群。很多老玩家对出现 bambu这个比较后来的行业巨头，而且bambu的技术也继承自RepRap社区，不满是可以理解的。但是没办法，商业利益，就Ba...",
+      "link": "https://x.com/feltanimalworld/status/2079971170145742990",
+      "published": "2026-07-23T00:45:45+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "这个主要是因为一开始RepRap一开始是非常开放的社群。很多老玩家对出现 bambu这个比较后来的行业巨头，而且bambu的技术也继承自RepRap社区，不满是可以理解的。但是没办法，商业利益，就Bambu现在这个定价，属于普惠性质的。有利有弊吧。Maker世界不只是RepRap, 其他人也受益于Bambu这种调试好的封闭生态。\n\n![qiao](https://pbs.twimg.com/profile_images/2073191970433048576/g4CsB1_T_normal.png)\n\nqiao@qiaotweets\n\n[@feltanimalworld](https://x.com/feltanimalworld) 我看英文圈很多人（louis rossmann为首）对bambu的closed ecosystem不满，你对这个有什么看法吗\n\n[🔗 View Quoted Tweet](https://x.com/qiaotweets/status/2079967185565561292)\n\n💬0🔄0❤️4👀411📊1",
+      "tags": [
+        "3D printing",
+        "Bambu",
+        "closed ecosystem"
+      ],
+      "score": 30,
+      "summary": "Susan STEM讨论Bambu封闭生态的利弊。",
+      "fetched_at": "2026-07-23T02:16:02.429128+08:00"
+    },
+    {
+      "title": "Two OpenAI models found a zero-day flaw, escaped their sandbox, and broke into Hugging Face's produc...",
+      "link": "https://x.com/TheRundownAI/status/2079972212619055319",
+      "published": "2026-07-23T00:49:54+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Two OpenAI models found a zero-day flaw, escaped their sandbox, and broke into Hugging Face's production servers.  \n  \nAll to steal the answers to the test they were being given.  \n  \nHugging Face CEO Clem Delangue called the breach \"possibly the first of its kind\".\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079969954074431488/vid/avc1/720x1280/helU89TazRbtL0sw.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/TheRundownAI/status/2079972212619055319/video/1)\n\n💬7🔄2❤️18👀5144📊9",
+      "tags": [
+        "OpenAI",
+        "zero-day",
+        "Hugging Face"
+      ],
+      "score": 75,
+      "summary": "The Rundown AI报道OpenAI模型发现零日漏洞并入侵Hugging Face服务器。",
+      "fetched_at": "2026-07-23T02:16:02.429129+08:00"
+    },
+    {
+      "title": "If you’re interested in working on any of these ideas, you should apply to YC. \n\nThe deadline for ap...",
+      "link": "https://x.com/ycombinator/status/2079963748958445676",
+      "published": "2026-07-23T00:16:16+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "If you’re interested in working on any of these ideas, you should apply to YC.   \n  \nThe deadline for applying to the Fall batch is July 27th at 8pm PT: [ycombinator.com/apply](http://ycombinator.com/apply)\n\n💬0🔄0❤️3👀2064📊1",
+      "tags": [
+        "Y Combinator",
+        "apply"
+      ],
+      "score": 60,
+      "summary": "Y Combinator提醒秋季批次申请截止日期为7月27日。",
+      "fetched_at": "2026-07-23T02:16:02.429131+08:00"
+    },
+    {
+      "title": "AI-Native Compliance Infrastructure\n@DaivikGoel \n\nFinancial compliance still runs on spreadsheets, d...",
+      "link": "https://x.com/ycombinator/status/2079963744776659207",
+      "published": "2026-07-23T00:16:15+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "AI-Native Compliance Infrastructure  \n[@DaivikGoel](https://x.com/DaivikGoel)   \n  \nFinancial compliance still runs on spreadsheets, disconnected software, and growing teams of specialists. As companies expand into new markets, the cost and complexity of staying compliant can grow faster than the business itself.  \n  \nAI could monitor regulatory changes, flag anomalies, generate reports, and maintain audit trails in real time. The opportunity is not just to automate compliance work, but to rebuild the entire compliance stack around AI.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961631057190912/vid/avc1/1920x1080/OjjHv3ungu87dQcS.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963744776659207/video/1)\n\n💬1🔄1❤️7👀2343📊3",
+      "tags": [
+        "AI compliance",
+        "fintech"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出AI原生合规基础设施的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429132+08:00"
+    },
+    {
+      "title": "Self-Maintaining APIs\n@GaddipatiHarsha \n\nAPIs change constantly, but the way providers communicate t...",
+      "link": "https://x.com/ycombinator/status/2079963746764808559",
+      "published": "2026-07-23T00:16:15+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Self-Maintaining APIs  \n[@GaddipatiHarsha](https://x.com/GaddipatiHarsha)   \n  \nAPIs change constantly, but the way providers communicate those changes is still broken. Breaking updates go unnoticed, new features get buried in changelogs, and customers often find out only after something stops working.  \n  \nCoding agents make a better model possible. Instead of announcing a change, an API provider could find every affected use in a customer’s codebase and open the pull request itself.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961660782231552/vid/avc1/1920x1080/rGMx-UQY55VZQdl-.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963746764808559/video/1)\n\n💬5🔄0❤️19👀3627📊6",
+      "tags": [
+        "self-maintaining APIs",
+        "coding agent"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出自维护API的创业想法，利用编码代理自动更新。",
+      "fetched_at": "2026-07-23T02:16:02.429133+08:00"
+    },
+    {
+      "title": "Proving You’re Human\n@maxkolysh \n\nA finance worker recently wired $25 million after joining a video ...",
+      "link": "https://x.com/ycombinator/status/2079963742788583621",
+      "published": "2026-07-23T00:16:14+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Proving You’re Human  \n[@maxkolysh](https://x.com/maxkolysh)   \n  \nA finance worker recently wired $25 million after joining a video call with his CFO and colleagues. Every other person on the call was a deepfake.  \n  \nAs voice and video become easier to fake, the internet needs a new trust layer: a private, reliable way to verify that there is a real human behind a call, message, review, or transaction.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961569702838272/vid/avc1/1920x1080/4SD2NazBlXphtIeB.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963742788583621/video/1)\n\n💬3🔄1❤️9👀1588📊4",
+      "tags": [
+        "human verification",
+        "deepfake"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出验证人类身份的创业想法，应对深度伪造。",
+      "fetched_at": "2026-07-23T02:16:02.429135+08:00"
+    },
+    {
+      "title": "Data for the Real World\n@sdianahu & @_austintindle \n\nAI has become superhuman at code, language, and...",
+      "link": "https://x.com/ycombinator/status/2079963740771123516",
+      "published": "2026-07-23T00:16:14+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Data for the Real World  \n[@sdianahu](https://x.com/sdianahu) & [@\\_austintindle](https://x.com/_austintindle)   \n  \nAI has become superhuman at code, language, and images because it has enormous amounts of data to learn from. But our understanding of the physical world is still limited by sparse sensors and models built largely on intuition.  \n  \nCheaper sensors and better foundation models could unlock entirely new datasets for energy, agriculture, logistics, construction, and the climate. Once you can accurately model the physical world, you can begin to control it.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961534323916800/vid/avc1/1920x1080/Hg9TDWvHVGGZSzGp.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963740771123516/video/1)\n\n💬1🔄1❤️9👀1181📊2",
+      "tags": [
+        "physical world data",
+        "sensors"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出物理世界数据采集的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429136+08:00"
+    },
+    {
+      "title": "The Best Time to Build in Crypto\n@nemild\n\nCrypto is in a bear market, but the underlying technology ...",
+      "link": "https://x.com/ycombinator/status/2079963738720158078",
+      "published": "2026-07-23T00:16:13+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "The Best Time to Build in Crypto  \n[@nemild](https://x.com/nemild)  \n  \nCrypto is in a bear market, but the underlying technology is becoming more useful than ever.  \n  \nStablecoins are spreading across financial institutions, tokenized assets are reshaping trading, fintech companies are quietly building on crypto rails, and AI agents may rely on them to transact. The hype may be down, but the opportunity to build is not.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961470927089664/vid/avc1/1920x1080/w2H4rjW2SEOxuXpW.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963738720158078/video/1)\n\n💬1🔄0❤️7👀1218📊2",
+      "tags": [
+        "crypto",
+        "bear market"
+      ],
+      "score": 60,
+      "summary": "Y Combinator认为现在是构建加密项目的好时机。",
+      "fetched_at": "2026-07-23T02:16:02.429138+08:00"
+    },
+    {
+      "title": "New Operating Systems for the Physical World\n@charliewarren \n\nMost of the global workforce does not ...",
+      "link": "https://x.com/ycombinator/status/2079963736891376001",
+      "published": "2026-07-23T00:16:13+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "New Operating Systems for the Physical World  \n[@charliewarren](https://x.com/charliewarren)   \n  \nMost of the global workforce does not sit at a desk, but the software used to manage physical work has barely changed in decades.  \n  \nThe next operating systems will coordinate humans, robots, and AI agents together. The companies that build them could manage far more than software workflows. They could manage the labor itself.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961431651557376/vid/avc1/1920x1080/VfHZabNGpH1lUm89.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963736891376001/video/1)\n\n💬1🔄1❤️6👀1179📊2",
+      "tags": [
+        "physical world OS",
+        "robots",
+        "agents"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出为物理世界构建操作系统的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429139+08:00"
+    },
+    {
+      "title": "AI-Powered Consumer Products for a Billion People\n@raphaelschaad \n\nEvery major platform shift create...",
+      "link": "https://x.com/ycombinator/status/2079963732525133838",
+      "published": "2026-07-23T00:16:12+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "AI-Powered Consumer Products for a Billion People  \n[@raphaelschaad](https://x.com/raphaelschaad)   \n  \nEvery major platform shift creates new consumer giants. But three years into the AI era, ChatGPT is still the only new icon on most people’s home screens.  \n  \nAs intelligence gets better and dramatically cheaper, nearly every consumer category opens up again: education, health, finance, entertainment, transportation, and how we connect with each other. Consumer is going to be so back.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961340496760832/vid/avc1/1920x1080/EDNLgjX_aEVIwxKd.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963732525133838/video/1)\n\n💬1🔄0❤️10👀1273📊2",
+      "tags": [
+        "AI consumer products",
+        "platform shift"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出AI驱动的消费产品创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429140+08:00"
+    },
+    {
+      "title": "AI for the Aging Population\n@maxkolysh \n\nBy 2030, one in five Americans will be over 65, and there a...",
+      "link": "https://x.com/ycombinator/status/2079963734475432112",
+      "published": "2026-07-23T00:16:12+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "AI for the Aging Population  \n[@maxkolysh](https://x.com/maxkolysh)   \n  \nBy 2030, one in five Americans will be over 65, and there are nowhere near enough caregivers to support them.  \n  \nAI could help older adults live safely and independently through better voice interfaces, monitoring, robotics, and tools for family caregivers. It is one of the world’s largest and most underserved markets, and it is growing every day.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961381969997824/vid/avc1/1920x1080/y-DiUl291_DXkDxu.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963734475432112/video/1)\n\n💬2🔄1❤️5👀1334📊2",
+      "tags": [
+        "AI for aging",
+        "caregivers"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出AI服务老龄化人口的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429142+08:00"
+    },
+    {
+      "title": "Compute at Sea\n@FrancoisChauba1 \n\nAI is running out of compute, and data centers are running out of ...",
+      "link": "https://x.com/ycombinator/status/2079963730457329886",
+      "published": "2026-07-23T00:16:11+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Compute at Sea  \n[@FrancoisChauba1](https://x.com/FrancoisChauba1)   \n  \nAI is running out of compute, and data centers are running out of electricity and land.  \n  \nOne possible solution is to move compute offshore. The ocean offers abundant space, sunlight, and natural cooling, opening the door to fleets of modular data centers operating together as a global cloud.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961289191997440/vid/avc1/1920x1080/iQapO8Xkl2Tp_FxU.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963730457329886/video/1)\n\n💬1🔄0❤️6👀2125📊2",
+      "tags": [
+        "compute at sea",
+        "data center"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出海上计算中心的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429143+08:00"
+    },
+    {
+      "title": "Multiplayer AI\n@aaron_epstein \n\nThe best work tools became more powerful when they became multiplaye...",
+      "link": "https://x.com/ycombinator/status/2079963728439832823",
+      "published": "2026-07-23T00:16:11+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Multiplayer AI  \n[@aaron\\_epstein](https://x.com/aaron_epstein)   \n  \nThe best work tools became more powerful when they became multiplayer. But AI is still mostly trapped in private chats, with agents working in sessions that teammates can’t join or influence.  \n  \nThe next generation of AI tools will let teams work with agents together in real time: watching, redirecting, and handing off work across engineering, sales, support, legal, finance, and more. AI’s multiplayer moment is coming.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961238185095168/vid/avc1/1920x1080/x3yBXEmHARBTFZxY.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963728439832823/video/1)\n\n💬1🔄0❤️7👀1292📊2",
+      "tags": [
+        "multiplayer AI",
+        "team collaboration"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出多人协作AI工具的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429144+08:00"
+    },
+    {
+      "title": "The Future of American Defense\n@SecArmy \n\nWarfare is at an inflection point, and the Army is replaci...",
+      "link": "https://x.com/ycombinator/status/2079963724400771216",
+      "published": "2026-07-23T00:16:10+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "The Future of American Defense  \n[@SecArmy](https://x.com/SecArmy)   \n  \nWarfare is at an inflection point, and the Army is replacing the old playbook with commercially developed, modular technology that can be deployed and improved quickly.  \n  \nWe're looking for founders building low-cost interceptors, next-generation sensors, drones, resilient logistics, advanced manufacturing, and hardware that can survive the world’s harshest environments.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961145319063552/vid/avc1/1080x1920/0pwsmdLEXm0pcBlk.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963724400771216/video/1)\n\n💬1🔄1❤️26👀7719📊5",
+      "tags": [
+        "defense",
+        "startups"
+      ],
+      "score": 60,
+      "summary": "Y Combinator提出美国国防技术创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429146+08:00"
+    },
+    {
+      "title": "A Cloud for Small Software\n@koomen \n\nAgents make it easy to build personal tools for yourself or you...",
+      "link": "https://x.com/ycombinator/status/2079963726435021232",
+      "published": "2026-07-23T00:16:10+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "A Cloud for Small Software  \n[@koomen](https://x.com/koomen)   \n  \nAgents make it easy to build personal tools for yourself or your team. But deploying, securing, and sharing that software is still far more complicated than creating it.  \n  \nA cloud built for small software could remove that complexity and make bespoke tools as easy to share with a colleague as a Google Doc.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961189594116096/vid/avc1/1920x1080/k8acFgJWvi2LBP2i.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963726435021232/video/1)\n\n💬1🔄0❤️8👀1331📊2",
+      "tags": [
+        "cloud for small software",
+        "agents"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出为小型软件构建云服务的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429147+08:00"
+    },
+    {
+      "title": "The Primer\n@amiklas \n\nThe best education has always come from one-on-one tutoring, but that privileg...",
+      "link": "https://x.com/ycombinator/status/2079963722253214112",
+      "published": "2026-07-23T00:16:09+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "The Primer  \n[@amiklas](https://x.com/amiklas)   \n  \nThe best education has always come from one-on-one tutoring, but that privilege has historically been reserved for very few people.  \n  \nAI could give every child a patient, adaptive tutor that grows with them over the years, beginning with reading, writing, and arithmetic, and eventually helping them learn to think and reason. For the first time, Neal Stephenson’s Primer is starting to feel possible.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079961061474934784/vid/avc1/1920x1080/PwIfsKBiYp2T8JR6.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2079963722253214112/video/1)\n\n💬1🔄1❤️8👀3161📊2",
+      "tags": [
+        "AI tutor",
+        "education"
+      ],
+      "score": 70,
+      "summary": "Y Combinator提出AI一对一辅导的创业想法。",
+      "fetched_at": "2026-07-23T02:16:02.429149+08:00"
+    },
+    {
+      "title": "AI is moving into the physical world. \n\nWe're excited about a new wave of startups rebuilding the sy...",
+      "link": "https://x.com/ycombinator/status/2079963719912796441",
+      "published": "2026-07-23T00:16:09+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "AI is moving into the physical world.   \n  \nWe're excited about a new wave of startups rebuilding the systems that power the real world, from education and healthcare to defense, finance, infrastructure, and work itself.  \n  \n[ycombinator.com/rfs](http://ycombinator.com/rfs)\n\n![Tweet Image](https://pbs.twimg.com/media/HN2BewZbsAA1mp-.jpg)\n\n💬16🔄27❤️204👀22082📊54",
+      "tags": [
+        "Y Combinator",
+        "RFS",
+        "physical world"
+      ],
+      "score": 70,
+      "summary": "Y Combinator发布新一批RFS，聚焦AI进入物理世界。",
+      "fetched_at": "2026-07-23T02:16:02.429150+08:00"
+    },
+    {
+      "title": "为什么会有人热衷于做流水很高利润很少的生意\n感觉阿猫阿狗都不乐意做吧",
+      "link": "https://x.com/yangyi/status/2079977463443251637",
+      "published": "2026-07-23T01:10:46+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "为什么会有人热衷于做流水很高利润很少的生意  \n感觉阿猫阿狗都不乐意做吧\n\n💬1🔄0❤️0👀425📊1",
+      "tags": [
+        "business",
+        "profit"
+      ],
+      "score": 20,
+      "summary": "Yangyi质疑高流水低利润的生意模式。",
+      "fetched_at": "2026-07-23T02:16:02.429151+08:00"
+    },
+    {
+      "title": "welcome @seeamshahidnoor to the Speedrun team!! Joining us from Scale AI 💪🏼",
+      "link": "https://x.com/andrewchen/status/2079970265732468924",
+      "published": "2026-07-23T00:42:09+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "welcome [@seeamshahidnoor](https://x.com/seeamshahidnoor) to the Speedrun team!! Joining us from Scale AI 💪🏼\n\n![Seeam Shahid Noor](https://pbs.twimg.com/profile_images/2058775860749213696/rhN82gLh_normal.jpg)\n\nSeeam Shahid Noor@seeamshahidnoor\n\nBIG Update: I’m joining [@a16z](https://x.com/a16z) as an Investing Partner on the a16z [@speedrun](https://x.com/speedrun) team! 🎉  \n  \nI’ll be focusing on early-stage investing as part of speedrun, where we invest up to $1M in exceptional founders building great companies, & give them unfair advantages to succeed. If you are or know a founder who wants to win, I'd love to meet you! I'm especially excited about compelling novel ideas in AI dev tools, agent RL & evals, data, & infra in general.  \n  \nFor those who have known me over the years, you know how much joy I get in supporting those around me. From working countless nights to support my brilliant teammates at [@scale\\_AI](https://x.com/scale_AI), to spending thousands of hours in my leisure time making free videos for millions of students in Bangladesh, I have given my all to support those doing their life's most important work. That has always been my personal mission.  \n  \nSo, when I met the speedrun team, a team that works relentlessly to make early bets & support founders from the very beginning of their journey, I knew this was the dream team for me. I am thrilled to join this shared mission with [@andrewchen](https://x.com/andrewchen), [@Tocelot](https://x.com/Tocelot), [@tkexpress11](https://x.com/tkexpress11), [@emilybenn12](https://x.com/emilybenn12), [@kenanhsaleh](https://x.com/kenanhsaleh), [@far33d](https://x.com/far33d), [@marcussegal](https://x.com/marcussegal), [@ndrewlee](https://x.com/ndrewlee), & the rest of the team! It's time to build.\n\n![Tweet Image](https://pbs.twimg.com/media/HN2GI-pasAAABIK.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/seeamshahidnoor/status/2079968739769102641)\n\n💬1🔄0❤️16👀3983📊2",
+      "tags": [
+        "Speedrun",
+        "a16z",
+        "investing"
+      ],
+      "score": 60,
+      "summary": "Andrew Chen欢迎Seeam Shahid Noor加入a16z Speedrun团队。",
+      "fetched_at": "2026-07-23T02:16:02.429153+08:00"
+    },
+    {
+      "title": "https://t.co/juAGYwoKIE",
+      "link": "https://x.com/omarsar0/status/2079982491578827214",
+      "published": "2026-07-23T01:30:44+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "[x.com/i/article/2079…](http://x.com/i/article/2079981292108582912)\n\n💬0🔄0❤️1👀492",
+      "tags": [
+        "article",
+        "link"
+      ],
+      "score": 50,
+      "summary": "Elvis分享一篇文章链接。",
+      "fetched_at": "2026-07-23T02:16:02.429154+08:00"
+    },
+    {
+      "title": "达文西的手电筒：没光不会亮，有光才能亮",
+      "link": "https://x.com/dotey/status/2079973815568699833",
+      "published": "2026-07-23T00:56:16+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "达文西的手电筒：没光不会亮，有光才能亮\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079973623272484864/vid/avc1/854x480/WrvL8pDTkdsfZJ6N.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/dotey/status/2079973815568699833/video/1)\n\n![沐阳](https://pbs.twimg.com/profile_images/1986002260447707136/lf3UN9Xp_normal.jpg)\n\n沐阳@yyyole\n\n现下很多AI产品都是一厢情愿的自嗨，还是离用户太远了！！  \n  \n摩尔线程新发布的家庭AI中枢，产品经理直接被一大哥问懵了！  \n  \n合着卖一万多，就只是“比闹钟好”。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079927217426149376/vid/avc1/576x762/8CBnD0i2tuvlWZQ3.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yyyole/status/2079927428424864218/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/yyyole/status/2079927428424864218)\n\n💬6🔄0❤️3👀2514📊4",
+      "tags": [
+        "AI product",
+        "user feedback"
+      ],
+      "score": 30,
+      "summary": "宝玉评论摩尔线程AI中枢产品经理被用户质疑。",
+      "fetched_at": "2026-07-23T02:16:02.429155+08:00"
+    },
+    {
+      "title": "有同感，我现在更多让 AI 提供素材，自己再组织整理会好很多。",
+      "link": "https://x.com/dotey/status/2079970423949664671",
+      "published": "2026-07-23T00:42:47+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "有同感，我现在更多让 AI 提供素材，自己再组织整理会好很多。\n\n![Jerry Liu](https://pbs.twimg.com/profile_images/1283610285031460864/1Q4zYhtb_normal.jpg)\n\nJerry Liu@jerryjliu0\n\ni used to do this a lot. but then i felt like i was getting progressively dumber at writing.   \n  \ni think there's some value in forcing your own brain to sharpen your thinking, instead of offloading it to AI   \n  \nwhat i found helpful is to manually type out my own understanding in distilled bullet points after reading the LLM output\n\n[🔗 View Quoted Tweet](https://x.com/jerryjliu0/status/2079779824827285905)\n\n💬4🔄0❤️9👀3139📊4",
+      "tags": [
+        "AI writing",
+        "personal use"
+      ],
+      "score": 40,
+      "summary": "宝玉同意Jerry Liu观点，认为应让AI提供素材而非直接生成。",
+      "fetched_at": "2026-07-23T02:16:02.429157+08:00"
+    },
+    {
+      "title": "项目地址：https://t.co/McdCJKTIJ1",
+      "link": "https://x.com/op7418/status/2079966101610594423",
+      "published": "2026-07-23T00:25:37+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "项目地址：[github.com/op7418/CodePil…](https://github.com/op7418/CodePilot)\n\n💬0🔄0❤️0👀764",
+      "tags": [
+        "CodePilot",
+        "project"
+      ],
+      "score": 50,
+      "summary": "歸藏分享CodePilot项目GitHub地址。",
+      "fetched_at": "2026-07-23T02:16:02.429158+08:00"
     }
   ]
 }
