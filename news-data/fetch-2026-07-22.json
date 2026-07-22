@@ -3583,6 +3583,564 @@
       "score": 70,
       "summary": "AWS计费系统配置变更导致用户看到万亿级账单，内部告警失效，4.5小时后才被用户发现。",
       "fetched_at": "2026-07-22T19:56:36.761412+08:00"
+    },
+    {
+      "title": "Architecting offline-first generative AI applications for edge deployments using AWS services",
+      "link": "https://aws.amazon.com/blogs/architecture/architecting-offline-first-generative-ai-applications-for-edge-deployments-using-aws-services/",
+      "published": "2026-07-22T21:32:57+08:00",
+      "source": "AWS Architecture Blog",
+      "content": "According to Siemens’ 2024 report *The True Cost of Downtime*, Fortune 500 companies lose an estimated $1.4 trillion annually because of unplanned downtime. This downtime is often worsened by a lack of skills to detect and resolve issues quickly. Generative AI offers a promising path to address this, but deploying these capabilities in industrial environments introduces a distinct architectural challenge: how do you bring the power of large-scale AI to locations where cloud connectivity is unreliable or unavailable?\n\nThe answer lies in an offline-first architecture, one that moves AI inference to the edge while using cloud services for model customization, deployment orchestration, and continuous improvement. This pattern requires careful coordination across multiple AWS services spanning artificial intelligence and machine learning (AI/ML), Internet of Things (IoT), and storage, and demands deliberate trade-offs between model capability, hardware constraints, and operational complexity.\n\nThe following are a few potential use cases that could benefit smart applications at the edge:\n\n* Maintenance crews struggle to correlate real-time log feeds with relevant machine manuals, and analyze situations in-hand.\n* Offshore platforms, remote drilling sites, and pipeline maintenance crews operating in areas with limited satellite connectivity requiring instant access to safety procedures, equipment manuals, and regulatory compliance documentation.\n* Remote agricultural facilities with precision farming equipment requiring access to machinery manuals, crop management protocols, and safety procedures.\n\nIn this post, we walk through a reference architecture for building and deploying a generative AI application at the edge using AWS services. We cover the end-to-end pattern, from model customization in the cloud using [Amazon Bedrock](https://aws.amazon.com/bedrock/) and [Amazon SageMaker AI](https://aws.amazon.com/sagemaker/ai/), to edge deployment using [AWS IoT Greengrass](https://aws.amazon.com/greengrass/), to local inference orchestrated by [Strands Agents](https://strandsagents.com/). Along the way, we highlight the key architectural decisions and service integration patterns that make this approach work.\n\n*This post describes a reference architecture. It is not intended for direct production use. Perform a security review and implement controls appropriate to your workload before deploying to production.*\n\n## Architectural decisions for offline-first AI\n\nDesigning an offline-first AI architecture starts with a critical decision: how to customize a language model for your domain while keeping it small enough to run on edge hardware. The model must fit within the compute and memory constraints of site-level devices (typically GPUs with 16 GB or more of VRAM), which means working with small language models (SLMs). The customization strategy you choose directly affects your architecture’s complexity, cost, and data pipeline requirements.\n\nThe following strategies represent increasing levels of architectural complexity, each with different infrastructure requirements and expected outcomes:\n\n* **Model fine-tuning (FT)**: A relatively lightweight process to adapt a pre-trained model for specialized tasks. For example, you could fine-tune a model to answer troubleshooting questions about specific equipment using labeled Q&A pairs from maintenance tickets. Fine-tuning excels at teaching a model the format, style, and structure of the outputs you want. However, it’s less effective at injecting new domain knowledge that wasn’t in the base model’s original training data.\n* **Continued pre-training (CPT)**: A more resource-intensive process that extends the base model’s training with domain-specific unlabeled data to embed new knowledge. For example, you could continue training on technical manuals, repair logs, and engineering documentation to teach the model equipment-specific terminology, failure patterns, and diagnostic procedures. This approach effectively injects domain knowledge into model parameters but requires significant computational resources and larger datasets compared to fine-tuning.\n* **Hybrid approach (FT + RAG)**: Retrieval Augmented Generation (RAG) enhances model responses by retrieving relevant documents at inference time, which provides accurate, up-to-date answers with source citations and reduces hallucinations. For our edge implementation, we use ChromaDB (SQLite + HNSW defaults) with a sentence-transformer embedding model (384 dimensions) running on CPU. Documents are chunked at 512 tokens with 50-token overlap. With a dataset up to 5 GB, retrieval latency stays under 50 ms. The entire RAG pipeline lives on CPU/SSD with zero GPU VRAM consumption, keeping the full 16 GB dedicated to the large language model (LLM).\n* **Hybrid approach (CPT + RAG + FT)**: Combines continued pre-training of the embedding model with fine-tuning of the language model to optimize the entire RAG pipeline. Through continuing training your embedding model on domain-specific queries to better understand domain-specific terminology and jargon, while fine-tuning your language model on Q&A pairs for the format and tone you want. For example, when an operator asks about the state of a cookie machine, they expect to get the application to check current state, throughput per minute, and visual quality of Cookies! This dual optimization ensures both accurate retrieval and high-quality responses, ideal for knowledge-intensive applications.\n\nTo decide on the right strategy for your application, you need to work backward from the use case requirements and expected outcomes.\n\n## Reference architecture\n\nLet’s examine a reference architecture for an edge-deployed generative AI solution built on AWS. This architecture addresses a manufacturing use case where operators need instant access to equipment documentation, log correlation, and troubleshooting guidance, all without depending on cloud connectivity. We chose the hybrid approach (FT + RAG) because it balances two architectural concerns: keeping the on-device model compact through fine-tuning for task-specific behavior, while using RAG to provide up-to-date knowledge retrieval without retraining. The following diagram depicts the end-to-end architecture:\n\n![End-to-end offline-first generative AI edge architecture spanning cloud model customization and on-device inference](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/07/ARCHBLOG-1590-1.png)\n\n**Note:** The architecture spans two trust domains. On the cloud side, each service ([Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/), Amazon Bedrock, SageMaker AI, IoT Greengrass) operates under a dedicated least-privilege [AWS Identity and Access Management (IAM)](https://aws.amazon.com/iam/) role. All cloud-to-edge communication uses mutual TLS using IoT Greengrass device certificates. The operator portal requires authentication. On the edge device, the operator.\n\nThe architecture is organized into three layers: cloud-side preparation (steps 1–3), deployment orchestration (step 4), and edge-side inference (steps 5–9). Each layer uses specific AWS services chosen for their integration capabilities.\n\n### 1. Document base setup\n\nTechnical manuals and Standard Operating Procedures (SOPs) are stored in Amazon S3, serving as the single source of truth for both the cloud-side training pipeline and the edge-side RAG knowledge base. The integration of Amazon S3 with both SageMaker AI and IoT Greengrass makes it the natural choice for artifacts that must flow between cloud and edge.\n\n### 2. Preparing labeled data\n\nUsing [Amazon Nova Pro](https://aws.amazon.com/nova/) on Amazon Bedrock, we process raw documentation into structured question-answer-context pairs for fine-tuning. This is a key architectural decision: rather than manually curating training data, we use a large foundation model (FM) in the cloud to generate high-quality labeled data at scale. The serverless inference of Amazon Bedrock keeps this step cost-effective, and the output feeds directly into the SageMaker AI pipeline.\n\n### 3. Model customization (FMOps pipeline)\n\nAmazon SageMaker AI Pipelines orchestrates an automated FMOps pipeline that fine-tunes gpt-oss-20b (Mixture of Experts (MoE) architecture: 21B total parameters, 3.6B active per token, 32 experts, 128k context length) on the domain-specific Q&A pairs. The pipeline pattern here is deliberate: it enables repeatable, versioned model customization that can be triggered whenever new documentation is added. The pipeline trains the model to understand equipment-specific terminology and response formats, then stores the customized model artifact in S3 for downstream deployment.\n\n### 4. Edge deployment\n\nThe edge device (in our case, a g4dn.12xlarge with 4× NVIDIA T4 GPUs, 16 GiB each, 64 GiB total accelerator memory, 48 vCPUs, and 129 GiB system RAM) provides the GPU compute necessary for local inference. The hardware selection is an important architectural constraint that directly influences model viability and serving strategy. With gpt-oss-20b occupying 13 GB per T4 GPU, two deployment strategies are available depending on your throughput and latency priorities:\n\n* **Model Replication** — a full model copy on each of the four GPUs, which supports four concurrent client requests without queuing. This maximizes throughput at the cost of using 81 percent of each GPU’s memory for model weights alone.\n* **Tensor Parallelism** — the model is sharded across all four GPUs at 3.2 GB per GPU, leaving approximately 12.8 GB available on each GPU. This remaining memory serves as KV cache, supporting the full 128K context window for long-form interactions.\n\nThe choice between these strategies depends on your workload profile: replication suits high-concurrency, short-query environments, while tensor parallelism suits fewer concurrent users with longer, more complex interactions.\n\n### 5. Edge device (manufacturing facility)\n\nThe edge device (in our case, NVIDIA Jetson Xavier) provides the GPU compute necessary for local inference. The hardware selection is an important architectural constraint: you need sufficient VRAM (16 GB or more) to run the quantized SLM, which directly influences which models are viable for your deployment.\n\n### 6. User interface (Flask operator portal)\n\nA Flask-based web interface running locally on the device allows maintenance operators and technicians to submit queries about equipment issues, safety procedures, or maintenance tasks. Running the UI on-device eliminates any dependency on external connectivity for the user-facing layer.\n\n### 7. Off-cloud generative AI\n\nThe fine-tuned SLM runs on-premises using Ollama as the inference runtime. Ollama provides a lightweight, container-friendly serving layer that supports quantized model formats (GGUF) for efficient inference within the device’s memory constraints. This decouples the model serving infrastructure from any cloud dependency.\n\n### 8. Generative AI orchestration\n\nStrands Agents provides the orchestration layer that coordinates the query processing workflow. It routes requests to the appropriate tools: querying the on-site RAG knowledge base, collecting device telemetry data. This agent-based pattern provides extensibility. You can add new tools and data sources without modifying the core inference pipeline.\n\n### 9. Continuous improvement (feedback loop)\n\nWhen connectivity is available, user interactions and feedback flow back to the cloud, enabling ongoing model refinement through the FMOps pipeline. This creates a virtuous cycle: edge usage data improves the next model version, which Greengrass deploys back to the device. The architecture is designed to be resilient to connectivity gaps. Feedback is queued locally and synchronized opportunistically.\n\n## Prerequisites\n\nTo be able to implement a similar solution, you need:\n\n1. An AWS account. If you don’t already have an AWS account, you can [create one](https://aws.amazon.com/).\n2. Your access to the AWS account must have IAM permissions to services including Amazon SageMaker AI, Amazon Bedrock, AWS IoT Greengrass, and Amazon S3.\n3. A hardware device preferably with a GPU that has a sufficient VRAM (>16 GB) to run an SLM.\n\n## Implementation overview\n\nThis section summarizes the key implementation steps. Each component uses standard AWS service configurations:\n\n* Data preparation – Amazon Nova Pro on Amazon Bedrock generates structured Q&A pairs from raw documentation, producing training data for the SageMaker AI fine-tuning pipeline.\n* Model fine-tuning – SageMaker AI Pipelines runs a QLoRA fine-tuning job on gpt-oss-20b using the generated dataset, then stores the customized model artifact in S3.\n* Edge deployment – AWS IoT Greengrass (or AWS Systems Manager) transfers the quantized model (GGUF format) to the edge device.\n* Local inference – Ollama serves the fine-tuned model with a domain-specific system prompt constraining responses to equipment-relevant answers.\n* Orchestration – Strands Agents coordinates the workflow, routing queries to the RAG knowledge base or telemetry tools as needed.\n\nFor the fine-tuning notebook, refer to this example notebook for fine-tuning an SLM using Amazon SageMaker AI.\n\n## Security considerations\n\nMoving inference to the edge shifts the security perimeter. In a cloud-native deployment, AWS manages much of the infrastructure security. At the edge, you own the full stack, which spans physical device access through application-layer controls. This section outlines the security controls to implement when adapting this architecture for your environment.\n\n**Authentication and access control.** The Flask operator portal runs on an isolated device, but physical proximity doesn’t replace authentication. Integrate with your organization’s identity provider (SAML/OIDC) or implement certificate-based mutual TLS. Enforce role-based access so that operators, administrators, and maintenance personnel each see only the interfaces relevant to their function.\n\n**Encryption at rest.** Model artifacts and the ChromaDB vector database contain proprietary knowledge. Encrypt the edge device’s storage volume using full-disk encryption (for example, LUKS on Linux or BitLocker on Windows). Manage encryption keys through AWS IoT Greengrass secret manager or a hardware Trusted Platform Module (TPM) on the device.\n\n**Encryption in transit.** All communication between the edge device and AWS (including the IoT Greengrass deployment channel and the feedback synchronization loop) must use TLS 1.2 or later. For internal communication between edge components (Flask portal to Ollama, Strands Agents to ChromaDB), enforce TLS even on the loopback interface to prevent local interception.\n\n**Input validation and prompt guardrails.** The Strands Agents orchestration layer accepts natural language input from operators. Apply input validation to reject malformed or excessively long queries. Implement prompt guardrails to detect and block prompt injection attempts. On the output side, apply content filtering to prevent the model from surfacing sensitive information outside its intended scope.\n\n**Network segmentation.** Separate edge components into distinct network zones: the operator-facing portal in a perimeter network, the inference runtime in a restricted zone, and the cloud sync channel on an isolated outbound-only interface. Use firewall rules to enforce that only the expected traffic flows between zones.\n\n**IAM least privilege.** On the cloud side, each AWS service in the pipeline should operate with its own IAM role scoped to minimum required permissions. The IoT Greengrass core device role should only access the specific S3 prefixes and IoT topics it needs. SageMaker pipeline execution roles shouldn’t have access to production S3 buckets.\n\n**Logging and monitoring.** Enable [AWS CloudTrail](https://aws.amazon.com/cloudtrail/) and [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) for all cloud-side services. On the edge device, log all operator queries, model responses, and sync events locally. When connectivity is available, forward edge logs to Amazon CloudWatch Logs or Amazon S3 for centralized analysis. Set up alerts for anomalous patterns such as unexpected query volumes, repeated authentication failures, or unauthorized access attempts.\n\n## Results\n\nWe evaluated the fine-tuned gpt-oss-20b model against the base model using 30 domain-specific question-answer pairs. Both configurations use the full RAG pipeline (ChromaDB + sentence-transformer embedding model) as the retrieval layer. The variable being tested is whether fine-tuning the language model improves generation quality when given the same retrieved context. Three LLM judges (Claude 4.5 Haiku and Claude 4.5 Sonnet using Amazon Bedrock, and Amazon Nova Pro) scored responses on a 12-point scale across accuracy, completeness, and relevance.\n\n|  |  |  |\n| --- | --- | --- |\n| **LLM Evaluator** | **SLM** | **Average score** |\n| Claude 4.5 Haiku | Fine-tuned gpt-oss-20b + RAG | 10.20/12 (85%) |\n|  | Base gpt-oss-20b + RAG | 8.20/12 (68.3%) |\n| Claude 4.5 Sonnet | Fine-tuned gpt-oss-20b + RAG | 9.20/12 (76.7%) |\n|  | Base gpt-oss-20b + RAG | 7.49/12 (61.7%) |\n| Nova Pro | Fine-tuned gpt-oss-20b + RAG | 9.90/12 (82.5%) |\n|  | Base gpt-oss-20b +RAG | 8.70/12 (72.5%) |\n\nThese results support the hybrid approach (FT + RAG) outlined in our solution architecture, demonstrating that even with a relatively small fine-tuning dataset, significant performance improvements can be achieved for domain-specific applications at the edge.\n\n## Cleanup\n\nThe AWS services used in this architecture are fully managed services that follow a pay-as-you-go pricing model, meaning you only pay for actual invocations. Exception for this can be the storage costs for the labeled data and the finetuned model in Amazon S3 which you can consider to delete if not in use.\n\n## Conclusion\n\nThis post presents a reference architecture for deploying generative AI at the edge using AWS services. The key architectural patterns demonstrated include:\n\nCloud-side model factory – Using Amazon Bedrock for automated training data generation and Amazon SageMaker AI Pipelines for repeatable, versioned model customization, creating a scalable FMOps workflow that decouples model preparation from deployment.\n\nManaged cloud-to-edge bridge – AWS IoT Greengrass provides the deployment orchestration layer, handling model packaging, versioning, and lifecycle management without requiring persistent connectivity to target devices.\n\nSelf-contained edge inference stack – A lightweight runtime (Ollama) combined with an agent-based orchestration framework (Strands Agents) supports local AI inference with extensible tool integration, all operating independently of cloud availability.\n\nFeedback-driven continuous improvement – An asynchronous feedback loop synchronizes usage data back to the cloud when connectivity permits, for iterative model refinement without disrupting edge operations.\n\nThese patterns are applicable beyond manufacturing. Any environment with intermittent connectivity, strict latency requirements, or data locality constraints (offshore energy, remote agriculture, transportation, defense) can benefit from this architectural approach. The critical design decisions will vary by use case: selecting the right model customization strategy, sizing edge hardware to model requirements, and choosing between RAG and fine-tuning. The overall integration pattern remains consistent.\n\nAs with any reference architecture, we recommend that you conduct a security review before production deployment.\n\nTo explore this pattern, consider identifying a use case with clear connectivity constraints and working backward from your edge hardware requirements to select a model customization strategy. The hybrid (FT + RAG) approach described in this post offers the right balance of capability and complexity. Expand it as you validate operational improvements.\n\nReady to explore more? Join us at re:Invent for related sessions: Real-time insights for smart manufacturing with AWS Serverless (CNS375) and Implement Agentic AI at the edge for industrial automation (HMC317).\n\n---\n\n## About the authors",
+      "tags": [
+        "AWS",
+        "离线优先",
+        "边缘部署"
+      ],
+      "score": 79,
+      "summary": "AWS架构博客介绍使用AWS服务构建离线优先的生成式AI边缘应用。",
+      "fetched_at": "2026-07-22T22:16:39.060948+08:00"
+    },
+    {
+      "title": "Automate custom PII detection at scale with Amazon Macie and Step Functions",
+      "link": "https://aws.amazon.com/blogs/architecture/automate-custom-pii-detection-at-scale-with-amazon-macie-and-step-functions/",
+      "published": "2026-07-22T21:30:26+08:00",
+      "source": "AWS Architecture Blog",
+      "content": "Organizations in regulated industries like financial services, insurance, healthcare, and government ingest large volumes of data containing personally identifiable information (PII). Your applications, claims processing systems, partner data feeds, and internal workflows produce files that may include names, addresses, Social Security numbers, and domain-specific identifiers such as policy numbers, member IDs, and medical record numbers.\n\nIdentifying and classifying this sensitive data is a compliance imperative. Regulations such as GDPR, HIPAA, CCPA, and PCI DSS require you to know where PII resides, who can access it, and how it is protected. Manual classification does not scale. While [Amazon Macie](https://aws.amazon.com/macie/) provides managed sensitive-data discovery, there could be formats that standard detection engines do not recognize by default. You can extend the detection capability with custom identifiers unique to your business.\n\nIn this post, you learn how to build and deploy an event-driven pipeline that automatically detects PII the moment a file arrives in [Amazon Simple Storage Service](https://aws.amazon.com/pm/serv-s3/) (Amazon S3). It then extends beyond Macie built-in managed data identifiers by incorporating your own custom identifiers, which can detect organization-specific sensitive data types alongside standard PII.\n\n## Solution overview\n\nThe solution uses [Amazon EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) to trigger an [AWS Step Functions](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html) workflow, which orchestrates Macie classification jobs, including custom data identifiers, and produces compliance reports with zero manual intervention. As each file lands in Amazon S3, the pipeline automatically invokes Macie to scan it using built-in and custom data identifiers, detecting standard and organization-specific PII without manual intervention. It then generates audit-ready reports in both CSV and JSON formats with full timestamps, giving your compliance team the documentation they need. For high-severity findings, the pipeline publishes real-time notifications through [Amazon Simple Notification Service](https://aws.amazon.com/sns/) (Amazon SNS) so your security team can respond immediately. To maintain clear data lineage throughout the process, the architecture implements a three-bucket pattern. This helps isolate objects by their processing state and ensures that unscanned data never mixes with validated data.\n\n## Architecture\n\nThis pipeline uses an event-driven architecture built on the following AWS services:\n\n* Amazon S3 – Storage layer organizing data across three buckets that represent each processing state: raw, staged, and scanned.\n* Amazon EventBridge – Detects new object uploads and triggers the workflow automatically, without polling.\n* AWS Step Functions – Orchestrates the entire scan lifecycle, coordinating each step from job creation through report generation.\n* Amazon Macie – Detects PII, scanning objects for sensitive data using both built-in and custom data identifiers.\n* [AWS Lambda](https://aws.amazon.com/pm/lambda/) – Supplies the compute logic between orchestration steps from initiating Macie classification jobs, polling job status, parsing findings, generating reports, and moving objects between buckets.\n* Amazon SNS – Delivers real-time alerts to notify your team when high-severity findings are detected.\n\nThe following figure provides an overview of the solution architecture using the listed services.\n\n![Architecture diagram showing the event-driven PII detection pipeline with Amazon S3 buckets, Amazon EventBridge, AWS Step Functions, Amazon Macie, AWS Lambda, and Amazon SNS](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-1.png)\n\n*Figure 1 — Architecture overview*\n\nSeveral design decisions shape this architecture. The pipeline creates a dedicated Macie classification job for each object rather than batching, which enables real-time PII detection at the point of ingestion. The three-bucket pattern noted earlier isolates unprocessed data from validated data, with the staging bucket configured to auto-expire objects. Step Functions orchestrates the workflow, using built-in retry logic and wait states to handle asynchronous job execution in Macie. Custom data identifiers extend detection capabilities of Macie to cover domain-specific patterns unique to your organization. Finally, Amazon EventBridge triggers the pipeline instead of native S3 event notifications, providing advanced filtering, support for multiple targets, and cross-account routing.\n\n## Walkthrough\n\nIn this section, you deploy and configure the automated PII detection pipeline.\n\n### Prerequisites\n\n* A sandbox or non-prod AWS account with administrative access.\n* [AWS Command Line Interface](https://aws.amazon.com/cli/) (AWS CLI) v2 installed and configured.\n* Amazon Macie should be enabled in your target AWS Region.\n* A valid email address for high-severity notifications.\n\n### Step 1: Deploy the [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html) stack\n\nDownload and deploy the complete solution through this sample [CloudFormation template](https://github.com/aws-samples/sample-macie-pii-pipeline/blob/main/deployment/templates/macie_complete_solution.yaml).\n\n#### Option A: Using AWS CLI\n\n```\naws cloudformation deploy \\\n  --template-file deployment/templates/macie_complete_solution.yaml \\\n  --stack-name macie-pii-pipeline \\\n  --parameter-overrides BucketNamePrefix=macie-pii-pipeline \\\n  NotificationEmail=security-team@example.com \\\n  --capabilities CAPABILITY_IAM --region us-east-1\n```\n\n#### Option B: Using AWS Management Console\n\n1. Navigate to the AWS CloudFormation console.\n2. Choose Create stack > With new resources (standard).\n3. Upload the template, fill in parameters, and submit.\n\n✓ Expected result: Stack reaches CREATE\\_COMPLETE after 3 to 5 minutes.\n\nThe following image shows the sample Create stack parameters and configuration:\n\n![AWS CloudFormation console showing the Create stack configuration page with parameters for BucketNamePrefix and NotificationEmail](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/22/ARCHBLOG-1488_Figure-2.png)\n\n*Figure 2 — CloudFormation console showing Create stack configuration page*\n\n### Step 2: Confirm the Amazon SNS subscription\n\nOpen the confirmation email and choose Confirm subscription.\n\n✓ Expected result: Subscription shows Confirmed in Amazon SNS console as demonstrated in the following screenshot\n\n![Amazon SNS console showing a confirmed subscription status](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-3.png)\n\n*Figure 3 — Amazon SNS confirmed subscription*\n\n### Step 3: Configure custom data identifiers\n\nThe stack automatically provisions custom data identifiers from the CustomIdentifierPatterns parameter you provided during deployment. Verify they exist in the Macie console.\n\n```\n[{\"name\":\"PolicyID\",\"regex\":\"POL-[0-9]{6,10}\"},\n{\"name\":\"MemberID\",\"regex\":\"MEM-[A-Z]{2}[0-9]{6}\"}]\n```\n\n✓ Expected result: Custom identifiers show up on Macie console as demonstrated in the following image\n\n![Amazon Macie console showing custom data identifiers for PolicyID and MemberID](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/22/ARCHBLOG-1488_Figure-4.png)\n\n*Figure 4 — Custom data identifiers in Macie console*\n\n### Step 4: Test the pipeline\n\n1. Upload a sample file to the raw bucket using the AWS CLI or console.\n\n```\naws s3 cp test-file-with-pii.csv s3://macie-pii-pipeline-<ACCOUNT_ID>-raw/\n```\n\n✓ Expected result: Step Functions execution starts within seconds.\n\nThe following image shows the test files copied to the S3 bucket:\n\n![Amazon S3 console showing the test file uploaded to the raw bucket](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/22/ARCHBLOG-1488_Figure-5.png)\n\n*Figure 5 — Test file uploaded to raw bucket*\n\n#### Monitor the pipeline progression\n\nOn your Step Functions console > choose state machine > view running operation.\n\nNote: The underlying Macie jobs may take some time to complete. Scan duration varies from job to job. The amount and type of data being scanned, its compression, and the number of data identifiers used all dictate how long a job takes to run. For the example illustrated in this post, jobs took roughly 15–20 minutes to complete. As a best practice, consider enabling S3 AWS CloudTrail data-event logging to audit the PII pipeline.\n\n✓ Expected result: Graph inspector shows active state in blue, completed in green.\n\n![AWS Step Functions console showing the pipeline execution with active states highlighted](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-6.png)\n\n*Figure 6 — Step Functions pipeline*\n\n![AWS Step Functions Graph inspector showing completed states in green and active states in blue](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-7.png)\n\n*Figure 7 — Step Functions Graph inspector*\n\nThe Step Functions state machine orchestrates the end-to-end scanning workflow through five sequential states. First, **TriggerScan** copies newly uploaded objects to a staging bucket and creates a Macie classification job targeting that staged data. Once the job is submitted, the workflow enters **WaitForMacie**, which pauses execution for 60 seconds to allow the classification job time to process. Next, **CheckStatus** polls the Macie `DescribeClassificationJob` API to determine whether the job has completed. When the job finishes, **GetFindings** retrieves the classification results, generates detailed findings reports, and publishes a notification to an Amazon SNS topic for downstream consumers. Finally, **MoveFiles** relocates the original object from the raw bucket to a permanent scanned-data location and cleans up the staging copy.\n\n#### Verify the reports\n\n```\naws s3 ls s3://macie-pii-pipeline-<ACCOUNT_ID>-scanned/reports/\n```\n\n✓ Expected result: Two timestamped files (CSV + JSON) per scan as shown in the following image\n\n![Amazon S3 console showing timestamped CSV and JSON report files in the scanned bucket](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-8.png)\n\n*Figure 8 — Reports in scanned bucket*\n\nNext, Amazon SNS triggers a notification email to the intended recipients. The following screenshot shows a sample notification.\n\n![Sample Amazon SNS notification email showing PII detection findings](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-9.png)\n\n*Figure 9 — Amazon SNS notification email*\n\n### Step 5: Review the data flow\n\nraw bucket → stage bucket → scanned bucket\n\n* Raw bucket – The file is removed after processing (versioning enabled).\n* Stage bucket – Auto-expires after seven days.\n* Scanned bucket – Contains the processed files and the reports.\n\nThe following images show the three sample buckets created as part of this walkthrough.\n\n![Amazon S3 console showing the raw bucket after pipeline execution](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-10.png)\n\n![Amazon S3 console showing the stage bucket after pipeline execution](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-11.png)\n\n![Amazon S3 console showing the scanned bucket with processed files and reports](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/07/20/ARCHBLOG-1488-8.png)\n\n*Figure 10 — Three-bucket state after execution*\n\n## Hardening measures to deploy in production\n\n* For multi-tenant environments, deploy a separate stack per tenant using a distinct `BucketNamePrefix` to maintain strict data isolation.\n* Enable Amazon [S3 bucket default encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) with SSE-S3 as default setting or with a customer-managed [AWS Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html) (AWS KMS) key by passing the `KmsKeyArn` parameter.\n* Configure cross-account Amazon EventBridge rules for data sources spanning multiple accounts.\n* Be mindful of [Macie quotas](https://docs.aws.amazon.com/macie/latest/user/macie-quotas.html) for custom data identifiers: up to 10,000 per account, but a maximum of 30 per classification job. Split them across multiple jobs if you need more.\n* For high-volume workloads, batch multiple objects into a single Macie classification job to reduce API overhead and stay within the CreateClassificationJob throttle of 0.1 requests per second (one job every 10 seconds). See [Macie quotas](https://docs.aws.amazon.com/macie/latest/user/macie-quotas.html).\n* Enable [Amazon S3 AWS CloudTrail events](https://docs.aws.amazon.com/AmazonS3/latest/userguide/cloudtrail-logging-s3-info.html) to maintain a complete audit trail of every object access and movement throughout the pipeline.\n* Enable [Amazon SNS data encryption](https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html) with SSE-KMS.\n\n## Extending this solution\n\n* Data lake integration – Route JSON findings to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html) or [AWS Glue](https://aws.amazon.com/glue/) for trend analysis. Build [Amazon QuickSight](https://aws.amazon.com/quick/quicksight/) dashboards for PII density visualization.\n* Remediation workflows – Extend Step Functions with a remediation branch to quarantine files or revoke access when high-severity PII is found.\n* Multi-account environments – Use [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html) and Amazon EventBridge cross-account rules to centralize scanning in a dedicated security account.\n* Enhanced security posture – Publish findings to [AWS Security Hub](https://aws.amazon.com/security-hub/) for unified security posture management.\n* Batch for high-volume – Modify Trigger Scan to batch objects into a single Macie job for cost optimization at scale.\n\n## Cleaning up\n\nTo avoid ongoing charges, delete all resources created by this solution:\n\n1. Empty all S3 buckets created by the stack. CloudFormation cannot delete non-empty buckets.\n\n   ```\n   aws s3 rm s3://macie-pii-pipeline-<ACCOUNT_ID>-raw --recursive\n   aws s3 rm s3://macie-pii-pipeline-<ACCOUNT_ID>-stage --recursive\n   aws s3 rm s3://macie-pii-pipeline-<ACCOUNT_ID>-scanned --recursive\n   aws s3 rm s3://macie-pii-pipeline-<ACCOUNT_ID>-access-logs --recursive\n   ```\n2. Delete the CloudFormation stack.\n\n   ```\n   aws cloudformation delete-stack --stack-name macie-pii-pipeline --region us-east-1\n   ```\n3. Wait for stack deletion to complete.\n\n   ```\n   aws cloudformation wait stack-delete-complete --stack-name macie-pii-pipeline --region us-east-1\n   ```\n4. Amazon S3 buckets use DeletionPolicy: Retain preventing automatic removal. Delete retained buckets manually.\n\n   ```\n   aws s3 rb s3://macie-pii-pipeline-<ACCOUNT_ID>-raw\n   aws s3 rb s3://macie-pii-pipeline-<ACCOUNT_ID>-stage\n   aws s3 rb s3://macie-pii-pipeline-<ACCOUNT_ID>-scanned\n   aws s3 rb s3://macie-pii-pipeline-<ACCOUNT_ID>-access-logs\n   ```\n5. Disable Macie if no longer needed (optional).\n\n   ```\n   aws macie2 disable-macie --region us-east-1\n   ```\n\n## Conclusion\n\nIn this post, we demonstrated building an event-driven pipeline that automatically detects PII in files uploaded to Amazon S3. By combining Macie’s managed classification with custom data identifiers, orchestrated by AWS Step Functions and triggered in real time through Amazon EventBridge, the solution detects both standard and domain-specific sensitive data without manual intervention. The pipeline responds to S3 bucket uploads within seconds, runs each object through the full scan lifecycle, generates timestamped CSV and JSON reports for compliance, and delivers real-time Amazon SNS notifications when high-severity findings are detected.\n\n### Getting started\n\nTo deploy this solution in your own environment, clone the [GitHub repository](https://github.com/aws-samples/sample-macie-pii-pipeline/) and follow the step-by-step deployment instructions in the README. This is a non-prod sample code without the listed hardening measures. You can extend the pipeline by adding custom data identifiers for your organization’s unique data formats, configuring cross-account Amazon EventBridge rules for multi-account environments, or batching objects per Macie job to optimize for high-volume workloads.\n\nTo learn more, review the [Amazon Macie documentation](https://docs.aws.amazon.com/macie/) for additional detection capabilities, explore [AWS Step Functions best practices](https://docs.aws.amazon.com/step-functions/latest/dg/best-practices.html) for production error handling, and visit the [AWS Security Blog](https://aws.amazon.com/blogs/security/) for more data protection patterns.\n\n---\n\n## About the authors",
+      "tags": [
+        "Amazon Macie",
+        "PII检测",
+        "自动化"
+      ],
+      "score": 70,
+      "summary": "AWS架构博客介绍使用Amazon Macie和Step Functions自动化自定义PII检测。",
+      "fetched_at": "2026-07-22T22:16:39.060962+08:00"
+    },
+    {
+      "title": "Runtime Enforcement, Not Runtime Advice",
+      "link": "https://www.docker.com/blog/runtime-enforcement-not-runtime-advice/",
+      "published": "2026-07-22T21:00:00+08:00",
+      "source": "Docker",
+      "content": "In [Part 1](https://www.docker.com/blog/your-laptop-is-the-new-production-environment/), we explored why traditional security models struggle with autonomous agents. As developers begin delegating more work to AI systems, a growing amount of activity happens outside familiar checkpoints such as repositories, CI/CD pipelines, and deployment environments. That naturally raises a new question: If [governance needs to exist](https://www.docker.com/blog/docker-ai-governance-unlock-agent-autonomy-safely/) where agents actually execute work, what does that look like in practice?\n\n## Policies Alone Are Not Enough\n\nMost organizations already have policies.\n\n* Don’t expose customer data.\n* Don’t access production systems without authorization.\n* Don’t execute untrusted code.\n* Don’t use credentials outside approved workflows.\n\nThe challenge isn’t writing these rules. The challenge is enforcing them when software systems can increasingly take actions on their own. This is where a useful distinction emerges:\n\nA prompt can influence behavior.\n\nA runtime can restrict behavior.\n\nThat difference becomes increasingly important as agents gain access to files, terminals, APIs, and external tools.\n\n## The Three Boundaries Behind Developer Confidence\n\nWhen I [simplify the problem](https://www.docker.com/blog/why-ai-agents-need-isolation/), most governance challenges fall into three areas. Before looking at those boundaries individually, it’s worth asking why they matter in the first place. When governance discussions focus only on security, it’s easy to miss why developers care about these controls. Most developers aren’t asking for more restrictions. They’re asking for predictability. Before delegating work to an agent, developers want to understand:\n\n• What can it access?\n\n• What can it modify?\n\n• Which tools can it use?\n\n• Which credentials can it act with?\n\nThe clearer those answers become, the easier it is to trust the agent with meaningful work. In that sense, boundaries are not just security controls. They are trust-building mechanisms that help transform agents from interesting experiments into everyday development tools.\n\n### 1. Execution Boundary\n\nThe first boundary is execution.\n\nAgents can:\n\n* Read files\n* Modify code\n* Execute commands\n* Install dependencies\n* Open network connections\n\nConsider a coding agent troubleshooting a failing test suite. It may inspect configuration files, generate temporary scripts, install debugging dependencies, execute diagnostic commands, and repeatedly rerun tests before a human reviews the final result.\n\n[Governance](https://www.docker.com/blog/what-is-ai-governance/) determines the boundaries within which those actions occur. More importantly, it gives developers confidence that those boundaries exist. Teams are far more willing to delegate work to agents when they understand where those limits are and how they are enforced.\n\n### 2. Tool Boundary\n\nModern agents rarely operate alone.\n\nThey interact with:\n\n* Source control platforms\n* Issue trackers\n* Communication tools\n* Cloud services\n* Internal APIs\n* Databases\n\nA coding agent might create a pull request, update a Jira ticket, or retrieve documentation through an MCP-connected tool. None of these actions require local code execution, but they still affect real systems. This means governance isn’t only about execution. It’s also about access. Controlling one while ignoring the other leaves a significant blind spot.\n\n### 3. Credential Boundary\n\nMost useful agents eventually need access to something valuable.\n\nThat might be:\n\n* A GitHub repository\n* A cloud environment\n* An internal API\n* A database\n* A customer support system\n\nBehind those systems are credentials, permissions, and identity controls. The question is not simply whether an agent can use a credential. The question is how access is controlled, observed, and audited. As agent autonomy increases, credential governance becomes just as important as execution governance.\n\n## A Simple Architecture View\n\nAt a high level, governance can be understood as enforcing boundaries around execution, tool access, and credentials.\n\n![AI Agent Governance diagram including boundaries (execution, tool access, and credential) and runtime enforcement elements (isolation, policy control, and visibility).](https://www.docker.com/app/uploads/2026/07/image2.png \"- image2\")\n\n*Figure 2. Agent governance requires controls across execution, tool access, and credentials. Runtime enforcement provides the foundation for isolation, policy, and visibility.*\n\n## The Role of Isolation\n\nOne of the oldest security principles in computing is isolation. Containers, Virtual machines, and Sandboxed environments. All exist for the same reason: creating boundaries around what software can access and affect. As agents become more capable, these concepts become increasingly relevant. Rather than allowing autonomous systems to operate with unrestricted access to a developer environment, organizations can introduce controlled execution boundaries. The goal isn’t to make agents less capable. The goal is to make capability predictable. [Docker Sandboxes](https://www.docker.com/products/docker-sandboxes/) are one example of how isolation concepts are being adapted for agent execution workflows, helping create clearer boundaries around what an agent can access and execute.\n\nIsolation helps answer important questions:\n\n* What can the agent access?\n* What can it modify?\n* What can it execute?\n* What can it communicate with?\n\nWithout boundaries, these questions become difficult to answer consistently.\n\n## Governance Beyond Code Execution\n\nExecution is only part of the story. Modern agents are increasingly connected to external tools and services. A coding agent might update an issue tracker. A support agent might retrieve documentation. A platform agent might interact with cloud infrastructure. This creates a second governance challenge: Not just what an agent can execute, but what an agent can access. As organizations adopt protocols such as MCP to connect agents with tools, visibility and policy become just as important as capability. The goal isn’t to prevent agents from doing useful work. The goal is to ensure that useful work remains observable, controllable, and accountable.\n\n## Building Trust Through Boundaries\n\nAI governance is sometimes framed as a limitation on autonomy. In practice, it serves a different purpose. Organizations are more likely to trust agents when clear boundaries exist around what those agents can see, access, and execute. Trust doesn’t emerge from capability alone. It emerges from capability combined with visibility, control, and accountability. That’s why governance is ultimately more than an infrastructure problem. Clear boundaries create predictability. Predictability creates confidence. And confidence is what allows developers to delegate more work to increasingly capable agents. As agent adoption grows, the organizations that establish that confidence early may be able to move faster, not slower.\n\n*In Part 3, we’ll explore why governance is ultimately as much a developer experience challenge as it is a security challenge and why the teams that get this balance right may be able to adopt AI agents faster, not slower.*\n\n### Learn More\n\n* Read about [why AI Agents need isolation](https://www.docker.com/blog/why-ai-agents-need-isolation/)\n* Read [Part 1 of this AI Governance series](https://www.docker.com/blog/your-laptop-is-the-new-production-environment/)\n* Find out how [Docker’s AI Governance solutions](https://www.docker.com/products/ai-governance/) work across all tools",
+      "tags": [
+        "Docker",
+        "运行时强制",
+        "AI代理安全"
+      ],
+      "score": 79,
+      "summary": "Docker博客探讨AI代理的运行时强制而非建议，强调边界控制。",
+      "fetched_at": "2026-07-22T22:16:39.060967+08:00"
+    },
+    {
+      "title": "Agentic AI Needs Guardrails, Not Guesswork",
+      "link": "https://www.docker.com/blog/agentic-ai-security-ciso-panel/",
+      "published": "2026-07-22T21:00:00+08:00",
+      "source": "Docker",
+      "content": "*What does it take to secure AI agents without slowing developers down? A recent panel explored the answer*\n\nI recently joined [Zach Lloyd, founder and CEO of Warp](https://www.linkedin.com/in/zachlloyd); [Gavriel Cohen, co-founder and CEO of NanoCo and creator of NanoClaw](https://x.com/Gavriel_Cohen?lang=en); and moderator [Moriah Hara, founder of a community of more than 3,000 CISOs and a three-time Fortune 500 CISO](https://www.linkedin.com/in/moriah-hara-a18b84), for a discussion on one of the biggest challenges facing enterprise security teams today: how to safely unlock the productivity of agentic AI.\n\nThe rapid rise of agentic AI in the enterprise is putting CISOs in a tough spot. On one hand, business leaders are clamoring to run with the new technology, which promises a productivity revolution like no other. On the other, setting AI agents loose without rigorous guardrails creates severe vulnerabilities.\n\nMoriah put the dilemma facing CISOs like this: *“The business wants AI agents everywhere, developers are already using them, sometimes without approval, oftentimes without security.* *…CISOs are left in this uncomfortable middle where we’re tolerating some tools, we’re praying that nothing breaks, we’re buying some time until we can get some governance beyond policy in place to have better visibility.”*\n\nThe panel explored the role of the CISO in balancing this tension between productivity and security. Here are some highlights.\n\n## **Isolate, control, observe**\n\nThey came at it from different angles, but the panelists agreed on one imperative: running AI agents safely requires an isolated environment with trusted control boundaries. For Zach, Warp’s [Oz](https://www.warp.dev/oz) platform provides that isolation. It’s a cloud agent infrastructure for secure and automated deployment of coding agents that allows centralized management, access controls, and visibility into what agents are doing across the organization.\n\nZach said you can *“literally pull up the Oz web app and see what every agent across your company is doing at all times—which is a way better situation than the world we’re in right now, where someone on your marketing team is running* [*Cloud Code*](https://cloud.google.com/code)*, someone on your sales team is running* [*Codex*](https://openai.com/index/introducing-codex/)*, and you just have no idea what’s going on, what tools they’re installing.”*\n\n## **NanoClaw—a personal AI agent**\n\nAt Docker, our answer to the challenge of running AI agents safely is to run them in disposable, isolated, local sandboxes. [Docker Sandboxes](https://www.docker.com/products/docker-sandboxes/#credentials) give agents the freedom and autonomy they need to do their best work, safely. Call it YOLO mode with guardrails. As Moriah noted in our discussion, agentic speed should be encouraged— *“it’s the ungoverned speed that is the problem.”* When agents are allowed to run fast without running wild, speed and safety are no longer a tradeoff.\n\nOf note here: In March, we announced the [integration of NanoClaw with Docker Sandboxes](https://www.docker.com/blog/nanoclaw-docker-sandboxes-agent-security/) to deliver secure-by-design agent execution. The integration allows every NanoClaw agent to run inside a disposable, MicroVM-based Docker Sandbox that enforces strong operating system-level isolation. The stack takes advantage of NanoClaw’s minimal attack surface and fully auditable open-source codebase to meet enterprise security standards.\n\n## **Laptops as the new prod**\n\nA key focus of the discussion was where to run agents safely. With vibe coding exploding, and agents and Claws (a new class of agents) already in production, the laptop today is the most powerful node in the enterprise. [It’s also the most exposed](https://www.docker.com/blog/ai-coding-agent-horror-stories-security-risks/). As a colleague of mine [recently put it](https://www.docker.com/blog/docker-ai-governance-unlock-agent-autonomy-safely/), laptop and agent environments are the new prod, and they need to be governed like prod.\n\nZach stressed the need to get agents off people’s laptops and desktops and into a controlled, cloud-based environment where CISOs can see what every agent across the company is doing at all times.\n\n## **Portability—from laptop to cloud**\n\nMy position is that, if you run agents in a sandbox, it doesn’t matter where the box sits. It could sit on a marketing or finance person’s laptop, or on a DevOps engineer or cloud admin’s machine. As long as the trust boundary is established and you know what’s getting piped in and out of it, you’re locked and loaded for rapid prototyping, experimentation, and innovation.\n\nBy the way, this view syncs with Docker’s vision, which has always been about portability. Our vision was never everything is local. We start in the local environment, then lift off into distributed environments, Kubernetes clusters, public clouds, whatever. It’s the same with agents. Eventually they’ll lift off, be decoupled from human operators, and be able to run fully autonomously wherever needed—always in the same portable environment.\n\n## **When agents build the supply chain**\n\nThe supply chain today is a revolving door for opportunistic attackers like TeamPCP and ShinyHunters who exploit transient dependencies and other vulnerabilities, often needing only a short window of time to filch credentials and information.\n\nHow are CISOs to combat these risks when AI agents themselves are pulling base images, choosing dependencies, and assembling code—autonomously and without human oversight? After all, in an autonomous supply chain, traditional methods of scanning and patching after building are no longer feasible.\n\n## **Keeping humans in the loop**\n\nThe panelists shared several best practices. Zach urged keeping humans in the loop for picking clean, secure dependencies, especially upstream libraries, and setting up blessed images for agents to choose from. Gavriel recommended setting a minimum release age of seven days for images and minimizing dependencies—even safe ones.\n\n## **A training-wheels approach**\n\nGavriel also suggested a training-wheels approach to experimenting with agents, starting out using unpermissioned data to build skills and avoid sensitive data issues. “*Unlocking the value today is important,”* he said, *“but even more important is having people build the skills of working with agents, because what’s going to be coming in the coming months and years is going to totally exceed anything that we have today. So, it’s really about building the muscle memory, building the skills.”*\n\n## **Layer security to limit the blast radius**\n\nMy take? Opportunistic attackers are simply exploiting an ecosystem that’s inherently flawed and broken and that unfortunately won’t get fixed within the next six to 12 months. Until then, developers should assume these attacks will continue and prepare for them by layering security to limit the blast radius. That means reducing privilege, reducing third-party access to their environment, and using immutable tags, digests, and SBOMs (Software Bill of Materials) to lock manifests and enable rapid detection of poisoned images. And, yes, outsourcing the risk to a trusted build environment like Docker that provides clean, hardened images so you’re starting from a clean foundation.\n\n## **MCP—the new shadow IT?**\n\nThe panelists rounded out the discussion with a focus on the security implications of using MCP in developer environments. MCP (Model Context Protocol) is a standard that allows LLMs to access external data and use tools, potentially making AI more powerful and reliable.\n\nThe consensus was that centralized, secure governance is crucial for productivity and risk management. Gavriel stressed the importance of proper version control, credential management, and a “golden repository” of verified tools. Zach advocated for centralized management to avoid individual tool dependencies and ensure minimal access.\n\n## **Making it safe and easy to run MCP servers**\n\nAnd Docker? About a year ago, we introduced an open source [MCP Gateway](https://www.linkedin.com/pulse/docker-mcp-gateway-open-source-secure-infrastructure-agentic-ai-b2gvc/) that serves as a chokepoint between agents and external tools. Routing every tool call through this enforcement point, where it can be authenticated, authorized, and logged before it reaches the external system, enables a wide range of agents to access trusted catalogs of MCP servers. While it’s not clear to me how long MCPs will remain useful, given the exponential speed with which AI is evolving, Docker MCP Gateway solves an important challenge today. Like Docker Sandboxes, it makes enforcement strict instead of advisory.\n\n## **A once-in-a-generation opportunity—and challenge**\n\nEnabling dev environments to take advantage of agentic AI is a once-in-a-generation opportunity, and CISOs are accountable for making sure the rush to do so doesn’t devolve into the Wild West.\n\nMoriah closed the panel with a provocative thought: *“Six months from now, enterprises are all going to be running agents at scale. The one key success factor will be whether governance was present from day one or got bolted on after the first major incident.”*\n\nIn the choose-your-own-adventure reality of agentic AI today, what kind of security leader will you be?",
+      "tags": [
+        "Docker",
+        "AI代理安全",
+        "CISO"
+      ],
+      "score": 79,
+      "summary": "Docker博客报道CISO小组讨论AI代理安全，强调隔离与治理。",
+      "fetched_at": "2026-07-22T22:16:39.060970+08:00"
+    },
+    {
+      "title": "From maintenance to innovation: Checking in on Checkout.com’s Cloud Composer 3 migration",
+      "link": "https://cloud.google.com/blog/products/data-analytics/how-checkout-com-tallies-data-with-cloud-composer-3/",
+      "published": "2026-07-22T22:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Data engineering teams often face a “Day 2” operational reality after building a data platform: the ongoing work of maintaining the orchestrator itself.\n\nFor the Data Platform team at [**Checkout.com**](https://www.checkout.com/), managing a self-hosted Apache Airflow environment on another hyperscaler was consuming time the team wanted to spend elsewhere as server management, patching, and incident response were pulling focus from building pipelines.\n\nBy migrating to [**Managed Service for Apache Airflow (Gen 3)**](https://cloud.google.com/composer), Google Cloud’s fully managed Airflow service, Checkout.com transformed its reliability and cost structure. Here’s how they built a more scalable, cost-efficient, and robust data foundation.\n\n### The starting point: self-managed Airflow\n\nBefore the migration, Checkout.com ran Airflow on self-managed infrastructure. While functional, maintaining the underlying resources required significant attention. Patching, upgrades, and server management created regular interruptions.\n\nOperational data from the past year illustrates some of the challenges the company was navigating:\n\n* **Reducing operational friction:** In its self-managed environment, Checkout.com faced stability challenges, particularly during high-load periods.\n* **Complex dependency management:** Upgrading packages and ensuring compatibility was a constant, manual struggle. With Managed Airflow (Gen 3), the company was able to simplify this by handling dependencies at the image level, ensuring seamless compatibility out-of-the-box during routine environment upgrades.\n* **DAG sync time:** Syncing DAGs to the scheduler took approximately six minutes after deployment to S3, which affected iteration speed.\n* **Manual processes:** Scaling required manual intervention, and onboarding new teams meant manually creating secrets and variables for dbt.\n\n### The solution: Managed Service for Apache Airflow (Gen 3)\n\nCheckout.com’s team migrated to Managed Airflow to offload infrastructure responsibility and take advantage of Google Cloud's managed scalability. The results were immediate and measurable across three areas: reliability, cost, and developer velocity.\n\n![checkout-managed-airflow-chart](https://storage.googleapis.com/gweb-cloudblog-publish/images/checkout-managed-airflow-chart.max-1000x1000.png)\n\n#### Dynamic scaling in action\n\nIn the previous elastic container service setup, the team allocated the maximum number of workers required for peak loads. This meant paying for peak capacity around the clock, regardless of actual usage.\n\nManaged Airflow provides built-in dynamic scaling, eliminating the need for manual resource management. The environment automatically adjusts the number of workers based specifically on the workload demands. When tasks spike, the system scales up; when they drop, it scales down to save resources. Similarly, moving from fixed provisioning to dynamic scaling reduced monthly costs by an estimated 30%.\n\n#### Reliability and DAG isolation\n\nAchieving increased stability was a primary driver for Checkout.com’s migration since in the past, a single problematic DAG could affect its entire environment. \n\nManaged Airflow introduced a number of critical architecture improvements:\n\n* **DAG isolation:** Each DAG runs in its own execution environment. If one DAG fails or consumes excessive resources, it doesn’t affect the entire environment.\n* **Managed operations:** Google Cloud handles patching and upgrades during scheduled windows, removing the need for manual upgrade management.\n* **Improved visibility:** Integration with [Google Cloud Monitoring](https://cloud.google.com/monitoring) and [Cloud Logging](https://cloud.google.com/logging) provides clear visibility into task execution. Engineers can now debug issues independently without escalating to the platform team.\n\n#### Faster developer workflows\n\nThe migration also improved day-to-day workflows for [Checkout.com](http://checkout.com)’s data engineers.\n\n* **Faster deployments:** Using [Cloud Storage](https://cloud.google.com/storage) for DAGs enabled near-instant syncing.\n* **Simpler onboarding:** Teams no longer needed platform support to create variables before onboarding.\n* **Modernizing dbt execution:** One of the company’s most significant wins was changing how it runs dbt. Previously, its engineers had to manually install and manage complex virtual environments for every supported dbt version. By leveraging containerized dbt runs, Managed Airflow (Gen 3) eliminates dependency bottlenecks. This ensures complete dependency isolation, allowing teams to run any required dbt model with minimal setup and no manual infrastructure overhead.\n* **Environment updates:** The company no longer needs to redeploy the entire Airflow environment to add new roles or update Python packages.\n* **AI-powered troubleshooting with** [**Gemini Cloud Assist**](https://docs.cloud.google.com/composer/docs/composer-3/troubleshooting-dags#investigations):In a self-managed environment, a failed task often triggered a frantic hunt through fragmented logs and metrics. With Managed Airflow, Checkout.com can initiate a Gemini investigation directly from its Airflow DAG UI in the Google Cloud console.\n\nGemini doesn't just provide generic error messages; it generates a scorecard that evaluates different hypotheses with both supporting and contradictory evidence, which can drastically reduce mean time to recovery.\n\n### Conclusion\n\nFor Checkout.com, the move to Managed Airflow (Gen 3) marked a strategic shift, one that freed its engineers to focus on delivering value.\n\n\"With Managed Service for Apache Airflow, we’ve achieved significant improvements in efficiency, scalability, and reliability. Managed infrastructure, automated scaling, faster deployments, and isolated execution environments have transformed how we operate.\" — **Keisi Mancellari, Data Platform Engineer, Checkout.com**\n\nWith a stable, scalable, and cost-efficient platform in place, Checkout.com is now able to  focus on the future of its data pipelines, confident that its orchestration layer is ready for whatever comes next.\n\nLearn more about [Managed Service for Apache Airflow](https://cloud.google.com/composer) and how it can support your data platform.\n\n---\n\nSpecial thanks to the following contributors to this post: Serge Bouschet and [Keisi Mancellari](mailto:keisi.mancellari@checkout.com)",
+      "tags": [
+        "Cloud Composer 3",
+        "Checkout.com",
+        "迁移"
+      ],
+      "score": 70,
+      "summary": "Google Cloud博客介绍Checkout.com迁移至Cloud Composer 3的实践。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/checkout-airflow-migration-google-cloud-2.max-600x600.png",
+      "fetched_at": "2026-07-22T22:16:39.060973+08:00"
+    },
+    {
+      "title": "Accelerating the frontiers of scientific discovery: Google’s $40M commitment to the Genesis Mission",
+      "link": "https://cloud.google.com/blog/topics/public-sector/accelerating-frontiers-of-scientific-discovery-40-million-dollar-commitment-genesis-mission/",
+      "published": "2026-07-22T21:30:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Scientists today face challenges of extraordinary scale and complexity. From shaping and simulating the intricate dynamics of fusion plasma, to exploring the vast search space of new materials, to making sense of the exabytes of data pouring out of the world's most advanced experimental facilities. The demands on modern research are unprecedented. [Frontier AI](https://deepmind.google/research/projects/) can help address these challenges, while accelerating groundbreaking scientific discoveries.\n\nIn December, we shared our commitment to the White House's [Genesis Mission](https://www.whitehouse.gov/presidential-actions/2025/11/launching-the-genesis-mission/) — the national effort to harness AI and double the pace of American scientific discovery within a decade. Since then, Google DeepMind (GDM) [announced an early access program](https://deepmind.google/blog/google-deepmind-supports-us-department-of-energy-on-genesis/) that provides AI for science tools to all 17 Department of Energy (DOE) National Laboratories, and Google Public Sector [shared how Gemini for Government](https://cloud.google.com/blog/topics/public-sector/how-google-public-sector-and-google-deepmind-can-power-the-genesis-mission-and-a-new-era-of-scientific-discovery) could serve as an AI backbone for the DOE.\n\nToday, at the DOE Genesis Mission Summit 2026, we are expanding this by committing $40 million of AI tokens and cloud credits for researchers in support of the Genesis Mission.\n\n### **Frontier AI tools for scientific discovery**\n\nUnder this expanded commitment, we will first provide DOE’s Genesis Mission awardees in-kind access to GDM’s frontier AI for science portfolio, including:\n\n* [**AlphaEvolve**](https://cloud.google.com/blog/products/ai-machine-learning/alphaevolve-is-available-for-everyone) — a Gemini-powered coding and discovery agent, for designing advanced algorithms.\n* [**AlphaFold 3**](https://blog.google/innovation-and-ai/products/google-deepmind-isomorphic-alphafold-3-ai-model/) — a model for predicting the structure and interactions of proteins and other biomolecules.\n* [**AlphaGenome**](https://deepmind.google/blog/alphagenome-ai-for-better-understanding-the-genome/) — a tool for understanding how variation in DNA, including the non-coding genome, shapes biology and disease.\n* [**WeatherNext**](https://deepmind.google/science/weathernext/) — a state-of-the-art family of AI weather forecasting models for mapping weather conditions.\n* [**AlphaEarth Foundations**](https://deepmind.google/blog/alphaearth-foundations-helps-map-our-planet-in-unprecedented-detail/) — a foundational AI model for mapping and understanding our planet in unprecedented detail.\n\nSecond, we will provide Gemini for Government seats and tokens for one year to tens of thousands of users across the DOE National Laboratories’ operations, research, and management teams. This secure platform supports the full breadth of work from the research bench to the administration of specialized user facilities serving the entire scientific community, providing a single secure foundation that the DOE mission can depend on.\n\n### **AI for science tools in action across the laboratory ecosystem**\n\nWhile we have a lot of work still to do, the practical impact of the Genesis Mission is already coming to life across the laboratory ecosystem.\n\nAt [Pacific Northwest National Laboratory (PNNL)](https://www.pnnl.gov/), senior scientist Dr. Henry Kvinge is using AlphaEvolve to map out massive mathematical systems that are far too complex for humans to explore by hand. The AI uncovers hidden connections automatically, fast-tracking discoveries that would normally take researchers years to find.\n\n“Modern math relies on abstraction, but combinatorics offers concrete models that make complex geometry and algebra easier to grasp. We’ve found that systems like AlphaEvolve are perfect for this search,” said Dr. Kvinge. “By leveraging the broad mathematical knowledge of LLMs, we can automate the exploration of countless angles. We’re still experimenting, but the discoveries are already shaping our future research.”\n\nAt the [National Laboratory of the Rockies (NLR)](https://www.nlr.gov/), researchers are utilizing Gemini to fundamentally change how they interact with physical laboratory hardware. Dr. Steven R. Spurgeon, a senior materials data scientist at NLR, leads a pioneering program in autonomous materials discovery.\n\n\"Our collaboration has allowed us to build an autonomous experimentation capability,\" said Dr. Spurgeon. \"By deploying Gemini in our instruments, we cut microscope calibration time from over 90 minutes to about 13 minutes (eight times faster) and reduced the manual steps needed to focus an image from as many as 50 down to two. That's time and attention we've given back to the science itself, enabling genuinely autonomous workflows that observe, reason, and decide in real time. This has helped us explore parts of the material design space we simply could not have reached through manual operation alone.\"\n\n### **Driving American innovation**\n\nThe Genesis Mission represents an opportunity to transform research and science across America. By providing access to advanced AI tools, we aim to help scientists accelerate breakthroughs across critical energy, security, and scientific challenges. To learn more about how these AI capabilities can support your research initiatives, join us at the upcoming [Google Public Sector Summit](https://events.govexec.com/google-public-sector-summit/) in October.",
+      "tags": [
+        "Google",
+        "Genesis Mission",
+        "4000万美元"
+      ],
+      "score": 79,
+      "summary": "Google承诺4000万美元AI代金券支持Genesis Mission科学发现。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/Genesis_Mission_40M_commitment.max-600x600.jpg",
+      "fetched_at": "2026-07-22T22:16:39.060975+08:00"
+    },
+    {
+      "title": "Accelerating the frontiers of scientific discovery: Google’s $40M commitment to the Genesis Mission",
+      "link": "https://deepmind.google/blog/accelerating-the-frontiers-of-scientific-discovery-googles-40m-commitment-to-the-genesis-mission/",
+      "published": "2026-07-22T21:38:54+08:00",
+      "source": "Google DeepMind Blog",
+      "content": "Google commits $40M in AI tokens and credits for the Genesis Mission",
+      "tags": [
+        "Google DeepMind",
+        "Genesis Mission",
+        "4000万美元"
+      ],
+      "score": 85,
+      "summary": "Google DeepMind官方宣布4000万美元AI代金券支持Genesis Mission。",
+      "fetched_at": "2026-07-22T22:16:39.060978+08:00"
+    },
+    {
+      "title": "Switch to Android easily — and bring your data with you.",
+      "link": "https://blog.google/products-and-platforms/platforms/android/galaxy-unpacked-switch-from-iphone-to-android/",
+      "published": "2026-07-22T21:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Switching_Android.max-600x600.format-webp.webp)A new migration experience built directly into Android 17 that lets you transfer more data wirelessly from an iPhone.",
+      "tags": [
+        "Android 17",
+        "iPhone迁移",
+        "数据转移"
+      ],
+      "score": 70,
+      "summary": "Google博客介绍Android 17内置的iPhone数据无线迁移功能。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Switching_Android.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-22T22:16:39.060980+08:00"
+    },
+    {
+      "title": "3 Google updates from Galaxy Unpacked 2026",
+      "link": "https://blog.google/products-and-platforms/platforms/android/galaxy-unpacked-2026/",
+      "published": "2026-07-22T21:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Unpacked_hero.max-600x600.format-webp.webp)We shared how Samsung users can boost productivity and get time back on new foldables, watches, and glasses coming soon.",
+      "tags": [
+        "Galaxy Unpacked",
+        "Samsung",
+        "Android"
+      ],
+      "score": 70,
+      "summary": "Google博客分享Galaxy Unpacked 2026上三星设备的新功能。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Unpacked_hero.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-22T22:16:39.060983+08:00"
+    },
+    {
+      "title": "大误解：服务有钱人，就能赚钱？",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzA4NTM2MTQzOA==&mid=2650673149&idx=1&sn=e4b82a7b8c649bd4784796073afe268a",
+      "published": "2026-07-22T20:16:00+08:00",
+      "source": "古典古少侠",
+      "content": "古典古少侠 2026-07-22 20:16 北京\n\n最近我突然想通一件事：\n\n知识付费这个领域，底层逻辑全变了。\n\n现在：\n\n学习本身变成一件要算投资回报率的事了。\n\n那对谁投资回报率更好呢？\n\n就是已经有能力、有资源、学完后，马上就有成果的人。（俗称有钱人）\n\n但我发现了一个误区：\n\n所谓赚有钱人的钱，不是只要服务有钱人就能赚钱，\n\n而是看你有没有找到他事业和生命里的的失衡点。\n\n最近我去上了一个高价课（内在探索类），\n\n有个同学身家54亿，排行榜上写着的人。\n\n我意识到，在过去快速增长的30年，为了快速拿到社会认同，他们失去了很多自我，\n\n所以帮有钱人找回自我，这个事情是一个天然的结构。\n\n他能走到那个高位，肯定是遵从了很多社会法则，而不是内心法则的。\n\n那他能在那个位置，肯定是失衡了上去的。所以你帮他内在找回平衡，他自然给你一点钱，就非常和谐。\n\n你的卖点反而不应该是我帮你赚钱，\n\n一个助人机构，他最好的生态位并不是教助人者怎么赚钱，\n\n因为他肯定搞不过那些商人。\n\n一个助人机构真的应该教有钱人怎么做人，他就会有一个结构性的对称。\n\n就你擅长这个，他特别不懂这个，所以他过来就你，交换了一下价值。\n\n其实你真的把内在探索这个点做到极致，\n\n你也是很稀缺的，钱就会过来靠你。\n\n比如你是打篮球的高手，我篮球技术不可能比你好了。\n\n那我可能要学按摩，做个顶级按摩师，那你就离不开我了。\n\n那你想在打球上赚更多的钱，你过来找我按摩，\n\n而不是说我一个按摩的，非要教你提升篮球技术。\n\n再比如比如十年前，留学业务很好做。是因为那时候有钱人，都面临一个悖论：一个好爹和一个好老板。很难共存。\n\n做老板天天喝酒夜场，你怎么当爹呀？你回趟家都不容易，\n\n现在留学机构，把你儿子送到名校500万，你愿不愿意补偿给孩子？\n\n所以，天然就是这么一个结构，天然就给了留学业务提供了空间。\n\n有时候我们不要被用户的目标误导，\n\n不是他想赚钱，你就扑上去直接教他赚钱，\n\n而是先找到他生命和事业中的结构性问题，用你的专业帮他补上。\n\n如果你也好奇自己有什么能力，能补上高净值人群的哪些结构性缺口？\n\n邀请你来「个人经验商业探索3天营」 做一次彻底梳理。\n\n第1天：盘点你的经验资产；\n\n第2天：把经验变有标价的产品；\n\n第3天：跑通商业闭环。\n\n点击下方链接报名，19.9，一杯咖啡钱，挖出你身上的宝藏能力。\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=0a8adc72&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzA4NTM2MTQzOA%3D%3D%26mid%3D2650673149%26idx%3D1%26sn%3De4b82a7b8c649bd4784796073afe268a)",
+      "tags": [
+        "知识付费",
+        "高净值",
+        "个人经验"
+      ],
+      "score": 10,
+      "summary": "古典古少侠文章讨论服务有钱人的误区，推广个人经验课程。",
+      "fetched_at": "2026-07-22T22:16:39.060985+08:00"
+    },
+    {
+      "title": "YouMind 做 PPT 有两大特点：\n\n1、默认美观、简单省事\n2、让水货更水、让牛人更牛\n\nYouMind 让你看见更真实的自己\n从而有机会成为更好的自己",
+      "link": "https://x.com/lifesinger/status/2079905110277468366",
+      "published": "2026-07-22T20:23:15+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "YouMind 做 PPT 有两大特点：  \n  \n1、默认美观、简单省事  \n2、让水货更水、让牛人更牛  \n  \nYouMind 让你看见更真实的自己  \n从而有机会成为更好的自己\n\n![Nicolechan](https://pbs.twimg.com/profile_images/1980138155312304128/4C6tfjLW_normal.jpg)\n\nNicolechan@stark\\_nico99\n\n近期 YouMind 的 Slides 默认风格有了很大迭代🎉  \n更符合大家日常工作需要的场景  \nYouMind 会根据你的内容为你选择合适的风格  \n  \n当然你也可以点击 Slides 下面的推荐来确定一个风格  \n都非常好看🥰\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079872335763722240/vid/avc1/1920x1080/eMsnT-7ECD7Vj75A.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/stark_nico99/status/2079876673131225521/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/stark_nico99/status/2079876673131225521)\n\n💬8🔄0❤️10👀1459📊8",
+      "tags": [
+        "YouMind",
+        "PPT",
+        "AI工具"
+      ],
+      "score": 50,
+      "summary": "玉伯评价YouMind做PPT美观省事，能让牛人更牛。",
+      "fetched_at": "2026-07-22T22:16:39.060988+08:00"
+    },
+    {
+      "title": "An underrated form of wealth:\n\nWaking up and realizing that nothing about your day was scheduled by ...",
+      "link": "https://x.com/thejustinwelsh/status/2079916144173998570",
+      "published": "2026-07-22T21:07:06+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "An underrated form of wealth:  \n  \nWaking up and realizing that nothing about your day was scheduled by someone else.\n\n💬19🔄0❤️32👀3018📊19",
+      "tags": [
+        "财富",
+        "自由",
+        "日程"
+      ],
+      "score": 10,
+      "summary": "Justin Welsh推文称无人安排日程是低估的财富形式。",
+      "fetched_at": "2026-07-22T22:16:39.060990+08:00"
+    },
+    {
+      "title": "Interrupt, The Agent Conference by LangChain returns this fall:\n📍NYC: September 24 \n📍London: Octob...",
+      "link": "https://x.com/LangChain/status/2079930849986740441",
+      "published": "2026-07-22T22:05:32+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Interrupt, The Agent Conference by LangChain returns this fall:  \n📍NYC: September 24   \n📍London: October 13   \n  \nGet more info + save your seat while spaces last a[interrupt.langchain.com](https://interrupt.langchain.com)1O\n\n![Tweet Image](https://pbs.twimg.com/media/HN1mEDLXAAAk4qD.jpg)![Tweet Image](https://pbs.twimg.com/media/HN1mEDLW0AAzTsJ.jpg)\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\nAt Interrupt, we learned how LinkedIn cut time-to-interview by 60% By building a hiring agent with LangGraph.   \n  \nWatch the full session: [youtu.be/LUemJGG2k4c](https://youtu.be/LUemJGG2k4c)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079908347159982080/vid/avc1/1280x720/MuWQ1OPZgV_UjZ_8.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2079923416476651697/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2079923416476651697)\n\n💬0🔄0❤️3👀1159",
+      "tags": [
+        "LangChain",
+        "Interrupt大会",
+        "Agent"
+      ],
+      "score": 70,
+      "summary": "LangChain宣布Interrupt Agent大会秋季在纽约和伦敦举办。",
+      "fetched_at": "2026-07-22T22:16:39.060993+08:00"
+    },
+    {
+      "title": "At Interrupt, we learned how LinkedIn cut time-to-interview by 60% By building a hiring agent with L...",
+      "link": "https://x.com/LangChain/status/2079923416476651697",
+      "published": "2026-07-22T21:36:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "At Interrupt, we learned how LinkedIn cut time-to-interview by 60% By building a hiring agent with LangGraph.   \n  \nWatch the full session: [youtu.be/LUemJGG2k4c](https://youtu.be/LUemJGG2k4c)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079908347159982080/vid/avc1/1280x720/MuWQ1OPZgV_UjZ_8.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2079923416476651697/video/1)\n\n💬2🔄0❤️18👀2647📊5",
+      "tags": [
+        "LangGraph",
+        "LinkedIn",
+        "招聘Agent"
+      ],
+      "score": 80,
+      "summary": "LangChain分享LinkedIn用LangGraph构建招聘Agent，面试时间缩短60%。",
+      "fetched_at": "2026-07-22T22:16:39.060995+08:00"
+    },
+    {
+      "title": "\"Graph engineering\" is having a moment, but it's not a new thing!\n\nWe've been building agents powere...",
+      "link": "https://x.com/LangChain/status/2079905908155380005",
+      "published": "2026-07-22T20:26:25+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "\"Graph engineering\" is having a moment, but it's not a new thing!  \n  \nWe've been building agents powered by graphs for three years, here's what we've learned!\n\n![Sydney Runkle](https://pbs.twimg.com/profile_images/1955622250629021696/WOrOq2Mw_normal.jpg)\n\nSydney Runkle@sydneyrunkle\n\n[x.com/i/article/2079…](http://x.com/i/article/2079897031179370496)\n\n[🔗 View Quoted Tweet](https://x.com/sydneyrunkle/status/2079904256199360815)\n\n💬1🔄0❤️9👀3531📊3",
+      "tags": [
+        "LangChain",
+        "图工程",
+        "Agent"
+      ],
+      "score": 70,
+      "summary": "LangChain推文称图工程正热门，分享三年构建图驱动Agent的经验。",
+      "fetched_at": "2026-07-22T22:16:39.060998+08:00"
+    },
+    {
+      "title": "New models now available to power your Lovable app’s AI features: Gemini 3.6 Flash and three GPT-5.6...",
+      "link": "https://x.com/Lovable/status/2079915504073117759",
+      "published": "2026-07-22T21:04:33+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "New models now available to power your Lovable app’s AI features: Gemini 3.6 Flash and three GPT-5.6 models.  \n  \nSee all available models in Connectors → AI.\n\n![Tweet Image](https://pbs.twimg.com/media/HN1YE9baEAAMIzU.jpg)\n\n💬0🔄1❤️18👀1894📊2",
+      "tags": [
+        "Lovable",
+        "Gemini 3.6 Flash",
+        "GPT-5.6"
+      ],
+      "score": 70,
+      "summary": "Lovable宣布支持Gemini 3.6 Flash和三个GPT-5.6模型。",
+      "fetched_at": "2026-07-22T22:16:39.061000+08:00"
+    },
+    {
+      "title": "New for enterprises: OpenAI Presence helps companies deploy trusted voice and chat agents across cus...",
+      "link": "https://x.com/OpenAI/status/2079916436232036614",
+      "published": "2026-07-22T21:08:16+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "New for enterprises: OpenAI Presence helps companies deploy trusted voice and chat agents across customer and internal workflows.  \n  \nAI agents can answer questions, use company systems, take approved actions, and escalate to people when needed—while improving over time.  \n  \nOpenAI Presence is available to eligible enterprise customers through a limited general availability program.  \n  \n[openai.com/index/introduc…](https://openai.com/index/introducing-openai-presence/)\n\n💬66🔄37❤️292👀45238📊87",
+      "tags": [
+        "OpenAI Presence",
+        "企业Agent",
+        "语音聊天"
+      ],
+      "score": 95,
+      "summary": "OpenAI官方发布OpenAI Presence，为企业提供可信语音和聊天Agent。",
+      "fetched_at": "2026-07-22T22:16:39.061003+08:00"
+    },
+    {
+      "title": "feedback wanted!\n\nGemini 3.6 Flash &amp; 3.5 Flash-Lite: our goal was to push those models a lot on ...",
+      "link": "https://x.com/patloeber/status/2079925211323883668",
+      "published": "2026-07-22T21:43:08+08:00",
+      "source": "Patrick Loeber(@patloeber)",
+      "content": "feedback wanted!  \n  \nGemini 3.6 Flash & 3.5 Flash-Lite: our goal was to push those models a lot on real world tasks & efficiency, what's your honest feedback after 24h?\n\n💬10🔄0❤️13👀966📊12",
+      "tags": [
+        "Gemini 3.6 Flash",
+        "反馈",
+        "效率"
+      ],
+      "score": 50,
+      "summary": "Patrick Loeber征求对Gemini 3.6 Flash和3.5 Flash-Lite的反馈。",
+      "fetched_at": "2026-07-22T22:16:39.061005+08:00"
+    },
+    {
+      "title": "Authentic Details and Deep Knowledge are also major upgrades in this release. Together, they enable ...",
+      "link": "https://x.com/Alibaba_Qwen/status/2079906355440472284",
+      "published": "2026-07-22T20:28:12+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "Authentic Details and Deep Knowledge are also major upgrades in this release. Together, they enable Qwen-Image-3.0 to make real breakthroughs in high-value productivity scenarios — newspaper PDFs, short-drama storyboards, complex UI, and more. As image generation keeps advancing, we believe it will unlock genuine productivity value across design, content creation, education, e-commerce, and beyond.\n\n![Tweet Image](https://pbs.twimg.com/media/HN1N386bQAEE2Jy.jpg)![Tweet Image](https://pbs.twimg.com/media/HN1N5hwaEAAtuL7.jpg)![Tweet Image](https://pbs.twimg.com/media/HN1N7JEbEAAeIuk.jpg)![Tweet Image](https://pbs.twimg.com/media/HN1N-SuaIAArUzB.jpg)\n\n💬5🔄2❤️53👀7218📊11",
+      "tags": [
+        "Qwen-Image-3.0",
+        "真实细节",
+        "深度知识"
+      ],
+      "score": 85,
+      "summary": "Qwen官方介绍Qwen-Image-3.0在真实细节和深度知识方面的升级。",
+      "fetched_at": "2026-07-22T22:16:39.061008+08:00"
+    },
+    {
+      "title": "Beyond horizontal expansion, depth is another key trait of Rich Content — testing the model's semant...",
+      "link": "https://x.com/Alibaba_Qwen/status/2079906350243717513",
+      "published": "2026-07-22T20:28:11+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "Beyond horizontal expansion, depth is another key trait of Rich Content — testing the model's semantic deconstruction and logical nesting: rendering multiple nested interfaces layer by layer within a single image.  \n  \nThe example below uses one instruction to display, from outer to inner: VSCode → Qwen Chat → a messaging app → a pour-over coffee poster. Each layer preserves the authentic style of its UI, forming a \"picture-in-picture-in-picture\" visual depth.\n\n![Tweet Image](https://pbs.twimg.com/media/HN1MnDIbYAAma5V.jpg)\n\n💬1🔄0❤️54👀8430📊7",
+      "tags": [
+        "Qwen-Image-3.0",
+        "丰富内容",
+        "嵌套UI"
+      ],
+      "score": 85,
+      "summary": "Qwen官方展示Qwen-Image-3.0生成多层嵌套UI的能力。",
+      "fetched_at": "2026-07-22T22:16:39.061010+08:00"
+    },
+    {
+      "title": "🎨 Meet Qwen-Image-3.0 — the third generation of our foundational image generation model.\n\nIf 1.0 wa...",
+      "link": "https://x.com/Alibaba_Qwen/status/2079906336381509659",
+      "published": "2026-07-22T20:28:08+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "🎨 Meet Qwen-Image-3.0 — the third generation of our foundational image generation model.  \n  \nIf 1.0 was about \"Precision,\" and 2.0 added \"Variety, Completeness, Beauty & Authenticity,\" then 3.0 comes down to a single word: Real (实).  \n  \nThree dimensions of \"Real\":  \n📰 Rich Content — prompts up to 4.5k tokens. One-pass generation of complex layouts: newspapers, storyboards, exam papers — even a 3×3 infographic grid or picture-in-picture-in-picture UIs.  \n🔬 Authentic Details — text legible down to 10px, full LaTeX paper pages, pores, hair strands & near-photographic skin texture.  \n🌏 Deep Knowledge — native rendering in 12 languages, 100+ art styles, realistic UIs (web / games / livestreams), plus world knowledge & live web retrieval.  \n  \nNot just \"good-looking\" — genuinely useful. Image generation as a real productivity tool for design, content, education & e-commerce.  \n  \nGo create 🏃🎨  \n  \n💬Qwen[chat.qwen.ai/?inputFeature=…](https://chat.qwen.ai/?inputFeature=t2i)HmITJ2W  \n[qwen.ai/blog?id=qwen-i…](https://qwen.ai/blog?id=qwen-image-3.0)nS4uI9Ar\n\n![Tweet Image](https://pbs.twimg.com/media/HN1LmIqa8AATJuu.jpg)\n\n💬86🔄165❤️1591👀66240📊317",
+      "tags": [
+        "Qwen-Image-3.0",
+        "图像生成",
+        "生产力"
+      ],
+      "score": 90,
+      "summary": "Qwen官方发布Qwen-Image-3.0，支持长提示、真实细节和深度知识。",
+      "fetched_at": "2026-07-22T22:16:39.061013+08:00"
+    },
+    {
+      "title": "One continuous shot. No cuts. \nMade with Skywork Video.",
+      "link": "https://x.com/Skywork_ai/status/2079918827106943333",
+      "published": "2026-07-22T21:17:46+08:00",
+      "source": "Skywork(@Skywork_ai)",
+      "content": "One continuous shot. No cuts.   \nMade with Skywork Video.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079918435308605441/vid/avc1/2560x1440/BgkqkR0F-KiGUzXU.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Skywork_ai/status/2079918827106943333/video/1)\n\n💬1🔄0❤️1👀199📊1",
+      "tags": [
+        "Skywork Video",
+        "连续镜头",
+        "视频生成"
+      ],
+      "score": 70,
+      "summary": "Skywork展示用Skywork Video生成的一镜到底视频。",
+      "fetched_at": "2026-07-22T22:16:39.061015+08:00"
+    },
+    {
+      "title": "Create yours → https://t.co/1iXcI0l8fg",
+      "link": "https://x.com/Skywork_ai/status/2079918829644444032",
+      "published": "2026-07-22T21:17:46+08:00",
+      "source": "Skywork(@Skywork_ai)",
+      "content": "Create yours → [skywork.ai/video](http://skywork.ai/video)\n\n💬0🔄0❤️0👀36",
+      "tags": [
+        "Skywork Video",
+        "创建链接"
+      ],
+      "score": 50,
+      "summary": "Skywork推广其视频生成工具，提供创建链接。",
+      "fetched_at": "2026-07-22T22:16:39.061018+08:00"
+    },
+    {
+      "title": "昨天认识一位CNC大牛，他是从自组装时代就开始玩的顶级玩家。他的年纪真的让我觉得年龄只是个数字。他说一开始的几位开创性的行业领导者，都是跟他一样玩票起家。有几位最早做控制系统的，都认为hobbist ...",
+      "link": "https://x.com/feltanimalworld/status/2079924825779327468",
+      "published": "2026-07-22T21:41:36+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "昨天认识一位CNC大牛，他是从自组装时代就开始玩的顶级玩家。他的年纪真的让我觉得年龄只是个数字。他说一开始的几位开创性的行业领导者，都是跟他一样玩票起家。有几位最早做控制系统的，都认为hobbist 市场，就是这帮资本口中说的玩家/极客是绝对不能放弃的。就算不挣钱。极客市场，挣钱是一回事（也有可能完全挣不到钱，但能诞生能赚钱的技术）。所以真正懂技术的人，一定会泡在nerd圈里....你泡在讲故事的人身边，这个故事讲来讲去，tm还是故事。\n\n![失业观察日报](https://pbs.twimg.com/profile_images/1913529297802756096/Zhm8-Qqy_normal.jpg)\n\n失业观察日报@dutyge\n\n哈耶克为什么要费这么大劲儿批判计划经济？计划经济哪儿坑害他了？  \n  \n以英伟达的CUDA研发为例。\n\n![Tweet Image](https://pbs.twimg.com/media/HNwA_Q0bQAAde1g.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dutyge/status/2079538225472045320)\n\n💬2🔄0❤️2👀272📊2",
+      "tags": [
+        "CNC",
+        "极客",
+        "资本"
+      ],
+      "score": 10,
+      "summary": "Susan STEM分享与CNC大牛的对话，强调极客市场的重要性。",
+      "fetched_at": "2026-07-22T22:16:39.061020+08:00"
+    },
+    {
+      "title": "女性进入青春期以后，以后的几十年都是一个与基因对抗的过程。身体的激素直接跟智力相关，为什么到了高中阶段在理工科上以前表现还不错的女生都逐渐掉队了？这个在后面对于心理上的压力如影随形，一台4乘8数控CN...",
+      "link": "https://x.com/feltanimalworld/status/2079921591157182766",
+      "published": "2026-07-22T21:28:45+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "女性进入青春期以后，以后的几十年都是一个与基因对抗的过程。身体的激素直接跟智力相关，为什么到了高中阶段在理工科上以前表现还不错的女生都逐渐掉队了？这个在后面对于心理上的压力如影随形，一台4乘8数控CNC机床，一开机男人觉得好兴奋，我是需要克服心理上的恐惧去操作的。因为女性基因的母性本能让你潜意识要带着孩子远离任何有风险的物体。而且注意力会变得非常涣散，孩子的哭声和24小时待命换尿布/喂奶，直接能把智商给你归零了。基因里让女性成为multi-tasker， 是因为采集者和抚养者的职能，是相对于狩猎者的长时间高度集中相反的一种生理本能。当然，概率分布是普遍远离，女人里面有强的，男人里面有弱的。\n\n![阴阳行者-おんみょうぎょうじゃ-Yin Yang Wayfarer](https://pbs.twimg.com/profile_images/2002247458165051392/YNY6vhY6_normal.jpg)\n\n阴阳行者-おんみょうぎょうじゃ-Yin Yang Wayfarer@gpsma2025\n\n所谓的自由女性，特别大龄剩下的，不过是大号的巨婴。不依附父母、伴侣、社会——中间却靠父母接济。主见很多，从不验证。聪明不够，固执来凑。很多剩女不是被剩下，是自己有问题。聊过，听不进去。最隐蔽的牢笼是自己建的，钥匙在手里，她以为是装饰品。\n\n[🔗 View Quoted Tweet](https://x.com/gpsma2025/status/2079847695779512729)\n\n💬3🔄0❤️7👀452📊3",
+      "tags": [
+        "女性",
+        "理工科",
+        "基因"
+      ],
+      "score": 10,
+      "summary": "Susan STEM讨论女性青春期后理工科表现下降的基因因素。",
+      "fetched_at": "2026-07-22T22:16:39.061022+08:00"
+    },
+    {
+      "title": "这全是同一个剧本，一个剧本出来那么多AI短剧....以后电子榨菜，比真榨菜还不值钱。这一轮技术变革，对于程序员来说，如果不能做真正的生产落地，能够跨入物理世界的东西，真心感觉也就比搞电诈的好点了。以前...",
+      "link": "https://x.com/feltanimalworld/status/2079906212473196913",
+      "published": "2026-07-22T20:27:38+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "这全是同一个剧本，一个剧本出来那么多AI短剧....以后电子榨菜，比真榨菜还不值钱。这一轮技术变革，对于程序员来说，如果不能做真正的生产落地，能够跨入物理世界的东西，真心感觉也就比搞电诈的好点了。以前那是信息，graphics这些非常昂贵。建模，渲染，都是耗死人力算力的东西，现在居然同一个剧本有那么多剧集....\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079905990565126144/vid/avc1/1516x852/yDKn1BVJZw889TkP.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/feltanimalworld/status/2079906212473196913/video/1)\n\n💬9🔄0❤️9👀1625📊11",
+      "tags": [
+        "AI短剧",
+        "电子榨菜",
+        "程序员"
+      ],
+      "score": 10,
+      "summary": "Susan STEM评论AI短剧泛滥，认为程序员应关注物理世界落地。",
+      "fetched_at": "2026-07-22T22:16:39.061025+08:00"
+    },
+    {
+      "title": "今天又关注到 vinext 这个框架，https://t.co/1USfXzvdNm\n适配 CF worker 的 Next.js, 基于 Vite ，主要针对 Cloudflare Workers ...",
+      "link": "https://x.com/vikingmute/status/2079920945591128425",
+      "published": "2026-07-22T21:26:11+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "今天又关注到 vinext 这个框架，[vinext.dev](https://vinext.dev/)  \n适配 CF worker 的 Next.js, 基于 Vite ，主要针对 Cloudflare Workers 部署优化，适合 All in CF，这框架我记得最早是说用 AI 在一周内完成核心重构。  \n  \n不知道现在稳定了没有？[vinext.dev/compatibility](https://vinext.dev/compatibility)   \n  \n看兼容性已经挺不错了，Overall pass rate：92.3%，不知道有人在生产环境上用了没有？如果很稳定了，又是 All in CF 的一个非常好的选项。\n\n![Tweet Image](https://pbs.twimg.com/media/HN1dEk8aAAALDl_.jpg)\n\n💬4🔄0❤️1👀455📊4",
+      "tags": [
+        "vinext",
+        "Cloudflare Workers",
+        "Next.js"
+      ],
+      "score": 50,
+      "summary": "Viking介绍适配Cloudflare Workers的Next.js框架vinext。",
+      "fetched_at": "2026-07-22T22:16:39.061027+08:00"
+    },
+    {
+      "title": "梦想：用户需要生产力工具\n现实：我就做个文档，这AI来回问我问题，然后几块钱就没了？！\n\n梦想：用户需要Agent Team\n现实：Agent来回并发，这Token怎么消耗这么快？一个任务跑了十几块钱...",
+      "link": "https://x.com/yangyi/status/2079920510360777039",
+      "published": "2026-07-22T21:24:27+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "梦想：用户需要生产力工具  \n现实：我就做个文档，这AI来回问我问题，然后几块钱就没了？！  \n  \n梦想：用户需要Agent Team  \n现实：Agent来回并发，这Token怎么消耗这么快？一个任务跑了十几块钱？？  \n  \n所以做产品的没利润，卖课的才有利润  \n因为梦只有梦里才能实现\n\n💬0🔄0❤️0👀165",
+      "tags": [
+        "AI工具",
+        "Token消耗",
+        "产品利润"
+      ],
+      "score": 10,
+      "summary": "Yangyi吐槽AI工具Token消耗快，产品利润低。",
+      "fetched_at": "2026-07-22T22:16:39.061030+08:00"
+    },
+    {
+      "title": "我觉得sub2api为其贡献了至少10%……",
+      "link": "https://x.com/yangyi/status/2079919241625793007",
+      "published": "2026-07-22T21:19:24+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "我觉得sub2api为其贡献了至少10%……\n\n![Tibo](https://pbs.twimg.com/profile_images/2075819673263001600/pj1vyX6I_normal.jpg)\n\nTibo@thsottiaux\n\n10M!   \n  \nNew day, new usage reset for paid users of Codex and ChatGPT Work. Lands in the next hour. Enjoy.\n\n![Tweet Image](https://pbs.twimg.com/media/HNxBZaGbYAAo4Cb.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/thsottiaux/status/2079609157934886975)\n\n💬2🔄0❤️0👀303📊2",
+      "tags": [
+        "sub2api",
+        "Codex",
+        "使用量"
+      ],
+      "score": 10,
+      "summary": "Yangyi评论sub2api为Codex使用量贡献至少10%。",
+      "fetched_at": "2026-07-22T22:16:39.061032+08:00"
+    },
+    {
+      "title": "请问小红书和视频号能obs推流直播吗",
+      "link": "https://x.com/yangyi/status/2079905076584534515",
+      "published": "2026-07-22T20:23:07+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "请问小红书和视频号能obs推流直播吗\n\n💬4🔄0❤️2👀891📊4",
+      "tags": [
+        "小红书",
+        "视频号",
+        "OBS推流"
+      ],
+      "score": 0,
+      "summary": "Yangyi询问小红书和视频号是否支持OBS推流直播。",
+      "fetched_at": "2026-07-22T22:16:39.061035+08:00"
+    },
+    {
+      "title": "So proud of our security team! They caught, contained & publicly disclosed an attack unlike anything...",
+      "link": "https://x.com/ClementDelangue/status/2079913058554585089",
+      "published": "2026-07-22T20:54:50+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "So proud of our security team! They caught, contained & publicly disclosed an attack unlike anything we've seen before, and did it at record speed.   \n  \nAlso massively grateful to [@Zai\\_org](https://x.com/Zai_org): they shared GLM5.2 as open weights (for free!) with the world and it became a key part of our defense.   \n  \nThis is day one for cybersecurity in the age of agents & we're all learning that secrecy is not the answer & that all defenders (not just a few selected ones) everywhere need more powerful models without restrictions, especially open ones!\n\n![Adrien Carreira](https://pbs.twimg.com/profile_images/1945829182715432960/BolQx8R0_normal.jpg)\n\nAdrien Carreira@XciD\\_\n\nHardest IR of my career: one narrow objective, endless parallel paths, machine speed. One takeaway, we fought back with open models, in the open. AI security won’t be solved by one company in secret. Open source puts these tools in every defender’s hands\n\n![Tweet Image](https://pbs.twimg.com/media/HNyAL_yWcAAI5Pq.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/XciD_/status/2079678076305154214)\n\n💬60🔄143❤️1012👀55359📊156",
+      "tags": [
+        "Hugging Face",
+        "安全攻击",
+        "GLM5.2"
+      ],
+      "score": 85,
+      "summary": "Hugging Face CEO称赞安全团队快速处置攻击，感谢智谱开源GLM5.2。",
+      "fetched_at": "2026-07-22T22:16:39.061037+08:00"
+    },
+    {
+      "title": "我们战队的小伙子的思考🤔\n为年轻人点赞",
+      "link": "https://x.com/FuSheng_0306/status/2079915519466225838",
+      "published": "2026-07-22T21:04:37+08:00",
+      "source": "傅盛(@FuSheng_0306)",
+      "content": "我们战队的小伙子的思考🤔  \n为年轻人点赞\n\n![Russell](https://pbs.twimg.com/profile_images/2027629616744304640/7fyIwFFU_normal.jpg)\n\nRussell@Russell3402\n\n[x.com/i/article/2057…](http://x.com/i/article/2057063539412762624)\n\n[🔗 View Quoted Tweet](https://x.com/Russell3402/status/2057076827395629397)\n\n💬4🔄0❤️3👀1486📊4",
+      "tags": [
+        "傅盛",
+        "年轻人",
+        "思考"
+      ],
+      "score": 10,
+      "summary": "傅盛转发战队小伙子的思考，为年轻人点赞。",
+      "fetched_at": "2026-07-22T22:16:39.061039+08:00"
+    },
+    {
+      "title": "拿Kimi K3做了两个项目，一个是会跟着鼠标动的炫光丝带动画，搞定了，还挺漂亮。另一个是9张卡片同时翻转滑动的网页效果，人手写至少一整天，K3不到1小时交卷。这性价比，难怪OpenAI和Anthro...",
+      "link": "https://x.com/FuSheng_0306/status/2079903322497327224",
+      "published": "2026-07-22T20:16:09+08:00",
+      "source": "傅盛(@FuSheng_0306)",
+      "content": "拿Kimi K3做了两个项目，一个是会跟着鼠标动的炫光丝带动画，搞定了，还挺漂亮。另一个是9张卡片同时翻转滑动的网页效果，人手写至少一整天，K3不到1小时交卷。这性价比，难怪OpenAI和Anthropic都坐不住了。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079873523875725312/vid/avc1/1080x1920/F5z6lgz_hmrN9oc_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/FuSheng_0306/status/2079903322497327224/video/1)\n\n💬2🔄0❤️10👀1529📊4",
+      "tags": [
+        "Kimi K3",
+        "网页效果",
+        "性价比"
+      ],
+      "score": 50,
+      "summary": "傅盛用Kimi K3制作动画和卡片翻转效果，称赞性价比。",
+      "fetched_at": "2026-07-22T22:16:39.061042+08:00"
+    },
+    {
+      "title": "Github：https://t.co/JkoGl2LzUc\n\n下载地址：https://t.co/pnxAxui5zF\n\n#无限OCR #UnlimitedOCR #百度 #文心大模型 #文心",
+      "link": "https://x.com/vista8/status/2079915658213810387",
+      "published": "2026-07-22T21:05:10+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Github：[github.com/baidu/Unlimite…](https://github.com/baidu/Unlimited-OCR)  \n  \n下载地址：[huggingface.co/baidu/Unlimite…](https://huggingface.co/baidu/Unlimited-OCR)#无限OCR#UnlimitedOCR#百度#文心大模型#文心\n\n💬0🔄0❤️4👀740📊1",
+      "tags": [
+        "百度",
+        "Unlimited OCR",
+        "开源"
+      ],
+      "score": 70,
+      "summary": "向阳乔木分享百度Unlimited OCR的GitHub和下载链接。",
+      "fetched_at": "2026-07-22T22:16:39.061044+08:00"
+    },
+    {
+      "title": "感觉百度的技术底子还是很硬的。\n\n最近这个Unlimited OCR，竟然连杨立昆（Yann LeCun）都关注到了！\n\nUnlimited OCR 提出了 Reference Sliding Win...",
+      "link": "https://x.com/vista8/status/2079915491897024703",
+      "published": "2026-07-22T21:04:30+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "感觉百度的技术底子还是很硬的。  \n  \n最近这个Unlimited OCR，竟然连杨立昆（Yann LeCun）都关注到了！  \n  \nUnlimited OCR 提出了 Reference Sliding Window Attention （R-SWA）机制，不用传统的“逐页解析+结果拼接”方法，通过借鉴人类阅读和抄长文档的工作方式，把解码阶段 KV Cache 控制在恒定规模，仅用30亿参数模型，实现数十页文档一次连续解析。  \n  \n上个月开源的 Unlimited OCR，发布第二天就冲上 GitHub Trending 和 HuggingFace 模型下载趋势榜双第一。  \n  \n如今项目 GitHub Star 已突破 1.65 万，HuggingFace 下载量超 224 万，再一次登上Trending，目前已经位列第二，并再次超过 GLM-5.2。  \n  \n作为大模型训练数据清洗的基建型项目，Unlimited OCR 吸引了全球大量开发者的关注。  \n  \n#无限OCR#UnlimitedOCR#百度#文心大模型#文心\n\n![Tweet Image](https://pbs.twimg.com/media/HN1YGK_bAAAsF5N.jpg)![Tweet Image](https://pbs.twimg.com/media/HN1YGJ9bMAE_Foc.jpg)![Tweet Image](https://pbs.twimg.com/media/HN1YGJ8a0AA2JYt.jpg)\n\n💬7🔄1❤️11👀2533📊9",
+      "tags": [
+        "百度",
+        "Unlimited OCR",
+        "Yann LeCun"
+      ],
+      "score": 70,
+      "summary": "向阳乔木介绍百度Unlimited OCR获Yann LeCun关注，GitHub Star超1.65万。",
+      "fetched_at": "2026-07-22T22:16:39.061047+08:00"
+    },
+    {
+      "title": "Building AI infrastructure with the Effingham County community",
+      "link": "https://openai.com/index/building-ai-infrastructure-with-the-effingham-county-community",
+      "published": "2026-07-22T21:00:00+08:00",
+      "source": "OpenAI News",
+      "content": "OpenAI announces Project Camellia in Effingham County, Georgia, with commitments to responsible energy, community investment, jobs, and access to Codex.",
+      "tags": [
+        "OpenAI",
+        "Project Camellia",
+        "基础设施"
+      ],
+      "score": 85,
+      "summary": "OpenAI宣布在佐治亚州Effingham县建设AI基础设施Project Camellia。",
+      "fetched_at": "2026-07-22T22:16:39.061049+08:00"
+    },
+    {
+      "title": "Anthropic Details How It Contains Claude Across Web, Code, and Cowork",
+      "link": "https://www.infoq.com/news/2026/07/anthropic-claude-containment/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-22T20:25:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/anthropic-claude-containment/en/headerimage/Anthropic-Header-1784707138026.jpeg)\n\nAnthropic detailed the containment architectures it uses for Claude across its products. It argues that agent safety depends on placing deterministic limits on an agent’s filesystem, network, and execution environment rather than on permission prompts or safeguards. Most notably, it examines failures at trust boundaries and along permitted egress paths that led Anthropic to revise those designs.\n\n*By Eran Stiller*",
+      "tags": [
+        "Anthropic",
+        "Claude",
+        "安全架构"
+      ],
+      "score": 80,
+      "summary": "InfoQ报道Anthropic详述Claude在Web、代码和Cowork中的安全架构。",
+      "fetched_at": "2026-07-22T22:16:39.061052+08:00"
     }
   ]
 }
