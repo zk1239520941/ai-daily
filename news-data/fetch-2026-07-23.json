@@ -1525,6 +1525,347 @@
       "score": 50,
       "summary": "歸藏分享CodePilot项目GitHub地址。",
       "fetched_at": "2026-07-23T02:16:02.429158+08:00"
+    },
+    {
+      "title": "Copilot vs. raw API access: What are you actually paying for?",
+      "link": "https://github.blog/ai-and-ml/github-copilot/copilot-vs-raw-api-access-what-are-you-actually-paying-for/",
+      "published": "2026-07-23T03:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "I keep seeing this question: “Why would I pay for GitHub Copilot when I can call the same models through an API?”\n\nIt’s a fair question. The answer depends on what work you need to own.\n\nAre you building a product feature with your own prompts, retrieval, routing, logs, security model, and billing controls? Or are you trying to get from a GitHub Issue to a reviewed pull request with the editor, repository, terminal, and organization policies already connected?\n\nCost is part of that equation. Copilot plans include a monthly allocation of GitHub AI Credits. Metered usage is calculated from input, output, and cached tokens at the listed rate for the selected model.\n\nRaw API access and Copilot address different layers of that system. The right choice follows the work you need to own.\n\n## Copilot is development tooling around the model\n\nNow take a common maintenance task: a developer starts from a GitHub Issue, inspects the repository, changes the affected files, runs the test suite in the terminal, and opens a pull request for review. The model call is one step in that workflow. The surrounding system needs the issue, the diff, repository instructions, permitted commands, and the organization’s policies.\n\nGitHub Copilot connects those surfaces across the editor, repository, pull request, issue, terminal, and organization controls. That is what the plan covers alongside model access. The billing change makes the split easier to see: code completions and Next Edit Suggestions remain included in paid plans, while AI Credits apply to more resource-intensive chat and agentic work.\n\nCost per task therefore depends on more than the listed token rate. Context selection, tool use, retries, and the path from an issue to a reviewed pull request all affect the number of tokens spent and whether the work finishes.\n\nThe same billing model gives buyers visibility. Organization plans “pool” AI Credits across the organization, and admins can set budgets and track usage in the billing dashboard. Adoption stays measurable instead of scattering across individual API keys and untracked scripts.\n\n## The harness has measurable impact\n\nGitHub’s evaluation held the model, benchmark task, context window, reasoning effort, tool selection, and MCP servers constant while comparing Copilot CLI with model-vendor harnesses. Across SWE-bench Verified, SWE-bench Pro, SkillsBench, TerminalBench, and Win-Hill, Copilot reached task-resolution parity while using fewer tokens in most configurations. For TerminalBench 2.0, each agent-model configuration ran at least five times to measure cost and completion variance.\n\nRead [the full agentic-harness evaluation across models and tasks](https://github.blog/ai-and-ml/github-copilot/evaluating-performance-and-efficiency-of-the-github-copilot-agentic-harness-across-models-and-tasks/).\n\n## Raw API access is for systems you own\n\nDirect API access is the right foundation when you are building a product feature, an internal agent platform, an evaluation harness, or an automation pipeline. You control the prompts, retrieval, routing, retries, logs, security model, and billing.\n\nConsider an internal agent that reads a tagged issue, retrieves company documentation, creates a change request in a separate system, and writes a complete audit record. That workflow needs its own data boundaries, event triggers, and approval points. An API gives the team the primitives to build those requirements into the product.\n\nThe engineering work is real. A production system needs to decide which repository files to retrieve, how to preserve instructions, when to retry a failed tool call, where to store traces, and which credentials an agent can use. Those are system design decisions made by developers. A model endpoint does not make them for you.\n\nAgent SDKs sit between these layers. Handling orchestration, tool use, sessions and streaming, with some tradeoffs: some are tied to a single provider’s API while others work across providers. GitHub ships this layer. The Copilot SDK exposes the same agent’s runtime that powers the Copilot CLI, so you can embed a benchmarked, production tested harness instead of building one. Run it with your Copilot subscription or your own provider key.\n\n## BYOK keeps the workflow and changes the bill\n\nBring Your Own Key for Copilot, currently in public preview, lets developers make supported provider models available in Copilot Chat, Copilot CLI, and VS Code. Supported providers include Anthropic, AWS Bedrock, Google AI Studio, Microsoft Foundry, OpenAI, OpenAI-compatible providers, and xAI.\n\nBYOK models run through the same harness and the same integrations GitHub builds and maintains. Your provider takes over the token bill. GitHub still develops the tooling.\n\nModel access is a policy decision either way. Copilot supports more than 20 models, and enterprise and organization admins choose which ones are enabled for their teams, whether GitHub-hosted or connected through BYOK.\n\nA team with an existing provider contract or committed cloud spend can keep that commercial relationship while developers use Copilot in their normal workflow. Copilot CLI also supports local and external BYOK models, including OpenAI-compatible endpoints, Azure OpenAI, Anthropic, and local Ollama models.\n\nCheck the current documentation on [using your own API keys with GitHub Copilot (enterprise)](https://docs.github.com/copilot/how-tos/administer-copilot/manage-for-enterprise/use-your-own-api-keys) and [using your own LLM models in Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models) before making purchasing or architecture decisions because BYOK is still in public preview.\n\n## Choose the layer you need\n\nChoose raw API access when you are building a system that requires custom behavior, integrations, and controls. Choose GitHub Copilot when the work is software development inside the tools and repositories where a team already writes, reviews, secures, and ships code.\n\nShipping software is the work around the code: issues, pull requests, reviews, checks, actions, and security. GitHub is where teams do that work. Copilot helps them move through it faster.\n\nSee what each [Copilot plan includes and how AI Credits work](https://github.com/features/copilot/plans).\n\nThe post [Copilot vs. raw API access: What are you actually paying for?](https://github.blog/ai-and-ml/github-copilot/copilot-vs-raw-api-access-what-are-you-actually-paying-for/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub Copilot",
+        "API对比",
+        "定价分析"
+      ],
+      "score": 85,
+      "summary": "GitHub官方博客分析Copilot与原始API访问的成本差异，强调Copilot提供开发工具链集成。",
+      "fetched_at": "2026-07-23T04:18:27.942836+08:00"
+    },
+    {
+      "title": "The Claude Code Desktop app has gotten so good that it has now become my daily driver for code.\n\nIt'...",
+      "link": "https://x.com/adocomplete/status/2080005037263065527",
+      "published": "2026-07-23T03:00:20+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "The Claude Code Desktop app has gotten so good that it has now become my daily driver for code.  \n  \nIt's got everything I need:  \n  \n- easily manage multiple workflows  \n- built in browser and iOS simulator  \n- file explorer, git, terminal  \n- much easier to manage settings and customize\n\n![Tweet Image](https://pbs.twimg.com/media/HN2ocepbQAAPDgU.jpg)\n\n💬4🔄1❤️20👀1191📊7",
+      "tags": [
+        "Claude Code Desktop",
+        "日常编码"
+      ],
+      "score": 70,
+      "summary": "用户Ado分享Claude Code Desktop应用成为其日常编码工具，具备多工作流、浏览器、iOS模拟器等功能。",
+      "fetched_at": "2026-07-23T04:18:27.942851+08:00"
+    },
+    {
+      "title": "Get the Desktop app here: https://t.co/UOVKn5TzhX",
+      "link": "https://x.com/adocomplete/status/2080005039523815490",
+      "published": "2026-07-23T03:00:20+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Get the Desktop app here: [claude.com/download](https://claude.com/download)\n\n💬0🔄0❤️0👀276",
+      "tags": [
+        "Claude Desktop",
+        "下载链接"
+      ],
+      "score": 30,
+      "summary": "用户Ado提供Claude Desktop应用下载链接。",
+      "fetched_at": "2026-07-23T04:18:27.942855+08:00"
+    },
+    {
+      "title": "OpenClaw, with the Browser Use CLI, places well on our hardest benchmark of real user tasks.\n\n@steip...",
+      "link": "https://x.com/browser_use/status/2080011446310846528",
+      "published": "2026-07-23T03:25:48+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "OpenClaw, with the Browser Use CLI, places well on our hardest benchmark of real user tasks.  \n  \n[@steipete](https://x.com/steipete) time to make it the default browser tool? 👀\n\n![Laith Weinberger](https://pbs.twimg.com/profile_images/2064887530517123072/X392jDdH_normal.jpg)\n\nLaith Weinberger@Laithwr\n\nYou should try the Browser Use CLI in OpenClaw!  \n  \nIn testing OpenClaw, we found that its built-in browser struggles with complex, multi-site tasks. Using the Browser Use CLI resolves these failures.\n\n![Tweet Image](https://pbs.twimg.com/media/HN2sriXakAAKDZI.png)\n\n[🔗 View Quoted Tweet](https://x.com/Laithwr/status/2080009898482630776)\n\n💬0🔄0❤️5👀571📊1",
+      "tags": [
+        "OpenClaw",
+        "Browser Use CLI",
+        "基准测试"
+      ],
+      "score": 70,
+      "summary": "Browser Use称OpenClaw结合其CLI在真实用户任务基准测试中表现良好。",
+      "fetched_at": "2026-07-23T04:18:27.942858+08:00"
+    },
+    {
+      "title": "This is the moment @davemorin knew @openclaw was something special. ✨💡",
+      "link": "https://x.com/github/status/2079998815461868015",
+      "published": "2026-07-23T02:35:36+08:00",
+      "source": "GitHub(@github)",
+      "content": "This is the moment [@davemorin](https://x.com/davemorin) knew [@openclaw](https://x.com/openclaw) was something special. ✨💡\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079998668363399168/vid/avc1/720x1280/abzsMQTUCngqA52Z.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/github/status/2079998815461868015/video/1)\n\n💬4🔄3❤️20👀8571📊6",
+      "tags": [
+        "OpenClaw",
+        "GitHub",
+        "视频"
+      ],
+      "score": 70,
+      "summary": "GitHub官方账号发布OpenClaw相关视频，表示其创始人认为OpenClaw很特别。",
+      "fetched_at": "2026-07-23T04:18:27.942861+08:00"
+    },
+    {
+      "title": "Shopify + Vercel are two sides of the same coin. A congregation: entrepreneur-first, developer-led, ...",
+      "link": "https://x.com/rauchg/status/2080005193337377146",
+      "published": "2026-07-23T03:00:57+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Shopify + Vercel are two sides of the same coin. A congregation: entrepreneur-first, developer-led, web-obsessed. So excited to bring our infrastructure for apps and agents to millions of businesses together\n\n![Tweet Image](https://pbs.twimg.com/media/HN2ps0GWkAAkC3m.jpg)\n\n💬7🔄4❤️40👀3547📊10",
+      "tags": [
+        "Shopify",
+        "Vercel",
+        "合作"
+      ],
+      "score": 75,
+      "summary": "Vercel CEO Guillermo Rauch宣布与Shopify合作，为应用和代理提供基础设施。",
+      "fetched_at": "2026-07-23T04:18:27.942863+08:00"
+    },
+    {
+      "title": "building evals is hard!  we're working on some skills to try to automate as much as possible. still ...",
+      "link": "https://x.com/hwchase17/status/2080012123401560070",
+      "published": "2026-07-23T03:28:29+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "building evals is hard! we're working on some skills to try to automate as much as possible. still requires human in the loop, but should help bootstrap  \n  \noverall flow is:  \n- give coding agent the codebase + actual traces  \n- iterate on eval direction with user  \n- build evals (using harbor)  \n- run evals  \n- look at results, iterate with user again, repeat\n\n![Viv](https://pbs.twimg.com/profile_images/1805079750873923584/7sTh63Eo_normal.jpg)\n\nViv@Vtrivedy10\n\n[x.com/i/article/2079…](http://x.com/i/article/2079797742168150017)\n\n[🔗 View Quoted Tweet](https://x.com/Vtrivedy10/status/2079976006644072796)\n\n💬1🔄1❤️4👀378📊1",
+      "tags": [
+        "LangChain",
+        "自动化评估",
+        "Harbor"
+      ],
+      "score": 80,
+      "summary": "LangChain创始人Harrison Chase分享自动化评估（evals）的工作流程，使用Harbor构建和运行评估。",
+      "fetched_at": "2026-07-23T04:18:27.942866+08:00"
+    },
+    {
+      "title": "https://t.co/3z4Cmld3SN",
+      "link": "https://x.com/HeyGen/status/2080012076454719554",
+      "published": "2026-07-23T03:28:18+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "[x.com/i/article/2080…](http://x.com/i/article/2080010565607649280)\n\n💬1🔄3❤️13👀1112📊5",
+      "tags": [
+        "HeyGen",
+        "文章"
+      ],
+      "score": 60,
+      "summary": "HeyGen官方账号发布一篇未指明内容的文章链接。",
+      "fetched_at": "2026-07-23T04:18:27.942868+08:00"
+    },
+    {
+      "title": "Perfide Albion",
+      "link": "https://x.com/julien_c/status/2079995795051282551",
+      "published": "2026-07-23T02:23:36+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Perfide Albion\n\n![Connacher Murphy](https://pbs.twimg.com/profile_images/2040497717722456064/O3eZZwuP_normal.jpg)\n\nConnacher Murphy@connacher\\_\n\n[@julien\\_c](https://x.com/julien_c) BBC policy to not name a French startup\n\n[🔗 View Quoted Tweet](https://x.com/connacher_/status/2079992284477526157)\n\n💬1🔄1❤️5👀1861📊2",
+      "tags": [
+        "Hugging Face",
+        "BBC"
+      ],
+      "score": 30,
+      "summary": "Hugging Face CEO Julien Chaumond评论BBC政策不提及法国初创公司。",
+      "fetched_at": "2026-07-23T04:18:27.942870+08:00"
+    },
+    {
+      "title": "We’re hosting a meetup with @cognition on Tuesday.\n\nCome learn about LLM Wikis and how to give your ...",
+      "link": "https://x.com/LangChain/status/2080018154634318171",
+      "published": "2026-07-23T03:52:27+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We’re hosting a meetup with [@cognition](https://x.com/cognition) on Tuesday.  \n  \nCome learn about LLM Wikis and how to give your agents open memory with OpenWiki.  \n  \nRSVP while spaces last: [luma.com/mylwoabu](https://luma.com/mylwoabu)\n\n![Tweet Image](https://pbs.twimg.com/media/HN21ZscWAAA92m_.jpg)\n\n💬0🔄0❤️2👀1183",
+      "tags": [
+        "LangChain",
+        "Cognition",
+        "OpenWiki"
+      ],
+      "score": 70,
+      "summary": "LangChain宣布与Cognition合办meetup，主题为LLM Wikis和OpenWiki。",
+      "fetched_at": "2026-07-23T04:18:27.942872+08:00"
+    },
+    {
+      "title": "Join us at Interrupt London on October 13th!\n🎙️ @hwchase17, @jpmorgan, @useapolloio, @modal, and mo...",
+      "link": "https://x.com/LangChain/status/2080004958116823421",
+      "published": "2026-07-23T03:00:01+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Join us at Interrupt London on October 13th!  \n🎙️ [@hwchase17](https://x.com/hwchase17), [@jpmorgan](https://x.com/jpmorgan), [@useapolloio](https://x.com/useapolloio), [@modal](https://x.com/modal), and more  \n💻 Technical sessions + hands-on workshops  \n🤝 Networking with other agent builders  \n  \n🎟️ Tickets are limited. Save your spot[interrupt.langchain.com/nyc](https://interrupt.langchain.com/nyc)7Rub\n\n![Tweet Image](https://pbs.twimg.com/media/HNwR8CaW4AAyTro.jpg)\n\n💬1🔄2❤️5👀1984📊2",
+      "tags": [
+        "LangChain",
+        "Interrupt London",
+        "活动"
+      ],
+      "score": 70,
+      "summary": "LangChain宣布Interrupt London活动，包括技术会议和workshop。",
+      "fetched_at": "2026-07-23T04:18:27.942874+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/lennysan/status/2080003202108502040",
+      "published": "2026-07-23T02:53:02+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HN2nocZa0AAtBFQ.png)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nMy newsletter and podcast wouldn’t exist if I hadn’t taken a sabbatical.  \n  \nSeven years into my time at Airbnb, I took a three-month break. It was the first time I’d taken more than two weeks off in my more than 15-year career. I spent those months tinkering, reading, and traveling—and even snuck in a 10-day silent meditation retreat.   \n  \nAt the end of it, I realized my heart wasn’t in the work anymore and that it was time for something new. So I left my job without much of a plan and spent the next six months exploring. Those six months turned into a year, that year turned into my newsletter, and the rest is history.  \n  \nLooking back, I can say those were among the three most important months of my life, because they led me to what I do now—the most interesting, fulfilling, and impactful work I can ever imagine.  \n  \nLife makes it hard to get off the default path and back onto a road of your own design. Sometimes that looks like leaving your job, like I did. Other times, it means reconnecting to why you’re doing the work you’re already doing. Either way, in my experience and that of many friends, significant time away from your day-to-day is necessary for the mental, physical, or emotional shift that will reveal what’s next. What you need is what today’s newsletter guest author [@djdidonna](https://x.com/djdidonna) calls “Big Time Off.”  \n  \nDJ is the founder of The Sabbatical Project, and today DJ’s book Big Time Off comes out! It’s a deeply researched, beautifully written book on the value of taking time off, with tangible advice, real-world case studies, and practical considerations for anyone who wants to shake things up.  \n  \nIn today's newsletter, DJ shares some excerpts from his book to help you start thinking about what a sabbatical might look like for you now or down the road.  \n  \nI’ve always wished there were a guide to help me think through this decision and make the most of this precious time off. We finally have one.  \n  \nEnjoy: [lennysnewsletter.com/p/how-to-take-…](https://www.lennysnewsletter.com/p/how-to-take-a-sabbatical)\n\n![Tweet Image](https://pbs.twimg.com/media/HNw9m-haUAAxOH0.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2079606037930512648)\n\n💬2🔄1❤️12👀5078📊4",
+      "tags": [
+        "Lenny Rachitsky",
+        "休假",
+        "新闻通讯"
+      ],
+      "score": 30,
+      "summary": "Lenny Rachitsky分享休假经历如何促成其新闻通讯和播客。",
+      "fetched_at": "2026-07-23T04:18:27.942876+08:00"
+    },
+    {
+      "title": "Thanks to @googlecloud for helping power the challenge with G4 VMs featuring NVIDIA RTX PRO 6000 Bla...",
+      "link": "https://x.com/NVIDIAAI/status/2080010407071379724",
+      "published": "2026-07-23T03:21:40+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Thanks to [@googlecloud](https://x.com/googlecloud) for helping power the challenge with G4 VMs featuring NVIDIA RTX PRO 6000 Blackwell GPUs.\n\n💬1🔄0❤️5👀833📊1",
+      "tags": [
+        "NVIDIA",
+        "Google Cloud",
+        "Blackwell GPU"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI感谢Google Cloud提供搭载RTX PRO 6000 Blackwell GPU的G4 VM支持挑战赛。",
+      "fetched_at": "2026-07-23T04:18:27.942878+08:00"
+    },
+    {
+      "title": "https://t.co/G4nMai12tC",
+      "link": "https://x.com/NVIDIAAI/status/2080010408266703345",
+      "published": "2026-07-23T03:21:40+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "[x.com/refv00/status/…](https://x.com/refv00/status/2078155650711109754)\n\n![re](https://pbs.twimg.com/profile_images/2077900539296395264/SYqB6yfY_normal.jpg)\n\nre@refv00\n\nOur team won 1st place in the NVIDIA Nemotron Model Reasoning Challenge on Kaggle🏆  \n  \nKey idea: train the model to memorize minimal problem patterns and their candidate solutions, then search and verify them at inference.  \n  \nThanks [@NVIDIA](https://x.com/NVIDIA)[@Kaggle](https://x.com/Kaggle)!  \n  \nWriteup:[doi.org/10.34740/kaggl…](https://doi.org/10.34740/kaggle/w/88773)M\n\n![Tweet Image](https://pbs.twimg.com/media/HNcXjOcakAAHMYr.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/refv00/status/2078155650711109754)\n\n💬0🔄1❤️2👀1156📊1",
+      "tags": [
+        "NVIDIA Nemotron",
+        "Kaggle",
+        "推理挑战"
+      ],
+      "score": 75,
+      "summary": "NVIDIA AI转发Kaggle挑战赛第一名团队的解决方案：训练模型记忆模式并搜索验证。",
+      "fetched_at": "2026-07-23T04:18:27.942880+08:00"
+    },
+    {
+      "title": "Last month, the NVIDIA Nemotron Model Reasoning Challenge wrapped on @kaggle with 5,000+ participant...",
+      "link": "https://x.com/NVIDIAAI/status/2080010403527155723",
+      "published": "2026-07-23T03:21:39+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Last month, the NVIDIA Nemotron Model Reasoning Challenge wrapped on [@kaggle](https://x.com/kaggle) with 5,000+ participants across 4,000+ teams.  \n  \nThe community explored techniques for improving reasoning accuracy, here's what we learned 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HN2l2fKaoAALpox.jpg)![Tweet Image](https://pbs.twimg.com/media/HN2l3xvbwAAke1J.png)![Tweet Image](https://pbs.twimg.com/media/HN2l42_b0AAHWrm.png)![Tweet Image](https://pbs.twimg.com/media/HN2l5otbEAETSkH.png)\n\n💬6🔄5❤️20👀2895📊9",
+      "tags": [
+        "NVIDIA Nemotron",
+        "Kaggle",
+        "推理挑战"
+      ],
+      "score": 80,
+      "summary": "NVIDIA AI总结Nemotron模型推理挑战赛，5000+参与者，社区探索提升推理准确性的技术。",
+      "fetched_at": "2026-07-23T04:18:27.942882+08:00"
+    },
+    {
+      "title": "Check your current usage and spend at https://t.co/w8i0QGAxTO",
+      "link": "https://x.com/OpenAIDevs/status/2080003721937953258",
+      "published": "2026-07-23T02:55:06+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "Check your current usage and spend at [platform.openai.com](https://platform.openai.com/)\n\n💬1🔄0❤️17👀4727📊3",
+      "tags": [
+        "OpenAI API",
+        "使用量",
+        "查看"
+      ],
+      "score": 70,
+      "summary": "OpenAI开发者账号提醒用户检查当前API使用量和花费。",
+      "fetched_at": "2026-07-23T04:18:27.942884+08:00"
+    },
+    {
+      "title": "We’re expanding access to hard spend limits in the API Platform to all accounts this week, so you ca...",
+      "link": "https://x.com/OpenAIDevs/status/2080003710093234666",
+      "published": "2026-07-23T02:55:03+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "We’re expanding access to hard spend limits in the API Platform to all accounts this week, so you can cap API spend at a limit of your choice.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080003692380708864/vid/avc1/1280x720/KG7VHVDZL18xasHg.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenAIDevs/status/2080003710093234666/video/1)\n\n💬31🔄11❤️283👀24169📊57",
+      "tags": [
+        "OpenAI API",
+        "硬性消费限制",
+        "扩展"
+      ],
+      "score": 85,
+      "summary": "OpenAI开发者账号宣布向所有账户扩展API平台的硬性消费限制功能。",
+      "fetched_at": "2026-07-23T04:18:27.942886+08:00"
+    },
+    {
+      "title": "Ok quick plug if you want more of my personal AI skills + guides + join a community of builders, che...",
+      "link": "https://x.com/petergyang/status/2079997715124240705",
+      "published": "2026-07-23T02:31:14+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Ok quick plug if you want more of my personal AI skills + guides + join a community of builders, check out my membership here [behindthecraft.com](https://www.behindthecraft.com/)\n\n💬0🔄0❤️4👀1313📊1",
+      "tags": [
+        "Peter Yang",
+        "会员",
+        "AI技能"
+      ],
+      "score": 30,
+      "summary": "Peter Yang推广其AI技能和社区会员服务。",
+      "fetched_at": "2026-07-23T04:18:27.942888+08:00"
+    },
+    {
+      "title": "Glad to see Elon's position on this. I really think highly of him coming out on it even though it do...",
+      "link": "https://x.com/Suhail/status/2079995970713276488",
+      "published": "2026-07-23T02:24:18+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Glad to see Elon's position on this. I really think highly of him coming out on it even though it doesn't directly benefit him. These models also create competition for him. He could easily stay silent and let it happen.\n\n![Tweet Image](https://pbs.twimg.com/media/HN2hMJvbkAAXJmW.jpg)\n\n💬4🔄2❤️37👀3125📊7",
+      "tags": [
+        "Elon Musk",
+        "AI模型",
+        "竞争"
+      ],
+      "score": 40,
+      "summary": "Suhail称赞Elon Musk在AI模型竞争中的立场。",
+      "fetched_at": "2026-07-23T04:18:27.942890+08:00"
+    },
+    {
+      "title": "We’re backing Atoms, and @bhorowitz is joining the board.\n\n@travisk has been working on Atoms for 8 ...",
+      "link": "https://x.com/a16z/status/2080007931794477367",
+      "published": "2026-07-23T03:11:50+08:00",
+      "source": "a16z(@a16z)",
+      "content": "We’re backing Atoms, and [@bhorowitz](https://x.com/bhorowitz) is joining the board.  \n  \n[@travisk](https://x.com/travisk) has been working on Atoms for 8 years, in stealth, to digitize the physical world.  \n  \nIt is inevitable that within a generation, robots are going to do most of the menial work in the world of atoms: transforming atoms, moving atoms, and storing atoms.  \n  \nAtoms will make us more productive in the physical world the same way digital computers did for bits.  \n  \nTravis has three of them so far: Atoms Food, Atoms Mining, and Atoms Transport. All are trillion dollar industries, so he's got some work to do, and we're excited to help him win.  \n  \n\"Industrial AI\" as a category is the application of specialized robots to atoms-heavy industries like these.  \n  \nIt takes a rare kind of entrepreneur to change these old-school, heavy parts of our economy. Travis is that guy.\n\n![travis kalanick](https://pbs.twimg.com/profile_images/861918972786208768/Az5BeS_N_normal.jpg)\n\ntravis kalanick@travisk\n\n[x.com/i/article/2079…](http://x.com/i/article/2079991577829883905)\n\n[🔗 View Quoted Tweet](https://x.com/travisk/status/2079997954363117844)\n\n💬3🔄8❤️103👀11795📊12",
+      "tags": [
+        "a16z",
+        "Atoms",
+        "工业AI"
+      ],
+      "score": 80,
+      "summary": "a16z宣布投资Travis Kalanick的Atoms公司，专注于工业AI和机器人。",
+      "fetched_at": "2026-07-23T04:18:27.942892+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/a16z/status/2080003041043079224",
+      "published": "2026-07-23T02:52:24+08:00",
+      "source": "a16z(@a16z)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HN2nvhWaQAAbWYy.jpg)\n\n![travis kalanick](https://pbs.twimg.com/profile_images/861918972786208768/Az5BeS_N_normal.jpg)\n\ntravis kalanick@travisk\n\n[x.com/i/article/2079…](http://x.com/i/article/2079991577829883905)\n\n[🔗 View Quoted Tweet](https://x.com/travisk/status/2079997954363117844)\n\n💬9🔄13❤️252👀20540📊27",
+      "tags": [
+        "a16z",
+        "Atoms",
+        "Travis Kalanick"
+      ],
+      "score": 70,
+      "summary": "a16z转发Travis Kalanick关于Atoms的文章。",
+      "fetched_at": "2026-07-23T04:18:27.942894+08:00"
+    },
+    {
+      "title": "Travis is back.",
+      "link": "https://x.com/a16z/status/2079998355556761673",
+      "published": "2026-07-23T02:33:47+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Travis is back.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079998122311528448/vid/avc1/1280x720/C2mIhU7VcAiM-4L-.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2079998355556761673/video/1)\n\n💬32🔄44❤️529👀60059📊92",
+      "tags": [
+        "a16z",
+        "Travis Kalanick",
+        "回归"
+      ],
+      "score": 70,
+      "summary": "a16z发布视频宣布Travis Kalanick回归。",
+      "fetched_at": "2026-07-23T04:18:27.942896+08:00"
+    },
+    {
+      "title": "AIHOT的月活突破了60万，我也终于把AIHOT优化到，敢发在X上给大家安利一下我自己做的这个小破东西的时候了。\n\n这玩意也几乎代表了我自己做了三年AI内容，对AI领域资讯的品味。\n\n谁能想到，这个...",
+      "link": "https://x.com/Khazix0918/status/2080022092498768176",
+      "published": "2026-07-23T04:08:06+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "AIHOT的月活突破了60万，我也终于把AIHOT优化到，敢发在X上给大家安利一下我自己做的这个小破东西的时候了。  \n  \n这玩意也几乎代表了我自己做了三年AI内容，对AI领域资讯的品味。  \n  \n谁能想到，这个看着小小的AI资讯站，背后的后端逻辑有这么复杂呢，数百个信源5分钟级别的抓取 - 数据清洗 - 结构化 - 预筛 - 精选 - 聚类 - 展示，这还只是大流程，这流程里面，大模型介入的地方就有不下10个了。。。  \n  \n如果是每个大块里面的细节流程，光一个聚类算法的工程化我感觉我都可以写好几篇万字长文来分享了，更别提最核心的精选了。真的，最近5年的关于新闻聚类的论文全扒了一遍，没有一个结构能达到我的准确性要求的，最后是花了无数个日夜回测了不知道多少轮的数据，又不知道标了多少的数据，硬生生自己造的。  \n  \n任何东西想把它做好，真的感觉，花费的心力不是一丁点两点。  \n  \n网址在此：[aihot.virxact.com](https://aihot.virxact.com/)  \n这可能是当今无论是对人类、还是对Agent，都是体验最好的AI资讯网站了。  \n而且我也承诺，永久免费，因为我也不靠这玩意挣钱，主要，还是太喜欢做产品了，也太喜欢看到自己的产品被别人喜欢了。  \n  \n希望。  \n能对大家有用就好。  \n（PS：还有好多好多新功能还在开发中，希望大家再给我点时间...）\n\n![Tweet Image](https://pbs.twimg.com/media/HN2yh2ObYAAzpAC.jpg)![Tweet Image](https://pbs.twimg.com/media/HN2zNIbakAAWK1n.png)\n\n💬4🔄3❤️7👀110📊6",
+      "tags": [
+        "AIHOT",
+        "AI资讯",
+        "月活60万"
+      ],
+      "score": 75,
+      "summary": "AIHOT月活突破60万，作者分享其AI资讯网站背后的复杂技术流程。",
+      "fetched_at": "2026-07-23T04:18:27.942899+08:00"
     }
   ]
 }
