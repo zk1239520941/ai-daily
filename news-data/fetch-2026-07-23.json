@@ -2744,6 +2744,124 @@
       "score": 75,
       "summary": "歸藏对比美国蒸馏指控与梁文锋会议记录，认为 DeepSeek 专注低价和 AGI。",
       "fetched_at": "2026-07-23T12:23:19.593259+08:00"
+    },
+    {
+      "title": "Kimi 叫停新订阅后，如何用上 K3｜实测避坑",
+      "link": "https://www.ifanr.com/1672800?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-23T14:43:19+08:00",
+      "source": "爱范儿",
+      "content": "Kimi 官方停止接受新的会员订阅后，还有什么办法用上最新的 K3 成了当务之急，而且，也有一个符合直觉的答案：API。\n\nK3 可以通过开放平台直接调用，也能被接入 Claude Code 等第三方编程 Agent。只要准备一个 API Key，再做少量配置，用户似乎就能绕过拥挤的官方入口，把模型能力重新接到自己的电脑上。\n\n但……真这么简单吗？\n\n### 为 API 选一个好「壳」\n\nClaude Code 是相对简单的一条路，它可以通过 Anthropic 兼容接口，把原本发往 Claude 的请求直接转到 Kimi K3，同时继续复用 Claude Code 现成的文件读写、终端执行和 Agent 工作流。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/cc.png)\n\n但是，当我把 K3 接入 Claude Code，要求它完成一个几乎不能更简单的冒烟测试：检查当前目录、确认 Node 和 npm 版本，再创建一份文本文件。八分钟过去，Claude Code 没有任何有效进展，旁路询问也得不到回复。\n\n等下，不会连 API 都卡我限额吧？让我看看：\n\n“`text  \nHTTP/2 429  \nengine\\_overloaded\\_error  \n“`\n\n看来，意味着问题不在 Claude Code，也不在配置，而是 K3 的推理服务本身暂时没有余量接收这条请求——简单说，我充的钱太少，依然是贫民路由。\n\n没关系，会员买不到，充值还是可以充的，而且叠加上我以前的充值记录，累计充值已经超过了 50 元，账户从免费组升级到 Tier-1，同一条最小请求才终于返回 HTTP 200。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/topup-1.png)\n\n诚然，API 是订阅入口之外的替代路径，但「开放调用」和「此刻可用」不是一回事。算力紧张的 Kimi，只能是有选择性地提供服务。\n\n更有意思的是，即便底层调用的是同一个 K3，换一种打开方式，模型呈现出来的能力、习惯，甚至视觉风格，也会发生明显变化。这次测试使用了同一张网页截图作为参考图，目标不是要求模型逐像素复制，而是观察它能否理解页面的视觉语言，并将其重建成一个可以在浏览器中打开、具有基本交互的网页。\n\n参考页面不是一个难度很高的案例，因为怕烧钱（bushi），主打一个大面积留白、衬线字体、简洁导航和横向排列的展品内容。总体并不复杂，却很适合观察模型究竟是在理解原图，还是只会套用一套常见的 AI 网页模板。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/test-web.png)\n\n四种测试方式分别是：\n\n第一种是 K3 API 直连。图片被编码后直接发送给模型，由它一次性返回完整 HTML。\n\n第二种是把 K3 接入 Claude Code。底层仍然是 K3，但它获得了 Claude Code 提供的文件系统、终端和工具调用能力。\n\n第三种是 Kimi 官方原生客户端。它代表 K3 在月之暗面自己设计的系统提示、工具和交付流程中的表现。\n\n第四种是 Codex。本来一开始的意图是让 K3 通过 CC Switch 接入 Codex ，但需要经过 cc switch 路由，一直没有成功，请求始终停留在本地转换层的 502 错误。因此最终完成横向测试的是 Codex 自己的原生 GPT 5.6 sol 和 Agent——也行吧，正面对轰了。\n\n总之，前三项主要比较的是**同一个模型在不同 harness 中的表现，**而 Codex 更适合作为另一套成熟编码产品的外部基准。\n\n测试里主要观察，从发送任务到出现可用页面需要多久；第一次生成是否能够直接运行；页面对参考图的布局和风格理解；交互是否真的生效；以及中间需要多少次人工干预。\n\n### API 直连：黑箱，却最先交卷\n\nAPI 直连是四种方式中链路最短的一种，只要打开终端窗口，就能启用。稍微特殊一点的地方是，直连 API 只会返回模型生成的文本或代码，不会自动读取本地图片、保存成网页文件并启动预览，因此需要一段脚本负责图片编码、请求发送、结果落盘和本地运行。脚本把参考图和提示词一次性发送给 K3，并要求它返回一份包含 HTML、CSS 和 JavaScript 的单文件网页。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/direct-py.png)\n\n这个办法最明显的问题，是几乎没有过程反馈。终端只显示了一句：\n\n“`text  \nSending image and prompt to Kimi K3…  \n“`\n\n然后就是沉默……\n\n因为请求采用非流式模式，模型无论是在理解图片、思考布局，还是已经开始生成代码，用户都看不到，它看上去甚至比 Claude Code 更像「卡住了」，Kimi 官方费老大劲做的动画也不是没有道理。\n\n不过，直连反而最早交付了一个能够打开的页面，提示「done」之后，就可以在指定的文件夹里找到 html 文件并且打开了。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/direct-outcome.png)\n\nK3 抓住了参考图最明显的视觉特征：克制的版式、博物馆式的展示氛围、衬线文字、大面积纯白背景，以及较为舒展的横向内容关系。页面整体具有一致的设计语言，至少说明它不只是识别出了「这是一个网页」，还尝试理解「这是一个怎样的网页」，更接近一次视觉风格和页面结构的重建，但没有达到像素级还原，部分元素的尺寸、位置和内容元素都与参考存在差异，图片也是生成的简略矢量图。\n\n直连的优势也非常明确：没有庞大的 Agent 系统上下文，没有复杂的工具调用链，它只需要集中完成一次任务。对于「给我一张图，返送一个可运行 HTML」这样的需求，它可能比完整编程 Agent 更直接。\n\n这是 Kimi 的老毛病，哪怕面对简单任务也喜欢「用牛刀」，不仅增加算力负载，也让套餐额度如奶油一般化开。\n\n### Claude Code：一直在工作，却忘了写文件\n\n把 K3 接进 Claude Code 后，体验立刻变得更像一个真正的编码 Agent。\n\n它可以读取参考图、检查当前目录、决定文件结构、生成 HTML、CSS 和 JavaScript，还能运行终端命令。和直连 API 相比，整个过程不再是一段沉默的等待，我可以持续看到它分析页面、组织代码和推进任务。\n\n理论上，这应该是更完整的方案。\n\n然而，第一轮生成结束后，Claude Code 虽然返送了很大一截代码，却没有成功把页面写入本地文件。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/cc-process.png)\n\n只有在被明确要求「检查当前目录中实际创建了哪些文件，并确认代码已经写入磁盘」后，它才在自查中发现：前面的代码生成并没有真正转化成文件操作。随后，它重新调用工具，补齐文件，并最终启动了可以访问的本地预览。\n\n这个过程揭示了 Agent 产品中一个典型问题：Agent 外壳在扩展模型能力的同时，也扩大了它的故障面。模型不仅要生成正确代码，还要正确选择工具、构造工具参数、等待执行结果、理解执行反馈，并在最后验证文件是否存在。**任何一环出错，用户都可能得到一种「它好像已经完成了」的错觉。**\n\n不过，Claude Code 的优势也在同一个地方。它虽然第一次没有落盘，却能够在收到验收要求后检查环境并自我修正。页面生成后，用户也可以继续提交实际渲染截图，要求它比较参考图和当前结果，再修改已有文件。这种持续读写、运行和修正的循环，是一次性 API 输出无法自行完成的。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/cc-outcome.png)\n\n最终生成的页面还出现了一个很有意思的差异：参考图和 API 直连版都使用了接近纯白的背景，而 Claude Code 版本却染上了一层非常淡的暖红色，看起来颇有一点 Claude 自己的色调——怎么还出现了模型传模型现象。\n\n### Agent harness，很是回事儿\n\n严格来说，淡红色也不能被完全归因于 Claude Code。生成模型本身具有随机性，推理强度、最大输出长度和消息格式也并不完全一致。但至少这次测试证明，相同的模型名称，并不足以保证相同的产品行为。\n\n**同一个模型，进入不同的壳，就不再是同一个「设计师」，这中间是 harness 的差异。**\n\n直连更像一次完整作答。模型在单次生成中形成一套统一方案，再从头写到尾。Claude Code 则更像一个分阶段项目：先理解截图，再规划结构，随后写文件、补样式、加交互、启动服务。每增加一个步骤，就多一次模型重新解释任务的机会，也多一次风格漂移的可能。\n\n为了观察 K3 在原生环境中的表现，我们还用了一个最高级别的老账号，以及配备原生 GPT 5.6 Sol 的 Codex 复刻同一个任务。\n\n一方面，这是因为 K3 接入 Codex 的过程没有顺利完成，Codex 主要使用 Responses API，而 Kimi 提供的是另一种兼容接口。通过 CC Switch，可以在本地对请求和流式响应进行转换。但在这次测试中，即便 Kimi API 直连已经恢复正常，Codex 发往本地转换端口的请求仍然反复返回 502。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/codex-error.png)\n\n从结果来看，两个原生果然都完成得更好，更细致。Kimi 的官方有一些小的「改动」，换掉了一些字体，更贴近他们一贯的风格。GPT 的复刻几乎到了一比一的程度，顶多是有一些间距上的不同。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/contrast.png)\n\n这说明 API 兼容并不只是把 Base URL 和模型名称改掉。只要两端的请求协议、思考内容、工具调用或流式格式存在差异，中间转换层就可能成为新的故障源。相比较就能知道，原生客户端的意义，并不是保证模型每一次都生成最漂亮的页面，而是替普通用户完成大量他们看不见、也不应该分神处理的工作。\n\n### 「套壳」依然有价值\n\n回到最初的问题：Kimi 暂停新订阅后，还有没有办法用上 K3？\n\n有是有。虽然充 API 也不能保证，但至少可以用。充值开放平台后，也可以把 K3 接入 Claude Code 等开发工具。在技术意义上，模型能力仍然存在，并没有随着官方订阅入口的暂停而消失。\n\n但这次测试也说明，API 并不是官方产品的等价复制。\n\n通过 API 迁移出来的，是模型的推理和生成能力。官方客户端中已经调好的系统提示、工具编排、文件管理、错误恢复和交付方式，并不会随着 API Key 一起被下载到用户电脑上。\n\n用户获得了更大的模型选择权，也同时接手了稳定性、协议、运行环境和验收责任。对于需要模型读取真实项目、编辑多个文件、运行命令并持续修改的人，Claude Code 一类 Agent 外壳更合适，但它也会引入新的执行错误和产品偏好。\n\n对于不熟悉环境变量、Python 脚本和本地服务器的普通用户，等待官方原生入口恢复，仍然可能是成本最低的选择。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/07/kimi-appointment.png)\n\n这还让我想到了一个更深层次的问题。\n\n过去几年，市场经常用「套壳」形容那些没有训练基础模型、只是在外面调用 API 的产品。与之相伴的判断是「模型即产品」，当模型变得足够强，它迟早会吞掉所有中间应用。\n\n这种判断对于最薄的一层产品确实成立。如果一个应用只是把用户输入转发给模型，再换一个界面展示答案，那么模型厂商只要在原生客户端增加一个功能，就可能覆盖它的全部价值。\n\n但 harness 并不必然只是一个聊天框，一个成熟的 harness 需要决定模型如何理解任务、能够操作哪些工具、怎样拆解步骤、如何保存状态、什么时候检查结果，以及失败后怎样恢复。它还可能接入企业数据、组件库、权限系统、品牌规范和真实生产流程。\n\nK3 并没有因为进入 Claude Code 而获得新的视觉知识，但它获得了读写文件和运行终端的能力；与此同时，它也出现了没有落盘、视觉风格漂移等新的问题。这说明壳并不是被动包装。它在组织能力，也在制造能力，同时还会制造新的故障。\n\n官方客户端本身同样是一种 harness。只是当模型公司自己提供系统提示、工具、记忆和 Agent 循环时，人们通常称之为「产品」；第三方团队使用同样的方式组织模型时，才更容易被叫作「套壳」。\n\n真正值得追问的或许，不在于一个产品有没有调用别人的模型，而是在模型之外，它究竟创造了多少新的使用价值。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "Kimi K3",
+        "API",
+        "实测"
+      ],
+      "score": 70,
+      "summary": "爱范儿实测通过API使用Kimi K3，发现存在算力限制和体验差异。",
+      "fetched_at": "2026-07-23T15:41:01.634038+08:00"
+    },
+    {
+      "title": "三步爆改旧鼠标，打造最好用的 AI 外挂｜AI 器物志",
+      "link": "https://www.ifanr.com/1672824?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-07-23T14:11:27+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/images/ep/uploads/%E6%9C%80%E5%A5%BD%E7%94%A8%E7%9A%84_AI_%E5%A4%96%E8%AE%BE%EF%BC%8C%E5%8F%AF%E8%83%BD%E5%B0%B1%E6%98%AF%E4%BD%A0%E6%89%8B%E9%87%8C%E9%82%A3%E5%8F%AA%E9%BC%A0%E6%A0%87/2300ebbf-2e67-4e8a-b802-324dd882857f.png)\n\n> 智能手机统治了过去十几年的数字生态，它是注意力的黑洞，是我们最私密的随身之物。但手机从设计之初就是为「人盯着它」而生的——它的全部逻辑，都止于屏幕。\n>\n> AI 的需求却恰恰相反：它需要持续感知物理世界——见你所见，听你所闻，随时在场，而非等你解锁屏幕才醒来。\n>\n> 当 AI 真正成为一种基础能力，它迟早要从屏幕里破壳而出，寻找属于它自己的形状。这将是一个漫长的探索和演化过程。\n>\n> 「AI 器物志」栏目由此而来，爱范儿想和你一起持续观察：AI 如何改变硬件设计，如何重塑人机交互，以及更重要的——AI 将以怎样的形态进入我们的日常生活？\n>\n> 这是「AI 器物志」的第 20 篇文章。\n\n聊天用豆包，写代码用 ChatGPT Work ，打工用 WorkBuddy ，语音输入用 Typeless……住进打工人电脑里的 AI 越来越多，怎么管、怎么用，慢慢变成了一个新麻烦。\n\n每个工具都想要一个全局快捷键，⌥+空格、⌘+Shift+J、Fn，还有各家自己定的组合键，全叠在一起，键盘上那几个顺手的位置早就不够分了，冲突是家常便饭。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/080eb03d-1ec3-445b-814e-b407699d36dc.png)\n\n真正让人头疼的还不是「不够分」。作为一个普通用户，把这么多五花八门的组合键一个个记下来，这事儿本身就挺累的。用哪个工具、按哪个组合，脑子里得先过一遍，稍微久一点没用就忘了。\n\n于是，大部分时候还是回到最笨的办法，一个个点开屏幕上的按钮去找入口。省下了记快捷键的功夫，操作步骤却变多了，效率反倒往下掉。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/001d6e89-f5ab-4f00-9579-92933ae18386.png)\n\n有没有办法不用记一堆快捷键，效率还能提上去？我发现每天都在用的这只鼠标，恰好能干这件事。\n\n鼠标按键自定义其实并不稀奇，对于电竞玩家来说，绑定复杂的鼠标宏已是司空见惯。但对于普通用户来说，这些按钮大概率还是用来翻网页、前进后退。\n\n![](https://s3.ifanr.com/images/ep/uploads/%E6%9C%80%E5%A5%BD%E7%94%A8%E7%9A%84_AI_%E5%A4%96%E8%AE%BE%EF%BC%8C%E5%8F%AF%E8%83%BD%E5%B0%B1%E6%98%AF%E4%BD%A0%E6%89%8B%E9%87%8C%E9%82%A3%E5%8F%AA%E9%BC%A0%E6%A0%87/699621d4-7e82-4c04-8c14-cce92f3cc79c.png)\n\n但就是这几颗平时存在感不太高的按键，放进 AI 场景里，能干的事情一下子多了不少。\n\n### 日常用的鼠标，爆改成「Vibe Mouse」\n\n这次就拿我自己天天在用的这只罗技 MX Anywhere 3S 为例，看看一只普通的办公鼠标，稍微改一改能不能变身「Vibe Mouse」。\n\n![](https://s3.ifanr.com/images/ep/uploads/%E6%9C%80%E5%A5%BD%E7%94%A8%E7%9A%84_AI_%E5%A4%96%E8%AE%BE%EF%BC%8C%E5%8F%AF%E8%83%BD%E5%B0%B1%E6%98%AF%E4%BD%A0%E6%89%8B%E9%87%8C%E9%82%A3%E5%8F%AA%E9%BC%A0%E6%A0%87/0f1503b1-0ff4-42e4-a5b7-000824ce1220.png)\n\n这只鼠标按键的默认功能与一般的办公鼠标别无二致：两侧的前进、后退键，对应的是浏览器和文件管理器里的翻页导航操作；滚轮按下就是普通的中键点击；而滚轮下方那颗功能键，默认用来切换有级/无级滚动模式。\n\n借助罗技官方驱动「Logi Options+」，我们就可以自定义这几颗按键的功能。\n\n在日常使用 AI 时，最高频的动作其实是一套固定的组合拳：选中内容 -> 复制 -> 唤起 AI -> 粘贴发问。想要实现这些操作的「一键直达」，就需要用到 Logi Options+ 的「Smart Actions」功能。\n\n它有点类似于我们常说的「鼠标宏」。简单来说，它就是一个系统级的操作自动化工具，能把你平时需要敲击好几次键盘、点击好几次鼠标才能完成的复杂连招，打包浓缩到一个物理按键里。具体配置过程并不复杂：\n\n首先，在「Smart Actions」里新建一个宏，将「触发器」设置为鼠标滚轮下方的功能按钮（或者你习惯的任何按键）。接着，在执行操作中添加一段击键序列。根据刚才总结的工作流，依次录入：`⌘ + C`（复制）、`⌥ + 空格`（唤起 ChatGPT 的组合键）、`⌘ + V`（粘贴）。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/3356fd17-4ad3-4af3-91a4-829a0857cd0d.png)\n\n至于鼠标左侧的「前进键」，我将它分配给了 Typeless 语音输入；右侧的「后退键」则设定为系统级的窗口截图，「中键」就先放着不动。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/bf20600b-2593-4d4f-97fa-3fb8c85d0476.png)\n\n至此，这只鼠标的「改造」彻底完成。接下来，看看它在真实工作流里的表现。\n\n#### 场景 1：选中一段英文报道，快速翻译\n\n浏览网页看到一段英文报道，是不是有些让人眼花缭乱？遇到晦涩的长难句，传统的做法是手动划选、右键复制、切出翻译软件再粘贴，步骤繁杂。现在，只需用鼠标划选目标英文段落，直接按下「功能键」，就能直接让 GPT 翻译好。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/cca0d15d-4a91-4b27-8866-22028af19b25.gif)\n\n#### 场景 2：Finder 里选中一份 PPT，不用打开就能 get 到重点\n\nFinder 里有一堆产品介绍 PPT ，点开慢慢翻效率太低了。直接在 Finder 里多选文件，按功能键，ChatGPT 就能直接帮你总结出核心卖点。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b6944c3f-ccfc-45ef-9624-73d2871fc68f.gif)\n\n#### 场景 3：截图 + Skill，自动算清每个人该出多少钱\n\n像我这样的「划算男孩」，iCloud 2TB 云空间自然是要跟朋友拼车的，但每个月按比例算分摊账单总让人头疼。\n\n现在，只需打开家庭共享空间的账单页面，按「后退键」唤起系统截图，框选账单区域；截图完成的瞬间，再按一下「功能键」，调用提前准备好的核算 Skill ，ChatGPT 就能自动识别截图里的已用容量比例，直接算出每个人应付的具体金额，再也不需要拿着手机一个个按计算器了。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/8b9dc66c-407d-48b4-a2ba-9300c4947539.gif)\n\n#### 场景 4：不想打字，口述几句话就能总结备忘\n\n脑子里突然冒出个零碎的选题想法，或者刚开完会想赶紧记下待办，这时候 Typeless 就是整理思绪的绝佳帮手。\n\nTypeless 默认单击 Fn 键唤起语音的设定已经挺方便了，但把这个功能转移到鼠标上，能让体验更上一层楼。现在，全程都不需要把手挪回键盘，单手就能搞定全套动作——\n\n按住鼠标的「前进键」直接说话，像用对讲机一样把脑子里混乱的日程「倒」出来。松开按键后，Typeless 会瞬间把这堆口水话转化成时间线清晰、主次分明的结构化备忘列表。完全脱离键盘，单手操作一气呵成。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/3dd026db-30d8-4b74-aa80-03be084e1d98.gif)\n\n#### 场景 5：一个按键，圈住所有常用 AI App\n\n还记得那颗一直没被分配的「中键」吗？其实这里藏着 Logi Options+ 的一个进阶玩法——「Actions Ring」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/4569306a-8761-4a97-9560-b567cef3aaa6.gif)\n\n装了一大堆 AI 工具，你是不是也每次都要去 Dock 栏或者 Spotlight 里翻？现在，只要按下鼠标滚轮，光标周围就会弹出一圈气泡，划过去点一下就能切到对应的 App。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b49d2f00-9f5d-4e0e-8986-43d83283f0d9.gif)\n\n当然，如果你没有那么多 AI App 要放，也可以把剩下的按钮分配给其他高频的系统操作：Emoji、截屏、锁屏、备忘录等，方便随时调用。\n\n这一点，反而比专门做一圈「AI 分诊台」更接近真实的办公状态。作为通用的效率工具，AI App 非常自然地被塞进了用户原有的日常操作习惯里。\n\n### 进阶改造：让鼠标长出「语境感知」\n\n虽然上面这些全局自定义的快捷操作已经能应付不少场景，但用久了总感觉「缺了点什么」。这就好比一把只有一种模式的瑞士军刀，好用是好用，但面对不同软件时，它似乎依然只是个死板的物理开关，缺乏一点跟具体工作流深度融合的默契。\n\n要想真正打破按键数量的限制，让这只鼠标拥有「语境感知」的能力，我们要用到 Logi Options+ 的另一项功能：「应用程序专属配置」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/12d01a93-8f00-4b2a-87b7-d389391e3d0d.png)\n\n驱动软件会在你切换到不同的 App 时，自动更换一套全新的按键动作。这意味着，同样的按键，在不同的 App 里能组合出完全不同的专属玩法。\n\n到了 Tabbit 或 Arc 等 AI 浏览器里，这只鼠标变成了你的深度阅读搭档。面对长篇的外文行业报告，这三颗按键可以重新分配：前进键用来唤起 AI 侧边栏（ ⌥ + ] ）随时追问，后退键触发网页翻译（⌥ + A），遇到太长的文章，还可以随时唤起 AI 全文总结。搜、译、读各司其职，阅读节奏不会被打断分毫。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/5f680844-b3db-4e9b-bb78-6bea9fb862e8.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/56775705-cf72-4183-93a3-5d2f1da16dea.gif)\n\n而当你切换到 Notion 或飞书文档进入创作状态时，它又化身为随叫随到的内容编辑助手。划选一段干瘪的草稿按下前进键，直接唤起 AI 进行扩写；按下后退键，让 AI 帮这段刚写好的逻辑「挑刺」；如果写稿卡壳敲不出字，干脆按住功能键直接用大白话口述，把脑子里碎片的想法先倒出来，让 AI 帮你理顺成文。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/d4a9106e-0318-4dfa-b00a-8d058837f1cb.gif)\n\n再拿 ChatGPT Work 来说，开启专属配置，鼠标就变成了手心的「任务控制台」，把前进键绑定为「批准请求」（Enter），后退键绑定为「拒绝请求」（Esc），功能键则设为「归档当前任务」（ ⇧ + ⌘ + A ），审批 AI 的请求都快了不少。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/6b72ad01-6401-4046-9bd8-9e77d415da62.png)\n\n### 硬件重塑的时代，最好的 AI 外设是「肌肉记忆」\n\n前段时间，我刷到下面这张图，内容是一个只有两个按键的键盘，左边写着「Allow」，右边写着「Always Allow」，配文调侃这是「专为 Claude 优化的新键盘」。当时我也只是当个梗看过去了。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/e5746ba1-3d49-47cb-8bb2-20ba54679ee8.png)\n\n没想到，这张梗图这么快就照进现实了——OpenAI 真的联合 Work Louder 给 Codex 做了一个专门的键盘，叫「Codex Micro」，售价 230 美元。\n\n它的专属指令键里就有 Accept、Reject，跟梗图里几乎如出一辙。此外，它还有个会随任务状态实时变色的 Agent Key，一个用来调推理强度的旋钮，一个能一键触发 Review、Debug、Refactor 的摇杆。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/2ebaf2ce-d4eb-4018-a8ef-69e36c01e71c.png)\n\n这印证了一个行业趋势：模型和软件，正在反向定义硬件。\n\n事实上，不止是极客圈，整个消费电子行业都在发生着类似的「物理重构」。2024 年，微软在 Windows 键盘上硬生生塞进了一颗 Copilot 实体键，这不仅是 30 年来 Windows 键盘的首次重大改变，更是一个强烈的信号。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/32d7a418-b58e-4015-b7e1-35a450b83d98.png)\n\n各大外设厂商也纷纷下场，连罗技自己也在同年推出了带有独立 AI 呼出键的 Signature AI 鼠标，试图用硬件抢占 AI 交互的第一入口。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/409d84d2-7ea6-4c1d-b5ec-e03f20c857de.png)\n\n从隐藏在网页里的一个输入框，到鼠标、键盘上的一颗实体按键，AI 正在争夺我们指尖的「物理第一触点」。以前的外设追求微动的手感和炫酷的跑马灯，而现在的硬件，开始围绕 AI 的具体功能重新洗牌。\n\n但话又说回来，不管是 230 美元的 Codex Micro ，还是带有原生 AI 按键的新品外设，它们依然存在局限。Codex Micro 服务的终究是单一的开发工作流；而普通打工人日常要处理的场景，早就碎片化地散落在浏览器、 Finder 、 IM 和满屏的 Excel 里。没有任何一个厂商出厂预设的几个按键，能完美覆盖你个人所有的工作习惯。\n\n对于普通人来说，与其苦等一个大一统的完美 AI 外设，或者花高价去买一个只多了一颗 AI 键的新品，不如退回到手边，把自己手头这只最熟悉的鼠标重新调校一下。\n\n![](https://s3.ifanr.com/images/ep/uploads/%E6%9C%80%E5%A5%BD%E7%94%A8%E7%9A%84_AI_%E5%A4%96%E8%AE%BE%EF%BC%8C%E5%8F%AF%E8%83%BD%E5%B0%B1%E6%98%AF%E4%BD%A0%E6%89%8B%E9%87%8C%E9%82%A3%E5%8F%AA%E9%BC%A0%E6%A0%87/d6aafa5c-7c17-4e62-9bf2-d06f349efd60.png)\n\n这种花十分钟去折腾按键映射的过程，或许确实不够「开箱即用」，但它带来的体验却足够个人化。毕竟，每天在各种软件里来回穿梭，最懂你工作流痛点的人，永远是你自己。\n\n在这个 AI 工具疯狂迭代的时代，最好的 AI 硬件或许并不是被巨头定义好的下一个爆款，而是你在日常敲打中，用肌肉记忆一点点「盘」出来的这只旧鼠标。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "鼠标改造",
+        "AI外挂",
+        "Logi Options+"
+      ],
+      "score": 60,
+      "summary": "爱范儿介绍如何通过自定义鼠标按键快速调用多个AI工具。",
+      "fetched_at": "2026-07-23T15:41:01.634051+08:00"
+    },
+    {
+      "title": "trae 的产品思路或者说字节的很多技术类产品太硅谷范了，他们的员工也对硅谷最前沿的东西很关注，所以做出来的东西可能不适合国内的低端人群。。。想在国内赢，就要 low！",
+      "link": "https://x.com/dingyi/status/2080181673929674783",
+      "published": "2026-07-23T14:42:13+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "trae 的产品思路或者说字节的很多技术类产品太硅谷范了，他们的员工也对硅谷最前沿的东西很关注，所以做出来的东西可能不适合国内的低端人群。。。想在国内赢，就要 low！\n\n![meng shao](https://pbs.twimg.com/profile_images/2009826888072736772/faZAxCvC_normal.jpg)\n\nmeng shao@shao\\_\\_meng\n\n真的假的？！  \n  \nWorkBuddy 月活 2000 万，日活 1300 万？  \n  \n腾讯内部，QQ 和微信之后，第三款现象级产品？  \n  \n相比 Codex，Workbuddy 除了 🪜 的优势，还有什么能让它成为现象级产品呢？  \n  \n或者相比国内另外两大厂字节跳动 TRAE 和阿里 Qoder，它的优势是什么？\n\n![Tweet Image](https://pbs.twimg.com/media/HNy1-Z8akAA3Gd9.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/shao__meng/status/2079737219473080713)\n\n💬5🔄0❤️2👀1269📊4",
+      "tags": [
+        "Trae",
+        "字节跳动",
+        "产品思路"
+      ],
+      "score": 50,
+      "summary": "Ding评论字节Trae产品太硅谷范，不适合国内低端人群。",
+      "fetched_at": "2026-07-23T15:41:01.634056+08:00"
+    },
+    {
+      "title": "新能源那点里程焦虑算个屁，人家至少有地方充电",
+      "link": "https://x.com/dingyi/status/2080173604818567198",
+      "published": "2026-07-23T14:10:09+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "新能源那点里程焦虑算个屁，人家至少有地方充电\n\n![Tweet Image](https://pbs.twimg.com/media/HN5Cky3acAAPUV9.jpg)\n\n💬4🔄0❤️4👀912📊4",
+      "tags": [
+        "新能源",
+        "充电"
+      ],
+      "score": 10,
+      "summary": "Ding评论新能源里程焦虑，认为充电设施尚可。",
+      "fetched_at": "2026-07-23T15:41:01.634059+08:00"
+    },
+    {
+      "title": "Semantic search, full-text search, metadata filtering, and hybrid retrieval in one open-source syste...",
+      "link": "https://x.com/milvusio/status/2080176615947227400",
+      "published": "2026-07-23T14:22:07+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "Semantic search, full-text search, metadata filtering, and hybrid retrieval in one open-source system. Thanks to [@DanKornas](https://x.com/DanKornas) for sharing this clear overview of Milvus and the use cases it supports.\n\n![Dan Kornas](https://pbs.twimg.com/profile_images/2040754559711432704/ZSBG2g7X_normal.jpg)\n\nDan Kornas@DanKornas\n\nNeed one retrieval layer for semantic search, full-text search, and metadata filtering?  \n  \nMilvus is an open-source vector database for AI engineers building RAG, semantic search, multimodal search, and recommendation systems.  \n  \nIt helps you organize and search unstructured data by storing vectors alongside scalar fields, then combining vector search with metadata filters, full-text search, or hybrid retrieval.  \n  \nKey features:  \n  \n• Dense and sparse retrieval – supports semantic vectors, BM25 full-text search, and learned sparse embeddings.  \n• Hybrid search – stores dense and sparse vectors together and can rerank results from multiple searches.  \n• Multiple index types – includes HNSW, IVF, FLAT, SCANN, DiskANN, and quantized variants.  \n• Flexible deployment – runs as Milvus Lite, on one machine in Standalone mode, or in a distributed, Kubernetes-native architecture.  \n• Access controls – includes user authentication, TLS encryption, and role-based access control.  \n  \nIt’s open-source (Apache 2.0 license).  \n  \nLink in the reply 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HNxoGtmWAAAplVo.png)\n\n[🔗 View Quoted Tweet](https://x.com/DanKornas/status/2079651598943305921)\n\n💬0🔄0❤️1👀73",
+      "tags": [
+        "Milvus",
+        "向量数据库",
+        "混合检索"
+      ],
+      "score": 75,
+      "summary": "Milvus官方介绍其开源向量数据库支持语义搜索、全文搜索和混合检索。",
+      "fetched_at": "2026-07-23T15:41:01.634062+08:00"
+    },
+    {
+      "title": "【增长黑客AI周报】EP#65 WAIC泡沫观察、AI创业团队纪实、中美押注对比、梁文峰投资人实录考据、红利期token变生产资料等\n\nhttps://t.co/MrZgDMFgSt",
+      "link": "https://x.com/XDash/status/2080182736036479122",
+      "published": "2026-07-23T14:46:26+08:00",
+      "source": "XDash(@XDash)",
+      "content": "【增长黑客AI周报】EP#65 WAIC泡沫观察、AI创业团队纪实、中美押注对比、梁文峰投资人实录考据、红利期token变生产资料等  \n  \n[zengzhang.ai/p/aiep65-waica…](https://www.zengzhang.ai/p/aiep65-waicaitoken)\n\n![Tweet Image](https://pbs.twimg.com/media/HN5LHbDa4AAfaCf.png)\n\n💬2🔄0❤️0👀99📊2",
+      "tags": [
+        "增长黑客AI周报",
+        "WAIC",
+        "AI创业"
+      ],
+      "score": 65,
+      "summary": "XDash发布AI周报，涵盖WAIC泡沫、AI创业、中美对比等话题。",
+      "fetched_at": "2026-07-23T15:41:01.634064+08:00"
+    },
+    {
+      "title": "AGI 的普遍定义里，指的是 AI 在大部分领域里达到人类专家水平。\n如果 AI 达到了人类专家水平，人还有生活的空间吗？\n其实我们可以现在就类比一下\n现在有哪些领域，即便有了很多很多的人类专家了，依...",
+      "link": "https://x.com/oran_ge/status/2080189978894839906",
+      "published": "2026-07-23T15:15:13+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "AGI 的普遍定义里，指的是 AI 在大部分领域里达到人类专家水平。  \n如果 AI 达到了人类专家水平，人还有生活的空间吗？  \n其实我们可以现在就类比一下  \n现在有哪些领域，即便有了很多很多的人类专家了，依然需要这些工作呢？\n\n💬4🔄0❤️2👀1765📊4",
+      "tags": [
+        "AGI",
+        "人类专家"
+      ],
+      "score": 40,
+      "summary": "orange.ai讨论AGI达到人类专家水平后人类的生活空间。",
+      "fetched_at": "2026-07-23T15:41:01.634067+08:00"
+    },
+    {
+      "title": "Meta Ports React Compiler to Rust for Faster Builds and Tighter Toolchain Integration",
+      "link": "https://www.infoq.com/news/2026/07/meta-react-compiler-rust/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-23T14:07:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/meta-react-compiler-rust/en/headerimage/generatedHeaderImage-1784621337399.jpg)\n\nMeta's React library has integrated a Rust version of the React Compiler into its main repository, aimed at enhancing build speed and compatibility with the Rust-based JavaScript toolchain. This port, which memoizes components automatically, demonstrates significant performance improvements, boasting up to 50% faster compilation. The public API remains unchanged to facilitate easy upgrades.\n\n*By Daniel Curtis*",
+      "tags": [
+        "React Compiler",
+        "Rust",
+        "Meta"
+      ],
+      "score": 75,
+      "summary": "Meta将React编译器移植到Rust，编译速度提升50%。",
+      "fetched_at": "2026-07-23T15:41:01.634069+08:00"
     }
   ]
 }
