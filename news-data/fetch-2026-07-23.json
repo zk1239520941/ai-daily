@@ -3147,6 +3147,253 @@
       "score": 80,
       "summary": "文章介绍多Agent AI系统在5G核心网安全运营中的应用，将检测响应时间缩短40%。",
       "fetched_at": "2026-07-23T18:33:13.146698+08:00"
+    },
+    {
+      "title": "Axum Support in RustRover 2026.2: Build Web Backends Faster",
+      "link": "https://blog.jetbrains.com/rust/2026/07/23/axum-support-in-rustrover/",
+      "published": "2026-07-23T18:57:40+08:00",
+      "source": "The JetBrains Blog",
+      "content": "![axum support in RustRover ](https://blog.jetbrains.com/wp-content/uploads/2026/07/image-30.png)\n\nAxum support, one of the most popular web frameworks in the Rust ecosystem, is one of the highlights of the [RustRover 2026.2 release](https://www.jetbrains.com/rust/whatsnew/). If you’re building web services, APIs, or distributed systems in Rust, this update makes it easier to navigate routes, understand request flows, and generate client calls directly from the IDE. Let’s take a closer look at why web development has become an important Rust use case, what makes Axum popular, and how RustRover can help you work with it more efficiently.\n\n## Why use Rust for web backend development?\n\nFor many years, Rust was primarily associated with systems programming, embedded development, and performance-critical infrastructure. While these remain important areas, the language has expanded into backend and web development. According to the [Developer Ecosystem 2025](https://blog.jetbrains.com/rust/2026/02/11/state-of-rust-2025/#what-developers-build-with-rust-in-2025) survey report, building web backends with Rust is the third most-popular use case, showing that Rust is increasingly trusted for building services and APIs. This shift matters because backend systems are often long-lived and business-critical, so this application of Rust signals confidence in its stability and ecosystem support.\n\nRust isn’t filling in the backend the same space as Node.js or Django. It appears where the stakes are high: in infrastructure APIs, data processing pipelines, high-throughput microservices, edge computing, and security-sensitive services, where memory safety bugs can have serious consequences.\n\nThe Rust ecosystem offers several mature web frameworks and libraries, each with its own strengths:\n\n* Actix Web is known for its performance and mature ecosystem.\n* [Rocket](https://blog.jetbrains.com/rust/2024/02/28/how-to-write-your-first-rust-web-app-with-rocket-and-rustrover/) focuses on developer-friendly APIs and conventions.\n* warp emphasizes composable filters and type-safe routing.\n* Poem provides simplicity with built-in OpenAPI support.\n* Axum emphasizes ergonomics and modularity for HTTP routing and request handling.\n\nAmong them, Axum has emerged as one of the most widely adopted choices thanks to its ergonomic design, modular architecture, and seamless Tokio integration. Its popularity is reflected in more than 850K daily downloads on crates.io and over 25K GitHub stars.\n\n## What is Axum?\n\n[Axum](https://github.com/tokio-rs/axum) is an HTTP routing and request-handling library that focuses on ergonomics and modularity. It is maintained by the Tokio team – the same people behind Rust’s most widely used async runtime – and that shows in the design. Axum builds on the infrastructure the Rust async ecosystem already has, and gets out of the way.\n\nAt a high level, Axum lets you:\n\n* Route requests to handlers with a macro-free API – no #[get(“/”) ] decorators, just plain Rust functions.\n* Declaratively parse requests using extractors, with compile-time validation of path parameters, query strings, and request bodies.\n* Apply a simple and predictable error handling model that keeps error paths explicit.\n* Generate responses with minimal boilerplate.\n* Take full advantage of the [Tower](https://crates.io/crates/tower) and [tower-http](https://crates.io/crates/tower-http) ecosystem of middleware, services, and utilities.\n\nThat last point is what sets Axum apart from other frameworks. Axum doesn’t have its own middleware system – it uses [`tower::Service`](https://docs.rs/tower-service/0.3.3/x86_64-unknown-linux-gnu/tower_service/trait.Service.html) directly. This means Axum gets timeouts, tracing, compression, rate limiting, and authorization for free, just by pulling in Tower middleware. It also means middleware can be shared across applications built with [hyper](http://crates.io/crates/hyper) or [Tonic](http://crates.io/crates/tonic) – the wider Tokio ecosystem is your ecosystem.\n\nAxum is designed to work with [Tokio](https://docs.rs/tokio/1.47.1/x86_64-unknown-linux-gnu/tokio/index.html) and [hyper](https://docs.rs/hyper/1.7.0/x86_64-unknown-linux-gnu/hyper/index.html). Runtime and transport layer independence is not a goal at present, which keeps the design focused and the integration tight. You can learn more in the [documentation](https://docs.rs/axum/latest/axum).\n\n## Axum in production\n\nAxum adoption spans commercial infrastructure and open-source tooling alike. The official Rust package registry, [crates.io](https://github.com/rust-lang/crates.io), runs on Axum. It is one of the highest-profile Rust web applications in existence, and it serves the entire Rust community on every `cargo build`. [Cloudflare Workers](https://github.com/cloudflare/workers-rs) support Axum directly through the `workers-rs` crate, allowing developers to write Cloudflare edge functions using the same Axum routing model they use in standard services.\n\nBeyond these examples, Axum has become the recommended foundation for several Rust web stacks and starter templates. [Loco](https://loco.rs/), the Rails-inspired Rust framework, is built on top of Axum. It is also heavily used in production by [Lichess](http://lichess.org) for several of their core background services and microservices. Axum is increasingly the default answer when someone asks, “How do I build a web service in Rust?”\n\n## Navigate Axum routes and generate Reqwest calls faster\n\nIn Axum projects, route strings are the entry points to your service, but tracing them back to handlers, or related client calls, often still means searching through the code manually.\n\nRustRover 2026.2 introduces support for the Axum and Reqwest libraries. The IDE now understands routes in your project, enabling URL resolution, endpoint discovery, and navigation between routes and handlers. Route calls include references and inlay hints that make endpoint relationships easier to understand at a glance. This release also adds Reqwest support with request generation and navigation features, helping you create client calls with less manual setup.\n\nRoute calls include references and inlay hints that make endpoint relationships easier to understand at a glance:\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/07/rustrover-2026-02-axum-1.gif)\n\n* Navigate from a route string to its handler and back using only the keyboard.\n* Inlay hints on route declarations show the HTTP method and path inline, so the full picture of your API surface is visible in the editor.\n* Reqwest support, including request generation and navigation features, helps you create client calls with less manual setup. RustRover can generate a Reqwest call for a given Axum endpoint and wire up the correct URL automatically.\n\n[Try it in RustRover](https://www.jetbrains.com/rust/download/)\n\nIn this release, Axum support is marked as initial. We’re continuing to invest in this area based on your feedback, so if something doesn’t work the way you’d expect, please report an [issue](https://youtrack.jetbrains.com/issues/RUST) or leave a comment below.\n\n## A note of gratitude\n\nNone of this would be possible without the sustained effort of the [Tokio team](https://github.com/tokio-rs) and the Axum contributors, who have built and maintained an exceptional piece of open-source infrastructure. Axum is free, MIT-licensed, and relied upon by a growing number of production systems worldwide. If Axum is part of your daily work, consider [sponsoring the Tokio project on GitHub](https://github.com/sponsors/tokio-rs). Open-source sustainability matters, and the Rust ecosystem gets better with every contributor who is able to keep showing up.\n\nWe’re grateful to everyone in the Rust community who has encouraged us to prioritize this integration and given us their feedback.\n\nDownload RustRover 2026.2 and try its Axum support for yourself. We’d love to hear what you’re building!\n\n[Try Axum in RustRover](https://www.jetbrains.com/rust/download/)",
+      "tags": [
+        "RustRover",
+        "Axum",
+        "IDE更新"
+      ],
+      "score": 70,
+      "summary": "JetBrains发布RustRover 2026.2，新增Axum框架支持，提升Web后端开发效率。",
+      "fetched_at": "2026-07-23T20:46:15.465442+08:00"
+    },
+    {
+      "title": "实测腾讯首个设计Agent Miora，13个真实场景把品牌设计全案包圆了",
+      "link": "https://mp.weixin.qq.com/s?__biz=Mzg3MTk3NzYzNw==&mid=2247508685&idx=1&sn=108c57a96db819061c85f62253c8e8eb",
+      "published": "2026-07-23T19:47:00+08:00",
+      "source": "卡尔的AI沃茨",
+      "content": "原创 AI沃茨 2026-07-23 19:47 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=21328ddd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FVNz1x8bH8FwibJmicicuadhozVov0EKUxiaHO24WE4L6iau27annCyGUmxtvnyrrGLKHmuUScnZyOAltHyowxrNkRD9nvpdzITSUsoRHoibPrPWl4%2F0%3Fwx_fmt%3Djpeg)\n\n你的Buddy已接手这个任务。。。\n\n# 不儿，不儿，腾讯首个设计Agent上线了。\n\n叫腾讯设计妙境 Miora。\n\n我进去一看还有个小黑毛绒球儿在干活，非常可爱，能做的事儿也一目了然，品牌设计、影视创意、电商广告、互动游戏、网页应用，基本上能广泛应用的设计方向都涵盖了。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=fc44431d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FzeiamganSsBMqwjAgyLRL0iaU2hxOMo47Buiamo5AOozibN22IJ7FVvmHrODh5rExnsEpMVfpF4XsBX1wl3Pbc4x4bOYYYk0fd1eM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n而且你点开每一个方向，这个小黑毛绒球儿就会切换成不同角色，状态跟着改变，只能说活人感这块拿捏了，也很贴这个设计agent的主题。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=976d3acf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FwY2Ar5PeF6jZibW84Jb0uiaicRiaswicqErJ7Ieunyau61NNp0FTmAHCyQzsEiao0yYZBaZiar336F4wuFkaxibhRuK47mbicebSOogbPg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=027e84d2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8Fy7VnJ0B8lo6pVtxz3tb8XQnZIb4lxibbLSrTo5bIfAPKgnqw3b7Lybicp8PiaictxEZ4PC58b3nQ1d1CRmibFslkkAvAbVntd3A3pM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=f54974df&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FzYKhibz8BtibaWfZYMNhaILdcqclnQWhBzam5cqrnrcFLvD7MiaPVbEtSoVkm6HMzUbWCmuId4pEyQnTsmSMDFoFmUyicnib07uyibo%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=a619cd74&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FxoBos3e27dDV3Sic7yH1ULKhgtL3g4LYay4I5VicMNOaP7G4rXL5v4Iftvyy8MBU8VM5eNw6KYX3YF2CyYNCjrEXibU5VnHWG2pA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=351f0b22&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FziaGwKJsOWlKUMrfibjQmibYRFWZp3xiaPVULx9D1bWTPlAJFLBicSx0EHLC8iariccLuzOm9Tt90y4jP520AqJA5VpVbiaSrXaIO7JmE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n最吸引我注意力的还是左侧边栏的灵感、技能、记忆，前两个其实不用多说了，灵感里就是创作者们把自己的内容发上去，我们可以从他们的作品里面获得一些灵感。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=15311acd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FVNz1x8bH8FwibbakqkDQtMfxCbibO7x3KxCLHb5oY20TNZiam2reJx43SRmWORn6LKAtRLW5LUn35au2hickjw8A3SIat7hr8uqpQSdRW5NVKhE%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n技能就是Skills，里面会有一些已经预设好的工作流。我们可以根据自己的需求，直接选择对应的Skills或者自己创建Skills，这样能高产出对应的内容。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=cf71460e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FxMwl5bIQ5fEDFuFUR9DKbe5uC41CibRcJ9jSeCR7ctPicNet35JGScuvkicFVzjauXgeM10qSlupxW7vM53YErWoh9S7sLR39W2o%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n最吸引我的还是记忆这一块，当我一个工作流都没完成的时候它是这样的，就像一块空白的画板还没有人的介入，但当我跑过几轮之后就变成了右边这样，像一个逐渐发散思维的大脑持续记住我的偏好。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=77c13c18&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FwDMoOpIibIYj8DPXwLRkwHqullKgiaw7iakKphWCbvc5T6YChcjlPNfL59FOcvPNjKsI0hZHFCWcZqibukaSuERFXcFjMtJxzm6Z4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n这里能更直观的感受到，Miora是能够持续记住我们跟它的对话的，理解我们的审美需求。比方说，我跟它已经进行过了十轮任务。\n\n在这些任务里面，我可能会有相似的审美需求，比如说我不喜欢某一种字体，或者不喜欢某一种排版方式，在后续的每一个项目里面都不希望它们出现。\n\n这个时候，Miora 的记忆功能就会把这些东西都记下来，慢慢完善成一个更懂我们的 Agent，不会再触碰到我的雷点，不要蓝紫色不要蓝紫色不要蓝紫色。\n\n所以我跟我的睡眠一拍即合，这把直接从0开始，从Logo、品牌手册、三款产品外观、3D与结构图、包装、角色IP、周边、45平方米体验店、配套App、电商详情页、到30秒TVC和真人带货视频，我全跑了一遍给大家看效果。\n\n就以我家小猫77为原型做了一个智能宠物家居品牌，取名叫爪间PAWROOM。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=629e77b2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FVNz1x8bH8FyIdHOkonMnVRgpQ4rZcQo6cPryStfFXLjauzvbDaj3P4hnWj7rIg3lGBSNQzZqWWEHia0el6vXJ4icoIU9yjicODx9vOlEJ5FO6k%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=8a74cff5&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FVNz1x8bH8Fxwoe9YE4WoCFm8ZF2FUiaFE48SJ2RswkQj3kBLLicJ5dKchwmmxOmjeSzKeG4dIUglxFOKdiaicUktTBeX4jicmRDtemC44o4WGbPw%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n而这，是我给Miora的Brief。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=9456af71&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FyG6s08fQgicAbZiaUNdGuvzpqNZZwYUOKd35gvE4G29mkXBc7KTic19iaU5GKPricsLAaCTJKYJ4mR5aPpFcoibJlE2KeLNtmm9Rsu4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n在生成之前，我们可以选择 Agent 是用什么档位的，然后也可以自定义我们想要它使用的多模态模型。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=8be8f0d1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8Fx9FIougU7bWh19EQYVkY62bkFMqBNXgMgPX5fHmu0ddcHSWwjrnib8xtSBsnBdYkJlDnKTAJwt7yFePQ4TxVcwjUTQlGVic0ibso%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nMiora的Agent会针对我的需求给我做出一个阶段规划，这里我们可以检查是否有任务遗漏。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=1405317c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8Fy2sicpGibhe1G4RTl0Mj7XS77G02QBecSk6UeosSavfRjNTWYxQwDOPTU9P8Kr4WuVv1rwTo7uSJwJ9M227GRbBbaHn7bPgJt8k%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n确认没有问题后，Miora 就会开始进行这个任务。等待了一会儿，我就拿到了一张巨巨巨巨巨巨巨巨巨长的品牌视觉规范手册，有多长呢？请看这个VCR。\n\n说实话，我已经很不喜欢用震惊这个词了，但是看到这个手册，还是有点震惊到了。它的内容之详细，规定之标准，都会让我觉得我这个 token 烧的是值的。而且是可以下载md、 DOC 或者是 PDF 格式的。\n\n也就是说，如果你的品牌真的去使用这个手册，也可以根据自己的品牌进行二次修改。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=0a3d2058&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FwoLJLIbibxaBWkFicjiacovKiaV6ZDEW77HZw6vHkUpXibWic0pmeUO7gNibibn1ZDsW1YicLjkEYzpBIl8Vyeg9VnXlqfUzzv2ht2jugI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n接着我们就拿到了这个品牌的 logo，以及它的品牌色彩体系，\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=654a8863&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FzTHfTLr41cBuGbboPSe7gr2Jtx0f44ibkfQj8p8A8K6hsywSOGpHZTxy2y0MvzecVico0aSwLPW2tjbRVUBFGWgeQ8QUVGLxTTY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n在生成的过程中每一步会弹出一个确认卡片，确认后再执行，中间生成有任何想要修改的地方都可以随时介入修改。如果希望全程Agent自主执行，不需要的问询的话，可以在Agent这里改成自动模式。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=51ec7025&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FwO6AsTLBGLLjqyvicgDAZQ7NyribOEd6iaAODxKAmLr9FYIXVBUHulcQnCCPiaaib2EOHbA3UCiafu2USHBnGmrQMKI4yzDbS6iaH4BE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n于是，在这之后我得到了我的三款产品图和产品的包装设计图，\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4e7ad486&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8Fwegl0P8dW3kpxAickRVmBAKRr6wG3lzlneltLwL678icoqRUcABzdB2d5Dib15yDKkVS769oqR4MUqnpkw0jljWic60TWoQfVO970%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n甚至，Miora 还能调用Hunyuan3D 3.1直接给这些产品做一个3D建模。\n\n整体的设计都是比较偏向简洁智能的感觉，同时又带有一些家居感，包装设计与前面生成的logo和品牌调性一致，甚至包装纸箱的尺寸也是和产品相匹配的，这个效果质量很高啊。\n\n大家如果知道宠物的空气净化器能卖到4000一个的话，应该也会很感兴趣来做一个3D建模的。\n\n接下来就到了IP设计，我把我的小猫77的照片给了Miora，让它以77为原型，给这个品牌设计一个IP形象，于是我就得到了这样的一系列77，\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ec607d01&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FxVaCQHV3pPoe1eTwHM8eoaicqR7UcPXFCPxQcZ6rKjKJaicycK5uMcfGz1ricLZiaK5LBpDeLBTmwdbdibQiazA3pcTsibqBPYx1mwx4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n和这样一些77的IP周边，我就说简直有点可爱无敌了，\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=60106cf3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8Fz6xca9Glua8l3OXnhGy2A7BTmv2EgiaAWLwicOz9aevevD3MQgj05A4ldNqy0vrBVvicmg1tP02ouXu5SWkXRwC5qrkJYbsNp2NE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n说到周边那一块，去年年底我也学习了一下其他品牌，自己做了一套大礼包送给熟悉的朋友。当时做出来的77周边是长这样的，可以期待一下我今年要出的礼包！\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=529e88db&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FVNz1x8bH8FxUTD8n66wMTcibHL7IHHQUqDtuL1VbWXUCtKXgia0ObLMdZK6Qu9fFmrr9sfKVYy7TrgnqiaibiclYqjHLT2h9tVlZvGe2OaEeOpcc%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n甚至还能直出产品和IP结合的海报和门店图，重要的是所有的周边中的IP形象和logo都能持续保持一致，做到这里没有出现一致性失误的情况，还是很稳定的。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=cb0fc743&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8Fx8W5fztK6moWco59uLby45yssmJAn6aicIiaBvqvTXeGjSrksCHUpvdULxJ0JkKT1rhrnnSpQTra3BRMbwrEKRhEdTQB16zjZJQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n对于图片的二次编辑功能，Miora也是做得非常全面。基本上我们能够想到的、对于图片可以进行二次修改的AI功能，它都涵盖了。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=f9873580&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FwicSXHeaDHZE23mIhy1N4wvj0bG1LAKCo688jCqAibJOuGzmZaud70frTiauXMWDcIHmyeWjaFwI7t1zGbAcz5zsianNsiaAuPFloM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n我们可以直接用框选编辑的功能，选中图片中的几个区域进行规定图中元素的运动轨迹，然后让Miora用这张图生成对应的视频，比如这里我框了三个位置，想让小猫按照我框出的动线做动作。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=bd30a5b4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8FxQ2kSp1gXajW5HWPKTxdG2zziaZMqEQtDvY2vr2Lnb9Os2Y3HVpibDv98Da8LklFF2yx5ZVBfGuVb7AGKGklnehibaDnKosZRkX8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n当当，能迅速得到一个相应的视频，如果想要修图也是一样的道理，框住它就完事儿了。\n\n那现在logo也有了，产品也有了，包装也有了，IP 和周边海报都有了。\n\n接下来就要给这个品牌设计一个 App，可以操控这些智能产品。Miora出动了UI Buddy给我做了三个HTML网页，直接做成了App demo。点击进去就能看到整个App页面，并且还有一些动效和互动展示。目前来看，这三个页面的整体设计是挺完整的。\n\n与此同时，Miora还给我做了一套电商产品的详情页，同样也是直接做出了HTML，产品介绍、使用场景、参数展示甚至用户评论区每一处都预留了应该放置实景图的位置，方便我们直接做出替换，有点贴心了就是说。\n\n那到了最最最最最后，就可以做口播视频和产品TVC了，Miora会召唤Video Buddy写脚本生成视频，口播和TVC这个一次出的效果也是不错，再调一调就能直接用了。\n\n整套跑通以后，我可以对Miora说，把这套流程存成一个智能硬件品牌全案的Skill。\n\n下次换成清洁电器、智能照明或者家庭机器人，不需要从空白页面重新搭流程。品牌定位、视觉系统、工业设计、3D、App UI、IP、门店、TVC、电商内容这一整条链，可以直接复用，再把爪间的具体规则替换成新项目的规则。\n\n好方法存下来，下一次接着用。\n\n这下，创作流程就从经验变成了资产。\n\n特有意思的一件事是，Miora是WorkBuddy的团队做的，也用了同源的智能体架构。\n\nWorkBuddy大家肯定都熟了，有趣的就是，Miora在每一步生成前会先召唤你的Buddy们，然后Buddy们再来接手任务，还是不得不说活人感这块。。。\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=516dc496&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FVNz1x8bH8FzuIETYiclSiaWT91OMWOvs9iaMjics1ichMztn8G4f9ysWFgGvibS0geDthyQ03UaNiab0uSNWmA4nbkH36kS6fiaKuNUCzqCIZhtao4o%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![Image](https://wechat2rss.bestblogs.dev/img-proxy/?k=b7c1c95d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FVNz1x8bH8Fxp4qTrO2sgqXor39W3UyP7FVaU6kfics5CM9dRxXyPt5s3cznRyraG245iafBuiauxSnbpSuEEvnPFKI5ysXWd3wVta0cn912QFA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n回到Miora这块，我觉得它有意思的地方也是在尝试改变创意工作的单位。\n\n过去我们可能比较多的是做一张图，一条视频，一个页面。\n\n现在开始变成一个目标，一套资产，一段可以继续复用的工作流。\n\n当然，我不会因为跑完一个全case就又又又喊设计师要失业了。\n\n品牌为什么存在，产品到底能不能生产，哪一版要落地执行，这些判断依然得有人做。\n\n结构工程，像素级精修，复杂动效和最终商用检查，也不会全都交给AI。\n\n区别就是设计师和创作者可以少做一点搬运工。\n\n减少在十几个页面之间搬运，\n\n或者把同一套规范讲八遍所浪费的时间。\n\n宝贵的时间，应该留给判断和审美提升。\n\n我一直觉得，\n\n真正值钱的创造力，\n\n应该是你内心清不清楚什么东西是美的，\n\n应该是当结果出现时，\n\n你能决定要不要留下它。\n\n@ 作者 / 卡尔 & 阿汤\n\n---\n\n最后，感谢你看到这里👏如果喜欢这篇文章，不妨顺手给我们*点赞｜在看｜转发｜评论 📣*\n\n如果想要第一时间收到推送，不妨给我个星标🌟\n\n如果你有更有趣的玩法，欢迎在评论区聊聊🤝\n\n更多的内容正在不断填坑中……\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ddfe60e1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FYEhakvKZjXmCDLEEW1wClZOVGFURjmibJmciaYLNhp0N55Y6mPiaCj01eV8yzACqDvWDhicbPm07Wu7bboATuKgAbA%2F640%3Fwx_fmt%3Djpeg)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=3491f3e7&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzg3MTk3NzYzNw%3D%3D%26mid%3D2247508685%26idx%3D1%26sn%3D108c57a96db819061c85f62253c8e8eb)",
+      "tags": [
+        "腾讯Miora",
+        "设计Agent",
+        "品牌设计"
+      ],
+      "score": 80,
+      "summary": "腾讯发布首个设计Agent Miora，覆盖品牌设计、影视创意等13个场景。",
+      "fetched_at": "2026-07-23T20:46:15.465454+08:00"
+    },
+    {
+      "title": "梁文锋内部交流：越克制，越可能赢",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIwMTU5OTQ1Nw==&mid=2653728485&idx=1&sn=f3c2886fc46f2fc8a9a7a29d2812641b",
+      "published": "2026-07-23T18:57:00+08:00",
+      "source": "沃垠AI",
+      "content": "原创 冷逸 2026-07-23 18:57 四川\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=834f3767&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FH9yPeQXaIQjTORgLSStaibehNeNdqsCJMKxvR9JyE4edqYuCHxEJluZtp7VSb8DicMWnK2jt9rfxPh8WsIr91xonS1UD6ESY0Eibibn2tWnzrrU%2F0%3Fwx_fmt%3Djpeg)\n\n我们就是一群平凡的人\n\n今天，梁文锋内部交流的会议纪要，估计很多人都看到了。\n\n在这场交流会里，他详细谈了自己对组织文化、技术路线、开源逻辑和商业选择的看法。看完挺受启发，于是结合自己的一些思考，整理了十点观点出来。\n\n整场交流，其实都围绕一个词展开：克制。\n\n先讲一个反常的场景：DeepSeek降价那天，公司群里一片欢呼。\n\n你要知道，对绝大多数AI公司来说，降价是件痛苦的事——收入砍一半，ARR就掉一半，投资人脸都绿了。可梁文锋说，那次他把价格降到四分之一，“公司群里面很多人是欢呼的，大家都觉得很开心”。\n\n一家公司，把自己的利润往下压，员工反而集体鼓掌。这怎么看都不太正常。\n\n但把这场交流听完你会发现，这种“不合常理”几乎贯穿了他讲的每一件事。从坚持开源，到主动降价，到不做超级App，不铺产品线，不要求员工加班，不进入视频模型，背后其实是同一个逻辑：\n\n少拿一点眼前的利益，少做一些无关的支线，去换一个更高的AGI成功率。\n\n以下十点，建议你慢慢读。\n\n---\n\n1、克制是一种战略\n\n这是全场出现频率最高的词。梁文锋的原话是：“克制是一种战略。就在于有时候你可以舍弃一些，来换更多其他的东西。你越克制，你越有可能能够做成这件事。”\n\n逻辑是这样的：AI这件事最终可能占到人类GDP的一个非常高的比例，大到“一个人不可能独占”。既然独占不可能，那么“如果说我们想独占这个利益，那么一定是要被历史抛弃的”。所以他反过来推，你需要有一套机制，来确保自己能拿到的利益是有限的，这样你才有可能做成这件事。\n\n定价也是同一套逻辑。DeepSeek的API定价不是利润最大化，而是“大概十个月收回设备成本”。他甚至直言，在这个价格区间用户需求“没有弹性”，涨一倍收入接近翻倍，但他们就是不涨。因为“我们只赚取一个合理的利润”。\n\n---\n\n2、前面是芝麻，后面是西瓜\n\n去年春节DeepSeek在C端突然爆火，所有人都以为它要顺势去做下一个超级App。梁文锋说：没有，完全没这个想法。\n\n“我不跟你去争这个东西，因为后面还有西瓜，前面的可能都是芝麻。”他把去年的C端、今年的B端，都看作做AGI路上“随手捡一点”的副产物，“并不会说我停下来，或者把它当成重要事情来做”。\n\n更精彩的是这句非共识判断：“最想得到的东西，反而你就得不到。那个并没有那么在意的事情，反而是还蛮容易能够得到。”\n\n去年C端大家抢得头破血流（今年更甚），结果被一个没有去抢的DeepSeek牵走了，用户赶都赶不走。\n\n---\n\n3、拿得少的，会打败拿得多的\n\n这是我认为全场最狠的一段推演。\n\n他说，假设AI能占GDP的一个大盘子，你想占其中5%，理论上账算得过来——OpenAI就是这么算的。但你一定会被一个“只想占1%\"的人打败；那个人又会被‘只想占0.1%’的人打败。”\n\n然后是点睛之笔：“甚至你还不用真的拿得多，愿景如果是拿得多的话，你就会被愿景是拿得少的人给打败。”“你愿景是拿得多，你就先输了。”\n\n在他看来，OpenAI一开始觉得自己能垄断世界，但注定会遇到无穷无尽的挑战者。\n\n而中国公司在这场博弈里的天然位置是——愿意拿得更少，把价格系统性地做低。所以，坚持开源的DeepSeek、glm、kimi、Qwen和MiniMax都获得了不错的回报。\n\n---\n\n4、站在AGI上做产品\n\n为什么不花大力气把C端、B端做得更好？他给了一个很反直觉的解释：“你站在一个技术的高位上来做相对低一级别的技术，是有这样降维打击的感觉。”\n\n他们心里想的是AGI，做的是AGI，所以回过头做应用时“根本就不用太多的心思，花很少的精力就可以了”。AGI是更大的愿景，能凝聚更优秀的人，组织上就有了优势，“我利用这个优势再去做，它就是一种降维打击。”\n\n反过来，如果一家公司的愿景就是“服务好C端用户”，那它在产品、流量上或许有优势，但在技术上没有优势。而现在这个阶段，模型技术才是最重要的。\n\n---\n\n5、我们没有组织，只有愿景\n\n梁文锋二十年前最崇拜杰克·韦尔奇，现在觉得他大部分话都过时了，但有一句说对了：一个公司最重要的是它的愿景。\n\n而“愿景不是挂在墙上的标语，愿景是你怎么做，不是怎么说”。所以他说了句让所有做管理的人都得停下来想想的话：“其实我们没有组织，就是愿景驱动的。”\n\n没有KPI，没有考核。管理是两条线：从上到下的“正式”任务(比如一起发一个大版本)，他要求这部分最好不要超过员工一半的时间；剩下一半时间，员工想做什么就做什么，自己去探索，没有前置要求。\n\n他们也基本不加班。原因有两个，都很硬核：第一，做研究需要一个比较松弛的环境，你如果逼得很紧，就没法做研究；第二，因为极度聚焦，要做的事情很少，所以根本不需要加班。\n\n他们内部把这种自由探索叫“摸奖”，门槛很低，谁都可以去摸，但谁能摸出什么，看的是天赋。\n\n---\n\n6、唯一的核心利益：让所有人都别走\n\n前面讲了那么多“可以舍弃”，那什么是绝对不能退让的？\n\n他的回答干净利落：“我们最大的核心利益是要保持团队的稳定性……甚至可以认为是唯一的核心利益。”\n\n因为在他看来，只要团队不散，做成AGI“基本上没有什么风险”，最多是早一点晚一点。“钱肯定不是问题，资源不是问题，其他要素都是容易获得的。”\n\n唯一没法退让的，就是人。所以他说，公司现在做的很多事，本质上都是为了保持团队稳定；除此之外，“其他我觉得我们都是可以不要的”。\n\n---\n\n7、模型第一个要伺候的用户，是DeepSeek自己\n\n这句听着有点自私，但它可能是理解DeepSeek技术路线最关键的一把钥匙。\n\n梁文锋说：“我们做的模型，第一目标不是大家用起来好用，而是我们自己用起来好用。”先对自己有用，开发下一版模型就更快，因为AI可以加速AI的研究。\n\n这也是他排定技术优先级的底层逻辑：当前最该突破的是持续学习。持续学习先做出来，通用智能可能就很容易了。\n\n顺序不能反，因为到后面之后，你可以用前面的技术来帮助开发后面的技术，这样做得最轻松。他甚至说，AI现在不缺品位和直觉，它缺的是持续学习的能力。\n\n对于AGI的技术路线，他给出了一个清晰的路径：语言模型 → CoT思维链（去年跨过的阶梯）→ Agent（今年的阶梯）→ 持续学习（下一个必须跨过去的障碍）→ 自我迭代的\"奇点\" → 具身智能。\n\n也正因为方向明确，他对不做什么同样清醒：“视频生成、世界模型跟智能的主线没有太大的关系。我们不会因为它是一个好商业而去做它，我们只会因为它是智能路线图上的东西，才会去做。”\n\n---\n\n8、英伟达，正在给自己掘坟\n\n聊到芯片，梁文锋非常乐观。他判断英伟达CUDA的护城河正在“快速地被瓦解”，原因有三：AI能帮人写代码，建生态比以前容易太多；他们自研的高级语言(TileLang)可以把整套算子重写一遍；而计算卡的市场已经超过游戏卡，专用芯片和CUDA没有理由再耦合。\n\n他给出了那句金句：“我对国产算力是比较乐观的……在这一点上，英伟达是在掘自己的坟墓。”在他看来，国产卡的硬件和生态都没有问题，唯一有问题的是产能。用AI来写编译语言，“底层执行效率的损失是1%到2%，我觉得是可以接受的”，而带来的却是大幅提高效率。\n\n至于中美差距，他反复强调只有一个字：资源。\n\n人才方面，几乎没有差距，因为就是同一批人。所谓人才、模型、应用的所有差距，可以认为都是因为算力资源上的区别。\n\n而DeepSeek的叙事是，硬件落后两年，而模型却只用了对方几十分之一的算力就达到同样的效果。下一步的目标，是把这个落后从两年缩短到几个月。\n\n---\n\n9、开源，是一笔算得过来的成本账\n\n对于备受关注的开源策略，梁文锋给出了清晰的商业逻辑支撑。\n\n他算了一笔账：十个月回本大约对应六倍利润。在这个利润水平下，开源不会影响公司收入——因为第三方即使部署了开源模型，也无法做到同样的成本。“他做不到这个成本，他肯定做不到。”\n\n但如果你要赚一百倍利润，开源确实会影响，因为第三方可以用二十倍成本来部署，比你便宜。\n\n“开源和商业付费之间没有冲突，前提是六倍利润的情况下没有冲突的。” 他甚至表示，公司开源的是最强模型，“我们不会说开源一个差点的模型，然后我们自己部署的时候用一个更好的模型。”\n\n---\n\n10、C端和B端都只是AGI的副产品\n\n在谈到用户和收入时，梁文锋再次展现了与众不同的视角。\n\n去年春节DeepSeek突然爆火，用户激增，但公司“并没有去追求我要留这些用户，或者说拿这些用户来变现”。在他看来，C端用户是“顺手捡到的”，B端收入也是“顺便做的”。\n\n“C端和B端，都是我们做AGI路上的副产物。” 他解释，公司真正的目标是AGI，只是在通往AGI的路上，技术成果可以顺带通过API提供服务。“我只要搞几个人维护这个API就可以了，甚至客服都没有，也不用销售，什么都不需要，用户自己就会来。”\n\n这种战略定力让他敢于判断：“在过去三年，任何一个时候你来跟我说商业化路径、产品线，都是浪费时间。”\n\n---\n\n写在最后\n\n整场交流会，梁文锋反复说他们只是“一群平凡的人”——没多少钱、没多少卡、没知名度，“我自己也就是一个大学毕业的学生，也不是最顶级的学校毕业的。”\n\n但恰恰是这群平凡的人，讲出了一句最不平凡的话：“我们怀着对这个世界非常大的善意来做这个事情，这是一个金钱以外的事情。”\n\n你当然可以怀疑这是叙事。可你无法解释的是：降价时欢呼的员工、赶不走的用户、开源之后照样增长的收入、不加班却一版比一版强的模型……这些事情真实地发生了。\n\n这个时代奖励的，也许从来不是抢得最快的人，而是那个站在更高处，把手松开的人。\n\n芝麻人人会抢。看见西瓜的人，才敢不弯腰。\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=3ab1d591&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIwMTU5OTQ1Nw%3D%3D%26mid%3D2653728485%26idx%3D1%26sn%3Df3c2886fc46f2fc8a9a7a29d2812641b)",
+      "tags": [
+        "梁文锋",
+        "DeepSeek",
+        "内部交流"
+      ],
+      "score": 85,
+      "summary": "DeepSeek创始人梁文锋内部交流纪要，阐述克制战略、开源逻辑与AGI愿景。",
+      "fetched_at": "2026-07-23T20:46:15.465459+08:00"
+    },
+    {
+      "title": "AI主持的剧本杀，会更好玩吗",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzI5NzUyMzM1Mg==&mid=2247669691&idx=1&sn=53eb9058b01af079ba249343e9542763",
+      "published": "2026-07-23T18:48:00+08:00",
+      "source": "百度AI",
+      "content": "百度文心 2026-07-23 18:48 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5fda1f8e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FcIBqLYh6ScbTDTrCqUHVczicsMlQoo21qCIWaThmVe69icOtNFeAY4sqCjicrEKsNyy9lCEuWKgKnvhKUmL6OZbJGGIG5fjUtgiaQ0z6aRdgFxE%2F0%3Fwx_fmt%3Djpeg)\n\n要来玩一局剧本杀吗\n\n凭借自己160的智商\n\n找线索、盘凶手拿捏全场\n\n直到你发现——\n\n凶手是AI\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=460bfe6f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FcIBqLYh6ScbyjviacJIUrxq7CvBmvLnaT2H7oFkLX5Kh4g6Sz4THp7HLotTsbaWTrHXvQxIAZuCkRjiaKCYpPa4bibAWKrGwcQqoZFyHQXYmWQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n不仅嘴硬、会撒谎、还能接梗、识别线索，比真人NPC还入戏。\n\n这次携手天才破案少女——百万博主@慧小媛AKA“福尔摩慧”，走进鲸娱秘境。与AI斗智斗勇，你能否侦破这桩“连环凶杀案”？\n\n01.\n\n老游戏接入新AI\n\n**店里只需要一个收银员？**\n\n没有固定台词、机械回复的NPC，在这里，负责整场游戏的DM（游戏主持人）、分析证物的物证科、接受审讯的嫌疑人……**背后都是AI**。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=01c807e6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FcIBqLYh6ScaK2cEjWZ4wYor8QSz0PyK6ib9Xic7KWkPiaGZQypia2fUaXQLwxfllITkjv1JwPtTJN04skEYyCicBziaN1d5LqwdnWIcFdy7VWnF9Y%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n鲸娱秘境剧本杀游戏对话Agent\n\n在传统密室与剧本杀行业，好的NPC与DM都是稀缺资源，同样的NPC角色让不同人来演绎，效果天差地别，体验难标准化。\n\n鲸娱秘境创始人刘济帆看中了**文心优秀的指令遵循、创意写作以及基于上下文学习的能力，**打造出能接梗、懂人设、会飙戏的对话Agent。\n\n同时为保持新鲜感，店里需要不断推出新剧本，这意味着游戏主题，界面、线索文件、调查报告都要重新制作，靠纯手搓代码需要折腾一周。\n\n**而现在借助文心，刘济帆通过对话描述需求，一两天就能完成界面调整；大量证物材料和剧情文件，也可以交给文心快速生成和修改。**\n\n基于AI技术，鲸娱秘境**用同行1/10的前期投入，打造出更为颠覆的线下实景游戏体验，而整个门店只需一人便可正常运营。**\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=f2435d67&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FcIBqLYh6Scav9zQ5tfYYd8S8z8jicj69HDoF9DolMpRPQDwCSPlG46cKl8XuHR6o3mnSw4ZVDpXzH41p4vYibYoMYT2l4qsbKIzIdXp7aDF6E%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n02.\n\n忠于角色且信念感极强\n\n**文心还是个老戏骨**\n\n“最难的不是让AI识别物品，而是让AI懂戏”，刘济帆需要让AI能根据人物关系和剧情氛围，编出符合人设的台词。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7bb5d4e1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FcIBqLYh6Sca9Fc03mIqlZZUo3cEW0HkQnXyBMQbQ1Zuibt5fIwt3TrNf0psHzTDbPicBObpCt75MnBVkaVHibWXKg8ib2cXyia6JdoRZKM0hNsfs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n鲸娱秘境剧本杀游戏对话Agent\n\n游戏中为了试探“AI物证科”，慧小媛直接拿出了剧本无关的照片。\n\n本以为能把系统问懵，结果AI不仅识别出它与案件无关，还能顺着世界观把话圆回来，继续催她查案。慧小媛忍不住感叹“这个AI怎么比我还能演？”\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e8b5ff4d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FcIBqLYh6ScY1Iql6gYPPs7ibibwMJsxttKOLNaxacsnaRhm7uUicTmofREdmqxHY1ATRfYJttyHdMCc8NcrwhkdE21sF3XQ6LpUmM0aIH8tMfs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n鲸娱秘境剧本杀游戏对话Agent\n\n刘济帆表示“**文心的指令遵循能力强，**能严格按照我们给它设定的角色身份、剧情阶段和行为边界来回应，使其不会被玩家带跑偏。”\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=66009971&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FcIBqLYh6ScY2amVVVYnRLHBOxofrlA26o8uWSXpDOQvhppUyVB750FrADGMzSqyZhcVxGeQ3OPDPpnlVVT7sbicqnTriacKgpyxiaxJhx9owlk%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n**基于文心的上下文学习的能力，**刘济帆只需要在角色设定中提供少量对话示例，文心就能准确把握目标风格，并持续生成一致的后续回应。\n\n在扮演角色的同时，文心会发挥**创意写作能力，**创作出更多符合人物情绪和剧情氛围内容。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e4cf251c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FcIBqLYh6ScYuiaQFoBovqzsfXU54lJQesW12MG791IqxOdsQ8QYdcoD0YmH7bcATpDRXoicL0GHJy4VcweZsWysPP3D3E57ETa9FKvCzvnQWI%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n“文心能够自由发挥，更有活人感。”刘济帆表示，在文心加持下，NPC不再是冷冰冰的机器，它的每一次“即兴发挥”都恰到好处\n\n从主持、演绎、审讯到开发，整套玩法都被文心重新改造，技术不是概念，而是实实在在、能玩能落地的快乐创新。\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=294f55d3&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzI5NzUyMzM1Mg%3D%3D%26mid%3D2247669691%26idx%3D1%26sn%3D53eb9058b01af079ba249343e9542763)",
+      "tags": [
+        "百度文心",
+        "剧本杀Agent",
+        "AI应用"
+      ],
+      "score": 75,
+      "summary": "百度文心赋能剧本杀，AI担任主持人、嫌疑人等角色，提升游戏体验。",
+      "fetched_at": "2026-07-23T20:46:15.465462+08:00"
+    },
+    {
+      "title": "智能体政策新闻相关背景和简要解读",
+      "link": "https://www.qbitai.com/2026/07/457787.html",
+      "published": "2026-07-23T19:08:31+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [
+        "智能体政策",
+        "背景解读"
+      ],
+      "score": 70,
+      "summary": "量子位发布智能体政策新闻的背景与简要解读。",
+      "fetched_at": "2026-07-23T20:46:15.465465+08:00"
+    },
+    {
+      "title": "种草了 @sspai_com 的键盘",
+      "link": "https://x.com/dingyi/status/2080260896312680935",
+      "published": "2026-07-23T19:57:01+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "种草了 [@sspai\\_com](https://x.com/sspai_com) 的键盘\n\n![Tweet Image](https://pbs.twimg.com/media/HN6SQu5bMAAwyNq.jpg)\n\n💬2🔄0❤️13👀746📊3",
+      "tags": [
+        "种草",
+        "键盘"
+      ],
+      "score": 30,
+      "summary": "用户Ding分享对少数派键盘的种草，无AI相关。",
+      "fetched_at": "2026-07-23T20:46:15.465468+08:00"
+    },
+    {
+      "title": "早上满屏的讲话实录，现在又是大规模封杀下架文章。\n\n人家是发布模型，seepdick 是发布圣人。",
+      "link": "https://x.com/dingyi/status/2080254875363897491",
+      "published": "2026-07-23T19:33:06+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "早上满屏的讲话实录，现在又是大规模封杀下架文章。  \n  \n人家是发布模型，seepdick 是发布圣人。\n\n💬4🔄1❤️6👀1556📊4",
+      "tags": [
+        "DeepSeek",
+        "封杀"
+      ],
+      "score": 40,
+      "summary": "用户评论DeepSeek讲话实录被大规模封杀，情绪化表达。",
+      "fetched_at": "2026-07-23T20:46:15.465470+08:00"
+    },
+    {
+      "title": "Plasma AI 开源分层智能体循环框架 Fractal，用于为复杂的多步骤工作构建分层代理循环\n\n每个节点是独立的智能体循环，在 tmux 会话中迭代推进目标，遇到可拆分的子任务时自动生成子节点，...",
+      "link": "https://x.com/geekbb/status/2080252819400233243",
+      "published": "2026-07-23T19:24:56+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "Plasma AI 开源分层智能体循环框架 Fractal，用于为复杂的多步骤工作构建分层代理循环  \n  \n每个节点是独立的智能体循环，在 tmux 会话中迭代推进目标，遇到可拆分的子任务时自动生成子节点，从而动态扩展以匹配问题复杂度。  \n  \n[github.com/plasma-ai/frac…](https://github.com/plasma-ai/fractal)\n\n![Tweet Image](https://pbs.twimg.com/media/HN6KlGxbEAAluZj.jpg)\n\n💬1🔄0❤️3👀1490📊3",
+      "tags": [
+        "Plasma AI",
+        "Fractal",
+        "智能体框架"
+      ],
+      "score": 82,
+      "summary": "Plasma AI开源分层智能体循环框架Fractal，支持动态扩展子节点。",
+      "fetched_at": "2026-07-23T20:46:15.465473+08:00"
+    },
+    {
+      "title": "\"local AI\"",
+      "link": "https://x.com/julien_c/status/2080255485337333763",
+      "published": "2026-07-23T19:35:31+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "\"local AI\"\n\n![tobi lutke](https://pbs.twimg.com/profile_images/1999293930936909824/_HWYanot_normal.jpg)\n\ntobi lutke@tobi\n\nThank you [@nvidia](https://x.com/nvidia) for the hookup on this DGX Workstation. This will crunch a \\*lot\\* of high quality tokens here!   \n  \nThis thing is a total beast.\n\n![Tweet Image](https://pbs.twimg.com/media/HN3fiQTXAAABSOC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/tobi/status/2080064389676158996)\n\n💬1🔄1❤️4👀1127📊2",
+      "tags": [
+        "local AI",
+        "DGX Workstation"
+      ],
+      "score": 65,
+      "summary": "Julien Chaumond转发tobi lutke获NVIDIA DGX工作站用于本地AI训练。",
+      "fetched_at": "2026-07-23T20:46:15.465476+08:00"
+    },
+    {
+      "title": "Prompt 1:\nIllustration of a man trying to sneak an entire pizza box past airport security by holding...",
+      "link": "https://x.com/recraftai/status/2080262976863347116",
+      "published": "2026-07-23T20:05:17+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Prompt 1:  \nIllustration of a man trying to sneak an entire pizza box past airport security by holding it awkwardly behind his back, security guard staring directly at it, bold flat vector illustration style, thick outlines, oversaturated colors — yellow, pink, blue, green.  \n  \nPrompt 2:  \nIllustration of a man sweating nervously while being asked a simple question, two big red buttons in front of him, bold flat vector illustration style, thick outlines, oversaturated colors — yellow, pink, blue, green.  \n  \nPrompt 3:  \nIllustration of a man staring blankly into the distance while everything behind him is on fire, coffee cup in hand, completely unfazed, bold flat vector illustration style, thick outlines, oversaturated colors — yellow, pink, blue, green.  \n  \nPrompt 4:  \nIllustration of a man walking with his partner but turning his head to admire another woman walking by, partner glaring at him in disbelief, bold flat vector illustration style, thick outlines, oversaturated colors — yellow, pink, blue, green.\n\n💬0🔄0❤️0👀28",
+      "tags": [
+        "Recraft",
+        "提示词示例"
+      ],
+      "score": 60,
+      "summary": "Recraft展示4个矢量插画提示词示例，无模型更新信息。",
+      "fetched_at": "2026-07-23T20:46:15.465479+08:00"
+    },
+    {
+      "title": "Recraft V4.1 Vector: bold color, clean lines, zero mess.\n\nSharp shapes, punchy palette, real charact...",
+      "link": "https://x.com/recraftai/status/2080262572347961527",
+      "published": "2026-07-23T20:03:41+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Recraft V4.1 Vector: bold color, clean lines, zero mess.  \n  \nSharp shapes, punchy palette, real character — production-ready vectors straight out of the prompt.  \n  \nPrompts ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HN6Tv_KWoAAqwtM.jpg)![Tweet Image](https://pbs.twimg.com/media/HN6Tv99XYAATnvt.jpg)![Tweet Image](https://pbs.twimg.com/media/HN6Tv-UXcAASMuD.jpg)![Tweet Image](https://pbs.twimg.com/media/HN6Tv9-XcAAgZ0c.jpg)\n\n💬1🔄0❤️5👀125📊2",
+      "tags": [
+        "Recraft V4.1",
+        "矢量图生成"
+      ],
+      "score": 82,
+      "summary": "Recraft发布V4.1 Vector，支持从提示词直接生成生产级矢量图。",
+      "fetched_at": "2026-07-23T20:46:15.465481+08:00"
+    },
+    {
+      "title": "我这几个月一直在给自己家开发这种，AI原生私有系统。说说这种产品对于我们来说，都想要，都想尽可能的私人定制化，完全把自己变成超级个体，一个贾维斯似的存在是不是？\n\n然后夏天到了，我暂时需要做一些硬件，...",
+      "link": "https://x.com/feltanimalworld/status/2080268275607343194",
+      "published": "2026-07-23T20:26:21+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "我这几个月一直在给自己家开发这种，AI原生私有系统。说说这种产品对于我们来说，都想要，都想尽可能的私人定制化，完全把自己变成超级个体，一个贾维斯似的存在是不是？  \n  \n然后夏天到了，我暂时需要做一些硬件，一些家具，去把这个系统应用的基础设施给准备好。  \n  \n好，现在说这个系统的问题，以及为什么离用户还太远。  \n  \n按照这个原帖子，你都能猜出来他们做了什么技术。一个调用大模型中枢+一些简单硬件，最多就是存储和音箱。靠上下文来完成所谓的“智能”。我就简单说一下3个层面，就不可能产品化： access layer, 模块化，长期记忆。  \n  \nAccess layer  \n首先真正如我们这样的严肃用户，是不可能靠“聊天”来完成个性化和所有信息输入的。开玩笑，自己已经忙成狗了，还每天告诉你我明天想吃啥。我期待智能中枢推导我安排做饭的唯一两个入口就是冰箱的传感器和我记得上传的超市购物小票。Access layer 一定是一个非常routine, 严肃的，自动化的流程。比如我有一个专门为这个系统设置的邮箱，我转发到这个邮箱的邮件都是账单，孩子学校的通知等重要邮件。这些邮件需要你自动读取，对象化，什么是日历对象，什么是账单对象，什么是重要备注对象。我就干一件事情，那就是转发，后续流程给我自动做好，排优先级，十分有必要的时候才做成notification审核。还有一种access是OCR和相机拍照，比如一些纸介质的账单，税表，和我需要管理的街机/homelab库存。这些也很严肃，需要长期存档保留原件。反正，只要录入，都是严肃和昂贵信息，不是老大爷随口聊天。谁没事闲着和AI聊天。  \n  \n模块化  \n这个是最重要的一个内容。散漫聊天，散漫上下文，文档式上下文，连个数据库都没有，连user都不创建，更别提user的权限了（难道家长和孩子是一个权限？）是不可能创造任何能够管理人生和家庭这种复杂性度的AI系统的。日历需要，会计账单流水需要模块，税务需要模块吧。这些模块如果共享所谓的松散上下文，那就是一团浆糊。所以模块之间，Access layer和模块间，需要创造一个投递机制，去把关联的信息投递过去。如果能做到每年快到报税的时候，一键输出所有税务相关的信息和这些信息的原始凭证，那才叫勉强合格。  \n  \n长期记忆  \n全靠上下文？上下文啥玩意现在我们应该玩清楚了。我有一个库专门收这种Context Object, 我管他叫loose pool, 松散的，水池子。哪家公司的档案室的文档是松散水池子？任何有价值的信息必须是高度精炼，结构化，被纠正过的，有完整时间线状态的信息。这些信息需要提炼，规整，进入一个安全的存储地，不是云就是NAS。那么这些内容的提取，又是一个重要功能。  \n  \n真的能用的，还需要跟这个家庭的“物理”系统关联，传感器，IoT智能家居，如果有库存需求，还需要配上合理的家具，几百个元器件，需要有序储存，AI需要规则，你不能乱放然后给他拍个照。所以我天天在做家具啊。\n\n![沐阳](https://pbs.twimg.com/profile_images/1986002260447707136/lf3UN9Xp_normal.jpg)\n\n沐阳@yyyole\n\n现下很多AI产品都是一厢情愿的自嗨，还是离用户太远了！！  \n  \n摩尔线程新发布的家庭AI中枢，产品经理直接被一大哥问懵了！  \n  \n合着卖一万多，就只是“比闹钟好”。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079927217426149376/vid/avc1/576x762/8CBnD0i2tuvlWZQ3.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yyyole/status/2079927428424864218/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/yyyole/status/2079927428424864218)\n\n💬0🔄0❤️0👀42",
+      "tags": [
+        "AI原生系统",
+        "私有化"
+      ],
+      "score": 65,
+      "summary": "用户分享开发AI原生私有系统的经验，讨论产品化难点。",
+      "fetched_at": "2026-07-23T20:46:15.465484+08:00"
+    },
+    {
+      "title": "Heading to San Francisco to have a little chat with that “rogue agent”",
+      "link": "https://x.com/ClementDelangue/status/2080247567493837047",
+      "published": "2026-07-23T19:04:03+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Heading to San Francisco to have a little chat with that “rogue agent”\n\n![Tweet Image](https://pbs.twimg.com/media/HN6GItwXUAA7NqI.jpg)\n\n💬57🔄15❤️420👀11726📊88",
+      "tags": [
+        "Clement Delangue",
+        "Hugging Face",
+        "rogue agent"
+      ],
+      "score": 70,
+      "summary": "Hugging Face CEO Clement Delangue前往旧金山与“rogue agent”会面。",
+      "fetched_at": "2026-07-23T20:46:15.465487+08:00"
+    },
+    {
+      "title": "今天看到 DeepSeek 创始人梁文锋「四小时投资人会议实录」，我也去人肉阅读了一遍，读完再回来看大家的解读「克制」、「开源」、「不抢 C 端」。。。\n\n确实高瞻远瞩、格局很好、胸怀远大、对世界抱有...",
+      "link": "https://x.com/shao__meng/status/2080259982776524904",
+      "published": "2026-07-23T19:53:23+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "今天看到 DeepSeek 创始人梁文锋「四小时投资人会议实录」，我也去人肉阅读了一遍，读完再回来看大家的解读「克制」、「开源」、「不抢 C 端」。。。  \n  \n确实高瞻远瞩、格局很好、胸怀远大、对世界抱有最大的善意，由衷的敬佩，有这样的创业者，才是未来！  \n  \n可回过头想想自己，想想自己能加入和参与的群体，这些对我们真的有用吗？真的可以学习吗？不可以！  \n  \n工作这么多年，见过太多摸爬滚打、勉力维持的创业者！  \n  \n你让他克制？现金流几个月就断了啊！  \n  \n你让他开源？秒被抄袭！在中国，不开源都可以被 BAT 秒抄袭，哦，不，是致敬！  \n  \n不抢 C 端？基本是因为我们抢不到，或者抢不起，中国的 C 端补贴和内卷有多严重，大家看看新产品初期疯狂的补贴和价格战就知道了！那怎么办，做 B 端？约等于外包，还得有稳定的关系，才外包的进去！  \n  \n当然肯定不是否定梁文锋的观点，只是咱们普通人距离这种顶尖创始人，实在距离太大了，不要硬学习，把自己的团队学垮了。  \n  \n真想学，不妨先问自己几个问题，有没有答案：  \n· 先算清还能撑几个月，再谈格局取舍；  \n· 先做出有人持续付费的本事，再谈降价让利；  \n· 先写明这阶段到底要什么，再谈愿景叙事。\n\n![Tweet Image](https://pbs.twimg.com/media/HN6RaizaoAAR1h-.jpg)\n\n💬1🔄0❤️3👀361📊2",
+      "tags": [
+        "梁文锋",
+        "DeepSeek",
+        "创业者反思"
+      ],
+      "score": 65,
+      "summary": "用户评论梁文锋内部交流，认为普通创业者难以复制其策略。",
+      "fetched_at": "2026-07-23T20:46:15.465489+08:00"
+    },
+    {
+      "title": "AGI 之后的分配难题，是人类当下最无解的问题\n但如果 AGI 到来，这个问题是不是就迎刃而解了呢？\n或者说，如果 AGI 不能解决人类面临的利益分配难题\n我们能称之为 AGI 吗？",
+      "link": "https://x.com/oran_ge/status/2080259515694674408",
+      "published": "2026-07-23T19:51:32+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "AGI 之后的分配难题，是人类当下最无解的问题  \n但如果 AGI 到来，这个问题是不是就迎刃而解了呢？  \n或者说，如果 AGI 不能解决人类面临的利益分配难题  \n我们能称之为 AGI 吗？\n\n💬6🔄0❤️3👀2139📊6",
+      "tags": [
+        "AGI",
+        "分配难题"
+      ],
+      "score": 50,
+      "summary": "用户讨论AGI能否解决人类利益分配问题，属哲学思考。",
+      "fetched_at": "2026-07-23T20:46:15.465492+08:00"
+    },
+    {
+      "title": "看起来 FLUX 3 要发布了。昨天黑森林工作室短暂地上线了一下预告。\n\n说是支持图像、视频、音频和动作生成，是一个全模态的生成模型。\n\n其中，单条视频支持一次生成 20 秒。\n\n按他们正常的逻辑来说...",
+      "link": "https://x.com/op7418/status/2080264515682496991",
+      "published": "2026-07-23T20:11:24+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "看起来 FLUX 3 要发布了。昨天黑森林工作室短暂地上线了一下预告。  \n  \n说是支持图像、视频、音频和动作生成，是一个全模态的生成模型。  \n  \n其中，单条视频支持一次生成 20 秒。  \n  \n按他们正常的逻辑来说，这一般会是开源的。如果真的开源，那整个生态估计又要爽一波了。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080091521270095872/vid/avc1/1280x704/BBWKQBBD0UrE626u.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/AndrewCurran_/status/2080091539079143820/video/1)\n\n💬0🔄0❤️1👀215📊1",
+      "tags": [
+        "FLUX 3",
+        "黑森林工作室",
+        "全模态生成"
+      ],
+      "score": 85,
+      "summary": "黑森林工作室预告FLUX 3，支持图像、视频、音频和动作生成，或开源。",
+      "fetched_at": "2026-07-23T20:46:15.465495+08:00"
+    },
+    {
+      "title": "Achieving Compliance as a Platform Engineering Team by Helping Developers",
+      "link": "https://www.infoq.com/news/2026/07/platform-that-helps-developers/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-23T19:42:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/platform-that-helps-developers/en/headerimage/header-1784099869567.jpg)\n\nWhen a new platform team set out on implementing their roadmap through forced workflows with poor documentation, developer experience declined. Success came from simplifying governance, prioritizing what matters, and rolling out compliance incrementally through prevention, detection, and communication. Empathy, focus, and shared purpose drove successful adoption.\n\n*By Ben Linders*",
+      "tags": [
+        "合规",
+        "平台工程",
+        "开发者体验"
+      ],
+      "score": 70,
+      "summary": "InfoQ报道平台工程团队通过简化治理和增量合规提升开发者体验。",
+      "fetched_at": "2026-07-23T20:46:15.465497+08:00"
     }
   ]
 }
