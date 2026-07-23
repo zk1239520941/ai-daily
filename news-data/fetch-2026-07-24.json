@@ -1185,6 +1185,425 @@
       "score": 70,
       "summary": "AISI成立Control Red Team，测试AI Agent监控系统漏洞。",
       "fetched_at": "2026-07-24T01:41:41.057710+08:00"
+    },
+    {
+      "title": "How the FDA Built an AI Platform That 85% of Its Staff Now Use Daily",
+      "link": "https://www.databricks.com/blog/how-fda-built-ai-platform-85-its-staff-now-use-daily",
+      "published": "2026-07-24T03:00:00+08:00",
+      "source": "Databricks",
+      "content": "“We showed the value of having a foundational data platform, and that success story...",
+      "tags": [
+        "FDA",
+        "AI平台",
+        "85%使用率"
+      ],
+      "score": 79,
+      "summary": "Databricks博客介绍FDA构建AI平台，85%员工日常使用。",
+      "fetched_at": "2026-07-24T03:39:07.493210+08:00"
+    },
+    {
+      "title": "Permission isn't purpose: Intent-based authorization in Omnigent",
+      "link": "https://www.databricks.com/blog/permission-isnt-purpose-intent-based-authorization-omnigent",
+      "published": "2026-07-24T02:05:06+08:00",
+      "source": "Databricks",
+      "content": "In earlier posts, we introduced contextual policies in Omnigent and showed them blocking...",
+      "tags": [
+        "Omnigent",
+        "意图授权"
+      ],
+      "score": 79,
+      "summary": "Databricks介绍Omnigent中基于意图的授权机制。",
+      "fetched_at": "2026-07-24T03:39:07.493224+08:00"
+    },
+    {
+      "title": "Provisioning for the Agentic Era: How Databricks Built a Self-Serve Infrastructure Vending Machine",
+      "link": "https://www.databricks.com/blog/provisioning-agentic-era-how-databricks-built-self-serve-infrastructure-vending-machine",
+      "published": "2026-07-24T02:00:00+08:00",
+      "source": "Databricks",
+      "content": "At Databricks, our field engineering organization exists to help customers succeed....",
+      "tags": [
+        "Databricks",
+        "自助基础设施"
+      ],
+      "score": 79,
+      "summary": "Databricks博客介绍为Agent时代构建的自助基础设施。",
+      "fetched_at": "2026-07-24T03:39:07.493229+08:00"
+    },
+    {
+      "title": "Introducing Cache Response Rules",
+      "link": "https://blog.cloudflare.com/introducing-cache-response-rules/",
+      "published": "2026-07-24T02:40:38+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "**Today we’re excited to announce Cache Response Rules.** These are a new rule type that runs after an origin server replies but before Cloudflare caches the content.\n\nIf you've ever been irked watching something that should easily sail out of cache get dragged back to the origin by a stray `Set-Cookie` or wrong `Cache-Control`, headers that are sometimes hard or impossible to strip or change on the origin itself, then Cache Response Rules is that fix, applied at exactly the right moment.\n\n## When and how caching decisions are made\n\nA CDN cache and an origin server work as a pair. Their goal is to answer from the cache whenever possible and only go back to the origin when the edge can’t respond. Every point of cache hit ratio comes from getting that division of labor right. Check the cache when we shouldn't, and we waste a lookup that was always going to miss. Check it too rarely, the origin serves traffic the edge should have absorbed and the performance win evaporates.\n\nImportantly, the origin guides the cache. When it returns a cacheable asset, its response headers tell Cloudflare how long it’s OK to serve it, when and how to revalidate, and even whether to cache it at all. The cache is only ever as efficient as the origin allows. If the origin gets it wrong, cache becomes decoration while the origin infrastructure costs skyrocket.\n\nMost cache eligibility problems are not decided at request time. They manifest after the origin replies.\n\nA visitor asks for `/static/app.js`. Cloudflare checks cache, it misses, and forwards the request to the origin. The origin returns the file. Somewhere in those response headers, quietly, is a `Set-Cookie` header. The asset that should have been cached at every Cloudflare data center is now uncacheable. Multiply that by every visitor, on every site, with the same accidental header, and you have a cache hit ratio that is leaking origin bandwidth, ruining performance, and driving infrastructure costs higher.\n\nThere is a long list of variations of this same problem. The origin sends `Cache-Control: no-cache` on assets that are perfectly safe to cache on the CDN. The origin sends correct directives, but they're meant for the browser, not for Cloudflare. Or the origin attaches an `ETag` (an identifier for a specific version of a resource) that's overly aggressive and causes revalidation thrash on every conditional request. Often, especially in large teams, those managing the origin’s responses and the group that manages the CDN are different. This makes changing a one-line header a weeks-long negotiation.\n\nNone of these problems can be solved at request time. By the time Cloudflare sees the `Set-Cookie` on `/app.js`, the request phase is over. The response is already in flight.\n\nSo we put a fix in the right place.\n\n**Cache Response Rules run after the origin’s response arrives at Cloudflare, but before it gets written to cache.** With them, you can rewrite `Cache-Control` directives, manage cache-tags, and strip headers like `Set-Cookie`, `ETag`, and `Last-Modified` from the origin response before Cloudflare's cache ever sees them. The fix lives entirely on Cloudflare. No origin code changes required.\n\n## The missing piece\n\nIf you've used Cloudflare for any length of time, you've watched the cache control surface area evolve. A few years ago, most of this lived inside [Page Rules](https://developers.cloudflare.com/rules/page-rules/), which operated as a single, albeit overloaded, primitive that mixed caching with redirects, security, and a dozen other behaviors, all evaluated on requests. We later [split these rules apart](https://blog.cloudflare.com/future-of-page-rules/) so that only relevant behavior changes would be evaluated against requests, reducing unnecessary latency and allowing for complex rule stacking between behaviors. [Cache Rules](https://developers.cloudflare.com/cache/how-to/cache-rules/) became a dedicated, expressive rule type for caching decisions, joined by [CDN-Cache-Control](https://developers.cloudflare.com/cache/concepts/cdn-cache-control/), [Origin Cache Control](https://developers.cloudflare.com/cache/concepts/cache-control/), [custom cache keys](https://developers.cloudflare.com/cache/how-to/cache-rules/examples/custom-cache-key/), and other controls that give you precise ways to tell Cloudflare what's safe to cache, for how long, and under what conditions.\n\nMany of these controls share a common trait: they operate on the *request*.\n\nWhile maybe unintuitive, this makes sense. The most important caching decisions Cloudflare has to make are *should we look this up in cache, and under what key?* This question has to be answered *before* Cloudflare talks to the origin. If the answer is \"no\" when it should have been \"yes,\" the request has already paid for the origin round trip and there's nothing the response can do to give it back that latency. Request-time rules answer that question using the only information available at that moment: the URL, the requested file’s extension, the request headers, geography, device type, and so on. Using these request parameters and the rules set to change these request parameters, we determine if something is likely in cache and look there before talking with the origin.\n\nBut some cache decisions cannot be made on the request. The origin's `Cache-Control` directives (cache-control: max-age=3600) are part of the response Cloudflare receives from the origin. The status code, the ETag, the Last-Modified timestamp, Set-Cookie, and the cache-tag format the origin chooses are all things in the response that the origin passes to the cache. None of it is available when request-time rules run.\n\nResponses from the origin are the source of truth, so if something needed to be changed on Cloudflare that wasn’t available at request time, that previously left you with three workarounds:\n\n1. Change the origin.\n2. Write a Worker that re-fetches and rewrites the response.\n3. Live with a worse hit ratio.\n\nEach of those costs engineering time, adds latency, or burns money. **Cache Response Rules give you a fourth option: a ruleset where you can modify the origin's response before it hits Cloudflare's cache.**\n\n## Two phases, two questions\n\nThe cleanest way to think about the difference between [**Cache Rules**](https://developers.cloudflare.com/cache/how-to/cache-rules/) and the new [**Cache Response Rules**](https://developers.cloudflare.com/cache/how-to/cache-response-rules/) is as two phases, each answering its own question.\n\n* **Cache Rules** **run in the request phase,** before Cloudflare talks to the origin server. They answer: *given this request, should Cloudflare cache the response, and under what cache key?* That’s three decisions that can be made at request time with cache rules: **whether** to cache (eligible vs. bypass), **what** the object is (the cache key and how to identify the stored object in the future), and **how** to cache (edge TTL, browser TTL, serve-stale, etc). All of these questions must be settled before the origin fetch, using only what’s in the request.\n\n* **Cache Response Rules run in the response phase,** after the origin replies but before the response is written to Cloudflare's cache. Cache Response Rules answer: *now that the origin has responded, should we adjust how we cache it?* Cache Response Rules can rewrite the **how** from the request bystripping headers that would make a response ineligible for cache,changing origin `cache-control` directives that tell Cloudflare whether and how to cache*, or* setting cache tags for purging content. When a cache rule and cache response rule are in conflict with each other, the cache response rule wins.\n\nThe response phase can't do everything the request phase can. It can't change the **what,** as the key is already fixed. Though it can change **whether** and **how** Cloudflare caches, for example, a response rule can set `no-store` to make a cacheable object non-cacheable or strip a `Set-Cookie` to make non-cacheable content eligible for cache. However, Cache Response Rules can't make a previously ineligible request cacheable by the response phase, because it’s too late.\n\nSo Cache Response Rules don't replace Cache Rules. Cache Rules decide **whether**, **what**, and **how** we cache on the request. Cache Response Rules get the final word on the **how** and **whether**, once the origin's response is seen by Cloudflare in a phase that didn't exist before.\n\n## What you can do\n\nCache Response Rules support three actions today.\n\n1. **Strip headers that break caching**\n\nThe `set_cache_settings` action removes things like `Set-Cookie, ETag`, or `Last-Modified` from the origin response before Cloudflare evaluates it for caching:\n\nThis is the fix for the `Set-Cookie-on-a-static-asset` problem. Origin frameworks frequently attach session cookies to every response (for load balancing or other purposes), including responses for assets that users don't want to be associated with a session. Stripping `Set-Cookie` in the response phase makes those assets cacheable again without asking the origin, load balancer, or anything else upstream to change anything.\n\nCache Response Rules also run on responses that aren't eligible for caching at all. So when you strip Set-Cookie from a dynamic response, for instance, the rule fires whether or not the object is ever stored. This allows you to control what the client sees even when the response is not stored in cache. You can also strip ETag and `Last-Modified`, which is useful when those headers are misconfigured at the origin and causing thrash. This comes with a tradeoff: stripping both ETag and Last-Modified enables [Smart Edge Revalidation](https://blog.cloudflare.com/introducing-smart-edge-revalidation/) for that response. If Cache Response Rules then *add* new validators, Cloudflare will not enable a Smart Edge Revalidation for browser conditional requests.\n\nSo stripping and modifying headers, even on dynamic requests, are a powerful new pattern that did not exist before on Cloudflare, but there can be additional configs to be aware of if you make these changes.\n\n1. **Manage cache tags**\n\n`set_cache_tags` lets you `add`, `remove`, or `set` cache tags used for [purge by tag](https://developers.cloudflare.com/cache/how-to/purge-cache/purge-by-tags/) on the response. Tags can be static:\n\nOr computed from a response header expression:\n\nThat second form is the one that earns its keep during a CDN migration. If your previous CDN attached surrogate keys to responses using a header like `Surrogate-Keys` with a comma delimiter, you can translate them into Cloudflare's `Cache-Tag` format directly in the response phase.\n\nThe third argument to split() is the limit: the maximum number of elements in the resulting array can be between 1 and 128. Use a value comfortably larger than the realistic tag count per response. The value 1 would return the entire header as a single tag. Once tags exist on the response, [purge-by-tag](https://blog.cloudflare.com/instant-purge/) just works (and by “works” we mean usually in [under 150 ms, globally](https://blog.cloudflare.com/instant-purge/)).\n\n1. **Modify Cache-Control directives**\n\n`set_cache_control` is the action that does the most heavy lifting. You can set or remove individual directives:\n\n* Duration directives: `max-age`, `s-maxage`, `stale-if-error`, `stale-while-revalidate`\n* Qualified directives: `private`, `no-cache` (with optional header-name qualifiers)\n* Boolean directives: `no-store`, `no-transform`, `must-revalidate`, `proxy-revalidate`, `must-understand`, `public`, `immutable`\n\nFor each directive you can also set `cloudflare_only`: true, which is the part that often surprises people:\n\nWhen `cloudflare_only` is true, the directive affects how Cloudflare caches the response, but the downstream Cache-Control value sent to the browser is left alone. This is the response-phase version of what `CDN-Cache-Control` gives you at the origin: cache the asset for 24 hours at Cloudflare, but tell the browser something else. The difference is that you're now doing it from a Rules surface in the Cloudflare dashboard, rather than asking the origin to set a separate header.\n\n## Examples worth stealing\n\nBelow are some examples we thought could help show you the power of Cache Response Rules. Try them out, remix them, and share with others in the community so you can see how to achieve powerful cache customizations using Cache Rules with Cache Response Rules. More examples can be found in the [docs](https://developers.cloudflare.com/cache/how-to/cache-response-rules/create-api/#example-requests).\n\n### **Strip Set-Cookie from static asset extensions**\n\n*Why it works*: The most common cause of \"this should be cacheable but isn't\" is a session middleware on the origin that attaches a `Set-Cookie` to *every* response. Stripping it for known-static extensions converts those responses to cacheable without any origin change.\n\n*Caveat*: Only do this for asset types where the cookie is not semantically required. If your origin uses cookies to drive variant behavior on those URLs (very unusual but possible), strip selectively or scope stripping these headers by path.\n\n### **Long-cache static assets in Cloudflare, shorter-cache them in the browser**\n\n*Why it works*: Cloudflare holds the asset for a month and serves it from cache. Browsers see `max-age=86400` and re-validate after a day. You decouple the two cache lifetimes without touching the origin.\n\n*Caveat*: `immutable` tells browsers not to revalidate even on explicit refresh. Pair it only with versioned/hashed filenames.\n\n### **Override no-cache on a known-static path**\n\n*Why it works*: Framework defaults sometimes attach `no-cache` to every response. If you know /static/\\* is safe to cache, you can strip the directive and impose your own TTL (at Cloudflare only), without changing what the origin or any downstream cache sees.\n\n*Caveat*: Be honest about what's actually static. If `/static/` is sometimes used to serve user-specific content, narrow the match (extension, response header signal, content type).\n\n### **Translate cache tags during a CDN migration**\n\n*Why it works*: A lot of CDN migration pain comes from origin tooling that emits cache-tag headers in another vendor's format. Instead of asking the origin team to ship a release that adds Cloudflare's `Cache-Tag`, translate the existing header in the response phase. Purge-by-tag on Cloudflare starts working immediately.\n\n*Caveat*: The third argument to split() is the limit (1–128) on the resulting array size, not anything to do with the separator.\n\n## How to use Cache Response Rules\n\n**Dashboard**\n\n1. Go to **Cache** > **Cache Rules** in the Cloudflare dashboard.\n2. Select Create rule and then **Cache Response Rule**.\n3. Choose a name and an expression. The expression builder exposes both request fields and response fields.\n4. Choose an action: **Modify cache-control directives**, **Modify cache tags**, or **Strip headers**.\n5. For directives, toggle **Cloudflare only** when you want the change to apply only to Cloudflare's view of the asset.\n6. Save as a draft to iterate, or deploy directly.\n\n### **API**\n\nRules in this phase live at:\n\nFor further information about how to use Cache Response Rules including API and terraform examples, please see the [documentation](https://developers.cloudflare.com/cache/how-to/cache-response-rules/create-api/).\n\n## Use Cache Response Rules today\n\nCache Rules saw the request. Cache Response Rules see the response. Both give you even more control to build the perfect cache on Cloudflare. They are available on all plans today — go [try them](http://dash.cloudflare.com/?to=/:account/:zone/caching/rules/response-rules/new) out!",
+      "tags": [
+        "Cloudflare",
+        "缓存响应规则"
+      ],
+      "score": 79,
+      "summary": "Cloudflare推出Cache Response Rules，优化缓存决策。",
+      "fetched_at": "2026-07-24T03:39:07.493232+08:00"
+    },
+    {
+      "title": "Apple-π\n\nBenchmarking Thinking with Video Towards Law-Grounded Physical Intelligence\n\npaper: https:/...",
+      "link": "https://x.com/_akhaliq/status/2080363934289191156",
+      "published": "2026-07-24T02:46:27+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "Apple-π  \n  \nBenchmarking Thinking with Video Towards Law-Grounded Physical Intelligence  \n  \npaper: [huggingface.co/papers/2607.16…](https://huggingface.co/papers/2607.16401)\n\n![Tweet Image](https://pbs.twimg.com/media/HN7v8FtXMAAB04H.jpg)\n\n💬6🔄3❤️18👀2735📊9",
+      "tags": [
+        "Apple-π",
+        "视频推理",
+        "物理智能"
+      ],
+      "score": 80,
+      "summary": "AK转述Apple-π论文，用视频基准测试迈向基于法律的物理智能。",
+      "fetched_at": "2026-07-24T03:39:07.493235+08:00"
+    },
+    {
+      "title": "@HarryStebbings @lqiao Spotify \nhttps://t.co/PeO0QU3NPX \nYoutube  \nhttps://t.co/QHDvuh4PbQ\nApple Pod...",
+      "link": "https://x.com/FireworksAI_HQ/status/2080371113562112065",
+      "published": "2026-07-24T03:14:59+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "[@HarryStebbings](https://x.com/HarryStebbings)[@lqiao](https://x.com/lqiao) Spotify   \n[open.spotify.com/episode/14rh37…](https://open.spotify.com/episode/14rh372tSdEzRITBQz9HSP?si=c9ed4a9eae9f4de0)   \nYoutube   \n[youtu.be/PCAiqKCfRSk?si…](https://youtu.be/PCAiqKCfRSk?si=WDP2PfIkdn0XYH9T)  \nApple Podcasts   \n[podcasts.apple.com/us/podcast/20v…](https://podcasts.apple.com/us/podcast/20vc-are-openai-and-anthropic-overvalued-the-open/id958230465?i=1000777519441)\n\n💬0🔄0❤️1👀54",
+      "tags": [
+        "Fireworks AI",
+        "播客"
+      ],
+      "score": 60,
+      "summary": "Fireworks AI分享与Harry Stebbings的播客链接。",
+      "fetched_at": "2026-07-24T03:39:07.493238+08:00"
+    },
+    {
+      "title": "\"What does nobody see about the next three years?\" - @HarryStebbings \n\n\"Every single company will ow...",
+      "link": "https://x.com/FireworksAI_HQ/status/2080370867167707391",
+      "published": "2026-07-24T03:14:00+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "\"What does nobody see about the next three years?\" - [@HarryStebbings](https://x.com/HarryStebbings)   \n  \n\"Every single company will own their own intelligence... it's not optional.\" - [@lqiao](https://x.com/lqiao)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080369946987737088/vid/avc1/1080x1920/QTWf0aTOSRKaHxin.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/FireworksAI_HQ/status/2080370867167707391/video/1)\n\n💬1🔄0❤️1👀139📊1",
+      "tags": [
+        "Fireworks AI",
+        "LQiao",
+        "企业智能"
+      ],
+      "score": 70,
+      "summary": "Fireworks AI引用LQiao观点：每家公司将拥有自己的智能。",
+      "fetched_at": "2026-07-24T03:39:07.493240+08:00"
+    },
+    {
+      "title": "Genspark 6.0 is out and we’re so excited to see you've been exploring it!\n\nJoin us live today for a ...",
+      "link": "https://x.com/genspark_ai/status/2080354272198488102",
+      "published": "2026-07-24T02:08:04+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "Genspark 6.0 is out and we’re so excited to see you've been exploring it!  \n  \nJoin us live today for a full walkthrough of what's new, and real ideas on how to use it to do your best work.  \n  \nSee you there → [lu.ma/klgr4823](http://lu.ma/klgr4823)\n\n💬0🔄1❤️9👀630📊1",
+      "tags": [
+        "Genspark 6.0",
+        "产品发布"
+      ],
+      "score": 70,
+      "summary": "Genspark发布6.0版本，邀请用户参加线上演示。",
+      "fetched_at": "2026-07-24T03:39:07.493243+08:00"
+    },
+    {
+      "title": "Starting now!",
+      "link": "https://x.com/hwchase17/status/2080352694712389926",
+      "published": "2026-07-24T02:01:48+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Starting now!\n\n![Sydney Runkle](https://pbs.twimg.com/profile_images/1955622250629021696/WOrOq2Mw_normal.jpg)\n\nSydney Runkle@sydneyrunkle\n\ngoing live in 20 mins to talk about all things loop engineering!  \n  \ncome join!  \n  \n[events.langchain.com/webinar/the-ar…](https://events.langchain.com/webinar/the-art-of-loop-engineering/)\n\n[🔗 View Quoted Tweet](https://x.com/sydneyrunkle/status/2080348156009558239)\n\n💬1🔄0❤️6👀1175📊1",
+      "tags": [
+        "LangChain",
+        "循环工程"
+      ],
+      "score": 60,
+      "summary": "Harrison Chase宣布关于循环工程的直播开始。",
+      "fetched_at": "2026-07-24T03:39:07.493246+08:00"
+    },
+    {
+      "title": "If your worldview is shaped by what you see people saying online, then you have no clue how ordinary...",
+      "link": "https://x.com/thejustinwelsh/status/2080356924608880707",
+      "published": "2026-07-24T02:18:36+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "If your worldview is shaped by what you see people saying online, then you have no clue how ordinary people actually think.\n\n💬22🔄3❤️39👀3507📊22",
+      "tags": [
+        "世界观",
+        "网络"
+      ],
+      "score": 10,
+      "summary": "Justin Welsh发表关于网络塑造世界观的个人观点。",
+      "fetched_at": "2026-07-24T03:39:07.493248+08:00"
+    },
+    {
+      "title": "The early adopters of many AI tools - from assistants like @TownAI to video agents - are folks like ...",
+      "link": "https://x.com/venturetwins/status/2080364081127772327",
+      "published": "2026-07-24T02:47:02+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "The early adopters of many AI tools - from assistants like [@TownAI](https://x.com/TownAI) to video agents - are folks like real estate agents, contractors, and SMB owners.  \n  \nAn hour of time saved daily boosts quality of life.  \n  \nFun to chat w/[@ollieforsyth](https://x.com/ollieforsyth) on this + other topics: [youtube.com/watch?v=zX4k0v…](https://www.youtube.com/watch?v=zX4k0vo_qzE)\n\n💬0🔄0❤️3👀451",
+      "tags": [
+        "AI工具",
+        "早期采用者"
+      ],
+      "score": 60,
+      "summary": "Justine Moore讨论AI工具早期采用者包括房地产经纪人等。",
+      "fetched_at": "2026-07-24T03:39:07.493251+08:00"
+    },
+    {
+      "title": "Incredibly bullish on AI tools for creators, contractors, and small businesses.\n\nPeople who are time...",
+      "link": "https://x.com/venturetwins/status/2080362780105056554",
+      "published": "2026-07-24T02:41:52+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Incredibly bullish on AI tools for creators, contractors, and small businesses.  \n  \nPeople who are time-constrained can hugely benefit from AI agents who take over admin (and other) work.  \n  \nThey often can't afford to hire humans to do these tasks - AI is the first \"help\" they get.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080360690519560192/vid/avc1/1920x1080/NnCePMkkwW5wrmgx.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2080362780105056554/video/1)\n\n💬2🔄1❤️10👀1073📊3",
+      "tags": [
+        "AI工具",
+        "小企业"
+      ],
+      "score": 60,
+      "summary": "Justine Moore看好面向创作者和中小企业的AI工具。",
+      "fetched_at": "2026-07-24T03:39:07.493253+08:00"
+    },
+    {
+      "title": ".@Salesforce's Agentforce Vibes team just crossed 100M lines of accepted code.\n\nLangSmith is how the...",
+      "link": "https://x.com/LangChain/status/2080367839295242253",
+      "published": "2026-07-24T03:01:58+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": ".[@Salesforce](https://x.com/Salesforce)'s Agentforce Vibes team just crossed 100M lines of accepted code.  \n  \nLangSmith is how they know it's good enough to ship.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080364280960925697/vid/avc1/3840x2160/9nTVqIkLRlOV2kLy.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2080367839295242253/video/1)\n\n💬0🔄0❤️13👀1631📊1",
+      "tags": [
+        "Salesforce",
+        "Agentforce",
+        "LangSmith"
+      ],
+      "score": 70,
+      "summary": "LangChain称Salesforce Agentforce团队通过LangSmith验证代码质量。",
+      "fetched_at": "2026-07-24T03:39:07.493256+08:00"
+    },
+    {
+      "title": "Poolside’s Race to AGI: Model Factory, Laguna S, Open Models, & Beyond MCP https://t.co/V9cICBXMmA\n\n...",
+      "link": "https://x.com/latentspacepod/status/2080367727621882222",
+      "published": "2026-07-24T03:01:32+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "Poolside’s Race to AGI: Model Factory, Laguna S, Open Models, & Beyond MCP [latent.space/p/poolside](https://latent.space/p/poolside)[@poolsideai](https://x.com/poolsideai) co-founder and CEO [@eisokant](https://x.com/eisokant) explains why coding is the path to AGI, how Poolside’s Model Factory runs 10,000–20,000 experiments a month and turns new models around in as little as eight weeks, why Laguna S suggests persistence and verification may matter more than raw intelligence, why agents are already helping build the next generation of models, and why the future should have 100 foundation model companies not five.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080366838576226304/vid/avc1/1920x1080/3LoJ4sBdy91izja5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/latentspacepod/status/2080367727621882222/video/1)\n\n💬0🔄0❤️1👀139",
+      "tags": [
+        "Poolside",
+        "AGI",
+        "模型工厂"
+      ],
+      "score": 80,
+      "summary": "Latent.Space播客采访Poolside CEO，讨论AGI路径和模型工厂。",
+      "fetched_at": "2026-07-24T03:39:07.493259+08:00"
+    },
+    {
+      "title": "You asked, we delivered!  🚀\n\nExpanding our developer toolkit with: \n🐹 Go SDK\n🏢 Java SDK\n>_  CLI\n\n...",
+      "link": "https://x.com/llama_index/status/2080348836153770373",
+      "published": "2026-07-24T01:46:28+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "You asked, we delivered! 🚀  \n  \nExpanding our developer toolkit with:   \n🐹 Go SDK  \n🏢 Java SDK  \n>\\_ CLI  \n  \nParse a document from Go or Java in a few lines, or straight from your terminal.  \n🦙 Grab an API key and start parsing today!  \n  \nDo[developers.llamaindex.ai/llamaparse](http://developers.llamaindex.ai/llamaparse)4OyE  \nStart fr[cloud.llamaindex.ai/?utm\\_medium=so…](https://cloud.llamaindex.ai?utm_medium=socials&utm_source=twitter&utm_campaign=2026-jul-)1ip6\n\n![Tweet Image](https://pbs.twimg.com/media/HN7iPgaWwAAT8PQ.jpg)\n\n💬4🔄1❤️11👀1240📊5",
+      "tags": [
+        "LlamaIndex",
+        "Go SDK",
+        "Java SDK"
+      ],
+      "score": 70,
+      "summary": "LlamaIndex推出Go和Java SDK及CLI工具。",
+      "fetched_at": "2026-07-24T03:39:07.493261+08:00"
+    },
+    {
+      "title": "Researchers Jenna Butler, Jake Hofman, and Rebecca Janssen spend a lot of time studying AI’s influen...",
+      "link": "https://x.com/MSFTResearch/status/2080368442314534996",
+      "published": "2026-07-24T03:04:22+08:00",
+      "source": "Microsoft Research(@MSFTResearch)",
+      "content": "Researchers Jenna Butler, Jake Hofman, and Rebecca Janssen spend a lot of time studying AI’s influence on how people do their jobs. On the Microsoft Research Podcast, they share their thoughts on what the future of work looks like in the age of AI. [msft.it/6014vAqvm](https://msft.it/6014vAqvm)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080368360370401281/vid/avc1/720x1280/f2DPZ7G91my1vZ-Z.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/MSFTResearch/status/2080368442314534996/video/1)\n\n💬0🔄0❤️1👀1078",
+      "tags": [
+        "Microsoft Research",
+        "AI影响",
+        "未来工作"
+      ],
+      "score": 70,
+      "summary": "微软研究院播客讨论AI对工作方式的影响。",
+      "fetched_at": "2026-07-24T03:39:07.493264+08:00"
+    },
+    {
+      "title": "Qwen-Audio-3.0-TTS Flash: optimized for low-latency, real-time interaction, with voice cloning built...",
+      "link": "https://x.com/OpenRouter/status/2080367451821543798",
+      "published": "2026-07-24T03:00:26+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Qwen-Audio-3.0-TTS Flash: optimized for low-latency, real-time interaction, with voice cloning built to handle imperfect reference audio.  \n  \n[openrouter.ai/qwen/qwen-audi…](https://openrouter.ai/qwen/qwen-audio-3.0-tts-flash)\n\n💬0🔄0❤️1👀210",
+      "tags": [
+        "Qwen-Audio-3.0-TTS",
+        "语音克隆",
+        "低延迟"
+      ],
+      "score": 80,
+      "summary": "OpenRouter上线Qwen-Audio-3.0-TTS Flash，支持低延迟语音克隆。",
+      "fetched_at": "2026-07-24T03:39:07.493267+08:00"
+    },
+    {
+      "title": "Qwen-Audio-3.0-TTS Plus: the higher-quality model, prioritizing naturalness and voice and timbre fid...",
+      "link": "https://x.com/OpenRouter/status/2080367440111051123",
+      "published": "2026-07-24T03:00:23+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Qwen-Audio-3.0-TTS Plus: the higher-quality model, prioritizing naturalness and voice and timbre fidelity for more polished, expressive speech across languages and speaking styles.  \n  \n[openrouter.ai/qwen/qwen-audi…](https://openrouter.ai/qwen/qwen-audio-3.0-tts-plus)\n\n💬1🔄0❤️0👀220📊1",
+      "tags": [
+        "Qwen-Audio-3.0-TTS",
+        "高保真",
+        "多语言"
+      ],
+      "score": 80,
+      "summary": "OpenRouter上线Qwen-Audio-3.0-TTS Plus，注重自然度和音色保真。",
+      "fetched_at": "2026-07-24T03:39:07.493269+08:00"
+    },
+    {
+      "title": "Two new @Alibaba_Qwen text-to-speech models are live on OpenRouter.\n\nQwen-Audio-3.0-TTS Flash and Pl...",
+      "link": "https://x.com/OpenRouter/status/2080367428065009708",
+      "published": "2026-07-24T03:00:20+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Two new [@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen) text-to-speech models are live on OpenRouter.  \n  \nQwen-Audio-3.0-TTS Flash and Plus speak across 16 languages, follow natural-language direction, and bring scripts to life with inline cues like [gasp], [giggles], and [angry].  \n  \nMore on each below ↓\n\n💬1🔄0❤️6👀775📊2",
+      "tags": [
+        "Qwen-Audio-3.0-TTS",
+        "16种语言",
+        "OpenRouter"
+      ],
+      "score": 80,
+      "summary": "OpenRouter上线两个Qwen-Audio-3.0-TTS模型，支持16种语言。",
+      "fetched_at": "2026-07-24T03:39:07.493272+08:00"
+    },
+    {
+      "title": "Read more about the models here: https://t.co/9Kt799SGPn",
+      "link": "https://x.com/OpenRouter/status/2080353335060660502",
+      "published": "2026-07-24T02:04:20+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Read more about the models here: [microsoft.ai/news/introduci…](https://microsoft.ai/news/introducing-mai-image-2-5-pro-and-mai-voice-2-flash/)\n\n💬0🔄0❤️0👀929",
+      "tags": [
+        "MAI-Image-2.5-Pro",
+        "MAI-Voice-2-Flash"
+      ],
+      "score": 70,
+      "summary": "OpenRouter介绍微软MAI-Image-2.5-Pro和MAI-Voice-2-Flash模型。",
+      "fetched_at": "2026-07-24T03:39:07.493275+08:00"
+    },
+    {
+      "title": "MAI-Voice-2-Flash is optimized for speed and scale:\n\n• 2x faster than MAI-Voice-2\n• Natural prosody ...",
+      "link": "https://x.com/OpenRouter/status/2080349885405270092",
+      "published": "2026-07-24T01:50:38+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "MAI-Voice-2-Flash is optimized for speed and scale:  \n  \n• 2x faster than MAI-Voice-2  \n• Natural prosody and acoustic quality  \n• 15 languages  \n• Fine-grained control over tone and delivery  \n  \nBuilt for responsive voice agents and other real-time experiences.  \n  \n[openrouter.ai/microsoft/mai-…](https://openrouter.ai/microsoft/mai-voice-2-flash)\n\n💬3🔄0❤️8👀1416📊3",
+      "tags": [
+        "MAI-Voice-2-Flash",
+        "速度",
+        "15种语言"
+      ],
+      "score": 80,
+      "summary": "OpenRouter介绍MAI-Voice-2-Flash，速度提升2倍，支持15种语言。",
+      "fetched_at": "2026-07-24T03:39:07.493278+08:00"
+    },
+    {
+      "title": "Two new models from @MicrosoftAI are live on OpenRouter.\n\nMAI-Image-2.5-Pro is MAI’s highest-fidelit...",
+      "link": "https://x.com/OpenRouter/status/2080349861749428605",
+      "published": "2026-07-24T01:50:32+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Two new models from [@MicrosoftAI](https://x.com/MicrosoftAI) are live on OpenRouter.  \n  \nMAI-Image-2.5-Pro is MAI’s highest-fidelity image model yet. MAI-Voice-2-Flash is built for high-volume, real-time voice experiences.  \n  \nMore on both below.\n\n![Tweet Image](https://pbs.twimg.com/media/HN7jLNqbYAA3S4e.png)\n\n💬3🔄4❤️35👀4336📊8",
+      "tags": [
+        "MAI-Image-2.5-Pro",
+        "MAI-Voice-2-Flash",
+        "微软"
+      ],
+      "score": 80,
+      "summary": "OpenRouter上线微软MAI-Image-2.5-Pro和MAI-Voice-2-Flash模型。",
+      "fetched_at": "2026-07-24T03:39:07.493281+08:00"
+    },
+    {
+      "title": "As a “top 1%” AI creator, I thought I’d share my incredibly sophisticated agent prompts.\n\nHere’s a s...",
+      "link": "https://x.com/petergyang/status/2080359332991152414",
+      "published": "2026-07-24T02:28:10+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "As a “top 1%” AI creator, I thought I’d share my incredibly sophisticated agent prompts.  \n  \nHere’s a sampler:  \n  \n\"wow you fixed everything? i have doubts, do another check please.\"  \n  \n\"sgtm. go ahead and implement the onboarding flow now based on the designs and just your common sense. make no mistakes\"  \n  \n\"you seem very confident. are you sure you don't want to ask me any questions before you start working on this?\"\n\n💬16🔄2❤️36👀3343📊18",
+      "tags": [
+        "AI提示",
+        "幽默"
+      ],
+      "score": 50,
+      "summary": "Peter Yang分享AI agent提示词示例，带有幽默色彩。",
+      "fetched_at": "2026-07-24T03:39:07.493283+08:00"
+    },
+    {
+      "title": "An ideal economy is one in which there is as much growth and prosperity and wealth creation, ideally...",
+      "link": "https://x.com/RayDalio/status/2080350379779277088",
+      "published": "2026-07-24T01:52:36+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "An ideal economy is one in which there is as much growth and prosperity and wealth creation, ideally in a balanced way that benefits most people, happening at the same time as there's not too much inflation. Both inflation and growth matter.  \n  \nI was recently asked to explain the concept of stagflation and how it relates to the monetary situation I believe we’re in, and I wanted to share it with you.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080284281687973888/vid/avc1/2160x3840/zpC1dk36p2Xhd1kN.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/RayDalio/status/2080350379779277088/video/1)\n\n💬16🔄19❤️122👀28108📊31",
+      "tags": [
+        "经济",
+        "滞胀"
+      ],
+      "score": 10,
+      "summary": "Ray Dalio解释理想经济和滞胀概念。",
+      "fetched_at": "2026-07-24T03:39:07.493286+08:00"
+    },
+    {
+      "title": "RSVP: https://t.co/GRYS8fC8p6",
+      "link": "https://x.com/runwayml/status/2080359512288940530",
+      "published": "2026-07-24T02:28:53+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "RSVP: [luma.com/runway-i8gw](https://luma.com/runway-i8gw)\n\n💬0🔄0❤️0👀793",
+      "tags": [
+        "Runway",
+        "活动"
+      ],
+      "score": 60,
+      "summary": "Runway发布纽约办公室活动RSVP链接。",
+      "fetched_at": "2026-07-24T03:39:07.493290+08:00"
+    },
+    {
+      "title": "Join us next Wednesday for a night of conversation, pizza and drinks at Runway’s NYC office. Meet th...",
+      "link": "https://x.com/runwayml/status/2080359508610519138",
+      "published": "2026-07-24T02:28:52+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Join us next Wednesday for a night of conversation, pizza and drinks at Runway’s NYC office. Meet the Runway team and network with other creatives and industry talent.  \n  \nRSVP at the link below.\n\n![Tweet Image](https://pbs.twimg.com/media/HN7r1QHWAAAhyNR.jpg)\n\n💬2🔄2❤️7👀2493📊3",
+      "tags": [
+        "Runway",
+        "活动"
+      ],
+      "score": 60,
+      "summary": "Runway邀请参加纽约办公室交流活动。",
+      "fetched_at": "2026-07-24T03:39:07.493293+08:00"
+    },
+    {
+      "title": "@m_thareek ⚓️ Set sail and give it a try: https://t.co/CCGTqbfqfy",
+      "link": "https://x.com/boltdotnew/status/2080349873690313189",
+      "published": "2026-07-24T01:50:35+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "[@m\\_thareek](https://x.com/m_thareek) ⚓️ Set sail and give it a try: [bolt.fyi/qLve18P](http://bolt.fyi/qLve18P)\n\n💬0🔄0❤️5👀416📊1",
+      "tags": [
+        "Bolt",
+        "海盗游戏"
+      ],
+      "score": 50,
+      "summary": "bolt.new回复用户，鼓励尝试平台。",
+      "fetched_at": "2026-07-24T03:39:07.493296+08:00"
+    },
+    {
+      "title": "🏴‍☠️ Ahoy, mateys!\n\nTurns out the best treasure isn't buried... it's built with Bolt ⚡️\n\n@m_thareek...",
+      "link": "https://x.com/boltdotnew/status/2080349870330642480",
+      "published": "2026-07-24T01:50:34+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "🏴‍☠️ Ahoy, mateys!  \n  \nTurns out the best treasure isn't buried... it's built with Bolt ⚡️  \n  \n[@m\\_thareek](https://x.com/m_thareek) created this swashbuckling pirate adventure, complete with ships, the open sea, plenty of cannons.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2080349750000308224/pu/vid/avc1/1338x720/qcX2k-i3PNim4HAU.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/boltdotnew/status/2080349870330642480/video/1)\n\n💬5🔄10❤️62👀2121📊14",
+      "tags": [
+        "Bolt",
+        "海盗游戏"
+      ],
+      "score": 50,
+      "summary": "bolt.new展示用户用平台构建的海盗冒险游戏。",
+      "fetched_at": "2026-07-24T03:39:07.493298+08:00"
+    },
+    {
+      "title": "Going to “Advancing AI” by @AMD with @LisaSu this afternoon. Good thing they didn’t forget a space i...",
+      "link": "https://x.com/ClementDelangue/status/2080350591608574426",
+      "published": "2026-07-24T01:53:26+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Going to “Advancing AI” by [@AMD](https://x.com/AMD) with [@LisaSu](https://x.com/LisaSu) this afternoon. Good thing they didn’t forget a space in the topic of this chat 😂\n\n![Tweet Image](https://pbs.twimg.com/media/HN7j1mracAAnh0K.jpg)\n\n![clem 🤗](https://pbs.twimg.com/profile_images/1100512198139498497/utHSJ4st_normal.png)\n\nclem 🤗@ClementDelangue\n\nHeading to San Francisco to have a little chat with that “rogue agent”\n\n![Tweet Image](https://pbs.twimg.com/media/HN6GItwXUAA7NqI.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ClementDelangue/status/2080247567493837047)\n\n💬10🔄7❤️81👀7226📊14",
+      "tags": [
+        "AMD",
+        "AI",
+        "Clement Delangue"
+      ],
+      "score": 60,
+      "summary": "Clement Delangue参加AMD的Advancing AI活动。",
+      "fetched_at": "2026-07-24T03:39:07.493301+08:00"
     }
   ]
 }
