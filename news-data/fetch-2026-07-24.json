@@ -3220,6 +3220,239 @@
       "score": 70,
       "summary": "Airbus选择Scaleway作为主权云提供商，将反域外法律保护作为评分标准。",
       "fetched_at": "2026-07-24T19:49:34.185698+08:00"
+    },
+    {
+      "title": "Updated Cyber Threat Actor Naming System",
+      "link": "https://cloud.google.com/blog/topics/threat-intelligence/updated-cyber-threat-actor-naming-system/",
+      "published": "2026-07-24T22:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "## **Introduction**\n\nToday, Google Threat Intelligence Group (GTIG) will begin rolling out a unified naming schema for tracking threat actors. This new naming taxonomy represents an effort to standardize tracking across platforms and public reporting.\n\n## **Why are we Adopting a Different Naming System?**\n\nHistorically, Mandiant and Google’s Threat Analysis Group (TAG) maintained distinct tracking systems, relying on parallel naming schemas that grew independently over time. The creation of GTIG has necessitated a new, fused tracking system, and a new naming system. Thinking to the future, GTIG’s new system will rely on cryptonyms. Relying on sequential numbers or disparate identifiers (e.g. APT1) fails to provide defenders the critical context needed to operate quickly. Threat tracking shouldn’t be an exercise in memorization, but rather one of intuition. The new naming convention aligns with industry standard threat actor naming systems. \n\n## **Our New Schema**\n\nOur new schema utilizes a cryptonym-based approach, employing memorable two-word combinations for each distinct threat actor:\n\n* The **first word** is a unique and memorable term chosen to represent the specific actor, particularly names that may have been used in prior public reporting. If no previously used term exists, this word is randomly generated to remove bias, then vetted by our analysts.\n* The **second word** categorizes threat clusters by motivation, attribution, or activity type based on which category we consider to be most important for defense and response strategies.\n\nThe table below provides a sample of how threat actor categories will map to the second word in each cryptonym:\n\n|  |  |\n| --- | --- |\n| **Origin or Type** | **Group Name** |\n| People’s Republic of China | CASTLE |\n| Iran | ION |\n| North Korea | NEPTUNE |\n| Russia | RELIC |\n| Cybercriminal | COMET |\n\nTable 1: Examples of Google’s new threat actor naming system categories\n\nWe know there are many threat actor tracking schemas in the industry, so we are intentionally seeking to keep this system as simple as possible to streamline operations and facilitate mapping to other naming taxonomies. However, a significant caveat remains: because no two organizations have the exact same visibility into the threat landscape, direct, apples-to-apples comparisons between threat actors are rarely possible. Transitioning to a convention that is simpler to follow and remember is a practical step toward managing a highly intricate tracking problem. \n\n## **A Work in Progress**\n\nWe have initially prioritized renaming several dozen of the most active groups, and will continue this process on a rolling basis. Previous names will remain indexed and searchable in the Google Threat Intelligence (GTI) platform, with MITRE ATT&CK mappings and other vendor aliases preserved, see Figure 1.\n\n![Updated Cyber Threat Actor Naming System Image 1](https://storage.googleapis.com/gweb-cloudblog-publish/images/image_22.max-1000x1000.png)\n\nFigure 1: Threat actor name appearance in GTI platform on initial rollout\n\nWe will continue to use UNC, or “uncategorized” designations for threat clusters that are still in the early stages of investigation, as described [here](https://cloud.google.com/blog/topics/threat-intelligence/how-mandiant-tracks-uncategorized-threat-actors).",
+      "tags": [
+        "GTIG",
+        "威胁行为者命名",
+        "网络安全"
+      ],
+      "score": 79,
+      "summary": "Google威胁情报组推出统一威胁行为者命名系统，采用密码名方案。",
+      "fetched_at": "2026-07-24T22:04:10.185321+08:00"
+    },
+    {
+      "title": "No Dumb Questions: What is the AI bottleneck? How does context engineering fix it?​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿…",
+      "link": "https://stackoverflow.blog/2026/07/24/no-dumb-questions-ai-bottleneck/",
+      "published": "2026-07-25T00:00:00+08:00",
+      "source": "Stack Overflow Blog",
+      "content": "In this No Dumb Questions, Stack's Director of Data Science Michael Foree teaches Phoebe about AI context, context engineering, and what she can do to become a better context engineer. ​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​﻿‍‍​‍﻿﻿​‍﻿﻿‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍﻿﻿‌‍‍‌‌‍﻿‍‌﻿‌​‌‍‌‌‌‍﻿‍‌﻿‌​​‍﻿﻿‌‍‌‌‌‍‌​‌‍‍‌‌﻿‌​​‍﻿﻿‌‍﻿‌‌‍﻿﻿‌‍‌​‌‍‌‌​﻿﻿‌‌﻿​​‌﻿​‍‌‍‌‌‌﻿​﻿‌‍‌‌‌‍﻿‍‌﻿‌​‌‍​‌‌﻿‌​‌‍‍‌‌‍﻿﻿‌‍﻿‍​﻿‍﻿‌‍‍‌‌‍‌​​﻿﻿‌​﻿‍‌​﻿​﻿‌‍​‍​﻿‌‍​﻿​‍‌‍‌‌​﻿‍‌​﻿​‌​‍﻿‌​﻿‍​‌‍‌‌‌‍​‍​﻿‍‌​‍﻿‌​﻿‌​​﻿‍​‌‍‌​‌‍‌‌​‍﻿‌‌‍​‍‌‍​‌​﻿‌​​﻿​‍​‍﻿‌‌‍​‍​﻿‌‌​﻿‌﻿​﻿‌​​﻿‌‍‌‍​﻿​﻿​﻿​﻿‌‍​﻿​​​﻿‌﻿​﻿​﻿​﻿​‍​﻿‍﻿‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​﻿‍﻿‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​﻿﻿﻿‌‍​‍‌‍​‌‌﻿​﻿‌‍‌‌‌‌‌‌‌﻿​‍‌‍﻿​​﻿﻿‌‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​‍‌‌​﻿​﻿‌​​‌​‍‌‌​﻿​‍‌​‌‍​‍‌‌​﻿​‍‌​‌‍‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍‌‍‌‍‍‌‌‍‌​​﻿﻿‌​﻿‍‌​﻿​﻿‌‍​‍​﻿‌‍​﻿​‍‌‍‌‌​﻿‍‌​﻿​‌​‍﻿‌​﻿‍​‌‍‌‌‌‍​‍​﻿‍‌​‍﻿‌​﻿‌​​﻿‍​‌‍‌​‌‍‌‌​‍﻿‌‌‍​‍‌‍​‌​﻿‌​​﻿​‍​‍﻿‌‌‍​‍​﻿‌‌​﻿‌﻿​﻿‌​​﻿‌‍‌‍​﻿​﻿​﻿​﻿‌‍​﻿​​​﻿‌﻿​﻿​﻿​﻿​‍​‍‌‍‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​‍‌‍‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​‍‌‍‌﻿​​‌‍‌‌‌﻿​‍‌﻿​﻿‌﻿​​‌‍‌‌‌‍​﻿‌﻿‌​‌‍‍‌‌﻿‌‍‌‍‌‌​﻿﻿‌‌﻿​​‌﻿‌‌‌‍​‍‌‍﻿​‌‍‍‌‌﻿​﻿‌‍‍​‌‍‌‌‌‍‌​​‍​‍‌﻿﻿‌",
+      "tags": [
+        "AI瓶颈",
+        "上下文工程",
+        "Stack Overflow"
+      ],
+      "score": 70,
+      "summary": "Stack Overflow数据科学总监讲解AI瓶颈与上下文工程。",
+      "fetched_at": "2026-07-24T22:04:10.185334+08:00"
+    },
+    {
+      "title": "Google is signing the EU AI Act Code of Practice on Transparency of AI-Generated Content.",
+      "link": "https://blog.google/company-news/outreach-and-initiatives/public-policy/eu-ai-act-transparency-code-of-practice/",
+      "published": "2026-07-24T22:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/GoogleG_FullColor_White_RGB.max-600x600.format-webp.webp)Signing the code reinforces our commitment to transparency and responsible AI development in Europe.",
+      "tags": [
+        "Google",
+        "EU AI Act",
+        "透明度实践准则"
+      ],
+      "score": 90,
+      "summary": "Google签署欧盟AI法案关于AI生成内容透明度的实践准则。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/GoogleG_FullColor_White_RGB.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-24T22:04:10.185339+08:00"
+    },
+    {
+      "title": "突然发现一个真相：普通人写Skills，选对对应工具的模型后，大多根本不用额外配置API！\n\n直接调用工具内置的API就行，能砍掉一大堆繁琐操作，大幅降低上手门槛。\n\n不少人刚入门，光是折腾API配置...",
+      "link": "https://x.com/berryxia/status/2080633622357549103",
+      "published": "2026-07-24T20:38:06+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "突然发现一个真相：普通人写Skills，选对对应工具的模型后，大多根本不用额外配置API！  \n  \n直接调用工具内置的API就行，能砍掉一大堆繁琐操作，大幅降低上手门槛。  \n  \n不少人刚入门，光是折腾API配置这一步就直接被劝退，深有同感的举个手。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080633551704428544/vid/avc1/3632x2160/kcpxnXAe-QzgSWKA.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2080633622357549103/video/1)\n\n💬1🔄0❤️2👀574📊2",
+      "tags": [
+        "Skills",
+        "API配置",
+        "上手门槛"
+      ],
+      "score": 60,
+      "summary": "Berryxia.AI称普通人写Skills无需额外配置API，可直接调用内置API。",
+      "fetched_at": "2026-07-24T22:04:10.185342+08:00"
+    },
+    {
+      "title": "The reward for always playing it safe is a life filled with regret.",
+      "link": "https://x.com/thejustinwelsh/status/2080640918672076879",
+      "published": "2026-07-24T21:07:06+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "The reward for always playing it safe is a life filled with regret.\n\n💬0🔄0❤️0👀1016",
+      "tags": [
+        "人生感悟"
+      ],
+      "score": 10,
+      "summary": "Justin Welsh发布关于安全与遗憾的感悟。",
+      "fetched_at": "2026-07-24T22:04:10.185345+08:00"
+    },
+    {
+      "title": "At Interrupt, the @Bridgewater team shared how they built the AIA Pocket Analyst Tool (PAT).\n\nPAT is...",
+      "link": "https://x.com/LangChain/status/2080638722349908266",
+      "published": "2026-07-24T20:58:22+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "At Interrupt, the [@Bridgewater](https://x.com/Bridgewater) team shared how they built the AIA Pocket Analyst Tool (PAT).  \n  \nPAT is an internal AI analyst deployed to hundreds of investors that performs hours of deep exploratory research in minutes, leveraging Bridgewater’s proprietary data, methodologies, and expert investor feedback. PAT is one component of AIA, Bridgewater’s artificial investor.  \n  \nWatch the keynote to see how they built it: [youtu.be/lXZb21CfeIY](https://youtu.be/lXZb21CfeIY)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080637054531088384/vid/avc1/1280x720/lU5dLuZWmJy4RgFv.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2080638722349908266/video/1)\n\n💬7🔄3❤️13👀3123📊8",
+      "tags": [
+        "Bridgewater",
+        "AI分析师",
+        "PAT"
+      ],
+      "score": 80,
+      "summary": "Bridgewater在LangChain Interrupt分享其AI分析师工具PAT，可快速进行深度研究。",
+      "fetched_at": "2026-07-24T22:04:10.185348+08:00"
+    },
+    {
+      "title": "It All Comes Down to the Strait of Hormuz: the Final Battle. When the war started in March, I shared...",
+      "link": "https://x.com/RayDalio/status/2080637989621768543",
+      "published": "2026-07-24T20:55:27+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "It All Comes Down to the Strait of Hormuz: the Final Battle. When the war started in March, I shared this article explaining what was clear to me and what would likely happen. Now it is clear that it is happening and we will soon have the final battle and its result.\n\n![Ray Dalio](https://pbs.twimg.com/profile_images/1465691046747283461/3ZtnoH5-_normal.jpg)\n\nRay Dalio@RayDalio\n\n[x.com/i/article/2033…](http://x.com/i/article/2033565474273828864)\n\n[🔗 View Quoted Tweet](https://x.com/RayDalio/status/2033567224120692861)\n\n💬4🔄9❤️65👀18954📊12",
+      "tags": [
+        "地缘政治"
+      ],
+      "score": 10,
+      "summary": "Ray Dalio评论霍尔木兹海峡局势，称最终战役即将到来。",
+      "fetched_at": "2026-07-24T22:04:10.185350+08:00"
+    },
+    {
+      "title": "Try it now: https://t.co/P1uHaHmXx9",
+      "link": "https://x.com/runwayml/status/2080649236236910713",
+      "published": "2026-07-24T21:40:09+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Try it now: [app.runwayml.com/agent](http://app.runwayml.com/agent)\n\n💬0🔄0❤️2👀681",
+      "tags": [
+        "Runway Agent",
+        "Workflows"
+      ],
+      "score": 70,
+      "summary": "Runway发布Agent Workflows功能，可通过自然语言构建节点工作流。",
+      "fetched_at": "2026-07-24T22:04:10.185353+08:00"
+    },
+    {
+      "title": "Introducing Workflows in Runway Agent. Now you can build, run or edit your node-based workflows thro...",
+      "link": "https://x.com/runwayml/status/2080649234672439389",
+      "published": "2026-07-24T21:40:08+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Introducing Workflows in Runway Agent. Now you can build, run or edit your node-based workflows through natural language. Workflows unlock high quality outputs at scale.  \n  \nTry it now by calling the / Workflow skill at the link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080648612023824384/vid/avc1/1280x720/P4zUcm3zBQqltQkQ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2080649234672439389/video/1)\n\n💬3🔄3❤️26👀2699📊7",
+      "tags": [
+        "Runway Agent",
+        "Workflows",
+        "自然语言"
+      ],
+      "score": 80,
+      "summary": "Runway Agent推出Workflows，支持自然语言构建、运行和编辑节点工作流。",
+      "fetched_at": "2026-07-24T22:04:10.185356+08:00"
+    },
+    {
+      "title": "类似 “贾维斯”系统的开发\n\n君子兄，真正到开发的时候发现，就是现在这个大前提“计算机能够读懂语义”，以前我们许多对于软件的哲学，现在，至少我是陷入一种混乱的。\n\n从需求端来说，以前我们会压缩一种针对...",
+      "link": "https://x.com/feltanimalworld/status/2080653554516127747",
+      "published": "2026-07-24T21:57:18+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "类似 “贾维斯”系统的开发  \n  \n君子兄，真正到开发的时候发现，就是现在这个大前提“计算机能够读懂语义”，以前我们许多对于软件的哲学，现在，至少我是陷入一种混乱的。  \n  \n从需求端来说，以前我们会压缩一种针对目标人群的“最大公约数”，开发需求。对吧？现在，如果我把这个系统的主体先确定了，比如就针对这家公司，或者说我现在就针对我们这个家庭，开发属于我们家自己的 “贾维斯”，我的定位就是不牺牲我们家自己的复杂度，让贾维斯完全承接我们所有的计算需求，我打个比方：  \n  \n家里的用户users, 按照以前的习惯从权限上可以分为家长权限和孩子权限。这个没问题，很简单（掉书袋就是RBAC——基于角色的权限控制）。  \nRole:  \n- Parent  \n- Child  \n  \nPermission:  \n- Read  \n- Write  \n- Admin  \n  \n然而家长之间呢？比如财务账户，私人账户是否和家庭分享，这个涉及一个家家都说不清楚的问题，那就是私房钱....  \n  \n乍一看这个帖子从讨论技术问题变成小红书八卦贴了对不对？但是一做就发现这个问题非常真实。  \n  \n现实中的家庭关系根本不是以前我们软件压缩的那种最大公约数结构。  \n  \n父母双方可能都是 Parent，但对于一个账户，实际可能存在：  \n  \n账户归一方所有；  \n账户的存在可以让配偶知道；  \n账户余额不希望配偶知道；  \n日常交易不共享；  \n但如果家庭出现医疗紧急状况，可以解锁；  \n报税时允许税务模块使用；  \n贾维斯可以基于它判断家庭风险，但不能把具体数字告诉另一方；  \n系统甚至可以说“家庭有足够的紧急储备”，却不能说钱在哪个账户。  \n  \n所以这里不能只使用 RBAC——基于角色的权限控制。  \n  \n所以瞬间变成一个非常复杂的：  \n基于关系、对象、目的、情境和同意的政策系统。\n\n![君子中庸](https://pbs.twimg.com/profile_images/1169051350237401089/A6I5Vsv-_normal.jpg)\n\n君子中庸@Chinese\\_XU\n\n[@feltanimalworld](https://x.com/feltanimalworld)[@david0520782123](https://x.com/david0520782123)[@Lwith3cats](https://x.com/Lwith3cats) 目前也应该是搞非通用的为主  \n  \n搞多了，有了经验。慢慢才会有通用的出现  \n  \n客观规律基本就是这样的\n\n[🔗 View Quoted Tweet](https://x.com/Chinese_XU/status/2080458180874711060)\n\n💬0🔄0❤️0👀47",
+      "tags": [
+        "贾维斯",
+        "权限系统",
+        "家庭AI"
+      ],
+      "score": 50,
+      "summary": "讨论开发家庭AI系统时，传统RBAC权限模型无法满足复杂家庭关系。",
+      "fetched_at": "2026-07-24T22:04:10.185359+08:00"
+    },
+    {
+      "title": "文科，包括外语/金融/管理等专业，其实时间倒回20-30年，中国刚入世贸组织的时候，这个社会对于国际规则，国际沟通，很多行业标准等等，都是有重要作用的。党哥前一段时间不也说么？那个时候在上海，中产日子...",
+      "link": "https://x.com/feltanimalworld/status/2080633966978007423",
+      "published": "2026-07-24T20:39:28+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "文科，包括外语/金融/管理等专业，其实时间倒回20-30年，中国刚入世贸组织的时候，这个社会对于国际规则，国际沟通，很多行业标准等等，都是有重要作用的。党哥前一段时间不也说么？那个时候在上海，中产日子过得很滋润。就是外企在中国的代理公司，代表处，采购等等。在你对世界贸易睁眼瞎的时候，这些人自然是拿海外的工资在中国高消费的。我表姐就是那个时候上财毕业，的确是一段黄金时期。  \n  \n文科不能说本身有什么问题，而且表姐也不是数理逻辑低下，她也是省状元级别的啊。在大学还没有扩招的时候，主课只有3门，数学都是很优秀的。只能说，时过境迁。时代对于技能的需求不一样了。\n\n![lidang 立党 （劝人卖房/学CS/买SP500/纳100/OpenAI/Anthrop第一人）](https://pbs.twimg.com/profile_images/1589854626282618880/Pl_kF0yY_normal.jpg)\n\nlidang 立党 （劝人卖房/学CS/买SP500/纳100/OpenAI/Anthrop第一人）@lidangzzz\n\n另一大困境来自于学校。  \n  \n所有高中一定会把一群老实背书、语文英语不错、数理逻辑低下、数学物理拉胯的学生，一个个劝到高二文科班，  \n  \n为的就是多出几个一本线、211、985的学生。  \n  \n表面上为了大家都好，实际上彻底毁了孩子，让孩子连选择电子电气的机会都没有，985文科毕业出路被电子电气大专吊打。\n\n[🔗 View Quoted Tweet](https://x.com/lidangzzz/status/2080434883558514902)\n\n💬4🔄0❤️4👀663📊4",
+      "tags": [
+        "文科",
+        "时代变迁"
+      ],
+      "score": 10,
+      "summary": "Susan STEM讨论文科专业在入世后的黄金时期及现状。",
+      "fetched_at": "2026-07-24T22:04:10.185361+08:00"
+    },
+    {
+      "title": "我做全屋家具的时候一般会从一个角落先建设一个基础单元。这个单元非常承重而且能自己立着，然后其他的结构就可以慢慢长出来，慢慢做。\n\n大部分时候我都是一个人施工，因为你想等人永远等不到，不如自己学会自己干...",
+      "link": "https://x.com/feltanimalworld/status/2080628921695969314",
+      "published": "2026-07-24T20:19:25+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "我做全屋家具的时候一般会从一个角落先建设一个基础单元。这个单元非常承重而且能自己立着，然后其他的结构就可以慢慢长出来，慢慢做。  \n  \n大部分时候我都是一个人施工，因为你想等人永远等不到，不如自己学会自己干。被柱子砸过几次，不至于砸死但是挺疼的。后来就学会了按着重心的原理施工。嘿嘿砸不到我。  \n  \n最享受钉子拧紧，直角突然打直的一刹那。自然界不创造直角，那一刻太治愈了。  \n  \n再来点音乐，古典乐或者摇滚。\n\n![Tweet Image](https://pbs.twimg.com/media/HN_gJMKWgAAOqI0.jpg)\n\n💬4🔄0❤️14👀858📊6",
+      "tags": [
+        "家具制作"
+      ],
+      "score": 10,
+      "summary": "Susan STEM分享全屋家具制作经验。",
+      "fetched_at": "2026-07-24T22:04:10.185364+08:00"
+    },
+    {
+      "title": "TinyShip https://t.co/o0BI6W8DRb 迎来一次重大更新：推出了一个全新的独立版本 tinyship-cf 作为一个单独 repo，从原 repo 中拆分出来一个专门针对 a...",
+      "link": "https://x.com/vikingmute/status/2080636386835861622",
+      "published": "2026-07-24T20:49:05+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "TinyShip [tinyship.cn](http://tinyship.cn) 迎来一次重大更新：推出了一个全新的独立版本 tinyship-cf 作为一个单独 repo，从原 repo 中拆分出来一个专门针对 all in Cloudflare 的版本。  \n  \n因为需要 all in CF 的用户越来越多，所以特意推出一个轻量级的版本，build 特意优化到 3MB 以下，重写了原来短信发送的服务，所以 worker 免费版也可以支持。  \n  \n支持原版大部分的服务，技术栈如下：  \n框架: TanStack Start (React 19 + TanStack Router + Vite)  \n运行时: Cloudflare Workers  \n数据库: Cloudflare D1 (primary) / PostgreSQL via Hyperdrive  \n存储: Cloudflare R2 (native binding)  \nAuth: Better Auth (email/password, phone OTP, Google/GitHub/WeChat OAuth)  \n支付: Stripe, WeChat Pay, Alipay, PayPal, Creem, Dodo  \nEmail: Cloudflare Email Sending / Resend  \n  \n所以现在购买可以获得两个repo，假如你想要所有都在 CF 可以直接使用轻量版：tinyship-cf，如果你想要全功能，可以使用完整版 tinyship。  \n  \n未来还会扩展更多的子项目，不需要额外购买。\n\n![Tweet Image](https://pbs.twimg.com/media/HN_nrwmb0AAHY1A.png)\n\n![Viking](https://pbs.twimg.com/profile_images/725179208528322560/TPjU7qop_normal.jpg)\n\nViking@vikingmute\n\n我的第三个独立开发的项目 TinyShip 今天上线了 🎉🎉[tinyship.cn](http://tinyship.cn)Rb   \n  \n看起来是 another SaaS template，但我认为完全不是重复造轮子，市面上确实有非常多的 SaaS 模板，但我想创造的是一个全新不一样的体验。  \n  \n1 支持双框架 ，为了满足不同框架爱好者，才用了 Next.js 和 Nuxt.js 双框架设计，这也是我在市面上看到的第一个 Nuxt 模版。  \n  \n2 双市场策略，完全适配国内本土和出海项目，本土支持 微信登录/微信支付/阿里云短信 国际市场支持 Stripe、Creem 支付，主流 OAuth 登录 以及 Twilio 短信。  \n说起个人项目，现在非常多人都在鼓吹出海，目前市面上的模板也都是针对出海项目的。但我认为独立开发一定不能忽略国内市场。虽然一直都在说国内付费意愿低，在你最熟悉的市场，其实比已经竞争非常激烈的出海项目有时候更容易成功。  \n  \n对于价格来说，大多数 SaaS 模板的定价都是对标国外架构，大多 100 到 200 美元。而给自己的定价策略是低价并且优质，让更多开发者有能力购买我的产品。所以价格是299人民币，早鸟价格期间 199 元，应该算是一个大多数人都能承受的价格了。  \n  \n还有更多详情请看 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/1998562405216038912/vid/avc1/1920x1080/BlGUbologpPzTnQc.mp4?tag=21)\n\n[🔗 View on Twitter](https://x.com/vikingmute/status/1998566358779617506/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/vikingmute/status/1998566358779617506)\n\n💬2🔄0❤️3👀974📊2",
+      "tags": [
+        "TinyShip",
+        "Cloudflare",
+        "SaaS模板"
+      ],
+      "score": 70,
+      "summary": "TinyShip推出针对Cloudflare的轻量版tinyship-cf，支持多种服务。",
+      "fetched_at": "2026-07-24T22:04:10.185367+08:00"
+    },
+    {
+      "title": "What v0 reads from your file:\n\n• Pages and frames\n• Design tokens and colors\n• Layout and text\n• Ico...",
+      "link": "https://x.com/v0/status/2080632096599732296",
+      "published": "2026-07-24T20:32:02+08:00",
+      "source": "v0(@v0)",
+      "content": "What v0 reads from your file:  \n  \n• Pages and frames  \n• Design tokens and colors  \n• Layout and text  \n• Icons, logos, and images  \n• Components and styles  \n• Dev resources from Dev Mode  \n  \nIt also compares each screen with the frame image as it builds.  \n[v0.app/docs/figma](https://v0.app/docs/figma)\n\n💬0🔄0❤️3👀871📊1",
+      "tags": [
+        "v0",
+        "Figma",
+        "设计读取"
+      ],
+      "score": 70,
+      "summary": "v0可读取Figma文件中的页面、设计令牌、布局等元素。",
+      "fetched_at": "2026-07-24T22:04:10.185370+08:00"
+    },
+    {
+      "title": "v0 can now turn a full Figma file into a working app.\n\nWith a single link, the agent explores your p...",
+      "link": "https://x.com/v0/status/2080632084662775954",
+      "published": "2026-07-24T20:31:59+08:00",
+      "source": "v0(@v0)",
+      "content": "v0 can now turn a full Figma file into a working app.  \n  \nWith a single link, the agent explores your pages and frames, picks what it needs, and builds the screens as one app.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080632059081658368/vid/avc1/1280x720/2sUH7tBCAVeSTb2T.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/v0/status/2080632084662775954/video/1)\n\n💬4🔄5❤️27👀2556📊9",
+      "tags": [
+        "v0",
+        "Figma转应用",
+        "AI Agent"
+      ],
+      "score": 85,
+      "summary": "v0支持将完整Figma文件通过单个链接转换为可工作应用。",
+      "fetched_at": "2026-07-24T22:04:10.185372+08:00"
+    },
+    {
+      "title": "Presentation: Autonomous Data Products for the Autonomous Era: Rethinking Data Architecture for GenAI",
+      "link": "https://www.infoq.com/presentations/ai-framework-data-infrastructure/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-24T21:30:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/presentations/ai-framework-data-infrastructure/en/mediumimage/medium-1784107102579.jpeg)\n\nJörg Schad explains how to tame the complex \"data management hairball\" to build scalable, safe architectures for AI. He shares how autonomous data products act like containers for data, encapsulating pipelines, schemas, and metadata. Discover how progressive tool discovery via protocols like MCP limits context rot, enforces governance policies, and ensures reliable, multi-modal access.\n\n*By Jörg Schad*",
+      "tags": [
+        "自主数据产品",
+        "数据架构",
+        "GenAI"
+      ],
+      "score": 75,
+      "summary": "InfoQ演讲：如何通过自主数据产品为GenAI构建可扩展、安全的数据架构。",
+      "fetched_at": "2026-07-24T22:04:10.185375+08:00"
     }
   ]
 }
