@@ -684,6 +684,146 @@
       "score": 85,
       "summary": "Vercel CEO 分享使用 agent CLI 和文件系统进行研究的实践方法。",
       "fetched_at": "2026-07-26T05:03:21.663688+08:00"
+    },
+    {
+      "title": "Ruff v0.16.0",
+      "link": "https://simonwillison.net/2026/Jul/25/ruff/#atom-everything",
+      "published": "2026-07-26T06:44:05+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Ruff v0.16.0](https://astral.sh/blog/ruff-v0.16.0)**\n\nAstral shipped a significant new version of their Ruff Python linting tool a few days ago on July 23rd. I noticed today because my various CI jobs all started failing thanks to new default Ruff checks and my unpinned `\"ruff\"` dev dependency.\n\nFrom Brent Westbrook's announcement post:\n\n> Ruff now enables 413 rules by default, up from 59 in previous versions.\n>\n> Since Ruff's default rule set was last modified in [v0.1.0](https://github.com/astral-sh/ruff/blob/main/changelogs/0.1.x.md#breaking-changes), the number of rules in Ruff has grown from 708 to 968. Many of these rules catch severe issues, including [syntax errors](https://docs.astral.sh/ruff/rules/load-before-global-declaration) and [immediate runtime errors](https://docs.astral.sh/ruff/rules/yield-in-init/) but were not previously enabled by default. With the new rule set, Ruff will bring these issues and many others to your attention without any Ruff configuration.\n\nHere's a one-liner for trying it on any Python project:\n\n```\nuvx ruff@latest check .\n```\n\nI ran the latest Ruff against my three biggest projects - [Datasette](https://datasette.io/), [sqlite-utils](https://sqlite-utils.datasette.io/), and [LLM](https://llm.datasette.io/) - and it found *hundreds* of minor issues that breached the new default rules.\n\nAll three projects have very comprehensive test suites, executed in CI against Python 3.10 through Python 3.14, so upgrades like this are pretty safe. The following command did the bulk of the upgrades:\n\n```\nuvx ruff@latest check . --fix --unsafe-fixes\n```\n\nAgainst `sqlite-utils`, that command reported:\n\n```\nFound 1618 errors (1538 fixed, 80 remaining).\n```\n\nAs an illustrative example, here are three of the remaining issues. Ruff does a nice job of explaining each one:\n\n```\nDTZ005 `datetime.datetime.now()` called without a `tz` argument\n  --> tests/test_duplicate.py:17:10\n   |\n15 |     \"datetime_col\" TEXT)\"\"\")\n16 |     # Insert one row of mock data:\n17 |     dt = datetime.datetime.now()\n   |          ^^^^^^^^^^^^^^^^^^^^^^^\n18 |     data = {\n19 |         \"text_col\": \"Cleo\",\n   |\nhelp: Pass a `datetime.timezone` object to the `tz` parameter\n\nBLE001 Do not catch blind exception: `Exception`\n  --> tests/test_plugins.py:16:12\n   |\n14 |         db.execute(\"select * from pragma_function_list()\")\n15 |         return True\n16 |     except Exception:\n   |            ^^^^^^^^^\n17 |         return False\n18 |     finally:\n   |\n\nB018 Found useless attribute access. Either assign it to a variable or remove it.\n  --> tests/test_update.py:46:5\n   |\n44 | def test_update_invalid_pk(fresh_db, pk, update_pk):\n45 |     table = fresh_db[\"table\"]\n46 |     table.insert({\"id1\": 5, \"id2\": 3, \"v\": 1}, pk=pk).last_pk\n   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n47 |     with pytest.raises(NotFoundError):\n48 |         table.update(update_pk, {\"v\": 2})\n   |\n```\n\nUnsurprisingly, given Astral's [new home at OpenAI](https://simonwillison.net/2026/Mar/19/openai-acquiring-astral/), this output provides everything a coding agent would need to fix the problems.\n\nI had Codex (GPT-5.6 Sol high) [upgrade LLM](https://github.com/simonw/llm/pull/1557) and [sqlite-utils](https://github.com/simonw/sqlite-utils/pull/814), and Claude Code (with Opus 5) [upgrade Datasette](https://github.com/simonw/datasette/pull/2857).\n\nTags: [python](https://simonwillison.net/tags/python), [ruff](https://simonwillison.net/tags/ruff), [astral](https://simonwillison.net/tags/astral)",
+      "tags": [
+        "Ruff v0.16.0",
+        "默认规则增至413"
+      ],
+      "score": 72,
+      "summary": "Python Lint工具Ruff发布v0.16.0，默认规则从59增至413条。",
+      "fetched_at": "2026-07-26T07:02:50.141338+08:00"
+    },
+    {
+      "title": "🆕 Why Large? Tiny LMs & Agents on Edge/Robotics — Cormac Brick, Google\n\nhttps://t.co/HUkLpHUlaJ\n\nTh...",
+      "link": "https://x.com/aiDotEngineer/status/2081123165330346075",
+      "published": "2026-07-26T05:03:22+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "🆕 Why Large? Tiny LMs & Agents on Edge/Robotics — Cormac Brick, Google  \n[youtube.com/watch?v=hacEQH…](https://www.youtube.com/watch?v=hacEQHHhu2Q)J  \n  \nThe constraint on edge AI is not compute, it is RAM, and it is getting worse: phone makers are shipping less of it this year, and a 6GB Raspberry Pi costs 2.5 times what it did at launch. So Cormac Brick's team at Google AI Edge spends its effort making models small enough to fit. A 2 billion parameter Gemma, quantized to 2.9 bits per weight, runs on a Raspberry Pi at about 8 tokens per second and on a Qualcomm NPU fast enough for a few frames of vision a second.   \n  \nBelow that sit tiny models, from 500 million parameters down to 50, that reach the older laptops and cheap devices where even a small model will not fit. They usually need fine tuning rather than prompting, but the payoff is real: a fine tuned Gemma turns free text into the right function call across ten actions at over 86% reliability, and putting a speech model in front gives you voice to function calling. One shipped example is an offline voice dictation app with no subscription, built on two sub billion Gemma models that also strip your ums and ahs.\n\n💬0🔄0❤️3👀928📊1",
+      "tags": [
+        "Gemma",
+        "边缘AI",
+        "小模型量化"
+      ],
+      "score": 82,
+      "summary": "Google工程师Cormac Brick介绍2B参数Gemma量化后可在树莓派运行，以及微调小模型实现离线语音转文字。",
+      "fetched_at": "2026-07-26T07:02:50.141351+08:00"
+    },
+    {
+      "title": "Spidermans-pointing-meme. Bro you're the someone else. But I appreciate the double check.",
+      "link": "https://x.com/adocomplete/status/2081147110452596747",
+      "published": "2026-07-26T06:38:31+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "Spidermans-pointing-meme. Bro you're the someone else. But I appreciate the double check.\n\n![Tweet Image](https://pbs.twimg.com/media/HOG4GyvbsAA2HHy.jpg)\n\n💬1🔄0❤️6👀640📊2",
+      "tags": [
+        "无实质"
+      ],
+      "score": 10,
+      "summary": "无实质内容，仅表情包回应。",
+      "fetched_at": "2026-07-26T07:02:50.141355+08:00"
+    },
+    {
+      "title": "The (software) factory is the product. Your product is only as good as the agents you set up to auto...",
+      "link": "https://x.com/rauchg/status/2081123293340520642",
+      "published": "2026-07-26T05:03:53+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "The (software) factory is the product. Your product is only as good as the agents you set up to autonomously maintain it.  \n  \nThis is what [@elonmusk](https://x.com/elonmusk) figured out about Tesla, and it's now true for the software world.\n\n![Tweet Image](https://pbs.twimg.com/media/HOGiWdybEAA-XoQ.png)\n\n💬30🔄14❤️282👀16289📊68",
+      "tags": [
+        "软件工厂",
+        "自主维护Agent"
+      ],
+      "score": 70,
+      "summary": "Guillermo Rauch认为软件工厂即产品，产品质量取决于自主维护的Agent。",
+      "fetched_at": "2026-07-26T07:02:50.141357+08:00"
+    },
+    {
+      "title": "👀who wants this",
+      "link": "https://x.com/hwchase17/status/2081138566718181393",
+      "published": "2026-07-26T06:04:34+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "👀who wants this\n\n![Sanej Bandgar](https://pbs.twimg.com/profile_images/949623828203778048/eZONIDWA_normal.jpg)\n\nSanej Bandgar@SanejBandgar\n\n[@hwchase17](https://x.com/hwchase17)[@JensenHuang](https://x.com/JensenHuang)[@satyanadella](https://x.com/satyanadella) Langchain providing model hosting and fine tuning would be a good option as well\n\n[🔗 View Quoted Tweet](https://x.com/SanejBandgar/status/2081053698302828647)\n\n💬0🔄0❤️2👀565📊1",
+      "tags": [
+        "LangChain",
+        "模型托管"
+      ],
+      "score": 20,
+      "summary": "Harrison Chase对LangChain提供模型托管和微调的建议表示关注。",
+      "fetched_at": "2026-07-26T07:02:50.141359+08:00"
+    },
+    {
+      "title": "Imagine you’re the banker writing Anthropic’s S-1 and now have to add “massive aura loss from employ...",
+      "link": "https://x.com/venturetwins/status/2081137374856409092",
+      "published": "2026-07-26T05:59:50+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Imagine you’re the banker writing Anthropic’s S-1 and now have to add “massive aura loss from employee tweets” to the risk section\n\n![Julian Schrittwieser](https://pbs.twimg.com/profile_images/1256258472963911682/DUN_iOOG_normal.jpg)\n\nJulian Schrittwieser@Mononofu\n\nI’m so excited that [@JensenHuang](https://x.com/JensenHuang) is a believer in open source now, looking forward to the CUDA and GPU driver open source release!\n\n[🔗 View Quoted Tweet](https://x.com/Mononofu/status/2080937562739531837)\n\n💬0🔄0❤️13👀1088📊1",
+      "tags": [
+        "Anthropic",
+        "员工推特"
+      ],
+      "score": 30,
+      "summary": "嘲讽Anthropic员工Julian Schrittwieser推文导致公司S-1风险部分需增加“员工推特导致声誉损失”。",
+      "fetched_at": "2026-07-26T07:02:50.141362+08:00"
+    },
+    {
+      "title": "Don’t sell anything you wouldn’t want your children to buy.",
+      "link": "https://x.com/naval/status/2081131954640969800",
+      "published": "2026-07-26T05:38:18+08:00",
+      "source": "Naval(@naval)",
+      "content": "Don’t sell anything you wouldn’t want your children to buy.\n\n💬187🔄331❤️3370👀111857📊509",
+      "tags": [
+        "格言"
+      ],
+      "score": 5,
+      "summary": "Naval发布格言：不要卖你不希望孩子买的东西。",
+      "fetched_at": "2026-07-26T07:02:50.141364+08:00"
+    },
+    {
+      "title": "My friend Kun gives some of the best analysis on models there is, read it below:",
+      "link": "https://x.com/petergyang/status/2081132101441823068",
+      "published": "2026-07-26T05:38:53+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "My friend Kun gives some of the best analysis on models there is, read it below:\n\n![Kun Chen](https://pbs.twimg.com/profile_images/1946076752024895489/ScNir1Fy_normal.jpg)\n\nKun Chen@kunchenguid\n\nopus 5 is a VERY interesting release for a few reasons  \n  \n1. it showed that the general benchmarks we use today are almost completely useless now  \n  \nopus 5 is nowhere near fable in practical use, not even close. anyone who’s used it meaningfully can tell this very quickly after a few tasks. yet opus beats fable on many benchmarks  \n  \ni now trust domain specific benchmarks built with private datasets a lot more than the popular ones. perhaps the future is everyone running their own evals because the public ones are really not telling us much  \n  \n2. it seems with the 5 series, anthropic is trying a new way of training models  \n  \npreviously, the same generation of sonnet and opus were often released at the same time or sonnet comes out before opus, which indicates sonnet and opus were trained by separate pipelines in parallel  \n  \nwith the 5 series, it was very clear that they trained mythos first, and then distilled it into sonnet and opus. it seems this approach has a big influence on the models  \n  \nseeing sonnet 5 being a flop and opus 5 getting pretty mixed reviews already, i’m not sure this is working out  \n  \n3. “how pleasant is it to work with the model” used to be a strength in claude, but now it’s not. honestly, grok is my favorite right now on the “pleasant” dimension. kimi is not bad either  \n  \nit feels like both anthropic and openai are giving RLHF less care, in favor of scalable RL that’s machine verifiable  \n  \nthis almost looks like AI is directing humans to build a world that’s more friendly for machines rather than humans, and most humans don’t even realize they are being manipulated to help with that  \n  \nalmost every new generation of frontier models now talk more jargons, need more steering to do what you want, and are just less fun to work with  \n  \nif this continues, AI will start to speak their own language that looks like English but average humans can’t understand. they will choose to do things that their human user never asked for. are we already failing at alignment?\n\n[🔗 View Quoted Tweet](https://x.com/kunchenguid/status/2081125298050060694)\n\n💬2🔄0❤️5👀2614📊2",
+      "tags": [
+        "Opus 5",
+        "基准测试失效",
+        "蒸馏训练"
+      ],
+      "score": 85,
+      "summary": "Kun Chen分析Anthropic Opus 5：基准测试已无用，新训练方法（先训Mythos再蒸馏）效果不佳，模型更不友好。",
+      "fetched_at": "2026-07-26T07:02:50.141366+08:00"
+    },
+    {
+      "title": "Taking a break from cyber to chat to Terence and mathematician colleagues on the future of Math and ...",
+      "link": "https://x.com/Thom_Wolf/status/2081129385730449660",
+      "published": "2026-07-26T05:28:05+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "Taking a break from cyber to chat to Terence and mathematician colleagues on the future of Math and AI in Philadelphia at #ICM2026\n\n![Tweet Image](https://pbs.twimg.com/media/HOGoI34XMAAtA2U.jpg)\n\n💬1🔄1❤️13👀1303📊2",
+      "tags": [
+        "数学与AI",
+        "ICM 2026"
+      ],
+      "score": 40,
+      "summary": "Thomas Wolf在费城ICM 2026与数学家讨论数学与AI未来。",
+      "fetched_at": "2026-07-26T07:02:50.141368+08:00"
+    },
+    {
+      "title": "这阴阳怪气的\nMember of Technical Staff at Anthropic",
+      "link": "https://x.com/dotey/status/2081131024021352623",
+      "published": "2026-07-26T05:34:36+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "这阴阳怪气的  \nMember of Technical Staff at Anthropic\n\n![Tweet Image](https://pbs.twimg.com/media/HOGpXB5W0AAErNd.jpg)![Tweet Image](https://pbs.twimg.com/media/HOGpc4rXcAA3HPO.jpg)![Tweet Image](https://pbs.twimg.com/media/HOGpn5FWsAA5Gch.png)\n\n![Julian Schrittwieser](https://pbs.twimg.com/profile_images/1256258472963911682/DUN_iOOG_normal.jpg)\n\nJulian Schrittwieser@Mononofu\n\nI’m so excited that [@JensenHuang](https://x.com/JensenHuang) is a believer in open source now, looking forward to the CUDA and GPU driver open source release!\n\n[🔗 View Quoted Tweet](https://x.com/Mononofu/status/2080937562739531837)\n\n💬6🔄0❤️8👀2368📊5",
+      "tags": [
+        "Anthropic",
+        "开源嘲讽"
+      ],
+      "score": 15,
+      "summary": "转发Anthropic员工Julian Schrittwieser嘲讽黄仁勋开源言论的推文。",
+      "fetched_at": "2026-07-26T07:02:50.141370+08:00"
     }
   ]
 }
