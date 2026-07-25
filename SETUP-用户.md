@@ -57,7 +57,7 @@ copy config.user.json.example config.json   # 本地调试用；线上用 config
 **示例（DeepSeek，低成本选项之一）：**
 
 1. [DeepSeek 开放平台](https://platform.deepseek.com/) 创建 Key
-2. `llm.baseUrl`: `https://api.deepseek.com/v1`，`model`: `deepseek-chat`
+2. `llm.baseUrl`: `https://api.deepseek.com/v1`，`model`: `deepseek-v4-flash`
 
 **示例（OpenAI）：** `baseUrl`: `https://api.openai.com/v1`，`model`: `gpt-4o-mini`
 
