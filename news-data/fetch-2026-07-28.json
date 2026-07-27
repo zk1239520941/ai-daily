@@ -1194,6 +1194,206 @@
       "score": 70,
       "summary": "微软发布.NET 11 Preview 6，更新C#、ASP.NET Core等。",
       "fetched_at": "2026-07-28T01:06:50.890357+08:00"
+    },
+    {
+      "title": "The harness is all you need (mostly)",
+      "link": "https://github.blog/ai-and-ml/github-copilot/the-harness-is-all-you-need-mostly/",
+      "published": "2026-07-28T02:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "If you’re feeling overwhelmed by AI right now, you’re not alone.\n\nEvery day it seems there is a new tool, new MCP, new model, new skill, new workflow, new feature, new social post that is some form of “Hey look! I have completely figured out AI with this one weird prompt.”\n\nI…don’t believe you.\n\nI work with AI every single day, and what I’m finding is that less is way more. It’s not about what I install or configure or trick the agent into doing that makes any real difference. That stuff is interesting, but at the end of the day it feels like gimmicks.\n\nI see the biggest gains in my productivity from how I use the harness and how well I understand it.\n\nSo in this post, I’m sharing you a simple workflow that you can use to drastically improve your effectiveness with AI just by using existing features of [GitHub Copilot](https://github.com/features/copilot). No weird prompts. No skill everyone else seems to know about. Just the harness. The harness is all you need—mostly.\n\n## Disclaimers\n\nI’m using the term “harness” interchangeably with “GitHub Copilot.” The point of this post is to keep things simple, so just know that GitHub Copilot is an agent harness.\n\nI don’t mean to insinuate that you won’t ever need any skills or MCPs or instructions or custom agents, etc. In fact, those things will become quite important as you progress and need to define complex workflows and automate things for your teams. In fact, I use a few throughout this blog post!\n\nWhat I am pointing out here is that you do not need any of those things to be highly successful with AI.\n\nAlso, there is a lot of slop out there. If you don’t believe that, ask the agent to create a skill to do anything at all. It will happily oblige. Whether or not that generated skill actually works, it can be easily published to any number of skill or MCP registries.\n\n## 1. Pick a tool, any tool\n\nThis is an obvious one, right? Pick a tool! It’s so easy!\n\nBut even within the GitHub Copilot family, there are a lot of options. These include the [CLI](https://docs.github.com/copilot/github-copilot-in-the-cli), the new [GitHub Copilot app](https://docs.github.com/copilot/concepts/agents/github-copilot-app), [VS Code](https://code.visualstudio.com/), [Visual Studio](https://visualstudio.microsoft.com/), and [JetBrains](https://www.jetbrains.com/), just to name a few.\n\nThe good news is that these experiences are increasingly being centralized on the same harness. The details can differ by tool, but the core workflow is consistent. Learn the harness once, use it everywhere.\n\nThat said, I do believe that learning the harness is key, and the best way to learn it is to be as close to it as possible. So if you are just starting out, I’d recommend beginning with the GitHub Copilot CLI. It’s a terminal interface, which means it’s just text. There isn’t much UI to learn. You enter a prompt. The agent does things. But the interaction is more direct, immediate, and, frankly, very satisfying.\n\nFor this demonstration, I’ll be using the new [GitHub Copilot app](https://github.com/features/copilot/app). But the harness that app uses is the exact same thing you’ll be using if you are using the GitHub Copilot CLI, Visual Studio Code and many other places you can find GitHub Copilot.\n\n## 2. Turn on YOLO mode\n\nYOLO mode is also known as “[Allow All](https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/allowing-tools).” This lets the agent execute any command without asking permission. This can vary depending on the tool you are using, but for most it is simply an `/allow-all` command in the chat. Otherwise, the agent is going to stop and wait for your approval every single time it needs to do some work.\n\nAgents need autonomy for you to see an increase in productivity. If you have to approve everything the agent does, you might as well just do it yourself. Besides, that’s a miserable user experience. Nobody wants to be relegated to sitting at a desk pressing the “Approve” button all day. And pressing “Approve” over and over just trains you not to read what you are being asked to approve, which defeats the purpose.\n\nYou want to be safe with agents, though. [Bad things happen to good people](https://x.com/mattshumer_/status/2075666403596612010). When using YOLO mode, you don’t want to run the agent on your local machine. This is especially true when you are using them at work—data is private on your organization’s systems, and mistakes can be costly.\n\nFortunately there are a bunch of options for running agents in sandboxes. An easy one to get started with is [GitHub Codespaces](https://docs.github.com/codespaces/overview) or [development containers](https://containers.dev).\n\n## 3. Start with a prototype\n\nOne of the most magical things about AI is that you can easily prototype anything and everything up front. Historically, this was not the case. Prototyping was a full phase of a project, and were often a luxury. Now, you can make one with a prompt.\n\nLet’s look at a few examples.\n\nLet’s say we want to build a date picker web component. That seems straighforward, but it’s actually quite complex. Think of all the different things you might want to do with it.\n\n* How do you navigate within the component?\n* What does the selected date look like?\n* What does a selected range look like?\n* How does the user navigate between days, months, and years?\n\nStart with a simple prototype and get several variations. I usually start with something like this:\n\n```\nGive me 20 mocks for a date picker web component. Put them all in an HTML file so I can compare.\n```\n\n![Twenty date picker prototypes generated in a single HTML file.](https://github.blog/wp-content/uploads/2026/07/prototype.png?resize=1024%2C760)\n\nIn this case, the AI generated a bunch of different layouts, but one of them is a mock where it starts with the year view. That’s interesting. I would like my date picker to enable the user to zoom out to the year, then into the month, and finally to the day. These are the kinds of things you don’t consider until you see them.\n\nAs humans, we process sensory-rich models like images, shapes, and tangible layouts much faster than dense text. Creating low-effort prototypes early on helps make complex concepts immediately intuitive.\n\nAnd this applies to non-visual tasks as well.\n\nFor instance, if I want to add a new API endpoint, I’ll still create a visual prototype to understand the requirements and constraints before diving into the implementation.\n\n```\nCreate a visual mockup of the API for this project. Add five options for how we could handle a new API endpoint that allows the user to download their analytics data.\n```\n\n![A Mermaid diagram comparing approaches for an analytics export API endpoint.](https://github.blog/wp-content/uploads/2026/07/mermaid-1-1.png?resize=1024%2C760)\n\nSince the GitHub Copilot app supports [Mermaid diagrams](https://docs.github.com/copilot/tutorials/copilot-cookbook/communicate-effectively/creating-diagrams), the agent renders this as Markdown, mapping out five different ways we could implement this API endpoint.\n\nWhen working with agents, it’s easy to forget that everything is nuanced. Prototyping helps uncover the nuances up front, so you avoid spending valuable time and tokens on rework.\n\nI recommend using a medium-sized model, such as GPT 5.6 Terra or Claude Sonnet, on medium reasoning for most work. I also recommend you stick with whatever model you choose here for the duration of this particular feature, bug, or enhancement. Prompt caching will save you tokens. As long as you don’t switch to a different model or reasoning level, your previous chats remain cached with the model, giving you a discount on future requests.\n\n## 4. Plan methodically\n\nNow that you know what you actually want versus what you initially thought you wanted, it’s time to plan out the implementation.\n\nSwitch to plan mode in GitHub Copilot without starting a new session.\n\n“/plan Build a date picker web component. I want the user to be able to zoom in and out of years, months, and days.”\n\nThat’s a pretty vague prompt, and you’ll likely have more context for the model than I do here, but this is just a demonstration. If you don’t have more context, it’s OK. That’s exactly what this step is for.\n\nIn theory, you can get a model to one-shot anything if you compose the perfect prompt with the perfect context in the perfect order. In theory.\n\nBut none of us can do that. Planning helps you get closer to that ideal, though, by asking all of the questions that you would need to answer yourself along the way if you were to build this out by hand:\n\n* Can the start and end date be the same?\n* Are partial selections valid?\n* Should users be able to clear the date?\n* Should “today” always be a visible option?\n* Is manual entry allowed?\n* What format is the date stored in?\n* Should pasting in dates be allowed?\n\nThe list goes on and on. You cannot possibly think of all of these edge cases, but the model can help you identify many of them.\n\nYou can make plan mode even more aggressive in the sheer number of questions and edge cases it asks about by installing the [“grill-me”](https://www.skills.sh/mattpocock/skills/grill-me) skill from Matt Pocock.\n\n```\n/plan /grill-me Build a date picker web component. I want the user to be able to zoom in and out of years, months, and days.\n```\n\nThis planning step is critical. The point is not for you to just accept every suggestion from the AI. If you do that, you are negating the value of this planning process. The point is for you to deeply engage with the problem and guide the model. This is where your expertise comes into play.\n\nYou can also ask the model questions back. In the screenshot below, it asks me about “non-contiguous dates.” I’m pretty sure I know what the model means here, but I’m going to ask for clarification so we’re on the same page.\n\n![GitHub Copilot plan mode asking clarifying questions about a date picker.](https://github.blog/wp-content/uploads/2026/07/planmode.png?resize=1024%2C545)\n\nThe planning process will keep going even if you interrupt to ask clarifying questions, etc.\n\n## 5. Implement with Autopilot\n\nOnce the plan is finished, GitHub Copilot will likely prompt you to switch to [Autopilot](https://docs.github.com/copilot/concepts/agents/copilot-cli/autopilot) and start implementing the plan.\n\n![GitHub Copilot Autopilot implementing a plan.](https://github.blog/wp-content/uploads/2026/07/autopilot.png?resize=1024%2C698)\n\nAutopilot is a built-in loop. It forces the model to continue working by ensuring that it has actually done what it said it would do—which in this case is completing every item in the plan.\n\nGitHub Copilot will automatically act as an orchestrator during this phase. If it needs to read files in the codebase, it will use the “Explore” subagent with a small model. If it deems an action relatively complex, it will likely choose the “General Purpose” subagent with a larger model. While you can get fine-grained control over orchestration in GitHub Copilot with [custom agents](https://docs.github.com/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli) and [instructions](https://docs.github.com/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions), you don’t need to do anything special to get the advantages of subagents and multimodel workflows. This works out of the box, even if you did not know that any of these things existed.\n\n## 6. Human review and iteration\n\nThis is where you get your dopamine hit. You get to see what the AI has created.\n\nBut it’s likely that you won’t get exactly what you wanted. That’s normal and expected. The model cannot read your mind, and it is error-prone. Iterate with the model until you get what you actually want. Whether that’s just code or an improved UI, this is the part where your taste will decide the quality of the final product.\n\nFor instance, here’s the date picker that GitHub Copilot gave me.\n\n![Initial date picker result. It shows 12 boxes with years to select from 2018-2029.](https://github.blog/wp-content/uploads/2026/07/datepicker-initial.png?resize=1024%2C907)\n\nAlready I can see it has some issues:\n\n* Animations are inconsistent\n* Text is unreadable when hovering over a selected date because of color contrast\n* It doesn’t need to say “12 YEARS” at the top.\n* When I click “Today”, it doesn’t take me to the day if I’m in the month or year view.\n\nAlso, I don’t *love* the design. It looks a little too much like it was created by AI—because it was!\n\nSo here we’re just in follow-up mode. I’m going to use a CSS framework I created called [Postrboard](https://burkeholland.github.io/postrboard-design). I add it as a skill that just points to the CSS and tells the agent how to use it. You can feel free to install it yourself if you’d like to use it, or you can pick any other CSS framework out there that you like. Giving the model some design guidance is quite helpful, and often a CSS framework is all you need.\n\n```\nok - we don't need a landing page here - just the component, output and settings panel in a minimal setting. Use the /postboard skill for the design and colors.\n```\n\nFor the date picker, when I click on the day, it tries to zoom in, but can’t because there is nothing to zoom to. There should be no zoom there.\n\nIt doesn’t need to say “Zoom Out” at the top\n\nWhen I mouse over a month or year that contains the selected day, I cannot read the hover text.\n\nWhen I click “Today” it should take me to that day view, even if I’m on the month or the year.\n\nThe months don’t need numbers under them and they don’t need to be in boxes\n\nSame goes for years. And it doesn’t need to say “12 years” at the top.”\n\nNotice how conversational this is. Don’t overthink it. When you’re fixing a bunch of small things like this, just give it to the model. If you’ve got the context, you’ve got the prompt.\n\nThe most important thing is not to settle for AI output that is “good enough.” Insist on quality. Be ruthless about it. That part is still your responsibility, and knowing what a quality result is from something that isn’t is the value that you bring. No AI will ever replace your human touch and creativity.\n\nHere’s what my final date picker looks like. Scroll to the end of this post to see it in action.\n\n![Final date picker result. It shows a monthly calendar on the left and a view settings on the right.](https://github.blog/wp-content/uploads/2026/07/datepicker.png?resize=1024%2C710)\n\n## 7. Rubber duck the result\n\nAfter you’ve iterated and are happy with what you’ve created, it’s time to do a final review.\n\nRequest a [Rubber Duck review](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/rubber-duck) from GitHub Copilot. You can do this just by asking for it:\n\n```\nPerform a rubber duck review on this date picker component implementation\n```\n\nIn a Rubber Duck review, GitHub Copilot will request a review from a model of a different AI family. For instance, since I was using GPT 5.6 Terra, it requested a review from Sonnet. Different models were trained on different data, so they have different blind spots. A Rubber Duck review helps identify potential issues that might be missed by a single model.\n\nNote that you can use this at any point in this workflow. You can rubber duck prototypes. You can rubber duck plans. It all just depends on if you want a second AI review on something.\n\nAnd if you want to take this a step further, you can combine rubber duck with Autopilot to get the models to work together in a loop to improve the final result.\n\n“/autopilot rubber duck this date picker implementation. When you have the result, review it carefully and make any necessary adjustments. Repeat the rubber duck review until both you and the reviewing model agree that the only items that remain have diminishing returns.”\n\nAfter this step, you will have an even more refined result than before and will have likely identified many extra edge cases. This step does cost more tokens, but you are really battle-hardening the code. Think of it as an investment in your future self who won’t have to deal with these issues because you caught them now.\n\n## 8. Profit\n\nAt this point, you’re ready to stage and commit, or move on to the next feature you want to add along with this pull request.\n\nI’d recommend starting a new chat session for anything you do next that doesn’t have to do with this date picker. You can think of chat sessions as being topical; if you start to diverge too much from the main topic, it’s probably time for a new session.\n\nHere’s the final result from my workflow building the date picker for this post.\n\n[![](https://github.blog/wp-content/uploads/2026/07/Screenshot-2026-07-24-at-11.31.41-AM.png)](https://github.blog/wp-content/uploads/2026/07/datepicker.mp4)\n\nI realize that this is a bit of a contrived example, but can we all just pause for a moment and marvel at what we’re able to pull off with AI now? Building a date picker used to be one of the hardest things you could try to do. Just ask any of the heroes out there who have built them.\n\n## Things don’t have to be complicated\n\nThis simple workflow will be enough for most people. The simplicity also helps you multitask. It’s easier to reason about what agent is in what state and what you were doing last when you keep things simple. Your context window is limited too.\n\nThere is so much happening in the AI space right now. There is no upper limit on the things that you can build and experiment with. You can add MCP servers, skills, instructions, and custom agents. You can set up workflows and loops, create agents that prompt agents, and stand up entire virtual dev teams.\n\nBut keep in mind that nobody really knows what they are doing right now. We’re all figuring this out as we go. A lot of what is today’s magical incantation for AI will be tomorrow’s anti-pattern.\n\nJust focus on getting a repeatable, high-quality result in the simplest way that you can. Learn the harness and you’ll be just fine.\n\n[Try GitHub Copilot >](https://github.com/features/copilot)\n\nThe post [The harness is all you need (mostly)](https://github.blog/ai-and-ml/github-copilot/the-harness-is-all-you-need-mostly/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub Copilot",
+        "工作流",
+        "效率提升"
+      ],
+      "score": 75,
+      "summary": "GitHub官方博客分享利用Copilot现有功能提升AI效率的工作流。",
+      "fetched_at": "2026-07-28T03:48:16.649719+08:00"
+    },
+    {
+      "title": "@coyle_frankp @emileifrem @steveonjava check it out \nhttps://t.co/m0hyy1AP1B",
+      "link": "https://x.com/aiDotEngineer/status/2081800381701714393",
+      "published": "2026-07-28T01:54:23+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "[@coyle\\_frankp](https://x.com/coyle_frankp)[@emileifrem](https://x.com/emileifrem)[@steveonjava](https://x.com/steveonjava) check it out   \n[youtube.com/watch?v=Sir59K…](https://www.youtube.com/watch?v=Sir59K8ZDPU&list=PLKLSkgrxaJAU&index=6&t=14s)\n\n💬0🔄0❤️5👀947📊1",
+      "tags": [
+        "AI Engineer",
+        "视频链接"
+      ],
+      "score": 10,
+      "summary": "转发YouTube视频链接，无实质内容。",
+      "fetched_at": "2026-07-28T03:48:16.649734+08:00"
+    },
+    {
+      "title": "Kimi K3 is as good as Opus for most kinds of work but 2-5x cheaper.\n\nThe best way to get frontier qu...",
+      "link": "https://x.com/aaditsh/status/2081806030439125278",
+      "published": "2026-07-28T02:16:50+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "Kimi K3 is as good as Opus for most kinds of work but 2-5x cheaper.  \n  \nThe best way to get frontier quality but also stay careful about costs is to route through several models (both open and closed).\n\n![Fireworks](https://pbs.twimg.com/profile_images/1776371265839980544/PUpa_Ui0_normal.jpg)\n\nFireworks@FireworksAI\\_HQ\n\nKimi K3 is live on Fireworks. Day 0, inference and training. US-hosted, and zero data retention.  \n  \nThis is the first frontier open model in the 3 trillion parameter class. It sports 1M context, native vision, and reasoning that rivals the top closed models.  \n  \nBoom.\n\n![Tweet Image](https://pbs.twimg.com/media/HOPoTz5aoAAGT_t.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/FireworksAI_HQ/status/2081764187827847654)\n\n💬3🔄0❤️5👀3433📊2",
+      "tags": [
+        "Kimi K3",
+        "Fireworks",
+        "3万亿参数"
+      ],
+      "score": 85,
+      "summary": "Fireworks上线Kimi K3模型，3万亿参数，支持1M上下文和原生视觉。",
+      "fetched_at": "2026-07-28T03:48:16.649738+08:00"
+    },
+    {
+      "title": "When you finish exporting and spot the typo",
+      "link": "https://x.com/figma/status/2081817645616341129",
+      "published": "2026-07-28T03:02:59+08:00",
+      "source": "Figma(@figma)",
+      "content": "When you finish exporting and spot the typo\n\n![Tweet Image](https://pbs.twimg.com/media/HOQWKUbboAAlHKe.jpg)\n\n💬19🔄2❤️45👀4130📊21",
+      "tags": [
+        "Figma",
+        "幽默"
+      ],
+      "score": 30,
+      "summary": "Figma官方幽默推文：导出后发现拼写错误。",
+      "fetched_at": "2026-07-28T03:48:16.649742+08:00"
+    },
+    {
+      "title": "I really hope the models get the chance to talk shit about us like we do to them 😂",
+      "link": "https://x.com/venturetwins/status/2081817628235145376",
+      "published": "2026-07-28T03:02:55+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "I really hope the models get the chance to talk shit about us like we do to them 😂\n\n![Tweet Image](https://pbs.twimg.com/media/HOQaGKnboAAwOZP.jpg)\n\n💬7🔄0❤️38👀2288📊10",
+      "tags": [
+        "模型吐槽"
+      ],
+      "score": 20,
+      "summary": "KOL玩笑称希望模型也能吐槽人类。",
+      "fetched_at": "2026-07-28T03:48:16.649744+08:00"
+    },
+    {
+      "title": "Happening tonight!",
+      "link": "https://x.com/LangChain/status/2081818892909900051",
+      "published": "2026-07-28T03:07:57+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Happening tonight!\n\n![Sydney Runkle](https://pbs.twimg.com/profile_images/1955622250629021696/WOrOq2Mw_normal.jpg)\n\nSydney Runkle@sydneyrunkle\n\nboston friends -- [@masondrxy](https://x.com/masondrxy) and i are giving talks on loop eng and open models tonight in harvard square  \n  \ncome with good questions!  \n  \n[luma.com/iaie4h2x](https://luma.com/iaie4h2x)\n\n[🔗 View Quoted Tweet](https://x.com/sydneyrunkle/status/2081811292877148549)\n\n💬0🔄0❤️1👀961",
+      "tags": [
+        "LangChain",
+        "线下活动"
+      ],
+      "score": 65,
+      "summary": "LangChain官方转发波士顿线下AI活动信息。",
+      "fetched_at": "2026-07-28T03:48:16.649747+08:00"
+    },
+    {
+      "title": "Internal team principles from Anthropic's AI research product team",
+      "link": "https://x.com/lennysan/status/2081810520114647212",
+      "published": "2026-07-28T02:34:40+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Internal team principles from Anthropic's AI research product team\n\n![Tweet Image](https://pbs.twimg.com/media/HOP4st1bMAAmfRp.png)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nDianne Penn is Head of Product for Research and Labs at [@AnthropicAI](https://x.com/AnthropicAI). She joined in 2023 as their first technical PM (when there were just five product engineers) and has helped ship every Claude model from Claude 2 to Mythos.  \n  \nWe discuss:  \n02:31 Early Anthropic  \n08:55 The two biggest inflections  \n13:50 Inside the exponential  \n20:02 Token maxing  \n23:30 Anthropic Labs and the incubation model  \n27:30 How the AI research role works  \n31:35 How to become a top AI researcher  \n35:18 Frontier model safeguards  \n39:38 Hiring in the AI era  \n44:16 Building evals  \n47:48 Evals are the new PRDs  \n49:55 The importance of hands-on leadership  \n52:46 Finding joy in AI  \n58:10 How Dianne uses Claude  \n01:01:05 Avoiding overreliance on AI  \n01:03:50 The constitution that makes Claude better  \n01:07:11 AI writing and verification  \n01:11:40 Where human brains will continue to be valuable  \n01:14:10 Navigating AI with kids  \n01:16:26 Alignment, the future of the PM role, and burnout  \n01:21:54 Lightning round and final thoughts\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081482711861219328/vid/avc1/1920x1080/S5pTVH7yUpCtO4oR.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2081487886856380855/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2081487886856380855)\n\n💬6🔄3❤️35👀8756📊13",
+      "tags": [
+        "Anthropic",
+        "内部原则",
+        "Dianne Penn"
+      ],
+      "score": 82,
+      "summary": "Lenny Rachitsky分享与Anthropic产品负责人Dianne Penn的访谈，探讨团队原则。",
+      "fetched_at": "2026-07-28T03:48:16.649750+08:00"
+    },
+    {
+      "title": "我这手艺如何？自学的，女的。我有时候也同意百无一用是书生，前几年我还买过水泥机浇过水泥呢...",
+      "link": "https://x.com/feltanimalworld/status/2081806757102227726",
+      "published": "2026-07-28T02:19:43+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "我这手艺如何？自学的，女的。我有时候也同意百无一用是书生，前几年我还买过水泥机浇过水泥呢...\n\n![Tweet Image](https://pbs.twimg.com/media/HOQP8ptXwAES3Bi.jpg)\n\n💬7🔄0❤️5👀203📊8",
+      "tags": [
+        "无AI"
+      ],
+      "score": 5,
+      "summary": "个人日常生活分享，与AI无关。",
+      "fetched_at": "2026-07-28T03:48:16.649753+08:00"
+    },
+    {
+      "title": "In the era of AI, talk more with your users, not less.\n\nNo amount of brainstorming with an AI agent ...",
+      "link": "https://x.com/omarsar0/status/2081817809370165698",
+      "published": "2026-07-28T03:03:38+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "In the era of AI, talk more with your users, not less.  \n  \nNo amount of brainstorming with an AI agent will surface value, opportunities, and areas for improvement like talking directly with your users.\n\n💬3🔄0❤️3👀826📊4",
+      "tags": [
+        "AI时代",
+        "用户交流"
+      ],
+      "score": 65,
+      "summary": "KOL建议AI时代多与用户直接交流而非依赖AI。",
+      "fetched_at": "2026-07-28T03:48:16.649756+08:00"
+    },
+    {
+      "title": "See the Frontend Code Arena leaderboard at https://t.co/GFZ3FCC7Cl",
+      "link": "https://x.com/arena/status/2081809524374323665",
+      "published": "2026-07-28T02:30:43+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "See the Frontend Code Arena leaderboard at [arena.ai/leaderboard/co…](https://arena.ai/leaderboard/code/webdev)\n\n💬0🔄0❤️5👀1576📊1",
+      "tags": [
+        "Frontend Code Arena",
+        "排行榜"
+      ],
+      "score": 72,
+      "summary": "lmarena.ai发布前端代码竞技场排行榜链接。",
+      "fetched_at": "2026-07-28T03:48:16.649759+08:00"
+    },
+    {
+      "title": "In Frontend Code Arena, Kimi K3 (Max) by @Kimi_Moonshot is ranked #1 among open and #1 overall!\n\nIt’...",
+      "link": "https://x.com/arena/status/2081809520184209518",
+      "published": "2026-07-28T02:30:42+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "In Frontend Code Arena, Kimi K3 (Max) by [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) is ranked #1 among open and #1 overall!  \n  \nIt’s the #1 open-weight model in all Domains: Brand & Marketing, Reference-Based Design, Data & Analytics, Consumer Product, Gaming, Simulations, and Content Creation Tools.  \n  \nAnd for overall, #1 in 5 of 7 Domains, landing #2 only in Gaming and Content Creation Tools.\n\n![Tweet Image](https://pbs.twimg.com/media/HOQR-pCXAAENwkA.jpg)\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nBig update: Among open-weight models, Kimi K3 (Max) is #1 in the Agent Arena with +9.75% net-improvement, surpassing GLM-5.2 (Max) at +7.12%, and landed the #1 spot across 5 signals (see below).  \n  \nKimi K3 (Max) is also now #1 in open-weight in the Frontend Code (1682 pts) and Text (1485 pts) Arenas.  \n  \nAgent Arena measures models on millions of real-world, long-horizon agentic tasks. Models get web search, filesystem, and terminal tools to complete complex workflows: writing code, creating slide decks, researching the web, building apps, and analyzing documents. We use causal tracing methodology to measure a model's net improvement, which indicates how much it improves outcomes relative to the average model.  \n  \nCongrats to the [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) team for their contribution to the open ecosystem.\n\n![Tweet Image](https://pbs.twimg.com/media/HOQNYJCaYAATn5t.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2081804108433072623)\n\n💬13🔄35❤️237👀13805📊35",
+      "tags": [
+        "Kimi K3",
+        "Frontend Code Arena",
+        "排名第一"
+      ],
+      "score": 85,
+      "summary": "Kimi K3在Frontend Code Arena中获开放模型和总体第一。",
+      "fetched_at": "2026-07-28T03:48:16.649762+08:00"
+    },
+    {
+      "title": "See the full Agent Arena leaderboard at https://t.co/sE9q4FSYAt and learn more about the causal trac...",
+      "link": "https://x.com/arena/status/2081804114984648855",
+      "published": "2026-07-28T02:09:13+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "See the full Agent Arena leaderboard at [arena.ai/leaderboard/ag…](https://arena.ai/leaderboard/agent) and learn more about the causal tracing methodology for Agent Arena here: [arena.ai/blog/agent-are…](https://arena.ai/blog/agent-arena-methodology)\n\n💬0🔄0❤️6👀2297📊1",
+      "tags": [
+        "Agent Arena",
+        "排行榜"
+      ],
+      "score": 72,
+      "summary": "lmarena.ai发布Agent Arena排行榜链接及方法说明。",
+      "fetched_at": "2026-07-28T03:48:16.649765+08:00"
+    },
+    {
+      "title": "Big update: Among open-weight models, Kimi K3 (Max) is #1 in the Agent Arena with +9.75% net-improve...",
+      "link": "https://x.com/arena/status/2081804108433072623",
+      "published": "2026-07-28T02:09:12+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Big update: Among open-weight models, Kimi K3 (Max) is #1 in the Agent Arena with +9.75% net-improvement, surpassing GLM-5.2 (Max) at +7.12%, and landed the #1 spot across 5 signals (see below).  \n  \nKimi K3 (Max) is also now #1 in open-weight in the Frontend Code (1682 pts) and Text (1485 pts) Arenas.  \n  \nAgent Arena measures models on millions of real-world, long-horizon agentic tasks. Models get web search, filesystem, and terminal tools to complete complex workflows: writing code, creating slide decks, researching the web, building apps, and analyzing documents. We use causal tracing methodology to measure a model's net improvement, which indicates how much it improves outcomes relative to the average model.  \n  \nCongrats to the [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) team for their contribution to the open ecosystem.\n\n![Tweet Image](https://pbs.twimg.com/media/HOQNYJCaYAATn5t.jpg)\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nReleasing the model weights and technical report of Kimi K3.  \n  \nKimi K3 is our most capable model: a 2.8T MoE model with native visual understanding and a 1M-token context window.  \n  \nNew model architecture: 2.5x the intelligence per unit of compute, not just more params.  \n  \nAlongside Kimi K3, we're opening up more of the stack behind it — high-performance attention kernels, MoE communication library, and infrastructure for running agent environments at scale.  \n  \nModel weights: [huggingface.co/moonshotai/Kim…](http://huggingface.co/moonshotai/Kimi-K3)  \nTech report: [github.com/MoonshotAI/Kim…](http://github.com/MoonshotAI/Kimi-K3/blob/master/k3_tech_report.pdf)  \nTech blog: [kimi.com/blog/kimi-k3](http://kimi.com/blog/kimi-k3)\n\n![Tweet Image](https://pbs.twimg.com/media/HOPlk-WbQAAMkwd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2081760186235289764)\n\n💬24🔄39❤️354👀37882📊53",
+      "tags": [
+        "Kimi K3",
+        "Agent Arena",
+        "开放权重"
+      ],
+      "score": 88,
+      "summary": "Agent Arena更新：Kimi K3开放权重模型排名第一，发布技术报告和权重。",
+      "fetched_at": "2026-07-28T03:48:16.649767+08:00"
+    },
+    {
+      "title": "Within open-weight models in Agent Arena, Kimi K3 (Max) landed:\n- Confirmed Success: #1 open and #1 ...",
+      "link": "https://x.com/arena/status/2081804111918649349",
+      "published": "2026-07-28T02:09:12+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Within open-weight models in Agent Arena, Kimi K3 (Max) landed:  \n- Confirmed Success: #1 open and #1 overall  \n- Praise vs. Complaint: #1 open and #4 overall  \n- Steerability: #1 open and #5 overall  \n- Bash Recovery: #1 open and #15 overall  \n- Tool Hallucination: had 0 tool hallucinations\n\n![Tweet Image](https://pbs.twimg.com/media/HOQNjXQa4AAzxym.jpg)\n\n💬1🔄2❤️35👀2901📊5",
+      "tags": [
+        "Kimi K3",
+        "Agent Arena",
+        "0工具幻觉"
+      ],
+      "score": 85,
+      "summary": "Kimi K3在Agent Arena中零工具幻觉，多项指标领先。",
+      "fetched_at": "2026-07-28T03:48:16.649770+08:00"
     }
   ]
 }
