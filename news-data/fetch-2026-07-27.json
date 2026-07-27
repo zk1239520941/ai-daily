@@ -568,6 +568,247 @@
       "score": 82,
       "summary": "Opus 5指标超Fable 5但实际不如，公开基准失效，RLVR趋势显现。",
       "fetched_at": "2026-07-27T07:05:53.429469+08:00"
+    },
+    {
+      "title": "下一代搜索智能体评测基准！美团开源LoHoSearch，用知识图谱校准AI能力认知",
+      "link": "https://tech.meituan.com/2026/07/24/LongCat-LoHoSearch.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "过去一年，我们见证了 Search Agent 能力的显著演进。在 BrowseComp 等评测上，顶尖模型准确率从最初的30%区间迅速攀升至90%以上。然而，当基准迅速饱和，其区分模型能力的价值也随之递减。\n\n![图1：BrowseComp 准确率进展曲线](https://p0.meituan.net/meituantechblog/69e86f1a417ef555aed62d74c1152c53108351.png)\n\nBrowseComp 的题目由人工设计，局限在于只能基于标注者已知的实体和关系构思，无法站在全局知识网络视角判断：哪些条件真的难检索？哪些约束的候选空间足够大？正是这种局限，让我们开始思考另一种可能性：**能不能让机器自己来出题？**\n\n美团 LongCat 团队在最新论文中提出的 LoHoSearch 基准，就是把这种可能性变成了现实。\n\n## LoHoSearch 的核心\"硬核\"看点\n\n* **知识图谱自动化构造。** 以覆盖762万维基百科实体的知识图谱为基础自动生成题目，替代人工出题。基准含544道经人工核验的题目，覆盖11个领域。\n* **双维度难度控制。** 在生成中系统控制搜索空间与结构复杂度。构建出难度显著高于现有基准的挑战性问题。\n* **当前模型性能表现。** 已评测模型中，GPT-5.5准确率为34.74%；现有上下文管理策略在LoHoSearch上提升幅度为6.8%，低于在BrowseComp上的14.03%。\n\n## 01 设计原理：让机器出题，需要几部？\n\n机器出题的前提，是让机器拥有全局视野。整个构建流程可以分为四个环节：**建图 → 控制难度 → 质量把关 → 数据概览**。下面逐一展开。\n\n### 1.1 建图：搭建知识图谱，让机器获得全局视野\n\nLoHoSearch 的第一步，是从完整的英文维基百科出发搭建一张大规模知识图谱：\n\n* 762 万个实体（每个维基页面是一个实体节点）\n* 2.65 亿条有向边（页面正文中指向其他维基页面的超链接）\n* 每个实体的类型取自其 Wikidata P31 类别，实体热度用入度来衡量\n\n这张图谱为后续在全局视角下挑选\"难题\"提供了基础。\n\n![图2：LoHoSearch 数据构造流程总览（知识图谱构建 → 子图采样 → QA 生成与验证 → 后置过滤与人工复核）](https://p0.meituan.net/meituantechblog/158cf7d04a3fd9d5c8b5f171480db1ec450289.png)\n\n有了图谱之后，下一个问题是：什么样的题目才算\"难\"？LoHoSearch 从两个维度来定义难度。\n\n### 1.2 控制难度：搜索空间和结构复杂度两个维度\n\n决定搜索难度的核心有两个维度，而它们恰恰是人工出题最难把控的：\n\n* **搜索空间**：满足一个条件的候选实体有多少。候选越多，排除成本越高。\n* **结构复杂度**：要同时满足多少条件才能锁定答案。条件越多、咬合越紧，求解链条越长。\n\n针对这两个维度，LoHoSearch 设计了两种子图结构：\n\n![](https://p0.meituan.net/meituantechblog/da7dbb937aa30503321fa592d43b0123124986.png)\n\n* **树结构**主要通过放大\"搜索空间\"来制造难度。\n* **图结构**则在巨大搜索空间之上，通过引入环形依赖和交叉约束，进一步叠加了\"结构复杂度\"。\n\n### 1.3 质量把关：从生成到验证，层层把关\n\n子图采样完成后，还需要转换为可阅读的自然语言题目。整个转换与验证流程分为三层：\n\n* **题目生成**：从子图抽取维基描述，改写为自然语言问题。\n* **自动验证**：检查问题是否完整覆盖子图关系，并由搜索智能体验证标准答案满足所有条件。\n* **筛选与复核**：排除多答案题和易答题，再由人工审核。\n\n经过三层筛选，自动化流程的整体质量表现如下：75.5% 的题目直接通过人工复核，22.3% 经标注员微调后接受，仅有 2.2% 因严重问题被丢弃。\n\n### 1.4 数据概览：544道题目，11个主题领域\n\nLoHoSearch 最终收录 **544 道** 经人工核验的题目。对比树结构和图结构可以看出，图结构子图明显更稠密——节点更多、边数接近前者的两倍，这正对应它更高的结构复杂度。题目内容覆盖音乐、地理与地点、影视、体育等 11 个主题领域。\n\n![表1：LoHoSearch 数据统计](https://p0.meituan.net/meituantechblog/9be937091fe5f30761bb06ea08a5c4e838213.png)\n\n![图3：LoHoSearch 的领域分布](https://p0.meituan.net/meituantechblog/55f51f19edf66249bcb164c70a75adb3167617.png)\n\n![表2：各模型在 LoHoSearch 上的性能表现（%）](https://p0.meituan.net/meituantechblog/2b54f0c184c018dbd27593bd90f40de0143825.png)\n\n最强模型 GPT-5.5 准确率仅 34.74%，DeepSeek-V4-Pro、Claude-Opus-4.6 和 Kimi-K2.6 集中在 15.53%–15.99%，其余模型均低于 14%。这与它们在 BrowseComp 上 80% 以上的表现形成鲜明对照——LoHoSearch 对当前最先进搜索智能体构成了实质挑战。\n\n### 洞察一：解一道题，平均工具调用从 35 次增至 61 次\n\n用 DeepSeek-V4-Flash 作为探针对比两个基准：同一模型在 BrowseComp 上准确率 58.84%，在 LoHoSearch 上仅 10.02%。\n\n![图4：BrowseComp 与 LoHoSearch 正确轨迹的工具调用次数分布](https://p0.meituan.net/meituantechblog/234e605bbc7af2f8f7977c212bc62a8290841.png)\n\n解一道 LoHoSearch 题目，平均工具调用从 35 次增至 61 次（+74%），中位数从 26 次升至 59 次。图结构题目准确率仅 8.01%，远低于树结构的 11.89%，印证了结构复杂度是独立于搜索空间之外的额外难度来源。\n\n### 洞察二：重复采样收益可观，但天花板依然很低\n\n对 DeepSeek-V4-Flash 采样 16 个独立回答，结果如图 5 所示。\n\n![图5：并行采样下 pass@N 及三种答案聚合策略的表现](https://p1.meituan.net/meituantechblog/a011a2b381eef5312e8281e8f32f7449129032.png)\n\npass@N 从 N=1 的 9.3% 升至 N=16 的 38.3%，重复采样收益可观，但 38.3% 仍处低位。尝试 16 次仍有六成以上题目无法攻克。三种聚合策略中 best-of-N 表现最优（24.6%），远低于 pass@16 上界，说明模型在答案置信度校准上存在明显不足。\n\n### 洞察三：现有的上下文管理策略，在这里已失真\n\n以标准 ReAct 为基线，测试 Summary 和 Discard-all 两种策略，并加入 Verify 模块。\n\n![表3：基于 DeepSeek-V4-Flash 的上下文管理策略消融实验](https://p0.meituan.net/meituantechblog/f59c780873848c6d66609ad9eafc10d651431.png)\n\n表现最佳的组合（Discard-all + Verify）将成绩从 10.02% 提至 16.82%，绝对提升仅 6.8 个百分点，而同一套策略在 BrowseComp 上可带来 14 个百分点的增益。收益收窄的原因在于 LoHoSearch 需要更长的推理链，简单的轨迹压缩或重启无法解决长程搜索中的信息丢失问题——这使其成为下一代上下文管理技术更有价值的试验场。\n\n### 洞察四：知识图谱是系统化构造高难度题目不可或缺的基础\n\n对比两个基准中\"隐藏实体\"的特征可以发现：\n\n![图6：隐藏实体分析(a) 隐藏实体的入度分布；(b) 相同流行度下关系搜索空间对比](https://p1.meituan.net/meituantechblog/682b8d4610aa31a2be89b70bc27a206a71835.png)\n\n其一，BrowseComp 的隐藏实体流行度明显更高，人工出题难以精确控制实体知名度，导致实体偏易。\n\n其二，即便将流行度控制在同一水平，LoHoSearch 的关系搜索空间仍显著更大，实体推断难度远高于 BrowseComp。\n\n这说明人工构建存在系统性局限，知识图谱是系统化构造高难度题目不可或缺的基础。\n\n## 02 总结：为下一代智能搜索提供新标尺\n\nLoHoSearch 的价值体现在三项具体贡献上：\n\n* **基于知识图谱的自动化构造流程。** 以覆盖762万实体的知识图谱为基础自动生成题目，系统控制搜索空间与结构复杂度，突破人工出题的难度上限。\n* **更具区分度的评测标准。** 最强模型 GPT-5.5 准确率仅 34.74%，正确轨迹所需工具调用次数是 BrowseComp 的 1.7 倍。LoHoSearch 为搜索智能体建立了更具区分度的评测标尺。\n* **面向上下文管理研究的挑战性平台。** 最优策略仅带来 6.8% 的提升，远低于其在 BrowseComp 上 14.03% 的增益，表明 LoHoSearch 可成为推动下一代上下文管理技术研究的理想试验场。\n\nLoHoSearch 已全面开源，欢迎各大模型前来接受\"长程搜索\"大考。\n\n## 开源链接\n\n* **Paper**: <https://arxiv.org/abs/2606.12837>\n* **HuggingFace**: <https://huggingface.co/datasets/meituan-longcat/LoHoSearch>",
+      "tags": [
+        "LoHoSearch",
+        "搜索智能体",
+        "知识图谱"
+      ],
+      "score": 85,
+      "summary": "美团开源LoHoSearch，基于知识图谱自动化生成搜索智能体评测基准，难度显著高于现有基准。",
+      "image_url": "https://p0.meituan.net/meituantechblog/69e86f1a417ef555aed62d74c1152c53108351.png",
+      "fetched_at": "2026-07-27T11:34:06.623668+08:00"
+    },
+    {
+      "title": "让AI离开温室，走向动态世界：MineExplorer揭示顶级多模态大模型被忽视的能力断层",
+      "link": "https://tech.meituan.com/2026/07/24/LongCat-MineExplorer.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "假如你出生在一片未知的森林，太阳即将下山，饥肠辘辘，前方一只蜘蛛正向你缓慢爬来。——这是来自《我的世界》最经典的开局。\n\n此时如果你按下暂停，把截图发给所有顶级的多模态大模型，它们都能完美回答你：“黄昏、有怪物，面临威胁。”\n\n我们发现，多模态大模型能看懂图像、解析视频、在复杂场景里推理，然而一旦它们被丢进一个实时变化、需要持续探索的开放世界又会发生什么？\n\n为了深入探索，美团 LongCat 团队构建了**MineExplorer**——**首个在开放世界中做到分钟级长程任务的评测基准**，系统性地评测多模态大模型在需要长程规划、并包含隐藏前置条件的任务中的真实能力。\n\n**MineExplorer 核心看点：**\n\n* **一个能直接跑的评测基准**：813 个人工验证的高质量实例（1-hop 到 4-hop），配套规则化的里程碑自动评测框架。\n* **一套造题的方法论**：多智能体数据合成流程的完整代码，可自动合成训练任务。\n* **一个可扩展的训练环境**：基于 Minecraft 的沙盒，既能当考场，也能当练兵场。\n\n## 01 MineExplorer设计解密：让AI离开温室，走向动态世界\n\nMineExplorer 不再是简单的看图问答，而是围绕一系列创新，构建了一个前所未有的评测体系。\n\n![图1：MineExplorer自动化数据合成和评测范式简介](https://p1.meituan.net/meituantechblog/3415508a98cf053008ffb59af0ed592a421327.png)\n\n### 1.1 创新设计：构建一个动态开放的世界\n\n**创新点一：构建一个具备完整物理规则、会动态演化的世界**\n\nMineExplorer不是让模型看一张 Minecraft 截图做选择题，模型面对的是一个实时运行的3D沙盒世界。在评测中，每个任务实例会运行1800个环境步，每步执行 0.1 秒，对应一段3分钟的连续交互视频。也就是说在这3分钟时间里，环境一直在变：模型每做一个动作，世界状态就更新一次，它必须根据最新的画面不断调整策略。\n\n**创新点二：隐藏前置条件的长程多跳任务**\n\n这是 MineExplorer 最核心的设计，我们把任务按「跳数（hop）」分级，代表完成最终目标需要经过的隐藏前置步骤数量：\n\n* **简单任务**：目标明确的单跳任务，智能体不需要根据场景和任务描述推理出隐式的子任务。\n* **困难任务**：由2-4跳任务组成的多跳推理任务。最终目标虽然给出，但要完成它，必须先推理并完成若干**没有在指令里说明**的前置子任务。\n\n我们用一个数学化的方式来刻画这种结构。每个复合任务被定义为一个四元组 τ = (q, s₀, Gτ, Mτ)：q 是自然语言指令，s₀ 是初始状态，Gτ 是任务之间的**依赖图（DAG）**，Mτ 是规则化的里程碑检查器。关键在于：\\*\\*指令 q 并不会枚举依赖图里的所有节点，智能体必须自己从环境里推断出隐藏的前置任务。\\*\\*一个任务越难，意味着它需要越多样的能力、包含越多隐藏前置、依赖链越深。\n\n![图2：任务难度分布图](https://p0.meituan.net/meituantechblog/1466cfe7ae29ef6beadf4bf8920b61b9117170.png)\n\n**创新点三：知识解耦——我们测的是「通用探索」，不是「背 Minecraft Wiki」**\n\n这是 MineExplorer 区别于以往所有 Minecraft 评测基准的一个关键设计。我们的做法是主动把游戏专有知识剥离掉。对每一个原子任务，我们用LLM裁判判断其主要依赖的是通用世界常识，还是Minecraft专有机制，并过滤掉后者。换句话说：**我们测的不是「AI 会不会玩 Minecraft」，而是「AI 能不能在一个动态物理世界里自主探索」。**\n\n![图3：领域知识过滤图](https://p0.meituan.net/meituantechblog/27b8c5c7b9f9ae530adf7db2b37ee0d9117398.png)\n\n### 1.2 构建方法：一套可复用的多智能体数据合成范式\n\n构建高质量的长程任务基准本身就是难题。我们的解法是让一组各有分工的 AI 协作来造题。MineExplorer 用一个多智能体协作流程，五个专业 Agent 在一个群聊里协作，由一个 orchestrator 控制发言顺序：\n\n![](https://p0.meituan.net/meituantechblog/033d32b59d8891664d7de8ed0c836918946656.png)\n\n整个流程分初始化和辩论（debate）两个阶段，先生成初稿，再由专家和验证器找出问题并修订。\n\n如**下表所示**，人工评估结果显示，多智能体流程把有效率拉高了约 30 个百分点，质量分提升约 0.5 分，在最难的4-hop任务上优势尤其明显。最终，我们保留了 813 个通过人工验证的高质量复合任务实例。\n\n![表1：Benchmark质量人工评估表](https://p1.meituan.net/meituantechblog/92d0dc21970ca1a40a0386789f5a5256194522.png)\n\n### 1.3 能力覆盖：MineExplorer 到底在测什么？\n\nMineExplorer 借鉴 ReAct 范式，把开放世界探索拆解成三大能力维度，共 14 项细粒度能力：\n\n* **感知（Perception）：** 空间、时序、实体、状态、资源。\n* **推理（Reasoning）：** 常识、因果、关系。\n* **行动（Action）：** 移动、跳跃、采集、放置、合成、攻击。\n\n**如图所示**，最终的基准在三大维度上都有充足的覆盖，其中空间感知、移动、采集等基础能力出现频率最高，常识推理、因果推理也占了相当比例。\n\n![图4：能力覆盖分布图](https://p0.meituan.net/meituantechblog/5606f102fc399d300f8531427a08c4ef91444.png)\n\n## 02 核心洞察：18款顶级大模型测试，为何集体“考砸”了？\n\nMineExplorer不仅定义了考题，更给出了18个顶级模型的真实分数。**如下表所示**，这是横跨 Claude、GPT、Gemini 等八大家族的模型在整体任务成功率（TSR）上的排行榜。\n\n![表2：主体评测结果表](https://p1.meituan.net/meituantechblog/baa9165aab4bae0826f1a4f22315881b960739.png)\n\n我们发现，即便是表现最好的 Claude-Opus-4.6，整体成功率也只有 41 分。\n\n**| 洞察一：单跳尚可，多跳崩盘——问题就在隐藏前置条件**\n\n如图所示，最强模型Claude-Opus-4.6的表现，从1跳任务的77分，一路下滑到4跳任务的12分。每增加一层隐藏的前置依赖，模型就掉一个台阶。\n\n![表3：分级评测结果图](https://p0.meituan.net/meituantechblog/423b7c12487a277cac27bcafb215841f1105129.png)\n\n![图5：不同任务难度下的任务成功率对比图](https://p1.meituan.net/meituantechblog/0fe66c8cd12e6acd4b3273cb6e8999dd227554.png)\n\n**| 洞察二：会看，但不会想 —— 感知强于推理**\n\n在几乎所有被测模型上，我们都观察到同一个规律：**感知分数 > 行动分数 > 推理分数**。如下图所示，以Claude-Opus-4.6为例，其整体感知分61.91，推理分54.71。瓶颈不在于看不见，而在于看懂了却无法串联成有效策略。\n\n![图6：维度评测热力图](https://p0.meituan.net/meituantechblog/e552dbd0ed03151c3750b43d75ad37ba836166.png)\n\n**| 洞察三：近60%的失败原因，都是因为走不到目标**\n\n我们对 Claude-Opus-4.6 的失败案例进行了归因分析。**如下图所示**，导航失败是最大的错误来源，占比近 60%。\n\n![图7：失败类型分布图](https://p0.meituan.net/meituantechblog/0e685670220ce485c94a8a8f5468218f163985.png)\n\n**| 洞察四：给它更多步数、更多记忆，都不是解药**\n\n我们进一步做了消融实验，发现模型失败并非因为资源不足。\n\n* **步数**：如图所示，能解的任务，模型在早期就解出来了；解不了的，给到 1800 步上限照样解不了。\n\n![图8：平均完成步数图](https://p1.meituan.net/meituantechblog/4db113c30a91462928af6b6e28521ad8620229.png)\n\n* **记忆**：如图所示，增加历史画面帧数到一定程度后，性能反而会下降，因为过期的观察会干扰对当前局面的判断。\n\n![图9：记忆帧数影响图](https://p0.meituan.net/meituantechblog/3db3e8f4aeb4dfb68dce40379b0df7a9355836.png)\n\n**核心结论：瓶颈不在资源，而在模型没法把已有的信息和当前世界状态对齐。**\n\n## 03 总结：从看见世界到探索世界的鸿沟\n\nMineExplorer 揭示了一个被乐观情绪掩盖的能力断层：当前的多模态大模型，已经具备了不错的感知力，但严重缺乏在动态世界中持续行动的探索力。\n\n这对正在快速升温的具身智能赛道有几个直接的启示：\n\n* 感知层基本就绪，规划层是瓶颈。 模型能看懂环境，但把感知转化成长程、含隐藏前置的行动计划，才是从能看到能做之间真正的鸿沟。\n* 行业需要更接近真实复杂度的评测标准。在受控场景里跑通一个单步指令，不足以宣布AI能行动了。真实世界是动态的，充满未说明的前置条件，需要持续、长久化的探索。\n* 我们不仅提供了评测，还开源了自动合成任务的方法和训练环境。MineExplorer交付的不是一套静态题库，它还带着一整套自动合成长程任务的流程，和一个能直接拿来训练的Minecraft环境。评测、造题、训练，用的是同一套基础设施。\n\n我们不是要给具身智能泼冷水。恰恰相反，把瓶颈定位清楚，比盲目乐观更有价值。MineExplorer提供的，正是这样一条诚实、可量化的能力基线。\n\n看得见世界，不代表能探索世界。在一个会变化的世界里持续推理、持续行动——这才是AI走向真实世界，必须先跨过的那道门槛。MineExplorer 已全面开源，欢迎各大模型前来挑战开放世界。\n\n**🚀 开源链接**\n\n* **Paper**：<https://arxiv.org/abs/2605.30931>\n* **GitHub**：<https://github.com/meituan-longcat/MineExplorer>\n* **HuggingFace**：<https://huggingface.co/datasets/meituan-longcat/MineExplorer>",
+      "tags": [
+        "MineExplorer",
+        "多模态大模型",
+        "开放世界评测"
+      ],
+      "score": 85,
+      "summary": "美团LongCat团队开源MineExplorer，首个开放世界分钟级长程任务评测基准。",
+      "image_url": "https://p1.meituan.net/meituantechblog/3415508a98cf053008ffb59af0ed592a421327.png",
+      "fetched_at": "2026-07-27T11:34:06.623681+08:00"
+    },
+    {
+      "title": "蚂蚁百灵发布新一代原生混合推理模型Ling-3.0-Flash",
+      "link": "https://www.qbitai.com/2026/07/461149.html",
+      "published": "2026-07-27T09:57:26+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [
+        "Ling-3.0-Flash",
+        "混合推理模型",
+        "蚂蚁百灵"
+      ],
+      "score": 89,
+      "summary": "蚂蚁百灵发布新一代原生混合推理模型Ling-3.0-Flash。",
+      "fetched_at": "2026-07-27T11:34:06.623686+08:00"
+    },
+    {
+      "title": "👨‍💻 https://t.co/e8wWoxxSi4",
+      "link": "https://x.com/rauchg/status/2081571905157714199",
+      "published": "2026-07-27T10:46:30+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "👨‍�[vercel.com/oss](http://vercel.com/oss)i4\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081571572834574336/vid/avc1/2062x1472/0w5XPikajT0KVtCG.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/rauchg/status/2081571905157714199/video/1)\n\n💬15🔄6❤️153👀8061📊32",
+      "tags": [
+        "Vercel",
+        "OSS"
+      ],
+      "score": 50,
+      "summary": "Vercel CEO分享OSS相关链接，内容不明确。",
+      "fetched_at": "2026-07-27T11:34:06.623690+08:00"
+    },
+    {
+      "title": "Living life on the edge everyday",
+      "link": "https://x.com/petergyang/status/2081559330537734574",
+      "published": "2026-07-27T09:56:32+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Living life on the edge everyday\n\n![Tweet Image](https://pbs.twimg.com/media/HOMvEdWbYAACz9f.png)\n\n💬2🔄0❤️18👀1862📊3",
+      "tags": [
+        "个人动态"
+      ],
+      "score": 30,
+      "summary": "Peter Yang发布个人生活状态，无AI相关信息。",
+      "fetched_at": "2026-07-27T11:34:06.623693+08:00"
+    },
+    {
+      "title": "Just call me Jean Luc Peter",
+      "link": "https://x.com/petergyang/status/2081558653300355083",
+      "published": "2026-07-27T09:53:51+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Just call me Jean Luc Peter\n\n![Tweet Image](https://pbs.twimg.com/media/HOMugIXbAAEYSUZ.png)\n\n![Peter Yang](https://pbs.twimg.com/profile_images/1454103621516206083/_klMwpkk_normal.jpg)\n\nPeter Yang@petergyang\n\nBefore and after with ChatGPT Voice\n\n![Tweet Image](https://pbs.twimg.com/media/HN9xCJNbMAA8501.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/petergyang/status/2080505964936241226)\n\n💬0🔄1❤️6👀3359📊1",
+      "tags": [
+        "ChatGPT Voice"
+      ],
+      "score": 65,
+      "summary": "Peter Yang分享使用ChatGPT Voice前后的个人体验。",
+      "fetched_at": "2026-07-27T11:34:06.623696+08:00"
+    },
+    {
+      "title": "Now that I'm in Canada and talk to folks who don't have AI psychosis the number one concern is not r...",
+      "link": "https://x.com/petergyang/status/2081555286817648738",
+      "published": "2026-07-27T09:40:28+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Now that I'm in Canada and talk to folks who don't have AI psychosis the number one concern is not running out of tokens it's \"do I trust ChatGPT enough to share my Gmail, Calendar, Google Workspace, Microsoft Office, etc.\"\n\n💬6🔄0❤️24👀2365📊8",
+      "tags": [
+        "ChatGPT",
+        "信任",
+        "隐私"
+      ],
+      "score": 70,
+      "summary": "Peter Yang观察到用户担忧将ChatGPT与个人账户连接。",
+      "fetched_at": "2026-07-27T11:34:06.623699+08:00"
+    },
+    {
+      "title": "We’re hiring btw",
+      "link": "https://x.com/shl/status/2081572198289129595",
+      "published": "2026-07-27T10:47:40+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "We’re hiring btw\n\n💬0🔄0❤️3👀858📊1",
+      "tags": [
+        "招聘"
+      ],
+      "score": 20,
+      "summary": "Sahil Lavingia发布招聘消息。",
+      "fetched_at": "2026-07-27T11:34:06.623701+08:00"
+    },
+    {
+      "title": "Dreamt about working at the IRS. Truly a dream job",
+      "link": "https://x.com/shl/status/2081555430149689610",
+      "published": "2026-07-27T09:41:02+08:00",
+      "source": "Sahil Lavingia(@shl)",
+      "content": "Dreamt about working at the IRS. Truly a dream job\n\n💬13🔄1❤️37👀5843📊14",
+      "tags": [
+        "梦境"
+      ],
+      "score": 10,
+      "summary": "Sahil Lavingia分享梦见在IRS工作的经历。",
+      "fetched_at": "2026-07-27T11:34:06.623704+08:00"
+    },
+    {
+      "title": "想起一个蛮搞笑的事情。有一次CNC培训，我不是一开始对这种大机器都很害怕吗？刚开始操作的时候都觉得自己头是晕的，机器怎么运作的都看不懂。就问那个老师，请问这个大机器是不是只有龙门在运动？然后他好懵的样...",
+      "link": "https://x.com/feltanimalworld/status/2081567282124181574",
+      "published": "2026-07-27T10:28:08+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "想起一个蛮搞笑的事情。有一次CNC培训，我不是一开始对这种大机器都很害怕吗？刚开始操作的时候都觉得自己头是晕的，机器怎么运作的都看不懂。就问那个老师，请问这个大机器是不是只有龙门在运动？然后他好懵的样子，反问我，“难道这张八英尺长的床还会突然开出去吗？”  \n  \n.....我真的觉得有可能。\n\n![Eitoku](https://pbs.twimg.com/profile_images/1701108114320457728/n1GqZ3VH_normal.jpg)\n\nEitoku@hd1103\n\n本日の3D printerのイベントに持ってった自作プリンタはこれです。  \nリニアガイドをフレームとして利用して、最小限の印刷パーツで、構造を作っています。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081385490507583488/vid/avc1/1920x1080/SruBOyhTtxbSDXQM.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/hd1103/status/2081385556446261499/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/hd1103/status/2081385556446261499)\n\n💬1🔄1❤️4👀852📊2",
+      "tags": [
+        "CNC培训"
+      ],
+      "score": 15,
+      "summary": "Susan STEM分享CNC培训时的搞笑经历。",
+      "fetched_at": "2026-07-27T11:34:06.623707+08:00"
+    },
+    {
+      "title": "👀",
+      "link": "https://x.com/Thom_Wolf/status/2081577118526263548",
+      "published": "2026-07-27T11:07:13+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "👀\n\n![Noah Lebovic](https://pbs.twimg.com/profile_images/2029684561614127104/q7_1xtL5_normal.jpg)\n\nNoah Lebovic@NoahLebovic\n\nI don't think it's a lack of imagination. I also used to work at Anthropic, think trends will continue, and used to agree with this. But I've changed my mind and now disagree with this take.  \n  \nOpen models are already capable enough to do what you described. For example, I used Opus 4.6 to gain access to other folks medical records, hijack bank accounts, etc. back in February. GLM 5.1 is more capable than Opus 4.6 in most pentesting environments, and it came out in April.  \n  \nDespite capable open-weight models existing, the sketchier folks I know are still using a Claude Code or Codex subscription for hacking. (Even well-resourced groups in other countries! They use the grey/black market of discounted Ant/OAI subscription tokens sold through resellers.) So I see most of the materialized risk here as still coming from Anthropic and OpenAI; safeguards aren't sufficient to stop a moderately dedicated actor.  \n  \nThe groups I know who are using open-weight models are legitimate offensive security companies. They won't break the rules to use subscription-based pricing, the open-weight models are more reliable in that they don't require specific jailbreaks nor hit classifiers, and the labs use massive partnerships or spend as a prereq for lowering classifiers/safeguards. I know of three legitimate groups running GLM 5.2 as their primary model.  \n  \nThat last part applies for Anthropic, too: I know of two instances where two different Anthropic GTM people used large comitted spend contracts as a prereq for lowering safeguards, and I directly witnessed one.  \n  \nOn the inside, I know the narrative and intent is genuinely about safety. But from the outside, Anthropic-the-system seems to be optimizing for revenue and control/power, isn't diffusing capabilities to defenders, and also doesn't have adequate safeguards to prevent misuse from dedicated bad actors.  \n  \nAs a result, I now lean towards a future where capable open models are freely available (at least for cyber, bio is harder); I don't trust Anthropic or other frontier labs to handle this sufficiently well without diffused capabilties given what I've seen so far.\n\n[🔗 View Quoted Tweet](https://x.com/NoahLebovic/status/2081277517709922501)\n\n💬0🔄0❤️0👀285",
+      "tags": [
+        "开源模型",
+        "安全性",
+        "Anthropic"
+      ],
+      "score": 80,
+      "summary": "Thomas Wolf转发关于开源模型能力及安全风险的深度讨论。",
+      "fetched_at": "2026-07-27T11:34:06.623710+08:00"
+    },
+    {
+      "title": "开发者在售价约 8 美元的 ESP32-S3 微控制器上完全本地运行了一个 28.9M 参数的语言模型，无需连接服务器，生成速度约 9.5 tok/s。\n端侧AI成本越来越低了\nhttps://t.c...",
+      "link": "https://x.com/yangyi/status/2081557960975859773",
+      "published": "2026-07-27T09:51:06+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "开发者在售价约 8 美元的 ESP32-S3 微控制器上完全本地运行了一个 28.9M 参数的语言模型，无需连接服务器，生成速度约 9.5 tok/s。  \n端侧AI成本越来越低了  \n[github.com/slvDev/esp32-ai](https://github.com/slvDev/esp32-ai)\n\n💬3🔄1❤️5👀940📊5",
+      "tags": [
+        "ESP32-S3",
+        "端侧AI",
+        "28.9M参数"
+      ],
+      "score": 75,
+      "summary": "开发者成功在8美元ESP32-S3上本地运行28.9M参数语言模型，速度9.5 tok/s。",
+      "fetched_at": "2026-07-27T11:34:06.623714+08:00"
+    },
+    {
+      "title": "每天9点多就看这个AI用户反馈\n问题只要一直修 总是会慢慢减少的\n如果你在开发产品  一定要设置一个用户反馈定时任务\n它不仅自己可以Loop autofix一部分\n还可以挖掘一些用户洞察出来",
+      "link": "https://x.com/yangyi/status/2081555997303455988",
+      "published": "2026-07-27T09:43:17+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "每天9点多就看这个AI用户反馈  \n问题只要一直修 总是会慢慢减少的  \n如果你在开发产品 一定要设置一个用户反馈定时任务  \n它不仅自己可以Loop autofix一部分  \n还可以挖掘一些用户洞察出来\n\n![Tweet Image](https://pbs.twimg.com/media/HOMr2VxbsAA5wZE.jpg)\n\n💬1🔄0❤️0👀616📊1",
+      "tags": [
+        "AI产品",
+        "用户反馈"
+      ],
+      "score": 65,
+      "summary": "分享利用AI自动修复用户反馈问题的经验。",
+      "fetched_at": "2026-07-27T11:34:06.623716+08:00"
+    },
+    {
+      "title": "这个 iOS / Android 双端的开源 AI Agent 必须推荐！\n\nOpenMinis 作者 @wsvn53 \nhttps://t.co/g7R4wx69iZ\n\nOpenMinis 选择直接...",
+      "link": "https://x.com/shao__meng/status/2081562462537777457",
+      "published": "2026-07-27T10:08:59+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "这个 iOS / Android 双端的开源 AI Agent 必须推荐！  \n  \nOpenMinis 作者 [@wsvn53](https://x.com/wsvn53)[github.com/OpenMinis/Open…](https://github.com/OpenMinis/OpenMinis)  \n  \nOpenMinis 选择直接给模型一台 Linux 电脑，支持用户接入自己的模型（支持 API Key 或 OAuth 账号登录），Agent 便获得：  \n· 一个在设备上本地运行的完整 Alpine Linux 沙箱——能 apk add、跑 Python、写脚本、操作真实文件；  \n· 通过沙箱暴露的系统级集成——日历、提醒、健康、HomeKit、蓝牙、剪贴板、闹钟等；  \n· 浏览器自动化、可扩展 Skills、跨会话持久记忆。  \n  \n# 最核心的技术决策：手机上的 Linux 沙箱  \n  \niOS 端用的是 iSH 的深度定制 fork（OpenMinis/ish-arm64）。iSH 本质是一个用户态 Linux 内核模拟器，OpenMinis 把它从原版的 x86 guest 改造为 ARM64 guest（配合名为 Asbestos 的 threaded-code JIT 解释器），在 App 进程内实现了进程管理、100+ 系统调用、TTY/PTY、完整网络栈透传，文件系统则用 SQLite 存元数据的「fakefs」。这在 iOS 严苛的沙箱限制下跑通一个能装包、能联网的 Alpine 环境，工程难度和完成度都不低。  \n  \nAndroid 端则务实得多：直接用 PRoot（Termux 同款方案的 fork）做用户态 chroot，解压真实的 Alpine rootfs，靠路径翻译和 --link2symlink 等技巧在无 root 环境下运行。两端殊途同归：都给 Agent 呈现同样的 /bin/sh + /var/minis/ 目录结构。  \n  \n# Agent 架构：小工具面 + 一切皆 CLI  \n  \n模型能直接看到的工具只有 8 个：shell\\_execute、file\\_read/write/edit、browser\\_use、memory\\_write/get、read\\_image。而全部 20 多个设备集成——iOS 的 apple-calendar、apple-healthkit、apple-vision，Android 的 android-shizuku-cli、android-a11y-cli 等——都不是 LLM 工具，而是沙箱里的命令行程序。实现方式很巧妙：内核层拦截 execve()，当 guest 进程执行 /usr/local/bin/apple-calendar 时，调用被路由到宿主侧的原生 handler（EventKit、HealthKit 等），结果以 JSON 经管道返回。项目称之为「Native Offloads」。  \n  \n这带来几个直接好处：工具 schema 不膨胀（省 token、模型不易混乱）；模型可以用 shell 的全部表达力组合这些能力（管道、脚本、循环）；MCP 服务器也统一走 minis-mcp-cli 命令调用而非注入工具列表。这与 Anthropic 近来倡导的「代码执行优于工具调用」的方向一致，且该项目在移动端把这条路走通了。  \n  \nAgent 循环（iOS AIChatViewModel.runAgentLoop，Android ChatViewModel）是成熟的流式工具循环：最多 200 轮、并发工具执行（上限 10）、按上下文窗口分级的自动压缩（LLM 摘要）与「上下文卸载」（超长工具结果写入文件、留占位符让模型按需 file\\_read 回来）、防失控的 ToolLoopDetector 熔断器、模型组故障转移（fallback chain）。  \n  \n其他几个设计也值得一提：  \n· minis:// URL scheme：会话级资源寻址，URL 刻意不含 session ID，从协议层面杜绝跨会话访问；工具产出的文件以 minis:// URL 返回给模型，聊天 UI 直接内联渲染图片/音视频。  \n· Skills 兼容生态：采用与 Claude Code 相同的 SKILL.md 渐进式披露机制（元数据常驻上下文，正文按需加载），并明确宣称为 Claude/Codex 写的技能可以直接跑。这是聪明的生态借力。  \n· 记忆分层：GLOBAL.md（用户维护）+ 按日记录的 daily log + 独立的 SOUL.md 身份定义，全部落在沙箱可见的 /var/minis/memory/，模型能用普通文件工具读写。  \n· iOS 后台保活：用定位心跳和后台音频延长执行时间，配合 Live Activity 展示进度——是灰色但常见的手段，说明作者对 iOS 平台限制的对抗做得很彻底。  \n· 权限模型：涉隐私的 CLI（健康、日历、位置、剪贴板等）有 Bypass / Ask Once / Not Allowed 三级授权，在系统权限之外多加了一道 Agent 级闸门。\n\n![Tweet Image](https://pbs.twimg.com/media/HOMyAh8bcAAc35e.jpg)\n\n![Ethan Wang](https://pbs.twimg.com/profile_images/1627963132554678273/C0Pqjnxx_normal.jpg)\n\nEthan Wang@wsvn53\n\nAfter 3-4 months of iteration, Open Minis — \"possibly the best Agent app on your phone\" — has stabilized into a mature architecture, now powering tens of thousands of users' daily workflows.  \n  \nToday we're open sourcing all of it: the full iOS and Android code.  \n  \nA real on-device AI agent: a native Linux shell, browser automation, extensible skills, persistent memory, and deep system integration.  \n  \nNow, fork it, feel free to build your own on-device agent now. 🤗  \n[github.com/OpenMinis/Open…](https://github.com/OpenMinis/OpenMinis)d\n\n[🔗 View Quoted Tweet](https://x.com/wsvn53/status/2081035242715140377)\n\n💬0🔄0❤️3👀381📊1",
+      "tags": [
+        "OpenMinis",
+        "AI Agent",
+        "Linux沙箱"
+      ],
+      "score": 75,
+      "summary": "推荐开源AI Agent OpenMinis，在手机上运行Linux沙箱执行任务。",
+      "fetched_at": "2026-07-27T11:34:06.623719+08:00"
+    },
+    {
+      "title": "每天学一个硬核AI知识：RLHF\n\n基于人类反馈的强化学习是什么？",
+      "link": "https://x.com/vista8/status/2081576279640572232",
+      "published": "2026-07-27T11:03:53+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "每天学一个硬核AI知识：RLHF  \n  \n基于人类反馈的强化学习是什么？\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081576186359214080/vid/avc1/1080x1920/tlye2TSdHJjfRCDa.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2081576279640572232/video/1)\n\n💬1🔄0❤️4👀854📊2",
+      "tags": [
+        "RLHF"
+      ],
+      "score": 65,
+      "summary": "科普视频解释RLHF（基于人类反馈的强化学习）。",
+      "fetched_at": "2026-07-27T11:34:06.623722+08:00"
+    },
+    {
+      "title": "bento ppt skill Github：\nhttps://t.co/BmqbHFFxXm",
+      "link": "https://x.com/vista8/status/2081568995489276031",
+      "published": "2026-07-27T10:34:56+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "bento ppt skill Github：  \n[github.com/joeseesun/qiao…](https://github.com/joeseesun/qiaomu-bento-ppt/)\n\n💬0🔄0❤️1👀697",
+      "tags": [
+        "bento PPT",
+        "Skill"
+      ],
+      "score": 60,
+      "summary": "分享bento PPT skill的Github仓库。",
+      "fetched_at": "2026-07-27T11:34:06.623725+08:00"
+    },
+    {
+      "title": "基于 bento PPT 改造了一个 Skill。\n\n输入内容或主题，自动生成可编辑修改、在线演示，甚至可以发给别人协作的HTML PPT。\n\n安装指令：npx skills add joeseesu...",
+      "link": "https://x.com/vista8/status/2081568902241513786",
+      "published": "2026-07-27T10:34:34+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "基于 bento PPT 改造了一个 Skill。  \n  \n输入内容或主题，自动生成可编辑修改、在线演示，甚至可以发给别人协作的HTML PPT。  \n  \n安装指令：npx skills add joeseesun/qiaomu-bento-ppt  \n  \n推荐用前端审美好的模型，比如Kimi K3或Opus 4.8+  \n  \n开源见评论区\n\n![Tweet Image](https://pbs.twimg.com/media/HOM3GIoaEAAkM-L.jpg)![Tweet Image](https://pbs.twimg.com/media/HOM3UK-bUAAfsiz.jpg)\n\n💬2🔄1❤️15👀2021📊6",
+      "tags": [
+        "bento PPT",
+        "AI生成PPT"
+      ],
+      "score": 70,
+      "summary": "介绍一个可自动生成可编辑HTML PPT的Skill。",
+      "fetched_at": "2026-07-27T11:34:06.623728+08:00"
     }
   ]
 }
