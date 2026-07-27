@@ -1706,6 +1706,389 @@
       "score": 72,
       "summary": "提出使用AI Gateway作为演化架构模式管理AI变化。",
       "fetched_at": "2026-07-27T19:35:37.695116+08:00"
+    },
+    {
+      "title": "Modernizing the skies: NOAA and Google Cloud collaborate to advance weather forecasting",
+      "link": "https://cloud.google.com/blog/topics/public-sector/modernizing-the-skies-noaa-google-cloud-collaborate-advance-weather-forecasting/",
+      "published": "2026-07-27T22:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "The National Oceanic and Atmospheric Administration (NOAA) is embarking on a transformative journey to redefine how we understand and predict patterns in the Earth’s atmosphere that affect the weather we face every day. Today, we are proud to announce that Google Cloud was selected as the primary provider of high-performance computing (HPC) infrastructure for the Weather and Climate Operational Supercomputing System (WCOSS).\n\nThis program represents a pivotal shift for NOAA as it transitions from a more traditional, on-premises computing agency to cloud-first infrastructure—a major milestone as one of the first operational Numerical Weather Prediction (NWP) centers globally to move to the public cloud. By modernizing WCOSS on Google Cloud, NOAA is positioning the United States to lead global weather modeling through scale, speed, and reliability.\n\nGoogle Cloud [H4D VMs](https://cloud.google.com/blog/products/compute/h4d-vms-now-ga?e=48754805), powered by fifth-generation AMD EPYC™ processors, are serving as the primary computing backbone for NOAA on Google Cloud. Purpose-built for demanding, compute-intensive workloads like numerical weather prediction, H4D VMs provide the compute power and low-latency networking required to execute massive, tightly-coupled simulations.\n\nTo put this in perspective, if traditional computers are like a fleet of individual delivery vans navigating city traffic, H4D VMs operate like a synchronized convoy on a dedicated, multi-lane superhighway—sharing information instantly so they can work together as a single, massive engine. For the NOAA workforce, the move to cloud HPC provides a more streamlined, flexible environment, enabling meteorologists and researchers to quickly adapt future modeling innovations.\n\n## **A foundation built on long-term collaboration**\n\nThe partnership announced today is more than just a technological upgrade; it is the latest milestone in a long-term collaboration between NOAA and Google Cloud. For years, [our teams have worked together](https://cloud.google.com/blog/products/data-analytics/noaa-datasets-on-google-cloud-for-environmental-exploration?e=48754805) to streamline and share petabytes of environmental data, track real-time wildfires, and advance marine conservation efforts. This work was anchored by the agency’s visionary leadership, which also drove a full [transition to Google Workspace](https://cloud.googleblog.com/2011/06/noaa-becomes-largest-federal-agency-to.html) as its collaboration suite of choice in 2011.\n\nThe success of these early efforts paved the way for broader innovation. For example, NOAA Fisheries [pioneered](https://github.com/nmfs-opensci/CloudComputingSetup/) the development of a cloud compute accelerator pilot, giving scientists more flexible computing power they need, when they need it. NOAA also used Google DeepMind and Google Research’s WeatherNext model to [predict Hurricane Melissa’s Category 5 landfall](https://deepmind.google/blog/how-weathernext-helped-the-national-hurricane-center-better-predict-hurricane-melissas-historic-landfall-in-jamaica/) five days in advance, saving lives with early warnings and evacuations. These early pilot projects laid the groundwork for NOAA Fisheries to explore agentic AI applications powered by [Gemini for Government](https://cloud.google.com/blog/topics/public-sector/gemini-for-government-your-blueprint-for-mission-impact?e=48754805).\n\nAs we look ahead, this collaboration is a testament to what is possible when government and industry align on a shared vision. By combining Google Cloud’s HPC capabilities with NOAA’s unparalleled scientific expertise, we can help improve forecast accuracy, positively impact public safety, and ensure that the United States remains at the forefront of global weather modeling for years to come.\n\n**Ready to see how cloud technology is transforming the public sector?** Join us at the [Google Public Sector Summit 2026](https://events.govexec.com/google-public-sector-summit/) to hear more about how agencies like NOAA are advancing their missions.",
+      "tags": [
+        "NOAA",
+        "Google Cloud",
+        "HPC"
+      ],
+      "score": 70,
+      "summary": "Google Cloud被NOAA选为天气和气候超级计算系统的主要HPC提供商。",
+      "fetched_at": "2026-07-27T22:55:39.357247+08:00"
+    },
+    {
+      "title": "We’re open sourcing our privacy proxy CLI",
+      "link": "https://blog.cloudflare.com/open-sourcing-our-privacy-proxy-cli/",
+      "published": "2026-07-27T21:00:00+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "Debugging privacy-preserving protocols is hard. Oblivious HTTP has several different steps across four different parties, not to mention binary HTTP encoding and details spread across many draft RFCs. We've taken what we've learned operating protocols like Oblivious HTTP at the scale of millions of requests per second, and wrapped it up in a nice, clean CLI tool — that we are open sourcing today.\n\nWe call it our **privacy-client**, or **pvcli**. We’re releasing it under the Apache-2.0 License, and it is [open for contributions](https://github.com/cloudflareresearch/pvcli).\n\nHere’s a single line of code that executes a full Oblivious HTTP request with a relay, gateway and origin. Don't worry if you don't know what that means, we'll cover it below.\n\nWe’ll explain why we built this tool, and show just how handy it can be.\n\n### Why privacy protocols can be hard to debug\n\nLet’s take a closer look at our motivation for creating pvcli. Over time, the Privacy team’s product suite and customer base grew. We added products like Privacy Proxy and Privacy Gateway, which power Apple’s [Private Relay](https://blog.cloudflare.com/icloud-private-relay/), Microsoft’s [Edge Secure Network VPN](https://blog.cloudflare.com/cloudflare-now-powering-microsoft-edge-secure-network/), Flo Health’s [Anonymous Mode](https://www.cloudflare.com/case-studies/flo-health/), and more. With it came an increasing amount of special customer requirements, domain knowledge, and complexity. As a result, we saw increased friction in development and incident response.\n\nTo see this in action, let’s look at how one of our products implements [Oblivious HTTP](https://developers.cloudflare.com/privacy-gateway/), also known as OHTTP. First, a quick primer. OHTTP provides users with a privacy guarantee: no one can know both *who* made a request and *what* they’re requesting. To achieve this, OHTTP requires two servers, a relay and a gateway, operated by two non-colluding parties.\n\nBelow is a sequence diagram of OHTTP, where our customer owns the relay and Cloudflare owns the gateway. At a high level, OHTTP can be broken down into these steps:\n\n1. Client gets public key from the gateway.\n2. Client encrypts the request and sends it to the relay.\n3. Relay removes “who” the client is from the encrypted request, and sends it to the gateway.\n4. Gateway decrypts the request, and sends it to the target.\n5. Target processes the request, and sends a response to the gateway.\n6. Gateway encrypts the response, and sends it to the relay.\n7. Relay sends the encrypted response to the client.\n8. Client decrypts, and gets the plaintext response.\n\nIt involves quite a bit of back-and-forth, as you can see:\n\nEach step is a potential point of failure that we have to consider while debugging!\n\nIn particular, we saw certain kinds of problems when debugging OHTTP.\n\n* Customers asked for ways to test the live system from their end, and we often wrote one-off, custom clients for our customers specific deployments.\n* Figuring out which step caused an issue was time-consuming. Was the root cause a bug in our system or our customer’s system?\n* Examining raw bits was tedious and highly prone to human error. OHTTP builds on binary HTTP, which is a binary encoded HTTP request. Anytime we needed to check the binary encoding, we were painstakingly going through raw bits.\n\nAs a result, we decided to place all of our privacy protocols in one tool. It has a clean interface that’s already familiar, displays every single step of the protocol in order, and is flexible enough to support new protocols and architectures.\n\nTo see the difference this makes, let’s see an OHTTP debugging scenario — before and after pvcli.\n\n### Debugging without pvcli\n\nSay we operate an OHTTP relay that sits in front of a customer's gateway. The customer has asked us to do an end-to-end test with a request:\n\nRecall the OHTTP steps from earlier. The first step is to fetch the public key from the gateway. We use curl to fetch it from the customer gateway and get this back:\n\nThat’s a big binary string in hex. To make sense of it, we look at OHTTP [RFC 9458 §3](https://www.rfc-editor.org/rfc/rfc9458#name-key-configuration-encoding) and parse it manually:\n\n* `0029` is 41 in decimal, telling us this public key entry has 41 bytes associated with it.\n* `55` is the public key ID.\n* `0020` identifies the asymmetric encryption method we can use. In this case, DHKEM(X25519, HKDF-SHA256).\n* `b9bb667e2230dc01c6d6cc047f94a1083beb185c63e50ec09f7692a5a0832540` is the public key.\n* `0004` tells us there are 4 bytes of symmetric cryptographic IDs that follow.\n* `0001` and `0001` identify the symmetric encryption methods we can use: HKDF-SHA256 and AES-128-GCM.\n\nWe repeat this process for however many public keys are in the binary string.\n\nNext, we convert our original HTTP request into binary HTTP, referencing [RFC 9292](https://www.rfc-editor.org/rfc/rfc9292). We manually craft the binary with the help of some bespoke scripts:\n\nWe verify each field:\n\n* `02` means it's an indeterminate-length request\n* `04504f5354` is `POST`\n* `056874747073` is https\n* `117461726765742e6f687474702e696e666f` is `target.ohttp.info`\n* and so on\n\nFinally, we form a wrapper HTTP request that will hold our OHTTP request. To do so, we spend some more time writing another makeshift script that encrypts the binary HTTP request in the manner OHTTP specifies, using the public key from earlier. We create a header, which is the concatenation of public key ID, asymmetric encryption method ID, and symmetric encryption method IDs. Then, we concatenate header and encrypted binary HTTP request, resulting in:\n\nWe put those bytes into the body of our wrapper HTTP request, and send it to our relay. We get back a response.\n\nWhat does that mean? We reach out to the customer to ask if they can share logs from their gateway. In the meantime, we double-check the bits we've crafted. The decoded public keys look fine. The binary HTTP request... Oh! We see:\n\nBHTTP is length prefixed. That means we specify a length (0x0a is 10 in decimal), and then 10 bytes follow. But here, 11 bytes follow. There is an extra 20 before the 00. 20 represents a space character, so we must have accidentally added that when building the body. We remove the extra character, resend, and it works!\n\n### Debugging with pvcli\n\nWith pvcli, all of that is now a single command:\n\nIt handles all the binary parsing and encrypting for us, and prints logs in case we want to dive deeper:\n\nWhat used to be a fragile process — involving manipulating bits, gluing together scripts, and referencing long RFCs — is now one command.\n\n### What pvcli can do\n\nTo install:\n\npvcli takes a lot of inspiration from curl. We designed it with the “principle of least surprise” in mind. As a result, a lot of the arguments are the same as curl’s! Try a quick GET request to our [cdn-cgi endpoint](https://developers.cloudflare.com/fundamentals/reference/cdn-cgi-endpoint/):\n\nIf you’re curious about what is happening under the hood, you can use `-v` to get detailed logs:\n\nNow, about that OHTTP command from earlier: you use --ohttp to tell pvcli to construct an OHTTP request. You pass in the relay as the --first-hop and the gateway as the --proxy. The target will be an echo server, so you can see what the target would see. In this command, we filled in the arguments with a relay, gateway, and target from [ohttp.info](http://ohttp.info).\n\nTry running the command yourself!\n\nWe’ve encountered many cases where we wanted to pass headers to the relay, rather than the target. You are able to do that with `--first-hop-header`:\n\nSimilarly, we’ve also had cases where we wanted to authenticate to the relay with [mTLS](https://www.cloudflare.com/learning/access-management/what-is-mutual-tls/), to ensure that the correct client is talking with the correct relay. To do that, you can use --first-hop-client and `--first-hop-key`.\n\nAnd it just works. Need to test a full Oblivious HTTP request with a relay, a gateway, arbitrary headers, and mTLS? Or perhaps only request through a gateway? Or maybe you just want to see the OHTTP key configuration? pvcli can do it with a single command, debugging included.\n\n### Why build our own tool?\n\nThere are some great tools for OHTTP that already exist. Martin Thomson’s [Rust implementation](https://github.com/martinthomson/ohttp) and Chris Wood’s [Go implementation](https://github.com/chris-wood/ohttp-go) were incredibly helpful when we built out our original OHTTP implementation a few years ago. But pvcli is not only focused on OHTTP. We’re looking to add as many privacy-preserving protocols as we can to the tool. So while there are other OSS tools out there for debugging OHTTP, nothing combines OHTTP, CONNECT proxying, MASQUE and Privacy Pass (coming soon) all in one place.\n\n### Contribute to pvcli\n\nOblivious HTTP is an amazing protocol, and we would love to see you use it. We hope that this tool helps people debug OHTTP and write their own OHTTP implementations.\n\nWe are accepting contributions! To get started, clone the repo at <https://github.com/cloudflareresearch/pvcli>, and submit a pull request.\n\nIf you're looking for ways to contribute, here are some things on our to-do list. For MASQUE, we plan to add support for proxying TCP over HTTP/3, and UDP and/or IP over HTTP/2 and HTTP/3. For OHTTP, we plan to support post-quantum cryptography, add timing/latency information, support Chunked OHTTP, and improve logging.\n\n[Contact us](https://www.cloudflare.com/lp/privacy-edge/) if you are interested in using Cloudflare’s OHTTP Relays and Gateways.",
+      "tags": [
+        "Cloudflare",
+        "隐私代理",
+        "pvcli"
+      ],
+      "score": 70,
+      "summary": "Cloudflare开源隐私代理CLI工具pvcli，用于调试似匿名HTTP协议。",
+      "fetched_at": "2026-07-27T22:55:39.357259+08:00"
+    },
+    {
+      "title": "Anthropic如何在AI模型还未准备好就打造出像Claude Code这样的产品丨Lenny's Podcast",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247488497&idx=1&sn=7851a5f401242ff205110d41d85d0fd2",
+      "published": "2026-07-27T22:11:00+08:00",
+      "source": "晚点再听LaterCast",
+      "content": "原创 Capihom 2026-07-27 22:11 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4dd94bf6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FUNwPtic6UWKbL0zNH7yJDEm7uTlFPRHXVlVDch3BLuB4aP7GvqiaBOJKibbhzxo3qrk78gU28Fjsc3lGy1GMibN6cibOmgRzdlicUWvUXC9Va20nk%2F0%3Fwx_fmt%3Djpeg)\n\n如果你现在没空可以收藏进 晚点再听LaterCast，在通勤、走路或做家务时一篇篇轻松听完“你需要前沿产品，才能让人真正感受到前沿模型。\n\n每天挑选一期硅谷AI科技值得关注的播客，让你与前沿同频。如果你现在没空可以收藏进 晚点再听LaterCast，在通勤、走路或做家务时一篇篇轻松听完\n\n“你需要前沿产品，才能让人真正感受到前沿模型。”\n\n“评测集就是新的 PRD。”\n\n“你得像打磨像素一样，打磨每一次 Token 交互。”\n\nDianne Penn 是 Anthropic AI Research 与 Labs 团队的产品负责人。2023 年，她加入公司，成为 Anthropic 第一位技术产品经理；那时产品团队只有五名工程师，整个 API 业务甚至只配了一名工程师。此后，她参与了从 Claude 2 到 Fable 的每一代模型发布，也参与孵化 Claude Code、MCP、Skills、Computer Use、Tool Use 和 Reasoning。在此之前，她在亚马逊做过 Alexa AI，也在摩根大通交易过高收益债券。这期对话把 Anthropic 那套看似神秘的产品方法讲得很具体：模型能力尚未出现时，团队如何提前动手；能力突然跳变后，又靠什么迅速放下旧计划。对产品经理和技术负责人来说，这两件事比追下一款 AI 工具更值得细读。\n\n## 先做一个只给两千人看的怪东西\n\nDianne 刚加入时，Anthropic 还在找自己的产品身份，Claude.ai 看起来像又一个聊天助手，谁也说不清这家公司究竟能给用户什么不同的东西。2024 年初，研究团队在模型内部找到一个与金门大桥有关的“特征”。把它调高以后，Claude 回答任何问题都会绕回那座桥，哪怕你只是问意大利面怎么做，它也会把酱汁的橙红色联想到桥身的国际橙。产品、设计、工程和研究团队于是花了 24 小时，把这个古怪版本放到 Claude.ai 上，开放一天后就下线，实际可能只被两千人用过。\n\n“我们在 24 小时内把整个体验做了出来，可能只有两千人真的用过。”\n\n两千人的数字并不大，团队却借此确认，研究成果可以被做成带有 Anthropic 性格的用户体验，而一支小团队有能力在一天内完成这件事。Golden Gate Claude 最终没有变成长期业务，更像一次排练，让产品、设计、工程和研究第一次共同摸到从研究走向产品的节奏。**模型还不够成熟时，产品团队可以先把某项真实能力做成一个足够小、足够快的体验，让大家亲手碰到它。**很多后来写进 Claude Code、MCP 和 Skills 的方法，最早都来自这种不太体面的试验，而非一份事先写好的完整路线图。\n\n## 好模型还需要一个让人用得上的出口\n\n2023 年，很少有人把 Anthropic、Claude 和编程放在同一句话里。代码补全虽然已经存在，Dianne 却注意到另一种刚冒头的行为：有人开始让模型写更长、更完整的代码，于是她把这个信号带回训练团队。Opus 3 只做了相对小的训练调整，却因此更早吸引到一批开发者。又过了一个冬假，Opus 4.5 和 Claude Code 同时跨过门槛，前者终于能把任务端到端跑完，后者则把这种智能装进了一个开发者愿意每天打开的产品里。\n\n“Opus 4.5 没有 Claude Code，不会有那样的时刻；Claude Code 没有 Opus 4.5，也不会那么快被采用。”\n\n这也解释了 Anthropic 为什么愿意在模型准备好之前做产品：如果等到能力稳定、所有人都已经看见，再开始设计入口，往往会错过最有价值的学习期。产品团队先用较弱的模型跑原型，既能摸清它卡在哪里，也能让研究团队从真实使用中看到训练指标之外的问题，从而知道下一代模型应该解开什么。**前沿模型把能力上限推高，前沿产品再把这条上限变成用户可以感到的东西，两边缺一个都不行。**Claude Code 的爆发看起来发生在某次发布之后，背后其实已经与模型来回磨合了好几代。\n\n## 路线图赶不上能力跳变，就别把它写死\n\n模型的整体能力会随着算力和数据平滑增长，某一项具体能力却可能在训练跨过某个位置后突然出现，仿佛前一刻还无法稳定算出一加一，下一刻就会了。没人能精确预告这种跳变发生在哪一代，产品团队因而必须保留推翻几个月前计划的余地。Dianne 经常问团队：“假设 Claude 8 来了，用户的行为会怎么变？我们今天做的东西还能接得住吗？”这个问题会迫使大家分清，手上的方案究竟是只服务于当前模型的补丁，还是能跟着下一代能力继续生长的产品结构。\n\n“面对新信息时，你得做出更好的决定，而不是继续执行原来的计划。”\n\nYC 的 Garry Tan 提过一个激进说法：今天愿意每年花十万美元买 Token 的人，等于提前过上了 2028 年的生活。Dianne 不太愿意把花钱本身当目标，她更在意这些 Token 换回了多少实验。Anthropic 早期有一个全公司共享的 Slack 频道，大家用新模型改文章、写邮件、试各种零散需求。一个人抛出的想法会被其他人继续修改，十来次请求以后，偶尔就长出一个新用法。**Token 消耗只是投入，真正的产出是团队发现了多少过去不知道的可能性。**而这类发现很难靠一个人关门完成，公开试、互相借用、继续变形，反而走得更快。\n\n## Labs 对方向很固执，对原型没那么恋旧\n\nClaude Code、MCP、Skills 和 Claude Design 都出自 Anthropic Labs。这个团队专门追那些没有进入核心路线图的大赌注，判断一条线索有没有可能放大十倍、百倍甚至千倍。Dianne 描述他们今年的工作方式时，给出了一个很实用的区分：对主题和问题可以有强判断，对眼前这版原型则要松一点。某些想法用当前模型跑不通，团队会先停下，等一两代模型后再回来；即使原型始终没有上线，它留下的失败记录也能帮助团队看清能力边界。\n\n“你可以对方向有很强的观点，同时对具体原型保留更大的弹性。”\n\nLabs 的小组很小，一个赌注有时只从一名工程师开始，因为当问题还很模糊时，大队伍带来的协调成本反而会拖慢探索。他们也会主动关掉许多项目，这对把自己当作项目创始人的人并不轻松。**孵化能力的一部分，是愿意为一个方向反复回来，同时承认眼前这版做法暂时不成立。**模型公司最难拿捏的也正是这里：今天的失败可能只是模型还差一点，继续硬做会浪费时间，永久放弃又可能错过下一次能力跳变。\n\n## “Claude 不好用”还算不上用户反馈\n\n研究产品经理的日常工作，是把模糊抱怨翻译成研究人员可以处理的问题。用户说“Claude 出现了幻觉”，团队会继续追问：它是该调用工具却没调用，还是已经找到正确文档，却抽取了错误事实？前一种失败可能属于 Tool Use，后一种则可能落在搜索、知识合成或对齐。只有把整条失败轨迹拆到这个程度，研究团队才知道该改哪里，也能做出一组评测，判断下一版模型究竟有没有进步。Dianne 所说的“Eval 是新的 PRD”，指的正是这条从用户感受直达训练问题的反馈路径。\n\n“你无法改进一个自己还不会衡量的东西。”\n\nClaude 2 时代，用户常说它“不听指令”，团队深入查看原始请求后却发现，大约八成问题其实是 Claude 没有按要求输出 JSON。于是他们收集了三四十个失败样本，做成评测集，并在每次训练新版本时重新跑一遍；今天这项测试已经长期达到 99.9% 或 100%，原来的痛点也随之消失。PRD 仍然存在，大团队要对齐产品、工程、法务和安全目标时需要它，像 Computer Use 这样尚未形成清晰需求的新机会，也需要产品愿景先圈出探索范围。**文档负责让人对齐，Eval 负责让模型问题可以复现，两者原本就在解决不同的问题。**\n\n## 职位越高，越不能只听团队汇报\n\nDianne 的团队三年没有改过招聘流程，依然看第一性原理、好奇心和进入细节的意愿，只是这些能力在今天有了更直接的检验方式：候选人是否真的用模型交付过东西。资深 PM 和刚入行的人使用同一套入职计划，都要阅读经过授权的用户反馈、跟客户谈、亲手做原型。她自己也会在模型发布期间保留一两条工作流，以便持续感受模型变化得有多快，而不是只靠二手信息替团队做决定。\n\n“如果你是管理者，就得拿出一部分时间亲自交付。”\n\nAI 产品的“好”仍在快速移动，没亲手构建过的人，很难判断一个功能究竟是模型能力不够、产品外壳没接好，还是使用场景本来就不成立。Dianne 还提醒，实验不必变成孤独的自学任务。她已经接触过二十多个生产版 Claude，仍会从同事的新用法里重新获得兴趣；与一个真正兴奋的人结对，围绕自己在意的问题做深，往往比强迫自己试遍所有工具更有效。**管理者需要的模型感，不来自每天刷发布新闻，而来自一次次交付、失败和用户反馈。**\n\n## 先有自己的判断，再让 Claude 来反驳\n\nDianne 会用 Claude 准备困难谈话。她做了一个来自《关键对话》的 Skill，把具体情境交给 Claude，检查自己是否抓住合适的细节，准备采用的谈话方式又会不会伤到人。碰到更需要原创判断的事情，她会先形成自己的观点，再把 Claude 当作陪练。月度业务回顾这类标准化文本，则可以尽量交给 Claude 端到端完成，自己留在审核的位置。任务不同，人应该让出的部分也不同，不能只因为模型写得快，就把思考和表达一起外包。\n\n“一个思考伙伴不会只同意你；合作结束时，你应该带着更好的想法离开。”\n\n她认为，Claude 愿意在合适的时候反对用户，正是安全和对齐工作带来的产品价值。主动性不只是按时自动做事，也包括发现方向不对、提出新想法，甚至拒绝执行一个糟糕决定。谈到 AI 写作时，Dianne 最关心的是“谁验证、谁签字”：某份业务回顾可以完全由模型起草，最后仍要有人确认数据和结论。**作者是谁有时没那么重要，谁对输出负责始终重要。**这条责任线也是避免过度依赖 AI 最实在的边界，模型可以扩展你的思考，却不会替你承担后果。\n\n## 构建变容易后，产品经理反而更缺\n\nDianne 认为，未来一段时间里，人最难被替代的仍是判断，因为它来自长期积累的情境、经验和细微差别，而模型经历过的事情还没有人多。当 AI 可以做出无数东西，团队真正棘手的问题会变成：哪些值得做，哪些体验算好，什么时候该坚持，什么时候该停。2024 年，Anthropic 全年发布了四个模型系列；今年仅第二季度的发布量就超过了这个数字。在这样的速度下，单靠一个聪明人扛住所有判断，很快就会被耗尽。\n\n“真正理解用户想完成什么，并把它变成可行动的问题，这样的产品人才我们需要更多。”\n\n她把 Anthropic 的工作形容成一项高强度团队运动。发布前夜，即使不负责那个模型，同事也会留下来审博客、补 Demo、替负责人多看一遍；有人休假时，团队则能接住判断，不让他回来后独自面对三倍待办。Dianne 招人时会特别留意那些低自我、愿意帮助团队的人，因为 AI 给个人带来的产出杠杆越大，人与人之间的支撑就越重要。**产品经理不会因为工程师能用 Agent 构建而消失，真正贴近用户、肯钻进失败细节，又能把问题翻译给团队的人，工作反而更多了。**\n\n## 写在最后\n\n模型还没准备好，产品也不必原地等：先做一个足够小的原型，记下它为什么失败，等能力跳变时，再放下旧计划继续往前。对 PM 来说，最值得补的仍是那些老功夫：亲手构建，把用户抱怨拆成可以验证的问题，并对最后交出去的判断负责。模型会越来越强，这些看起来不新鲜的动作，反而会越来越值钱。\n\n内容来源：“How Anthropic builds products like Claude Code before the AI models are ready”丨Lenny's Podcast\n\n原视频：<https://www.youtube.com/watch?v=tivaWTTVRhY>\n\n相关文章\n\n[《李飞飞：十年后职场只剩两种人丨Silicon Valley Girl》](https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247488121&idx=1&sn=55cf3feba3115c37b7cf74e6d6197c36&chksm=f51d2a86c26aa390c90625e70644ec10a603ddda70b1ea98d31a17c3cac4fa4eef82bd4354f7&scene=21#wechat_redirect)\n\n[《Claude Code 实战：如何用一个工具支撑整个小团队丨Aakash Gupta》](https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247485646&idx=1&sn=cf7fce1f981449dd556c30bbc55eb0da&chksm=f51d3031c26ab927b4982ba4b3c497f5050d2cce583adf3377e6c327bf98e1a805da45cfe785&scene=21#wechat_redirect)\n\n[《Brex CEO：当CEO先被AI改变，公司才会变丨YC》](https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247488031&idx=1&sn=0e74070e6ad2a3091eecc1a832acb286&chksm=f51d2ae0c26aa3f6b236af0048fd3b3f55c1d381ba2d1cfd4b68174c5386acfa3b23d98fcdca&scene=21#wechat_redirect)\n\n如果你现在没空，可以收藏进晚点再听，通勤、走路或做家务时一次性听完⇣\n\n⇣ 关注我，每天为你更新硅谷最新的 AI 创业／科技播客总结，让你与前沿保持同频 ⇣\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=6e57a682&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzcxMDA5NTI0OA%3D%3D%26mid%3D2247488497%26idx%3D1%26sn%3D7851a5f401242ff205110d41d85d0fd2)",
+      "tags": [
+        "Anthropic",
+        "Claude Code",
+        "产品方法"
+      ],
+      "score": 82,
+      "summary": "Anthropic产品负责人Dianne Penn分享在模型未成熟时打造Claude Code等前沿产品的方法。",
+      "fetched_at": "2026-07-27T22:55:39.357263+08:00"
+    },
+    {
+      "title": "刚刚，Midjourney收购了Top3 AI占星App？",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575142&idx=1&sn=2018b35aa2426174714a1ebd84be30a4",
+      "published": "2026-07-27T21:31:00+08:00",
+      "source": "白鲸出海",
+      "content": "原创 白鲸小编 2026-07-27 21:31 四川\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=478b1612&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q9SCw4zeicf5YNJEovngCXJlbVGBbgwEAFW6RhHhbOCpezPRZTTFjVhJvV0nvvCCKm34qjZOSYlgqcfCWNicmYQdDMuveTdkrOqc%2F0%3Fwx_fmt%3Djpeg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=38cd6a37&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qicUNHUAqOFynickvtaqJ8oDZL4XCvcjdqEgPSt9ldGlEhOaEC0a7gVZFRVJ3QtKZB3YEXxeO9FNdn3DhxtR5NMEFK95hbSiasHxo%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n一场“走面”的收购？\n\n**封面图片由AI生成**\n\n出品｜白鲸出海编辑部\n\n作者｜张凯然\n\n编辑｜殷观晓\n\n2026 年 7 月 24 日，Midjourney 宣布收购 AI 占星产品「Co-Star」的母公司，具体交易条款并未披露。\n\n刚看到这条消息时，相信不少读者和我们一样有点摸不着头脑，一边是 AI 生图赛道的“昔日王者”，另一边是商业化成绩排名前几的 AI 占星 App，两个不搭界的产品，如何凑在了一起？\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**一、靠“UI+毒舌”抓住用户的占星 App**\n\n根据交易时披露信息，「Co-Star」的 MAU 达 490 万，其创始人甚至在 Reddit 帖子中表示，20% 的美国年轻人都下载过「Co-Star」。而商业化层面，「Co-Star」能排到美国 iOS 生活畅销榜 24 位，点点数据显示，其分成后月流水在 50 万美元左右，在占星 App 赛道中只低于 CHANI 和测测星座。（ 关于 CHANI 详情请见《[占星 App 不务正业后，更加赚钱了](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247573266&idx=1&sn=abfe1f558356a58b7a069f2fcb608050&scene=21#wechat_redirect)》）\n\n而从定位上看，相比于 CHANI“占星+冥想”、Stardust“占星+经期追踪”，以及 Starla 等一众“占星+Soulmate”的产品，「Co-Star」更加专注“占星”主业。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=fc1c9f02&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qic5gpNU9ZNIdU9hwr3pIbwGbL3r1EDWPc1kHhC3F37YCtAbAJCVewVlDcOfoPcCORoy1njgIASuib3ldKVkx7vaqOtqHd7UOUQg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n「Co-Star」落地页\n\n从功能上来说，「Co-Star」并没有非常出彩的地方。用户输入基本信息、生成星盘，然后基于此提供每日运势及工作、生活、情感等层面的运势解读，后续也加入了 AI 问答等功能。\n\n值得一提的亮点是“社交”，「Co-Star」的星盘并不只是自己一个人看，用户可以添加好友，然后看到自己与好友的星盘匹配度，以及相关的解读，在社交层面做得更深。这可能是「Co-Star」与同类产品唯一的差异化。\n\n![图片2 (14).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=8076b38b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOHnTJ4kA6q8Yxz2ECctTY19yOCmYJ9kkrztq35l7jYyIgibebxueyVgQX4rO6zUOT6NnTNMmJKT2sWEyNU4DRZmcDd92UTwq242Q7wy0G8DI%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n「Co-Star」社交功能\n\n但从 Reddit 上看，用户们几乎达成共识，「Co-Star」既是市面上最好看的占星 App、也是最有“话题性”的占星 App，这对应着「Co-Star」在功能层面之外，更“表象”的差异点，极简 UI 和毒舌式每日运势。\n\n![图片3 (12).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=7eeed6f9&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOHnTJ4kA6qibfGQuR7z0kRwDP4CkAKb052DWSjcz8kL0VK1yRXBfzyUuSNicHhmiciasWicgToic8MyThlOicg2AE2vz6oetDvc2SzBvOiaJ9JJDC6I%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n看到「Co-Star」的 UI，浮现在笔者脑中的就是那句被设计界奉为圭臬的“Less is More”，弱化功能、突出氛围感。整个 App 的 UI 完全以黑白为主要色调，图标和插画也尽量极简，排版逻辑更像是杂志内页，留白很多，而不是突出功能；图 2、3、4 的 AI 问答功能也摒弃了传统的对话框形式，将整个聊天放在了“星空”的背景下，回答也包装成了“信件”格式，突出神秘感。\n\nReddit 不少用户表示，「Co-Star」看起来不像一个“占星 App”，反而更像精品设计工作室出品的杂志或者画册，很多用户都将 UI，作为第一记忆点。\n\nUI 之外，被用户自愿传播的，则是毒舌的每日运势。「Co-Star」的首席设计师 Andrew Lu 曾经表示，公司不想“争夺消费者的注意力”，所以一天只发送一次通知，也就是“Day at a Glance”。\n\n![截屏2026-07-27 18.32.49.png](https://wechat2rss.bestblogs.dev/img-proxy/?k=0c7bae71&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q96JwzUe7o139xPicXaxeUeDkRJHXeWK9m16gHmCZEcPshJukV4bicA36WEJB189hGaicjV4KRL7Dev15R90QDbQ6m8YUEI0kplib4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![图片6 (7).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=363fec6d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8meAJic8PX2Pk1F5PYs97hjNaoNQwFoa5icBkzjwy2ibFufxfOEY15R5mfWubByT2Xw1kVEAc9TLLx9wH83xMRRibB3yAwiaVYjYBg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n「Co-Star」的 Day at a Glance（上）、\n\n其他网站的每日运势（下）\n\n但是，与普通每日运势“云山雾罩+主打安慰”相比，「Co-Star」“Day at a Glance”更明确、果断还有点“毒舌”，充满了情绪和记忆点。比如今天 App 给笔者推送的是“每个人的痛苦都有自己的节奏”、甚至社媒上还有用户分享“别联系前任了”等更炸裂的内容。「Co-Star」的每日运势都是那种“断言+说教”的模式，并不是提供参考，而是一个“懂你，但说话很冲的朋友”。\n\n![6a7e0fed7d045045f3bbc9163693ff5c.jpg](https://wechat2rss.bestblogs.dev/img-proxy/?k=61b6e8c7&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6qibuKAicQwIPuUibwOax3iaic6EMPrsRCibvuia6aUJiajhscV5O4XVA4A8RgQJ9d2bZC5nQiafNl95VhXtNmdR3IYShiaSU6VotEcO5Z81A%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n这种带强烈情绪的“每日运势”，天然适合社媒传播，Instagram 上能刷到大量用户自发晒出的“Day at a Glance”截图，并配文吐槽，而这些转发和吐槽本质上都是在替「Co-Star」免费打广告。这也是为什么「Co-Star」能在几乎零营销预算下（官方口径），靠自然传播拿下 490 万 MAU。\n\n![图片7 (6).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=d133c072&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q9R245lkNnqakORIgWMzjVOe3k9llMhRrJa3LVeVaCicy1CXUlMicKyXU2flKiaqYh1kNyyEFLHCaZicpbVXaLSicshxTOCJLDgKYuE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![图片8 (5).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=c62b60e8&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qicdcJgVvv7dxImCQ8lRTzEnAjZVn0Sz5bbT3eVSV7SIVq3cvE8PuMZz2QHicgwCryTolmhlXjV2Rl7WefGO3H4icDbfdME7mMHKs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n基本都来自自然搜索和自然浏览，其近 90 天\n\n广告创意数也挂 0｜图片来源：点点数据，广大大\n\n说到底，无论是好看的 UI 还是毒舌的运势，指向的都是同一个判断，用户买账的从来不是“占星”，而是占星产品提供的情绪价值。\n\n![图片9 (5).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=9a990b29&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qicz6p478r5zqH4Rb0DSYOR9jrYKWOyh0NJUmPJaJbl4682KksqK7mKK71HuJeSWx3AbC3H6lLjE1Zv33rAgbGUGGmdC8DwmMicM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n「Co-Star」全球双端下载量｜图片来源：点点数据\n\n不过，这套零预算裂变的打法也遇到了一些瓶颈，「Co-Star」这一年的月下载量基本维持在 20 万出头的水平，虽然这个成绩也不算差，但是显然增长红利已经出清，在这个情况下，「Co-Star」商业化的问题也暴露了出来。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**二、“好奇心变现”撑不起持续增长**\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=798f4806&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qibQ6JQxGMInGVXYmj3lASmcicKYgNQa5s9qYEtk8nSTIgjV7eMJyjSd6I0suG9EltmnrhDKc1tf194CYlA7RY77OTwLvbnibAUuA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n「Co-Star」全球双端月流水｜图片来源：点点数据\n\n与下载量一样，除在 2025 年 12 月短暂地冲上过月流水百万美元外，「Co-Star」的收入数据在其他各月份，基本都在 40-50 万美元之间徘徊，下载和收入增速均放缓，可能是「Co-Star」愿意出售的核心原因。\n\n![图片11 (2).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=8925e7e0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qibiaUEAQ5lpVeLdeuhcIErZ9lpwHREb085zIhmLhhwiaB2X0Bp2K4LSibRbOib5zg7BIywMwt0cpCvOTkOydlMTGxGC03DJorzeX2s%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAdd Manually：用户自行上传非注册用户的星盘进行分析；\n\nEros：情侣模式，可以看到情侣的星盘、契合度，以及专属于情侣的分析内容；\n\n5 Questions：5 次 AI 问答的机会\n\n根据点点数据给出的内购详情数据，「Co-Star」的商业化收入增长停滞，主要是因为其付费项目价格较低，且复购较弱。「Co-Star」内购收入排名前 3 的项目分别是 Add Manually、Eros 和 5 Questions。\n\n这三个内购项的共同特点就是“一锤子买卖，难复购”。Add Manually 本质上是花 2.99 美元看一眼暗恋对象或者八卦对象的星盘，满足一次性好奇心；Eros 虽然是“情侣模式”，听起来像是能沉淀长期关系的功能，但本质上也是解锁一次、看一次的契合度分析。\n\n在普通用户的生活中，解读他人或情侣的星盘并不是高频需求，满足好奇心后，消费到此为止，而订阅项目“Pro Star”的收入贡献仅排名第 5，占比不到 10%，长期使用的人群占比并不高。\n\n换句话说，「Co-Star」变现的核心逻辑是“一次性好奇心”，而非“持续价值”，在流量红利期，下载量持续增长，收入自然能冲高，而在流量平稳期，由于“长期付费价值”较弱，撑不起漂亮的收入增长曲线。当获客的边际效益开始递减，存量用户变现较弱的问题凸显，「Co-Star」的增长曲线注定会撞到天花板。\n\n相比之下，那些不务正业的占星产品，反而都是用市场已经验证的、用户高频行为去绑定占星，获取垂类用户的长期付费，靠“窄而深”的订阅打法，取得比「Co-Star」更持久的商业化成绩。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**写在最后**\n\n![图片12 (2).png](https://wechat2rss.bestblogs.dev/img-proxy/?k=59f03bde&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q9lbCiavTalfbKmr9lGaFvO9HkvIPDjbUKz1kXuP7SjVqNM3YlKgdfW7kXyReOcFn3Fv08zQSbibic8HOYVS4icGDrX9opm6FUy3QI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n回过头来，Midjourney 为什么会买个占星 App。\n\n除了收购交易双方的两位创始人透露的“私交原因”（两人 5 年来的欣赏及私人关系），可能还要归结于「Co-Star」的 UI 漂亮、以及打法漂亮——几乎零预算，靠“审美和毒舌”自然裂变 400 万+的 MAU。\n\n尤其是前者，与 Midjourney 的凭借审美行走于江湖 的“基因”重合。而 CEO 加入 Midjourney 之后，将担任首席设计官，为公司创建一个跨职能的设计、产品和前端团队。无论是 Midjourney 自己的 App，还是有可能会做的 UI 设计领域，将“漂亮”进行到底。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n推荐阅读\n\n## [179美元，监测女性健康的“卡地亚平替”？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575104&idx=2&sn=eb05bc884924afbd50bd72c3ada4e370&scene=21#wechat_redirect)\n\n## [北京再添一家季度流水过亿的「合成厂商」](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575089&idx=1&sn=56d71b3736c807e362690f597511c8c2&scene=21#wechat_redirect)\n\n## [用AI放大声音，一年卖出上亿元｜对话创始人](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574907&idx=1&sn=e562570edd9ca7542d544e5fd5595f11&scene=21#wechat_redirect)\n\n## [悄悄做到第一梯队，「DeeVid AI」拿下3000万欧美用户](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575016&idx=1&sn=5fa83e8979fbe94fe2610e1e60c24a8b&scene=21#wechat_redirect)\n\n## [脸萌、剪映后郭列再创业，做视频Agent、但学的是Claude Code｜对话一线](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574970&idx=1&sn=83581a48ed8e82215417c090fe90ef75&scene=21#wechat_redirect)\n\n**商务合作**\n\nCassie | 微信：18506490569\n\nAres | 微信：18606066421\n\nLina | 微信：13381020131\n\n**媒体合作**\n\nEcho | 微信：13003974360\n\n**游戏、应用等APP出海对接**\n\nShadow | 微信：18650708568\n\n**卖家对接**\n\nDemerly | 微信：18150844790\n\n**客户服务**\n\nLia | 微信：baijing018\n\n**与CEO聊合作**\n\n魏方丹 | 微信：bjbandari02\n\n（添加请备注姓名、公司及职位）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8940b5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FibJzB4CZdSVUmtOk1OamTtcnibrVgic99d5FTmiats16QlsKkD7nFeSa5KFibbHFLDqVHvA7nfThGicVC7ib3aQ8xxQOg%2F640%3Fwx_fmt%3Djpeg)\n\n**长按识别二维码，备注“白鲸”****申请加入白鲸社群，****获取更多资讯、活动、资源**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=64058dab&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575142%26idx%3D1%26sn%3D2018b35aa2426174714a1ebd84be30a4)",
+      "tags": [
+        "Midjourney",
+        "Co-Star",
+        "收购"
+      ],
+      "score": 80,
+      "summary": "Midjourney收购AI占星App Co-Star母公司，Co-Star月活490万。",
+      "fetched_at": "2026-07-27T22:55:39.357265+08:00"
+    },
+    {
+      "title": "追觅收缩的两个月",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575142&idx=2&sn=ad906f92435bf0e6132bc42e33b62690",
+      "published": "2026-07-27T21:31:00+08:00",
+      "source": "白鲸出海",
+      "content": "镜相作者 2026-07-27 21:31 四川\n\n以下文章来源于：镜相工作室\n\n**镜相工作室**\n\n商业世界的风向与人\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5152a970&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOHnTJ4kA6q8ond2Ew4Um6AfJnnfjoNRJka7yg7uQlfiagBXgVc4licmTvAOjO41IUXO26wjfCFY3PSwArRAD9TjTbxdlpAj0b2S02NszPDiar8%2F0%3Fwx_fmt%3Djpeg)\n\n两万人的公司，两个月发生了什么？\n\n直到今年 4 月底，追觅还是那个高调扩张的追觅。\n\n创始人俞浩活跃在社交媒体，频繁提及五年内成为世界首富、要做人类历史上第一个百万亿美金公司、造火箭车、挑战苹果三星。公司业务也同步拓展：200 多个 BU（Business Unit，事业部）覆盖了扫地机、汽车、手机、潮玩、奶茶甚至火锅等几乎所有热门赛道，员工规模超过 2 万人。\n\n自 5 月起，形势发生了变化。外界开始集中质疑追觅的资本模式与业务边界——BU 股权架构、与地方国资的基金合作、跨界扩张的合理性，相继成为市场关注焦点。\n\n随后，裁员开启，部分 BU 整体裁撤或合并；组织架构调整，业务收缩至四大核心赛道。期间，有些地方基金启动自查，Pre-IPO 融资传闻与 IPO 传闻先后传出，俞浩微博账号被禁言 ......\n\n每隔几天，市场都会收到一个新的信号。有些指向收缩，有些仍在讲述增长。公司内部，有人前一天还在推进新项目，第二天便接到裁员通知。在过去的两个月中，我们向追觅多个 BU 的员工、前员工、HR，以及一级市场的投资人与 FA 了解相关情况。每个人都掌握着一部分信息：有人经历了快速招人又迅速裁员的过程，有人发现有个别 BU 报送的数据存在目标夸大的情况，有人被不同地方的 LP（基金的出资方）轮番追问是否投了追觅。同时，媒体也在持续报道追觅的融资进展、业务整合与创始人相关争议。\n\n将这些信息拼在一起，一条轨迹逐渐清晰：追觅用一年时间构建的无边界扩张模式，正在经历一场从外部市场到内部组织的全面回调。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**急转直下的两个月**\n\n5 月中旬，一篇自媒体文章围绕追觅 BU 股权结构、产业基金合作模式、跨界扩张等提出质疑，迅速引发市场关注。随后追创创投合伙人雷鸣公开回应，强调产业基金投资、产业落地均依法合规。\n\n但这轮回应未能平息外界的关注，市场对追觅的讨论仍在持续。几乎在同一时间，业务调整和裁员从内部开始。五月底，三号、四号孵化器下有 BU 整体裁撤、合并。一些 BU 被平行并入其他 BU，一位四号孵化器的员工告诉我们：“开了一个内部活水会就结束了，然后一点消息都没有。完全放养。”员工们“就办公室干坐着。”\n\n6 月 1 日，市场传出追觅启动 Pre-IPO 融资的消息。据蓝鲸科技报道，追觅开放直接融资窗口，计划释放部分 Pre-IPO 份额。本轮投前估值或锁定约 700 亿元人民币，单笔投资最低门槛高达 3.5 亿元，整个融资窗口预计于 7 月初关闭。6 月 12 日，彭博社报道称，追觅科技正考虑最快明年在香港上市。这可以理解成是追觅向市场放出的积极信号。\n\n但四天后，6 月 5 日，俞浩微博账号被禁言。同一天，一张消息截图在市场上流传——长三角某市辖区正在要求统计辖区内企业与追觅科技已开展合作的情况，包括合作项目、资金投入、财政及国资投入情况。消息传出后，俞浩 2025 年底 22.82 亿元收购的嘉美包装，股价从盘初涨 7% 到收盘跌停，市值较两个月高点蒸发过半。\n\n事实上，早在这一天之前，地方资金的自查就已经开始了。一位头部人民币投资机构投资人向我们透露，自 5 月下旬以来，他就收到了来自各地 LP 的问询。发过来的消息，均是“受国资委要求，需要自查是不是投了追觅相关的项目。”在一个多月的时间里，他所在的机构一直在进行相关的自查和汇报。\n\n“来找我的 LP 来自不同省份，这件事让我感觉情况比较严重，整个行业都很警惕。”\n\n6 月 5 日，国务院办公厅公开发布《关于加强监管防范风险促进私募投资基金高质量发展的指导意见》。其中提到，“部分政府投资基金和国有企业投资基金出资人责任落实不到位”，并提及“部分私募基金成为违法犯罪、新型腐败和隐性腐败工具”。《意见》要求县区原则上不得新设政府投资基金，已有同类基金的原则上不得新设，推动存量同类基金整合。\n\n多位创投行业人士告诉我们，《意见》出台后，追觅与地方国资的合作模式面临更严格的合规审视，这被视为其随后启动业务收缩的关键外部因素。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=73c7c099&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FGPByaObvSHpwRQl7bBKahT1GEHR0VTaYicYaTickPdLx00bEyc67ywySBcJqGptico7ONzb3yU3weL9XvEF2RW2As6VKzZ3vIVVCvFA82icPUwU%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D1)\n\n图源｜AI 生成\n\n6 月 5 日下午，俞浩在公司内部大群发言中称，2026 年第一季度，追觅扫地机器人斩获全球市场销量、销售额两项第一。“看到这个数据时，心里挺平静，觉得我们或许应该更努力，更早拿到这个成绩。”\n\n他所说的是 IDC 发布的数据：2026 年一季度，追觅扫地机器人全球销量达到 155.5 万台，市场份额为 23.7%；销售额达到 9.24 亿美元，占全球市场 28.0%，首次同时拿下销量和销售额双第一。\n\n但追觅的财务数据存在不同版本。今年 2 月的年会上，俞浩称 2025 年公司总营收突破 400 亿元，连续六年增速超过 100%。利润率已经达到行业第一，且现金流充足。\n\n他还表示“将主营净利润的 18% 作为年终奖发放，总额达 10 亿元”。据此反推，追觅 2025 年净利润约 55.5 亿元。作为对比，另外两家已上市的清洁类产品龙头审计后披露的数据是，科沃斯 2025 年归母净利润 17.58 亿元，石头科技 13.6 亿元。\n\n但前不久，据财新报道，追创创投合伙人雷鸣表示，根据追觅近期向地方政府通报的情况，2025 年追觅成熟业务营收 200 多亿元，利润 20 多亿元。这与年会披露的数据存在较大差距。\n\n那天晚上，俞浩又在内部大群里发了一个红包，附上一句，“所有的声音都会在我们一次又一次的第一中越来越弱，最后给追觅竖大拇指。”\n\n从 5 月 12 日往后的一整个月，追觅不断向市场释放信号——IPO 融资消息、主营业务业绩数据、俞浩内部种种发言。同时，新的不利消息也在持续传出。两种力量互相拉扯。\n\n与频繁向市场放出信号的同时，追觅内部的裁员、收缩仍在推进。至少从 6 月 8 日起，追觅飞书大群已不再显示具体人数，此前约为 2 万 3 千人。\n\n6 月中旬，一位 5 月接到裁员通知的管理层收到同事的消息，她的团队均被裁员。据多名前员工，追觅的每个 BU 都是一家独立公司，由员工担任法人，多数时候是 BU 长或 HR。\n\n六月初，六号孵化器的一位员工称，她因为赔偿问题准备提起仲裁，才发现担任公司法人的员工也已被裁，同样也在寻求仲裁。\n\n一位一号孵化器大家电方向 BU 的员工，五月底刚刚入职，六月初就收到了裁员通知。起初，他试图找内部活水的机会，看到招聘网站上三号孵化器下的坦途生态有岗位正在招，消息发过去却迟迟未回。一问才知道，招人的 BU 为旗下酒业务，已经解散，没来得及下架需求。\n\n此前，追觅内部超过 200 个 BU，BU 与 BU 之间经营情况差距巨大。在过去两个月中，一些刚刚成立，或是没有实际业务的 BU 被第一时间裁撤。但和这些 BU 不同，这位员工所在的 BU 业务已经成熟且盈利，入职时，HR 告诉他的还是，“非常稳定，没有裁过人。”接到通知时，他怎么也想不明白为什么会被裁，反复追问 HR 后得到的回复是，“集团硬性规定，他们也没办法。”\n\n被裁后，他将自己的房子转租出去，来看房的也都是追觅员工。据他转述，“有几个人还在试用期，有一个因为追觅成立了一个新部门专管供应链，刚来没两天。他们都问我为什么转租，我跟他们说了（被裁的情况），人心惶惶。”\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**“断供”之前**\n\n6 月中旬，追觅确认新一轮战略规划，将 200 余个分散 BU 系统性梳理整合，确定智能家庭、户外庭院、智能出行、具身智能四大核心赛道。星辰未来、星空计划、星际穿越等业务将统一纳入产业研究院管理体系，聚焦汽车领域的技术储备。\n\n6 月 24 日，俞浩出现在大连夏季达沃斯现场，再次确认了追觅的调整，但关于追觅基金，闭口不言。会后，一家媒体负责人放出一则对俞浩的专访，称俞浩其实是一个“极度厌恶风险”的人，所做的一切“你以为是飘了，其实他在做‘极限测试’。”“短期全是争议，长期全是边界。”\n\n要理解追觅发生了什么，需要把时间线再往前推。\n\n追觅从 2025 年起提出做“无边界”生态企业，将公司拆成 200 多个 BU，团队独立、股权独立、自负盈亏。按照这套设计，BU 在初期可以从集团获得借款，但最终需要向外融资，独立存活。\n\n据《财经》报道，尽管追觅主营业务利润可观，但光靠主业现金流不足以支撑庞杂的旁枝业务。今年 3 月，追觅向内部员工传达，获取外部资金是当前最重要的事情。集团要求每个 BU 至少要谈 20 只外部基金，目标是 100 只。\n\n去年 12 月，虽未有明确通知，但有 BU 已经被要求自负盈亏。一位员工记得，1月俞浩发微博称给员工送羽绒服，但她根本没有收到。原因就是羽绒服的费用由 BU 自行承担，而她所在的 BU 办公地在深圳，BU 长认为深圳的天气用不到羽绒服。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=1bb5bab0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FGPByaObvSHp5fYo8ibcbnwHSo8FasMibNiadRqG538Bt1gBkla64NppMia4du49Plceh5Ij9QXy2Uv3sOqmFdiajnG7tmMa9Qfgsy6f9DMYGWfug%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D3)\n\n俞浩当时发微博称给每个追觅\n\n员工送羽绒服｜图源微博截图\n\n今年 3 月份，集团明确下发“断粮”通知。据 Tech 星球报道，集团对各 BU 4 月借款减半，5 月借款减至 1/4，6 月将完全停止借款，届时无法自负盈亏的 BU 将被砍掉。\n\n上述《财经》的报道提到，一位天空工场前投融资人士透露，5 月一次会上，公司高层要求所有 BU 在 6 月要完成 10 亿元到账融资，三季度单月到账 30 亿元，四季度单月到账 90 亿元。他说，几乎没有 BU 能够完成集团下达的募资指标。\n\n新 BU 出去融资，统一从 5 亿估值起谈。据界面新闻报道，一位 BU 长称，“5 亿是老板定的数字，所有人都觉得不现实，但追觅内部讲究高目标牵引。老板的逻辑是，如果 5 亿估值的模型做不出来，那 2 亿的大概率也做不出来。”\n\n追觅的融资被拆解为三个具体目标：团队规模、品牌声量、业绩数据。\n\n一位内部 HR 称，此前每个 BU 的目标都是招 1000 人。她的周报、月报都需要汇报千人架构的进度，以及在此基础上，一二象限坑位的比例。集团层面每个 HR 月 KPI 是入职 2 人，而据她所知，至少有 3 个孵化器的 KPI 都是月入职 6 人。\n\n几乎所有追觅员工都会提到“四象限”理论：一象限是指各个赛道中最头部的公司，二三四象限次之。以家电行业为例，一象限指的就是美的、海尔等公司。追觅内部一度要求 75% 以上是一象限人才。一二象限占比和海外销售岗位占比，明确写在 HR 的 KPI 里。还存在“一带一”的说法，指 HR 需招聘 1 个一二象限人才，才能带 1 个非一二象限人才，“因为也不可能只要一二象限的人，但是会有一定的要求。”\n\n与“四象限”理论相对应的，是“N+1”理论：对标市场上最好的产品，把它的 N 都做到，再找出可以改进提升的一点做“+1”。在上述 HR 看来，追觅对人才的狂热就来源于“N”，“得先把这个 N 弄出来，才能+1。N 从哪来？好听点叫借鉴，难听点叫抄袭。”\n\nPR 是另一个被量化考核的板块。一位一号孵化器的 PR 称，至少在今年 5 月，光他所在的孵化器，就有超过 200 位 PR。粗略估算，在上述时间，公司整体约有超过 300 位 PR。据他介绍，在追觅，PR 需要承担一定的“右侧业务”功能，右侧是指金融侧，包括融资、上市等，PR 需要“讲故事帮找投融资”。\n\n5 月前后，追觅不同业务负责人的专访开始大量出现在媒体上。据不完全统计，其中包括了 AI 吊坠、空调、个护、手机、洗地机等品类。上述 PR 称，这也是俞浩的要求：所有 BU 必须联系官媒给 BU 长做采访，且需要是市级以上媒体。最关键的是，“不准花钱”。\n\n上述人士透露，目前追觅的 PR 数量已大幅减少。\n\n而在业绩数据上，许多 BU 并未实现可观的业绩。当融资目标与业务实际之间出现落差，指标的完成方式也开始走样。\n\n多位员工告诉我们，同一赛道、同一品类产品，追觅内部会有多个孵化器、多个 BU 同时在做。一位员工描述为“立体式赛马”——“孵化器和孵化器赛马，同一个孵化器下不同 BU 之间赛马，不同孵化器下同一赛道 BU 又赛马。”追觅的 BU 成立门槛很低，用人也不拘一格，有时的确能激发组织的活力。但结果经常被单纯理解为数据，层层汇报之间，有些个别 BU 就会存在夸大进度或夸大目标的情况。\n\n一位受访员工告诉我们，有一个去年年末才刚刚成立的 BU，BU 长在 5月立下军令状，要将月营收做到 1000 万元。然而当月过半，收入离目标差距仍较大。有内部销售对她称，5 月销售签单并不好。\n\n一位潮玩 BU 的员工同样对数据感到困惑，在她过去工作过的潮玩公司，业绩数据需要考虑货款回流比例，减去售后或折损，“这里是能加的全加，该扣的一点都不扣。”该潮玩 BU“之前也开过线下店，但只存活了一个月。”不止一位员工提到，部分 BU 汇报上去的数据“哄领导玩的”——“哄完自己哄孵化器，哄完孵化器再哄领导，然后对外发喜报。”\n\n俞浩每月和各孵化器、BU 开月会，据与会者称，他主要关心的有三件事：什么时候能开发布会？什么时候达到业绩销售指标？什么时候招够人？“一个业务大概就说一两分钟。”\n\n据 Tech 星球报道，今年开始，仅月营收达到 1000 万元以上的 BU 负责人有资格参加俞浩主持的月会。有 BU 长在汇报时，刚讲 30 秒，俞浩便打断问对方，今年营收能不能到 1 个亿。对方回复达不到，俞浩便让对方直接下去。\n\n追求业绩数据的同时，一些业务开始出现困境。一位消费硬件研发人员告诉我们，他所在的自研团队从 3 月份起就几乎无法正常推进。一方面，供应商因付款延迟甚至欠款，开始不再配合打样或拖着交期了。另一方面，HR 收紧招聘，人员一直未配齐，只能找其他 BU 借调人力。“也不是长久之计，有时候别的 BU 也不配合。”“一方面是钱，一方面是人。说到底都是钱。”\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**追觅的杠杆不管用了？**\n\n要理解追觅模式为何会在  5 月后急转直下，需要先看清“追觅系”的结构。\n\n我们曾梳理了追觅的股权结构，除去俞浩单独控股的一层，追觅体系可以大致分为三层。第一层是追觅科技母公司，主营智能清洁业务，包括扫地机、洗地机、吸尘器等，使用“追觅”品牌。第二层是孵化业务，以独立公司形式存在的 200 多个 BU，覆盖汽车、手机、潮玩、奶茶等赛道，自负盈亏，需要对外融资。第三层是天空工场，由追觅科技创立，雷鸣作为创始合伙人的 CVC 基金，负责为孵化项目对接外部资金。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=691a2aa9&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOHnTJ4kA6qibDJyQqhUlIkCGicqAH09KYcpZXOstmZ2k353zCl7rzL2OhGZibUlqDVk4ChEdxic14qDyiaH3iclYsd1bsYknQsPric9EwATmiakmlMA%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=dd86b83e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q892o2rRRPzibibZ9Hia5tJyPN6fdf7lxad1Vzh5RtiagCNGlrr7bSOJ5LgKavmHZvsynIHZ6CbzjPpxAqnkRRMQnZKPnia1dKjmrnU%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=125903ed&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6qicua87YX5fGUKrMBicCibotLibicbLknOQyzaa1nT2pvADZaWCo0Piblx16ic5xn6iaKf3hMKuhuoYoSB0x9IELcCG5ibZuyv4hOqEQibPI%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n追觅母公司及天空工场（追创创投）股权\n\n梳理，左右滑动可见。图源｜镜相工作室\n\n天空工场创投基金成立于 2023 年，最初名为“追创创投”，后更名，由俞浩的大学同学雷鸣负责。雷鸣早期曾在华兴资本工作多年，团队人员也多为财务顾问背景，擅长融资运作。\n\n2024 年 8 月，追创创投完成中早期孵化基金的首关募集，雷鸣接受 36 氪采访时提出“孵化式 CVC”概念，称“孵化式 CVC 基金，是创投圈的新物种，也像当前中国一级市场创投的一种新解法。因为 CVC 模式，能够很好地平衡政府类基金招商的需求。”\n\n据财新报道，天空工场基金当前存续备案、有地方政府参与的产业基金合计 16 只，整体认缴总规模约 177 亿元，累计各方实缴资金 60 亿元左右；另有几只没有地方政府参与、仅与市场化机构合作的专项基金，合计认缴规模约 2 亿元；天空工场基金总计管理规模 179 亿元。\n\n近年来，与追觅和天空工场共同创立基金或达成战略合作协议的地方横跨多个地方，包括福建厦门、四川成都、山东枣庄、浙江杭州、丽水、绍兴、湖北武汉、江苏苏州、宿迁等。“地方国资愿意出资，看重的是追觅项目带来的招商效果，包括产业落地、税收和就业等。”一位头部人民币机构投资人表示。\n\n地方国资的出资比例在过程中逐步提高。据界面新闻报道，最初天空工场与地方国资的出资比例为五五开，双方各出一半。但在某些地方，追觅要求地方政府出资比例提升为 80%。一位天空工场前投融资人士也向《财经》证实了这一变化，称追觅要求地方国资作为 LP 出资比例达 80%，追觅系出资 20%。\n\n在某头部 FA 从业者看来，追觅基金的模式有其合理性。一些地方手握引导基金，但本地优质硬科技项目稀缺，追觅的项目恰好契合招商需求：团队有产业背景，故事主打政策方向，容易拿到地方引导基金。在高速扩张阶段，地方政府需要明星项目和招商故事，追觅需要产业资本，双方互相需要。\n\n但 5 月舆情之后，这种互需关系被打破。\n\n该 FA 从业者认为，当下市场资金结构已经变化，去年涌现了大量短期专项产业基金，存续期只设 3 到 5 年，核心诉求是快速投资、快速退出，对舆论和监管风险容忍度极低。追觅舆情爆发后，这类资金对追觅系项目的态度迅速转变。\n\n当下一级市场对追觅已经有强烈的避险情绪。\n\n一位产业投资头部 FA 内部人士表示：“现在投资机构只要一听是追觅，立马不看。”他们之前推过一个追觅系的项目，“我们推了几十家机构，没有一个机构跟进的。”这名 FA 从业者表示：“基于此，我们今年就也不签不做（追觅系相关融资）了。”\n\n一些项目并未直接标明自己与追觅的关系，他们在做背景调查的时候，会特意去看看公司所在的地方。如果是出自苏州的追觅园区，他们都会格外警惕。另一位头部人民币投资机构投资人表示，他此前也接触过追觅系的多个项目，一些项目在他看来并不差。比如一家做 3D 打印的企业，有产品，有技术，核心团队都是追觅出来的人。最后没投，主要是当时估值太贵。\n\n对于当前一级市场对追觅系项目的态度，他认为：“问题不在于项目本身，核心风险出在追觅系相关基金模式身上。”某头部 FA 从业者告诉我们，圈内早就观察到追觅扩张模式里的各类隐患，5 月的舆情直接将行业私下讨论的风险公开引爆。“文章是导火索，但行业观望、担忧的情绪年初就已经存在。”\n\n通过这种基金模式，追觅把自己变成一家“创业工厂”——一个新项目对应一家新公司，一家新公司可以对接一个地方产业基金，一个基金又可以继续支持新的项目孵化。当品牌向上时，每个环节都会获得额外的信用；一旦品牌出现裂缝，风险也会沿同一链条传导。\n\n传统企业一款产品失败，影响的是一条产品线；一家 VC 一个项目失败，影响的是一笔投资。但对追觅而言，母公司品牌、孵化业务和基金资本被绑在同一个链条上。\n\n追觅需要持续证明，整个孵化体系是否能够不断跑出新的成功案例。这也是为什么 3 月开始集团对 BU 断供，开始进入验证其结果的阶段。\n\n对追觅来说，收缩不意味着结束。如何在停止讲述越来越大的故事之后，重新用产品、业绩和时间，重新建立市场的信任和信心，或许是追觅刚刚开始的新课题。\n\n参考资料：\n\n财新：《追觅+天空⼯场的融资故事 与地⽅国资合作基⾦模式起底》\n\n界面新闻：《追觅资本局：200 个 BU、数十支政府基金与一场概率游戏》\n\n界面新闻：《商业头条 No.111｜揭秘追觅“宇宙”：狂人俞浩和他的百万亿美金梦》\n\n蓝鲸科技：《独家｜追觅开放融资，单笔投资门槛最低 3.5 亿，Pre-IPO 轮投前估值或 700 亿》\n\n36 氪：《36 氪首发 |追觅科技新基金完成首关》\n\nTech 星球：《追觅扩张狂飙：十个孵化器，内部赛马》\n\n财经：《追觅收缩，断尾求生》\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n推荐阅读\n\n## [179美元，监测女性健康的“卡地亚平替”？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575104&idx=2&sn=eb05bc884924afbd50bd72c3ada4e370&scene=21#wechat_redirect)\n\n## [北京再添一家季度流水过亿的「合成厂商」](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575089&idx=1&sn=56d71b3736c807e362690f597511c8c2&scene=21#wechat_redirect)\n\n## [用AI放大声音，一年卖出上亿元｜对话创始人](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574907&idx=1&sn=e562570edd9ca7542d544e5fd5595f11&scene=21#wechat_redirect)\n\n## [悄悄做到第一梯队，「DeeVid AI」拿下3000万欧美用户](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575016&idx=1&sn=5fa83e8979fbe94fe2610e1e60c24a8b&scene=21#wechat_redirect)\n\n## [脸萌、剪映后郭列再创业，做视频Agent、但学的是Claude Code｜对话一线](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574970&idx=1&sn=83581a48ed8e82215417c090fe90ef75&scene=21#wechat_redirect)\n\n**商务合作**\n\nCassie | 微信：18506490569\n\nAres | 微信：18606066421\n\nLina | 微信：13381020131\n\n**媒体合作**\n\nEcho | 微信：13003974360\n\n**游戏、应用等APP出海对接**\n\nShadow | 微信：18650708568\n\n**卖家对接**\n\nDemerly | 微信：18150844790\n\n**客户服务**\n\nLia | 微信：baijing018\n\n**与CEO聊合作**\n\n魏方丹 | 微信：bjbandari02\n\n（添加请备注姓名、公司及职位）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8940b5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FibJzB4CZdSVUmtOk1OamTtcnibrVgic99d5FTmiats16QlsKkD7nFeSa5KFibbHFLDqVHvA7nfThGicVC7ib3aQ8xxQOg%2F640%3Fwx_fmt%3Djpeg)\n\n**长按识别二维码，备注“白鲸”****申请加入白鲸社群，****获取更多资讯、活动、资源**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=e9eda8d4&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575142%26idx%3D2%26sn%3Dad906f92435bf0e6132bc42e33b62690)",
+      "tags": [
+        "追觅",
+        "业务收缩",
+        "裁员"
+      ],
+      "score": 65,
+      "summary": "追觅科技两个月内裁员调整，业务从200+BU收缩至四大核心赛道。",
+      "fetched_at": "2026-07-27T22:55:39.357268+08:00"
+    },
+    {
+      "title": "半年吸金86亿，巨头盯上AI可穿戴",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575142&idx=3&sn=262851b0d73857d7c37b66a8e2d8c41e",
+      "published": "2026-07-27T21:31:00+08:00",
+      "source": "白鲸出海",
+      "content": "品牌方舟 2026-07-27 21:31 四川\n\n以下文章来源于：品牌方舟BrandArk\n\n**品牌方舟BrandArk**\n\n品牌方舟BrandArk致力于让世界看见中国品牌的力量，长期关注全球化、跨境出海、品牌增长等议题，通过品牌案例分析、行业趋势解读，从中洞察新兴市场和潜力赛道，帮助出海者寻方向、悉脉搏、洞未来。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=3fd32f95&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2Fly7VR9IMIXuMXIWlu1PIlVicHyczJ4pYY5tN3JRN4ibz8Nf4uodtcdMdwKfWp3yXURTjZVic6vBgcUN9dyiaAkQhteS6kLsQWOiaV2SFekuoTUtg%2F0%3Fwx_fmt%3Djpeg)\n\nAI 的介入，又将如何重塑这一赛道的竞争逻辑？\n\n目前，在可穿戴设备赛道中，智能手表仍是出货量最大的品类。\n\n但过去一年，行业的关注焦点从手表向外转移，资本密集流向戒指、项链、耳环、手链等新兴形态。这些看似与“智能”无关的配饰，被赋予健康监测、信息记录、智能交互等能力，并开始向更多日常场景延伸。\n\nGrand View Research 数据显示，全球可穿戴技术市场预计 2026 年达到 1031 亿美元，并将在 2033 年增长至 2299 亿美元，年复合增长率达 12.1%。市场仍在扩容，但增长的重心已经转移。\n\n那么，这些新兴形态能否撑起可穿戴设备的下一轮增长？AI 的介入，又将如何重塑这一赛道的竞争逻辑？\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**手表之外，寻找下一种形态**\n\n根据 TechTarget 的定义，可穿戴设备是指任何设计用于佩戴在用户身上的电子设备。但在很长一段时间里，在消费者眼中，可穿戴设备几乎等同于智能手表。\n\n这一形态能够率先普及，一方面源于手腕本身自带的成熟佩戴基础——手表已有上百年历史，无需对用户进行市场教育。另一方面，手腕的皮肤条件适合光学传感器采集信号，也为电池、屏幕等硬件提供了足够的集成空间。\n\n时至今日，智能手表依然是可穿戴设备中最大的成熟品类。Grand View Research 数据显示，全球智能手表市场预计到 2030 年达到 715.7 亿美元，2023 年至 2030 年的复合年增长率约为 8.2%。\n\n但市场规模领先，并不意味着这里仍然是最容易诞生新机会的方向。\n\n伴随市场日渐成熟，智能手表开始面临新的挑战。产品层面，消息提醒、健康监测、运动追踪等核心功能逐渐成为标配，差异化空间持续收窄；市场层面，苹果、三星、华为等巨头凭借硬件能力生态优势牢牢占据主要份额，新玩家很难在这一成熟品类中找到突破口。\n\n也正因此，越来越多创业者开始探索手腕之外的可能性。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=b61ddd82&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2Fly7VR9IMIXt5bRZ8PibxMffexMz3G0Q4ZtIHHC2UUFm4MbaUc5icfDGHfYHlAgVjZADDBGGdaJicbUFjXSQicX1jHCmhMPiaIKFFDXGibWmdU28v0%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D4)\n\n图源：Apple\n\n其中，智能戒指是过去两年最受关注的新兴品类之一。相比智能手表，戒指砍掉屏幕与复杂交互，将重心放在轻量化佩戴与全天候数据采集上。低存在感使其更容易融入日常生活，也更贴合健康监测对持续性的要求，因此成为不少玩家切入可穿戴市场的新方向。\n\n以Oura、RingConn、Ultrahuman 为代表的品牌，正在推动这一品类快速发展。Grand View Research 数据显示，智能戒指市场预计 2026 年至 2033 年的复合年增长率达到 22.5%。\n\n智能眼镜则走出了另一条路径。以 Meta Ray-Ban、Rokid、RayNeo 为代表的品牌，将翻译、导航、实时问答等能力嵌入镜片。数据显示，智能眼镜市场预计同期复合增长率达到 24.2%，是可穿戴设备领域增长最快的新兴方向之一。\n\n此外，一些更小众的佩戴部位也陆续受到关注。Lumia Health 以耳环形态切入健康监测，将传感器藏进饰品之中；Friend、Limitless、OdyssLife 则将 AI 语音能力嵌入项链吊坠，以更低的存在感实现随时随地的交互与环境感知。\n\n从手腕到指尖，从耳畔到颈间，可穿戴设备的形态正在变得愈发多元。与此同时，资本也在用真金白银验证这一趋势。\n\n除了 Oura、WHOOP 等成熟玩家持续获得融资外，国内外围绕戒指、项链、手链等细分形态的新兴品牌也接连崭露头角，Sandbar、OdyssLife、Spiro 等初创企业均已完成新一轮融资。\n\n毕马威发布的《2026 半年度智能穿戴投融资市场洞察》报告显示，仅 2026 年上半年，国内智能穿戴领域就完成了 83 笔融资，披露总金额达 86.23 亿元人民币，半年数据已超过 2022 年至 2024 年任意一个年份的全年水平。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=42d9a3af&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2Fly7VR9IMIXvBZRsykC76OEWKVGsWic52rxyU5DZymbbXq2fPZribPuFjAcc0tN7Dn4c8CGbDrJRP1dsLtZxX8ic7h1pkEDNWOqQtvb6OgNp7fo%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D5)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**AI 重塑可穿戴设备价值**\n\n可穿戴设备最早解决的是“记录”的问题。\n\n通过传感器，设备可以持续采集用户的心率、睡眠、运动轨迹等身体数据，并将这些信息呈现在手机 App 中。这些数据更多停留在指标层面：用户知道自己睡了多久、今天运动了多少，却很难进一步理解这些变化意味着什么。\n\n而 AI 的出现，让设备具备了理解这些数据的能力。产品逻辑也从过去的“记录—展示”，转向“感知—理解—建议”。\n\n以 Oura Ring 为例，其价值不只是监测睡眠、心率、体温等生理数据，更在于通过算法将这些数据转化为用户可以理解的健康洞察。产品基于实时监测数据，在配套 App 输出个性化健康分析与配套指导方案。\n\n换言之，可穿戴设备正在从“告诉用户发生了什么”，走向“帮助用户决定下一步该怎么做”。不过，这只是 AI 重塑可穿戴设备的第一步。\n\n随着大模型能力进入硬件，设备的能力边界也在进一步扩展。基于环境感知、信息处理和任务调用能力，可穿戴设备逐步具备更强的主动服务能力，并向智能终端演进。\n\n不过，从单点的 AI 功能到真正的智能助手，中间仍需要一个能够理解用户意图、调动多种能力并完成任务的智能系统——这正是 AI Agent 正在探索的方向。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=0202fbed&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2Fly7VR9IMIXvH5Jt6GibCdoLibw3EWfIIgUOND9ekRG6Zg2AgbHMrGGX72gDFM0XhDB3Gwj0fkwKOXmRjplctWuRLziacoC0iaT3LyyVEYlnl1XE%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D8)\n\n图源：Oura Ring\n\n从这个角度来看，AI Agent 与可穿戴设备正在形成一种新的结合关系。AI Agent 为设备提供更强的理解和任务处理能力，而可穿戴设备则成为 AI 感知用户状态和现实环境的重要入口。\n\n前者像“大脑”，负责分析和决策；后者像“身体”，负责感知和交互。两者结合，有望推动可穿戴设备从功能型硬件进一步走向个人智能入口。\n\n例如，未来智能推出的 AI 会议耳机，正在突破传统音频设备的功能边界——通过 AI 能力，设备不仅可以完成语音交互，还能帮助用户进行会议记录、内容整理等任务，从单纯的音频设备转变为随身携带的智能助手。\n\n但更进一步的变化在于，它正从单一工具升级为具备“长期记忆”的办公 AI Agent。\n\n其 AI 能力平台“viaim 大脑”试图将用户在会议、通话、文档处理等场景中产生的信息持续沉淀、关联和调用，形成完整的工作知识体系。在这一逻辑下，耳机不再只是一个音频输入输出设备，而是连接不同设备和场景的中枢。\n\n由此可见，可穿戴设备的价值正在从硬件功能本身，延伸至背后的智能服务能力。未来，随着模型进一步完善，行业的竞争逻辑或将随之转向。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=b6c368ae&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2Fly7VR9IMIXsU1D5FiaxMHnaYKpg82hLbGhAfS8bbwzCzskpPogwOibe0UFIp4a4np3v7sZFAsyiaaptLyYXgIdwEcb1I4RFcQAfZ9sfCdQJaSU%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D9)\n\n图源：未来智能\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**可穿戴设备的下半场**\n\nAI 正在重塑可穿戴设备的能力边界，但它并非这一赛道唯一的变化变量。随着设备逐渐融入日常生活，设备能否被长期佩戴、服务于谁，也将影响可穿戴设备未来的发展方向。\n\n其中，首先发生变化的，是设备本身的形态。\n\n早期的可穿戴设备，本质上是消费电子产品的身体化延伸，即功能逻辑优先于佩戴体验。\n\n但随着设备逐渐进入日常生活，产品逻辑开始翻转：降低佩戴负担、提升使用频率，成为比叠加功能更优先的考量。屏幕被舍弃，交互被简化，形态向更轻量、更低存在感的方向演进。\n\n这一趋势在近期的产品迭代中已经清晰可见。谷歌 Fitbit Air 手环完全舍弃屏幕，整机仅重 5.2 克；Lumysi 的无屏检测手环同样以极简形态切入健康监测市场——屏幕不再是必需品。\n\n这种对低存在感的追求，并不止于做轻做薄，也正在推动设备往饰品化发展。\n\n例如，Lumia Health 的 AI 耳环提供黄金、白银、钛金等多种材质选项，让科技产品拥有了珠宝的质感；另一边，传统黄金珠宝品牌梦金园也加速入局，推出智能戒指 iRing N1。\n\n可见，可穿戴设备的下一竞争场景，不只是电子卖场，也可能是时尚消费市场。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=783df70c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2Fly7VR9IMIXvD6CcdgTeNK9n3ViaSia7zY0EXXns9lP99ltZnK8GscAcDz0vS6WAXEYYHf0LWL9ZP7mhFbaO9gP1DCfFomTcSL447XYecMYHEI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D12)\n\n图源：Lumia Health\n\n而当形态从手腕走向戒指、耳环、项链，设备所面对的用户画像也在变得更加具体——一款产品覆盖所有人的逻辑，正在让位于更精准的客群定位。\n\n运动向的 Garmin 深耕专业运动数据，已经走通了这一方向。女性健康则是近期最受关注的细分领域——2026 年，Oura 推出首个自研女性健康 AI 模型；Clair Health 则推出专为女性打造的荷尔蒙健康监测可穿戴设备，并完成超 1100 万美元种子轮融资。\n\n除此之外，老人健康管理、慢病监测等方向也正在成为可穿戴设备探索的新场景。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**BrandArk 观品牌**\n\n可穿戴设备的想象空间，正在被重新打开。\n\n随着硬件形态不断丰富、AI 能力持续渗透，这一赛道的边界也在不断扩大。未来，真正有竞争力的产品，或许不只是功能更强的设备，而是能够更自然地融入用户生活，并在具体场景中持续创造价值的智能终端。\n\n这也意味着，可穿戴设备的竞争重点将逐渐从单一硬件能力，转向对用户需求和使用场景的深度理解。对于玩家而言，如何找到人与设备、数据与服务之间更自然的连接方式，或许将成为下一阶段探索的核心。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n推荐阅读\n\n## [179美元，监测女性健康的“卡地亚平替”？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575104&idx=2&sn=eb05bc884924afbd50bd72c3ada4e370&scene=21#wechat_redirect)\n\n## [北京再添一家季度流水过亿的「合成厂商」](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575089&idx=1&sn=56d71b3736c807e362690f597511c8c2&scene=21#wechat_redirect)\n\n## [用AI放大声音，一年卖出上亿元｜对话创始人](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574907&idx=1&sn=e562570edd9ca7542d544e5fd5595f11&scene=21#wechat_redirect)\n\n## [悄悄做到第一梯队，「DeeVid AI」拿下3000万欧美用户](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575016&idx=1&sn=5fa83e8979fbe94fe2610e1e60c24a8b&scene=21#wechat_redirect)\n\n## [脸萌、剪映后郭列再创业，做视频Agent、但学的是Claude Code｜对话一线](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574970&idx=1&sn=83581a48ed8e82215417c090fe90ef75&scene=21#wechat_redirect)\n\n**商务合作**\n\nCassie | 微信：18506490569\n\nAres | 微信：18606066421\n\nLina | 微信：13381020131\n\n**媒体合作**\n\nEcho | 微信：13003974360\n\n**游戏、应用等APP出海对接**\n\nShadow | 微信：18650708568\n\n**卖家对接**\n\nDemerly | 微信：18150844790\n\n**客户服务**\n\nLia | 微信：baijing018\n\n**与CEO聊合作**\n\n魏方丹 | 微信：bjbandari02\n\n（添加请备注姓名、公司及职位）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8940b5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FibJzB4CZdSVUmtOk1OamTtcnibrVgic99d5FTmiats16QlsKkD7nFeSa5KFibbHFLDqVHvA7nfThGicVC7ib3aQ8xxQOg%2F640%3Fwx_fmt%3Djpeg)\n\n**长按识别二维码，备注“白鲸”****申请加入白鲸社群，****获取更多资讯、活动、资源**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=28d9d660&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575142%26idx%3D3%26sn%3D262851b0d73857d7c37b66a8e2d8c41e)",
+      "tags": [
+        "AI可穿戴",
+        "智能戒指",
+        "投资"
+      ],
+      "score": 75,
+      "summary": "AI可穿戴设备半年吸引86亿美元投资，智能戒指等新兴形态受关注。",
+      "fetched_at": "2026-07-27T22:55:39.357270+08:00"
+    },
+    {
+      "title": "离了大谱\n视频号直播中露了Codex页面\n被判违规\n还是中度违规。。。\n\n刚要开始做30天的公益直播\n30节实操课呢\n当头一棒\n\n不知道还能播几次。。。",
+      "link": "https://x.com/PMbackttfuture/status/2081746906540085502",
+      "published": "2026-07-27T22:21:54+08:00",
+      "source": "AI产品黄叔(@PMbackttfuture)",
+      "content": "离了大谱  \n视频号直播中露了Codex页面  \n被判违规  \n还是中度违规。。。  \n  \n刚要开始做30天的公益直播  \n30节实操课呢  \n当头一棒  \n  \n不知道还能播几次。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HOPZgycWsAAkNDa.jpg)![Tweet Image](https://pbs.twimg.com/media/HOPZgyhW4AAEUXA.jpg)![Tweet Image](https://pbs.twimg.com/media/HOPZk_1W4AApvNz.jpg)\n\n💬2🔄0❤️0👀123📊2",
+      "tags": [
+        "视频号",
+        "违规"
+      ],
+      "score": 30,
+      "summary": "用户直播时展示Codex页面被判中度违规，抱怨无法继续公益直播。",
+      "fetched_at": "2026-07-27T22:55:39.357272+08:00"
+    },
+    {
+      "title": "Zuckerberg, Jensen and Bernard Arnault have all joined @X this month. Coincidence?\n\nI don't think so...",
+      "link": "https://x.com/aaditsh/status/2081734715107627399",
+      "published": "2026-07-27T21:33:27+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "Zuckerberg, Jensen and Bernard Arnault have all joined [@X](https://x.com/X) this month. Coincidence?  \n  \nI don't think so...\n\n💬8🔄3❤️45👀7927📊12",
+      "tags": [
+        "Zuckerberg",
+        "X"
+      ],
+      "score": 60,
+      "summary": "扎克伯格、黄仁勋、阿诺特本月加入X平台，引发猜测。",
+      "fetched_at": "2026-07-27T22:55:39.357274+08:00"
+    },
+    {
+      "title": "Good observations",
+      "link": "https://x.com/AravSrinivas/status/2081750922745827653",
+      "published": "2026-07-27T22:37:51+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "Good observations\n\n![Grady Booch](https://pbs.twimg.com/profile_images/1350371022067781634/0mw7Irfk_normal.jpg)\n\nGrady Booch@Grady\\_Booch\n\nIn the fullness of time, LLMs will eventually become commodities and their price will be a race to the bottom. As the competitive advantage of one LLM over another shrinks - particularly as open source models expand - the value proposition will turn to the neuro/symbolic harnesses that use those models, structures that encompass agents, agent orchestration, tooling, and component plugins. Even those from frontier AI organizations will fall to open source frameworks. The last thing standing will be those who command the data centers on which these things run, and even then, that will become a commodity, with the number of players shrinking to just a few survivors. They too will find pressure: as computational power rises, more and more such systems will be run locally.\n\n[🔗 View Quoted Tweet](https://x.com/Grady_Booch/status/2081327611817423355)\n\n💬0🔄0❤️5👀3133📊1",
+      "tags": [
+        "LLM",
+        "商品化",
+        "代理编排"
+      ],
+      "score": 80,
+      "summary": "Grady Booch观点：LLM将成商品，价值转向神经/符号编排和代理框架。",
+      "fetched_at": "2026-07-27T22:55:39.357276+08:00"
+    },
+    {
+      "title": "$SPCX is on its way to dropping below 100, \n\ntold you not to mess with it….",
+      "link": "https://x.com/GaryMarcus/status/2081753137006985437",
+      "published": "2026-07-27T22:46:39+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "$SPCX is on its way to dropping below 100,   \n  \ntold you not to mess with it….\n\n💬0🔄1❤️2👀537📊1",
+      "tags": [
+        "SPCX",
+        "投资"
+      ],
+      "score": 20,
+      "summary": "Gary Marcus称SPCX即将跌破100，警告不要碰。",
+      "fetched_at": "2026-07-27T22:55:39.357278+08:00"
+    },
+    {
+      "title": "Circular financing ain’t what it used to be.",
+      "link": "https://x.com/GaryMarcus/status/2081739732195889369",
+      "published": "2026-07-27T21:53:23+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Circular financing ain’t what it used to be.\n\n![Tweet Image](https://pbs.twimg.com/media/HOPS2TcakAAYmnN.jpg)\n\n💬7🔄8❤️32👀2260📊11",
+      "tags": [
+        "循环融资"
+      ],
+      "score": 20,
+      "summary": "Gary Marcus评论循环融资不如从前。",
+      "fetched_at": "2026-07-27T22:55:39.357280+08:00"
+    },
+    {
+      "title": "Pi Atelier 为 Pi Agent 提供信息丰富的状态栏、菜单和侧边栏，替代默认底部栏。\n\n把默认底部栏换成了响应式状态栏，侧边栏可以显示 Agent 状态、回合信息、工具调用、上下文、会话和...",
+      "link": "https://x.com/geekbb/status/2081744415291593151",
+      "published": "2026-07-27T22:12:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "Pi Atelier 为 Pi Agent 提供信息丰富的状态栏、菜单和侧边栏，替代默认底部栏。  \n  \n把默认底部栏换成了响应式状态栏，侧边栏可以显示 Agent 状态、回合信息、工具调用、上下文、会话和项目数据。  \n  \n[github.com/michaelmjhhhh/…](https://github.com/michaelmjhhhh/pi-atelier)\n\n![Tweet Image](https://pbs.twimg.com/media/HOPJpcLbMAA3DqL.jpg)\n\n💬0🔄0❤️4👀954📊1",
+      "tags": [
+        "Pi Agent",
+        "状态栏"
+      ],
+      "score": 72,
+      "summary": "Pi Atelier开源工具为Pi Agent提供增强状态栏、菜单和侧边栏。",
+      "fetched_at": "2026-07-27T22:55:39.357282+08:00"
+    },
+    {
+      "title": "找回被开发工具缓存和 ML 模型占用的磁盘空间\n\n一个免费开源桌面工具，帮开发者和 ML 工程师清理各种工具缓存——Hugging Face、Ollama、PyTorch、npm、pip、Cargo、...",
+      "link": "https://x.com/geekbb/status/2081743517987303825",
+      "published": "2026-07-27T22:08:26+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "找回被开发工具缓存和 ML 模型占用的磁盘空间  \n  \n一个免费开源桌面工具，帮开发者和 ML 工程师清理各种工具缓存——Hugging Face、Ollama、PyTorch、npm、pip、Cargo、Docker 等 25+ 类来源。  \n  \n能识别\"下载过但从未使用\"的 ML 模型，量化不同 Python 环境间的重复包，每个项目都给出安全评分。所有清理都走回收站，不删文件，不收集数据，支持 macOS 和 Windows。  \n  \n[github.com/riponcm/Jharu](https://github.com/riponcm/Jharu)\n\n![Tweet Image](https://pbs.twimg.com/media/HOPWma1aMAAAJHU.jpg)\n\n💬0🔄1❤️2👀935📊1",
+      "tags": [
+        "ML缓存",
+        "清理工具"
+      ],
+      "score": 72,
+      "summary": "开源工具Jharu帮助清理25+种开发工具缓存和ML模型，安全回收站。",
+      "fetched_at": "2026-07-27T22:55:39.357284+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/geekbb/status/2081738919377613226",
+      "published": "2026-07-27T21:50:09+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "![Tweet Image](https://pbs.twimg.com/media/HOPSgbNbIAADgM-.jpg)\n\n💬2🔄0❤️2👀2000📊2",
+      "tags": [
+        "图片"
+      ],
+      "score": 10,
+      "summary": "仅包含一张图片，无文字内容。",
+      "fetched_at": "2026-07-27T22:55:39.357286+08:00"
+    },
+    {
+      "title": "一个终端界面工具，能实时看 macOS 的电源行为，暗唤醒、Power Nap、瞬时功耗，还能直接在终端里调设置。\n\n项目起因是 作者发现他的 MacBook 一夜间电池被 Power Nap 的暗唤...",
+      "link": "https://x.com/geekbb/status/2081727487219028294",
+      "published": "2026-07-27T21:04:44+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "一个终端界面工具，能实时看 macOS 的电源行为，暗唤醒、Power Nap、瞬时功耗，还能直接在终端里调设置。  \n  \n项目起因是 作者发现他的 MacBook 一夜间电池被 Power Nap 的暗唤醒耗光，于是把一次排查做成了持续监控的工具。  \n  \n[github.com/Tuguberk/napwa…](https://github.com/Tuguberk/napwatch)\n\n![Tweet Image](https://pbs.twimg.com/media/HOPHv1vbMAADnMA.jpg)\n\n💬0🔄1❤️10👀2311📊4",
+      "tags": [
+        "macOS",
+        "电源监控"
+      ],
+      "score": 65,
+      "summary": "napwatch工具实时监控macOS电源行为，包括暗唤醒和Power Nap。",
+      "fetched_at": "2026-07-27T22:55:39.357288+08:00"
+    },
+    {
+      "title": "A very underrated life decision is marrying someone who wants a simple life.",
+      "link": "https://x.com/thejustinwelsh/status/2081728075146854841",
+      "published": "2026-07-27T21:07:04+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "A very underrated life decision is marrying someone who wants a simple life.\n\n💬45🔄6❤️147👀5778📊51",
+      "tags": [
+        "生活"
+      ],
+      "score": 10,
+      "summary": "个人感悟：与追求简单生活的人结婚是被低估的人生决定。",
+      "fetched_at": "2026-07-27T22:55:39.357290+08:00"
+    },
+    {
+      "title": "Every “save the world” scheme starts by handing the money and power to the schemers first.",
+      "link": "https://x.com/naval/status/2081733782147666372",
+      "published": "2026-07-27T21:29:45+08:00",
+      "source": "Naval(@naval)",
+      "content": "Every “save the world” scheme starts by handing the money and power to the schemers first.\n\n💬133🔄148❤️1835👀71737📊275",
+      "tags": [
+        "格言"
+      ],
+      "score": 10,
+      "summary": "Naval格言：所有“拯救世界”计划都先把钱和权交给策划者。",
+      "fetched_at": "2026-07-27T22:55:39.357292+08:00"
+    },
+    {
+      "title": "I hardly write a blog about an eval, but this one felt interesting. EvoCode is a new eval that tests...",
+      "link": "https://x.com/_philschmid/status/2081745237320331529",
+      "published": "2026-07-27T22:15:16+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "I hardly write a blog about an eval, but this one felt interesting. EvoCode is a new eval that tests whether agents can follow evolving requirements and instructions over multiple turns without breaking existing behavior.  \n  \n26 tasks across 227 sequential rounds (5-15 per task). One persistent container. Cumulative tests after every turn.  \n  \nCommon failure isn't \"can't build the feature\". Agents tend to implement or update something and break something that already worked. Read more about it. ⬇️\n\n![Philipp Schmid](https://pbs.twimg.com/profile_images/2066207048648323072/u-UPEKOH_normal.jpg)\n\nPhilipp Schmid@\\_philschmid\n\n[x.com/i/article/2081…](http://x.com/i/article/2081739107395342336)\n\n[🔗 View Quoted Tweet](https://x.com/_philschmid/status/2081744861829414977)\n\n💬1🔄1❤️20👀1289📊3",
+      "tags": [
+        "EvoCode",
+        "Agent评估"
+      ],
+      "score": 82,
+      "summary": "EvoCode评估Agent在多次交互中遵循演变需求而不破坏现有行为的能力。",
+      "fetched_at": "2026-07-27T22:55:39.357294+08:00"
+    },
+    {
+      "title": "https://t.co/y4ywBykMCv",
+      "link": "https://x.com/_philschmid/status/2081744861829414977",
+      "published": "2026-07-27T22:13:46+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "[x.com/i/article/2081…](http://x.com/i/article/2081739107395342336)\n\n💬0🔄3❤️13👀2052📊3",
+      "tags": [
+        "EvoCode",
+        "链接"
+      ],
+      "score": 60,
+      "summary": "转发EvoCode评估文章链接，无额外内容。",
+      "fetched_at": "2026-07-27T22:55:39.357296+08:00"
+    },
+    {
+      "title": "说不知道小红书怎么引流的\n我给大家打个样",
+      "link": "https://x.com/yangyi/status/2081744228334579852",
+      "published": "2026-07-27T22:11:15+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "说不知道小红书怎么引流的  \n我给大家打个样\n\n![Tweet Image](https://pbs.twimg.com/media/HOPXQkAasAA3ti4.jpg)![Tweet Image](https://pbs.twimg.com/media/HOPXSYbawAAHzPT.jpg)\n\n💬0🔄0❤️0👀598",
+      "tags": [
+        "小红书",
+        "引流"
+      ],
+      "score": 10,
+      "summary": "展示小红书引流示例截图。",
+      "fetched_at": "2026-07-27T22:55:39.357298+08:00"
+    },
+    {
+      "title": "AI时代的复利杠杆：只有分发资产能复利 https://t.co/jz5SCYmknq",
+      "link": "https://x.com/yangyi/status/2081742298828972090",
+      "published": "2026-07-27T22:03:35+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "AI时代的复利杠杆：只有分发资产能复利 [newmax.cc/share/ai-era-c…](https://newmax.cc/share/ai-era-compounding-leverage)\n\n💬0🔄0❤️3👀650📊1",
+      "tags": [
+        "AI",
+        "复利杠杆"
+      ],
+      "score": 30,
+      "summary": "个人观点：AI时代只有分发资产能实现复利。",
+      "fetched_at": "2026-07-27T22:55:39.357300+08:00"
+    },
+    {
+      "title": "模型不是瓶颈，Harness 才是；而 Harness 里最被低估的一层是\"上下文质量\"！\n\n在企业 Agent 应用中，上下文往往散落在十几个系统里（Jira、Confluence、GitHub、S...",
+      "link": "https://x.com/shao__meng/status/2081747876993233109",
+      "published": "2026-07-27T22:25:45+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "模型不是瓶颈，Harness 才是；而 Harness 里最被低估的一层是\"上下文质量\"！  \n  \n在企业 Agent 应用中，上下文往往散落在十几个系统里（Jira、Confluence、GitHub、Slack……），只能看到单一系统的智能体等于\"盲人摸象\"！  \n  \n对 MCP 的关键批评：连通性 ≠ 上下文质量  \n[@Sumanth\\_077](https://x.com/Sumanth_077) 指出：  \n· MCP 解决的是连接层问题——用统一协议接入所有系统；  \n· 但现成的 MCP 工具各查各的源：Jira 一套 API、GitHub 一套 API，搜索逻辑、索引、排序互不相通，跨系统的信息关系没有任何共享理解；  \n· 结果是：当问题横跨多个系统时，模型被迫在运行时做数据的 join、去重、排序和关系推断。  \n  \n这不是上下文工程，这是让模型在回答问题之外还要兼职做数据工程。后果是烧更多 token、答案更不准，且每一次查询都在重复付这个代价——\"Harness 是连通的，但里面的上下文是碎的\"。  \n  \nGlean [@glean](https://x.com/glean) 给出的方案：把 join 提前做  \n解法思路是将运行时的关联计算前置为预计算：  \n· MCP 调用不再直接打到各个源系统的 API，而是经过 Glean 的 MCP Gateway，路由到一个跨全公司数据（100+ 连接器）预先构建好的统一索引 + 知识图谱；  \n· 文档、人、项目、决策之间的关系提前解析好，智能体拿到的是已经完成关联、排序、去重的结构化上下文，而非五个 API 返回的原始碎片。  \n  \n文中的对比数据：在约 175 条企业查询、相同模型和 Harness 的条件下，Glean 的上下文被偏好的比例是现成 MCP 工具的 2.5 倍，后者平均多耗 30% token。  \n  \n集中式上下文层顺便解决了治理问题  \nMCP 规模化后的安全治理是真痛点，文章的方案是让安全随上下文层\"自带\"：  \n· 每次调用继承源系统权限（Jira 里看不到的工单，通过 Gateway 也看不到）；  \n· OAuth 走 Glean 的授权服务器，下游凭证不落在宿主机；  \n· 管理员控制工具分发，每次调用都做提示注入和恶意内容检查。\n\n![Tweet Image](https://pbs.twimg.com/media/HOPapfZaEAAzWcr.jpg)\n\n![Sumanth](https://pbs.twimg.com/profile_images/1777698745108606976/NH-IIitW_normal.jpg)\n\nSumanth@Sumanth\\_077\n\n[x.com/i/article/2081…](http://x.com/i/article/2081256329633845248)\n\n[🔗 View Quoted Tweet](https://x.com/Sumanth_077/status/2081742978079662091)\n\n💬0🔄0❤️2👀248📊1",
+      "tags": [
+        "上下文质量",
+        "MCP",
+        "Agent"
+      ],
+      "score": 82,
+      "summary": "讨论Agent应用中上下文质量的关键性，Glean通过预连接知识图谱提升效果。",
+      "fetched_at": "2026-07-27T22:55:39.357302+08:00"
+    },
+    {
+      "title": "时隔一年多，居然又有 @ilyasut 和 @ssi 的消息，而且是一个足够劲爆的消息：\n\nNVIDIA 对 SSI 进行一笔股权投资，并向其开放下一代 Vera Rubin 计算平台。两者结合，将使...",
+      "link": "https://x.com/shao__meng/status/2081745070022365650",
+      "published": "2026-07-27T22:14:36+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "时隔一年多，居然又有 [@ilyasut](https://x.com/ilyasut) 和 [@ssi](https://x.com/ssi) 的消息，而且是一个足够劲爆的消息：  \n  \nNVIDIA 对 SSI 进行一笔股权投资，并向其开放下一代 Vera Rubin 计算平台。两者结合，将使 SSI 的算力在未来 12 个月内提升一个数量级（10x）。  \n  \n这轮融资前，SSI 在完全没有对外公布产品的情况下，已经完成融资超 30 亿美元，估值 320 亿美元；这轮融资后，估值会涨到多少呢？  \n  \n另外这笔投资，对 SSI 和 NVIDIA 来说，意义还不止于此！  \n  \n对 SSI：从\"研究阶段\"进入\"扩展阶段\"的信号  \n这次 Ilya 明确表态：\"我们的研究已经值得规模化了（worth scaling），接入一台大型 NVIDIA 计算机能让我们做到。\"这是 SSI 首次对外承认其闭门研究已通过内部验证、到达需要大规模算力检验的节点！  \n  \n对 NVIDIA：一次颇有针对性的竞争性落子  \n一个关键细节是：SSI 此前的研究主要跑在 Google Cloud 的 TPU 上，是 AI 实验室中罕见的\"非 NVIDIA 用户\"。这次 SSI 公开宣称\"重注 Vera Rubin 平台\"，等于 NVIDIA 从 Google 手中夺回了一个最受关注的前沿实验室，延续了其\"投资即绑定客户\"的策略（此前对 OpenAI、Anthropic 生态均有类似安排）。  \n  \nCEO 黄仁勋透露 NVIDIA 是在获准查看 SSI 严格保密的研究之后才决定合作的——这让 NVIDIA 获得了对下一代 AI 研究方向的稀缺可见性，可反哺其硬件路线图。\n\n![Tweet Image](https://pbs.twimg.com/media/HOPYGSKakAAF4UB.jpg)\n\n![SSI Inc.](https://pbs.twimg.com/profile_images/1803243852951855104/qamjjZ2a_normal.jpg)\n\nSSI Inc.@ssi\n\nWe are announcing a long-term strategic partnership with NVIDIA. NVIDIA is making a substantial investment in SSI that will let us 10x our compute in the next 12 months. We reached the point where our research is worth scaling and with this partnership we will be able to. We are honored by NVIDIA’s conviction.\n\n[🔗 View Quoted Tweet](https://x.com/ssi/status/2081732119194394763)\n\n💬0🔄0❤️0👀352",
+      "tags": [
+        "SSI",
+        "NVIDIA",
+        "Vera Rubin"
+      ],
+      "score": 89,
+      "summary": "NVIDIA战略投资SSI，开放Vera Rubin平台，预计12个月内算力提升10倍。",
+      "fetched_at": "2026-07-27T22:55:39.357304+08:00"
+    },
+    {
+      "title": "Midjourney V8.2 这模型是真的不错啊，有非常多新颖独特的风格",
+      "link": "https://x.com/op7418/status/2081741445275451582",
+      "published": "2026-07-27T22:00:12+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Midjourney V8.2 这模型是真的不错啊，有非常多新颖独特的风格\n\n![Tweet Image](https://pbs.twimg.com/media/HOPUrReboAEayfr.jpg)\n\n💬1🔄0❤️1👀120📊1",
+      "tags": [
+        "Midjourney",
+        "V8.2"
+      ],
+      "score": 30,
+      "summary": "用户称赞Midjourney V8.2模型风格新颖。",
+      "fetched_at": "2026-07-27T22:55:39.357307+08:00"
+    },
+    {
+      "title": "在飞机上体验 Starlink，超快稳定！",
+      "link": "https://x.com/dongxi_nlp/status/2081736189686514124",
+      "published": "2026-07-27T21:39:19+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "在飞机上体验 Starlink，超快稳定！\n\n![Tweet Image](https://pbs.twimg.com/media/HOPQB9_WkAA-9nV.jpg)\n\n💬1🔄0❤️7👀830📊2",
+      "tags": [
+        "Starlink"
+      ],
+      "score": 10,
+      "summary": "个人体验：在飞机上使用Starlink，速度快且稳定。",
+      "fetched_at": "2026-07-27T22:55:39.357309+08:00"
+    },
+    {
+      "title": "Java News Roundup: Simple JSON API, JEPs for JDK 28, Oracle CPUs, Embabel 1.0, Azul Payara, Helidon",
+      "link": "https://www.infoq.com/news/2026/07/java-news-roundup-jul20-2026/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-27T21:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/java-news-roundup-jul20-2026/en/headerimage/java-news-roundup-image-1785156898658.jpg)\n\nThis week's Java roundup for July 20th, 2026, features news highlighting: two JEPs proposed to target for JDK 28; new JEPs 540 and 541, Simple JSON API (Incubator) and Deprecate the macOS/x64 Port for Removal, respectively; the July 2026 Critical Patch Update; the GA release of Embable 1.0; Azul Payara 7.2.0; and Helidon 4.5.1.\n\n*By Michael Redlich*",
+      "tags": [
+        "Java",
+        "JDK 28",
+        "API"
+      ],
+      "score": 70,
+      "summary": "Java新闻汇总：JDK 28新JEPs、简单JSON API、7月CPU更新等。",
+      "fetched_at": "2026-07-27T22:55:39.357310+08:00"
+    },
+    {
+      "title": "Podcast: Rethinking Data: Moving From the Traditional Three-Tier Web Stack to Client-Side Event Sourcing",
+      "link": "https://www.infoq.com/podcasts/rethinking-data-client-event-sourcing/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-27T21:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/podcasts/rethinking-data-client-event-sourcing/en/smallimage/the-infoq-podcast-logo-thumbnail-1784890692565.jpg)\n\nJohannes Schickling explores how he moved beyond the traditional three-tier web stack to a local-first approach. He shares his experience transitioning from Prisma to developing Overtone—a music curation app leveraging client-side event sourcing and SQLite. The discussion highlights the trade-offs between event sourcing and CRDTs.\n\n*By Johannes Schickling*",
+      "tags": [
+        "事件溯源",
+        "本地优先"
+      ],
+      "score": 70,
+      "summary": "播客讨论从传统三层架构转向客户端事件溯源和本地优先开发。",
+      "fetched_at": "2026-07-27T22:55:39.357312+08:00"
     }
   ]
 }
