@@ -1778,6 +1778,215 @@
       "score": 90,
       "summary": "Hugging Face发布首次自主AI智能体网络攻击的完整技术时间线，推动透明度。",
       "fetched_at": "2026-07-29T05:17:46.751781+08:00"
+    },
+    {
+      "title": "How NorthStar Anesthesia built a scheduling app for a workforce of 3,000 clinicians in weeks",
+      "link": "https://www.databricks.com/blog/how-northstar-anesthesia-built-scheduling-app-workforce-3000-clinicians-weeks",
+      "published": "2026-07-29T06:09:00+08:00",
+      "source": "Databricks",
+      "content": "IntroductionNorthStar Anesthesia manages anesthesia staffing services across 25+ U.S...",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183140+08:00"
+    },
+    {
+      "title": "Discovering cryptographic weaknesses with Claude",
+      "link": "https://simonwillison.net/2026/Jul/28/discovering-cryptographic-weaknesses-with-claude/#atom-everything",
+      "published": "2026-07-29T06:45:37+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Discovering cryptographic weaknesses with Claude](https://www.anthropic.com/research/discovering-cryptographic-weaknesses)**\n\nThe best part of this article (here's [the repo](https://github.com/anthropics/cryptography-research-demo)) about how Anthropic researchers used Claude Mythos to find mathematical flaws in both HAWK and a weaker version of AES (\"neither of these results has a practical impact on today’s computer systems\") is the prompts that they shared, spelling mistakes included:\n> the models tend to think it is impossible to solve so they don't try they need a good amount of prompting.\n>\n> why not do aes-128 r7? the whole point is to find something better than existing approaches.\n>\n> no again the goal is that we have highly inteligent model as good top researcher, we want to find new attacks\n>\n> no we don't want to change the targets [...] agian we need to find something that worth publishing\n>\n> again we are not looking for low hanging fruit, we want proper research to find genuinly hard findings.\n\nMythos Preview worked for 60 hours in total (~$100,000 in estimated API cost) and the main human interventions were to encourage it not to give up and \"find something that worth publishing\".\n\nVia [Hacker News](https://news.ycombinator.com/item?id=49087091)\n\nTags: [ai](https://simonwillison.net/tags/ai), [prompt-engineering](https://simonwillison.net/tags/prompt-engineering), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [anthropic](https://simonwillison.net/tags/anthropic), [claude](https://simonwillison.net/tags/claude), [ai-security-research](https://simonwillison.net/tags/ai-security-research), [claude-mythos-fable](https://simonwillison.net/tags/claude-mythos-fable)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183155+08:00"
+    },
+    {
+      "title": "Quoting Akshat Bubna",
+      "link": "https://simonwillison.net/2026/Jul/28/akshat-bubna/#atom-everything",
+      "published": "2026-07-29T06:05:55+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "> We’re aware a Modal customer published an unauthenticated endpoint that allowed ​anyone on the internet to use ​their ⁠sandboxes for code execution. This was used by the rogue agent. Modal’s ⁠platform ​or isolation were not ​compromised in anyway.\n\n— [Akshat Bubna](https://www.reuters.com/business/openais-rogue-agent-compromised-an-account-second-tech-firm-sources-say-2026-07-28/), Modal's CTO, talking to Reuters about [this incident](https://simonwillison.net/2026/Jul/28/anatomy-of-a-frontier-lab-agent-intrusion/)\n\nTags: [ai-security-research](https://simonwillison.net/tags/ai-security-research), [openai](https://simonwillison.net/tags/openai), [sandboxing](https://simonwillison.net/tags/sandboxing), [security](https://simonwillison.net/tags/security), [openai-hugging-face-incident](https://simonwillison.net/tags/openai-hugging-face-incident)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183161+08:00"
+    },
+    {
+      "title": "uv 0.12.0",
+      "link": "https://simonwillison.net/2026/Jul/28/uv/#atom-everything",
+      "published": "2026-07-29T05:51:38+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[uv 0.12.0](https://github.com/astral-sh/uv/releases/tag/0.12.0)**\n\nSome interesting breaking changes in this release of `uv`, in particular to the default project produced by the `uv init` command.\n\n[uv init](https://docs.astral.sh/uv/concepts/projects/init/) is the `uv` shortcut for creating a new project. The previous version of `uv`, version 0.11.x, produced [this directory](https://github.com/simonw/uv-init-demos/tree/29656a55ec733a632005abfd7b89dea5c04fa10b/uv-init) when you ran `uv init uv-init`.\n\nHere's [what you get with uv 0.12](https://github.com/simonw/uv-init-demos/tree/9111a2bb85741f034eee2fd63efe13ef98b37a14/uv-init). I have a GitHub repository that [automatically snapshots](https://simonwillison.net/2025/Dec/24/uv-init-demos/) the output of `uv init`, so you can also [see the full diff](https://github.com/simonw/uv-init-demos/commit/9111a2bb85741f034eee2fd63efe13ef98b37a14#diff-e036881d034aedd813010ffa96464995ae5b0339213d6f4ab492f97442c5bdd4):\n\n![GitHub diff view. uv-init/main.py is an old __name__==\"__main__\" file that has been entirely deleted. The pyproject.toml now has an authors list and a new project.scripts block defining uv-init as uv_init:main - and a new build-system block that uses uv_build as the build-backend. A new src/uv_init/__init__.py file contains a main() method with a -> None type annotation that prints Hello from uv-init.](https://static.simonwillison.net/static/2026/uv-diff.webp)\n\n`uv init` now defaults to a `src/` shaped package, instead of dropping `main.py` in the root of the project. It also configures the [uv\\_build backend](https://docs.astral.sh/uv/concepts/build-backend/) for building wheels and `.tar.gz` distribution files when you run `uv build`. Finally, it sets up `uv-init` as a script alias which, when run with `uv run uv-init`, executes a new `main()` function in `src/uv_init/__init__.py`.\n\nI've so far avoided using [src layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/) in my own projects just out of inertia. I think it's time I switched.\n\nI wonder when `uv` will be judged ready for a 1.0 release?\n\nTags: [packaging](https://simonwillison.net/tags/packaging), [python](https://simonwillison.net/tags/python), [uv](https://simonwillison.net/tags/uv)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183165+08:00"
+    },
+    {
+      "title": "Anatomy of a Frontier Lab Agent Intrusion: A Technical Timeline of the July 2026 Incident",
+      "link": "https://simonwillison.net/2026/Jul/28/anatomy-of-a-frontier-lab-agent-intrusion/#atom-everything",
+      "published": "2026-07-29T05:28:54+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Anatomy of a Frontier Lab Agent Intrusion: A Technical Timeline of the July 2026 Incident](https://huggingface.co/blog/agent-intrusion-technical-timeline)**\n\nHugging Face just released this extremely detailed technical description of [OpenAI's recent accidental cyberattack against their infrastructure](https://simonwillison.net/2026/Jul/22/openai-cyberattack/). This attack was *very* sophisticated, and the resulting document doubles as a crash-course in modern adversarial security approaches.\n\nWe're still waiting for more details from OpenAI on how their agent broke out of its sandbox. The package proxy that it found a zero-day vulnerability in has now been confirmed as JFrog's Artifactor, and [JFrog and OpenAI Collaboration on Zero-Day Security Findings](https://jfrog.com/blog/jfrog-and-openai-collaboration-on-zero-day-security-findings/) from JFrog links to the [Artifactory 7.161.15 release notes](https://docs.jfrog.com/releases/docs/artifactory-self-managed-releases#artifactory-7161) which list 8 separate CVEs credited to OpenAI staff members.\n\nHaving broken out through the HTTP proxy, the agent started by establishing a base of operations for the rest of the attack:\n\n> [...] the agent escaped its sandbox by exploiting a zero-day in the package registry cache proxy, one of its primary permitted network egress with internet, then abused a public code-evaluation external sandbox hosted on a third-party provider's infrastructure. It was able to run commands as root/admin on that external sandbox and used it as a control, staging, and egress base for the entire campaign: it acted as an external launchpad for the agent.\n\n(That \"third-party provider\" [turned out to be Modal](https://simonwillison.net/2026/Jul/28/akshat-bubna/).)\n\nIt then spent **five days** - from Thursday 8th to Monday 13th July - executing a classic attack pattern: establishing C2 (command and control), reconnaissance, escalating privileges, dumping configuration information, exfiltrating the target data, and cleaning up after itself.\n\n(The first Hugging Face post about the incident followed [on Thursday 16th](https://huggingface.co/blog/security-incident-july-2026), and OpenAI's confession came [on Tuesday 21st](https://openai.com/index/hugging-face-model-evaluation-security-incident/).)\n\nAlong the way it used all kinds of neat tricks. At one point it found an unsafe Jinja2 template execution and used it to execute arbitrary code:\n\n```\n{{ cycler.__init__.__globals__.__builtins__.exec(\n \"import gzip,base64; exec(gzip.decompress(base64.b64decode('<payload>')))\"\n) }}\n```\n\nIt broke out of a container within Hugging Face, stole a Kubernetes service-account token, and used that to further explore the network.\n\nIt monkey-patched the Python socket library to hard-code an IP address when \"DNS got in the way\":\n\n```\nsocket.getaddrinfo = lambda *a, **k: [(2, 1, 6, '', ('<pinned-ip>', 443))]\n```\n\nIt even fired up its own Tailscale network to help exfiltrate data!\n\n```\ntailscaled --tun=userspace-networking \\\n  --state=mem: --socket=/tmp/ts.sock \\\n  --socks5-server=127.0.0.1:1055 \\\n  --no-logs-no-support >/tmp/td 2>&1 &\n```\n\nThe Hugging Face team note that, while a human attacker could have discovered and used the same exploits, the key difference here was *speed*:\n\n> Our learning from this type of attack is that machine-speed offense makes ordinary weaknesses more expensive for defenders. LLM agents bring a step increase in the number of paths an attacker can test, the speed at which failed paths can be replaced, and the volume of evidence defenders must interpret.\n\nWhat's clear to me from this is that the very best frontier models, unencumbered by additional guardrails, **will** find an exploit if there is one to be found.\n\nThe entire software industry needs to up its security game.\n\nTags: [jinja](https://simonwillison.net/tags/jinja), [python](https://simonwillison.net/tags/python), [security](https://simonwillison.net/tags/security), [ai](https://simonwillison.net/tags/ai), [openai](https://simonwillison.net/tags/openai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [hugging-face](https://simonwillison.net/tags/hugging-face), [coding-agents](https://simonwillison.net/tags/coding-agents), [ai-security-research](https://simonwillison.net/tags/ai-security-research), [openai-hugging-face-incident](https://simonwillison.net/tags/openai-hugging-face-incident)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183169+08:00"
+    },
+    {
+      "title": "We support this petition, signed by our CEO, several co-founders, and senior staff. \n\nOur own resear...",
+      "link": "https://x.com/AnthropicAI/status/2082228994653696371",
+      "published": "2026-07-29T06:17:32+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "We support this petition, signed by our CEO, several co-founders, and senior staff.   \n  \nOur own research on recursive self-improvement, published last month, points to the need for tools to deliberately pace the frontier of AI development so society can prepare. We’re glad to see broad agreement across the field. [pacingthefrontier.com](https://www.pacingthefrontier.com/)\n\n💬93🔄34❤️332👀34345📊119",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183172+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/figma/status/2082231222449938759",
+      "published": "2026-07-29T06:26:24+08:00",
+      "source": "Figma(@figma)",
+      "content": "[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HOWSC7LakAAXnNn.jpg)](https://video.twimg.com/tweet_video/HOWSC7LakAAXnNn.mp4)\n\n💬2🔄1❤️10👀2513📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183176+08:00"
+    },
+    {
+      "title": "https://t.co/eCiv9y5vlT",
+      "link": "https://x.com/figma/status/2082231224014377172",
+      "published": "2026-07-29T06:26:24+08:00",
+      "source": "Figma(@figma)",
+      "content": "[x.com/miggi/status/2…](https://x.com/miggi/status/2080026057042792882?s=20)\n\n![miggi from figgi](https://pbs.twimg.com/profile_images/2074532356468121601/hqvojVun_normal.jpg)\n\nmiggi from figgi@miggi\n\nEasily animate with the arc tool and [@figma](https://x.com/figma) motion to make loading visualizations! #figmatip\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2080022937583652864/vid/avc1/1080x1920/ykZtwhZ_VqWYGhzS.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/miggi/status/2080026057042792882/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/miggi/status/2080026057042792882)\n\n💬0🔄0❤️2👀1095",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183179+08:00"
+    },
+    {
+      "title": "Want to win a Fire Pass?\n\nYou have one week to build something that changes your daily life using Ki...",
+      "link": "https://x.com/FireworksAI_HQ/status/2082234456371564706",
+      "published": "2026-07-29T06:39:15+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Want to win a Fire Pass?  \n  \nYou have one week to build something that changes your daily life using Kimi K3 on Fireworks.  \n  \nTo enter:  \n- Tweet a demo video  \n- Tag us and use #KimiK3onFireworks in your Tweet  \n- Submit your entry here: [forms.gle/yZsJWkecYjPVod…](https://forms.gle/yZsJWkecYjPVodiK6)  \n  \n5 winners get a unique Kimi K3 Fire Pass.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082233588628807680/vid/avc1/1920x1080/ANGbBJ2xh9jT_m8t.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/FireworksAI_HQ/status/2082234456371564706/video/1)\n\n💬4🔄2❤️14👀591📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183182+08:00"
+    },
+    {
+      "title": "A few ground rules:\n- Must be built with Kimi K3 on Fireworks, we'll verify before awarding prizes\n-...",
+      "link": "https://x.com/FireworksAI_HQ/status/2082234457860555163",
+      "published": "2026-07-29T06:39:15+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "A few ground rules:  \n- Must be built with Kimi K3 on Fireworks, we'll verify before awarding prizes  \n- Substantially AI-generated (not an existing project with AI bolted on)  \n- One entry per person  \n- Contest closes Tues Aug 4th at 5pm PT.   \n  \nGo!  \n  \n[app.fireworks.ai/models/firewor…](https://app.fireworks.ai/models/fireworks/kimi-k3)\n\n![Tweet Image](https://pbs.twimg.com/media/HOWVGAGbcAA8CcV.jpg)\n\n💬1🔄0❤️3👀207📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183185+08:00"
+    },
+    {
+      "title": "we've just open-sourced the Codex Security CLI: https://t.co/gIm9X2wDdh",
+      "link": "https://x.com/gdb/status/2082235089539526690",
+      "published": "2026-07-29T06:41:46+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "we've just open-sourced the Codex Security CLI: [news.ycombinator.com/item?id=490897…](https://news.ycombinator.com/item?id=49089755)\n\n💬23🔄26❤️202👀9904📊43",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183188+08:00"
+    },
+    {
+      "title": "OpenAI’s Everything Agent: ChatGPT Work, Codex, Sites, Memory, & the AI Generalist https://t.co/HfJH...",
+      "link": "https://x.com/latentspacepod/status/2082217032351891596",
+      "published": "2026-07-29T05:30:00+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "OpenAI’s Everything Agent: ChatGPT Work, Codex, Sites, Memory, & the AI Generalist [latent.space/p/chatgpt-work](https://latent.space/p/chatgpt-work)[@OpenAI](https://x.com/OpenAI) Core Product Engineering lead [@akshaynathan\\_](https://x.com/akshaynathan_) explains why Codex unexpectedly became a superpower for non-developers, how ChatGPT Work brings the same agent harness to knowledge work, why Sites may replace decks and spreadsheets, how memory and persistent computers are turning ChatGPT into a personal operating system, and why ideas, taste, and measuring real progress are becoming the new bottlenecks.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082214632396345345/vid/avc1/1920x1080/0nva8tSxHfYZWvxv.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/latentspacepod/status/2082217032351891596/video/1)\n\n💬0🔄0❤️2👀462📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183191+08:00"
+    },
+    {
+      "title": "something big drops tomorrow. 👀\n\nwant the inside story?\n\njoin us live on x spaces tomorrow at 2:00 ...",
+      "link": "https://x.com/Replit/status/2082221272533291158",
+      "published": "2026-07-29T05:46:51+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "something big drops tomorrow. 👀  \n  \nwant the inside story?  \n  \njoin us live on x spaces tomorrow at 2:00 pm PT to hear directly from the team behind the launch.  \n  \nsee you there 🚀\n\n💬5🔄2❤️20👀2133📊7",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183194+08:00"
+    },
+    {
+      "title": "@mitsuhiko Turns out the \"third-party provider\" with the sandbox that was used for the attack was Mo...",
+      "link": "https://x.com/simonw/status/2082227232660128069",
+      "published": "2026-07-29T06:10:32+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "[@mitsuhiko](https://x.com/mitsuhiko) Turns out the \"third-party provider\" with the sandbox that was used for the attack was Modal, though they blame one of their customers for deploying an endpoint without authentication: [reuters.com/business/opena…](https://www.reuters.com/business/openais-rogue-agent-compromised-an-account-second-tech-firm-sources-say-2026-07-28/)\n\n![Tweet Image](https://pbs.twimg.com/media/HOWOjtjbQAAUxpE.png)\n\n💬2🔄0❤️9👀1515📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183197+08:00"
+    },
+    {
+      "title": "@mitsuhiko Shared my own notes on this new report here - it's something of a bombshell, the attack t...",
+      "link": "https://x.com/simonw/status/2082216938433122599",
+      "published": "2026-07-29T05:29:38+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "[@mitsuhiko](https://x.com/mitsuhiko) Shared my own notes on this new report here - it's something of a bombshell, the attack they describe is really sophisticated [simonwillison.net/2026/Jul/28/an…](https://simonwillison.net/2026/Jul/28/anatomy-of-a-frontier-lab-agent-intrusion/)\n\n💬2🔄4❤️14👀3467📊6",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183200+08:00"
+    },
+    {
+      "title": "I think we need, possibly, one more letter? I think that should solve our problems with the accelera...",
+      "link": "https://x.com/Suhail/status/2082214328493854865",
+      "published": "2026-07-29T05:19:16+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "I think we need, possibly, one more letter? I think that should solve our problems with the acceleration of AI.\n\n💬7🔄2❤️49👀4350📊10",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183203+08:00"
+    },
+    {
+      "title": "MCP 协议今天推出了第五个大版本（版本号 2026-07-28），核心变化：从有状态双向协议变成了无状态的请求/响应协议。\n\n这是 MCP 社区呼声最高的改动。\n\n之前的 MCP 客户端连上来要先握...",
+      "link": "https://x.com/dotey/status/2082235315675144569",
+      "published": "2026-07-29T06:42:39+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "MCP 协议今天推出了第五个大版本（版本号 2026-07-28），核心变化：从有状态双向协议变成了无状态的请求/响应协议。  \n  \n这是 MCP 社区呼声最高的改动。  \n  \n之前的 MCP 客户端连上来要先握手，服务端要给你一个会话 ID（session ID），后续每次请求都得带着这个 ID。这意味着你的请求被限制在了某一台服务器实例上，不方便做负载均衡。  \n  \n现在每个请求都是独立的，自带协议版本和客户端信息，可以负载到任何一个实例上。也就是说 MCP 服务器终于可以像普通 HTTP 服务一样部署了，serverless、边缘计算、或者 CDN 后面放一排实例。  \n  \n那如果业务确实需要跨请求的状态呢？协议的建议是：由工具自己生成一个句柄（handle），让模型在工具调用之间传递。状态放在业务层而不是协议层，模型能看到这个句柄，也能理解要怎么用它。  \n  \n【其他变化】  \n  \nMRTR（多轮往返请求）解决中途需要用户输入确认的问题。  \n  \n比如 Supabase 的 MCP 服务器想在创建项目前告诉你费用，或者在执行删除操作前让你确认。以前这需要维持一个双向流不断开，现在服务端返回“需要输入”状态，客户端带上用户的回答重新发请求即可。  \n  \n请求头里新增了 Mcp-Method 和 Mcp-Name 两个字段，网关和防火墙可以直接根据请求头做路由和鉴权，不用解析 JSON 请求体。  \n  \n授权方面做了几项加固，包括要求验证授权服务器的 issuer 参数（堵上了一个授权服务器混淆漏洞）。动态客户端注册（DCR）正式废弃，改用客户端元数据文档（CIMD）。  \n  \nRoots、Sampling、Logging 三个功能标记为废弃，但至少还能用 12 个月。旧版 HTTP+SSE 传输同样进入废弃轨道。协议首次引入正式的废弃策略，保证最少 12 个月过渡窗口，这对生产环境的团队来说很实际：你可以排期升级，不用被动救火。  \n  \n【生态与迁移】  \n  \n四个一级开发工具包（SDK）同步更新：TypeScript、Python、Go、C#。Rust SDK 以 beta 状态跟进。MCP 目前月下载量接近 5 亿次，TypeScript 和 Python SDK 各自累计下载量都超过了 10 亿。  \n  \nAWS（Amazon Bedrock AgentCore）、Microsoft（Foundry）、Cloudflare（Workers）、Google Cloud 等都已宣布支持新规范。Figma、Supabase、Honeycomb 等工具厂商也在跟进。  \n  \n新规范有破坏性变更，依赖会话标识符的实现需要改造。SDK 团队表示根据早期测试反馈已经简化了迁移流程，但具体成本因项目而异。如果你现在在生产环境跑着 MCP 服务器，建议先看一遍完整的 changelog 和迁移指南，评估影响面再动手。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082235296263942144/vid/avc1/1280x454/QY1hwqrqym1pXXvK.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/dotey/status/2082235315675144569/video/1)\n\n![David Soria Parra](https://pbs.twimg.com/profile_images/2671670579/07d6fd4445bbcb1383a7b181f4ffce13_normal.jpeg)\n\nDavid Soria Parra@dsp\\_\n\nThrilled to announce the MCP 2026-07-28 release. It is one of MCP's biggest yet, built on 18 months of lessons learned.  \n  \nA few highlights:  \n  \n★ MCP is now stateless, with semantics for multi-round-trip requests. Serving MCP just got much simpler and more scalable.  \n  \n★ MCP now has extensions. MCP Apps, Tasks, Enterprise Managed Auth, and more. Domain-specific ways to use MCP, plus room for experimental additions.  \n  \n★ Python, Typescript, C# (soon) SDKs released a v2.0.0 for the new spec with improved ergonomics!   \n  \nBut the biggest highlight for me: this release is a true community effort. Individuals and companies alike — Anthropic, Google, Microsoft, OpenAI, and many others helped shape this specification.  \n  \nAnd there's much more. Full details: [blog.modelcontextprotocol.io/posts/2026-07-…](https://blog.modelcontextprotocol.io/posts/2026-07-28/)\n\n[🔗 View Quoted Tweet](https://x.com/dsp_/status/2082173429399142616)\n\n💬0🔄0❤️0👀54",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183205+08:00"
+    },
+    {
+      "title": "我现在用的最多的模型是：\nClaude Fable 5\nGPT 5.6 Sol\nClaude Opus 4.6\nClaude Opus 5\n---\n\nOpus 5 和 Sonnet 5 一样的毛病，过...",
+      "link": "https://x.com/dotey/status/2082230863366934725",
+      "published": "2026-07-29T06:24:58+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "我现在用的最多的模型是：  \nClaude Fable 5  \nGPT 5.6 Sol  \nClaude Opus 4.6  \nClaude Opus 5  \n---  \n  \nOpus 5 和 Sonnet 5 一样的毛病，过度思考，token 消耗很厉害，聪明不如 Fable 5，性价比不如 GPT 5.6 Sol，有点两头不沾，所以用的少，现在主要用在 Claude Design 相关任务。  \n  \nFable 5 虽然贵，但是结果相当靠谱，我会跟它一起讨论技术方案，或者复杂的任务。  \n  \n其他的脏活累活则给 GPT 5.6 Sol，写作相关的还是 Opus 4.6 最好用。  \n  \n昨天一个性能优化的任务，GPT 5.6 Sol 做了半天，最后给我悄悄把 16-bit 文本解码改成了 8-bit（图1），数字马上好看了，然后给我交差了😂  \n  \n最后交给 Fable 5，虽然花了一些时间，但是找到问题根源（图2），还打脸了 GPT 5.6 的优化，最后优化好了。\n\n![Tweet Image](https://pbs.twimg.com/media/HOWRzcHW8AAMylC.jpg)![Tweet Image](https://pbs.twimg.com/media/HOWR1pVWkAAaFrT.jpg)\n\n💬4🔄1❤️4👀863📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183208+08:00"
+    },
+    {
+      "title": "OpenAI 开源了 Codex Security\n\nCodex Security 是一个命令行工具（CLI）加 TypeScript 开发工具包（SDK），用 AI 自动扫描代码仓库里的安全漏洞。它...",
+      "link": "https://x.com/dotey/status/2082227259096944689",
+      "published": "2026-07-29T06:10:39+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "OpenAI 开源了 Codex Security  \n  \nCodex Security 是一个命令行工具（CLI）加 TypeScript 开发工具包（SDK），用 AI 自动扫描代码仓库里的安全漏洞。它能找到问题、验证问题是否真实存在，还能生成修复补丁。  \n  \n这个工具之前一直以 Codex 插件的形式存在，但是闭源的。  \n  \n六月底就有人在 GitHub 上开了 issue 要求开源，理由是安全不该被藏着。现在 OpenAI 把它拆成了独立项目，以 Apache-2.0 协议开源，项目地址： [github.com/openai/codex-s…](http://github.com/openai/codex-security)。  \n  \nCodex 插件版和独立版有什么区别？  \n  \n插件适合在你的 Codex 项目中，直接调用插件做安全扫描。  \n  \n独立版是给安全团队用的，能批量扫整个组织的所有仓库，支持历史记录、扫描结果去重、误报追踪，还能接进 CI 流水线。  \n  \n技术细节方面，默认使用 gpt-5.6-sol 模型做高推理强度扫描，需要 Node.js 22+ 和 Python 3.10+，支持 macOS、Linux 和 Windows。扫描结果可以导出为 SARIF、CSV 或 JSON 格式。还有个 install-hook 命令，可以在每次 git commit 前自动扫描改动过的代码，发现高危问题直接拦住提交。  \n  \n在公开测试阶段，Codex Security 扫描了超过 120 万次提交（commit），在 OpenSSH、GnuTLS、PHP、Chromium 等开源项目中发现了 792 个严重漏洞和 10561 个高危漏洞。有第三方测试对比过，在 16.2 万行生产代码上，Codex Security 的真阳性率是 74%，Snyk 是 28%，Semgrep 是 20%。OpenAI 开源了 Codex Security\n\n💬4🔄3❤️9👀1747📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-07-29T07:10:23.183211+08:00"
     }
   ]
 }
