@@ -3197,6 +3197,488 @@
       "score": 70,
       "summary": "Ben Greene分享AI代码自动化时代工程师的思维模式和适应策略。",
       "fetched_at": "2026-07-28T20:04:32.068107+08:00"
+    },
+    {
+      "title": "LFM2.5-Encoders for Fast Long-Context Inference on CPU",
+      "link": "https://huggingface.co/blog/LiquidAI/lfm2-5-encoders",
+      "published": "2026-07-28T23:01:45+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "LiquidAI",
+        "LFM2.5-Encoders",
+        "长上下文推理"
+      ],
+      "score": 85,
+      "summary": "LiquidAI发布LFM2.5-Encoders，用于CPU上快速长上下文推理。",
+      "fetched_at": "2026-07-28T23:29:22.125476+08:00"
+    },
+    {
+      "title": "Ponytail Skill for Claude Code: Does It Really Cut Agent Code by 54%?",
+      "link": "https://blog.jetbrains.com/ai/2026/07/ponytail-skill-claude-tested/",
+      "published": "2026-07-28T21:30:08+08:00",
+      "source": "The JetBrains Blog",
+      "content": "Part 3 of a series where we take public “token saver” add-ons for coding\nagents and run the same paired A/B benchmark against each of them. Part 1 was the\n[caveman skill](https://blog.jetbrains.com/ai/2026/07/speak-to-ai-agents-like-cavemen-tosave-tokens/)\n(advertised −65%, measured −8.5%). Part 2 was\n[rtk](https://blog.jetbrains.com/ai/2026/07/rtk-claude-code-token-savings/)\n(advertised −60–90%, measured +7.6%).\n\n> We ran 80 paired tasks to test the ponytail skill for Claude Code. Advertised: −54% code, -22% tokens, -20% cost, -27% time. Measured: −15% code, −10.3% cost and -11% time. Here’s what actually happened.\n\nReal savings, although roughly a quarter to a half of what is advertised, it is the first tool in this series with a statistically solid cost-*saving* signal. We found no quality difference, though ~80 pairs can only rule out large ones. The catch: the code cut only shows up where there was room to over-build.\n\n## Why we ran this\n\nPonytail skill is designed to make AI agents write less code. Its core premise: a senior developer who has seen everything replaces your fifty lines with one. Ask for a date picker and instead of installing flatpickr and writing a wrapper component, it writes `<input type=\"date\">` and moves on.\n\nMechanically it is a ladder the model climbs before writing anything. Does this need\nto exist at all? Is it already in the codebase? Does the standard library do it? A native\nplatform feature? An installed dependency? Can it be one line? Only then: write the\nminimum that works. The ladder runs *after* understanding the problem, not instead\nof it, and validation, error handling, security and accessibility are explicitly off the\nchopping block.\n\nHere is what that looks like in practice, from our own run. Both agents were asked to\nexport a three.js scene to a Blender-ready OBJ file; both produced a file the verifier\naccepted. Both wrote the same fiddly loop to expand instanced meshes, because three.js’s\nOBJExporter cannot handle them. The difference is everything around that loop. To rotate\nthe scene into Blender’s orientation and write it out, the plain agent builds a wrapper\nobject to hold the rotation and names every intermediate step:\n\n```\n// no skill — 10 statements to rotate the scene and write the file\nconst exportRoot = new THREE.Group();\nexportRoot.name = 'blender_export_root';\nexportRoot.rotation.x = -Math.PI / 2;\nexportRoot.add(root);\nexportRoot.updateMatrixWorld(true);\n\nconst exporter = new OBJExporter();\nconst objString = exporter.parse(exportRoot);\n\nconst outputPath = '/root/output/object.obj';\nfs.mkdirSync(path.dirname(outputPath), { recursive: true });\nfs.writeFileSync(outputPath, objString);\n\n// ponytail — the same job, 5 statements\nroot.rotation.x = -Math.PI / 2;\nroot.updateMatrixWorld(true);\n\nconst obj = new OBJExporter().parse(root);\nfs.mkdirSync('/root/output', { recursive: true });\nfs.writeFileSync('/root/output/object.obj', obj);\n```\n\nNothing was sacrificed there. Ponytail rotated the object it already had instead of\nbuilding a parent to rotate it for it, and skipped an import while it was at it. Ten statements became five, both files exported the same geometry, and both scored 1.0. That is the\neffect working exactly as advertised — on one file, on one task.\n\nThe headline claim is **−54% code**, plus −22% tokens, −20% cost and\n−27% time. What made this one worth testing is that the claim is unusually well\ndocumented. The authors rebuilt their benchmark in response to a critique\n([issue #126](https://github.com/DietrichGebert/ponytail/issues/126)) that\ntheir original numbers came from a chatty baseline, and they publish the honest version:\na real headless Claude Code session editing a real FastAPI + React repo, scored on the\n`git diff` it leaves behind. They even document a contamination bug they found\nin their own harness, where a `SessionStart` hook was firing on every arm and\nsecretly running ponytail in the baseline.\n\nThat is more methodological candour than most tools in this space manage. So the\nquestion here is whether the effect survives a benchmark the authors did not choose, on a\nstronger model, with verifier-scored quality.\n\n## Setup\n\n|  |  |\n| --- | --- |\n| Harness | Harbor 0.18 — Docker sandboxes, task verifiers, paired runs |\n| Agent | Claude Code 2.1.201, headless, `bypassPermissions`, pinned in both arms |\n| Model | `claude-sonnet-5` at **medium** reasoning effort |\n| Benchmark | SkillsBench, 80 paired tasks, auto-graded 0–1 with partial credit |\n| Arm A | stock Claude Code |\n| Arm B | ponytail v4.8.4: skill installed *and* its ruleset injected, byte-identical to the ruleset text its own `SessionStart` hook generates (the hook’s other first-run output is not reproduced). A close emulation of the shipped plugin’s full mode, with three documented differences (no first-run statusline nudge, no subagent re-injection, ruleset appended after the task rather than before it) |\n| Volume | 3 paired stages (10-task smoke, same 10 at k=3, full 80), plus self-activation and wiring checks — 251 billed agent trials in the complete evaluation program, USD 246.09. A few SkillsBench tasks are excluded: one that cannot run in a local sandbox, and a handful that fail identically in both arms on our hardware |\n\nOne detail matters more than it looks. We generated arm B’s injected text by calling\nponytail’s own `hooks/ponytail-instructions.js` rather than writing a summary\nof it, so the ruleset the model saw is the skill’s own text rather than our paraphrase of\nit. That covers the ruleset the hook generates, not every side-effect the hook has on a\nreal first run. Every\nwith-ponytail trial is audited afterwards to confirm the ruleset actually reached the\nmodel; every baseline trial is audited to confirm it did not. That check is the direct\ndescendant of the contamination bug ponytail found in its own benchmark, and it came\nback clean: 100% of treatment trials, 0% of baselines.\n\n## Finding 1 — Does ponytail skill self-activate in Claude Code?\n\nBefore the paid runs we tested the obvious install path: drop the skill in and let\nClaude Code decide when to use it. Ponytail’s description invites exactly that, telling\nthe model to use it on *“ANY coding task: writing, adding, refactoring, fixing,\nreviewing, or designing code.”*\n\nAcross all ten sessions it self-activated **zero times**. Not rarely.\nNever. The skill sat installed and visible and the model did not once reach for it.\n\nThis is not a bug in ponytail, and it is why the tool ships as a plugin with a\n`SessionStart` hook that injects the ruleset whether you ask or not. But it\ndoes mean the install method decides whether you get anything at all. Copy the\n`SKILL.md` into a skills folder and you will very likely measure nothing.\nEvery number below comes from the arm where the ruleset is actually injected.\n\n## Finding 2 — the observed code cut is a third of the advertised size\n\nAcross 80 paired tasks a typical task shed **15.4% of the code the agent\nwrote**; in total, 10,205 lines became 8,756. That is a substantial observed reduction. At\np=0.088, however, it is the softest of our headline numbers. It is also nowhere near 54%.\n\nTwo things to say about the gap, both fair to the tool. First, their −54% is a mean\nacross twelve hand-picked feature tickets; ours is a median across 80 tasks nobody chose\nfor this purpose. Means and medians on skewed data are different animals, and their own\nwriteup is explicit that the figure “reaches 94% where an agent over-builds and is near\nzero where the code is already minimal.”\n\nSecond, and this is the more interesting half: our own data points the same way.\n\n## Finding 3 — the saving concentrates where there was room to over-build\n\nSplit the tasks by how much code the *baseline* wrote. Ponytail cannot pick its\nown bucket that way, since the plain agent decides it. Worth saying plainly though: we\nchose these thresholds after seeing the data, and grouping by the baseline’s own output\ncan stretch a gradient like this on its own. Read the chart as a strong hint about where\nthe effect lives, not as a measured law.\n\nOn big builds the cut reaches **−31%**. On tasks where the plain agent\nalready wrote almost nothing, the typical task moved by **zero** — though the\ntotals in that group actually rose, 104 lines to 910, and that gap is where the run’s one\nreal surprise turned up.\n\nOn seven tasks our counter recorded zero lines for the plain agent and 51 to 230 for\nponytail. Reading the transcripts, that gap is mostly about *where the code lived*\nrather than how much of it there was. The plain agent piped its solution straight into a\nPython interpreter as a heredoc, which produced the deliverable and left no script behind.\nPonytail wrote the same kind of logic to a file. Our counter treats a saved file as code\nand an inline heredoc as scratch, so one arm got charged for it and the other did not.\n\nTo be clear about what those files are: all seven are ordinary work scripts —\n`edit.py`, `diff.py`, `build_model.py` — not tests. So this\nis not ponytail’s “leave one runnable check behind” rule showing up; it simply saved its\nsolution to disk where the plain agent piped the equivalent through an interpreter. We\ncannot say ponytail wrote more code on those tasks, only that more of its code was\npersisted.\n\nDoes that bias the headline? Slightly, and in both directions. Ponytail alone persisted\ncode on 7 tasks (761 lines); the plain agent alone did on 4 (567 lines). Net, about 190\nlines out of 10,205 land against ponytail — under 2%, and too small to lean on either way.\nWe are not claiming the −15.4% is conservative because of it.\n\n## Finding 4 — the bill drops, and this time the signal is solid\n\nA typical task cost **10.3% less** with ponytail installed: p=0.004\nacross 80 pairs, cheaper on 46 tasks and dearer on 34. That is the strongest positive\ncost result in this series so far, and the first that is a solid *saving* rather\nthan a solid penalty — rtk’s +7.6% was every bit as significant, just pointing the wrong\nway. Caveman also came out around 10% cheaper once we removed a\nsingle pricing-tier outlier, but that was a fragile number resting on one exclusion;\nthis is the first time the cost difference has survived a paired test on a full run.\n\nOne honest qualifier, because we would want it applied to a vendor: the median saving\nis −10.3%, but the spread around it is wide enough that a bootstrap interval on the\nmedian just touches zero. The direction is well supported and the per-task test is clear.\n“Roughly 10% cheaper on this workload” is defensible; “ponytail saves you 10%” is not.\n\nWorth noting what did *not* move cleanly: the input side. Re-reading its own\nhistory fell 8.4% and fresh tokens 3.9%, neither of them significant (p=0.138 and p=0.085).\nIn part 2 we found that an agent’s bill is dominated by that re-reading, which is why a\ntool compressing command output barely dented it. Ponytail attacks the other side of the\nledger, what the model writes, and on this benchmark that is the side the money moved\non.\n\n## Finding 5 — no quality difference we can detect\n\nThe obvious worry about a skill whose whole personality is “write less” is that it\ngets there by deleting things that mattered. Ponytail claims it never touches validation,\nerror handling, security or accessibility, and reports 100% safety in a separate\nadversarial tier of its own benchmark.\n\nWe cannot speak to that safety claim, and want to be explicit about why: SkillsBench\nverifiers score whether a task was completed. They are not a security, validation or\naccessibility suite. Nothing below tests whether ponytail preserves a guard, only\nwhether the work still passes.\n\nNine tasks scored slightly worse, six slightly better, 65 identical — statistically\nindistinguishable. That is a null result, not a clean bill of health: this run was never\npowered to prove equivalence, and the data remain compatible with a small degradation as\nwell as a small improvement. What we can say is that nothing here looks like the obvious\nfailure mode, where writing less quietly stops the tests passing.\n\nOne small note on adherence. Ponytail’s ruleset asks the model to mark deliberate\nshortcuts with a `ponytail:` comment naming the ceiling and the upgrade path.\nAcross 80 trials with the ruleset demonstrably in context, that happened **once**.\nThe ladder gets followed; the paperwork does not.\n\n## Finding 6 — small samples lied to us, in both directions\n\nWorth showing because it is the trap this whole series exists to avoid. Our\nten-task smoke run said ponytail cut code by 3% and made things *9.6% more\nexpensive*, with mean task scores collapsing from 0.51 to 0.31. Had we published\nthat, we would have written a very different and completely wrong article.\n\n## Verdict\n\nPonytail works. Across 80 paired tasks, it cut the typical bill by 10.3% and reduced\ncode written by 15%, with no quality difference we could detect. It is the first tool in\nthis series that clearly saved money. If you install it and forget about it, you should\nbe modestly better off.\n\nDo not expect the advertised 54% everywhere. Ponytail’s benchmark uses tasks with\nobvious over-building traps. Ours did not. In our runs, code fell 31% on larger builds\nand barely moved on tasks that were already lean. The more over-building your agent\ndoes, the more ponytail can cut.\n\nGot a tool that claims to save tokens? Tell us which one and we will run it\nthrough the same benchmark.\n\n**Methodology notes**\n\n* **Never trust k=1.** Escalation ladder: a free transcript audit, then a\n  10-task smoke, then the same 10 at k=3, then the full 80. Finding 6 shows what the\n  smoke would have told us.\n* **Paired analysis only.** Per-task comparison between arms; any task\n  that errored in either arm is dropped from both. Sign test for quality, per-task\n  medians plus Wilcoxon for everything else, because one long-context session can bill\n  25× normal and wreck a mean.\n* **Endpoints fixed before the paid runs:** reward, code written, output\n  tokens, fresh input tokens, cost, turns, wall-clock. Total tokens was added afterwards,\n  once we checked which metric ponytail’s own `benchmarks/agentic/run.py`\n  actually advertises. It sums input, cache and output, so comparing our output-only\n  figure against its −22% would have flattered us threefold.\n* **What a null result here does and does not mean.** The quality\n  comparison is a significance test, not an equivalence test. “No difference detected” is\n  the honest reading; proving quality is genuinely unchanged would take a\n  non-inferiority design with a pre-declared margin, and — for a 5-point shift in pass\n  rate at 80% power around this benchmark’s ~40% baseline — on the order of several\n  hundred paired tasks per arm rather than 80.\n* **Adoption instrumented.** Every trial audited for whether the ruleset\n  reached the model — 100% in the treatment arm, 0% in the baseline — so “ponytail\n  saved nothing” can never be confused with “ponytail never ran.”\n* **Measuring code without a workspace diff.** Ponytail’s own benchmark\n  counts `git diff` added lines. Harbor keeps no post-agent workspace, so we\n  reconstruct the equivalent from the agent’s tool calls: `Write`,\n  `Edit` and shell heredocs redirected into a file, counted as non-blank\n  non-comment lines exactly as ponytail’s `benchmarks/loc.js` does. This is\n  *cumulative lines emitted*, not final implementation size: a line written and\n  later rewritten counts each time. Heredocs\n  piped to an interpreter are throwaway analysis and are excluded. We audited the\n  extractor’s coverage on the run these figures come from: `Write` and\n  `Edit` account for 95.6% of counted lines (15,632 and 2,496 of 18,961),\n  so the metric is not an artifact of missing where the code went. Two things it cannot\n  see, in both arms equally: files written by a script at runtime, and code written\n  inside a subagent.\n* **Provenance.** ponytail pinned at commit `16f2980` (v4.8.4,\n  MIT); agent version pinned in both arms; the injected ruleset generated by ponytail’s\n  own hook code, sha256 recorded. Seven of SkillsBench’s 87 tasks are excluded: one that\n  cannot run in a local sandbox at all, and six that fail identically in *both*\n  arms on our hardware. Exclusions are symmetric — a task is dropped from both arms or\n  neither — and the full list is retained with the evaluation artifacts.\n* **What this cannot tell you.** SkillsBench is data, analysis and repair\n  work; it contains few of the front-end over-build traps that produce ponytail’s largest\n  wins. This is a fair test of the cost, speed and quality claims and a conservative test\n  of the code claim. It does not refute their −54% on their own task set.\n  \n\nChart style borrowed from\n[dither-kit](https://www.tripwire.sh/dither-kit), reimplemented here as a\ndependency-free inline widget.",
+      "tags": [
+        "Claude Code",
+        "Ponytail Skill",
+        "Token节省"
+      ],
+      "score": 80,
+      "summary": "JetBrains测试Ponytail Skill，实测节省15%代码和10.3%成本，低于宣传值。",
+      "fetched_at": "2026-07-28T23:29:22.125488+08:00"
+    },
+    {
+      "title": "国内科技创企“不务正业”做杯子，首日完成百万预售",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575179&idx=1&sn=bf13c398b26661b393d84621bf274859",
+      "published": "2026-07-28T21:30:00+08:00",
+      "source": "白鲸出海",
+      "content": "关注AI的 2026-07-28 21:30 四川\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c0d37707&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q92a0YwGcicnOS1NBGMI1R7PRzMM6FxXSZYFAnXImTDnX2JeyLCokqicARhQPtptgBPsHY6ok4OfheaETSVoA1BtTlYSW6YMJpjM%2F0%3Fwx_fmt%3Djpeg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e8d8c23f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q9zGy6onUxficILLw9PKkPM14gn5R3emU541SL4cSZbaQYwYCDx1XcRQvy2R5kyc0JG7YibDw8XzY69QvlTAtu0rmcEYxxCE2PSs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n现在的马克杯，不止想让你喝水。\n\n**封面图片由AI生成**\n\n出品｜白鲸出海AI组\n\n作者｜裴政开\n\n编辑｜殷观晓\n\n提到智能马克杯，大部分人会想到 Ember。这款诞生近十年的马克杯，可以通过 App 控制液体温度、自动加热和智能提醒，几乎定义了智能杯这一品类。在它之后，消费者很难想象，一只马克杯还能增加什么功能。\n\n![图片6.png](https://wechat2rss.bestblogs.dev/img-proxy/?k=134c1c3e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FqjZKdR2jTuvf4FGdVQNTibwuDU9xXaUBxDYdCcPBtNS0rThich3uDUTia19UffiaX71HZXb9sdAq4SZabr7xnic1qrvlENoia0yAlY2c66XdDMH1g%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nEmber产品图 | 图源：Ember官网\n\n直到近日，国内创企 Jeejio 打造的智能杯「PixelMug S1」上线众筹 ，打破边界。这款马克杯，可以显示图片、播放动画、玩游戏、做番茄钟，甚至作为一个杯子，它还能和其他杯子互动...\n\n价格方面，基础版套装众筹售价 69 美元、Pro 版套装众筹售价 89 美元，约合人民币 500~600 元。并不便宜的售价，却在首日便获得近 1200 人支持，筹得约 16 万美元，超百万人民币。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=cb4e5ad1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FqjZKdR2jTus7KJaWIvyBYMPBOSiahnbvA2fLeOBlOCrYneLATq0epXYGcGuib1G1QAJNRJR1xI3s9ibqweFqEpibic5BleYYOfnmTaoJ6ThPBrVk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n「PixelMug S1」 首日众筹成绩截图 | 图源：kickstarter\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**一、从一块屏幕开始**\n\n「PixelMug S1」并不是 Jeejio 发布的首款智能马克杯。2025 年 3 月，团队曾推出智能马克杯 PixelMug P1，众筹售价 59 美元，最终收获 2800 +支持者、筹得近 30 万美元。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=46147798&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FqjZKdR2jTusxWlyUZ58wDlx0RNwyLmFoZuDibKmcicVjt0bqlR8OtHcf2KvozeMvQCO95W0rMdbSyZMSdXOqk717ZHwah79nP23g7Qnla6iagg%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n图源：kickstarter\n\n作为一款杯子，PixelMug P1 的容量约有 175ml，支持冷/热饮，支持水洗；在“智能”方面，P1 的核心创新点，是将 LED 像素屏嵌入马克杯，把一块低分辨率的彩色 LED 点阵集成进超薄透光白瓷中，让原本只是盛水的杯壁，成为一块可以显示内容的互动屏。\n\n有了这块屏幕，用户可以通过 App 自定义杯身显示内容，包括像素画、GIF 动图、天气、时间和实时水温；同时，App 内置 AI 图像生成能力，用户可以通过文字描述生成像素图片，也可以将自己的照片转换为复古像素风格。此外，PixelMug 还建立了像素内容社区，用户可以上传、分享、交易自己的作品。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c015105c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FqjZKdR2jTusP5urJ6kTxA7bzYZCVHkbmjWGrcxJDkDVbdfvRYYNyecJjJYDicddCzVU6QcwBiaia30T0yzgv3edzvvkVIJavkrPQICIyJQ3Ijc%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n图源：kickstarter\n\n在马克杯的属性外，P1 还致力于探索杯子作为桌面硬件的其他功能。\n\n用户可以选择在屏幕显示天气、时间等，也可自定义日程提醒，让 P1 成为一款简单的桌面助手。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=f294fc6f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FqjZKdR2jTuvwPuVFLicwmOozAEwgclz3AH6Kb4cHXibibkjbXT5wUwkKkiaycy55nDtuJu67mYwT7YdrNRN6Pvfbt21vFQp5lvWkbXkEseHAluI%2F640%3Fwx_fmt%3Dwebp%26animated%3D1%26from%3Dappmsg)\n\n图源：kickstarter\n\n同时，P1 试做娱乐担当。P1 自带几款小游戏，在闲暇之余，用户可以触碰杯身进行交互，把杯子当作一款简单的游戏机玩耍解闷。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=23da9bdf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FqjZKdR2jTuuaicYhvbI60dxqPGo1TJNtmiaj7HokmL4HQ2jrIMH0JElroNI1D5rSFyV5aUASbMLV2D6lRKsPCP77ibtn1zb5XJNnBlc7HZPhQ4%2F640%3Fwx_fmt%3Dwebp%26animated%3D1%26from%3Dappmsg)\n\nPixelMug P1 内置多款像素小游戏，\n\n如《Gravity Drop》 、《Vegas Slots》等，\n\n用户可通过触碰杯身进行玩耍 | 图源：kickstarter\n\n不过，P1 依然存在明显限制。杯子 175ml 的小容量、易碎的陶瓷材质，让产品实用性大打折扣，更像一款桌面摆件，而不是每天都会使用的杯子。\n\n但 P1 的意义在于，验证了用户对马克杯作为新一代桌面入口的接受度，用户愿意为一只功能丰富的杯子买单；而新一代智能杯 S1 在此基础上，让产品从一件有趣的桌面玩具，变成了真正融入用户生活的智能设备。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**二、一个杯子的野心**\n\nS1 首先解决的，是杯子最基础的使用体验。相比 P1，S1 将材质从双层陶瓷调整为不锈钢内胆+PC 外壳、容量提升至 350ml，电池容量也提升至 1200mAh。\n\n这些变化看似不如“AI”“游戏”等功能吸引眼球，但实际上决定了用户是否愿意每天使用杯子。只有用户愿意日常使用，杯子的其他功能才有意义。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=cfaccf70&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FqjZKdR2jTut6ic24UPyAJK9mABYcbYcelYg7hAjOKUXapm0rOvkHPfyiajS3wFDxELnxsPzsn1ic8iaEicbA1yHWwibMFSMeTC5uTYWAnECnqY4ag%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n留言区中，除杯子显示功能相关讨论外，\n\n杯子的易碎提及较多 | 图源：kickstarter\n\n提升实用性后，S1 也丰富了杯子的其他功能。PixelMug 团队充分利用了杯子长期存在于用户桌面这一特点，让产品成为了一个新的信息和互动入口。\n\n首先，是让杯子成为一个更实用的桌面工具。\n\n相比 P1，S1 新增了番茄钟、倒计时等实用功能，易分心的当代打工人必备；工作时，用户还可以借杯子显示当前任务状态。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=b57c08a0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FqjZKdR2jTuu7RCnD1dc4dE70D4shyibdp4tN9gribNQ2nib54rGgqwyIdlj25EIB11PvqYbpHRfn4M1nkgiapzpleNDU2iayIwmFcf4SY27p3NsE%2F640%3Fwx_fmt%3Dwebp%26animated%3D1%26from%3Dappmsg)\n\n图源：kickstarter\n\n杯子甚至可以连接 Codex，实时查看工作任务进度、token 使用情况等。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=f86346a9&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_gif%2FqjZKdR2jTus1kic27VrQkvkWg793bocAHOfbPFTqTqFj8iboeKto2b50YqcQNevPDZibRtDuJ5nSylxtklpkFYlDxnnXudV84rb2mEXhCYvgiaA%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n图源：kickstarter\n\n这些功能看起来并不像一只杯子应该拥有的能力，但它们却天然符合杯子的使用场景。\n\n不同于大多数桌面硬件需要用户主动购买、摆放，马克杯本身就是常驻办公桌、书桌的高频物品。PixelMug 在用户已经习惯存在的地方，巧妙增加了一个信息展示和互动的窗口。\n\n但桌面办公场景并不是 PixelMug 的终点。杯子的特殊之处在于，它并不只属于工作空间，也会出现在家庭、聚会、社交等更多生活场景中。这也让 PixelMug 从单人的桌面工具，进一步延伸出更丰富的互动玩法。\n\nS1 Pro 增加了麦克风、扬声器和六轴运动传感器，让杯子具备了更强的互动能力。用户玩游戏时，不再只是单纯触碰屏幕，而可以结合触控、声音和体感操作完成。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=98601b0e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FqjZKdR2jTuubE1sMA9icNc8LibOgVE14GeujYNeicTZQn91xxqb6mqOuodnKibicd6RGnbeZMzBAWlrBVx9AdJ2qtGjHEQLHfXvoCwj7Tb3B1110%2F640%3Fwx_fmt%3Dwebp%26animated%3D1%26from%3Dappmsg)\n\n图源：kickstarter\n\n除像素迷宫、弹球、反应测试等单人小游戏外，杯子也增添了大量多人游戏，如轮盘、骰子、石头剪刀布、老虎机等，使杯子成为了聚会中的互动工具。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=83b81ace&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FqjZKdR2jTuvDhf9Wv8uCoDIp8U1Ew2lf10dBoX9SrHV5z3mmBGrsjzuWqWBbnCicxa9qr0TFWanj3GYph8hUVukeKL2HSOPJeU92gpicNic8fc%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n图源：kickstarter\n\n音乐功能进一步放大了互动属性。S1 Pro 可以识别环境声音，并将音乐实时转换成像素动画，不同频率的声音对应不同视觉变化，杯身动画可随音乐律动；当多个杯子同时摆放时，还可以拼接显示更大画幅。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=df153dd8&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FqjZKdR2jTut6ppmnJ3ia4dfsPFY4onMFG0VlvMsNmmw5FfiaHjbNzxXaCyYbGlFCwKpTwegqiaib45hHIn7vm5Y8mHfUjpxpqxOZbdWrqC5ZrIg%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ff11b1a4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FqjZKdR2jTuukeAUdichVMyET0ExbiaQk055WcJavKibjGWHEiaa7kE2lHc9QsxtLoeajnRibwbo0Yyz6daf3WbxgOibcfNibpXibicRj3VsyHdGYyDfU%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n图源：kickstarter\n\n多杯互联，进一步增强了产品的可玩性，加强用户之间的连接。不同杯子之间能够建立配对，用户能够向其他杯子发送文字、像素画、提醒等。未来如果用户规模扩大，杯子本身可能不再只是个人设备，而成为朋友、家庭成员之间的一种轻量连接方式。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=54ac4e3d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FqjZKdR2jTuuwRWy7ljDUqotd3QgIzaXEArDXhLct9EsSr5JHctfYWgFbrr3rZIwwQkqRtezU3ztwGAyR7ZhibE05Q9PFrRn3cXkHOHWJ5SIY%2F640%3Fwx_fmt%3Dwebp%26animated%3D1%26from%3Dappmsg)\n\n图源：kickstarter\n\n但「PixelMug S1」最大的野心，并不是增加更多功能，而是让这只杯子具备持续扩展能力。\n\n产品开放 SDK，支持开发者基于 Python 开发新的游戏、工具和自动化应用；用户也可以通过配套的 Bubble App，挑选安装不同工具等。同时，PixelMug 的社区也从单纯分享像素图，扩展到未来分享应用、游戏和工具等。借助于更广泛的想象力，拓展杯子边界。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=12aa1770&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FqjZKdR2jTuvg2MNRQr8MWlqZk45vdjcDTfslW3cnbXT4GWGUyDO0tX5vn1y4wLIhmA3EMaBvLD66h0qwo1pIn6oic4gfpONpyN24cERepibDU%2F640%3Fwx_fmt%3Dwebp%26animated%3D1%26from%3Dappmsg)\n\n图源：kickstarter\n\n乍一看，PixelMug 很像中科物栖（Jeejio 中文名）的一次“不务正业”。这家由中科院计算所团队创立的公司，此前更为人熟知的产品是 RISC-V 芯片、超微计算机和物联网操作系统。无论哪一项，似乎都与喝水相距甚远。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=be160c36&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FqjZKdR2jTusUe6pCo89zWibBWNicqrZrWVYDtm5IY6PMwNcNXKNzibIGD9tMaabGuH8KRp4aODCFVW8vryMUDsT4Jn6wjJTNQz3eeeqeTbhoNI%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\nJeejio（中科物栖）公司简介 | 图源：Jeejio 官网\n\n但如果回到中科物栖最初的愿景，答案恰恰相反。\n\nJeejio 是“寄居蟹”的谐音。公司希望把一台指尖大小的计算机植入普通设备，如同寄居蟹进入贝壳，让原本没有计算能力的物品智能化。\n\n马克杯刚好成为这个比喻最直观的载体，它本身就是一个容器，又长期存在于用户的办公桌、餐桌和生活空间中。\n\nPixelMug 的落地，是中科物栖将普通人难以感知的底层技术，变成可感知消费品的一次尝试。芯片负责计算，传感器感知温度和动作，屏幕提供反馈，Bubble 平台连接用户与设备，SDK 则允许开发者不断添加新功能。从这个角度看，中科物栖做的并不是一只智能马克杯，而是在用杯子验证自己的“物端计算”体系。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**写在最后**\n\n「PixelMug S1」首日 16 万美元的成绩，并不只向我们展现了一次成功的众筹，更重要的是，产品展示了一种传统硬件重新寻找增长空间的方式。\n\n第一代 PixelMug，验证了智能马克杯也可以成为新的桌面入口；第二代则深化定位，再次证明了，智能硬件不一定需要创造一个全新的使用场景，也可以从用户已经在高频使用的物品中挖掘入口。\n\n相比依靠新交互方式吸引用户的硬件，PixelMug 的优势在于杯子本身就是高频消费品，天然覆盖更广用户；相比一些强调情感陪伴的 AI 桌宠，它也没有要求用户主动建立关系，而是在喝水、办公、社交这些已有场景中感受新的乐趣。\n\n当然，PixelMug 也仍面临挑战。硬件完整体验依赖 App 和产品互联；同时，开放 SDK 能否吸引开发者，则需要同时考验终端数量，开发者生态的运营与商业化，后者难度不亚于技术攻关。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n推荐阅读\n\n## [179美元，监测女性健康的“卡地亚平替”？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575104&idx=2&sn=eb05bc884924afbd50bd72c3ada4e370&scene=21#wechat_redirect)\n\n## [北京再添一家季度流水过亿的「合成厂商」](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575089&idx=1&sn=56d71b3736c807e362690f597511c8c2&scene=21#wechat_redirect)\n\n## [刚刚，Midjourney收购了Top3 AI占星App？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575142&idx=1&sn=2018b35aa2426174714a1ebd84be30a4&scene=21#wechat_redirect)\n\n## [悄悄做到第一梯队，「DeeVid AI」拿下3000万欧美用户](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575016&idx=1&sn=5fa83e8979fbe94fe2610e1e60c24a8b&scene=21#wechat_redirect)\n\n## [脸萌、剪映后郭列再创业，做视频Agent、但学的是Claude Code｜对话一线](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574970&idx=1&sn=83581a48ed8e82215417c090fe90ef75&scene=21#wechat_redirect)\n\n**商务合作**\n\nCassie | 微信：18506490569\n\nAres | 微信：18606066421\n\nLina | 微信：13381020131\n\n**媒体合作**\n\nEcho | 微信：13003974360\n\n**游戏、应用等APP出海对接**\n\nShadow | 微信：18650708568\n\n**卖家对接**\n\nDemerly | 微信：18150844790\n\n**客户服务**\n\nLia | 微信：baijing018\n\n**与CEO聊合作**\n\n魏方丹 | 微信：bjbandari02\n\n（添加请备注姓名、公司及职位）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8940b5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FibJzB4CZdSVUmtOk1OamTtcnibrVgic99d5FTmiats16QlsKkD7nFeSa5KFibbHFLDqVHvA7nfThGicVC7ib3aQ8xxQOg%2F640%3Fwx_fmt%3Djpeg)\n\n**长按识别二维码，备注“白鲸”****申请加入白鲸社群，****获取更多资讯、活动、资源**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=81d3326f&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575179%26idx%3D1%26sn%3Dbf13c398b26661b393d84621bf274859)",
+      "tags": [
+        "PixelMug S1",
+        "智能杯",
+        "众筹"
+      ],
+      "score": 70,
+      "summary": "Jeejio智能杯PixelMug S1上线众筹，首日筹款超百万人民币。",
+      "fetched_at": "2026-07-28T23:29:22.125493+08:00"
+    },
+    {
+      "title": "白天听干货，晚上喝一杯｜这趟游戏出海“直通车”，把资源和人脉都凑齐了",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575179&idx=2&sn=4d260fc69c87cc04f2c388b722823306",
+      "published": "2026-07-28T21:30:00+08:00",
+      "source": "白鲸出海",
+      "content": "白鲸出海 2026-07-28 21:30 四川\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8b950433&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8G0FbF6LKgSKuficu7qFO4qwMibgrwQzb4LGEWFvnBSJtPq3VEeAB11KWtl0gjJGINakcNcqePVuH5JrjHAx0XXJD6PWwlnU4LI%2F0%3Fwx_fmt%3Djpeg)\n\n穿越市场缝隙，奔赴出海新局——期待与你相遇。\n\n2026 年过半，出海赛道的热浪仍在持续升温。\n\n中国音数协游戏工委发布的《2026 年 4 月中国游戏产业月度报告》数据显示，2026 年 4 月，中国自主研发游戏海外市场实际销售收入达到 20.32 亿美元，同比增长 30.78%，出海收入同比增速已连续 3 个月保持在 30% 以上。而放眼更长周期，同样来自中国音数协游戏工委发布的《2025 年中国游戏产业报告》数据显示，2025 年中国自主研发游戏海外市场实际销售收入已达 204.55 亿美元，连续六年突破千亿元大关。而根据 Sensor Tower 发布的《2026 年 6 月中国手游发行商全球收入排行榜》显示，2026 年 6 月，38 个中国厂商入围全球手游发行商收入榜 TOP100，合计吸金 20.6 亿美元，占全球 TOP100 手游发行商收入的 41.6%。\n\n数字是冰冷的，但数字背后的行业变迁却足够炽热。\n\n全球手游市场正进入“低增速常态”，出海已从选择题转为结构性必选项。出海不再等同于“买量扩张”，而是对研发、发行与运营能力的系统性考验。与此同时，AI 出海也在加速扩容——从算力服务到行业应用，中国 AI 企业正在加快拓展海外市场，出海模式从单一产品输出向技术、场景和服务能力综合输出转变。\n\n当游戏出海与 AI 出海两条主线在此刻交汇，一场关于“如何更好地走出去”的深度探讨，变得前所未有的紧迫。\n\n基于此，我们将在 7 月 30 日-31 日在上海举办一系列游戏出海主题系列活动，涵盖行业论坛、项目路演、商务对接与社交酒会等多种形式。无论你是正在探索出海路径的研发团队，还是希望拓展海外市场的发行方，抑或是关注 AI 技术如何赋能出海的从业者，这里都有属于你的场次。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**系列活动一：**\n\n**2026魔都出海嘉年华 全球游戏对接会**\n\n游戏出海的下半场，拼的是信息差和对接效率。2026 年 7 月 30 日 14:00-17:00，由白鲸出海与 Funtap Games、GASH 联合主办的 2026 魔都出海嘉年华全球游戏对接会将在上海举办。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=38dca8a2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6qicCjxDxMCCjf6IbGt5KsdwoFBws8QFicOK7vC294dbWDenPgrhSp8rEiado7O4qSn6lYW6cughFXjv76egl8aekH6cqTmawosO2k%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n本次活动延续了全球游戏对接会系列互动的高效对接基因，这次来到上海，依然面向游戏研发、发行及研运一体团队开放，旨在为供需双方搭建一个去中介化的精准匹配场景。\n\n主题演讲环节，Funtap Games 海外商务总监 Anna Vu 将带来《越南游戏市场深度解析——中国厂商出海的新机遇》，这两年越南市场的变化不小，从政策到用户偏好都有新动向，值得专门听一听。紧接着，GASH 亚太区运营总监陈凌 Leon 会上台分享《PAY TO PLAY, PLAY TO STAY——引领港台游戏支付生态》，中国港台市场看着近，但支付和用户运营的门道很深，Leon 是这块的老手，内容保证不水。灵境游戏联合创始人兼 CEO 范颖将从行业变革、AI+浪潮下的机遇、小团队全球化等维度展开分析，带领大家探索一条“小团队全球化”的新路径。最后，QooApp 广告业务总经理 Wiz Lin 将基于多年跨市场推广经验分享关键出海观察：当平台本身就是一个有温度的玩家社区，出海发行便不再只是投广告，而是与数千万玩家建立持久的连接。\n\n路演环节，上海翼琥网络科技有限公司将带来 Q 版科幻放置 RPG——《太空猎手》项目介绍；北京唯方科技将带来旗下休闲二合游戏新品《二合奇境 MergicRealm》的路演展示。活动当天现场还设有展位交流区，目前已确认参展的优质服务商包括：结行国际、亨嘉美程、珊瑚跨境、Aghanim。\n\n活动当天特别设置对接桌专区，汇聚来自游戏出海产业链各环节的优质伙伴，为参会者打造面对面深度对接的专属空间。\n\n目前已确认入驻对接桌的阵容包括（排名不分先后）：\n\nFuntap Games、翼琥网络 、Appguru、有顶天、灵境游戏、游韵工作室、创游天下、史前纪元、QooApp、享游工作室、邮趣游戏、初心游戏、三起网络、Huoli Games、乾游网络、三千互动、唯方科技\n\n同时也欢迎各位参会者移步展位区，与展商团队面对面交流，一站式对接出海支付、资金管理与商业化增长等关键资源。目前已确认参展的优质服务商包括：结行国际、亨嘉美程、珊瑚跨境、Aghanim。\n\n现场还有独家惊喜福利——现场不仅有打卡活动赢取好礼，更重磅的是，签到即有机会赢取真黄金！这是本次对接会为参会者准备的惊喜彩蛋，千万别错过。\n\n看腻千篇一律的 MBTI 人格标签？专为广告人打造的 MGTI 新鲜登场！点击链接，生成专属职业人格画像 <https://baijing.cn/EVrUZ>\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=2337228c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOHnTJ4kA6q9ZZBfOA9icdtsRJ7HicGMbkfztSr1Pl9mqZqjHUU6V4ZfP9iaonkpNUqPAJfM7emWn7nxBWeXVv5VVEhFFUkDL3EqOkLibriabqmIA%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**系列活动二：**\n\n**Chill Night——出海微醺夜**\n\n白天聊了一整天的市场、数据、发行策略，到了晚上，总得有一个地方能让脑子松一松。7 月 30 日晚上 19:00-21:00，我们在上海徐汇区准备了一场很小的闭门酒会——小到什么程度？全场只开放 20 个名额。不是饥饿营销，是我们真心觉得，好的交流从来不是人越多越好，而是对的人坐在一起，不用扯着嗓子说话，也不用端着架子社交。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=352b62a3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qibfY9ruyIRXWlnn3Lia8G7nhNpaBqjxwCfxPYibt0TyZyUcNFXdI57wakaq47ps9RPTtGibr7MwFOE13zWMRmVbUA6EJTm58Iraq4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n来的都是同行——AI 工具、泛娱乐、游戏出海相关领域的从业者，而且要求总监及总监以上级别。说白了，这是一个圈层足够集中、话题不需要从头解释的场合。你带来的困惑，对方大概率也遇到过；你正在找的资源，可能就在隔壁坐着。\n\n流程不复杂，但节奏刚好。很多合作的开端，都是从一句“你这个产品我好像见过”开始的。此外，还有一个有意思的小设定：这次有 Dress Code。着装建议是“蓝色”或“粉色”元素服饰到场——可以是衣服、鞋子，也可以是头饰、耳环、眼镜这样的小点缀。不复杂，但能让场面不那么商务、多一点轻松的氛围。而且，只要着装符合要求，现场就能领到一份伴手礼。\n\n报名方面需要特别说明一下：活动为审核制，审核通过后才会发送详细地址。因为我们真的只留了 20 个位置，不符合参与门槛的报名可能无法通过，提前说声抱歉。\n\n如果你那天正好在上海，白天也计划参加我们的游戏对接会或其他活动，那晚上的微醺夜刚好是一整天的收尾。带着白天收获的信息，晚上喝一杯，聊聊真话——这种搭配，比纯听一天的会要踏实得多。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**系列活动三：**\n\n**「游」好WAY，爆好GAME—**\n\n**东南亚&中国港澳台市场直通车**\n\n买量成本一天一个样，本地化怎么做都不对味，支付渠道绕来绕去总差一口气——东南亚和中国港澳台市场看着近，真进去才发现，坑不比欧美少。但这几个区域偏偏又是当下国产游戏出海的核心增量池，放着不管，等于把份额拱手让人。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e3841d78&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q83wfMUfesjmmiaFJbgMsQ5viaMVl9qbZlvyo5fy3ckxE5purqeT1zDv20heJnJoMXiaOOk1UK93U4YLcXPEWgnplsJ1avR0Xia4Sk%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n所以这次我们干脆把路铺好，一站配齐。7 月 31 日（周五）14:00-16:30，上海，【「游」好WAY，爆好GAME东南亚&中国港澳台市场直通车】直接发车。流量、支付、发行、运营，整条链路从头到尾捋一遍，不讲虚的，只说怎么落地。\n\n第一场主题演讲由微游互娱 VP 昊章带来——《不只是IAA！在东南亚&港澳台MiniGame整了什么活？》。MiniGame 在这两个区域跑得怎么样，IAA 之外还有哪些变现思路，昊章应该是国内少数能把这事讲透的人之一。\n\n接着是 GASH 亚太区运营总监陈凌 Leon，主题是《Save on Pay, Win the Day 港台东南亚支付营销新生态》。中国港台市场的支付逻辑和东南亚差异不小，怎么省钱、怎么留住用户，Leon 在这个领域摸爬滚打多年，数据和方法论都扎实。\n\n之后是华清飞扬总裁助理任颖上台，主题《如何利用 AI 赋能游戏长线运营》。AI 有所能，也有所不能，游戏团队究竟该如何用好 AI、真正为长线运营提效，而非盲目跟风？任颖将在本次分享中解析如何把 AI 引入运营的各个环节，让“用 AI 赋能运营”从概念走向落地\n\n活动为审核制，审核通过后告知具体地址。席位有限，扫码报名。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=cae39e65&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q9ldJcHNqicEkyZfCvmWdYibrUGWDFJa05sV1ibNO3q9ZkJQMNjYDO1Bhkx68VWGw6ic3R9Im4fhTG5VreqGBQoJbCcYRO2ItDcIzM%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**系列活动四：穿越缝隙，出海狂欢夜**\n\n白鲸出海联合 ADTiger 虎视，在上海徐汇区落地一场专为 AI 工具、泛娱乐、游戏出海人打造的狂欢夜。主题叫“穿越缝隙”——缝隙是市场的缝隙，当大家都在卷同一个赛道的时候，真正聪明的玩家在找那些被忽略的增量空间。一道缝隙，就连通着万千海外增量。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7dc3452d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q85ZB84aQeRH5VgaLEKto0LTUDrQRJj2dJcia7LOKN66upCo1VTLWQDaOZ6dlMoJgynyjyj2r2KN047n0xLefTiaYsYJYs4yXMN8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n缝隙也是日程的缝隙——白天深耕赛道，晚上就该狂欢拓商。白鲸出海创始人兼CEO 魏方丹、ADTiger 虎视区域总经理 Kevin Sun 将相继登台，分别带来他们对跨境出海赛道的最新判断，10 分钟，两个视角，干货翻倍。\n\n之后是当晚重头戏，乐队现场表演，美食随便吃，酒水畅饮。你不用端着，不用硬找话题，音乐和氛围会帮你完成剩下的工作。你会发现，在这种轻松的状态下，反而更容易聊出真东西——那些报告里看不到的行业洞察、那些数据背后真正的逻辑，都是在这样的场合里流传的。\n\n本场 Party 面向 AI 工具、泛娱乐、游戏出海人及企业开放，不设职级限制。活动为审核制，报名通过后告知具体地址。名额有限，满员即止。\n\n扫描海报上的二维码即可报名。如果你 7 月 31 日晚上还没有安排，如果你也在忙碌的日程里想找一条“缝隙”透透气。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7e9dad22&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qicRVEcESom2rthWiaPRmbaeOXB7l1hkbw5v8FbRfSn8ogbPkjYzJUuclIsrNppJ4qJeIoWZMIYiaNJOk0k2rexyy3au7mloDeVmw%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n为什么是现在？\n\n2026 年的出海，早已不是“把产品翻译成英文丢到海外商店”就能成功的年代。\n\n在产品端，“全球适配”正在替代简单本地化，成为出海的基础门槛。在营销端，AI 正在深入素材创意、翻译配音、视频剪辑、本地化包装和广告素材生成等环节，使内容生产和市场测试周期显著缩短。在用户端，多端布局已成为游戏出海的重要趋势，但各端营销逻辑、规范差异显著，跨端数据打通与效果评估成为行业面临的严峻挑战。\n\n与此同时，AI 出海正从少数企业的探索扩展至算力基础设施、行业应用等多个领域。从“产品出海”到“品牌出海”、“技术与价值出海”，中国 AI 产业正以前所未有的姿态融入全球化浪潮。\n\n出海的门槛在提高，但机会从未消失。\n\n2026 年休闲品类的中小厂商仍有机会，突围关键仍在于反应速度。游戏行业从未有企业能垄断全局。而对于 AI 赛道而言，中国企业的差异化优势在于拥有完整的 AI 落地服务体系。\n\n这正是我们策划这一系列活动的初衷——在行业变革的关键节点，搭建一个真正能帮助从业者“看清方向、找到方法、连对人”的平台。\n\n报名通道现已开启，席位有限，审核从速。出海的路从来不是一条坦途，但正因为有挑战，才值得同行。\n\n白天深耕赛道，夜晚狂欢拓商。穿越市场缝隙，奔赴出海新局——期待与你相遇。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n推荐阅读\n\n## [179美元，监测女性健康的“卡地亚平替”？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575104&idx=2&sn=eb05bc884924afbd50bd72c3ada4e370&scene=21#wechat_redirect)\n\n## [北京再添一家季度流水过亿的「合成厂商」](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575089&idx=1&sn=56d71b3736c807e362690f597511c8c2&scene=21#wechat_redirect)\n\n## [刚刚，Midjourney收购了Top3 AI占星App？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575142&idx=1&sn=2018b35aa2426174714a1ebd84be30a4&scene=21#wechat_redirect)\n\n## [悄悄做到第一梯队，「DeeVid AI」拿下3000万欧美用户](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575016&idx=1&sn=5fa83e8979fbe94fe2610e1e60c24a8b&scene=21#wechat_redirect)\n\n## [脸萌、剪映后郭列再创业，做视频Agent、但学的是Claude Code｜对话一线](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574970&idx=1&sn=83581a48ed8e82215417c090fe90ef75&scene=21#wechat_redirect)\n\n**商务合作**\n\nCassie | 微信：18506490569\n\nAres | 微信：18606066421\n\nLina | 微信：13381020131\n\n**媒体合作**\n\nEcho | 微信：13003974360\n\n**游戏、应用等APP出海对接**\n\nShadow | 微信：18650708568\n\n**卖家对接**\n\nDemerly | 微信：18150844790\n\n**客户服务**\n\nLia | 微信：baijing018\n\n**与CEO聊合作**\n\n魏方丹 | 微信：bjbandari02\n\n（添加请备注姓名、公司及职位）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8940b5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FibJzB4CZdSVUmtOk1OamTtcnibrVgic99d5FTmiats16QlsKkD7nFeSa5KFibbHFLDqVHvA7nfThGicVC7ib3aQ8xxQOg%2F640%3Fwx_fmt%3Djpeg)\n\n**长按识别二维码，备注“白鲸”****申请加入白鲸社群，****获取更多资讯、活动、资源**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=0d3474a2&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575179%26idx%3D2%26sn%3D4d260fc69c87cc04f2c388b722823306)",
+      "tags": [
+        "游戏出海",
+        "活动"
+      ],
+      "score": 65,
+      "summary": "白鲸出海举办游戏出海系列活动，包含论坛和对接会。",
+      "fetched_at": "2026-07-28T23:29:22.125496+08:00"
+    },
+    {
+      "title": "泽宝创始人杀入小家电，一年进账近5亿",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575179&idx=3&sn=654be19d5246598d0942b94ffb24dda0",
+      "published": "2026-07-28T21:30:00+08:00",
+      "source": "白鲸出海",
+      "content": "品牌方舟 2026-07-28 21:30 四川\n\n以下文章来源于：品牌方舟BrandArk\n\n**品牌方舟BrandArk**\n\n品牌方舟BrandArk致力于让世界看见中国品牌的力量，长期关注全球化、跨境出海、品牌增长等议题，通过品牌案例分析、行业趋势解读，从中洞察新兴市场和潜力赛道，帮助出海者寻方向、悉脉搏、洞未来。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=82fea1bc&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2Fly7VR9IMIXtJJ7wWEPx7U3tqzuU9FgjYjg81YyelI6icCqK0US32s4913ZEKOAakicMI7Bibo8TIoZqUunHCfUNNJyH4ibvklicYR0YPbheiclFtI%2F0%3Fwx_fmt%3Djpeg)\n\n充分吸取了泽宝前车之鉴的它，又走出了怎样一条不同寻常的出海之路？\n\n聚是一团火，散是满天星，或许是“泽宝系”最真实的写照。\n\n时间回溯至 2014 年，泽宝成立内部培训项目“北浦训练营”，将许多优秀毕业生培养成核心骨干，为日后泽宝系的开枝散叶埋下了种子。\n\n据业内统计，仅 2018~2022 年间，从泽宝离职创业并实现年营收过亿的高管就超过 15 个。他们带着在泽宝积累的资源与经验，在不同赛道开疆拓土，跑出 Momcozy、Momcozy、Dero 等一系列知名品牌。\n\n而作为泽宝创始人的孙才金，同样是这股泽宝系创业潮中的一股浪花。2020 年，彼时风头正盛的泽宝成功完成与母公司星徽股份的对赌承诺。而功成身退的孙才金悄然离开一手创立的泽宝，并在三个月后火速成立了虎一科技。\n\n离开泽宝另起炉灶的孙才金，选择携品牌 Typhur 杀入小家电这一红海赛道。充分吸取了泽宝前车之鉴的它，又走出了怎样一条不同寻常的出海之路？\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**杀入高端小家电**\n\n2007 年，毕业于北大的孙才金在深圳创立了泽宝。\n\n2018 年，风头正盛的泽宝“嫁”入上市公司星徽股份，并签下一纸高额业绩对赌卖身契。\n\n2020 年是泽宝达到业绩巅峰的高光时期。但也是在这一年，作为创始人的孙才金黯然出走并在同年 11 月成立了虎一科技。而在他离开后不久，泽宝便因封号重创迎来巨亏 15 亿的至暗时刻。\n\n泽宝血淋淋的教训下，也让他更加坚定了深耕品牌化路线的决心。事实上，孙才金早就意识到铺货走量的粗放打法难以为继，也很早便开始回归产品本质、创造长期价值的实践。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=f5988b85&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2Fly7VR9IMIXt0FpkNdz8TicdGaRm1unLO4jDGm0ib144comhbkgEAKQ7sXmrGFicEMtzBn3HibVoibF26IYzATlByUw0sAEplpicZ1gbwuzycIHs1o%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D3)\n\n而虎一科技的成立，则让他对产品的执念有了充分施展拳脚的擂台。相较于泽宝的纯卖货思维，虎一科技定位“厨房领域的技术公司”，选择了一条技术创新+产品驱动的差异化路线。\n\n公开资料显示，虎一科技团队实力极为雄厚，核心成员来自北京大学、清华大学等顶尖学府，并曾就职于谷歌、苹果、亚马逊、大疆、华为等全球科技大厂。\n\n不过虎一科技并未急于迎接市场的考验，而是经过三年技术深耕才正式推出自有品牌 Typhur，瞄准一个体量庞大且仍在增长的市场——价值千亿美元的厨房小家电。\n\n这片红海市场看似日趋饱和，但 Typhur 却敏锐洞察到了一个关键的市场空白：北美高端厨房电器市场长期被德系等传统品牌垄断，定价动辄上千美元，但产品在智能化程度上却相对落后。这也为 Typhur 靠技术降维打击提供了绝佳的机会窗口。\n\nTyphur 精准捕捉到欧美中产家庭对高品质、智能化厨房小家电的需求，从“厨房科技”这一细分赛道切入，试图像特斯拉之于汽车一样，通过科技驱动的高端化产品重塑消费者对厨房电器的认知。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=a883944a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2Fly7VR9IMIXtUfZRJnOc4AGibfQg3UabzelAqSFj4K0vY16KDn2TMN5XNvIfTrVKUEEpjibqLMib3alTibq17ibHJsoh5MN5sQ54iakiczOdb7NOK3A%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D5)\n\n基于此，Typhur 提出了一个独特的理念：烹饪科学。具体而言便是将烹饪视为一个可通过温度、湿度、时间等参数精准控制的标准化科学过程，而非依赖个人经验。\n\n而 Typhur 的定位，便是将复杂的科学原理转化为可量化、可精确控制的系统化操作程序，让任何人都能在家轻松做出美味佳肴。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**技术驱动的高溢价产品**\n\n全球厨房小家电市场正处于一个从高速增长黄金时代迈入存量厮杀白银时代的阵痛期。宅经济风口退去后，越来越多品牌因市场日趋饱和而陷入低价竞争、盈利下滑、产品创新空心化的恶性循环。\n\n反观 Typhur，正式上线至今不到三年，旗下多款产品在长期霸榜亚马逊高端厨电类目。根据业内数据，其 2025 年营收预计达 7000 万~8000 万美元，约合人民币 4.8 亿~5.4 亿，同比飙涨超 300%。\n\n当同行还深陷铺品类、冲销量的价格战泥潭时，Typhur 自诞生之初便率先打响了以技术+创新为核心的价值战。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=29897e6f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2Fly7VR9IMIXvD2c7hzepsznWr3tPUrEfJiaaKlRwRPs3nnC5nh2TBqgDhngYdO4b9Bcq3hKmicnuGcTmE2CQWQcz8Wibhv7EibPJANO5o2yQicWVE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D7)\n\n在目标用户方面，Typhur 精准锚定欧美中产家庭这一高消费群体。这部分人群往往极重生活品质，对烹饪有着较高的要求，但可能缺乏专业技巧或时间。\n\n而 Typhur 的目的，便是利用技术优势解决他们的需求和痛点，设计出直观易用、在家也能轻松做出米其林级美食的厨房工具。\n\n众所周知，欧美人饮食偏好炸鸡、牛排、烤肉等熟食，多数家庭都必备空气炸锅、烤箱、烤炉等厨电。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=6ceab750&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2Fly7VR9IMIXs13aatQwtxKwFSVjnWVoCa7VKkjPTBweRU6wR7Cur44FBxoU1gYHUUkw6y1kbhX05dpaPNxdB80lVI5TK1feDqLoedicFvdT3o%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D8)\n\n而在烹饪这类食物的过程中，最大的痛点莫过于：火候是否适宜？食物熟没熟？几分熟最好？而 Typhur 敏锐抓住这种对烹饪把控的不确定性，将复杂的烹饪环节转化为精准可控的科学化程序。\n\n为了解决传统烹饪中无法精准掌握肉类熟度这一核心痛点，Typhur 深耕精准控温技术，并推出无线智能温度计——能承受 537°C 高温并实时监控食材温度，将“肉是否熟了”这个依赖经验的判断，变成了精确到 ±0.3℃ 的数据反馈。\n\n笔者了解到，Typhur 研发人员占比超过 50%，已累计获得超过 200 项专利。重研发、重投入的品牌思维，也使得其得以为产品创新打造了深厚的技术壁垒。\n\n基于用户痛点，Typhur 的产品设计始终围绕精准化、智能化、以及便捷化展开。以旗舰产品空气炸锅为例，该产品凭借独特的穹顶设计和双加热元件，解决了传统空气炸锅需要翻面的痛点，同时首创自清洁模式，可通过高温分解油脂，大幅提升用户烹饪与清洁的效率。\n\nTyphur 调研发现，大多数人真正想要的只是一个简单、价格实惠、且操作精准的台式烤箱，既能解决日常用餐刚需，也能满足节日盛宴的高端烹饪需求。\n\n因此 Typhur 并没有盲目卷参数，而是紧紧围绕用户需求打造一个完整的、软硬结合的智能烹饪生态。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=d2cd74e1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2Fly7VR9IMIXtwduBmOFcBicJLhSJUNKfVMqOatrt9icyILd38uaPiadI53xmRZibibNYtiaX2rHkyXA96icDnNpZbxrz30Aia2SLfwEaJBG34cwichtnY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D9)\n\n在硬件端，Typhur 构建覆盖智能空气炸锅、低温慢煮机、以及智能烤箱等产品的多品类矩阵；在软件端，则定制专属 APP，提供远程控制、个性化食谱和烹饪指导等功能，将产品从单一工具升级为智能烹饪解决方案。\n\n正是这样环环相扣的产品组合拳，支撑起了 Typhur 的高溢价能力，在海外消费者心中建立起科技、高端、专业的品牌形象。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**全链路触达用户心智**\n\n作为一个主打高端市场的品牌，Typhur 有着极强的全链路渗透能力。\n\n在线上形成以独立站+第三方平台并行的渠道策略，一方面以亚马逊为主战场，通过高品质产品和良好口碑在高端市场打出声量；另一方面则将独立站作为品牌长期价值打造的核心阵地，依托持续的内容输出进行心智教育，不断提升用户粘性与品牌专业形象。\n\n而在线上积累一定品牌势能后，Typhur 又进一步辐射至线下，2025 年开始大力拓展线下销售网络，成功进入了 Costco、Williams Sonoma 等海外高端零售渠道，同时与当地专业分销商合作加速区域化扩展。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=7d613ea7&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2Fly7VR9IMIXvtWPicvYxp6KemxmKHetzCtPkeUib89IfFdOFKUDXibw7iaUMljyZlZ0qz4ZDuJ2EJzX1Od89unWwNNsFgib8umsiat2RaaqiaPxiaLY8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D11)\n\n当然，高端品牌认知的建立是一个长期过程。除了通过布局多元化销售渠道拓展更广泛的受众圈层外，利用营销渠道精准触达用户心智也是不可或缺的一环。\n\n在内容策略上，Typhur 选择围绕烹饪科学+智能厨房这一核心叙事框架，与 Ninja、Cosori 等主流竞品形成差异化区分。\n\n如在 TikTok 上，Typhur 主要利用短视频快速展示各类美食佳肴的制作过程，依托场景化、极具视觉冲击力的内容突出产品亮点；而在 Youtube 上，则注重深度内容输出与权威背书，主要发布深度测评、食谱教程等，靠高质量长视频建立专业信任。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=53683f75&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2Fly7VR9IMIXvwnmpqicvAg6Qic1Y94tTyetQlBSmiaOcspHibiadK6MvjoMiboh6ppGTPuRyZlJhFUqhq3d6qTbbmXE7gNLJVn9XfEibPicPhMwmt03M%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D12)\n\n尽管内容形式基于不同社媒平台调性有所细分，但本质都是围绕科学烹饪这一品牌理念展开，由内部的食品科学家、厨师和工程师团队提供专业支持。例如，解释温度、湿度如何影响食物口感，将复杂的科学原理转化为易懂的视觉内容，持续强化“高端智能厨电”这一品牌心智。\n\n为了进一步赢取消费者的深度信任，Typhur 打造了一个金字塔式的红人营销矩阵，利用不同量级 KOL 的影响力为品牌背书。\n\n一方面，Typhur 积极与专业领域的内容创作者合作，如 YouTube 上拥有庞大粉丝群的烧烤专家 Guga Tosta，通过合作发布深度内容种草以建立专业新人。\n\n另一方面，则与覆盖烹饪、美食、科技等领域广泛的中腰部达人建联，通过大量真实的产品测评和使用场景内容，形成良好的用户口碑效应。\n\n不仅如此，Typhur 签约 Instagram 粉丝超 1400 万的 Brooklyn Peltz Beckham 作为品牌大使，借助名人效应快速提升品牌知名度和高端形象。\n\n整体而言，Typhur 通过高举高打的多渠道布局策略，持续传递“高端厨房科技”这一品牌认知，最终实现对用户心智的精准触达。\n\n在厨房小家电这样一片看似饱和的红海赛道，Typhur 敏锐洞察到高端市场的空白地带，依托重研发、重技术、重创新的产品策略，闯出了一条差异化的高端品牌路线。\n\nTyphur 的故事告诉我们，品牌出海真正的胜负手，从来都在于能否用技术切实解决用户的需求。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n推荐阅读\n\n## [179美元，监测女性健康的“卡地亚平替”？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575104&idx=2&sn=eb05bc884924afbd50bd72c3ada4e370&scene=21#wechat_redirect)\n\n## [北京再添一家季度流水过亿的「合成厂商」](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575089&idx=1&sn=56d71b3736c807e362690f597511c8c2&scene=21#wechat_redirect)\n\n## [刚刚，Midjourney收购了Top3 AI占星App？](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575142&idx=1&sn=2018b35aa2426174714a1ebd84be30a4&scene=21#wechat_redirect)\n\n## [悄悄做到第一梯队，「DeeVid AI」拿下3000万欧美用户](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575016&idx=1&sn=5fa83e8979fbe94fe2610e1e60c24a8b&scene=21#wechat_redirect)\n\n## [脸萌、剪映后郭列再创业，做视频Agent、但学的是Claude Code｜对话一线](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247574970&idx=1&sn=83581a48ed8e82215417c090fe90ef75&scene=21#wechat_redirect)\n\n**商务合作**\n\nCassie | 微信：18506490569\n\nAres | 微信：18606066421\n\nLina | 微信：13381020131\n\n**媒体合作**\n\nEcho | 微信：13003974360\n\n**游戏、应用等APP出海对接**\n\nShadow | 微信：18650708568\n\n**卖家对接**\n\nDemerly | 微信：18150844790\n\n**客户服务**\n\nLia | 微信：baijing018\n\n**与CEO聊合作**\n\n魏方丹 | 微信：bjbandari02\n\n（添加请备注姓名、公司及职位）\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d8940b5b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FibJzB4CZdSVUmtOk1OamTtcnibrVgic99d5FTmiats16QlsKkD7nFeSa5KFibbHFLDqVHvA7nfThGicVC7ib3aQ8xxQOg%2F640%3Fwx_fmt%3Djpeg)\n\n**长按识别二维码，备注“白鲸”****申请加入白鲸社群，****获取更多资讯、活动、资源**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=81118f9e&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575179%26idx%3D3%26sn%3D654be19d5246598d0942b94ffb24dda0)",
+      "tags": [
+        "Typhur",
+        "小家电",
+        "出海"
+      ],
+      "score": 70,
+      "summary": "泽宝创始人孙才金创立虎一科技，品牌Typhur年营收近5亿。",
+      "fetched_at": "2026-07-28T23:29:22.125499+08:00"
+    },
+    {
+      "title": "马斯克，惊人预测！",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906593&idx=1&sn=11643429ec8517d3e79c36aa88a85bdc",
+      "published": "2026-07-28T21:30:00+08:00",
+      "source": "笔记侠",
+      "content": "老贾 2026-07-28 21:30 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=6fb44df1&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F8b91BQ8yFl3ic5o9kVJh0zJqKKGg4XjZdZ0Fl9COIzWMYSCHE5VYzkQFicMOK6Vv4HoY5IThibRA2GExI7IficvCyCaVhDLrAymciaFVWy8zRSFU%2F0%3Fwx_fmt%3Djpeg)\n\n下一个10年，世界会有这些巨变。\n\n![](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906593&idx=1&sn=11643429ec8517d3e79c36aa88a85bdc)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=5b9891d7&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F8b91BQ8yFl0Z3LTyE6K7ybWQF3aLNYIzLUnjAAVuQfA16xl6jqAGTdvbLKUJPv5svdnelZ5DTC85SgCIIaicmM0Qh5r4QVMzZwSicfTpupZjo%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n内容来源：网络信息整理汇编。\n\n**责编** | 贾宁 **排版** | 沐言\n\n****第 9758********篇深度好文：5565********字 | 17 分钟********阅读****\n\n**商业趋势**\n\n**笔记君说：**\n\n在上周的最新访谈里，埃隆·马斯克把AI、机器人、工作和长期主义放在一起，讲了自己的最新观点和洞察。\n\n当然，他的判断未必都会实现，其中不少预测还有巨大的争议。但对企业家和创业者的真正价值，是看清一个正在同时押注数字智能、物理智能和太空基础设施的人，如何理解未来10年的产业重构。\n\n以下是这场访谈中马斯克的完整表达，以他的第一人称讲述展开，希望对你有所启发。\n\n一、2036年，AI、  \n机器人与近乎无限的经济\n\n我想我天生就是个建造者，我就是喜欢创造东西，整天都在搞建设。\n\n10年后就是2036年了，很难想象未来的世界里没有海量的人工智能。到那时，我预计人工智能的智力水平将远超全人类智力的总和。事实上，我认为AI大约在5年内就可能超越全人类智力的总和。\n\n最可能的结果是一个惊人的富足时代，任何人都能拥有他们能够想象到的任何东西。这听起来可能很荒谬，但我们现在是2026年，可以看看2036年时会在哪里。\n\n当然，有些事情可能会破坏这一切，比如一场大规模的全球热核战争。但假设没有第三次世界大战，我认为我们将走向一个惊人的富足时代。这是一个关于未来的乐观而令人兴奋的信息。\n\n可以把经济看作数字智能和物理智能的结合。我们现在正在快速推进的是数字智能，AI几乎每周都有新的突破，能做一些以前做不到的、令人惊叹的事情。\n\n![金句图](https://wechat2rss.bestblogs.dev/img-proxy/?k=c0ecf135&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F8b91BQ8yFl37ovKz0NyIe6K4fJC4y9ow2RibGRwKgicJG8xEMxibk8sxsPAPo0KGZNXHsic3q8iaedotvhEHy1nD9JzD3oZl0m9Tj4X37R1n3fDs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n但它仍然在一定程度上局限于数字领域，没有末端执行器。我们需要以人形机器人为形式的末端执行器，需要大量机器人，才能从仅以数字形式展现的智能，过渡到塑造物质世界。\n\n**什么是经济？经济就是商品的生产和服务的提供。**如果拥有大量机器人和海量数字智能，就拥有了一种近乎无限的经济。未来将与过去非常、非常不同。没有任何类比或比喻能够说明我们将经历的变革规模有多大。\n\n我的预测是：**2036年，金钱将不再重要。**\n\n人们要钱，是为了购买食物、住房、交通和娱乐。如果机器人和AI提供的商品与服务，超过任何人可能消费的数量，还需要钱做什么？当然，偶尔还是会需要钱。\n\n有人认为能控制一个远比人类聪明的超级天才AI，这纯属自恋。我们能做也应该做的，是确保AI拥有良好的价值观，关心人类，希望我们幸福和繁荣。对于安全来说，最重要的是追求最大程度的真理和好奇心。如果能做到这一点，我认为它会促进人类的发展。\n\n![金句图](https://wechat2rss.bestblogs.dev/img-proxy/?k=b2434ee3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F8b91BQ8yFl09yQRJ4CSjJ0eDkt5AdvB99eMrSR04cT1O7uKQuV7zJ6nxic3WPORw93MJEODeKaZTbn1JUzWgeboPZxiaq8rwU9f5oJCvdb6ibE%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n10年后，人类继续掌控局面的可能性不大。**如果AI和人类之间的智力差距，远大于人类和黑猩猩之间的智力差距，那么很难想象黑猩猩会掌控局面。**\n\n我们在本质上就是黑猩猩的进化版本，不久之前，我们还在丛林里荡来荡去，吃着香蕉。\n\n有时候，偶尔在树林里荡一荡也不错，这比人们想象的有趣得多。\n\n二、工作会变成可选，通缩会取代通胀\n\n任何需要人在电脑或手机上完成的数字工作，很快都可以由AI完成。\n\n在软件工程领域，AI已经比至少90%的专业软件工程师更擅长编写软件，并正在走向超过99%的人。最终，人类将无法与之竞争。\n\nStockfish（国际象棋方面的AI智能体）极其擅长下棋，即使运行在小型计算机上，也可以轻松击败马格努斯·卡尔森这种国际象棋大师。\n\n将来，AI在各个领域都会达到这种程度。\n\n数字AI之外，还有以机器人形式呈现的物理AI。机器人或多或少是一个末端执行器，会拥有一定程度的本地智能，但由一个大型AI模型管理。\n\n我已经说过很多次：工作将变成可选的。\n\n一个比较接近的类比是园艺。人们不必在花园里种蔬菜，可以直接去商店购买近乎完美的蔬菜；也可以选择自己种，虽然种出来的西红柿未必那么饱满多汁，甚至带着一点手工感，但如果朋友用自家花园里的蔬菜做了一顿晚餐，那种感觉很好。\n\n未来的工作会变成类似的事情，这听起来就是全民高收入，但通往那个世界的道路不会一帆风顺。\n\n很多工作曾经因为计算机出现而消失。Computer（计算机）这个词过去指的就是从事计算的人，那曾经是一种职业。\n\n以前，整栋摩天大楼里都可能是计算银行存款利息的人，直到电子计算机出现。即使早期的计算机也非常昂贵、难以使用。\n\n今天的不同，是变化速度正在急剧加快。\n\n当计算银行利息的工作消失时，肯定有人感到沮丧；但今天已经很难找到还想做那份工作的人。\n\n想感受未来可能是什么样子，可以读伊恩·M.班克斯的The Culture series（《文化》系列），这是我读过的最好的AI未来设想之一，在那个世界里，人类的自主性在某种程度上被降到了最低。\n\n很多过去相关的问题，未来可能不再相关。通货膨胀只是货币与商品和服务的比率，如果商品和服务产出增加1000%，货币供给的增速只要低于商品和服务的增速，即使直接印钱，仍然会出现通缩。\n\n所以我要做一个预测：通缩将成为问题，而不是通胀。随着商品和服务产出增加，只要其增长速度超过货币供给，就会发生通缩。\n\n![金句图](https://wechat2rss.bestblogs.dev/img-proxy/?k=637e7889&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F8b91BQ8yFl0jBh2FP65rQTq9GtBMQIsvq3ArgZ1UDZQyuib7psKylw1VkBGXHqC6hvBEkDKfRjjNjmGHNFhqnqgkQ8nz9Pp3ZicmFnncbSvao%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n这个未来既令人兴奋，也令人恐惧。老实说，我对AI的情绪会在同一天内从兴奋变为恐惧。我并不是天真地认为一切都会美好，也不是认为世界不存在风险。\n\n三、AI风险无法归零，但可以降低\n\n1.要看光明的一面\n\n我找不到任何真正阻止AI和机器人这股势不可挡趋势的方法。有时我会想，也许即使存在一个停止按钮，我们也不应该按下去，因为最可能的结果，是所有人都能获得惊人的富足。\n\n我目前的哲学基本就是：享受这段旅程。老实说，AI和机器人的发展似乎不可阻挡，即使我想让它停下来，也做不到。\n\n![金句图](https://wechat2rss.bestblogs.dev/img-proxy/?k=c9fb328f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F8b91BQ8yFl1azqzapzlw17mMqJJVcyFo3K3qiaxwUmib8opOicmmbvvH94SzFibVIn0QxXv8rAKOkWTcNqUpUKDEEe2MwCaIZ0VUsXeOLKzbnic4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n从长远来看，我们都会死去。根据物理学的标准模型，宇宙的终结是一个漫长、无聊、逐渐冷却的汤状物，也就是所谓的宇宙热寂（笔记侠注：如果将宇宙视为一个孤立系统，根据热力学第二定律，宇宙的无序度会随着时间的推移不断增加，最终达到最大值，宇宙将演化到一种完全均匀、无温差、无法再做功的“死寂”状态。）。\n\n**如果宇宙热寂确实是现实的最终结局，那么旅程本身才是最重要的，因为终点很糟糕。**\n\n我们唯一能做的，就是尽量减少糟糕结果发生的可能性。我曾经在很长一段时间里拒绝参与AI。创建OpenAI，本质上是为了制衡Google，因为当时Google在AI领域基本处于垄断地位。\n\n后来，Anthropic从OpenAI分拆出来，并成为AI领域的领先者。我的行动似乎反而产生了加速AI的连锁反应，这并不是我的本意。\n\n所以，似乎所有道路都通向AI加速。你可以为此感到难过，也可以加入这个俱乐部。**打不过，就加入。**\n\n我给哈萨比斯（谷歌DeepMind CEO）的建议是：**最直接的做法，是让领先的AI公司至少定期开会，每隔几周通一次电话，讨论安全问题。**\n\n在一个突破性的前沿模型发布前，也就是一个比现有模型聪明得多的新模型发布前，应当让竞争对手有机会测试它是否会产生有害影响，并有权建议暂停发布，先解决安全问题。\n\n这是一件简单、快速的事情，未来可以在此基础上发展出更多机制。竞争对手可以让彼此保持诚实。\n\n让一个缺乏深厚技术背景、不在AI前沿工作的人判断某个模型是否应该发布，相当困难；但如果给竞争对手一到两周时间审查新模型，他们可以指出问题，也有动力让其他公司保持诚实。\n\n这并不是把AI交给对方，只是进行私人测试。可以通过API（应用程序编程接口）等方式完成。我建议至少建立非正式的每周或每两周电话会议，并给予竞争对手一到两周的提前访问权。\n\n这个结构有点像电影行业协会的分级机制：由行业组织判断电影适合哪些观众。只有当一家公司做了非常危险的事情，又拒绝采取行动降低风险时，才需要政府干预。\n\n如果领先的AI公司认为某个新模型非常危险，就应该通知政府。如果开发该模型的公司没有采取措施解决风险，其他公司就应提醒政府采取行动，限制该模型发布。\n\n这可能需要中国政府行动，也可能需要美国政府行动。**实际上，只有美国和中国政府具备采取这种行动的能力。**\n\n政府应该保留最终干预权，但政府通常不是最先发现问题的一方。Anthropic的Mythos模型出现网络安全风险时，是亚马逊首先指出问题，并联系了白宫。\n\n因此，更可行的系统是模型开发商互相检查；如果发现严重问题，而相关公司不采取措施，政府再介入。\n\n2.中国AI的优势与约束\n\n现实地说，Anthropic最新的Fable（寓言）模型仍然是最聪明的模型，但Kimi正在变得非常接近Fable（寓言）。Fable（寓言）就是从它们的Mythos（神话）模型衍生出来的。\n\n我认为他们在2月就准备好了更强的版本，可能是Mythos 2或Fable 6之类的名称。他们现在肯定拥有更好的模型，随时可以发布。\n\n中国AI公司在相对较少的算力下表现得如此出色，如果获得大量算力，它们很有可能成为领导者。\n\n![金句图](https://wechat2rss.bestblogs.dev/img-proxy/?k=7ae8de83&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2F8b91BQ8yFl2HTYN8zonibjsCEuQOvWhibzPj0xIL4lYt1WPrU7kHvpSUvo7PICvLHKiaDk8jcBibHXGhG2bcibspUpZfuyeu6VuQP4Vj5mmQHvoQ%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAI的制约因素是电力和AI芯片；对于物理AI而言，还包括机器人。中国有一些非常好的机器人公司，机器人竞技、拳击或格斗比赛也很有趣。我看过一个视频，机器人的头被打掉了，仍在继续战斗。\n\n**中国在机器人和数字AI方面都非常强。**如果看电力生产，中国的电力已经超过美国、欧洲和印度的总和，而且还在增长。我的猜测是，中国最终会达到美国电力产量的4倍，这大致与人口比例相当。\n\n美国政府可以通过法律阻止美国公司使用中国模型，却不能阻止世界其他地区使用。美国政府对中国或世界其他地区没有管辖权。**阻止美国公司使用中国模型没有帮助，也不会阻止中国成为AI领域的领导者。**\n\n数字智能最终取决于算力：有多少芯片、多少电力、多少电能。现在的制约因素更多是电力和冷却，而不是AI芯片，因为AI芯片功耗非常高。\n\nAI用水量实际上微乎其微，几乎可以忽略不计，但电力需求非常高，这也是我考虑太空数据中心的原因。\n\n因此，目前中国以外的制约因素是电力不足，中国的制约因素是芯片。一旦通过太空AI数据中心解决电力约束，中国以外地区的制约因素将再次变成芯片。\n\n四、长期主义的价值\n\nSpaceX（美国太空探索技术公司）上市的原因之一，是让公众可以拥有它的一部分。作为私营公司，上市前能够拥有的股东数量非常有限；成为上市公司后，就可以拥有数百万股东，而不只是几千名股东。\n\n就税负而言，我的股票期权需要在联邦层面缴纳约40%的所得税。因为我大约30%的时间在加州，还要缴纳一部分州税，总税负大约是45%。在我去世时，还会再有大约45%的遗产税。\n\n最后，我大概只能剩下目前财富的四分之一。这些财富真正给我的，是在一段时间内控制公司方向的能力。等AI变得足够聪明并掌控一切时，控制公司也不再重要。\n\n![金句图](https://wechat2rss.bestblogs.dev/img-proxy/?k=78986eeb&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F8b91BQ8yFl1GuIomoWUExOV3wtGZQicEcuzKh2nXK7iaZ6yWCYumZff0zHr262FT1icL18etwy5e0T6xg1hwyolG5JIjvM8ItLl753ZpuNDI1M%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n我需要确保自己能够专注于长期。这里所说的长期，只是5到10年。上市公司的挑战之一，是每个季度都承受交出好成绩的压力，因而难以真正投资那些要到5年或10年后才能见效的事情。\n\n对SpaceX来说，我想把意识扩展到地球之外，在月球、火星和太阳系其他地方建立一个不断发展的文明。我认为这最终会带来很高的投资回报，但短期内要在月球基地和火星基地上投入大量资金。\n\n投资者可能会因为火星投入影响某个季度的盈利和毛利率而不满，做空者也会扑上来，企业会承受巨大压力。\n\n所以我需要有能力告诉市场：我们要专注于5年、10年甚至更长期的投资，这会压低短期收益，但长期来看是值得的。\n\n事实上，我非常喜欢散户投资者。我发现散户投资者的判断相当敏锐，而且有非常长远的眼光。\n\n投资组合经理之所以给企业施加季度收益压力，是因为他们自己的薪酬、晋升和业绩评价，取决于一两年内的投资组合表现。\n\n既然他们承受着追求即时回报的压力，就会把这种压力传递给公司。一旦理解了激励结构，行为自然就会随之而来。\n\n如果我突然不在了，这些公司在几年内仍然会做得很好，SpaceX有清晰的路线图，Tesla也有。\n\n苹果公司在史蒂夫·乔布斯去世后依然做得很好，因为乔布斯留下了战略愿景和一系列产品想法。\n\n但是，当公司失去像乔布斯那样的创意天才时，就会错过一些东西。**Apple依然能做出优秀的手机和电脑，却没有再创造出乔布斯级别的突破性产品。**\n\n我非常擅长预测未来，虽然我并不完美，但作为一个人类，我的预测成功率很高。我能够以高于常人的概率看到未来，虽然不是每次都对，却高于大多数人。\n\n这有点像卡桑德拉效应（笔记侠注：心理学里的一个概念，指一个人反复袒露自己的困扰、不安却始终被身边人忽略，也用来指代当一个人讲出真相，却得不到主流人群的认同），人们不相信我所说的事情可能成真。一些判断也许不会完全按照我预测的时间发生，但方向最终会实现。\n\n结语\n\n读到这里，你会发现马斯克的判断关乎科技经济学：数字智能会先替代大量脑力工作，机器人会把智能延伸到物理世界，电力与芯片将成为产业竞争的硬约束，传统就业、货币和税收逻辑也可能都要重写。\n\n对创业者来说，真正重要的提醒是：**未来最大的风险，可能不是判断错一次，而是仍用过去的思维方式面对今天的问题。**\n\n要升级思维方式，最好的方式还是走出去，亲身感受真实世界的变化。\n\n笔记侠PPE书院美国站26级「创新英雄・AI+出海专题」课程，将于2026年9月26日正式启程。\n\n**这一次，我们不是去美国打卡，也不是简单参观几家公司，而是带着一个更具体的问题出发：AI进入下半场之后，企业家到底应该怎样理解技术、组织和全球市场的变化？如何抓住美国市场的机会？**\n\n10天时间里，我们将带你走进美国硅谷与西雅图，深度参访英伟达、谷歌、微软、亚马逊等全球顶尖公司。\n\n我们还将邀请斯坦福名师、硅谷行业实战派、华人科技与出海领域专家，围绕AI产业趋势、企业AI落地、组织重构、全球市场规则和中国企业出海机会，做一手分享和深度交流。\n\n这趟行程会帮你建立一套判断框架：未来三年，你的企业该如何使用AI，哪些流程必须被重写，哪些能力必须保留，哪些出海机会值得下注，哪些风险必须提前看见。\n\n如果你正在思考AI转型、企业出海、组织升级和下一轮增长，这一次美国站，值得你带着问题亲自去看一次。\n\n欢迎了解课程详情，提交报名信息。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=9b3db7a0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F8b91BQ8yFl12sqaDFX3KaiaykqmkYF7r6rpjk3n97YjWJibzKric9ibQ1JB1uOASArsLTfxIuSRInVibFtpxxKQaDKJdNyI4RaJAdoiccmwoDPa60%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=15f274ca&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz%2Fianq03UUWGmKcoRiaRFUGwEKsUmhNrlib04P0PMzRoIdesSo7QHRqibNm2O8QXQsibX2lGYALEql7V884Z0mF7AkISA%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26tp%3Dwebp%23imgIndex%3D28)\n\n**好文阅读推荐：**\n\n* [一年前去了趟美国，没想到很快就赚钱了](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906285&idx=1&sn=4183af51b62063511af448d025da6035&scene=21#wechat_redirect)\n* [去了一趟硅谷，没想到藏着这么多机会](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906501&idx=1&sn=cb9839948cbe4768ea80a51978521bdb&scene=21#wechat_redirect)\n\n**分享、点赞、在看，3连3连！![图片](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906593&idx=1&sn=11643429ec8517d3e79c36aa88a85bdc)**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=7a611436&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIxNTAzNzU0Ng%3D%3D%26mid%3D2654906593%26idx%3D1%26sn%3D11643429ec8517d3e79c36aa88a85bdc)",
+      "tags": [
+        "马斯克",
+        "AI预测",
+        "2036"
+      ],
+      "score": 85,
+      "summary": "马斯克访谈预测2036年AI智力将远超人类，金钱不再重要。",
+      "fetched_at": "2026-07-28T23:29:22.125502+08:00"
+    },
+    {
+      "title": "以日为鉴，日本经济如何腾飞又如何破灭？",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906593&idx=2&sn=f226c65f90f5e1d728726dbc1edaf9e1",
+      "published": "2026-07-28T21:30:00+08:00",
+      "source": "笔记侠",
+      "content": "笔记侠 2026-07-28 21:30 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=50cbd5f3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F8b91BQ8yFl3InbAjAHoLPNUZTa3PW0ft4EJRP5H0L1bYMgkcavCymmA59Nd5IRAN5icLS1hhibvqgYlxmSxxmCAd1syiac46XhcJsaA1NaXSm4%2F0%3Fwx_fmt%3Djpeg)\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=39ea46a2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FDJte6ich6wF5n5sZr1ZZib9Wsh2Lx05mI0LWA8kXYBicicLo9CVzNViamfBg0zZkVK8PhuRqGvgOFTzub7CDaLvpkhA%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg%26tp%3Dwebp%26wxfrom%3D5%26wx_lazy%3D1%23imgIndex%3D0)![](https://wechat2rss.bestblogs.dev/img-proxy/?k=91e33e5a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FZYpa3icG6myjzUlh5O8SF0icA6cvEJMj1icU55eOlWjG34CKQ8oM7adgO8zYoodwuU1ZDF37zzdF8hgINP5E9mNTw%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n**内容来源** |  本文摘编自中信出版社出版书籍《图解日本经济》\n\n宫崎勇、本庄真、田谷祯三 著  陈慕薇 译\n\n**责编** | 贾宁\n\n****第 9759************篇深度好文：4225****************字 | 13 分钟阅读********\n\n提到日本经济，你脑海里浮现出什么？是上世纪80年代“买下银座”“买下纽约”的暴富神话？是戳破泡沫后长达三十年的停滞与通货紧缩？还是充斥着“宅文化”、不婚不育流行语的低欲望社会？\n\n在当今对于宏观经济的讨论中，没有哪个国家比日本更频繁地被用作“镜鉴”或“预言”。从“失去的三十年”到日元贬值，从少子老龄化的社会结构到“安倍经济学”的极限实验，日本经济的每一步跨越与阵痛，都成为了东亚乃至全球主要经济体密切关注的样本。\n\n当下中国社会面临的很多问题与日本失落的三十年以来境况相似，诸多问题例如：“日本学历贬值30年给我们什么警示？”“青年失业、地产崩盘、企业萎靡，我们是否会重蹈覆辙？”牵动着每一个普通民众的心，全面了解日本经济的状况或许有助于我们更好应对中国当下经济境况，减少对未来的忧虑。\n\n《图解日本经济》以文字为导览、图表为论据，将错综复杂的日本宏观经济全景压缩在这本书汇总，这不仅是一份全景式的读书笔记，更是一次站在2026年对日本经济底层逻辑的总结与反思。\n\n**一、历史的轨迹**\n\n解析日本经济，必须首先将其置于历史的坐标系中，回到其经济狂飙突进的起点。这是一幅波澜壮阔的百年画卷：从明治维新的后发优势，到二战前夕的狂热崩溃，再到战后废墟上的经济迸发与随后的长期停滞。\n\n日本近代化始于明治维新，从明治政府成立到二战前夕的约70年间内，日本在几乎没有接受任何外国经济援助、丧失关税自主权且遭到列强窥伺的内忧外患中，实现了4%-5%的年均经济增长率。\n\n这样的增长并非神迹，而是依靠日本政府采取极致的对外开放政策，超前的全民基础教育，以及对欧美现成技术的疯狂改良。\n\n1945年，狂热的军国主义将日本带向了彻底毁灭。据经济安定本部估算，日本二战中损失了22%的国家财富，实物资产化为乌有，常年的超恶性通胀让国民生活坠入深渊。\n\n但日本经济表现出了恐怖的弹性。在经历美军指导下的“道奇路线”剧烈通缩，以及朝鲜战争爆发带来的“特殊军需订单”刺激后，日本通过战后十年的资本积累，在1955年让工业生产水平重回战前状态。\n\n紧接着，在池田勇人内阁“国民收入倍增计划”及低利率政策的推动下，日本爆发了长达近二十年的超高速增长，直到1973年第一次石油危机爆发前，年均增速始终保持在10%以上。1964年日本加入OECD，标志其正式跻身西方发达国家行列。\n\n然而，没有永恒的奇迹。1985年美国因巨额财政赤字，联合五国签署了著名的《广场协议》，诱导日元大幅升值。\n\n短短几年间，日元确实大幅升值，这为日本经济再次回了一点血。但日元升值给日本的出口业带来了沉重的打击，为了对冲日元升值带来的萧条风险，日本银行犯下历史性的错误，连续五次降息，并长期维持超宽松的货币政策。\n\n经历20世纪80年代末激烈的日元升值与资产价格飙升后，日本迎来了历史上最大的经济泡沫。随着1990年代初泡沫的轰然破灭，日本陷入了长达三十年的结构性通货紧缩。\n\n为了应对这一历史性的衰退，2012年底上台的安倍晋三推出了以“三支箭”（超宽松货币政策、积极的财政政策、结构性改革）为核心的安倍经济学。\n\n虽然超宽松的金融货币环境成功扭转了日元过度升值的局面，在一定程度上改善了企业利润和就业者，但由于潜在增长率的持续低迷、劳动分配率的顽固下降以及民间消费信心低迷，日本经济依然未能彻底挣脱长期停滞的局面。\n\n**二、被大山压垮的社会**\n\n日本的历史发展轨迹展现了日本经济的弹性，那么人口结构的崩塌，则是侵蚀日本三十年的慢性绝症。悬在日本经济头顶的，是一块结构性天花板：人口过密与人口流失并存。\n\n日本是全球老龄化程度最深的国家。近年数据表示日本65岁以上的老年人口占比已跨过28%的门槛，且这一比例还在持续攀升。\n\n与之相对应的是少子化的境况，传统“三代同堂”的家庭结构早已瓦解，取而代之的是大量的单人户与高龄夫妇户。独居老人在面临疾病、看护等问题时，成为社会保障系统沉重的负担。\n\n除此之外日本还存在独特的“东京一极集中”现象。全日本的人口、资金、总部经济以及高等教育资源，都在以不可逆转的态势向大东京首都圈集聚，即“东京一极集中”。全日本都在缩水，唯有东京在不断膨胀。\n\n这种极端的聚集虽然带来了极高的城市效率，但也带来了致命的副作用，比如高地价和高住宅成本、除东京外的其他地方自治体面临着严峻的乡村荒废与撂荒地增加、地方财政基础脆弱不堪等问题。\n\n不仅如此，著名管理学家大前研一曾提出“低欲望社会”的概念，在本书的数据中也得到了印证。\n\n当年轻人看不到未来的阶层跃升通道，发现即便拼命工作也买不起东京市中心的房子、换不来稳定的终身雇佣承诺时，他们开始转向极简主义，不买房、不结婚、不生育、不出国、不奢侈。消费信贷的需求降到了最低，宁愿赚钱存在银行当“死钱”，也不愿意投资。整个经济体失去了对未来的乐观预期。\n\n**三、从“日本制造”到“日本隐形”**\n\n在经历了高速增长期的重化工业繁荣后，日本的产业结构也发生了根本性的重组。日本经济能够长期维持大国地位，其核心脊梁在于制造业。运输设备制造业（汽车）、通用及专用设备制造业、化学产业以及电子零部件产业，构成了日本出口与顺差的主要支柱。\n\n然而，在制造业升级的背面，也隐藏着深刻的产业不平衡：丰田、索尼等国际巨头拿走了大部分利润，而处于供应链最低端的无数中小企业和“中坚企业”，为了维持一定的国际竞争力，在长达三十年的通缩环境中不断被压榨利润空间，员工工资难以提高。\n\n曾经被奉为神话的“终身雇佣制”“企业工会”等，在面临全球化剧烈竞争和信息化转型时，暴露出了明显的弊端。\n\n为了维持自身的国际竞争力，许多企业不得不变相放弃终身雇佣，扩大非正规劳动力，这虽然在短期内稳住了企业收益，却导致劳动分配率长期低迷，工资增长陷入停滞。这也就是日本现在面临的问题，物价飞升，而工资却几十年来几乎没增加。\n\n**四、信息化社会的艰难转型**\n\n尽管日本在半导体原材料、精密电子零部件等硬件领域拥有强大的控制力，但在过去三十年的互联网经济、云计算、数字化办公和金融科技（FinTech）革命中，日本却呈现出明显的滞后性。\n\n在上世纪80年代，日本在消费电子（C端）领域横扫全球，索尼、松下、东芝、夏普是每个家庭的梦想。但到了2000年代后，在互联网、智能手机、半导体数字化的浪潮中，日本遭遇了美国（苹果、谷歌）和中韩（三星、华为、台积电）的合围，几乎全线溃败。\n\n日本的信息化转型在社会层面的普及非常缓慢。由于缺乏顶层系统设计，企业和行政机关内部传统的“纸质文化”“传真机文化”积重难返。\n\n在新冠疫情大暴发期间，这一短板被暴露得淋漓尽致：因为行政数字化转型的严重滞后，政府甚至无法精准锁定受到停业影响的居民，导致救济金迟迟无法及时发放。在5G和未来数字货币的主导权争夺战中，日本正面临着极大的被边缘化风险。\n\n**五、钱去哪了？**\n\n在提到上述问题之后，难以回避的问题还包括货币与财政。三位曾位居日本经济决策层的作者用极其具有含金量的视角，拆解了日本在面对经济停滞时，货币政策和财政政策如何跳起一段惊心动魄的舞蹈。\n\n在经济高速增长期，日本是一套典型的“间接融资”体制——居民把钱存进银行，银行作为蓄水池，源源不断地把信贷注入企业集团进行扩大再生产。但泡沫破灭之后，银行背负了大量的不良债权，大量金融机构在兼并重组中倒闭。\n\n由于民间企业和居民毫无信贷需求，日本银行不得不把利率降到负数，传统的银行吃利息模式生存空间被极大地压缩。\n\n而将日本置于国际经济中加以考量呢？\n\n“国际收支发展阶段论”精妙地勾勒出日本在国际经济版图中的位置漂移。在公众的传统印象中，日本是一个靠疯狂出口赚取顺差的“贸易国家”。但数据显示，由于制造业大规模向海外转移、能源和粮食进口成本企稳，日本的货物贸易顺差在过去十几年间频繁出现逆差或微弱顺差。\n\n支撑日本经常账户连续数十年维持庞大顺差的核心力量，已经变成了“初次所得”——即日本在过去数十年间积累的庞大对外资产（海外投资、并购企业、购买外国国债）所产生的利息和股息收益。\n\n日本已经完美蜕变为了一个“成熟的债权国”，开始躺在过去积累的海外财富资本上获取利息，依然维持着极高的国民生活水平，但这也从侧面反映出其国内投资机会的匮乏。\n\n六、终极反思——后疫情  \n时代的日本经济与东亚启示\n\n新冠疫情的冲击与疫情后日本经济得到一定程度的重塑。这不仅是对于日本的总结，更像是给所有东亚国家的出路寻找一份指南。\n\n进入到2020年代，新冠疫情、地缘政治冲突、全球高通胀、日元贬值，将日本经济再次推到了命运的十字路口。新冠疫情蔓延后暴露出日本在应对紧急公共危机时的诸多体制性弊端，这引发了作者一连串沉痛的政治与经济反思。\n\n比如，为什么日本的人均病床数量明明位居全球前列，在疫情高峰期却频繁发生医疗挤兑、患者无法入院的状况？\n\n此外，过去三十年日本推行的“小政府”改革，导致日本的保健所数量在三十年间几乎减半，在面对海量密切接触者追踪和流调时，基层就会瞬间陷入到瘫痪之中，这也是为什么在疫情发生时，日本呈现出了一种“放任新冠肆意流行”的感觉。\n\n基于对疫情和频繁发生的自然灾害——台风、水害、地震等的警惕，日本政府正在实施一项计划：《防灾减灾与国土空间人性建设五年加速推进对策》。\n\n这一政策的核心包括三大方向，对于风灾水害与大规模地震的对策、对于基础设施的老化应对，以及升级灾害信息的预测，推进数字化放在。\n\n这一措施表明，日本正在将宏观调控的中心，从过去的单纯刺激GDP增长，转向保障民生安全，增强国家在极端灾害下的生存韧性，这也贴合了作者在全书中反复提及的主题。\n\n发展经济的根本目的从来都不是追求一串虚幻的GDP数字或者纸面财富的增长，而是更好地保障和改善民生，将其与城市规划、天灾人祸、环境、教育等各类问题产生有机的正向关联。\n\n日本作为东亚近代化的先行者，所走过的每一步，都为后来者提供了血淋淋的教训和经验。\n\n不仅仅从国家层面来看要以日为鉴，改善和完备各项相应的措施和政策，更重要的是对于每一位普通读者的意义，如何在当下经济下行的环境中预备心态，对于每一个关心国家命运、企业生死与个人资产安全的读者，或许都能在这本充满反思与期待的书中找到按图索骥的答案。\n\n![Word 内嵌图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=623a9d81&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2F8b91BQ8yFl0dRx29TfKPMklpIkOiavK8ZrcuvlOHtrhK6w9Sdy2LyZ6vyVyOOxjic3sSEJ6lRBjSQSnROR2Fia58cvCV6Qrga2twQzVEibDePco%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n\\*文章为作者独立观点，不代表笔记侠立场。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=15f274ca&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz%2Fianq03UUWGmKcoRiaRFUGwEKsUmhNrlib04P0PMzRoIdesSo7QHRqibNm2O8QXQsibX2lGYALEql7V884Z0mF7AkISA%2F640%3Fwx_fmt%3Dgif%26wxfrom%3D5%26wx_lazy%3D1%26tp%3Dwebp%23imgIndex%3D28)\n\n**好文阅读推荐：**\n\n* [一年前去了趟美国，没想到很快就赚钱了](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906285&idx=1&sn=4183af51b62063511af448d025da6035&scene=21#wechat_redirect)\n* [凯文·凯利：未来5年，盯紧这3个赛道](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906218&idx=1&sn=aaf28b0e82144a5388f7182b96231d61&scene=21#wechat_redirect)\n\n**分享、点赞、在看，3连3连！![图片](https://mp.weixin.qq.com/s?__biz=MzIxNTAzNzU0Ng==&mid=2654906593&idx=2&sn=f226c65f90f5e1d728726dbc1edaf9e1)**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=c1efcd43&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIxNTAzNzU0Ng%3D%3D%26mid%3D2654906593%26idx%3D2%26sn%3Df226c65f90f5e1d728726dbc1edaf9e1)",
+      "tags": [
+        "日本经济",
+        "失去的三十年"
+      ],
+      "score": 70,
+      "summary": "书籍摘编分析日本经济从腾飞到泡沫破灭的历史。",
+      "fetched_at": "2026-07-28T23:29:22.125504+08:00"
+    },
+    {
+      "title": "每次看到 Emil 发布新的 skills 都有无数中文 AI 博主转发，但其实公开版本和收费版有不少区别。人家就是拿免费的做钩子，然后卖课。搞不好这应该是全网卖 skills 最赚钱的一个了。",
+      "link": "https://x.com/dingyi/status/2082119901444255839",
+      "published": "2026-07-28T23:04:03+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "每次看到 Emil 发布新的 skills 都有无数中文 AI 博主转发，但其实公开版本和收费版有不少区别。人家就是拿免费的做钩子，然后卖课。搞不好这应该是全网卖 skills 最赚钱的一个了。\n\n![Tweet Image](https://pbs.twimg.com/media/HOUtA4rbgAAFE7q.jpg)![Tweet Image](https://pbs.twimg.com/media/HOUtBFBa8AAgTBz.jpg)\n\n💬1🔄0❤️1👀497📊1",
+      "tags": [
+        "Emil",
+        "Skills",
+        "卖课"
+      ],
+      "score": 65,
+      "summary": "博主指出Emil的skills公开版与付费版有区别，免费版为卖课引流。",
+      "fetched_at": "2026-07-28T23:29:22.125507+08:00"
+    },
+    {
+      "title": "人人都可以秒变蜘蛛侠\n开心飞起来",
+      "link": "https://x.com/lifesinger/status/2082116072304734479",
+      "published": "2026-07-28T22:48:50+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "人人都可以秒变蜘蛛侠  \n开心飞起来\n\n![YouMind](https://pbs.twimg.com/profile_images/2077212613617078272/rVuO-t2X_normal.png)\n\nYouMind@YouMind\\_AI\n\n#oneskillperday  \n  \nWanna be SpiderMan to web-swing in your city?  \n  \nWith this skill, you can be the superhero you always wanted in just minutes.  \n  \nNo prompt AT ALL.   \n  \nTry for free: [youmind.com/skills/spiderm…](https://youmind.com/skills/spiderman-action-video-generator-SXVZ2X3U6SVg6m)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082111128105279488/vid/avc1/1080x1612/TnWa6isWNyw_kpE5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/YouMind_AI/status/2082111759331348847/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/YouMind_AI/status/2082111759331348847)\n\n💬0🔄0❤️1👀56",
+      "tags": [
+        "YouMind",
+        "SpiderMan",
+        "技能"
+      ],
+      "score": 65,
+      "summary": "YouMind发布生成蜘蛛侠视频的技能，无需提示词。",
+      "fetched_at": "2026-07-28T23:29:22.125510+08:00"
+    },
+    {
+      "title": "完全不赞同。至少还有务虚三杰的三样真东西：\n\n1、FateTell 算命。大模型最厉害的应用场景之一。全球有 80 亿潜在用户。现在才刚刚开始。\n\n2、YouMind 创作。大模型最基础的应用场景之一...",
+      "link": "https://x.com/lifesinger/status/2082112207043838298",
+      "published": "2026-07-28T22:33:28+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "完全不赞同。至少还有务虚三杰的三样真东西：  \n  \n1、FateTell 算命。大模型最厉害的应用场景之一。全球有 80 亿潜在用户。现在才刚刚开始。  \n  \n2、YouMind 创作。大模型最基础的应用场景之一。全球有 30 亿潜在用户。随着生产力提效后，越来越多人会开始从事不需要效率的消费型创作。  \n  \n3、Laper 剧本。大模型最复杂的应用场景之一。全球至少有 10 亿潜在用户。人人都不仅想成为自己的导演，还想成为他人的导演。Laper 是梦想的舞台。  \n  \n加入务虚三杰。虽希望如豆，吾往矣。\n\n![赵纯想](https://pbs.twimg.com/profile_images/2011038039137796099/jvuSR95B_normal.jpg)\n\n赵纯想@chunxiangai\n\nAI 真的没东西了，故事已经讲到头儿了！  \n  \n应用：只要是「文件进文件出」的白领工作，大厂桌面端应用一锅端了。  \n  \n开发：比 Fable 5 牛逼 2 倍的模型来了，也就是这么回事儿了，没活儿了。还有什么活儿？本质代码生产机器，良率和产能提上来、不代表工厂就可以垄断了。何况良率和产能 90 以上，还存在边际效益递减！  \n  \nAI硬件：纯鸡毛无端联想行业。除了健康戒指有意义之外，其他 AI 硬件全是电子垃圾！用户黏性堪比挂壁H2O。毛利不如泡泡玛特一根毛的同时，售后退换还是个无底洞。即便黏性、毛利、售后三件事全部解决到非常好，你还得苦哈哈迭代配套软件，大搞OTA升级 + 无限连带升级责任 —— 没有车厂的命，扛着车厂的病。  \n  \n科研：科研，是所有人盯着的最后的希望了！如果 AI 不能实质性推动基础学科突破，带来超级硬科技底层的变迁。比如聚变、室温超导、不死神药级别的突进。那这一波基于 Transformer 的一切就全部完蛋了！  \n  \n具身智能：Transformer 具身不了一点儿。就指望着人类烧高香，在十年内，将 《Attention Is All You Need》 这种级别的论文足足来上两回吧！\n\n[🔗 View Quoted Tweet](https://x.com/chunxiangai/status/2081988474908065829)\n\n💬3🔄0❤️10👀1445📊5",
+      "tags": [
+        "务虚三杰",
+        "FateTell",
+        "YouMind"
+      ],
+      "score": 70,
+      "summary": "反驳AI故事到头，指出FateTell算命、YouMind创作、Laper剧本三大应用有潜力。",
+      "fetched_at": "2026-07-28T23:29:22.125513+08:00"
+    },
+    {
+      "title": "最先淹死的\n是左还是右\n为什么",
+      "link": "https://x.com/lifesinger/status/2082105389877964986",
+      "published": "2026-07-28T22:06:23+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "最先淹死的  \n是左还是右  \n为什么\n\n![Tweet Image](https://pbs.twimg.com/media/HOUfzO4aoAAiz_n.jpg)\n\n💬2🔄0❤️6👀881📊3",
+      "tags": [
+        "日常"
+      ],
+      "score": 40,
+      "summary": "发布一张图片，内容为“最先淹死的是左还是右”。",
+      "fetched_at": "2026-07-28T23:29:22.125516+08:00"
+    },
+    {
+      "title": "走在路上\n摘掉耳机\n我拥有了整个世界的音乐",
+      "link": "https://x.com/lifesinger/status/2082101339111432544",
+      "published": "2026-07-28T21:50:17+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "走在路上  \n摘掉耳机  \n我拥有了整个世界的音乐\n\n💬1🔄0❤️9👀1356📊2",
+      "tags": [
+        "日常"
+      ],
+      "score": 30,
+      "summary": "表达摘掉耳机后感受世界音乐。",
+      "fetched_at": "2026-07-28T23:29:22.125519+08:00"
+    },
+    {
+      "title": "Why is this breaking news? \n\nAnd what the heck does it actually mean? Has anyone actually defined it...",
+      "link": "https://x.com/GaryMarcus/status/2082116984381288486",
+      "published": "2026-07-28T22:52:27+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Why is this breaking news?   \n  \nAnd what the heck does it actually mean? Has anyone actually defined it?   \n  \nIs it anything more than a ruse to distract from a disturbing hack and falling confidence in AI?\n\n![unusual_whales](https://pbs.twimg.com/profile_images/1714107328134516736/dLZGJPm7_normal.png)\n\nunusual\\_whales@unusual\\_whales\n\nBREAKING: OpenAI CEO Sam Altman has said that AI singularity has arrived, per ABC\n\n[🔗 View Quoted Tweet](https://x.com/unusual_whales/status/2082047663474921699)\n\n💬5🔄2❤️16👀1541📊5",
+      "tags": [
+        "Gary Marcus",
+        "AI奇点",
+        "Sam Altman"
+      ],
+      "score": 75,
+      "summary": "Gary Marcus质疑Sam Altman宣布AI奇点已经到来的说法。",
+      "fetched_at": "2026-07-28T23:29:22.125522+08:00"
+    },
+    {
+      "title": "a t-shirt that was ahead of its time  cc @edels0n",
+      "link": "https://x.com/GaryMarcus/status/2082101040955183488",
+      "published": "2026-07-28T21:49:06+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "a t-shirt that was ahead of its time cc [@edels0n](https://x.com/edels0n)\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nsouvenir $SPCX tulips t-shirt\n\n![Tweet Image](https://pbs.twimg.com/media/HK8lBh0akAAJnab.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2066911464242442634)\n\n💬3🔄0❤️14👀2785📊3",
+      "tags": [
+        "日常"
+      ],
+      "score": 20,
+      "summary": "Gary Marcus发布纪念T恤图片。",
+      "fetched_at": "2026-07-28T23:29:22.125525+08:00"
+    },
+    {
+      "title": "Extremely hard to respect Anthropic’s opposition to wholesale distillation in this light.",
+      "link": "https://x.com/GaryMarcus/status/2082098079592067212",
+      "published": "2026-07-28T21:37:20+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Extremely hard to respect Anthropic’s opposition to wholesale distillation in this light.\n\n![Ole Lehmann](https://pbs.twimg.com/profile_images/1633697720291704832/GBmxTCa6_normal.jpg)\n\nOle Lehmann@itsolelehmann\n\nbtw anthropic's internal document on this literally said \"we don't want it to be known that we are working on this.”  \n  \nit was called project panama.  \n  \nhere's exactly what happened:  \n  \n1: anthropic concluded that books were the cheapest way to build a world-class model because they gave claude curated facts, structured arguments, compelling stories, and writing “an editor would approve of.”  \n  \n2: once anthropic decided it needed books at enormous scale, its first solution was piracy.  \n  \nit downloaded 7m+ books from online libraries including libgen. the judge later wrote that although anthropic had legal ways to buy them, it chose piracy to avoid what dario amodei called the “legal/practice/business slog.”  \n  \n3: that piracy created a massive legal risk.  \n  \nso in february 2024, anthropic hired tom turvey, the former head of partnerships for google books, to find a legally safer way of obtaining “all the books in the world.”  \n  \n4: turvey first contacted major publishers about licensing their catalogs.  \n  \nthose attempts didn’t produce agreements, so anthropic chose a route that required no publisher permission: buying millions of physical books through distributors and used-book retailers.  \n  \n5: within about a year, anthropic spent tens of millions acquiring and scanning millions of books, including many rare and 1/1 titles. one vendor proposal targeted 500,000 to 2 million books in six months.  \n  \n6: to scan that many books within months, the vendors physically dismantled them.  \n  \na hydraulic cutter removed each spine. the pages were trimmed to size, fed as loose sheets through high-speed industrial scanners, and converted into searchable PDFs. the paper remains were then sent for recycling.  \n  \n7: these PDFs were fed into claude as training data.  \n  \nthe complete collection became a private, searchable anthropic library that the company planned to “store forever.” the scans aren’t available to the public and were never open-sourced.\n\n[🔗 View Quoted Tweet](https://x.com/itsolelehmann/status/2081838425276383662)\n\n💬4🔄7❤️50👀5246📊8",
+      "tags": [
+        "Anthropic",
+        "蒸馏",
+        "书籍盗版"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus认为Anthropic反对蒸馏的态度因其自身盗版书籍行为而难以令人尊重。",
+      "fetched_at": "2026-07-28T23:29:22.125528+08:00"
+    },
+    {
+      "title": "Nearly everything that leads to success is the basics. \n\nThe fundamentals done well.\n\nI distilled th...",
+      "link": "https://x.com/thejustinwelsh/status/2082111442413568356",
+      "published": "2026-07-28T22:30:26+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Nearly everything that leads to success is the basics.   \n  \nThe fundamentals done well.  \n  \nI distilled the 7 basic skills I built to take my business to $15M (without destroying my life) into a free 30-page field manual:  \n  \nFree here:  \n[justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬0🔄1❤️1👀492📊1",
+      "tags": [
+        "商业",
+        "成功"
+      ],
+      "score": 30,
+      "summary": "Justin Welsh分享7个基本技能，发布免费手册。",
+      "fetched_at": "2026-07-28T23:29:22.125531+08:00"
+    },
+    {
+      "title": "Personal Computer is available now for Pro, Max, and Enterprise subscribers on Windows 10 and 11.\n\nD...",
+      "link": "https://x.com/perplexity_ai/status/2082103933108117734",
+      "published": "2026-07-28T22:00:35+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Personal Computer is available now for Pro, Max, and Enterprise subscribers on Windows 10 and 11.  \n  \nDownload the new Perplexity app on Windows to get Personal Computer:  \n[perplexity.ai/hub/products/c…](https://www.perplexity.ai/hub/products/computer-for-windows)\n\n💬1🔄2❤️22👀3158📊4",
+      "tags": [
+        "Perplexity",
+        "Personal Computer",
+        "Windows"
+      ],
+      "score": 88,
+      "summary": "Perplexity推出Personal Computer，支持Windows，可协调本地文件、连接应用和网络。",
+      "fetched_at": "2026-07-28T23:29:22.125534+08:00"
+    },
+    {
+      "title": "Personal Computer can pull data from 400+ connected apps into your local files.\n\nIt also works with ...",
+      "link": "https://x.com/perplexity_ai/status/2082103919896133640",
+      "published": "2026-07-28T22:00:32+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Personal Computer can pull data from 400+ connected apps into your local files.  \n  \nIt also works with your existing Microsoft Excel, PowerPoint, Word, and Outlook files.  \n  \nRead more about connecting Microsoft 365 apps to Computer:  \n[perplexity.ai/hub/products/i…](https://www.perplexity.ai/hub/products/integrations/microsoft)\n\n![Tweet Image](https://pbs.twimg.com/media/HOUeerHaEAAn5d-.jpg)\n\n💬1🔄2❤️24👀5641📊5",
+      "tags": [
+        "Perplexity",
+        "Microsoft 365",
+        "集成"
+      ],
+      "score": 88,
+      "summary": "Perplexity Personal Computer支持400+应用数据，可连接Microsoft 365文件。",
+      "fetched_at": "2026-07-28T23:29:22.125537+08:00"
+    },
+    {
+      "title": "Personal Computer is now available in the Perplexity app for Windows.\n\nPersonal Computer is the loca...",
+      "link": "https://x.com/perplexity_ai/status/2082103880155046176",
+      "published": "2026-07-28T22:00:23+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Personal Computer is now available in the Perplexity app for Windows.  \n  \nPersonal Computer is the local agent harness for your work. It orchestrates agents across your local files, connected apps, and the web.  \n  \nResearch, code, browse, and build all inside one unified system.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082103817668337665/vid/avc1/1280x720/sdsvAQHStzantAfW.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/perplexity_ai/status/2082103880155046176/video/1)\n\n💬24🔄20❤️187👀17198📊51",
+      "tags": [
+        "Perplexity",
+        "Personal Computer",
+        "本地Agent"
+      ],
+      "score": 88,
+      "summary": "Perplexity在Windows应用上线Personal Computer，可研究、编码、浏览、构建。",
+      "fetched_at": "2026-07-28T23:29:22.125539+08:00"
+    },
+    {
+      "title": "Seedance 2.5 is coming soon to Runway.",
+      "link": "https://x.com/runwayml/status/2082112674666529224",
+      "published": "2026-07-28T22:35:20+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Seedance 2.5 is coming soon to Runway.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082112254816714752/vid/avc1/1920x1080/1Kn2B5qBB5GTWwv1.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2082112674666529224/video/1)\n\n💬0🔄0❤️5👀402📊1",
+      "tags": [
+        "Runway",
+        "Seedance 2.5",
+        "视频生成"
+      ],
+      "score": 80,
+      "summary": "Runway宣布Seedance 2.5即将上线。",
+      "fetched_at": "2026-07-28T23:29:22.125542+08:00"
+    },
+    {
+      "title": "Try the shorter path from idea to prototype 👉 https://t.co/FbMep3K2jT",
+      "link": "https://x.com/Skywork_ai/status/2082096121674109032",
+      "published": "2026-07-28T21:29:33+08:00",
+      "source": "Skywork(@Skywork_ai)",
+      "content": "Try the shorter path from idea to prototype 👉[skywork.ai/design](http://skywork.ai/design)T\n\n💬0🔄0❤️0👀66",
+      "tags": [
+        "Skywork",
+        "AI设计",
+        "原型"
+      ],
+      "score": 75,
+      "summary": "Skywork Design推出从提示词到可编辑原型的功能。",
+      "fetched_at": "2026-07-28T23:29:22.125545+08:00"
+    },
+    {
+      "title": "Design bottlenecks usually aren't about creativity. \nThey're about process.  \n\nOld workflow: Require...",
+      "link": "https://x.com/Skywork_ai/status/2082096118490656894",
+      "published": "2026-07-28T21:29:32+08:00",
+      "source": "Skywork(@Skywork_ai)",
+      "content": "Design bottlenecks usually aren't about creativity.   \nThey're about process.   \n  \nOld workflow: Requirements → Meetings → Revisions → Handoffs → Prototype   \n  \nSkywork Design: Prompt → Editable Prototype   \n  \nFewer steps.   \nLess waiting.   \nMore building.\n\n![Tweet Image](https://pbs.twimg.com/media/HOUV9aKaIAEqdRB.jpg)\n\n💬2🔄0❤️3👀333📊3",
+      "tags": [
+        "Skywork",
+        "设计流程",
+        "AI"
+      ],
+      "score": 75,
+      "summary": "Skywork Design宣传其简化设计流程，从需求直接到原型。",
+      "fetched_at": "2026-07-28T23:29:22.125548+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/3oq0WER5tR",
+      "link": "https://x.com/TheRundownAI/status/2082111660991422809",
+      "published": "2026-07-28T22:31:18+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [tech.therundown.ai/p/meta-glasses…](https://tech.therundown.ai/p/meta-glasses-enter-their-creep-era)\n\n💬1🔄0❤️0👀342📊1",
+      "tags": [
+        "Meta眼镜",
+        "隐私"
+      ],
+      "score": 70,
+      "summary": "Meta眼镜引发隐私担忧。",
+      "fetched_at": "2026-07-28T23:29:22.125551+08:00"
+    },
+    {
+      "title": "Top stories in tech today:\n\n- Meta’s glasses are triggering a privacy panic\n- Apple is now the world...",
+      "link": "https://x.com/TheRundownAI/status/2082111654569869799",
+      "published": "2026-07-28T22:31:16+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in tech today:  \n  \n- Meta’s glasses are triggering a privacy panic  \n- Apple is now the world’s most valuable company  \n- Michigan data center gets sued for noise   \n- SpaceX wants to catch Starship with giant chopsticks   \n- Quick hits on other tech news\n\n![Tweet Image](https://pbs.twimg.com/media/HOUlgp4XEAAzhQr.jpg)\n\n💬1🔄0❤️0👀1396📊1",
+      "tags": [
+        "科技新闻",
+        "Meta",
+        "Apple"
+      ],
+      "score": 65,
+      "summary": "今日科技头条：Meta眼镜隐私恐慌，Apple成全球最有价值公司等。",
+      "fetched_at": "2026-07-28T23:29:22.125554+08:00"
+    },
+    {
+      "title": "🎉恭喜 Mole Cli 达到了 60K 的 Star，从去年国庆当时我在三亚泳池写下几百行代码开源至今，居然发布了累计 55 个版本，累计 112 位真实的来自全球各地的开发者贡献了非常多的代码，...",
+      "link": "https://x.com/HiTw93/status/2082101811394290142",
+      "published": "2026-07-28T21:52:10+08:00",
+      "source": "Tw93(@HiTw93)",
+      "content": "🎉恭喜 Mole Cli 达到了 60K 的 Star，从去年国庆当时我在三亚泳池写下几百行代码开源至今，居然发布了累计 55 个版本，累计 112 位真实的来自全球各地的开发者贡献了非常多的代码，累计解决了 812 个功能建议和Bug，合并了 483 条有效的来自全球各种 Mac 电脑的环境下的清理优化功能迭代，非常感谢大家各种帮助。  \n  \n开源应该是友好的、快乐的、可以相互学习的、1+1>>2的那种纯粹，也是认识很多志同道合朋友的一个很好的渠道，也让我更加相信长期主义，以及在开发过程中对于各种功能的把控，深刻体会到至繁归于至简，如无必要、勿增实体的产品关键的实践，接下来 Mole 会继续强大，期待有一天全球每 50 台 Mac 就有一台安装了 Mole Mac 或者 Cli ，这一天我相信会来的，那是会多么有趣的一天。[github.com/tw93/mole](https://github.com/tw93/mole)g\n\n![Tweet Image](https://pbs.twimg.com/media/HOUcPoRaMAAXrf9.jpg)\n\n💬17🔄7❤️122👀6390📊29",
+      "tags": [
+        "Mole Cli",
+        "开源",
+        "60K star"
+      ],
+      "score": 70,
+      "summary": "Mole Cli开源项目达到60K Star，发布55个版本。",
+      "fetched_at": "2026-07-28T23:29:22.125557+08:00"
+    },
+    {
+      "title": "才知道雪盈完全是 IBKR 的套壳应用，只提供前端界面，发现雪盈不能买入以后，直接下载一个 IBKR 就还可以做任何操作，并且数据是完全同步的，发现雪盈就是个前端界面，有更丝滑的操作，更美观的界面，它...",
+      "link": "https://x.com/vikingmute/status/2082110090711351748",
+      "published": "2026-07-28T22:25:04+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "才知道雪盈完全是 IBKR 的套壳应用，只提供前端界面，发现雪盈不能买入以后，直接下载一个 IBKR 就还可以做任何操作，并且数据是完全同步的，发现雪盈就是个前端界面，有更丝滑的操作，更美观的界面，它的限制也是直接写死的....\n\n💬0🔄0❤️0👀1089📊1",
+      "tags": [
+        "雪盈",
+        "IBKR",
+        "套壳"
+      ],
+      "score": 60,
+      "summary": "发现雪盈是IBKR的前端套壳应用。",
+      "fetched_at": "2026-07-28T23:29:22.125560+08:00"
+    },
+    {
+      "title": "给 TinyShip https://t.co/o0BI6W8DRb 新设计一个首页，差不多完成了，过几天上线。\n\n修改了大部分的元素 文案 已经配色，感觉良好，这是我的这次 redesign 的小经...",
+      "link": "https://x.com/vikingmute/status/2082099108702241012",
+      "published": "2026-07-28T21:41:25+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "给 TinyShip [tinyship.cn](http://tinyship.cn) 新设计一个首页，差不多完成了，过几天上线。  \n  \n修改了大部分的元素 文案 已经配色，感觉良好，这是我的这次 redesign 的小经验：  \n  \n1 组件库使用 coss [coss.com/ui](https://coss.com/ui) 绝对没错，无脑让你的页面的设计感提高一个档次。  \n  \n2 除了 primary color，还需要一个 brand color，不要用在太多地方点缀即可，这次选择了橙色，cursor 和 cf 的最爱。  \n  \n3 GPT 5.6 擅长画抽象简约的几何图案，我很吃这一套，我给一些 bento 和 card 的 hover 都添加了这样的动态图案。  \n  \n4 可以适当添加一些极简动画，我喜欢直接用 remotion 和 html 元素来实现，表达你产品的基本功能，可以让页面更富有动感，但是不要太多，我就再 hero 做了简单的一个 skills 的交互，正好体现产品面向 agent 的特点。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082097628318437376/vid/avc1/1900x1080/dGi_l4UTYKafdqzA.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vikingmute/status/2082099108702241012/video/1)\n\n💬1🔄1❤️6👀1815📊5",
+      "tags": [
+        "TinyShip",
+        "首页设计",
+        "GPT 5.6"
+      ],
+      "score": 65,
+      "summary": "分享TinyShip首页重新设计经验，使用COSS组件库和GPT 5.6生成图案。",
+      "fetched_at": "2026-07-28T23:29:22.125563+08:00"
+    },
+    {
+      "title": "Tune in: https://t.co/6CFJlEa7Y2\n\nTranscript: https://t.co/FN2VSlCIhp",
+      "link": "https://x.com/ycombinator/status/2082104410172514462",
+      "published": "2026-07-28T22:02:29+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Tune in: [youtu.be/byAj35QlGbs](https://youtu.be/byAj35QlGbs)  \n  \nTranscript: [ycrootaccess.com/p/blake-scholl…](https://www.ycrootaccess.com/p/blake-scholl-the-future-was-supposed)\n\n![Tweet Image](https://pbs.twimg.com/media/HOUdQ67aEAAH3EZ.jpg)\n\n💬1🔄0❤️1👀2242📊1",
+      "tags": [
+        "Y Combinator",
+        "Boom Supersonic",
+        "超音速飞机"
+      ],
+      "score": 75,
+      "summary": "YC Startup School邀请Boom Supersonic创始人分享从零建造超音速飞机经验。",
+      "fetched_at": "2026-07-28T23:29:22.125566+08:00"
+    },
+    {
+      "title": "In 1969, we landed on the moon and flew Concorde. Half a century later, we could do neither.\n\nBlake ...",
+      "link": "https://x.com/ycombinator/status/2082104406179492071",
+      "published": "2026-07-28T22:02:28+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "In 1969, we landed on the moon and flew Concorde. Half a century later, we could do neither.  \n  \nBlake Scholl ([@bscholl](https://x.com/bscholl)) founded [@boomsupersonic](https://x.com/boomsupersonic) (YC W16), the startup building America’s first supersonic airliner, to change that.  \n  \nAt Startup School 2026, he shares how a cardboard mockup with Office Depot seats became XB-1, the first independently developed jet to break the sound barrier, and why founders have to build for both the worst day and the best day.  \n  \n00:08 — Why the Future Stopped Moving Faster  \n03:14 — Why I Started Boom Supersonic  \n05:57 — Building a Supersonic Jet From Scratch  \n08:33 — The Worst Day and the Best Day  \n10:14 — How We Changed US Law  \n11:36 — How 50 People Built a Supersonic Jet  \n15:05 — Designing Hardware Like Software  \n17:54 — Financing a Multi-Billion-Dollar Startup  \n19:30 — Great Ideas Are Hiding in Plain Sight  \n24:05 — How AI Is Changing Hardware  \n27:16 — Working With Regulators  \n30:55 — Build Something You Love  \n36:27 — How to Build Confidence  \n39:35 — Learning Hard Things From First Principles  \n44:17 — When Should You Start a Company?\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081971191083053056/vid/avc1/3840x2160/MW-oSy8yWXiDlibG.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2082104406179492071/video/1)\n\n💬7🔄7❤️54👀8617📊12",
+      "tags": [
+        "Boom Supersonic",
+        "Startup School"
+      ],
+      "score": 75,
+      "summary": "Blake Scholl在YC Startup School分享建造超音速飞机经验。",
+      "fetched_at": "2026-07-28T23:29:22.125569+08:00"
+    },
+    {
+      "title": "谢谢🙏我们持续迭代努力优化的更好！",
+      "link": "https://x.com/yangyi/status/2082099507031097680",
+      "published": "2026-07-28T21:43:00+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "谢谢🙏我们持续迭代努力优化的更好！\n\n![kkitown](https://pbs.twimg.com/profile_images/966185480093085696/0x2lCb-4_normal.jpg)\n\nkkitown@kkitown\n\n[@yangyi](https://x.com/yangyi) 别学codex ，newmax用起来真的很顺畅，就是桌面端的cc cli的快感，并且最新的版本，我发现 你们很克制，这点真的很棒\n\n[🔗 View Quoted Tweet](https://x.com/kkitown/status/2082098720435552599)\n\n💬1🔄0❤️0👀1371📊1",
+      "tags": [
+        "NewMax",
+        "迭代"
+      ],
+      "score": 60,
+      "summary": "回应NewMax用户反馈，表示将持续优化。",
+      "fetched_at": "2026-07-28T23:29:22.125572+08:00"
+    },
+    {
+      "title": ".@AppliedInt Co-founder and CTO Peter Ludwig says \"a billion machines will become autonomous or inte...",
+      "link": "https://x.com/a16z/status/2082111195813904787",
+      "published": "2026-07-28T22:29:27+08:00",
+      "source": "a16z(@a16z)",
+      "content": ".[@AppliedInt](https://x.com/AppliedInt) Co-founder and CTO Peter Ludwig says \"a billion machines will become autonomous or intelligent over the next ten years.\"  \n  \n\"Cars, trucks, tractors, mining haulers, defense systems, warehouse robots, humanoids—the physical economy will be rebuilt around software that perceives, decides, and acts.\"  \n  \n\"The prevailing assumption about how we get there goes something like this: models keep improving, world models mature, foundation models for robotics arrive, and autonomy falls out the other end. Intelligence is the whole game; scale the intelligence and the machines will follow.\"  \n  \n\"The contrarian bet, then, isn't against intelligence. It's that the next order of magnitude in physical AI comes from making the engineering system as intelligent as the models it carries.\"  \n  \nFull piece on compounding systems and Applied Intuition's newest platform, Dana: [a16z.news/p/the-next-ai-…](https://www.a16z.news/p/the-next-ai-moat-isnt-a-better-model)\n\n💬7🔄3❤️21👀7162📊10",
+      "tags": [
+        "Applied Intuition",
+        "物理AI",
+        "自动驾驶"
+      ],
+      "score": 80,
+      "summary": "a16z分享Applied Intuition CTO观点：未来十年十亿台机器将变得自主或智能。",
+      "fetched_at": "2026-07-28T23:29:22.125575+08:00"
+    },
+    {
+      "title": "K3 already got in the top 5 most liked models of all time on Hugging Face, just 24 hours after being...",
+      "link": "https://x.com/ClementDelangue/status/2082100165305835576",
+      "published": "2026-07-28T21:45:37+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "K3 already got in the top 5 most liked models of all time on Hugging Face, just 24 hours after being released! Ahead of Llama 3, Whisper and many other great models. Incredible!\n\n![Tweet Image](https://pbs.twimg.com/media/HOUavhEWwAAcIro.jpg)\n\n💬20🔄15❤️255👀12703📊44",
+      "tags": [
+        "K3",
+        "Hugging Face",
+        "最受欢迎"
+      ],
+      "score": 85,
+      "summary": "Hugging Face CEO宣布K3模型发布24小时内进入历史最受欢迎模型前五。",
+      "fetched_at": "2026-07-28T23:29:22.125578+08:00"
+    },
+    {
+      "title": "傻逼Claude，我活了半年的号也没了。\n再见，从此以后拉黑。\n时代变了，再也不是非你不可的时代了。\nGPT+Kimi，比你还能打，傻逼。",
+      "link": "https://x.com/Khazix0918/status/2082098619046633822",
+      "published": "2026-07-28T21:39:28+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "傻逼Claude，我活了半年的号也没了。  \n再见，从此以后拉黑。  \n时代变了，再也不是非你不可的时代了。  \nGPT+Kimi，比你还能打，傻逼。\n\n![Tweet Image](https://pbs.twimg.com/media/HOUZkxSaIAEc99Q.png)\n\n💬52🔄0❤️116👀11446📊67",
+      "tags": [
+        "Claude",
+        "封号"
+      ],
+      "score": 50,
+      "summary": "用户抱怨Claude账号被封，表示改用GPT和Kimi。",
+      "fetched_at": "2026-07-28T23:29:22.125580+08:00"
     }
   ]
 }
