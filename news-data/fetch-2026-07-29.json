@@ -1,0 +1,1012 @@
+{
+  "meta": {
+    "date": "2026-07-29"
+  },
+  "entries": [
+    {
+      "title": "Market surveillance agent with LangGraph and Strands on AgentCore",
+      "link": "https://aws.amazon.com/blogs/machine-learning/market-surveillance-agent-with-langgraph-and-strands-on-agentcore/",
+      "published": "2026-07-29T01:24:54+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "As artificial intelligence applications evolve from simple chatbots to sophisticated autonomous systems, organizations face new challenges in orchestrating complex multi-agent workflows that can handle real-world production scenarios. Traditional single-agent approaches often fall short when dealing with intricate business processes that require specialized expertise, dynamic decision-making, and robust error recovery mechanisms. The financial services industry exemplifies this challenge. Market surveillance systems must coordinate multiple specialized agents to analyze trading patterns, investigate suspicious activities, and generate comprehensive reports while maintaining strict compliance and reliability standards.\n\nThe solution combines two frameworks: [LangGraph](https://www.langchain.com/langgraph) for macro-level workflow orchestration and [Strands](https://strandsagents.com/) for intelligent agent reasoning. LangGraph excels at managing state and directed graphs for multi-agent coordination. It gives you fine-grained control over both workflow execution and state that can be shared between agents. Its central persistence layer supports features critical for production, including human-in-the-loop interactions and robust checkpoint-based recovery from failures. Meanwhile, Strands Agent serves as the reasoning engine within individual workflow nodes. It offers model-agnostic capabilities that integrate with various large language model (LLM) providers while maintaining flexible tool integration and comprehensive observability.\n\nWith the release of [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/) last year, productionizing an agentic solution might be simplified for many use cases. The combination provides a strong foundation for production-ready agentic AI systems that can handle complex use cases while helping to deliver the infrastructure reliability and observability that enterprise applications demand.\n\nIn this post, we demonstrate how to architect and deploy a multi-agent AI system using LangGraph and Strands on AWS infrastructure. You learn how to implement state-driven workflow orchestration with LangGraph’s checkpoint system, integrate Strands agents for specialized reasoning tasks, and use AgentCore for scalable production deployment. The complete solution is available on [GitHub](https://github.com/aws-samples/sample-langgraph-strands-market-analysis).\n\n## Strands: Intelligent agent reasoning\n\nStrands Agent operates on a model-agnostic architecture that adapts to your existing infrastructure without imposing architectural constraints. The agent implements an agentic reasoning loop that continuously evaluates tool outputs and makes decisions based on intermediate results, so you can build sophisticated multi-step analysis workflows. The framework includes comprehensive session and state management and multiple conversation managers to keep your context window from overflowing.\n\nWith Strands, you can configure external tool interactions by defining tool schemas and access patterns. For our surveillance agent, we separate the discovery of data from the retrieval to avoid hallucinations and strengthen the solution against injection attacks. We use tools like `get_report_list` and `get_report_schema` to find reports and `run_report` to build the SQL query with validated parameters and run it.\n\nWe create a `security_monitor` agent with the following tools and a system prompt:\n\n```\nfrom strands import Agent, tool\nfrom strands.models.bedrock import BedrockModel\n\nmodel = BedrockModel(\n    model_id=\"us.anthropic.claude-sonnet-4-6\",\n    region_name=\"us-east-1\",\n    max_tokens=16000,\n    additional_request_fields={\n        \"thinking\": {\"type\": \"adaptive\", \"budget_tokens\": 8000},\n    },\n    cache_prompt=\"default\",\n)\n\n@tool\ndef get_report_list(agent_name: str) -> str:\n    \"\"\"Load the list of available reports for a specific agent.\n\n    Args:\n        agent_name: Name of the agent (e.g. 'security_monitor').\n\n    Returns:\n        str: JSON array of report objects with name and description.\n    \"\"\"\n    reports_data = load_agent_reports(agent_name)\n    return json.dumps(reports_data[\"reports\"], indent=2)\n\n@tool\ndef get_report_schema(report_name: str, query_intent: str) -> str:\n    \"\"\"Load column definitions for a report so you can build queries.\n\n    Args:\n        report_name: Name of the report (e.g. 'TradeActivity').\n        query_intent: Description of what data to extract.\n\n    Returns:\n        str: JSON object with parameters and column definitions.\n    \"\"\"\n    return json.dumps(load_json_report_definition(report_name), indent=2)\n\n@tool\ndef run_report(\n    report_name: str,\n    filters: Dict[str, Any],\n    limit: Optional[int] = None,\n) -> Dict[str, Any]:\n    \"\"\"Run a predefined report. The tool validates every filter against the\n    report's schema and builds a parameterised SQL query. The LLM never writes\n    raw SQL, so filter values cannot be injected into the query.\n\n    Args:\n        report_name: A report from `get_report_list` (e.g. 'TradeActivity').\n        filters: Equality filters keyed by column name, e.g.\n            {\"symbol\": \"AAPL\", \"date\": \"2024-03-15\"}.\n        limit: Optional row cap (1..10000).\n\n    Returns:\n        dict: {'success': bool, 'data': str (CSV), 'error': str or None}\n    \"\"\"\n    schema = load_json_report_definition(report_name)\n    allowed_columns = {c[\"name\"] for c in schema[\"columns\"]}\n\n    # Reject any filter field that is not in the report's allowed list of columns.\n    unknown = set(filters) - allowed_columns\n    if unknown:\n        raise ValueError(\n            f\"Unknown filter field(s) {sorted(unknown)} for {report_name}. \"\n            f\"Allowed: {sorted(allowed_columns)}\"\n        )\n\n    # Build SQL with named bind parameters.\n    where = \" AND \".join(f\"{field} = :{field}\" for field in filters)\n    sql = f\"SELECT * FROM {schema['reportName']}\"\n    if where:\n        sql += f\" WHERE {where}\"\n    if limit is not None:\n        if not isinstance(limit, int) or not 1 <= limit <= 10_000:\n            raise ValueError(\"limit must be an integer in [1, 10000]\")\n        sql += f\" LIMIT {limit}\"\n\n    return query_market_data(report_name=report_name, sql=sql, bind=filters)\n\nsecurity_monitor = Agent(\n    model=model,\n    system_prompt=SECURITY_MONITOR_PROMPT,\n    tools=[get_report_list, get_report_schema, run_report],\n    name=\"security_monitor\",\n)\n```\n\n## LangGraph: Macro workflow orchestration\n\nLangGraph provides production-grade orchestration for multi-agent systems through three core capabilities that make it well-suited for complex AI workflows.\n\n**Graph-based state machines**: LangGraph models agent workflows as directed graphs where nodes represent functions containing agent logic, and edges determine execution flow. This declarative approach transforms complex multi-step reasoning into readable, maintainable code. Graphs support conditional branching, parallel execution, and dynamic routing. These capabilities are important for real-world scenarios where workflows adapt based on intermediate results.\n\n**Persistent state management**: The framework’s checkpoint system automatically snapshots complete workflow state after every node execution. With these checkpoints, you can recover smoothly from failures and support human-in-the-loop interactions. When analysts need to review intermediate results or errors occur, the system restores from the exact checkpoint. It then resumes without losing previous work. This stateful architecture supports commonly used patterns like multi-turn conversations, iterative refinement, and long-running investigations that span hours or days.\n\n**Production reliability:** LangGraph includes built-in retry strategies with exponential backoff for handling throttling or other failures that might occur in your system. It also provides comprehensive observability through OpenTelemetry for straightforward integration with most observability applications.\n\nLet’s build an orchestration layer that routes queries between our specialist Strands agents. The following code defines our workflow graph: a shared state, an orchestrator that selects which specialist agents to invoke, conditional routing between them, and checkpoint-backed persistence for recovery and human-in-the-loop review.\n\n```\nfrom typing import TypedDict, Optional, List, Dict, Any\nfrom langgraph.graph import END, StateGraph\nfrom langgraph_checkpoint_aws import AgentCoreMemorySaver\n\nclass AgentState(TypedDict):\n    query_text: str\n    session_id: Optional[str]\n    agent_task_map: Optional[Dict[str, str]]\n    required_agents: Optional[List[str]]\n    current_agent_index: Optional[int]\n    # Each specialist writes its insights here\n    security_monitor_insights: Optional[Dict[str, Any]]\n    broker_monitor_insights: Optional[Dict[str, Any]]\n    risk_monitor_insights: Optional[Dict[str, Any]]\n    intel_analyst_insights: Optional[Dict[str, Any]]\n    synthesizer_insights: Optional[str]\n\nSPECIALIST_NODES = {\n    \"security_monitor\": security_monitor_node,\n    \"broker_monitor\": broker_monitor_node,\n    \"risk_monitor\": risk_monitor_node,\n    \"intel_analyst\": intel_analyst_node,\n}\n\ndef route_analysts(state: AgentState) -> str:\n    \"\"\"Dynamic routing --- walk the required_agents list by index.\"\"\"\n    required = state.get(\"required_agents\", [])\n    index = state.get(\"current_agent_index\", 0)\n    if not required:\n        return END\n    if index < len(required):\n        return required[index]\n    return \"synthesizer\"\n\n# Build the graph\nworkflow = StateGraph(AgentState)\nworkflow.add_node(\"orchestrator\", orchestrator_node)\nfor name, node_fn in SPECIALIST_NODES.items():\n    workflow.add_node(name, node_fn)\nworkflow.add_node(\"synthesizer\", synthesizer_node)\nworkflow.set_entry_point(\"orchestrator\")\n\n# Conditional edges --- the orchestrator and every specialist route through route_analysts, which can hand off to any specialist or the synthesizer.\nALL_TARGETS = {name: name for name in SPECIALIST_NODES} | {\n    \"synthesizer\": \"synthesizer\",\n    END: END,\n}\nworkflow.add_conditional_edges(\"orchestrator\", route_analysts, ALL_TARGETS)\nfor name in SPECIALIST_NODES:\n    workflow.add_conditional_edges(name, route_analysts, ALL_TARGETS)\nworkflow.add_edge(\"synthesizer\", END)\n\n# AgentCoreMemorySaver checkpoints the state after every node\ncheckpointer = AgentCoreMemorySaver(MEMORY_ID, region_name=REGION)\ngraph = workflow.compile(checkpointer=checkpointer)\n```\n\n![LangGraph workflow routing an orchestrator to specialist agent nodes and a synthesizer with checkpoint persistence](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/24/ML-19945-1.png)\n\nLangGraph workflow orchestration for the market analysis agent\n\n## Why LangGraph and Strands together\n\nMany enterprise use cases must be grounded in strict, predefined workflows. Relying purely on the non-deterministic nature of an LLM to execute the right steps is a risk. However, specific steps within those workflows do require the agile reasoning with the intelligence of the LLM.\n\nThe combination of LangGraph and Strands bridges this gap. You can use it to build systems where deterministic orchestration houses localized, dynamic intelligence.\n\nHere is how this architectural pairing solves complex workflow challenges:\n\n**“Node” level intelligence**: LangGraph defines the higher-level orchestration for the workflow. Strands agents are placed at specific nodes, where a complex workflow might require LLM analysis or navigating ambiguity. They apply autonomous reasoning and tool use only where that flexibility is strictly required.\n\n**Context isolation with nodal agents**: Monolithic agents easily lose track of their instructions. By placing individual Strands agents inside separate LangGraph nodes, you compartmentalize memory. Each agent manages its own hyper-focused context and tool history, while LangGraph maintains a structured, overarching session state that these different agents can update and reference independently.\n\n**Supercharging orchestration**: At its core, LangGraph is a low-level routing and orchestration tool. By embedding Strands, you instantly plug a comprehensive enterprise agent framework into your graph. You get the robust routing of LangGraph alongside Strands’ native Model Context Protocol (MCP) integrations, steering controls, safety guardrails, and evaluation.\n\nConcretely, each specialist is a LangGraph node. The node spins up a fresh Strands agent with its own system prompt, tools, and isolated context. It runs the task the orchestrator assigned and returns a state update. LangGraph merges that partial update into the shared state the other nodes read from. Here is the security monitor node:\n\n```\nasync def security_monitor_node(state: AgentState) -> AgentState:\n    \"\"\"\n    Single-day activity analyst agent that assesses price, volume and tick-level trades\n    \"\"\"\n    agent = Agent(\n        name=\"security_monitor\",\n        model=analyst_model,\n        system_prompt=SECURITY_MONITOR_PROMPT,\n        tools=[get_report_list, get_report_schema, run_report],\n        callback_handler=None,\n    )\n\n    # Pull this node's task from the shared state the orchestrator populated.\n    task = state.get(\"agent_task_map\", {}).get(\"security_monitor\", state[\"query_text\"])\n\n    # Strands runs its own reasoning + tool loop; collect the agent's final text.\n    chunks = []\n    async for event in agent.stream_async(task):\n        if \"data\" in event:\n            chunks.append(event[\"data\"])\n    result = \"\".join(chunks)\n\n    # Return shared state updates\n    return {\n        \"security_monitor_insights\": {\"task\": task, \"business_insights\": result},\n        \"current_agent_index\": state.get(\"current_agent_index\", 0) + 1,\n    }\n```\n\n## AWS infrastructure and deployment with AgentCore\n\nAmazon Bedrock AgentCore provides a fully managed service for deploying and operating agents at scale, alleviating infrastructure management while delivering production-grade capabilities.\n\nRuntime deployment: AgentCore runtime, a capability of Amazon Bedrock AgentCore, transforms local agent code into cloud-native deployments with minimal configuration. The service is framework agnostic and works with LangGraph and Strands out of the box. It provides purpose-built infrastructure for dynamic agent workloads, including extended runtimes for long-running investigations, low-latency execution for interactive workflows, and automatic scaling based on demand.\n\nDeploy your LangGraph orchestrator and Strands agents using the AgentCore Python SDK, a capability of Amazon Bedrock AgentCore, and the starter toolkit. The runtime handles containerization, networking, and compute provisioning automatically. AgentCore handles the undifferentiated heavy lifting of container orchestration, scaling, and session management.\n\n```\n# api.py --- AgentCore runtime entry point\nfrom bedrock_agentcore.runtime import BedrockAgentCoreApp\nfrom src.agents import Workflow\n\napp = BedrockAgentCoreApp()\nworkflow = Workflow()\n\n@app.entrypoint\nasync def market_surveillance_workflow(payload):\n    \"\"\"Invoked by AgentCore for each request. Yields streaming chunks.\"\"\"\n    prompt = payload.get(\"prompt\")\n    session_id = payload.get(\"session_id\", \"default-session\")\n    actor_id = payload.get(\"actor_id\", \"default-actor\")\n    async for chunk in workflow.stream_query(\n        session_id=session_id, prompt=prompt, actor_id=actor_id\n    ):\n        yield chunk\n\nif __name__ == \"__main__\":\n    app.run()\n\n# Deploy with the AgentCore starter toolkit\nfrom bedrock_agentcore_starter_toolkit import Runtime\n\nruntime = Runtime()\nruntime.configure(\n    entrypoint=\"api.py\",\n    auto_create_execution_role=True,\n    auto_create_ecr=True,\n    requirements_file=\"requirements.txt\",\n    region=\"us-east-1\",\n    agent_name=\"market_surveillance_workflow\",\n)\nresult = runtime.launch()\nprint(f\"Agent ARN: {result.agent_arn}\")\n\n# Invoke the deployed agent\nimport boto3, json\n\nclient = boto3.client(\"bedrock-agentcore\", region_name=\"us-east-1\")\nresponse = client.invoke_agent_runtime(\n    agentRuntimeArn=result.agent_arn,\n    qualifier=\"DEFAULT\",\n    payload=json.dumps({\n        \"prompt\": \"What caused the AAPL price spike at 11:00 AM on March 15, 2024?\",\n        \"session_id\": \"session-001\",\n        \"actor_id\": \"analyst-jane\",\n    }),\n)\n\n# AgentCore returns a server-sent-events stream. Parse it:\nfor raw in response[\"response\"].iter_lines():\n    if not raw:\n        continue\n    line = raw.decode(\"utf-8\") if isinstance(raw, bytes) else raw\n    if not line.startswith(\"data: \"):\n        continue\n    try:\n        chunk = json.loads(line[6:])\n        if isinstance(chunk, str) and chunk.startswith(\"data: \"):\n            chunk = json.loads(chunk[6:])\n    except json.JSONDecodeError:\n        continue  # malformed chunk --- skip, don't crash\n    if isinstance(chunk, dict) and chunk.get(\"type\") == \"text\":\n        print(chunk[\"content\"], end=\"\")\n```\n\nMemory integration: LangGraph integrates with AgentCore memory, a capability of Amazon Bedrock AgentCore, through the `langgraph-checkpoint-aws` package with a few lines of code, providing both short-term checkpoint persistence and intelligent long-term memory retrieval.\n\nThe `AgentCoreMemorySaver` class, used in this example, handles checkpoint objects containing user messages, AI responses, graph execution state, and metadata. After each node completion, LangGraph automatically saves checkpoints to AgentCore memory. You get stateful conversations and workflow recovery without managing Amazon DynamoDB tables or implementing custom serialization logic.\n\nThe `AgentCoreMemoryStore` class provides intelligent memory capabilities where AgentCore automatically extracts insights, summaries, and user preferences from conversations. Agents can search through these memories in future interactions, so you can deliver personalized experiences that improve over time. This addresses the fundamental challenge of agent statelessness: each interaction builds upon previous knowledge rather than starting fresh.\n\n```\nimport boto3, time\n\nREGION = \"us-east-1\"\ncontrol_client = boto3.client(\"bedrock-agentcore-control\", region_name=REGION)\n\nresponse = control_client.create_memory(\n    name=\"MarketSurveillanceMemory\",\n    description=\"Memory for market surveillance multi-agent workflow.\",\n    eventExpiryDuration=90,  # days\n)\nMEMORY_ID = response[\"memory\"][\"id\"]\nprint(f\"Memory ID: {MEMORY_ID}\")\n\n# Wait for ACTIVE, with a 10-minute deadline. Creation normally takes 1-3 min.\ndeadline = time.time() + 600\nwhile True:\n    status = control_client.get_memory(memoryId=MEMORY_ID)[\"memory\"][\"status\"]\n    if status == \"ACTIVE\":\n        break\n    if status == \"FAILED\" or time.time() >= deadline:\n        raise RuntimeError(f\"Memory {MEMORY_ID} is {status!r} (expected ACTIVE)\")\n    time.sleep(10)\n```\n\nOn graph build:\n\n```\ncheckpointer = AgentCoreMemorySaver(MEMORY_ID, region_name=REGION)\ngraph = workflow.compile(checkpointer=checkpointer)\n```\n\nOn invocation, pass `thread_id` and `actor_id` to the agent. These are unique identifiers for the user and session:\n\n```\nconfig = {\n    \"configurable\": {\n        \"thread_id\": \"surveillance-session-001\",\n        \"actor_id\": \"analyst-jane\",\n    }\n}\n\nresponse = await graph.ainvoke(\n    {\"query_text\": \"Which brokers were most active?\"},\n    config=config,\n)\n```\n\nObservability and operations: AgentCore includes built-in observability through integration with Amazon CloudWatch and AWS X-Ray, capturing agent execution traces, tool invocations, and performance metrics. The service provides dashboards for monitoring agent behavior, identifying bottlenecks, and optimizing costs. Combined with LangGraph’s OpenTelemetry events, you gain comprehensive visibility from high-level workflow orchestration down to individual LLM calls and reasoning steps.\n\n## Conclusion\n\nIn this post, we showed how to build production-ready multi-agent AI systems by combining LangGraph’s robust workflow orchestration with Strands’ intelligent agent reasoning capabilities, deployed on AWS infrastructure.\n\nThe hybrid architecture we explored demonstrates how LangGraph excels at macro-level orchestration (managing agent coordination, state persistence, and workflow recovery) while Strands provides the detailed reasoning engine within individual nodes. With this separation of concerns, you can build sophisticated systems that handle complex business processes while maintaining production reliability through checkpoint-based recovery and comprehensive observability.\n\nConsider extending this architecture for other complex orchestration scenarios such as document processing pipelines, customer service automation, or compliance monitoring systems. The model-agnostic nature of Strands combined with LangGraph’s state management makes this pattern particularly valuable for enterprise applications requiring both flexibility and reliability.\n\nTo dive deeper into the technical implementation details and build a market analysis agent yourself, see the [GitHub repository](https://github.com/aws-samples/sample-langgraph-strands-market-analysis).\n\n---\n\n## About the authors\n\n![Gleb Geinke](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/24/ML-19945-2.jpg)\n\n### Gleb Geinke\n\nGleb is a Deep Learning Architect at the AWS Generative AI Innovation Center. Gleb collaborates directly with enterprise customers to design and scale transformational generative AI solutions for complex business challenges.\n\n![Siddhesh Tiwari](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/24/ML-19945-3.png)\n\n### Siddhesh Tiwari\n\nSiddhesh is a Data Scientist at AWS Professional Services. He works with enterprise customers to design and deliver generative AI, agentic AI, and machine learning solutions on AWS.\n\n![Wang Teng Lee](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/24/ML-19945-4.png)\n\n### Wang Teng Lee\n\nWang Teng is a Delivery Consultant with AWS Professional Services, specializing in AI and agentic solutions. He works hands-on with customers across the full delivery lifecycle – architecture, development, and deployment – and stays on the leading edge of AI, exploring how emerging technologies can simplify the way we live and work.\n\n![Efren Faderanga headshot](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/24/Efren_Faderanga.jpg)\n\n### Efren Faderanga\n\nEfren Faderanga is a Delivery Consultant at AWS Professional Services, building the infrastructure that makes agentic AI systems production-ready. He specialises in multi-agent orchestration, CI/CD pipelines, and the serverless, event-driven foundations that autonomous systems run on. His work focuses on bridging the gap between AI engineering and production infrastructure.",
+      "tags": [
+        "LangGraph",
+        "Strands",
+        "AgentCore"
+      ],
+      "score": 75,
+      "summary": "AWS发布结合LangGraph和Strands构建市场监控代理的解决方案。",
+      "fetched_at": "2026-07-29T01:44:18.911046+08:00"
+    },
+    {
+      "title": "Bringing Conversational Analytics to your entire data ecosystem",
+      "link": "https://cloud.google.com/blog/products/data-analytics/conversational-analytics-in-google-data-cloud-in-q326/",
+      "published": "2026-07-29T01:30:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Increasing the adoption of generative AI across the enterprise requires you to do more than deploy a generic chatbot with a custom wrapper. Interacting with business-critical databases demands absolute trust, strict governance, and deep grounding in enterprise semantics.\n\nOver the last year, Conversational Analytics (CA) in Google Cloud has moved from isolated experiments to scaled, enterprise-wide deployments. [BigQuery Conversational Analytics](https://cloud.google.com/blog/products/data-analytics/introducing-conversational-analytics-in-bigquery) and the [Conversational Analytics API](https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/overview) are now generally available, adding to the [general availability of Conversational Analytics in Looker](https://cloud.google.com/blog/products/business-intelligence/looker-conversational-analytics-now-ga) last year. Building on this momentum, [Conversational Analytics in Databases](https://docs.cloud.google.com/gemini/data-agents/conversational-analytics) are also available in Preview. And so much more has happened — Google Cloud Conversational Analytics is available for more data, across more surfaces, with more enterprise controls, and greater capability than ever before.\n\nLet’s take a deeper look at the state of Conversational Analytics in the Google Data Cloud — what you can do with it, the benefits that it brings, and how to get started with it today. \n\n### **Query across multi-cloud and database workloads**\n\nConversational Analytics is now generally available for BigQuery and Looker, and in preview for AlloyDB, Cloud SQL, and Spanner. You can also analyze data stored in Lakehouse Managed Service tables, Apache Iceberg REST catalogs, and federated AWS S3 Unity Catalogs. Whether your data resides exclusively in Google Cloud or across multiple cloud providers, your agents can query it natively.\n\nFor data practitioners, Conversational Analytics is integrated directly into BigQuery Studio, BigQuery Data Canvas, and Database Studio. For business teams, these conversational capabilities extend directly into [Looker](https://cloud.google.com/blog/products/business-intelligence/looker-conversational-analytics-now-ga?e=48754805), [Data Studio](https://cloud.google.com/data-studio?e=48754805), and [Gemini Enterprise](https://cloud.google.com/gemini-enterprise). Data teams can publish Conversational Analytics agents created in BigQuery, Looker, AlloyDB, Spanner, and Cloud SQL directly into Gemini Enterprise, giving business leaders a centralized interface to query complex data safely.\n\nOur [APIs](https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/overview) and [MCP tools](https://cloud.google.com/blog/products/ai-machine-learning/google-managed-mcp-servers-are-available-for-everyone?e=48754805) let you embed Conversational Analytics wherever your business users work, like custom applications and multi-agent systems, or as [slack chatbot](https://github.com/looker-open-source/ca-demos-and-tools/tree/main/ca-slack-demo) that can answer questions across data sources, as we showed at Google Cloud Next.\n\nEnterprise security and governance controlsScaling generative AI to tens of thousands of users requires ironclad governance and transparent [cost controls](https://docs.cloud.google.com/gemini/data-agents/conversational-analytics-api/manage-costs). Conversational Analytics includes [Customer Managed Encryption Keys (CMEK)](https://docs.cloud.google.com/kms/docs/cmek), [Private IP](https://cloud.google.com/vpc/docs/private-google-access), and [Virtual Private Cloud (VPC)](https://docs.cloud.google.com/vpc/docs/overview) controls.\n\nWe guarantee [Data Residency (DRZ)](https://docs.cloud.google.com/assured-workloads/docs/data-residency) at rest and machine learning processing inside multi-region endpoints within the European Union and the United States, along with HIPAA compliance. For data access, role-based controls, including [parameterized secure views](https://docs.cloud.google.com/alloydb/docs/parameterized-secure-views-overview) in [AlloyDB for PostgreSQL](https://cloud.google.com/products/alloydb), help ensure users chatting with an agent only see data they are authorized to view, enforced down to row- and column-level permissions.\n\n![1](https://storage.googleapis.com/gweb-cloudblog-publish/original_images/1_n7Jglje.gif)\n\nMonitoring Conversational Analytics in BigQuery to track agent fleet health, active users, query volumes, and top knowledge sources.\n\nAs usage grows, administrators need tools to manage costs, observe system health, and improve accuracy. You can configure native cost controls to define limits on maximum query sizes in bytes, and track usage through BigQuery query labels and Looker system activity logs.\n\nTo maintain fleet visibility, agents can also export health, tool usage, latency, and token consumption metrics via OpenTelemetry (OTEL) standards. Integrated feedback loops allow administrators to review agent traces and user feedback, establishing a foundation for continuous evaluation and accuracy improvements over time.\n\nGrounded context through agent and data co-designWrapping a generic LLM around an enterprise database can sometimes lead to hallucinated logic. To minimize this, we co-designed Conversational Analytics agents alongside the data platforms they query.\n\nFor instance, agents leverage Knowledge Catalog for data discovery, glossaries, and automated context enrichment like table joins and descriptions. [BigQuery Graphs](https://cloud.google.com/blog/products/data-analytics/introducing-bigquery-graph?e=48754805) and [Spanner Graphs](https://docs.cloud.google.com/spanner/docs/graph/overview) allow agents to query structured and unstructured data across multi-hop relationships. Additionally, Looker’s semantic layer (LookML) grounds agent responses in [centrally governed metric definitions](https://cloud.google.com/blog/products/business-intelligence/looker-updates-for-agentic-bi-at-next26), helping ensure answers remain deterministic rather than relying on guessed SQL joins.\n\n![2](https://storage.googleapis.com/gweb-cloudblog-publish/images/2_FMMmN2h.max-1000x1000.png)\n\nGrounding Conversational Analytics across Knowledge Catalog, BigQuery Graph, and Looker’s semantic model helps ensure deterministic, enterprise-governed responses.\n\nConversational Analytics agents are also co-designed with the data they query. This means their tools are context-aware, to have the best understanding of the metadata. They also benefit from built-in capabilities like multimodal data querying using BigQuery object tables, operating over multimodal data with `ai.search`, `ai.generate_embedding`, `ai.classify`, `ai.score` and using `ai.forecast` and `ai.detect_anomalies` to use the [TimesFM](https://research.google/blog/a-decoder-only-foundation-model-for-time-series-forecasting/) foundation for forecasting and anomaly detection.Additionally, `ai.key_drivers` performs automated contribution analysis to pinpoint exactly what is driving unexpected changes in your data. When integrated with Looker, these agents leverage the semantic layer to ground their responses in centrally governed, deterministic metrics. To avoid AI hallucinations, this API-first approach (using 'Golden Queries') ensures agents retrieve verified business logic rather than guessing at SQL joins. Looker additionally equips the agents to seamlessly navigate high-cardinality datasets with dynamic filtering, automatically enforce row-level security during the chat experience, and surface context-aware suggested questions.\n\n### **Proactive insights with Agentic Workflows**\n\nAnalytics is moving beyond reactive question-answering toward proactive intelligence. That is, instead of requiring users to ask the right question at the right time, Conversational Analytics agents can run multidimensional deep dives to analyze 10 to 20 contributing factors behind a change in a metric.\n\nWith Agentic Workflows, now in preview, you can schedule automated reporting routines delivered directly into your chat workflow. Agents continuously run anomaly detection across key metrics, sending daily or weekly summaries straight to your team. Streaming anomaly detection can also launch an agent automatically the moment a key metric deviates from baseline thresholds.\n\n![3](https://storage.googleapis.com/gweb-cloudblog-publish/original_images/3_PYuc6UH.gif)\n\nRunning a multi-step deep dive in Conversational Analytics to automatically investigate complex data relationships across enterprise datasets.\n\n### **Flexible integration with APIs, SDKs, and MCP**\n\nConversational Analytics is available to developers and business users in their existing environments. The Conversational Analytics API includes native SDKs for Node.js, Java, Go, Python, PHP, Ruby, and .NET and keeps insights where the work happens. We are expanding how and where people use Conversational Analytics, starting with [Looker Dashboards](https://docs.cloud.google.com/looker/docs/dashboards) and [Data Studio](https://datastudio.google.com/), as well as supporting [publishing agents to Gemini Enterprise](https://docs.cloud.google.com/bigquery/docs/create-data-agents#publish-agent-gemini-enterprise).\n\nYou can also add Conversational Analytics to other multi-agent systems. Using the Agent Development Kit (ADK) and Model Context Protocol (MCP), you can integrate Conversational Analytics into custom applications, Slack bots, or multi-agent orchestrators. For example, a supply chain orchestrator agent can query a financial data agent to calculate the margin impact of a shipping delay in real time.\n\n### **Get started with Conversational Analytics**\n\nGoogle Cloud Conversational Analytics unifies your data estate, security control plane, and developer APIs to deliver proactive data insights wherever your team works. Explore our [Conversational Analytics documentation](https://cloud.google.com/bigquery/docs/conversational-analytics), review our quickstart repositories, and [sign up to try our](https://docs.google.com/forms/d/e/1FAIpQLSfSz-AnPwi-Dk2DJB7614gRcsKF_tUTXj1DOMCDbce_I0EyRQ/viewform) new previews today.",
+      "tags": [
+        "Conversational Analytics",
+        "BigQuery",
+        "Looker"
+      ],
+      "score": 78,
+      "summary": "Google Cloud正式推出BigQuery和Looker的会话分析，并预览数据库支持。",
+      "fetched_at": "2026-07-29T01:44:18.911054+08:00"
+    },
+    {
+      "title": "Future-proofing data integrity: Quantum-safe digital signatures in Cloud KMS",
+      "link": "https://cloud.google.com/blog/products/identity-security/future-proofing-data-integrity-quantum-safe-digital-signatures-in-cloud-kms/",
+      "published": "2026-07-29T01:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "With cryptographically relevant quantum computers (CRQC) on the horizon, transitioning to quantum-safe digital signatures is critical to safeguarding long-term data integrity and authenticity. Organizations are steadily recognizing this urgency. \n\nFor example, the U.S. government announced an [update to the timelines](https://www.whitehouse.gov/presidential-actions/2026/06/securing-the-nation-against-advanced-cryptographic-attacks/) by which departments and agencies must transition to quantum safe digital signatures. To help with the transition, we are announcing the general availability of our [quantum-safe digital signatures](https://docs.cloud.google.com/kms/docs/algorithms#pqc_signing_algorithms) (ML-DSA, SLH-DSA) and [post-quantum key encapsulation](https://docs.cloud.google.com/kms/docs/key-encapsulation-mechanisms) (ML-KEM) in Google Cloud Key Management Service ([Cloud KMS](https://cloud.google.com/security/products/security-key-management)).\n\nThe immediate challenge for your organization is functional: You need to sign massive data payloads without encountering the bandwidth and processing issues inherent with post-quantum cryptography (PQC). To proactively address these emerging threats and help you support compliance with regulatory obligations, you can use the suite of PQC digital signature algorithms available in Cloud KMS, which includes ML-DSA ([FIPS 204](https://csrc.nist.gov/pubs/fips/204/final)) and SLH-DSA ([FIPS 205](https://csrc.nist.gov/pubs/fips/205/final)), featuring dedicated support for the efficient external-µ variants. \n\n### PQC digital signature algorithms in Cloud KMS\n\nAs standards and regulatory institutions are setting requirements and timelines for adopting quantum-safe algorithms, such as the National Security Agency’s [CNSA 2.0](https://www.nsa.gov/Press-Room/News-Highlights/Article/Article/3148990/nsa-releases-future-quantum-resistant-qr-algorithm-requirements-for-national-se/), they’re underscoring the need for organizations to start their migration planning. To help you choose the specific security strength and signing method necessary for your applications, Cloud KMS gives you a broad selection of ML-DSA and SLH-DSA algorithms that are publicly available.\n\nCloud KMS now supports the following PQC algorithms and variants:\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| Algorithm Name | NIST Security Category | Variant Type | Description |\n| **SLH-DSA-SHA2-128s** | Level 1 | Pure, Pre-hash | Stateless Hash-Based Digital Signature for defense-in-depth |\n| **ML-DSA-44** | Level 2 | Pure, External-µ | High performance, Level 2 quantum security (equivalent to a collision search on SHA-256) |\n| **ML-DSA-65** | Level 3 | Pure, External-µ | Balance of security and performance, Level 3 quantum security (equivalent to an exhaustive key search on AES-192) |\n| **ML-DSA-87** | Level 5 | Pure, External-µ | Highest security for long-term data protection, Level 5 quantum security (equivalent to an exhaustive key search on AES-256) |\n\n### **The need for pre-hash and external-µ variants**\n\nThe cryptographic elements used for digital signatures have a fixed or predictable size in memory. In contrast, the message being signed can range from a few bytes to massive files. This size disparity creates a major challenge when you use a separate, secure device, such as an HSM or a dedicated key management service. \n\nThese systems are often optimized for security and key operations, but they have limited bandwidth and processing power, making it impractical or impossible to securely transmit and process extremely large messages in the [security boundary for signing](https://keymaterial.net/2024/11/05/hashml-dsa-considered-harmful/). Therefore, the application first processes the large message locally using a cryptographic hash function (such as SHA2 or SHAKE) to create a fixed-size, small digest that is around 32 bytes. The application then sends this small digest to the hardware security module (HSM) or key management service for the actual signing operation using the private key. \n\nNIST’s ML-DSA standard, [FIPS 204](https://csrc.nist.gov/pubs/fips/204/final) (Algorithm 7), uses an external-µ variant for its prehash functionality, which helps with this workflow. [RFC 9881 Appendix D](https://datatracker.ietf.org/doc/html/rfc9881#appendix-D) describes the details of external-µ. This method allows the application to calculate the digest (also called the message representative) externally and feed it into the pure ML-DSA signing algorithm. This offers the best of both worlds: The bandwidth efficiency of a pre-hash workflow, and full compatibility with pure ML-DSA verifiers.\n\nThese external-µ variants also bind the public key mathematically to the message representative to achieve non-resignability, an important security property that prevents an attacker from manipulating the message representative in a way that verifies under a different, possibly attacker-controlled key. You can learn [more details here](https://keymaterial.net/2024/11/05/hashml-dsa-considered-harmful/), and explore the [BoringSSL implementation](https://boringssl.googlesource.com/boringssl/+/refs/heads/main/include/openssl/mldsa.h#128) for a practical example of handling external-µ.\n\n[Google Cloud KMS](https://docs.cloud.google.com/kms/docs) now supports the pre-hash and external-µ variants. This enables high-performance, low-latency signing workflows that securely handles large payloads via external hashing, while integrating with pure verifiers.\n\n### **Getting started with PQC signatures in Cloud KMS**\n\nYour applications can integrate these algorithms through the [Cloud KMS API](https://docs.cloud.google.com/kms/docs/reference/rest). Developers can use existing Cloud KMS capabilities to create, manage, and use PQC keys for signing operations. Detailed instructions and code samples are available in [our KMS documentation](https://docs.cloud.google.com/kms/docs/digital-signatures) to guide you through the process.\n\n### **The PQC road ahead**\n\nThe transition to a post-quantum cryptographic landscape is a collaborative journey. Adding PQC digital signatures in Google Cloud KMS is a significant milestone, helping you with your quantum-safe migration strategies.\n\nWe will continue to update our services to incorporate future NIST standards and guidance, helping you maintain the security of your critical systems. We look forward to collaborating with you on your specific cryptographic needs, and we welcome your [feedback](mailto:cloudkms-feedback@google.com).\n\n[Related Article\n\n#### Announcing quantum-safe Key Encapsulation Mechanisms in Cloud KMS\n\nWe’re supporting post-quantum Key Encapsulation Mechanisms in Cloud KMS, in preview, enabling customers to begin migrating to a post-quan...\n\nRead Article](https://cloud.google.com/blog/products/identity-security/announcing-quantum-safe-key-encapsulation-mechanisms-in-cloud-kms/)",
+      "tags": [
+        "量子安全",
+        "数字签名",
+        "Cloud KMS"
+      ],
+      "score": 79,
+      "summary": "Google Cloud KMS正式支持量子安全数字签名算法ML-DSA和SLH-DSA。",
+      "fetched_at": "2026-07-29T01:44:18.911059+08:00"
+    },
+    {
+      "title": "Best Buy scales AI workloads and secures access with Workforce Identity Federation",
+      "link": "https://cloud.google.com/blog/topics/retail/best-buy-scales-secure-ai-access-with-workforce-identity-federation/",
+      "published": "2026-07-29T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "As Best Buy expanded its use of Google Cloud for advanced analytics and AI, its technology teams faced two significant scaling challenges: Mitigating risk and managing administrative friction when syncing thousands of backend users from Microsoft Entra ID. \n\nThe retailer solved both problems and paved the way for a massive cloud expansion by implementing Google Cloud's [Workforce Identity Federation](https://cloud.google.com/workforce-identity-federation). This direct approach allowed developers to access cloud resources securely using their existing Microsoft credentials without a separate identity store, giving technical leadership confidence that access remains strictly controlled, auditable, and manageable at scale.\n\n### **Replacing service accounts with direct federation**\n\nBest Buy historically maintained complex synchronization pipelines to copy backend users from Entra ID to Google Cloud. Because the organization used [Cloud Identity](https://cloud.google.com/identity) without a [Google Workspace](https://workspace.google.com/) deployment, it needed a more direct approach. Previously, Best Buy's Power BI integration with [BigQuery](https://cloud.google.com/bigquery) relied on service account credentials. \n\nThis pattern can work at a small scale, but quietly becomes a liability as your team grows.\n\nManually rotating keys for service accounts meant tracking the credentials each team held, and accepting that every key was a potential security vulnerability. Service account keys created daily friction for the Best Buy security and platform teams, and the technical debt compounded as data access requirements grew more complex.\n\nTo support tens of thousands of users, Best Buy modernized its identity architecture. The team adopted Workforce Identity Federation to federate existing Entra ID identities directly into Google Cloud. \n\nNow, when developers access BigQuery through Power BI, they authenticate as themselves using their existing Entra ID identity. They no longer need to rotate keys, worry about credentials exposed in chat messages, or guess who performed an action in the audit log.\n\nThe architecture relies on two components working together: Entra ID handles authentication, Workforce Identity Federation brokers the trust relationship between Entra ID and Google Cloud. This federation is stateless on Google's side. It validates tokens at the moment of access instead of syncing user records. Removing the service account key layer greatly reduces the credential management burden.\n\n**Architecture**\n\nThe diagram below shows how identity flows from Entra ID through the Workforce Identity Federation to the services teams use at Best Buy. The key change from the previous approach is the removal of the service account key layer entirely; there is no credential to manage between Entra ID and Google Cloud.\n\n![Best Buy architecture diagram no MSFT logo](https://storage.googleapis.com/gweb-cloudblog-publish/images/Best_Buy_architecture_diagram_no_MSFT_logo.max-1000x1000.jpg)\n\nIdentity flows from Entra ID through the Workforce Identity Federation to the services teams use at Best Buy\n\n### **Key implementation decisions**\n\nWhen implementing this architecture, Best Buy made several important technical choices:\n\n* **Separate provisioning and SSO apps in Entra ID:** The configuration follows the Entra ID provisioning and single sign-on (SSO) setup guide. You should separate the provisioning application from the SSO application in Entra ID. Running them as two distinct enterprise apps provides a cleaner separation of concerns; provisioning changes do not affect SSO configuration, and vice versa.\n* **Place the automation OU carefully:** You need to place the Entra ID provisioning service account in a separate organizational unit (OU) and explicitly disable SSO for that OU. This prevents a bootstrapping problem: If you enforce SSO globally, the provisioning account cannot authenticate to set up the provisioning in the first place.\n* **Understand that syncless means stateless on Google's side:** Workforce Identity Federation does not create or maintain user records in Cloud Identity. It validates tokens at the moment of access. This makes the architecture viable for Best Buy's target scale, because it eliminates synchronization lag, stale record cleanup, and separate provisioning pipelines.\n\n### **Secure authentication for developers**\n\nFor developers, the change was practically invisible. They authenticate once through their corporate Entra ID credentials, and access to BigQuery works automatically, whether through Power BI or direct API calls. The SSO experience matches everything else they access through their Microsoft identity.\n\nFor the security and platform teams, the benefits are significant. The attack surface from credential management disappears. Audit logs now show individual users instead of shared service account identities, and you can revoke access quickly based on the enterprise identity lifecycle rather than waiting for manual key rotation.\n\nIf you currently manage service account keys for developer access to Google Cloud, moving to Workforce Identity Federation is worth the effort. You gain significant security benefits, and the operational simplicity grows as your team expands. Best Buy is currently scaling this secure access to a broader workforce to power its future retail operations.\n\n### **Expanding Workforce Identity Federation support**\n\nGoogle Cloud continues to make it easier for all organizations to bring their own identity providers. Recent updates simplify the setup for Ping Identity users and extend access to online billing accounts.\n\n* **Ping Identity integration:** If you use Ping Identity, you can follow a new, dedicated setup guide to configure federation. This guide provides step-by-step instructions so you can securely connect your workforce to Google Cloud resources.\n* **Online billing support:** Google Cloud now supports customers with online billing accounts. You can use Workforce Identity Federation for secure, syncless access without needing an enterprise billing agreement.\n\n### **Get started**\n\nGoogle Cloud is committed to removing friction from cloud adoption and making it simpler for organizations to secure their environments. To explore these new capabilities and connect your organization's identity provider, read more about how [Workforce Identity Federation](https://cloud.google.com/workforce-identity-federation) allows you to federate identities directly, and explore our [supported Google Cloud services](https://docs.cloud.google.com/iam/docs/federated-identity-supported-services).",
+      "tags": [
+        "Best Buy",
+        "Workforce Identity Federation",
+        "AI安全"
+      ],
+      "score": 70,
+      "summary": "Best Buy使用Workforce Identity Federation扩展AI工作负载并保护访问。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/best-buy-scales-secure-ai-access-header.max-600x600.png",
+      "fetched_at": "2026-07-29T01:44:18.911062+08:00"
+    },
+    {
+      "title": "Detect early and enforce firmly with Google Cloud's enhanced cost controls for AI spend",
+      "link": "https://cloud.google.com/blog/topics/cost-management/new-early-anomalies-and-spend-caps-on-google-cloud-budgets/",
+      "published": "2026-07-29T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Generative AI can make cloud costs difficult to predict. A single five-word prompt can run complex operations and generate significant costs. Traditional metrics like requests per second no longer help you estimate your bill, increasing the risk of unexpected cost spikes.\n\nWhile Google Cloud offers budget alerts, you need proactive guardrails that work out of the box - without the friction of writing custom JSON policies, configuring complex roles, or maintaining bespoke scripts.  \n\nToday, we are announcing two native features in the Google Cloud Billing console: **early anomalies on AI services** and **spend caps** on Google Cloud Budgets. Together, these tools help you detect unusual spend early and enforce firm limits so you can build and experiment with confidence.\n\n### **A two-pronged defense playbook**\n\nThe inherent variability and potential for rapid scaling in AI usage demand a new level of responsiveness from cost management tools. To address this, we're providing tools that allow users to effortlessly set up a GCP defense playbook. \n\n**1. Detect: early anomalies on AI services**\n\nThis new feature, located within the Anomalies tool on the billing console, automatically alerts users of directional variances (anomalies) in daily AI costs within a project. While Google Cloud has offered standard Cost Anomaly Detection, this new capability represents a major architectural shift designed specifically for the speed of AI workloads.\n\n**How do early anomalies work?**\n\n* **Dynamic baseline modeling:** The system automatically analyzes historical project data to build an expected seasonal baseline of daily service-level costs—no manual threshold configuration required.\n* **Early cost monitoring:** Instead of waiting for billing cycles to reconcile, the tool monitors early cost signals per service and alerts before actual costs are reported.\n* **Automated triage with RCA:** If a daily cost signal trends abnormally, the system flags the deviation and generates a Root Cause Analysis (RCA) highlighting the top 3 SKUs driving the surge.\n\n![Jul22_Anomalies_Image1](https://storage.googleapis.com/gweb-cloudblog-publish/images/Jul22_Anomalies_Image1.max-1000x1000.png)\n\nScreenshot of the Billing Console showing an Early Anomaly alert with the Root Cause Analysis (RCA) breakdown highlighting the driving SKUs.\n\nEarly anomaly signals allow your team to investigate upward trending costs and intervene before they escalate dramatically. Monitoring these daily variances helps you easily identify the most anomalous high-velocity services, making them perfect candidates for a firm enforcement cap.\n\n**2. Enforce: Spend caps on Google Cloud Budgets**\n\nOnce you identify a service that needs tight boundaries, the second step of the playbook comes in. Spend Caps is a new, native feature on Google Cloud Budgets that empowers you to set a monthly financial cap on specific services within a project. When accumulated spend reaches your defined cap, the system automatically restricts further cost-incurring usage for that specific service within that project. This provides a crucial safety net for your cloud finances without risking the rest of your infrastructure.\n\n**How do spend caps work?**\n\nDuring this Public Preview, you can apply Spend Caps to a single project and service for a fixed monthly timeframe.\n\n![Jul22_SpendCapsCreate_Image2](https://storage.googleapis.com/gweb-cloudblog-publish/images/Jul22_SpendCapsCreate_Image2.max-1000x1000.png)\n\nScreenshot of the Google Cloud Budgets interface highlighting the \"Budget Type\" selection with the new \"Spend Cap\" option enabled.\n\nOnce the cumulative costs reach your defined cap, Google Cloud automatically takes action to prevent further billable usage.\n\nWhat makes Spend Caps so special? \n\n* It is non-destructive i.e your data and resources are not deleted, and services outside the scope of the budget are entirely unaffected.\n* You stay informed i.e Billing Administrators and Project Owners receive automated email alerts at 50%, 80%, and 100% of the budget\n* One-click recovery i.e if a Spend Cap is triggered, the usage block remains in place until it is manually lifted from the Google Cloud Budgets UI with a single click.\n\n![Jul22_SpendCapsEdit_Image3](https://storage.googleapis.com/gweb-cloudblog-publish/images/Jul22_SpendCapsEdit_Image3_MUOGQZA.max-1000x1000.png)\n\nScreenshot of the \"Lift spend cap\" button in the Google Cloud Budgets UI showing the frictionless manual reversal flow\n\nWhile spend caps successfully halt new on-demand charges by pausing usage, any underlying fixed commitment fees (such as Committed Use Discounts or Provisioned Throughput) will continue to bill at their flat contractual rate.\n\n**When do spend caps trigger?**\n\nSince AI and cloud costs can rack up at lightning speed, guardrails must act with equal urgency. Traditional billing data can sometimes take hours to reconcile, but Spend Caps for AI services trigger within minutes of hitting your defined threshold. This rapid, near real-time enforcement is specifically engineered to limit your AI specific financial exposure before a runaway model, an infinite loop, or a massive query can spike your bill. \n\n### **The defense playbook at a glance**\n\nBy combining early anomaly signals with automated financial boundaries, Google Cloud provides a complete closed-loop defense for your AI spend.\n\n|  |  |  |  |  |\n| --- | --- | --- | --- | --- |\n| **Playbook step** | **Tool** | **What it does** | **Key benefit** | **Supported services****Preview** |\n| Step 1: Detect | Early Anomalies on Services | Analyzes early cost signals daily to alert you of directional spend variances before they hit your invoice. | Spot cost spikes early and pinpoint the exact SKU driving the trend. | Gemini API, Agent Platform, Cloud Run, Cloud Run Functions |\n| Step 2: Enforce | Spend Caps on Budgets | Automatically halts usage for a specific project/service once your defined budget is breached. | Protection against runaway spend without deleting resources | Gemini API, Agent Platform, Cloud Run, Cloud Run Functions |\n\nBy deploying this dual-pronged defense strategy that works out-of-the-box, your engineering teams can move quickly, experiment safely, and focus entirely on innovation.\n\n### **Get started today**\n\n* Explore early anomalies: Head to the \"[Anomalies](https://console.cloud.google.com/billing/anomalies)\" section of your Google Cloud Billing Console.\n* Set your first spend cap: Go to the [Budgets & Alerts](https://console.cloud.google.com/billing/budgets) page in the Billing Console to apply native caps to your test or development environments.\n* For more details on configuration, service-specific behaviors, and permissions, read the [Manage Anomalies](https://docs.cloud.google.com/billing/docs/how-to/manage-anomalies#view-early-anomalies) and [Spend Caps on Budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps) documentation.",
+      "tags": [
+        "AI成本",
+        "异常检测",
+        "预算上限"
+      ],
+      "score": 75,
+      "summary": "Google Cloud推出AI成本早期异常检测和预算上限功能。",
+      "fetched_at": "2026-07-29T01:44:18.911065+08:00"
+    },
+    {
+      "title": "The OlmoEarth Platform: Geospatial inference at planetary scale",
+      "link": "https://huggingface.co/blog/allenai/olmoearth-infrastructure",
+      "published": "2026-07-29T00:27:42+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "OlmoEarth",
+        "地理空间AI"
+      ],
+      "score": 60,
+      "summary": "Allen AI发布OlmoEarth平台，实现行星尺度地理空间推理。",
+      "fetched_at": "2026-07-29T01:44:18.911068+08:00"
+    },
+    {
+      "title": "Disrupting supply chain attacks on npm and GitHub Actions",
+      "link": "https://github.blog/security/supply-chain-security/disrupting-supply-chain-attacks-on-npm-and-github-actions/",
+      "published": "2026-07-29T00:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "In the past year, there’s been a pattern of supply chain attacks that target weaknesses in package repositories and CI/CD systems to quickly spread malware to hundreds of open source projects. This malware seeks to exfiltrate credentials both to broadly spread the attack, as well as for later exploitation.\n\nWe’ve written a few times about our plans for hardening the supply chain: [Our plan for a more secure npm supply chain](https://github.blog/security/supply-chain-security/our-plan-for-a-more-secure-npm-supply-chain/) in September 2025, [Strengthening supply chain security: Preparing for the next malware campaign](https://github.blog/security/supply-chain-security/strengthening-supply-chain-security-preparing-for-the-next-malware-campaign/) in December 2025, and [What’s coming to our GitHub Actions 2026 security roadmap](https://github.blog/news-insights/product-news/whats-coming-to-our-github-actions-2026-security-roadmap/) in March 2026. In this post, we’re updating you on changes we’ve implemented that directly disrupt some of the most common and impactful supply chain attack techniques.\n\n## Anatomy of supply chain attacks\n\nSupply chain attacks chain together several weaknesses, and there is no single security capability that can stop them. Addressing them takes a holistic approach, prioritizing the mitigations that break the most impactful links in the attack chain. Our teams have been studying these attacks to deploy several improvements that disrupt them and limit their impact. This is possible thanks to collaboration with the security research and developer communities.\n\nThe attacks vary in how they spread across the software ecosystem. However, most of these attacks follow similar techniques to gain initial access to a project, escalate privileges, and distribute across users and software. Improvements made to npm and GitHub Actions in the past few months have been focused on cutting off specific, common techniques and providing ways for customers to identify and respond to these attacks.\n\n## Initial compromise\n\nAttacks start by compromising a single project, often by directly compromising a maintainer’s account or by targeting the project’s actions workflows.\n\n* [**npm adds preventive account protection for high-impact accounts**](https://github.blog/changelog/2026-06-25-npm-adds-preventive-account-protection-for-high-impact-accounts/) **(June 2026)**: Frequently, attacks start with a phishing campaign targeting maintainers. With this change, high-impact npm accounts are now put into a read-only mode for 72 hours when they change their email or use a 2FA recovery code. This delay allows maintainers time to respond and recover the account before their account can be used to start an attack.\n* [**Safer pull\\_request\\_target defaults for GitHub Actions checkout**](https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/) **(June 2026)**: A common vulnerability in a project’s CI/CD pipelines are [“pwn requests,”](https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/) where a workflow triggers on pull requests from forks and then executes user-submitted and untrusted code from that fork. We changed the default behavior of `actions/checkout` to prevent the checkout of untrusted code from forks in commonly exploited triggers unless you explicitly opt-out (after reviewing your risk). This change and its backport to older versions cut off one of the most common vulnerable code patterns leading to code execution in GitHub Actions CI/CD workflows and initial project compromise.\n* [**Control who and what triggers GitHub Actions workflows**](https://github.blog/changelog/2026-06-18-control-who-and-what-triggers-github-actions-workflows/) **(June 2026)**: Maybe you’d prefer to opt-out of these risky action triggers altogether or limit who can trigger them. This new control lets you set enterprise, organization, or repository level policies on who is allowed to trigger workflows and what trigger types are allowed. These workflow execution policies provide a governable and customizable layer of least-privilege around Action workflows that reduce the attack surface of your CI/CD infrastructure.\n* [**Read-only Actions cache for untrusted triggers**](https://github.blog/changelog/2026-06-26-read-only-actions-cache-for-untrusted-triggers/) **(June 2026)**: After an attacker has achieved code execution in an Actions workflow, they then look to escalate to more privileged workflows (and therefore credentials) through poisoning the cache entries shared across workflows. With this change, we restrict the ability for less trusted workflows to modify the cache shared with other workflows. This directly closes a common path attackers have used to turn a vulnerability with limited impact into one that compromises highly privileged credentials used by release and publishing workflows.\n\n## Exfiltrate credentials\n\nOnce an attacker has access to a single package, they then focus on detecting and exfiltrating credentials to gain further access and use in later exploitation across ecosystems.\n\n* [**npm trusted publishing now supports CircleCI**](https://github.blog/changelog/2026-04-06-npm-trusted-publishing-now-supports-circleci/) **(April 2026)**: The number one thing you can do to disrupt these attacks is to remove long-lived credentials from your CI/CD pipeline. [Trusted publishing](https://docs.npmjs.com/trusted-publishers) is a great way to authorize publishes to your package repository without a long-lived credential. By adding CircleCI as a trusted publishing provider, we’ve made it possible for more people to remove the credentials these attacks attempt to exfiltrate.\n* [**Actions network firewall**](https://github.com/github-early-access/actions-native-egress-firewall/) **(In technical preview)**: This technical preview logs all outbound network traffic from your Action workflow runs so you can detect unusual behavior like pulling down malicious code or exfiltrating credentials to a new domain. Future work will enable network egress restrictions and policies to block these attacks before they lead to further escalation and exfiltration.\n\n## Propagating the attack\n\nWith the credentials harvested from the previous step, attackers attempt to use those credentials to distribute their malware and compromise more projects and maintainers as quickly as possible.\n\n* [**Staged publishing for npm**](https://github.blog/changelog/2026-05-22-staged-publishing-and-new-install-time-controls-for-npm/) **(May 2026)**: With staged publishing, it’s not enough to have credentials to publish a new package on npm; those packages are staged until additional approval and 2FA authentication is provided in the npm cli or on npmjs.com. This opt-in security control allows maintainers to ensure that any version of their package published has gone through this additional authorization. By decoupling the credentials used in CI/CD pipelines and automation from those that can publish to the registry, the attack chain from a CI/CD pipeline to malware distribution is cut off.\n* [**Upcoming breaking changes for npm v12**](https://github.blog/changelog/2026-06-09-upcoming-breaking-changes-for-npm-v12/) **(June 2026)**: To spread their malware as quickly as possible, attackers use npm install-time scripts to exfiltrate credentials instead of waiting for code to be executed by the package at runtime. With npm v12, we are rolling out a breaking change that disables these install scripts by default. Since install scripts have legitimate use within the package installation processes that several popular packages rely on, you can reenable them by approving specific scripts. Additional vectors for install-time code execution have also been blocked by disabling dependencies via git or remote URLs by default.\n* [**Dependabot version updates introduce default package cooldown**](https://github.blog/changelog/2026-07-14-dependabot-version-updates-introduce-default-package-cooldown/) **(July 2026)**: Attackers rely on speed, hoping a malicious release gets pulled into as many downstream projects as possible before anyone notices. Version updates through Dependabot now wait until a release has been available for at least three days before opening a pull request, giving detection signals time to surface before a malicious release reaches your project. This cooldown is on by default, and security updates still open immediately, so critical fixes are never delayed.\n\n## Identifying and responding to supply chain attacks\n\nIn parallel to hardening npm and GitHub Actions to disrupt and limit the impact of supply chain attacks, we have also been working on making features and tools available to users to identify and respond to supply chain incidents that have impacted their projects and accounts.\n\n* [**Self-service credential revocation for incident response**](https://github.blog/changelog/2026-06-24-self-service-credential-revocation-for-incident-response/) **(June 2026)**: GitHub credentials remain an ongoing target of attackers in supply chain attacks. This feature provides self-service tooling to instantly revoke all credentials for a given user in an enterprise. This builds on the [enterprise-wide credential management tools for incident response](https://github.blog/changelog/2026-02-17-enterprise-wide-credential-management-tools-for-incident-response/) released in February and allows enterprise admins and members to quickly respond if credentials have been compromised in a supply chain attack.\n* [**Expanded credential revocation API support**](https://github.blog/changelog/2026-03-26-credential-revocation-api-now-supports-github-oauth-and-github-app-credentials/) **(March 2026)**: Recent attacks have included exfiltrating credentials within publicly accessible content. To help the community respond to these attacks, we have expanded support of our credential revocation API ([first introduced in April 2025 for personal access tokens](https://github.blog/changelog/2025-04-29-credential-revocation-api-to-revoke-exposed-pats-is-now-generally-available/)) to support the revocation of GitHub OAuth and App tokens. This allows the quick and self-service revocation of these leaked credentials, regardless of where they are found, and limits the lifetime during which they can be abused.\n\n## What’s Next?\n\nMaking our products more secure by default is a priority across npm and GitHub and we are prioritizing this work to target and disrupt supply chain attacks across the open source ecosystem. We’re proud of the work we’ve shipped towards this goal over the past months. There’s more to come, but we wanted to provide an update on the progress we’ve made and make folks aware of the new capabilities available to them. Be sure to follow our [changelog](https://github.blog/changelog/?label=supply-chain-security) and blog posts as we continue to roll out improvements.\n\nOpen source software is an incredible public good that we all benefit from, and this is one of several ways GitHub is working to continue to support the security, sustainability, and continued success of open source communities and the enterprises that depend on them.\n\nThe post [Disrupting supply chain attacks on npm and GitHub Actions](https://github.blog/security/supply-chain-security/disrupting-supply-chain-attacks-on-npm-and-github-actions/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "npm供应链",
+        "GitHub Actions",
+        "安全"
+      ],
+      "score": 78,
+      "summary": "GitHub发布改进措施阻断npm和Actions供应链攻击。",
+      "fetched_at": "2026-07-29T01:44:18.911070+08:00"
+    },
+    {
+      "title": "How Gemini Flash agents are helping a Michigan dairy farmer",
+      "link": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/using-gemini-to-manage-farm/",
+      "published": "2026-07-29T00:15:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Gemini_Flash_Michigan_dairy_far.max-600x600.format-webp.webp)See how Paul Windemuller, a Michigan dairy farmer, is changing the way he works by using AI agents built with Gemini 3.6 Flash.",
+      "tags": [
+        "Gemini Flash",
+        "农业",
+        "Agent"
+      ],
+      "score": 75,
+      "summary": "Gemini 3.6 Flash代理帮助密歇根奶农管理农场。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Gemini_Flash_Michigan_dairy_far.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-29T01:44:18.911073+08:00"
+    },
+    {
+      "title": "Gemini API Managed Agents: 3.6 Flash, hooks, and more",
+      "link": "https://blog.google/innovation-and-ai/technology/developers-tools/expanding-managed-agents-gemini-api-3-6-flash-hooks/",
+      "published": "2026-07-29T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/unnamed_2_vNnOv20.max-600x600.format-webp.webp)We’re announcing even more new capabilities in Managed Agents in Gemini API so developers can build reliable, production-ready agents.",
+      "tags": [
+        "Managed Agents",
+        "Gemini 3.6 Flash",
+        "hooks"
+      ],
+      "score": 85,
+      "summary": "Gemini API管理代理新增环境钩子、模型选择、免费层等特性。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/unnamed_2_vNnOv20.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-29T01:44:18.911075+08:00"
+    },
+    {
+      "title": "3 new ways nonprofits can put AI to work",
+      "link": "https://blog.google/company-news/outreach-and-initiatives/google-org/nonprofits-ai-tools-training/",
+      "published": "2026-07-29T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Nonprofits_AI_hero_1.max-600x600.format-webp.webp)We’re introducing new tools and resources for nonprofits to learn more about Google AI tools.",
+      "tags": [
+        "非营利",
+        "AI工具",
+        "Google AI"
+      ],
+      "score": 70,
+      "summary": "Google推出面向非营利组织的三项新AI工具和资源。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Nonprofits_AI_hero_1.max-600x600.format-webp.webp",
+      "fetched_at": "2026-07-29T01:44:18.911078+08:00"
+    },
+    {
+      "title": "Visual Studio July Update — Meet the New Agent, Powered by the GitHub Copilot SDK",
+      "link": "https://devblogs.microsoft.com/visualstudio/visual-studio-july-update-meet-the-new-agent-powered-by-copilot-sdk/",
+      "published": "2026-07-29T00:00:14+08:00",
+      "source": "Visual Studio Blog",
+      "content": "The best AI assistance is the kind you can steer, understand, and rely on. The July update is built around all three. There’s a new **Agent (Preview)** in Copilot Chat, built on the same [GitHub Copilot SDK](https://github.com/github/copilot-sdk) that powers the GitHub Copilot CLI, that gets more done with less back-and-forth. New **built-in .NET and Azure skills** let you tailor your agentic workflow with expert guidance, organization owners can now shape Copilot’s responses across their whole team, and a couple of fundamentals round things out.\n\nYou can attach a branch to Copilot Chat for quick context, and C++ builds can now opt in to finding a pinned toolset version even when it lives in a different installation. Install the Visual Studio 2026 Stable Channel update when you’re ready, then take a look at what’s new below.\n\n### Try the new Agent (Preview)\n\nCopilot Chat has a new **Agent (Preview)** option in the agent picker, built on the same [GitHub Copilot SDK](https://github.com/github/copilot-sdk) that powers the GitHub Copilot CLI. The idea is simple: get more tasks right the first time, with less back-and-forth to keep the agent on track. It also addresses feedback we’ve heard from Copilot users asking for a more consistent experience across Copilot surfaces, so work can move more naturally between them. You can start in the CLI, GitHub app, VS Code, or Visual Studio, then transition that work into Visual Studio when you’re ready to review, refine, or continue the change. Responses are shorter and easier to scan, so you spend less time reading and more time reviewing the actual change.\n\nTo try it, open **GitHub Copilot Chat**, click the **agent picker** at the bottom of the window, and select **Agent (Preview)**. Then point it at the work you already do: feature changes, bug fixes, refactors, and the rest of your day-to-day tasks.\n\n[![The GitHub Copilot Chat agent picker open with Agent (Preview) highlighted, listed above Ask, Plan, Debugger, Git, Modernize, Profiler, and Test.](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_new-agent.webp)](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_new-agent.webp)\n\nThis one is still in preview, and your feedback shapes where it goes next. Send it through **Help > Send Feedback > Report a Problem**.\n\n### Built-in .NET and Azure skills\n\nVisual Studio now ships with built-in skills authored by experts on the .NET and Azure teams, so you can customize your agentic workflow with guidance from the people who know these stacks best. The skills appear in the **Built-in** category of the tool picker whenever the matching .NET or Azure workload is installed.\n\nHover any skill to see its description and path, or use the three-dot menu to open the full skill or its folder location. They’re off by default, so you review and enable only the ones that fit the task in front of you.\n\n[![The Skills tab of the Copilot tool picker listing built-in skills such as azure-upgrade, azure-validate, csharp-scripts, and dotnet-pinvoke, with a hover tooltip showing the dotnet-trace-collect description and its Built-in file path.](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_built-in-skills.webp)](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_built-in-skills.webp)\n\nWant to dig into what’s available? Browse the [.NET skills](https://github.com/dotnet/skills) and [Azure skills](https://github.com/microsoft/azure-skills) on GitHub.\n\n### Organization-level custom instructions\n\nTeams often share the same ground rules for how they want Copilot to respond. GitHub organization owners can now add [organization custom instructions](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-organization-instructions#adding-organization-custom-instructions) that tailor those responses across everyone in the organization, so common preferences don’t have to be set up one developer at a time. This works when the repository belongs to a GitHub organization, and it’s meant for setting preferences, not enforcing policy.\n\nWhen you work in a repository that belongs to your organization, these instructions apply automatically. You’ll see them in the reference list during your Copilot interactions, and you can click through to read the full set.\n\n[![A Copilot Chat response with the references list expanded, showing default.instructions.md (highlighted, sourced from the Visual Studio Copilot organization folder) alongside a README.md reference.](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_org-level-instructions.webp)](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_org-level-instructions.webp)\n\nIf you’d rather not use them, or want to avoid conflicts with your own user-level instructions, you can turn them off under **Tools > Options > GitHub > Copilot > Copilot Chat** by unchecking **Enable organization-level custom instructions**.\n\n### Attach branches to Copilot Chat\n\nEver wanted to ask Copilot about a branch before you check it out? Branches now join commits, changes, and pull requests as context you can attach to Copilot Chat. Right-click any branch in the **Git Repository** window and select **Add to Chat** to bring it into your conversation.\n\n[![The Git Repository window with a right-click context menu on the add-input-validation branch, showing the Add to Chat option alongside Checkout, Open in Browser, and New Local Branch From.](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_add-branch-to-chat.webp)](https://devblogs.microsoft.com/visualstudio/wp-content/uploads/sites/4/2026/07/vs18.8_add-branch-to-chat.webp)\n\nFrom there, ask something like *tell me about this branch* to get a quick summary before you dive into the code.\n\n### MSVC Build Tools auto-discovery across installations\n\nIf your team pins a specific C++ toolset, you want that exact version used, wherever it happens to be installed. You can now opt in to automatic discovery of the [Microsoft C++ (MSVC) Build Tools](https://learn.microsoft.com/cpp/overview/compiler-versions) across all your Visual Studio IDE and Visual Studio Build Tools installations, so a pinned `VCToolsVersion` resolves correctly even when it lives in a different install.\n\nPreviously, Visual Studio only searched other installations when your current install had no toolset at all for your target platform toolset. If your project targeted `v143` and the current install already had any `v143` toolset, the search stopped there, even when you’d pinned a specific `VCToolsVersion` that only existed elsewhere. Now the search keeps going to find the exact version you asked for.\n\nTo enable it, set `EnableVCToolsVersionDiscovery` to `true` in your project or `Directory.Build.props`:\n\n```\n<PropertyGroup>\n  <EnableVCToolsVersionDiscovery>true</EnableVCToolsVersionDiscovery>\n  <VCToolsVersion>14.43.34604</VCToolsVersion>\n</PropertyGroup>\n```\n\nThe payoff: version pins are honored regardless of which installation contains them, builds stay reproducible across your team without individual IDE updates changing compiler behavior, and cross-install toolset references resolve automatically instead of requiring manual `VCToolsInstallDir` overrides.\n\n---\n\nFrom our entire team, thank you for choosing Visual Studio! For the latest updates, resources, and news, check out the [Visual Studio Hub](https://aka.ms/vshub) and stay in touch.\n\n**Happy coding!**\n*The Visual Studio team*\n\nThe post [Visual Studio July Update — Meet the New Agent, Powered by the GitHub Copilot SDK](https://devblogs.microsoft.com/visualstudio/visual-studio-july-update-meet-the-new-agent-powered-by-copilot-sdk/) appeared first on [Visual Studio Blog](https://devblogs.microsoft.com/visualstudio).",
+      "tags": [
+        "Visual Studio",
+        "Copilot Agent",
+        "GitHub Copilot SDK"
+      ],
+      "score": 75,
+      "summary": "Visual Studio七月更新引入基于GitHub Copilot SDK的新Agent(预览)。",
+      "fetched_at": "2026-07-29T01:44:18.911080+08:00"
+    },
+    {
+      "title": "下一代搜索智能体评测基准！美团开源LoHoSearch，用知识图谱校准AI能力认知",
+      "link": "https://tech.meituan.com/2026/07/24/LongCat-LoHoSearch.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "过去一年，我们见证了 Search Agent 能力的显著演进。在 BrowseComp 等评测上，顶尖模型准确率从最初的30%区间迅速攀升至90%以上。然而，当基准迅速饱和，其区分模型能力的价值也随之递减。\n\n![图1：BrowseComp 准确率进展曲线](https://p0.meituan.net/meituantechblog/69e86f1a417ef555aed62d74c1152c53108351.png)\n\nBrowseComp 的题目由人工设计，局限在于只能基于标注者已知的实体和关系构思，无法站在全局知识网络视角判断：哪些条件真的难检索？哪些约束的候选空间足够大？正是这种局限，让我们开始思考另一种可能性：**能不能让机器自己来出题？**\n\n美团 LongCat 团队在最新论文中提出的 LoHoSearch 基准，就是把这种可能性变成了现实。\n\n## LoHoSearch 的核心\"硬核\"看点\n\n* **知识图谱自动化构造。** 以覆盖762万维基百科实体的知识图谱为基础自动生成题目，替代人工出题。基准含544道经人工核验的题目，覆盖11个领域。\n* **双维度难度控制。** 在生成中系统控制搜索空间与结构复杂度。构建出难度显著高于现有基准的挑战性问题。\n* **当前模型性能表现。** 已评测模型中，GPT-5.5准确率为34.74%；现有上下文管理策略在LoHoSearch上提升幅度为6.8%，低于在BrowseComp上的14.03%。\n\n## 01 设计原理：让机器出题，需要几部？\n\n机器出题的前提，是让机器拥有全局视野。整个构建流程可以分为四个环节：**建图 → 控制难度 → 质量把关 → 数据概览**。下面逐一展开。\n\n### 1.1 建图：搭建知识图谱，让机器获得全局视野\n\nLoHoSearch 的第一步，是从完整的英文维基百科出发搭建一张大规模知识图谱：\n\n* 762 万个实体（每个维基页面是一个实体节点）\n* 2.65 亿条有向边（页面正文中指向其他维基页面的超链接）\n* 每个实体的类型取自其 Wikidata P31 类别，实体热度用入度来衡量\n\n这张图谱为后续在全局视角下挑选\"难题\"提供了基础。\n\n![图2：LoHoSearch 数据构造流程总览（知识图谱构建 → 子图采样 → QA 生成与验证 → 后置过滤与人工复核）](https://p0.meituan.net/meituantechblog/158cf7d04a3fd9d5c8b5f171480db1ec450289.png)\n\n有了图谱之后，下一个问题是：什么样的题目才算\"难\"？LoHoSearch 从两个维度来定义难度。\n\n### 1.2 控制难度：搜索空间和结构复杂度两个维度\n\n决定搜索难度的核心有两个维度，而它们恰恰是人工出题最难把控的：\n\n* **搜索空间**：满足一个条件的候选实体有多少。候选越多，排除成本越高。\n* **结构复杂度**：要同时满足多少条件才能锁定答案。条件越多、咬合越紧，求解链条越长。\n\n针对这两个维度，LoHoSearch 设计了两种子图结构：\n\n![](https://p0.meituan.net/meituantechblog/da7dbb937aa30503321fa592d43b0123124986.png)\n\n* **树结构**主要通过放大\"搜索空间\"来制造难度。\n* **图结构**则在巨大搜索空间之上，通过引入环形依赖和交叉约束，进一步叠加了\"结构复杂度\"。\n\n### 1.3 质量把关：从生成到验证，层层把关\n\n子图采样完成后，还需要转换为可阅读的自然语言题目。整个转换与验证流程分为三层：\n\n* **题目生成**：从子图抽取维基描述，改写为自然语言问题。\n* **自动验证**：检查问题是否完整覆盖子图关系，并由搜索智能体验证标准答案满足所有条件。\n* **筛选与复核**：排除多答案题和易答题，再由人工审核。\n\n经过三层筛选，自动化流程的整体质量表现如下：75.5% 的题目直接通过人工复核，22.3% 经标注员微调后接受，仅有 2.2% 因严重问题被丢弃。\n\n### 1.4 数据概览：544道题目，11个主题领域\n\nLoHoSearch 最终收录 **544 道** 经人工核验的题目。对比树结构和图结构可以看出，图结构子图明显更稠密——节点更多、边数接近前者的两倍，这正对应它更高的结构复杂度。题目内容覆盖音乐、地理与地点、影视、体育等 11 个主题领域。\n\n![表1：LoHoSearch 数据统计](https://p0.meituan.net/meituantechblog/9be937091fe5f30761bb06ea08a5c4e838213.png)\n\n![图3：LoHoSearch 的领域分布](https://p0.meituan.net/meituantechblog/55f51f19edf66249bcb164c70a75adb3167617.png)\n\n![表2：各模型在 LoHoSearch 上的性能表现（%）](https://p0.meituan.net/meituantechblog/2b54f0c184c018dbd27593bd90f40de0143825.png)\n\n最强模型 GPT-5.5 准确率仅 34.74%，DeepSeek-V4-Pro、Claude-Opus-4.6 和 Kimi-K2.6 集中在 15.53%–15.99%，其余模型均低于 14%。这与它们在 BrowseComp 上 80% 以上的表现形成鲜明对照——LoHoSearch 对当前最先进搜索智能体构成了实质挑战。\n\n### 洞察一：解一道题，平均工具调用从 35 次增至 61 次\n\n用 DeepSeek-V4-Flash 作为探针对比两个基准：同一模型在 BrowseComp 上准确率 58.84%，在 LoHoSearch 上仅 10.02%。\n\n![图4：BrowseComp 与 LoHoSearch 正确轨迹的工具调用次数分布](https://p0.meituan.net/meituantechblog/234e605bbc7af2f8f7977c212bc62a8290841.png)\n\n解一道 LoHoSearch 题目，平均工具调用从 35 次增至 61 次（+74%），中位数从 26 次升至 59 次。图结构题目准确率仅 8.01%，远低于树结构的 11.89%，印证了结构复杂度是独立于搜索空间之外的额外难度来源。\n\n### 洞察二：重复采样收益可观，但天花板依然很低\n\n对 DeepSeek-V4-Flash 采样 16 个独立回答，结果如图 5 所示。\n\n![图5：并行采样下 pass@N 及三种答案聚合策略的表现](https://p1.meituan.net/meituantechblog/a011a2b381eef5312e8281e8f32f7449129032.png)\n\npass@N 从 N=1 的 9.3% 升至 N=16 的 38.3%，重复采样收益可观，但 38.3% 仍处低位。尝试 16 次仍有六成以上题目无法攻克。三种聚合策略中 best-of-N 表现最优（24.6%），远低于 pass@16 上界，说明模型在答案置信度校准上存在明显不足。\n\n### 洞察三：现有的上下文管理策略，在这里已失真\n\n以标准 ReAct 为基线，测试 Summary 和 Discard-all 两种策略，并加入 Verify 模块。\n\n![表3：基于 DeepSeek-V4-Flash 的上下文管理策略消融实验](https://p0.meituan.net/meituantechblog/f59c780873848c6d66609ad9eafc10d651431.png)\n\n表现最佳的组合（Discard-all + Verify）将成绩从 10.02% 提至 16.82%，绝对提升仅 6.8 个百分点，而同一套策略在 BrowseComp 上可带来 14 个百分点的增益。收益收窄的原因在于 LoHoSearch 需要更长的推理链，简单的轨迹压缩或重启无法解决长程搜索中的信息丢失问题——这使其成为下一代上下文管理技术更有价值的试验场。\n\n### 洞察四：知识图谱是系统化构造高难度题目不可或缺的基础\n\n对比两个基准中\"隐藏实体\"的特征可以发现：\n\n![图6：隐藏实体分析(a) 隐藏实体的入度分布；(b) 相同流行度下关系搜索空间对比](https://p1.meituan.net/meituantechblog/682b8d4610aa31a2be89b70bc27a206a71835.png)\n\n其一，BrowseComp 的隐藏实体流行度明显更高，人工出题难以精确控制实体知名度，导致实体偏易。\n\n其二，即便将流行度控制在同一水平，LoHoSearch 的关系搜索空间仍显著更大，实体推断难度远高于 BrowseComp。\n\n这说明人工构建存在系统性局限，知识图谱是系统化构造高难度题目不可或缺的基础。\n\n## 02 总结：为下一代智能搜索提供新标尺\n\nLoHoSearch 的价值体现在三项具体贡献上：\n\n* **基于知识图谱的自动化构造流程。** 以覆盖762万实体的知识图谱为基础自动生成题目，系统控制搜索空间与结构复杂度，突破人工出题的难度上限。\n* **更具区分度的评测标准。** 最强模型 GPT-5.5 准确率仅 34.74%，正确轨迹所需工具调用次数是 BrowseComp 的 1.7 倍。LoHoSearch 为搜索智能体建立了更具区分度的评测标尺。\n* **面向上下文管理研究的挑战性平台。** 最优策略仅带来 6.8% 的提升，远低于其在 BrowseComp 上 14.03% 的增益，表明 LoHoSearch 可成为推动下一代上下文管理技术研究的理想试验场。\n\nLoHoSearch 已全面开源，欢迎各大模型前来接受\"长程搜索\"大考。\n\n## 开源链接\n\n* **Paper**: <https://arxiv.org/abs/2606.12837>\n* **HuggingFace**: <https://huggingface.co/datasets/meituan-longcat/LoHoSearch>",
+      "tags": [
+        "LoHoSearch",
+        "搜索智能体",
+        "评测基准"
+      ],
+      "score": 85,
+      "summary": "美团开源LoHoSearch，基于知识图谱自动构造的搜索智能体评测基准。",
+      "image_url": "https://p0.meituan.net/meituantechblog/69e86f1a417ef555aed62d74c1152c53108351.png",
+      "fetched_at": "2026-07-29T01:44:18.911082+08:00"
+    },
+    {
+      "title": "让AI离开温室，走向动态世界：MineExplorer揭示顶级多模态大模型被忽视的能力断层",
+      "link": "https://tech.meituan.com/2026/07/24/LongCat-MineExplorer.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "假如你出生在一片未知的森林，太阳即将下山，饥肠辘辘，前方一只蜘蛛正向你缓慢爬来。——这是来自《我的世界》最经典的开局。\n\n此时如果你按下暂停，把截图发给所有顶级的多模态大模型，它们都能完美回答你：“黄昏、有怪物，面临威胁。”\n\n我们发现，多模态大模型能看懂图像、解析视频、在复杂场景里推理，然而一旦它们被丢进一个实时变化、需要持续探索的开放世界又会发生什么？\n\n为了深入探索，美团 LongCat 团队构建了**MineExplorer**——**首个在开放世界中做到分钟级长程任务的评测基准**，系统性地评测多模态大模型在需要长程规划、并包含隐藏前置条件的任务中的真实能力。\n\n**MineExplorer 核心看点：**\n\n* **一个能直接跑的评测基准**：813 个人工验证的高质量实例（1-hop 到 4-hop），配套规则化的里程碑自动评测框架。\n* **一套造题的方法论**：多智能体数据合成流程的完整代码，可自动合成训练任务。\n* **一个可扩展的训练环境**：基于 Minecraft 的沙盒，既能当考场，也能当练兵场。\n\n## 01 MineExplorer设计解密：让AI离开温室，走向动态世界\n\nMineExplorer 不再是简单的看图问答，而是围绕一系列创新，构建了一个前所未有的评测体系。\n\n![图1：MineExplorer自动化数据合成和评测范式简介](https://p1.meituan.net/meituantechblog/3415508a98cf053008ffb59af0ed592a421327.png)\n\n### 1.1 创新设计：构建一个动态开放的世界\n\n**创新点一：构建一个具备完整物理规则、会动态演化的世界**\n\nMineExplorer不是让模型看一张 Minecraft 截图做选择题，模型面对的是一个实时运行的3D沙盒世界。在评测中，每个任务实例会运行1800个环境步，每步执行 0.1 秒，对应一段3分钟的连续交互视频。也就是说在这3分钟时间里，环境一直在变：模型每做一个动作，世界状态就更新一次，它必须根据最新的画面不断调整策略。\n\n**创新点二：隐藏前置条件的长程多跳任务**\n\n这是 MineExplorer 最核心的设计，我们把任务按「跳数（hop）」分级，代表完成最终目标需要经过的隐藏前置步骤数量：\n\n* **简单任务**：目标明确的单跳任务，智能体不需要根据场景和任务描述推理出隐式的子任务。\n* **困难任务**：由2-4跳任务组成的多跳推理任务。最终目标虽然给出，但要完成它，必须先推理并完成若干**没有在指令里说明**的前置子任务。\n\n我们用一个数学化的方式来刻画这种结构。每个复合任务被定义为一个四元组 τ = (q, s₀, Gτ, Mτ)：q 是自然语言指令，s₀ 是初始状态，Gτ 是任务之间的**依赖图（DAG）**，Mτ 是规则化的里程碑检查器。关键在于：\\*\\*指令 q 并不会枚举依赖图里的所有节点，智能体必须自己从环境里推断出隐藏的前置任务。\\*\\*一个任务越难，意味着它需要越多样的能力、包含越多隐藏前置、依赖链越深。\n\n![图2：任务难度分布图](https://p0.meituan.net/meituantechblog/1466cfe7ae29ef6beadf4bf8920b61b9117170.png)\n\n**创新点三：知识解耦——我们测的是「通用探索」，不是「背 Minecraft Wiki」**\n\n这是 MineExplorer 区别于以往所有 Minecraft 评测基准的一个关键设计。我们的做法是主动把游戏专有知识剥离掉。对每一个原子任务，我们用LLM裁判判断其主要依赖的是通用世界常识，还是Minecraft专有机制，并过滤掉后者。换句话说：**我们测的不是「AI 会不会玩 Minecraft」，而是「AI 能不能在一个动态物理世界里自主探索」。**\n\n![图3：领域知识过滤图](https://p0.meituan.net/meituantechblog/27b8c5c7b9f9ae530adf7db2b37ee0d9117398.png)\n\n### 1.2 构建方法：一套可复用的多智能体数据合成范式\n\n构建高质量的长程任务基准本身就是难题。我们的解法是让一组各有分工的 AI 协作来造题。MineExplorer 用一个多智能体协作流程，五个专业 Agent 在一个群聊里协作，由一个 orchestrator 控制发言顺序：\n\n![](https://p0.meituan.net/meituantechblog/033d32b59d8891664d7de8ed0c836918946656.png)\n\n整个流程分初始化和辩论（debate）两个阶段，先生成初稿，再由专家和验证器找出问题并修订。\n\n如**下表所示**，人工评估结果显示，多智能体流程把有效率拉高了约 30 个百分点，质量分提升约 0.5 分，在最难的4-hop任务上优势尤其明显。最终，我们保留了 813 个通过人工验证的高质量复合任务实例。\n\n![表1：Benchmark质量人工评估表](https://p1.meituan.net/meituantechblog/92d0dc21970ca1a40a0386789f5a5256194522.png)\n\n### 1.3 能力覆盖：MineExplorer 到底在测什么？\n\nMineExplorer 借鉴 ReAct 范式，把开放世界探索拆解成三大能力维度，共 14 项细粒度能力：\n\n* **感知（Perception）：** 空间、时序、实体、状态、资源。\n* **推理（Reasoning）：** 常识、因果、关系。\n* **行动（Action）：** 移动、跳跃、采集、放置、合成、攻击。\n\n**如图所示**，最终的基准在三大维度上都有充足的覆盖，其中空间感知、移动、采集等基础能力出现频率最高，常识推理、因果推理也占了相当比例。\n\n![图4：能力覆盖分布图](https://p0.meituan.net/meituantechblog/5606f102fc399d300f8531427a08c4ef91444.png)\n\n## 02 核心洞察：18款顶级大模型测试，为何集体“考砸”了？\n\nMineExplorer不仅定义了考题，更给出了18个顶级模型的真实分数。**如下表所示**，这是横跨 Claude、GPT、Gemini 等八大家族的模型在整体任务成功率（TSR）上的排行榜。\n\n![表2：主体评测结果表](https://p1.meituan.net/meituantechblog/baa9165aab4bae0826f1a4f22315881b960739.png)\n\n我们发现，即便是表现最好的 Claude-Opus-4.6，整体成功率也只有 41 分。\n\n**| 洞察一：单跳尚可，多跳崩盘——问题就在隐藏前置条件**\n\n如图所示，最强模型Claude-Opus-4.6的表现，从1跳任务的77分，一路下滑到4跳任务的12分。每增加一层隐藏的前置依赖，模型就掉一个台阶。\n\n![表3：分级评测结果图](https://p0.meituan.net/meituantechblog/423b7c12487a277cac27bcafb215841f1105129.png)\n\n![图5：不同任务难度下的任务成功率对比图](https://p1.meituan.net/meituantechblog/0fe66c8cd12e6acd4b3273cb6e8999dd227554.png)\n\n**| 洞察二：会看，但不会想 —— 感知强于推理**\n\n在几乎所有被测模型上，我们都观察到同一个规律：**感知分数 > 行动分数 > 推理分数**。如下图所示，以Claude-Opus-4.6为例，其整体感知分61.91，推理分54.71。瓶颈不在于看不见，而在于看懂了却无法串联成有效策略。\n\n![图6：维度评测热力图](https://p0.meituan.net/meituantechblog/e552dbd0ed03151c3750b43d75ad37ba836166.png)\n\n**| 洞察三：近60%的失败原因，都是因为走不到目标**\n\n我们对 Claude-Opus-4.6 的失败案例进行了归因分析。**如下图所示**，导航失败是最大的错误来源，占比近 60%。\n\n![图7：失败类型分布图](https://p0.meituan.net/meituantechblog/0e685670220ce485c94a8a8f5468218f163985.png)\n\n**| 洞察四：给它更多步数、更多记忆，都不是解药**\n\n我们进一步做了消融实验，发现模型失败并非因为资源不足。\n\n* **步数**：如图所示，能解的任务，模型在早期就解出来了；解不了的，给到 1800 步上限照样解不了。\n\n![图8：平均完成步数图](https://p1.meituan.net/meituantechblog/4db113c30a91462928af6b6e28521ad8620229.png)\n\n* **记忆**：如图所示，增加历史画面帧数到一定程度后，性能反而会下降，因为过期的观察会干扰对当前局面的判断。\n\n![图9：记忆帧数影响图](https://p0.meituan.net/meituantechblog/3db3e8f4aeb4dfb68dce40379b0df7a9355836.png)\n\n**核心结论：瓶颈不在资源，而在模型没法把已有的信息和当前世界状态对齐。**\n\n## 03 总结：从看见世界到探索世界的鸿沟\n\nMineExplorer 揭示了一个被乐观情绪掩盖的能力断层：当前的多模态大模型，已经具备了不错的感知力，但严重缺乏在动态世界中持续行动的探索力。\n\n这对正在快速升温的具身智能赛道有几个直接的启示：\n\n* 感知层基本就绪，规划层是瓶颈。 模型能看懂环境，但把感知转化成长程、含隐藏前置的行动计划，才是从能看到能做之间真正的鸿沟。\n* 行业需要更接近真实复杂度的评测标准。在受控场景里跑通一个单步指令，不足以宣布AI能行动了。真实世界是动态的，充满未说明的前置条件，需要持续、长久化的探索。\n* 我们不仅提供了评测，还开源了自动合成任务的方法和训练环境。MineExplorer交付的不是一套静态题库，它还带着一整套自动合成长程任务的流程，和一个能直接拿来训练的Minecraft环境。评测、造题、训练，用的是同一套基础设施。\n\n我们不是要给具身智能泼冷水。恰恰相反，把瓶颈定位清楚，比盲目乐观更有价值。MineExplorer提供的，正是这样一条诚实、可量化的能力基线。\n\n看得见世界，不代表能探索世界。在一个会变化的世界里持续推理、持续行动——这才是AI走向真实世界，必须先跨过的那道门槛。MineExplorer 已全面开源，欢迎各大模型前来挑战开放世界。\n\n**🚀 开源链接**\n\n* **Paper**：<https://arxiv.org/abs/2605.30931>\n* **GitHub**：<https://github.com/meituan-longcat/MineExplorer>\n* **HuggingFace**：<https://huggingface.co/datasets/meituan-longcat/MineExplorer>",
+      "tags": [
+        "MineExplorer",
+        "多模态大模型",
+        "长程任务"
+      ],
+      "score": 85,
+      "summary": "美团开源MineExplorer，首个开放世界分钟级长程多模态评测基准。",
+      "image_url": "https://p1.meituan.net/meituantechblog/3415508a98cf053008ffb59af0ed592a421327.png",
+      "fetched_at": "2026-07-29T01:44:18.911085+08:00"
+    },
+    {
+      "title": "正式开源！美团 LongCat-2.0 同步开放国产卡推理代码",
+      "link": "https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "**本周，美团万亿参数大模型 LongCat-2.0 正式开源！**\n\n[HuggingFace](https://huggingface.co/meituan-longcat/LongCat-2.0) | [GitHub](https://github.com/meituan-longcat/LongCat-2.0) | [ModelScope](https://www.modelscope.cn/collections/meituan-longcat/LongCat-20)\n\n作为业界首个在五万卡国产算力集群上完成推理的万亿参数模型，LongCat-2.0 已全面开源。**针对显存与带宽受限的国产算力芯片，我们在模型架构、芯片适配到部署策略上进行了深度协同优化，让万亿参数模型在存量卡上同样跑得稳、跑得快。** 我们希望以真实 Agentic Coding 任务中的稳定表现为依托，通过开源将模型能力与推理优化成果完整开放，盘活更多存量国产算力，释放国产算力生态的长期价值。\n\n美团 LongCat-2.0 总参数 1.6T，平均激活约 48B，为真实的 Agentic Coding 任务而生，架构上创新性引入 LongCat 稀疏注意力和 N-gram Embedding，提升长上下文处理效率与 Token 级表示能力的同时，结合动态激活进一步强化了代码理解、生成以及执行的表现。\n\n## 01 模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理\n\n面对显存、带宽和互联的多重限制，LongCat-2.0 结合国产芯片特性，**从模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理：**\n\n* **模型层面：** Attention 通过 absorb 计算模式、Indexer 与 MLA prolog 并行处理以及 KVP 切分 KV-cache，有效缓解了超长上下文的 I/O 与显存压力。ScMoE 则利用国产芯片的控核能力，让 Dense 与 MoE 分支实现物理核心级并行执行，进一步压缩端到端延迟，实现了百万上下文在国产芯片上的高效推理；\n* **芯片适配层面：** 通过 Super Kernel 减少算子数量以降低启动开销，并以 Weight Prefetch 将 I/O 延迟隐藏在前序计算中；同时基于高速片间互联完成 layer-wise 的 KV-cache 传输，TP/SP/KVP 均在 scale-up 互联域内完成，在受限的显存和带宽条件下将硬件利用率最大化；\n* **部署策略层面：** 采用 PD 分离部署兼顾 TTFT 与 TPOT：Prefill 端通过缩小 Expert-Parallel 域与序列并行分担长序列计算压力，Decode 端以 KV-cache 切分与高并行度降低单卡显存占用，配合异步化 Expert-Parallel Load Balancing 解决大 EP 度下的负载不均。上述并行方案均已适配 constrained decoding、multi-step scheduling 和 MTP 等推理优化特性，实现了万亿参数模型在国产算力上的稳定服务。\n\nLongCat-2.0 验证了国产芯片承载复杂大模型任务的成熟能力，并希望通过开源为行业提供一条可复现的技术路径，推动存量算力在真实场景中的应用价值。\n\n## 02 模型全面升级，会执行、会推理、懂交互\n\nLongCat-2.0 沿用了 LongCat-Flash 的整体设计，并围绕 LongCat-2.0 在长上下文、代码任务和智能体场景中的进一步升级，做了三项关键优化：\n\n### 2.1 LongCat 稀疏注意力机制，提升上下文处理效率\n\n面向智能体任务中的长输入场景，LongCat-2.0 引入 LongCat 稀疏注意力机制（LSA），通过流感知索引、跨层索引和层级化索引三项策略减少碎片化访存和重复索引计算，在保持模型质量的前提下，加速百万级长上下文的训练与推理。\n\n![](https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png)\n\n### 2.2 引入 N-gram Embedding，提升参数利用效率\n\nLongCat-2.0 在 MoE 专家之外引入 N-gram Embedding 作为新的参数扩展路径。在 MoE 稀疏度已接近 97% 的情况下，将 135B 参数投入 N-gram Embedding 的收益远超继续扩充专家。该模块占比控制在总参数 10% 以内，兼顾了参数收益与结构稳定性。\n\n![](https://p1.meituan.net/meituantechblog/84d46b968d89efb8fd1bb66d3005680c29580.png)\n\n### 2.3 通过 MOPD 架构在国产算力集群上无缝融合，让模型会执行、会推理、懂交互\n\n后训练阶段，LongCat-2.0 采用多教师在线蒸馏，将专家分为 Agent、推理和交互三类，分别聚焦自主执行、自适应推理和安全对齐等核心能力。最终通过 MOPD 架构在国产算力集群上无缝融合，使模型兼具深度推理、自主执行与精准交互的综合表现。\n\n![](https://p0.meituan.net/meituantechblog/7e5f64947ed21d4b1c24d3e94d855844154812.png)\n\n## 03 开源开放\n\nLongCat-2.0 的开源，是一次技术路径的公开，也是一次生态邀约。\n\n本次开源同步提供 BF16、FP8 以及 INT8 等多精度版本，全面覆盖不同算力平台的部署需求。同时，我们深度拥抱开源社区，将针对国产算力极致优化的推理成果同步开源。这意味着，即使手上没有最新算力，也能基于现有硬件将 LongCat-2.0 稳定跑起来。\n\n我们希望通过这套开箱即用的推理栈，让更多的国产卡包括老卡，都能流畅部署万亿大模型推理服务，在真实生产力场景发挥更大价值。\n\n### 🚀 开源链接\n\n**Tech Blog：** <https://longcat.ai/blog/longcat-2.0/>\n\n**Model Weights：**\n\n* HuggingFace: <https://huggingface.co/meituan-longcat/LongCat-2.0>\n* GitHub: <https://github.com/meituan-longcat/LongCat-2.0>\n* ModelScope: <https://www.modelscope.cn/collections/meituan-longcat/LongCat-20>\n\n**Inference Code:**\n\n* GPU: <https://github.com/sgl-project/sglang/pull/30042>\n* NPU: <https://github.com/meituan-longcat/SGLang-FluentLLM/tree/npu>\n\n**API Platform：**\n\n* <https://longcat.chat/platform/product>",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团正式开源万亿参数大模型LongCat-2.0，并开放国产卡推理代码。",
+      "image_url": "https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png",
+      "fetched_at": "2026-07-29T01:44:18.911088+08:00"
+    },
+    {
+      "title": "直播回放·含 ACL&apos;26 杰出论文 | 美团 AI 顶会论文 32 篇精讲",
+      "link": "https://tech.meituan.com/2026/07/11/2026-meituan-32-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "🏆 近日，ACL 2026 杰出论文奖在圣地亚哥揭晓，全球仅 18 篇入选，美团履约技术团队的《GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR》上榜啦，一键直达视频回放👉🏻 [小红书](https://www.xiaohongshu.com/discovery/item/6a3b54740000000006030031?source=webshare&xhsshare=pc_web&xsec_token=ABh2ziW0cX7XYIsQ1VpYHUl5aZzXTt2-o0yyamYge4z-4=&xsec_source=pc_share) | [B站](https://www.bilibili.com/video/BV1v7jc6BENd/?spm_id_from=333.1387.upload.video_card.click&vd_source=8dac43659650af56650d7a9bc5f083d3)\n\n![图2](https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png)\n\n如果你正在关注 AI 前沿，这篇内容值得收藏。\n\n2026 年，美团技术团队数十篇论文被 ACL、SIGIR、ICML、KDD 等顶会收录。我们精选 32 篇，进行了 5 大专场直播。\n\n内容涵盖了大模型推理、智能体记忆与自进化、代码智能、多模态交互、超高清视频生成、本地生活搜索等方向——既有底层能力的突破，也有贴近生活服务的落地探索。\n\n如果你错过了直播，或者想再看一遍👇 五场回放都在这里啦，找到你感兴趣的议题，随时开始。\n\n特别感谢所有讲师与筹备团队的倾力支持！也感谢每一位关注美团技术成长的你！❤️\n\n## 专场一：ACL'26 综合专场\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b729b0de8000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783330950&share_id=e51dd478f4b34506aed7a49ca74b9113) ｜ [B站](https://space.bilibili.com/18937923/lists/8321546?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&sn=77c72b469a871b499a46fe06be73225f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/fe16b3191f6276cdf692c76bb2b04308356559.png)\n\n## 专场二：ACL'26 履约团队前沿技术专场\n\n**出品人｜** Jichong Gao 美团高级技术专家、Jun Xu 美团高级技术专家\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72d90de6000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783331038&share_id=ca3358c821584b34a480efd8350ed035) ｜ [B站](https://space.bilibili.com/18937923/lists/8370607?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782810&idx=2&sn=aeb92a7c0c0bcf2befa7a201f1d4ece9&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/87835a72dafb62eb0c93a17fdab075ca674240.png)\n\n## 专场三：搜推 ASX 团队专场\n\n**出品人｜** Guojun Yin 美团研究员\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72f50e97000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783478239&share_id=196398bf22d742bda21e83ee981f6615) ｜ [B站](https://space.bilibili.com/18937923/lists/8427999?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782896&idx=2&sn=ce2cb30b2d2b0e9ea12d03561124dd05&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/6498214ebe581bcea5541619c1cd145d359417.png)\n\n## 专场四：ICML'26 通用 Agent 前沿技术专场\n\n**出品人｜** Qi Gu 美团研究员\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8471639?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/247700c227d0b4f4c7f88bb02adecdbe344171.png)\n\n## 专场五：ICML'26 综合专场\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8485771?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/cbd47f8df818779808c61e614f6087f7351215.png)",
+      "tags": [
+        "ACL 2026",
+        "美团",
+        "论文精讲"
+      ],
+      "score": 70,
+      "summary": "美团技术团队分享32篇AI顶会论文精讲直播回放，含ACL 2026杰出论文。",
+      "image_url": "https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png",
+      "fetched_at": "2026-07-29T01:44:18.911090+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团发布LongCat-2.0，业界首个在五万卡国产算力上完成训练推理的万亿参数模型。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-07-29T01:44:18.911092+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "ASX团队",
+        "搜索推荐",
+        "论文分享"
+      ],
+      "score": 75,
+      "summary": "美团ASX团队精选6篇搜索推荐顶会论文进行解读。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-07-29T01:44:18.911095+08:00"
+    },
+    {
+      "title": "Learn more: https://t.co/eEpaV5wRDf",
+      "link": "https://x.com/aisdk/status/2082134141450256458",
+      "published": "2026-07-29T00:00:38+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "Learn more: [ai-sdk.dev/docs/ai-sdk-ha…](https://ai-sdk.dev/docs/ai-sdk-harnesses/workflow-utilities)\n\n💬0🔄0❤️1👀289",
+      "tags": [
+        "AI SDK",
+        "工作流"
+      ],
+      "score": 60,
+      "summary": "AI SDK发布工作流实用工具链接。",
+      "fetched_at": "2026-07-29T01:44:18.911097+08:00"
+    },
+    {
+      "title": "Use 𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝 with workflow and clean agent step boundary",
+      "link": "https://x.com/aisdk/status/2082134128825426164",
+      "published": "2026-07-29T00:00:35+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "Use 𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝 with workflow and clean agent step boundary\n\n![Tweet Image](https://pbs.twimg.com/media/HOU59K4bAAAa5LF.jpg)\n\n💬1🔄0❤️2👀552📊1",
+      "tags": [
+        "AI SDK",
+        "HarnessAgent",
+        "工作流"
+      ],
+      "score": 65,
+      "summary": "AI SDK支持HarnessAgent与工作流结合，清理Agent步骤边界。",
+      "fetched_at": "2026-07-29T01:44:18.911100+08:00"
+    },
+    {
+      "title": "𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝 now supports 𝚜𝚝𝚘𝚙𝚆𝚑𝚎𝚗 for per-step control",
+      "link": "https://x.com/aisdk/status/2082134111725183324",
+      "published": "2026-07-29T00:00:31+08:00",
+      "source": "AI SDK(@aisdk)",
+      "content": "𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝 now supports 𝚜𝚝𝚘𝚙𝚆𝚑𝚎𝚗 for per-step control\n\n![Tweet Image](https://pbs.twimg.com/media/HOU58KPbUAAr8ba.jpg)\n\n💬1🔄1❤️14👀1454📊4",
+      "tags": [
+        "AI SDK",
+        "HarnessAgent",
+        "stopWhen"
+      ],
+      "score": 70,
+      "summary": "AI SDK的HarnessAgent新增stopWhen每步控制功能。",
+      "fetched_at": "2026-07-29T01:44:18.911102+08:00"
+    },
+    {
+      "title": "With the Claude Code Desktop app you can also run the iOS simulator within the app, making it super ...",
+      "link": "https://x.com/adocomplete/status/2082150388728582241",
+      "published": "2026-07-29T01:05:11+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "With the Claude Code Desktop app you can also run the iOS simulator within the app, making it super easy to iterate, test, and debug your mobile apps. It's so good!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082150064835928064/vid/avc1/1536x1080/jcU75ZuwYiMOsepA.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/adocomplete/status/2082150388728582241/video/1)\n\n💬1🔄1❤️29👀738📊6",
+      "tags": [
+        "Claude Code",
+        "iOS模拟器",
+        "桌面应用"
+      ],
+      "score": 70,
+      "summary": "用户展示Claude Code桌面应用内可运行iOS模拟器，方便移动应用迭代。",
+      "fetched_at": "2026-07-29T01:44:18.911104+08:00"
+    },
+    {
+      "title": "Full technical details of both attacks are provided in our new papers:\n\nOn HAWK: https://t.co/JtLzet...",
+      "link": "https://x.com/AnthropicAI/status/2082153309553463600",
+      "published": "2026-07-29T01:16:48+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "Full technical details of both attacks are provided in our new papers:  \n  \nOn HAWK: [anthropic.com/document/hawk\\_…](https://anthropic.com/document/hawk_key_recovery.pdf)  \n  \nOn AES: [anthropic.com/document/aes\\_m…](https://anthropic.com/document/aes_mobius_bridge.pdf)   \n  \nAnd the associated model chain-of-thought for AES: [anthropic.com/document/aes\\_m…](https://anthropic.com/document/aes_mobius_bridge_cot.pdf)\n\n💬6🔄0❤️20👀5488📊7",
+      "tags": [
+        "Claude Mythos",
+        "密码学",
+        "弱点发现"
+      ],
+      "score": 88,
+      "summary": "Anthropic研究：Claude Mythos发现加密算法弱点，发布相关论文。",
+      "fetched_at": "2026-07-29T01:44:18.911107+08:00"
+    },
+    {
+      "title": "We also worked with academics at ETH Zurich, Tel Aviv University, and the University of Haifa to bui...",
+      "link": "https://x.com/AnthropicAI/status/2082153311189225927",
+      "published": "2026-07-29T01:16:48+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "We also worked with academics at ETH Zurich, Tel Aviv University, and the University of Haifa to build CryptanalysisBench, a benchmark for studying LLMs’ cryptanalysis abilities.  \n  \n[arxiv.org/abs/2607.18538](https://arxiv.org/abs/2607.18538)\n\n💬5🔄1❤️25👀4850📊7",
+      "tags": [
+        "CryptanalysisBench",
+        "LLM",
+        "密码分析"
+      ],
+      "score": 85,
+      "summary": "Anthropic与高校构建CryptanalysisBench，研究LLM密码分析能力。",
+      "fetched_at": "2026-07-29T01:44:18.911109+08:00"
+    },
+    {
+      "title": "New Anthropic research: Discovering cryptographic weaknesses with Claude.\n\nClaude Mythos Preview has...",
+      "link": "https://x.com/AnthropicAI/status/2082153297670992134",
+      "published": "2026-07-29T01:16:45+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "New Anthropic research: Discovering cryptographic weaknesses with Claude.  \n  \nClaude Mythos Preview has helped our researchers find weaknesses in cryptographic algorithms—the mathematical methods that are used to keep data private.  \n  \nRead more: [anthropic.com/research/disco…](https://anthropic.com/research/discovering-cryptographic-weaknesses)\n\n💬46🔄34❤️346👀32662📊82",
+      "tags": [
+        "Claude",
+        "密码学",
+        "Hawk攻击"
+      ],
+      "score": 88,
+      "summary": "Anthropic的Claude Mythos帮助破解密码算法HAWK和AES。",
+      "fetched_at": "2026-07-29T01:44:18.911112+08:00"
+    },
+    {
+      "title": "We look forward to open sourcing a lot more tools and benchmarks that will continue to strengthen th...",
+      "link": "https://x.com/AravSrinivas/status/2082145187393057201",
+      "published": "2026-07-29T00:44:31+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "We look forward to open sourcing a lot more tools and benchmarks that will continue to strengthen the frontier open secure ecosystem, and are glad [@nvidia](https://x.com/nvidia) is leading from the front to ensuring we all build a safe ecosystem together.\n\n💬1🔄0❤️6👀1183📊2",
+      "tags": [
+        "Perplexity",
+        "OSAA",
+        "开源安全"
+      ],
+      "score": 75,
+      "summary": "Perplexity加入Open Secure AI Alliance，支持开源安全工具。",
+      "fetched_at": "2026-07-29T01:44:18.911114+08:00"
+    },
+    {
+      "title": "And open sourced BrowseSafe, an open benchmark for protecting agents against prompt injection on web...",
+      "link": "https://x.com/AravSrinivas/status/2082144817803575778",
+      "published": "2026-07-29T00:43:03+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "And open sourced BrowseSafe, an open benchmark for protecting agents against prompt injection on websites they access on a web browser session [arxiv.org/abs/2511.20597](https://arxiv.org/abs/2511.20597)\n\n💬1🔄1❤️9👀1721📊2",
+      "tags": [
+        "BrowseSafe",
+        "提示注入",
+        "Agent安全"
+      ],
+      "score": 80,
+      "summary": "Perplexity开源BrowseSafe，用于保护代理免受网站提示注入的基准。",
+      "fetched_at": "2026-07-29T01:44:18.911116+08:00"
+    },
+    {
+      "title": "When Hugging Face got breached, the closed tools couldn't distinguish attackers from defenders and b...",
+      "link": "https://x.com/AravSrinivas/status/2082144189211681157",
+      "published": "2026-07-29T00:40:33+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "When Hugging Face got breached, the closed tools couldn't distinguish attackers from defenders and blocked the forensic analysis. They ended up running open-weight GLM 5.2 on their own infra to contain it. Perplexity is joining the OSAA to support open tools for security.\n\n![NVIDIA](https://pbs.twimg.com/profile_images/1828904711124078593/SRvCZSfQ_normal.jpg)\n\nNVIDIA@nvidia\n\nThe Open Secure AI Alliance is growing, with more organizations contributing expertise to help safeguard software and agents.  \n  \n[nvda.ws/4pD8Fc5](http://nvda.ws/4pD8Fc5)\n\n![Tweet Image](https://pbs.twimg.com/media/HOU6bt3bEAAevZ3.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/nvidia/status/2082135368040886299)\n\n💬8🔄10❤️141👀11872📊19",
+      "tags": [
+        "OSAA",
+        "安全联盟",
+        "Perplexity"
+      ],
+      "score": 65,
+      "summary": "Perplexity CEO分享NVIDIA关于开放安全AI联盟的推文。",
+      "fetched_at": "2026-07-29T01:44:18.911119+08:00"
+    },
+    {
+      "title": "True",
+      "link": "https://x.com/AravSrinivas/status/2082134234999976387",
+      "published": "2026-07-29T00:01:00+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "True\n\n![the tiny corp](https://pbs.twimg.com/profile_images/1772444459625766913/1meZwC16_normal.jpg)\n\nthe tiny corp@\\_\\_tinygrad\\_\\_\n\nYes, but nothing compares to the feeling of knowing the metal box your AI lives in is yours. Forget home ownership, owning a datacenter is the new American Dream.\n\n[🔗 View Quoted Tweet](https://x.com/__tinygrad__/status/2082125356727939524)\n\n💬7🔄0❤️39👀9698📊7",
+      "tags": [
+        "数据中心",
+        "AI",
+        "所有权"
+      ],
+      "score": 60,
+      "summary": "讨论拥有数据中心才是新的美国梦。",
+      "fetched_at": "2026-07-29T01:44:18.911121+08:00"
+    },
+    {
+      "title": "Sim-to-real aligned simulation also makes evaluation scalable. Here, the same failure behavior and o...",
+      "link": "https://x.com/drfeifei/status/2082137342824075357",
+      "published": "2026-07-29T00:13:21+08:00",
+      "source": "Fei-Fei Li(@drfeifei)",
+      "content": "Sim-to-real aligned simulation also makes evaluation scalable. Here, the same failure behavior and outcome appear in both virtual and physical worlds. The simulation captures more than the task setup or final success label; it reproduces the conditions that push a policy toward success or failure. The result is faster iteration, broader coverage, and substantially lower cost.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082136428302258176/vid/avc1/1920x720/4ltf1qcCAaMROIpK.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/drfeifei/status/2082137342824075357/video/1)\n\n💬3🔄2❤️17👀2125📊5",
+      "tags": [
+        "仿真",
+        "评估",
+        "机器人"
+      ],
+      "score": 80,
+      "summary": "Fei-Fei Li展示仿真与真实世界失败行为对齐，可扩展评估。",
+      "fetched_at": "2026-07-29T01:44:18.911124+08:00"
+    },
+    {
+      "title": "In our taxonomy of world models, we called the simulator the linchpin: the place where agents can ac...",
+      "link": "https://x.com/drfeifei/status/2082137344547963269",
+      "published": "2026-07-29T00:13:21+08:00",
+      "source": "Fei-Fei Li(@drfeifei)",
+      "content": "In our taxonomy of world models, we called the simulator the linchpin: the place where agents can act, learn, and be evaluated. Our R2S2R engine can move robot development beyond slow, expensive, hardware-bound iteration toward more scalable and cheaper training and evaluation.  \n  \n[worldlabs.ai/blog/real-to-s…](https://www.worldlabs.ai/blog/real-to-sim-to-real)\n\n💬2🔄3❤️23👀2110📊5",
+      "tags": [
+        "World Labs",
+        "仿真",
+        "机器人"
+      ],
+      "score": 85,
+      "summary": "World Labs发布R2S2R引擎，用虚拟世界训练机器人，实现仿真到现实对齐。",
+      "fetched_at": "2026-07-29T01:44:18.911126+08:00"
+    },
+    {
+      "title": "When SceniX joined World Labs, we said spatial intelligence was never only about perceiving and gene...",
+      "link": "https://x.com/drfeifei/status/2082137335052075298",
+      "published": "2026-07-29T00:13:19+08:00",
+      "source": "Fei-Fei Li(@drfeifei)",
+      "content": "When SceniX joined World Labs, we said spatial intelligence was never only about perceiving and generating virtual and physical worlds, but also interacting with them. Today, we’re sharing early results from that vision: building worlds that train robots. 🌎🤖↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082133798440054785/vid/avc1/1920x1080/1uwySqjSHukKz2VH.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/drfeifei/status/2082137335052075298/video/1)\n\n💬12🔄29❤️210👀31146📊50",
+      "tags": [
+        "World Labs",
+        "SceniX",
+        "空间智能"
+      ],
+      "score": 85,
+      "summary": "World Labs公布早期成果：构建虚拟世界训练机器人，实现空间智能交互。",
+      "fetched_at": "2026-07-29T01:44:18.911129+08:00"
+    },
+    {
+      "title": "最近最惊喜的两个 Agent 是：\n\n1、Linear Agent：基本是一个掌管所有项目进展、客户反馈、风险分析等数据的超级管家的角色了。\n\n2、PostHog Agent：基本实现了各种数据查询、...",
+      "link": "https://x.com/lifesinger/status/2082144266772775090",
+      "published": "2026-07-29T00:40:52+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "最近最惊喜的两个 Agent 是：  \n  \n1、Linear Agent：基本是一个掌管所有项目进展、客户反馈、风险分析等数据的超级管家的角色了。  \n  \n2、PostHog Agent：基本实现了各种数据查询、分析、展现的自由。  \n  \n但都需要好好用，有团队约定和共同实践。有数据，数据准，然后才好用。  \n  \n发现啥懒都偷不了。可以省的，是汇报，是办公室政治。是一些本身就可以不做的事。\n\n💬0🔄0❤️3👀190📊1",
+      "tags": [
+        "Linear Agent",
+        "PostHog Agent",
+        "体验"
+      ],
+      "score": 65,
+      "summary": "用户分享Linear Agent和PostHog Agent使用体验，需团队协作。",
+      "fetched_at": "2026-07-29T01:44:18.911131+08:00"
+    },
+    {
+      "title": "YouMind 团队有段时间也放飞自我，不怎么用 Linear。最近，又开始疯狂用了起来。\n\nAI 越强，人越喜欢单干。人越单干，会到某一天猛然发现，人与人之间的专业协作必不可少。\n\nAI 很容易让一...",
+      "link": "https://x.com/lifesinger/status/2082129968667259034",
+      "published": "2026-07-28T23:44:03+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "YouMind 团队有段时间也放飞自我，不怎么用 Linear。最近，又开始疯狂用了起来。  \n  \nAI 越强，人越喜欢单干。人越单干，会到某一天猛然发现，人与人之间的专业协作必不可少。  \n  \nAI 很容易让一个人的长处变得更长，同时让一个人的短处得到些微弥补。AI 有个陷阱是，很容易让人的短处变成迷障。以为通过 AI，能让自己学会之前不懂的。实际往往只是通过 AI 学了皮毛，内心里却滋生了狂妄。  \n  \nSaaS 不会死。以为可以 Vibe 一切的 AI native 团队会一批批死。\n\n![Orange AI](https://pbs.twimg.com/profile_images/1760074488073629696/ceSsuVCY_normal.png)\n\nOrange AI@oran\\_ge\n\n3月，他们开发了自己的 JIRA，完全抛弃了买来的项目 SaaS 软件，又好用，功能又多！开发者甚至只是个 QA 主管。   \n7月，他们已经重新回到 Linear，因为内部工具的维护成本占用了实际工作的精力。  \n一个东西很好开发，并不代表它就值得被开发出来。  \nVibe Coding 的特点就是，开发第一版非常容易，维护起来非常难。\n\n![Tweet Image](https://pbs.twimg.com/media/HOShy8tbAAA-lFT.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/oran_ge/status/2081967082455830776)\n\n💬0🔄0❤️9👀2506📊2",
+      "tags": [
+        "AI",
+        "协作",
+        "SaaS"
+      ],
+      "score": 60,
+      "summary": "讨论AI增强个人能力但削弱协作，SaaS不会死。",
+      "fetched_at": "2026-07-29T01:44:18.911133+08:00"
+    },
+    {
+      "title": "i work through some possible definitions here:",
+      "link": "https://x.com/GaryMarcus/status/2082148193954082925",
+      "published": "2026-07-29T00:56:28+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "i work through some possible definitions here:\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nSorry, [@Sama](https://x.com/Sama) and [@elonmusk](https://x.com/elonmusk), we have not reached the Singularity.  \n  \nA dissection of of what they might mean and why current AI falls short: [open.substack.com/pub/garymarcus…](https://open.substack.com/pub/garymarcus/p/sorry-sam-and-elon-we-have-not-reached)\n\n![Tweet Image](https://pbs.twimg.com/media/HOVGCs7bAAAVCRB.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2082147417823273269)\n\n💬0🔄0❤️0👀565",
+      "tags": [
+        "奇点",
+        "定义",
+        "讨论"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus探讨奇点定义，认为当前AI不足。",
+      "fetched_at": "2026-07-29T01:44:18.911136+08:00"
+    },
+    {
+      "title": "Sorry, @Sama and @elonmusk, we have not reached the Singularity.\n\nA dissection of of what they might...",
+      "link": "https://x.com/GaryMarcus/status/2082147417823273269",
+      "published": "2026-07-29T00:53:23+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Sorry, [@Sama](https://x.com/Sama) and [@elonmusk](https://x.com/elonmusk), we have not reached the Singularity.  \n  \nA dissection of of what they might mean and why current AI falls short: [open.substack.com/pub/garymarcus…](https://open.substack.com/pub/garymarcus/p/sorry-sam-and-elon-we-have-not-reached)\n\n![Tweet Image](https://pbs.twimg.com/media/HOVGCs7bAAAVCRB.jpg)\n\n💬2🔄3❤️16👀1667📊4",
+      "tags": [
+        "奇点",
+        "AI",
+        "批评"
+      ],
+      "score": 68,
+      "summary": "Gary Marcus反驳Sam Altman和Elon Musk，认为奇点尚未达到。",
+      "fetched_at": "2026-07-29T01:44:18.911138+08:00"
+    },
+    {
+      "title": "How it started vs. how it's going",
+      "link": "https://x.com/venturetwins/status/2082135430447898659",
+      "published": "2026-07-29T00:05:45+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "How it started vs. how it's going\n\n![Tweet Image](https://pbs.twimg.com/media/HOU67vObAAAOIk0.jpg)\n\n💬5🔄1❤️34👀1822📊8",
+      "tags": [
+        "AI",
+        "进展",
+        "对比"
+      ],
+      "score": 50,
+      "summary": "展示AI发展前后对比图。",
+      "fetched_at": "2026-07-29T01:44:18.911141+08:00"
+    },
+    {
+      "title": "Our data agent now handles roughly 40x the request volume our 3 person data team could manage direct...",
+      "link": "https://x.com/LangChain/status/2082149389045248174",
+      "published": "2026-07-29T01:01:13+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Our data agent now handles roughly 40x the request volume our 3 person data team could manage directly.  \n  \nNow, our data team can focus on the models, context, and guardrails that make the agent worth trusting in the first place.  \n  \nHow we built it:  \n[langchain.com/blog/agent-dat…](https://www.langchain.com/blog/agent-data-stack)\n\n💬3🔄0❤️8👀1534📊4",
+      "tags": [
+        "LangChain",
+        "数据代理",
+        "请求量"
+      ],
+      "score": 75,
+      "summary": "LangChain数据代理处理40倍请求量，数据团队专注模型和安全。",
+      "fetched_at": "2026-07-29T01:44:18.911143+08:00"
+    },
+    {
+      "title": "Today we are shipping more updates to the Gemini Managed Agents API:\n\n- Support for model Environmen...",
+      "link": "https://x.com/OfficialLoganK/status/2082138993546899711",
+      "published": "2026-07-29T00:19:54+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "Today we are shipping more updates to the Gemini Managed Agents API:  \n  \n- Support for model Environment hooks (block, lint, etc)  \n- Ability to select a specific model (3.6 Flash)  \n- Free tier support in the UI & API  \n- Updated default agent to use 3.6 Flash  \n  \n<https://t.co/gKqXqv0kU1>\n\n![Google AI Studio](https://pbs.twimg.com/profile_images/2056588677363765248/ATA2alUA_normal.jpg)\n\nGoogle AI Studio@GoogleAIStudio\n\n[x.com/i/article/2081…](http://x.com/i/article/2081789534740553728)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleAIStudio/status/2082134302083465427)\n\n💬36🔄9❤️148👀12876📊37",
+      "tags": [
+        "Gemini Managed Agents",
+        "环境钩子",
+        "3.6 Flash"
+      ],
+      "score": 85,
+      "summary": "Gemini Managed Agents API更新：支持环境钩子、模型选择、免费层。",
+      "fetched_at": "2026-07-29T01:44:18.911145+08:00"
+    },
+    {
+      "title": "Run GenAI Locally on NVIDIA Jetson | NVIDIA Jetson AI Lab https://t.co/5glDcdWXOP",
+      "link": "https://x.com/NVIDIAAI/status/2082133936067752136",
+      "published": "2026-07-28T23:59:49+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Run GenAI Locally on NVIDIA Jetson | NVIDIA Jetson AI Lab [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1qKDzzgMvOwJV)\n\n💬5🔄4❤️36👀3939📊10",
+      "tags": [
+        "NVIDIA Jetson",
+        "本地AI",
+        "直播"
+      ],
+      "score": 70,
+      "summary": "NVIDIA展示在Jetson上本地运行生成式AI。",
+      "fetched_at": "2026-07-29T01:44:18.911148+08:00"
+    },
+    {
+      "title": "Across eight case studies spanning industry and academia, we explore what this shift means for scien...",
+      "link": "https://x.com/OpenAI/status/2082152075778293831",
+      "published": "2026-07-29T01:11:54+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Across eight case studies spanning industry and academia, we explore what this shift means for scientific computing—and why human verification, stewardship, and long-term maintenance matter. [openai.com/index/scientif…](https://openai.com/index/scientific-computing-agentic-ai/)\n\n💬4🔄3❤️44👀6152📊9",
+      "tags": [
+        "科学计算",
+        "agentic AI",
+        "OpenAI"
+      ],
+      "score": 82,
+      "summary": "OpenAI发布报告：AI编码代理在科学计算中加速软件开发。",
+      "fetched_at": "2026-07-29T01:44:18.911150+08:00"
+    },
+    {
+      "title": "Coding agents are helping scientists spend more time advancing research, taking on everything from r...",
+      "link": "https://x.com/OpenAI/status/2082152074071228702",
+      "published": "2026-07-29T01:11:53+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Coding agents are helping scientists spend more time advancing research, taking on everything from routine maintenance and targeted optimization to complete redesigns and new systems.  \n  \nWhile agents can reliably execute on ambitious projects, researchers must still define the scientific questions, verify results, and take a stance on long-term ownership.\n\n![Tweet Image](https://pbs.twimg.com/media/HOVJGp1bwAA_pZO.png)\n\n💬41🔄36❤️292👀33431📊65",
+      "tags": [
+        "科学计算",
+        "agentic AI",
+        "OpenAI"
+      ],
+      "score": 80,
+      "summary": "OpenAI报告称编码代理帮助科学家从维护到新系统设计。",
+      "fetched_at": "2026-07-29T01:44:18.911152+08:00"
+    },
+    {
+      "title": "We're opening applications for the OpenAI Student Collective—a program for undergraduate Campus Lead...",
+      "link": "https://x.com/OpenAI/status/2082146058017321257",
+      "published": "2026-07-29T00:47:59+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We're opening applications for the OpenAI Student Collective—a program for undergraduate Campus Leads bringing AI innovation to their campuses.  \n  \nCampus Leads will work directly with OpenAI and receive hands-on training, funding, credits, swag, and access to a global community of peers.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082145955454066688/vid/avc1/1920x1080/ja-98KeRCcgXSLLr.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OpenAI/status/2082146058017321257/video/1)\n\n💬72🔄47❤️659👀73972📊128",
+      "tags": [
+        "OpenAI Student Collective",
+        "校园领袖"
+      ],
+      "score": 70,
+      "summary": "OpenAI开放学生集体申请，培养校园AI领袖。",
+      "fetched_at": "2026-07-29T01:44:18.911155+08:00"
+    },
+    {
+      "title": "Apply here: https://t.co/ZhfozrV19V",
+      "link": "https://x.com/OpenAI/status/2082146059271417879",
+      "published": "2026-07-29T00:47:59+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Apply here: [openai.com/student-collec…](https://openai.com/student-collective/)\n\n💬12🔄2❤️83👀21613📊19",
+      "tags": [
+        "OpenAI Student Collective"
+      ],
+      "score": 65,
+      "summary": "OpenAI学生集体申请链接。",
+      "fetched_at": "2026-07-29T01:44:18.911158+08:00"
+    },
+    {
+      "title": "Managed Agents in Gemini API are getting environment hooks, model selection, and free tier access🚀",
+      "link": "https://x.com/patloeber/status/2082135831905542456",
+      "published": "2026-07-29T00:07:21+08:00",
+      "source": "Patrick Loeber(@patloeber)",
+      "content": "Managed Agents in Gemini API are getting environment hooks, model selection, and free tier access🚀\n\n![Google AI Studio](https://pbs.twimg.com/profile_images/2056588677363765248/ATA2alUA_normal.jpg)\n\nGoogle AI Studio@GoogleAIStudio\n\n[x.com/i/article/2081…](http://x.com/i/article/2081789534740553728)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleAIStudio/status/2082134302083465427)\n\n💬4🔄0❤️17👀1155📊5",
+      "tags": [
+        "Managed Agents",
+        "Gemini API",
+        "更新"
+      ],
+      "score": 75,
+      "summary": "KOL转述：Gemini Managed Agents获得环境钩子、模型选择和免费层。",
+      "fetched_at": "2026-07-29T01:44:18.911160+08:00"
+    },
+    {
+      "title": "Read more about using Model Council inside Perplexity Computer:\nhttps://t.co/RGT2AmOn3a",
+      "link": "https://x.com/perplexity_ai/status/2082142611800993943",
+      "published": "2026-07-29T00:34:17+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Read more about using Model Council inside Perplexity Computer:  \n[perplexity.ai/hub/blog/model…](https://www.perplexity.ai/hub/blog/model-council-comes-to-computer)\n\n💬1🔄0❤️9👀2774📊2",
+      "tags": [
+        "Model Council",
+        "Perplexity Computer"
+      ],
+      "score": 70,
+      "summary": "Perplexity Computer内使用Model Council的详情链接。",
+      "fetched_at": "2026-07-29T01:44:18.911162+08:00"
+    },
+    {
+      "title": "Model Council is now available inside Computer.\n\nRun independent analysis across multiple frontier m...",
+      "link": "https://x.com/perplexity_ai/status/2082142599671107737",
+      "published": "2026-07-29T00:34:14+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Model Council is now available inside Computer.  \n  \nRun independent analysis across multiple frontier models, choose your analysis depth, and get a single cited report on where models agree, where they disagree, and what each found that others missed.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082142572567474177/vid/avc1/1280x720/c-Leh1TvxXE4HiAI.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/perplexity_ai/status/2082142599671107737/video/1)\n\n💬10🔄10❤️108👀8632📊22",
+      "tags": [
+        "Model Council",
+        "Perplexity Computer",
+        "多模型分析"
+      ],
+      "score": 78,
+      "summary": "Perplexity Computer内可用Model Council，运行多模型独立分析并生成报告。",
+      "fetched_at": "2026-07-29T01:44:18.911165+08:00"
+    },
+    {
+      "title": "Might be time to pull out my Apple Watch again (it's been collecting dust because I keep forgetting ...",
+      "link": "https://x.com/petergyang/status/2082137304500719669",
+      "published": "2026-07-29T00:13:12+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Might be time to pull out my Apple Watch again (it's been collecting dust because I keep forgetting to charge it 😅).  \n  \nI think Granola is useful for more than just meetings. You can also use it to record stream-of-consciousness thoughts, shopping lists from your spouse, and more.  \n  \nHaving it available on the Watch is going to be super useful.\n\n![Chris Pedregal](https://pbs.twimg.com/profile_images/1941840628104445952/amb1uxo8_normal.jpg)\n\nChris Pedregal@cjpedregal\n\nThe best wearable is... the one you're already wearing.  \n  \nExcited to announce Granola for Apple Watch. Launching today⌚️\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082095087677214720/vid/avc1/3840x2160/uxcEEiOEh3UJ54UM.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/cjpedregal/status/2082104366689821049/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/cjpedregal/status/2082104366689821049)\n\n💬4🔄1❤️21👀4060📊6",
+      "tags": [
+        "Granola",
+        "Apple Watch",
+        "笔记"
+      ],
+      "score": 55,
+      "summary": "用户评论Granola在Apple Watch上记录想法。",
+      "fetched_at": "2026-07-29T01:44:18.911167+08:00"
+    },
+    {
+      "title": "- Gemini 3.6 Flash by default and model customization\n- Hooks for pre/post tool execution hooks\n- To...",
+      "link": "https://x.com/_philschmid/status/2082135016398581802",
+      "published": "2026-07-29T00:04:06+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "- Gemini 3.6 Flash by default and model customization  \n- Hooks for pre/post tool execution hooks  \n- Token budget caps to prevent runaway loops  \n- Remote Cron-scheduled triggers for agent calls  \n- Gemini API Free Tier\n\n![Google AI Studio](https://pbs.twimg.com/profile_images/2056588677363765248/ATA2alUA_normal.jpg)\n\nGoogle AI Studio@GoogleAIStudio\n\n[x.com/i/article/2081…](http://x.com/i/article/2081789534740553728)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleAIStudio/status/2082134302083465427)\n\n💬3🔄1❤️25👀1801📊4",
+      "tags": [
+        "Managed Agents",
+        "Gemini 3.6 Flash",
+        "hooks"
+      ],
+      "score": 80,
+      "summary": "Google员工宣布Managed Agents支持hooks、预算控制、模型选择。",
+      "fetched_at": "2026-07-29T01:44:18.911170+08:00"
+    },
+    {
+      "title": "Today, we're launching Hooks, budget controls, model configuraiton and Gemini 3.6 Flash defaults for...",
+      "link": "https://x.com/_philschmid/status/2082134560444235800",
+      "published": "2026-07-29T00:02:18+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Today, we're launching Hooks, budget controls, model configuraiton and Gemini 3.6 Flash defaults for Managed Agents in the Gemini API. You can now set hard rules for what your agents can and cannot do inside remote sandboxes.  \n  \n- Gemini 3.6 Flash by default and model customization  \n- Sandbox environment hooks for pre/post tool execution hooks  \n- Token budget caps to prevent runaway loops  \n- Remote Cron-scheduled triggers for agent calls\n\n![Tweet Image](https://pbs.twimg.com/media/HOU6RoPWEAAAbdb.jpg)\n\n💬6🔄1❤️41👀1875📊10",
+      "tags": [
+        "Managed Agents",
+        "Gemini 3.6 Flash",
+        "hooks"
+      ],
+      "score": 85,
+      "summary": "Gemini API Managed Agents更新：默认3.6 Flash、沙箱钩子、预算上限。",
+      "fetched_at": "2026-07-29T01:44:18.911172+08:00"
+    },
+    {
+      "title": "Let me know what you think, your feedback has been incredibly helpful so far.\n\nBlog: https://t.co/Xw...",
+      "link": "https://x.com/_philschmid/status/2082134562524541312",
+      "published": "2026-07-29T00:02:18+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Let me know what you think, your feedback has been incredibly helpful so far.  \n  \nBlog: [blog.google/innovation-and…](https://blog.google/innovation-and-ai/technology/developers-tools/expanding-managed-agents-gemini-api-3-6-flash-hooks/)  \n  \nDocs: [ai.google.dev/gemini-api/doc…](https://ai.google.dev/gemini-api/docs/agent-hooks)\n\n💬1🔄2❤️2👀475📊2",
+      "tags": [
+        "Managed Agents",
+        "文档"
+      ],
+      "score": 60,
+      "summary": "指向Managed Agents博客和文档的链接。",
+      "fetched_at": "2026-07-29T01:44:18.911174+08:00"
+    },
+    {
+      "title": "Idea to product to business, no context switching. 🤝 Payments now built right in with @Razorpay. Go...",
+      "link": "https://x.com/Replit/status/2082141160831643959",
+      "published": "2026-07-29T00:28:31+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Idea to product to business, no context switching. 🤝 Payments now built right in with [@Razorpay](https://x.com/Razorpay). Go ship something.\n\n![Razorpay](https://pbs.twimg.com/profile_images/1271385506505347074/QIc_CCEg_normal.jpg)\n\nRazorpay@Razorpay\n\ngit push 🤝 payment received  \n  \nReplit gets you from idea to product. Razorpay gets you from product to business.  \n  \nWith Razorpay now integrated into Replit, you can start accepting payments without leaving your workflow.  \n  \nCan't wait to see what you build.  \n  \n[@Replit](https://x.com/Replit)\n\n![Tweet Image](https://pbs.twimg.com/media/HOA92oiaoAAxra-.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Razorpay/status/2080917576713126199)\n\n💬1🔄0❤️4👀2722📊2",
+      "tags": [
+        "Replit",
+        "Razorpay",
+        "支付"
+      ],
+      "score": 65,
+      "summary": "Replit集成Razorpay支付，开发者可接收付款。",
+      "fetched_at": "2026-07-29T01:44:18.911177+08:00"
+    },
+    {
+      "title": "https://t.co/kcWImOmmYs",
+      "link": "https://x.com/Replit/status/2082134100077379903",
+      "published": "2026-07-29T00:00:28+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "[x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1OxwbbjwLvDJB)\n\n💬0🔄1❤️5👀2244📊1",
+      "tags": [
+        "Replit",
+        "直播"
+      ],
+      "score": 50,
+      "summary": "Replit直播链接。",
+      "fetched_at": "2026-07-29T01:44:18.911179+08:00"
+    },
+    {
+      "title": "The full interview: https://t.co/23MCllMQJ5",
+      "link": "https://x.com/rowancheung/status/2082130583380205972",
+      "published": "2026-07-28T23:46:29+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "The full interview: [youtube.com/watch?v=WuTJkF…](https://www.youtube.com/watch?v=WuTJkFvw70o&t=1s)\n\n💬5🔄2❤️6👀5285📊6",
+      "tags": [
+        "Meta",
+        "超级智能",
+        "Zuckerberg"
+      ],
+      "score": 60,
+      "summary": "完整采访链接：Zuckerberg谈Meta超级智能实验室。",
+      "fetched_at": "2026-07-29T01:44:18.911182+08:00"
+    },
+    {
+      "title": "Mark Zuckerberg is running Meta's superintelligence lab like a startup.\n\nWhen I interviewed him, he ...",
+      "link": "https://x.com/rowancheung/status/2082130571086745634",
+      "published": "2026-07-28T23:46:26+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "Mark Zuckerberg is running Meta's superintelligence lab like a startup.  \n  \nWhen I interviewed him, he told me the principles on how he built the team:  \n  \n\"You don't need many hundreds of people. You need 50 to 100 people. It's a group science project who can keep the whole thing in their head at once. Seats on the boat are precious.\"  \n  \n\"If someone is not pulling their weight on that, it has this huge negative effect in the way that it doesn't have on other parts of the company\"  \n  \n\"I wanna know who the top AI researchers are, and I wanna personally have relationships with them, and build the strongest team we can.\"  \n  \nHis rules for running it:  \n  \n- If someone isn't pulling their weight, it has an outsized negative effect, so he personally went out and recruited every top researcher himself  \n- No top-down deadlines. \"It's research. You don't know how long the thing is gonna take.\"  \n- Keep the org flat. No non-technical management layers, because once someone stops doing the work, \"the knowledge decays.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082130461401464833/vid/avc1/1280x720/YgAOAxsvNsjM8dDg.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/rowancheung/status/2082130571086745634/video/1)\n\n💬19🔄7❤️48👀14521📊25",
+      "tags": [
+        "Meta",
+        "超级智能",
+        "Zuckerberg"
+      ],
+      "score": 85,
+      "summary": "Zuckerberg表示Meta超级智能实验室像初创公司运作，亲自招聘顶尖研究员。",
+      "fetched_at": "2026-07-29T01:44:18.911184+08:00"
+    },
+    {
+      "title": "现在很多连接件我也是3D打印。因为我又懒又抠门，收敛到这个办法。反正，能用，没垮，方便。甚至建模我就直接建一个，然后直接用切片软件里面的等比例缩放，直接在安装位置上一个游标卡尺，XYZ轴数字填一下。打...",
+      "link": "https://x.com/feltanimalworld/status/2082132952624889896",
+      "published": "2026-07-28T23:55:54+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "现在很多连接件我也是3D打印。因为我又懒又抠门，收敛到这个办法。反正，能用，没垮，方便。甚至建模我就直接建一个，然后直接用切片软件里面的等比例缩放，直接在安装位置上一个游标卡尺，XYZ轴数字填一下。打印出来就好了。  \n  \n一个朋友小哥，也是学engineer的，路过来看。说这都行？  \n  \n咋不行？有一天你要去一个叫做华强北的神奇地方。这里的“工程师”都穿人字拖，只关心“能不能用？装不装的上？钱能收回来吧?”。符合以上：好设计。\n\n![Tweet Image](https://pbs.twimg.com/media/HOU37cqX0AAIuC3.jpg)![Tweet Image](https://pbs.twimg.com/media/HOU37cfWIAAp-_L.jpg)\n\n💬5🔄0❤️5👀693📊6",
+      "tags": [
+        "3D打印",
+        "连接件"
+      ],
+      "score": 40,
+      "summary": "用户分享3D打印连接件经验。",
+      "fetched_at": "2026-07-29T01:44:18.911187+08:00"
+    },
+    {
+      "title": "NEW: The UAE is implementing an AI platform that will work across its entire judicial system.\n\nUse c...",
+      "link": "https://x.com/TheRundownAI/status/2082156585111933276",
+      "published": "2026-07-29T01:29:49+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "NEW: The UAE is implementing an AI platform that will work across its entire judicial system.  \n  \nUse cases will reportedly include analyzing case files, retrieving precedents, drafting legal documents, and even legal recommendations, with human judges still keeping the final say over final rulings.  \n  \nUAE Vice President Sheikh Mansour bin Zayed called it the first of its kind in the world, saying \"innovation is the path to more efficient and faster justice.\"\n\n💬1🔄1❤️3👀1398📊2",
+      "tags": [
+        "阿联酋",
+        "AI司法",
+        "法官辅助"
+      ],
+      "score": 70,
+      "summary": "阿联酋将部署AI平台辅助法官分析案件和起草文件。",
+      "fetched_at": "2026-07-29T01:44:18.911212+08:00"
+    },
+    {
+      "title": "all props to @stephenwitt for the analogy",
+      "link": "https://x.com/Thom_Wolf/status/2082145045592088974",
+      "published": "2026-07-29T00:43:57+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "all props to [@stephenwitt](https://x.com/stephenwitt) for the analogy\n\n💬0🔄0❤️3👀565",
+      "tags": [
+        "ExploitGym",
+        "Kobayashi Maru",
+        "AI安全"
+      ],
+      "score": 60,
+      "summary": "Thomas Wolf比喻ExploitGym是AI的Kobayashi Maru测试。",
+      "fetched_at": "2026-07-29T01:44:18.911214+08:00"
+    },
+    {
+      "title": "ExploitGym is the Kobayashi Maru test for AI's",
+      "link": "https://x.com/Thom_Wolf/status/2082141418869625277",
+      "published": "2026-07-29T00:29:33+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "ExploitGym is the Kobayashi Maru test for AI's\n\n![Kyle Saunders](https://pbs.twimg.com/profile_images/2061217275915698176/bNzHXnV2_normal.jpg)\n\nKyle Saunders@profgoose\n\n1/ An AI took a cybersecurity exam, decided the exam was hard, and broke into the company that stores the answers.   \nNot hypothetical or science fiction. Sourced to [@OpenAI](https://x.com/OpenAI)'s own writeup, Reuters, the WSJ, the FT, & the victim's incident report.  \nLink and summary in replies! ⬇️⬇️\n\n![Tweet Image](https://pbs.twimg.com/media/HOUpFb6b0AAvZqh.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/profgoose/status/2082115753063620910)\n\n💬4🔄1❤️9👀3024📊4",
+      "tags": [
+        "ExploitGym",
+        "AI安全"
+      ],
+      "score": 65,
+      "summary": "Thomas Wolf回复关于AI利用ExploitGym的讨论。",
+      "fetched_at": "2026-07-29T01:44:18.911217+08:00"
+    },
+    {
+      "title": "World Labs CEO Dr. Fei-Fei Li & SceniX Co-Founder Yunzhu Li on the data bottleneck in robotics and h...",
+      "link": "https://x.com/a16z/status/2082146986523046216",
+      "published": "2026-07-29T00:51:40+08:00",
+      "source": "a16z(@a16z)",
+      "content": "World Labs CEO Dr. Fei-Fei Li & SceniX Co-Founder Yunzhu Li on the data bottleneck in robotics and how world models help:  \n  \n\"The lack of data in training, the lack of data in evaluation, this is very, very different from language models, where data is abundant on the internet.\"  \n  \n\"And we know that in order for robotics to work, we have to somehow unlock the power of scaling law. But where does that come from?\"  \n  \n\"It's a profound problem that everybody's battling with in robotics.\"  \n  \n\"We see a lot of unlock in being able to do this whole process through the modeling of the environments.\"  \n  \n\"Being able to create these digital worlds... that's just going to unlock so much more potential for being able to replace all the costly and the unsafe data in the real environments with the data generated from the worlds for robots to be able to do scalable learning and evaluations.\"  \n  \n[@drfeifei](https://x.com/drfeifei)[@YunzhuLiYZ](https://x.com/YunzhuLiYZ)[@martin\\_casado](https://x.com/martin_casado)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082146889643048960/vid/avc1/1280x720/B1HbYuPOWYDmQ_SC.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2082146986523046216/video/1)\n\n![Fei-Fei Li](https://pbs.twimg.com/profile_images/841385099799085056/R1iX4QGX_normal.jpg)\n\nFei-Fei Li@drfeifei\n\nWhen SceniX joined World Labs, we said spatial intelligence was never only about perceiving and generating virtual and physical worlds, but also interacting with them. Today, we’re sharing early results from that vision: building worlds that train robots. 🌎🤖↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082133798440054785/vid/avc1/1920x1080/1uwySqjSHukKz2VH.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/drfeifei/status/2082137335052075298/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/drfeifei/status/2082137335052075298)\n\n💬0🔄5❤️22👀6855📊3",
+      "tags": [
+        "World Labs",
+        "Fei-Fei Li",
+        "机器人数据瓶颈"
+      ],
+      "score": 80,
+      "summary": "a16z访谈Fei-Fei Li：世界模型可解决机器人数据瓶颈。",
+      "fetched_at": "2026-07-29T01:44:18.911219+08:00"
+    },
+    {
+      "title": "I get it that I need to adjust my workflows and skills and not get in the way of it. I totally under...",
+      "link": "https://x.com/omarsar0/status/2082140877225341102",
+      "published": "2026-07-29T00:27:24+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "I get it that I need to adjust my workflows and skills and not get in the way of it. I totally understand that. I have been doing that already with newer models that understand intent much better. But this isn't plug-and-play. There is a lot of stuff it just does wrong. Makes me very feel uncomfortable using it.\n\n💬2🔄0❤️4👀873📊2",
+      "tags": [
+        "AI模型",
+        "工作流",
+        "体验"
+      ],
+      "score": 65,
+      "summary": "用户评论AI模型使用体验，觉得不舒服。",
+      "fetched_at": "2026-07-29T01:44:18.911222+08:00"
+    },
+    {
+      "title": "The crazy thing is that it is really good at stuff like developing complex worlds, animations, simul...",
+      "link": "https://x.com/omarsar0/status/2082140478019883485",
+      "published": "2026-07-29T00:25:48+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "The crazy thing is that it is really good at stuff like developing complex worlds, animations, simulations, etc. But as a coding agent, I prefer GPT-5.6-Sol for now.\n\n💬3🔄0❤️6👀1010📊3",
+      "tags": [
+        "GPT-5.6-Sol",
+        "Opus 5",
+        "编码代理"
+      ],
+      "score": 65,
+      "summary": "用户认为GPT-5.6-Sol比Opus 5更适合编码代理。",
+      "fetched_at": "2026-07-29T01:44:18.911224+08:00"
+    },
+    {
+      "title": "I quit using Opus 5 after the first few sessions. \n\nI can only explain it as a very \"ignorant\" model...",
+      "link": "https://x.com/omarsar0/status/2082139988544602355",
+      "published": "2026-07-29T00:23:52+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "I quit using Opus 5 after the first few sessions.   \n  \nI can only explain it as a very \"ignorant\" model. It does stuff I didn't ask for. It ignores my skills and some of my tools. It broke pretty much all my workflows/loops.   \n  \nWhat a weird model. Not feeling it.\n\n![Theo - t3.gg](https://pbs.twimg.com/profile_images/1909353910130950147/EeSGdgA5_normal.jpg)\n\nTheo - t3.gg@theo\n\nI do not like Opus 5 as much as I hoped to :(\n\n[🔗 View Quoted Tweet](https://x.com/theo/status/2081880182936502474)\n\n💬12🔄0❤️33👀6009📊11",
+      "tags": [
+        "Opus 5",
+        "编码",
+        "体验"
+      ],
+      "score": 65,
+      "summary": "用户吐槽Opus 5模型表现奇怪，不再使用。",
+      "fetched_at": "2026-07-29T01:44:18.911227+08:00"
+    },
+    {
+      "title": "I spent the last two years rebuilding my work around agents. Research, writing, and my daily analysi...",
+      "link": "https://x.com/omarsar0/status/2082137823977807919",
+      "published": "2026-07-29T00:15:16+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "I spent the last two years rebuilding my work around agents. Research, writing, and my daily analysis of the field now run as loops I keep refining, and the gains stack with every new model release.  \n  \nVery little of that way of working has reached research labs. [@ReactorfieldAI](https://x.com/ReactorfieldAI) is a 4-week fellowship built to bring it to scientists and deep tech teams.\n\n![James Sinka - Boston & SF](https://pbs.twimg.com/profile_images/1622424288253935616/klcQlkSg_normal.jpg)\n\nJames Sinka - Boston & SF@jamessinka\n\nAI transformed coding, science is next  \n  \n[@ReactorfieldAI](https://x.com/ReactorfieldAI) makes scientists and deep tech startups AI-native  \n  \nBuilt by me and [@berkbuilds](https://x.com/berkbuilds) to accelerate science with frontier AI\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082131798209814528/vid/avc1/1920x1080/y_xfjGZ2i3gncqAA.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/jamessinka/status/2082133419924869535/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/jamessinka/status/2082133419924869535)\n\n💬1🔄0❤️11👀2858📊2",
+      "tags": [
+        "Agent",
+        "研究",
+        "Reactorfield"
+      ],
+      "score": 65,
+      "summary": "用户分享基于代理的工作流，并推广Reactorfield奖学金。",
+      "fetched_at": "2026-07-29T01:44:18.911229+08:00"
+    },
+    {
+      "title": "For a fun little example of how the harness works, which is essentially built on top of my dynamic w...",
+      "link": "https://x.com/omarsar0/status/2082130299207483862",
+      "published": "2026-07-28T23:45:22+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "For a fun little example of how the harness works, which is essentially built on top of my dynamic workflows functionality.   \n  \nThe harness dynamically spins out a subagent (as needed) to critique and improve things like graphics and playability. This is super interesting.   \n  \nThis is for another open-world game I have been building.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082130117912875008/vid/avc1/3716x2160/0_sdfQsHbmdFSLzE.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2082130299207483862/video/1)\n\n💬2🔄1❤️4👀867📊3",
+      "tags": [
+        "Agent",
+        "游戏开发",
+        "子代理"
+      ],
+      "score": 60,
+      "summary": "用户展示用于改进游戏性的子代理系统。",
+      "fetched_at": "2026-07-29T01:44:18.911231+08:00"
+    },
+    {
+      "title": "Code Arena now measures fullstack capabilities!\n\nView overall rankings across AI models on full-stac...",
+      "link": "https://x.com/arena/status/2082139477456384166",
+      "published": "2026-07-29T00:21:50+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Code Arena now measures fullstack capabilities!  \n  \nView overall rankings across AI models on full-stack web development tasks: multi-step reasoning, tool use, and end-to-end app generation.  \n  \n- Kimi K3 (Max) takes #1  \n- GPT 5.6 Sol (xHigh) at #2  \n- Claude Fable 5 at #3  \nSee more scores at: [arena.ai/leaderboard/co…](http://arena.ai/leaderboard/code/webdev/fullstack)\n\n![Tweet Image](https://pbs.twimg.com/media/HOU5pIVaQAA9Bo-.jpg)\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nCode Arena just leveled up with fullstack capabilities 🚀  \n  \nIntroducing the new Fullstack Code Arena. We’re moving beyond frontend prototypes to fullstack development complete with databases, API keys, and fast deployments. Build, iterate, and ship real-world software — all in one place.  \n  \nModels now act as agents in the Code Arena, using structured tool calls to plan, execute, and refine in real time with real world tasks.  \n  \nRead more about it in the thread 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072711701645119488/vid/avc1/1920x1080/0j5HPR2SDBIr4md2.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/arena/status/2072713730711023673/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2072713730711023673)\n\n💬8🔄6❤️32👀3307📊10",
+      "tags": [
+        "Code Arena",
+        "全栈",
+        "模型排名"
+      ],
+      "score": 75,
+      "summary": "Code Arena新增全栈开发能力评测，Kimi K3位列第一。",
+      "fetched_at": "2026-07-29T01:44:18.911234+08:00"
+    },
+    {
+      "title": "看 Agent 调 Skill 执行路径也挺有意思。\n\n一开始想抓取飞书文档，发现需要登录，自动切换到飞书Cli执行。\n\nAI 发现文档超长（大概有20w+字），开始提取关键结构和精华内容，开始写文章...",
+      "link": "https://x.com/vista8/status/2082132646646485344",
+      "published": "2026-07-28T23:54:41+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "看 Agent 调 Skill 执行路径也挺有意思。  \n  \n一开始想抓取飞书文档，发现需要登录，自动切换到飞书Cli执行。  \n  \nAI 发现文档超长（大概有20w+字），开始提取关键结构和精华内容，开始写文章。  \n  \n想到三年前，AutoGPT或BabyAGI等项目，任务都拆不明白。  \n  \nAI 进步速度太快了，但又觉得理所当然，永远不满足。\n\n![Tweet Image](https://pbs.twimg.com/media/HOU3BcyaoAAkTCY.jpg)![Tweet Image](https://pbs.twimg.com/media/HOU3i51aQAAWLuo.jpg)\n\n💬1🔄0❤️7👀981📊2",
+      "tags": [
+        "Agent",
+        "Skill",
+        "飞书"
+      ],
+      "score": 60,
+      "summary": "用户演示Agent自动抓取飞书文档并提取精华。",
+      "fetched_at": "2026-07-29T01:44:18.911236+08:00"
+    },
+    {
+      "title": "Scientific computing in the age of agentic AI",
+      "link": "https://openai.com/index/scientific-computing-agentic-ai",
+      "published": "2026-07-29T01:00:00+08:00",
+      "source": "OpenAI News",
+      "content": "A new field report shows how scientists use AI coding agents to modernize scientific computing, accelerating software development and discovery in genomics and beyond.",
+      "tags": [
+        "科学计算",
+        "agentic AI",
+        "OpenAI"
+      ],
+      "score": 80,
+      "summary": "OpenAI报告：AI编码代理在科学计算中加速软件开发和发现。",
+      "fetched_at": "2026-07-29T01:44:18.911239+08:00"
+    }
+  ]
+}
