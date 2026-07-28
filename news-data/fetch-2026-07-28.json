@@ -2687,6 +2687,382 @@
       "score": 85,
       "summary": "StateAct通过程序状态而非像素实现OSWorld新SOTA，成本降低9倍。",
       "fetched_at": "2026-07-28T14:36:29.434782+08:00"
+    },
+    {
+      "title": "KotlinLLM is Going Open Source",
+      "link": "https://blog.jetbrains.com/research/2026/07/kotlinllm-open-source/",
+      "published": "2026-07-28T15:50:41+08:00",
+      "source": "The JetBrains Blog",
+      "content": "## TL;DR\n\n**KotlinLLM is now public**. It’s a **research prototype** for delegating runtime logic to an LLM from Kotlin code. Instead of calling an LLM on every request or running a separate agent, you can write an explicit Kotlin call. Its body is **generated Kotlin source code**, and that code is updated as your application hits new runtime scenarios.\n\n👉 [**Check it out**](https://github.com/JetBrains-Research/kotlinllm-plugin)\n\n👉 **KotlinConf 2026 [talk](https://kotlinconf.com/talks/1085233/)**\n\n## What is KotlinLLM?\n\nKotlinLLM is an **IntelliJ IDEA plugin** for Kotlin/JVM projects. It adds a language feature we call **Smart macros**. A Smart macro is a regular Kotlin function call whose body is generated Kotlin code. The public API has the following two Smart macros:\n\n* **`asLlm<F, T>(from, hint)`** converts an input of type F into a typed value T (data class, enum, list, or primitive). Use it to parse unstructured or semi-structured data into typed Kotlin values at runtime.\n* **`mockLlm<T>()`** generates a stateful implementation of an interface T. Its behavior depends on which methods are called on it, so it works as a test double that you don’t have to write by hand.\n\n```\n// One level of abstraction higher: describe intent, let KotlinLLM fill in the logic.\nval issuesApiUrl: String = asLlm(repoInput, hint = \"GitHub API URL: get all issues, including closed\")\nval issues: List<Issue> = asLlm(response, hint = \"Return all beginner-friendly issues for this repository\")\n```\n\nThe behavior comes from actual runtime usage rather than being fully specified before the program runs. The call site stays compact and explicit: a clear, keyword-like API over generated code.\n\n## The problem it solves\n\nIn software engineering, LLMs are during **development**, i.e. code completion, code generation, and program comprehension. Using an LLM at the **runtime** of a compiled application is less common, and the existing options have clear trade-offs:\n\n* **Direct runtime delegation** (calling the model on every invocation) is slow, non-deterministic, and costly. It also makes the application depend on an LLM service at runtime.\n* **External agent workflows** keep the generated logic outside the codebase, where it’s harder to review, test, and ship.\n* Most prior work (e.g. [byLLM](https://arxiv.org/abs/2405.08965), [nightjar](https://openreview.net/forum?id=E7ZZRnBQU7), [Healer](https://arxiv.org/abs/2408.01055)) targets **interpreted languages** like Python, not a compiled, statically typed language like Kotlin.\n\nKotlinLLM is built around three properties:\n\n* **Explicit** – the call site shows that a feature is LLM-backed, so it’s visible in code review.\n* **Persistent** – generated behavior is saved as an ordinary Kotlin source, not kept only in the runtime session. It can be committed, reviewed, tested, and distributed like any other code.\n* **Portable** – once generated, the code runs as plain Kotlin without the plugin. For scenarios that are already covered, there’s no further LLM call, so no added latency or cost, and the result is reproducible.\n\n## Does it actually work?\n\nWe tested the approach on two Kotlin/JVM projects:\n\n* **An adapted Spring Petclinic Kotlin** – 18 `asLlm` call sites, **24/24** application scenarios completed after Smart macro evolution, with a **100% hot-reload success rate** and compilation/redefinition adding ~1% of total runtime overhead.\n* **A synthetic “GitHub Beginner Issue Radar”** – parsing real GitHub issue data across 20 repositories (30k+ issues), reaching **~0.89 recall** on ground-truth beginner labels.\n\nThese results show that persistent runtime evolution for compiled Kotlin is feasible. The evaluation also documents the current limits.\n\n## We’re making it public\n\nKotlinLLM is **open source** under the **Apache License 2.0**. The repository contains:\n\n* The IntelliJ plugin prototype and the stable Smart macro API.\n* Runnable **example projects** (GitHub Issue Radar, an adapted Petclinic), including *committed generated sources,* so you can inspect what the LLM produced and run it as ordinary Kotlin.\n* The **KotlinConf2026 talk [recording](https://www.youtube.com/watch?v=tmPZajBUsKg)**  and the **theoretical [write-up](https://github.com/JetBrains-Research/kotlinllm-plugin/blob/main/thesis.pdf)**  with the full design rationale and evaluation.\n\n## Try it and tell us what you think\n\nKotlinLLM is a **research prototype**, so feedback is useful at this stage. A few ways to help:\n\n* **Start and [explore the repo](https://github.com/JetBrains-Research/kotlinllm-plugin)**\n* **Try it on your own Kotlin/JVM project**. Add the `KotlinLLM.kt` API file, launch with the *Run with KotlinLLM* executor, and let the Smart macros evolve. Setup steps are in the README.\n* **Open issues** for anything you run into: rough edges, unexpected LLM behavior, missing cases, or behavior you’d expect to be different.\n* **Send PRs with use cases.** Real scenarios where `asLlm/mockLlm` work well – or break – are the most useful. New examples, target types, and agent tools are all welcome.\n\nIf you find a place where runtime logic delegation fits your code, open an issue. If you build something with it, send a PR.",
+      "tags": [
+        "KotlinLLM",
+        "IntelliJ插件",
+        "Smart macros"
+      ],
+      "score": 85,
+      "summary": "JetBrains 开源 KotlinLLM 研究原型，通过 Smart macros 在运行时委托 LLM 生成 Kotlin 代码。",
+      "fetched_at": "2026-07-28T17:43:19.047902+08:00"
+    },
+    {
+      "title": "The real AI risk is inside the labs",
+      "link": "http://antirez.com/news/172",
+      "published": "2026-07-28T17:00:11+08:00",
+      "source": "antirez",
+      "content": "Amodei in his latest blog post wrote a mix of agreeable things and things that I believe misrepresent where the real risk of AI is located. I want to focus my attention on why, among all the risks, open weight models constitute the mildest one. I write these words as a person who strongly believes AI may be very dangerous in the near future:\n  \n  \n1. Exactly like what happened during the OpenAI / HF incident (which was a joke, but focus on the modalities, not the outcomes), the first serious AI incident is very likely to happen \\*inside\\* the walls of frontier AI labs, while testing a new model, or while the AI lab employees, or the few externals who have access, do something wrong compared to the expected power of the model.\n  \n  \n2. Closed models that will never even be opened to the public will be just a few TBs of data. All you need to leak one is a single person with access and the wrong goals, and you are back in the situation of open models. Open models are released \\*after\\* testing, and after similarly capable models were already available for some time under an API. The real risk is leaks, not releases, and leaks happen inside frontier companies.\n  \n  \n3. As Amodei says, open models, once LLMs are dangerous enough in fields like biology, can be trained on a corpus ablated of certain branches of science, while still being useful for a number of other things. The limited context window of a model that lacks strong pre-training in certain domains is a strong protection even if the model is otherwise very capable. We are currently not in a place where open models can constitute that kind of danger.\n  \n  \n4. In the context of cyber security, \\*not\\* having widespread access to the defensive security and bug seeking provided by LLMs creates exactly the \"LLMs as a weapon\" problem. It is already happening: open source maintainers, if they are out of some cyber program, can't find all the security bugs they could, while people with the right interests will be able to access frontier cyber models, do significant RL training on open weight models, and so forth.\n  \n  \n5. Once LLMs are dangerous enough (and we are near this limit, if progress continues), the real security chain that we need in place is inside labs, can't be set up without strong common rules, and a single company should not be able to evaluate independently whether a model is safe enough. We need a joint AI safety organization that includes experts from all over the world and is recognized by the governments where frontier AI companies exist.\n  \n  \n6. Slowing down AI for safety must be counterbalanced by the fact that AI discoveries in medicine and other sciences may lower human suffering. Lack of checks may result in some catastrophic outcome (\"Good morning! Let's work on this enhanced smallpox\"). Lack of progress may result in people who could be saved dying, not just in the present, but among the many who will suffer from illnesses in the future. This may look like a bizarre point, but we always need to understand that stopping AI \\*also\\* has a security cost embedded inside, which is just a lot more hidden.\n  \n  \n7. The ideological position of Amodei against China is unfair. We Europeans killed each other until 80 years ago without any limit of decency (people now forget, but one of the reasons the US invested in the stability of Europe in the past is that we were deeply dangerous, and would probably end up doing it again, while decades of wealth would make us a good market and would prevent us from fighting again). The US has, even in present times, tragic inequalities, people suffering for lack of basic health care, a president who looks unstable and is apparently very prone to war. I wish China had the same level of individual rights we have here in the West, but at the same time China's history is a lot less warlike than Western culture. It is absolutely not clear that an AGI military lock-in could be enforced more easily by China than the US, in the current conditions. Also, the current American administration spits hate at Europe in all forms, which is very worrying in a world where the US dominates everything. On top of all that, China's AI progress is not going to stop, whatever the GPU export policy is, so either Amodei is arguing that once America has AGI it should stop China by force, or what is his argument?\n  \n  \n8. In the history of humanity there are many cases where technological supremacy was initially reached in a single place of the world. This, AFAIK, never resulted in \\*a single\\* country trying to create a permanent advantage. The non-proliferation of nuclear weapons, which is probably the case most similar to the GPU ban, was not used to achieve a permanent economic advantage by threatening to bomb everybody else not complying, nor did it prevent several actors from acquiring that technology at different times, without one bombing the other to stop their progress. Moreover, I don't believe AI poses the greatest dangers because of government-driven actions. I wish this were the most dangerous scenario! Governments do silly things, are often aggressive, and their actions have even resulted in genocides, but it requires a lot of people agreeing on doing something terrible, which is itself a limiting factor. The greatest problem is what happens in two other cases: A) a few individuals generate an apocalypse event (the virus case), B) AI itself escapes the control of the people building it.\n  \n  \nI believe we should not consider AI safe. A critical event that may result in the extinction of Homo sapiens is possible, but the danger is not in open models, or China making faster progress than the US. The danger is that a few CEOs (everywhere in the world) without the required background and legitimacy are in the position of making hard choices for humanity at large. They were not selected to do so; it was just the randomness of events that created this setup. They can't speak for everybody, given the stakes, just because they have GPUs and money. This is the first thing that should be fixed.\n[Comments](http://antirez.com/news/172)",
+      "tags": [
+        "AI风险",
+        "开源模型",
+        "antirez"
+      ],
+      "score": 75,
+      "summary": "antirez 认为 AI 最大风险在实验室内部，开源模型风险最小，反对 Amodei 观点。",
+      "fetched_at": "2026-07-28T17:43:19.047916+08:00"
+    },
+    {
+      "title": "美团正式发布 CatPaw：全场景 AI Agent，从个人提效到企业智能化",
+      "link": "https://tech.meituan.com/2026/07/28/CatPaw-LongCat.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "本月，美团 LongCat 2.0 已[正式开源](https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html)，总参数 1.6T，平均激活约 48B，动态范围 33B 到 56B，原生支持 1M 超长上下文。这是首个在五万张国产算力卡上完成全流程训练与推理的万亿参数模型。开源只是第一步，让 LongCat 2.0 在真实的工作任务中成为可靠的“工作伙伴”，才是真正的考验。\n\n现在，搭载 LongCat 2.0 的美团全场景 AI Agent 平台 [CatPaw](https://catpaw.meituan.com/) 正式上线，将模型能力从“跑得动”推向“用得好”。CatPaw 提供开箱即用的 AI 智能工作台与企业级 Agent 开发托管能力。\n\n不仅如此，依托美团十余年深耕本地生活的行业积累，CatPaw 将商家经营、服务履约与消费决策的深度认知融入其中，助力企业构建 AI 数字员工、推进业务智能化升级。\n\n目前，CatPaw 已在美团内部大规模落地：累计覆盖 9 万员工、搭建 Agent 3 万个，并在多个真实业务场景中完成验证。\n\n## 全时段运行，多终端协作的 AI 智能工作台\n\n### 01 移动/PC/云端，全时段多端协作\n\n提供独立的**移动端 App 与 PC 客户端**，双端任务实时同步、无缝协作。移动端支持随时发起任务、查看进度与远程确认关键决策；PC 端专注本地深度执行，具备文件操作、浏览器控制与终端命令等完整能力。\n\n云端模式支持 **7 × 24 小时不间断运行**，即使本地设备关机或断网也不受影响。长程任务与定时任务于云端持续运转，完成后随时打开手机或电脑即可查看成果。\n\n![](https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png)\n\n### 02 深耕本地生活，融合美团业务生态\n\n在全场景通用 AI Agent 能力的基础上，CatPaw 进一步融入了美团在本地生活领域的全链路行业认知。从门店经营、评价体系、营销转化到履约配送，这些深度积累已被封装为即装即用的**专家与技能**，覆盖门店评价诊断与优化、商品文案生成、营销物料设计评估、活动策划、经营数据分析等场景。\n\nCatPaw 既是人人可用的**全能 AI 助手**，也是真正懂本地生活生意的智能搭档。\n\n![](https://p1.meituan.net/meituantechblog/864f86011bdcc6a2428f980323605284136476.png)\n\n### 03 专家与技能，丰富能力即装即用\n\nCatPaw **支持 AI 专家**，每位专家**集成多项技能与子代理，高效完成特定领域的复杂任务**。从专家广场**一键安装**即可使用，也可通过对话将自己的工作方式快速封装为专属专家，团队共享复用。\n\n平台内置丰富的技能库，开箱即用。内嵌浏览器还**支持操作过程一键录制**，将日常高频流程自动生成专属技能，让个人与团队经验沉淀为可复用的数字化资产。\n\n支持**跨会话长期记忆**，自动记忆用户的个性化偏好、操作习惯与历史上下文，跨设备、跨对话保持连续理解，越用越懂你。\n\n![](https://p0.meituan.net/meituantechblog/7f715c1d858cead54dad86e431e30153313940.png)\n\n### 04 对话即交付，多 Agent 自主协同\n\n只需明确最终目标，Agent 便会**自主规划步骤并在授权范围内深度执行**：读取文件、操作浏览器、运行终端命令，直接交付 Excel、可视化报告或代码等可用成果。\n\n面对跨领域的复杂任务，系统动态进行任务拆解，**调度多个具备专属工具的 Agent 并发处理**，各 Agent 在独立环境中互不干扰，进度实时可见，结果自动汇总。\n\n![](https://p0.meituan.net/meituantechblog/2122a550b13a060033f2a0343680ccfa345379.png)\n\n## 从 AI 工作台到业务系统：Managed Agents\n\nCatPaw Managed Agents 是企业级 AI Agent 开发与托管平台，提供开箱即用的工程底座，**无需从零搭建底层基建**，即可快速构建、部署与管理专属 Agent。\n\n### 01 数字员工，扫码即用灵活配置\n\n数字员工是运行在飞书、企微等 IM 中的 AI 虚拟同事，@ 即可唤醒使用。**平台预置多种角色模板，扫码即用**；美团在本地生活领域的长期积累也已沉淀为专属模板，不只是通用的聊天机器人，而是理解业务的行业 AI 助手。\n\n同时支持通过 **AI 对话描述需求，快速生成专属数字员工**。从 Agent 创建到环境部署、会话初始化，**全程自动完成，无需手动配置**。\n\n提示词、知识库、凭证、工具均支持在线管理，团队可按业务场景灵活搭建。\n\n![](https://p0.meituan.net/meituantechblog/a4a4286eab88dc7a9fb8ad4a359f57d3202455.png)\n\n### 02 企业级安全，数据隔离可控\n\n**Agent 运行环境严格隔离**，租户间数据互不可见。凭证集中托管，**确保 Agent 全程零接触敏感资产**。\n\n支持**分级权限管控**与私有化部署，全面满足企业合规与安全审计要求。\n\n![](https://p0.meituan.net/meituantechblog/d8ea3582939d36764915e7b5f848790e478278.png)\n\n### 03 Agent 托管运行，持续在线\n\n支持**按需配置运行环境**，一键托管上线，**资源动态扩缩**。\n\n沙箱环境轻量隔离，百毫秒级冷启动，闲时自动释放，兼顾响应速度与成本。\n\n![](https://p0.meituan.net/meituantechblog/1c65c6d75279f7085030ad763eeff3b2368282.png)\n\n### 04 可视化运维，全链路可观测\n\n提供统一的运维管理界面，**会话记录完整留存可追溯**，支持在线调试实时排查问题，**模型调用量与消耗清晰可见**。\n\n多维度数据统计与分析，帮助团队持续评估 Agent 表现、优化运行效果。\n\n![](https://p0.meituan.net/meituantechblog/4344c5e90e47733d89ef9ee3d792f88f140185.png)\n\n## 从个人提效到组织智能化：与商家一起探索更多可能\n\n在全场景 AI 能力之上，CatPaw 提供**组织级的管理与管控能力**，满足商家\\*\\*规模化落地 AI \\*\\*的管理需求。\n\nCatPaw 提供统一管理后台，支持团队账号体系。团队成员与权限集中管理，用量明细与消耗实时可查，成本清晰可控。AI 专家和技能支持按团队或角色集中配置与精准下发，一线员工开箱即用，AI 能力快速转化为实际生产力。\n\n此外，CatPaw 还提供与**美团业态深度关联的专属专家与技能**，覆盖外卖、服务零售、医药健康等多个行业。以服务零售为例，美团商家运营专家整合了经营数据分析、评价管理、门店装修等核心场景，帮助商家实现智能化运营。\n\nCatPaw 将持续深入行业场景，让 AI Agent **真正成为驱动经营增长的数字化伙伴**。更多能力陆续开放中，**诚邀美团合作商家抢先体验**。\n\n**体验地址**：<https://catpaw.meituan.com/>",
+      "tags": [
+        "CatPaw",
+        "美团",
+        "AI Agent"
+      ],
+      "score": 88,
+      "summary": "美团发布搭载 LongCat 2.0 的全场景 AI Agent 平台 CatPaw，已内部覆盖 9 万员工。",
+      "image_url": "https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png",
+      "fetched_at": "2026-07-28T17:43:19.047919+08:00"
+    },
+    {
+      "title": "Kimi K3、Unlimited OCR包揽全球前二，中国开源模型持续刷屏海外",
+      "link": "https://www.qbitai.com/2026/07/461949.html",
+      "published": "2026-07-28T16:17:05+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [
+        "Kimi K3",
+        "Unlimited OCR",
+        "开源模型"
+      ],
+      "score": 80,
+      "summary": "量子位报道 Kimi K3 和 Unlimited OCR 在榜单包揽前二，中国开源模型受关注。",
+      "fetched_at": "2026-07-28T17:43:19.047922+08:00"
+    },
+    {
+      "title": "源：https://t.co/Ms5xr0QmHJ",
+      "link": "https://x.com/FinanceYF5/status/2082021520331907081",
+      "published": "2026-07-28T16:33:07+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/venturetwins/s…](https://x.com/venturetwins/status/2081515687944822800)\n\n![Justine Moore](https://pbs.twimg.com/profile_images/2080756230893838336/q4VqZuw2_normal.jpg)\n\nJustine Moore@venturetwins\n\nSeriously considering producing this as a full National Geographic documentary.  \n  \nFlux 3 is insanely good at these, this was made with one prompt!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081514641969258496/vid/avc1/1280x704/bVnoKzWWzZKoFYQf.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2081515687944822800/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/venturetwins/status/2081515687944822800)\n\n💬0🔄0❤️0👀226",
+      "tags": [
+        "Flux 3",
+        "视频生成",
+        "a16z"
+      ],
+      "score": 65,
+      "summary": "a16z 合伙人 Justine Moore 称赞 Flux 3 单提示词生成纪录片级视频。",
+      "fetched_at": "2026-07-28T17:43:19.047924+08:00"
+    },
+    {
+      "title": "a16z合伙人Justine Moore正在认真考虑把它制作成一部完整的《国家地理》纪录片。\n\nFlux 3 在这类内容上的表现强得离谱，而且这段视频只用了一条提示词就生成了！",
+      "link": "https://x.com/FinanceYF5/status/2082021508277571608",
+      "published": "2026-07-28T16:33:04+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "a16z合伙人Justine Moore正在认真考虑把它制作成一部完整的《国家地理》纪录片。  \n  \nFlux 3 在这类内容上的表现强得离谱，而且这段视频只用了一条提示词就生成了！\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082021486337163264/vid/avc1/1280x704/dZW3jG4MA0r9HalE.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2082021508277571608/video/1)\n\n💬2🔄0❤️1👀415📊2",
+      "tags": [
+        "Flux 3",
+        "视频生成",
+        "国家地理"
+      ],
+      "score": 60,
+      "summary": "转述 a16z 合伙人对 Flux 3 视频生成能力的评价。",
+      "fetched_at": "2026-07-28T17:43:19.047926+08:00"
+    },
+    {
+      "title": "源：https://t.co/oRGsMezg3e",
+      "link": "https://x.com/FinanceYF5/status/2082019442138267785",
+      "published": "2026-07-28T16:24:51+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/andruyeung/sta…](https://x.com/andruyeung/status/2081884875611652282)\n\n![Tweet Image](https://pbs.twimg.com/media/HOTRplca4AE8dD8.png)\n\n![Andrew Yeung](https://pbs.twimg.com/profile_images/1602095901723475968/Q0gpPVZI_normal.jpg)\n\nAndrew Yeung@andruyeung\n\nHoly crap. This is possibly the most insane job posting I've seen.  \n  \nFounders School is hiring a \"Simulation Game Director\" for $400,000 a year. That's just the base salary.  \n  \nIf you haven't heard of Founders School, they're a radical new high school launching in New York City this fall. The promise: students build a business that generates $1,000,000 in profit by graduation or the full tuition is refunded. Tuition runs $150,000 a year.  \n  \nBut not every family can afford that. Which is exactly why they're building \"simulation games.\"  \n  \nThe goal is to build the first business simulation game where progress is gated by mastering real entrepreneurship skills. As young players advance in the game, they learn the practical skills to go build a business in real life.  \n  \nFor this role, they want a game director to ship the first playable sim within 12 months. Like Sims or RuneScape, but the skill tree is actually building a company.  \n  \nCrazy opportunity for anyone who believes in entrepreneurship and loves games.\n\n![Tweet Image](https://pbs.twimg.com/media/HORXQuFXsAA_ipm.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/andruyeung/status/2081884875611652282)\n\n💬0🔄0❤️0👀202",
+      "tags": [
+        "Founders School",
+        "年薪40万",
+        "模拟游戏总监"
+      ],
+      "score": 40,
+      "summary": "Founders School 高中招聘年薪40万美元的游戏总监，开发商业模拟游戏。",
+      "fetched_at": "2026-07-28T17:43:19.047928+08:00"
+    },
+    {
+      "title": "2/ 不是每个家庭都付得起15万美元一年的学费，所以他们在做一款商业模拟游戏。\n\n像Sims或RuneScape，只是「技能树」换成了创业技能，通关靠的是过定价、营销、运营这些商业关卡，12个月内要做...",
+      "link": "https://x.com/FinanceYF5/status/2082019425889436120",
+      "published": "2026-07-28T16:24:47+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "2/ 不是每个家庭都付得起15万美元一年的学费，所以他们在做一款商业模拟游戏。  \n  \n像Sims或RuneScape，只是「技能树」换成了创业技能，通关靠的是过定价、营销、运营这些商业关卡，12个月内要做出第一个可玩版本。  \n  \n对于相信创业、又热爱游戏的人来说，这确实是一个非常难得的机会\n\n💬1🔄0❤️0👀171📊1",
+      "tags": [
+        "Founders School",
+        "商业模拟游戏",
+        "创业技能"
+      ],
+      "score": 30,
+      "summary": "Founders School 计划开发类似 Sims 的创业技能模拟游戏。",
+      "fetched_at": "2026-07-28T17:43:19.047930+08:00"
+    },
+    {
+      "title": "1/ Founders School承诺：学生毕业时赚不到100万美元利润，全额退学费。\n\n如果你还没听说过 Founders School，它是一所全新的激进型高中，每年学费高达15万美元，将于今年...",
+      "link": "https://x.com/FinanceYF5/status/2082019413570801719",
+      "published": "2026-07-28T16:24:44+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "1/ Founders School承诺：学生毕业时赚不到100万美元利润，全额退学费。  \n  \n如果你还没听说过 Founders School，它是一所全新的激进型高中，每年学费高达15万美元，将于今年秋天在纽约市开学。  \n  \n现在他们开出40万美元年薪（还只是底薪），要招一个人把这套逻辑做成一款游戏——职位叫「模拟游戏总监」。\n\n![Tweet Image](https://pbs.twimg.com/media/HOTRn3OaoAAIctX.jpg)\n\n💬2🔄0❤️1👀613📊2",
+      "tags": [
+        "Founders School",
+        "退学费",
+        "激进高中"
+      ],
+      "score": 20,
+      "summary": "Founders School 承诺毕业赚不到100万美元利润全额退学费，年薪40万招游戏总监。",
+      "fetched_at": "2026-07-28T17:43:19.047932+08:00"
+    },
+    {
+      "title": "Lilian做的从来不只是把系统建出来。她愿意花时间把难懂的前沿课题讲清楚，写进她的博客Lil'Log，让后来一整代研究者接得上手。\n\n这种影响力，比一篇论文能留下的要久得多。祝她好好养身体。\nhtt...",
+      "link": "https://x.com/FinanceYF5/status/2082015401647681912",
+      "published": "2026-07-28T16:08:48+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Lilian做的从来不只是把系统建出来。她愿意花时间把难懂的前沿课题讲清楚，写进她的博客Lil'Log，让后来一整代研究者接得上手。  \n  \n这种影响力，比一篇论文能留下的要久得多。祝她好好养身体。  \n[x.com/lilianweng/sta…](https://x.com/lilianweng/status/2081816923088814421)\n\n![Tweet Image](https://pbs.twimg.com/media/HOTN-aabcAECTF9.png)\n\n![Lilian Weng](https://pbs.twimg.com/profile_images/1923619459643711488/qmXOBhZ1_normal.jpg)\n\nLilian Weng@lilianweng\n\nIt is a hard and sad decision. I shared this message with folks at Thinky. Thank you all for the time together♥️ Just as the last sentence in my message: The future worth building is human.\n\n![Tweet Image](https://pbs.twimg.com/media/HOQZaU8aEAAvbqJ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lilianweng/status/2081816923088814421)\n\n💬0🔄0❤️0👀422",
+      "tags": [
+        "Lilian Weng",
+        "Thinking Machines",
+        "离职"
+      ],
+      "score": 70,
+      "summary": "Lilian Weng 离开 Thinking Machines 专注健康，感谢团队。",
+      "fetched_at": "2026-07-28T17:43:19.047934+08:00"
+    },
+    {
+      "title": "「值得构建的未来，是属于人的。」这是Lilian Weng今天官宣离开Thinking Machines、专注健康时说的话。\n\n有人翻出她2019年在OpenAI的演讲，回忆起她一直在做的事——把很难...",
+      "link": "https://x.com/FinanceYF5/status/2082015385503793557",
+      "published": "2026-07-28T16:08:44+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "「值得构建的未来，是属于人的。」这是Lilian Weng今天官宣离开Thinking Machines、专注健康时说的话。  \n  \n有人翻出她2019年在OpenAI的演讲，回忆起她一直在做的事——把很难的前沿课题，讲得让人觉得值得探索。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081832959116562433/vid/avc1/1280x676/-g7Mujj8HBs0QkSZ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Michaelzsguo/status/2081848350501167159/video/1)\n\n💬3🔄0❤️1👀583📊3",
+      "tags": [
+        "Lilian Weng",
+        "离职",
+        "OpenAI"
+      ],
+      "score": 60,
+      "summary": "转述 Lilian Weng 离职 Thinking Machines 并回顾其在 OpenAI 的贡献。",
+      "fetched_at": "2026-07-28T17:43:19.047936+08:00"
+    },
+    {
+      "title": "源：https://t.co/yISJYlJlq8",
+      "link": "https://x.com/FinanceYF5/status/2082013317615538640",
+      "published": "2026-07-28T16:00:31+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/HedgieMarkets/…](https://x.com/HedgieMarkets/status/2081810350190874783)\n\n![Tweet Image](https://pbs.twimg.com/media/HOTMFC8acAAgip0.jpg)\n\n![Hedgie](https://pbs.twimg.com/profile_images/1905120369104625664/ir817Ix-_normal.jpg)\n\nHedgie@HedgieMarkets\n\n🦔Nvidia is stacking up more than $750 billion in AI deals at once, and Bloomberg says the way they're wired is spooking even people who own the stock. There's a $500 billion deal with SK Group in Korea. There's the OpenAI package, where Nvidia backstops up to $250 billion of OpenAI's debt and funds another $350 billion of its chip buys. They mostly run the same loop. Nvidia hands a company money, the company hands it back for chips. Jensen Huang says calling that circular is \"ridiculous.\" I don't think it is.  \n  \nMy Take  \nCircular is a fancy word for a simple problem. Nvidia is paying part of the bill for the chips it sells, so some of its blockbuster revenue is just its own cash going out one door and coming back the other. That makes demand look bigger than it is. It also welds Nvidia to OpenAI, a customer that still loses money on everything it does. While OpenAI keeps growing, none of this matters. If it wobbles, Nvidia eats it twice, once on the debt it guaranteed and once on the chip orders that stop.  \n  \nSo I don't buy Huang's \"ridiculous.\" A company that has to lend its customers the money to buy its own product is telling you those customers can't pay on their own yet. That's not the top falling out tomorrow, and Nvidia does sell to plenty of real buyers with real cash. But this is exactly the kind of thing that looks genius on the way up and obvious on the way down. I'd rather flag it now while the stock is still near records than explain it to you after a bad quarter.  \n  \nHedgie🤗\n\n![Tweet Image](https://pbs.twimg.com/media/HOQSpaBWAAAucvR.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/HedgieMarkets/status/2081810350190874783)\n\n💬0🔄0❤️0👀370",
+      "tags": [
+        "Nvidia",
+        "AI交易",
+        "循环融资"
+      ],
+      "score": 65,
+      "summary": "Hedgie 分析 Nvidia 超7500亿美元 AI 交易存在循环融资风险。",
+      "fetched_at": "2026-07-28T17:43:19.047938+08:00"
+    },
+    {
+      "title": "7/ 他也没说明天就要塌——Nvidia确实也在卖给很多有真金白银的真实买家。\n\n但这种结构在股价上涨时看起来像天才操作，跌下去时就会显得很明显。他更愿意趁股价还在历史高位时先说出来，而不是等财报难看...",
+      "link": "https://x.com/FinanceYF5/status/2082013299575865428",
+      "published": "2026-07-28T16:00:27+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "7/ 他也没说明天就要塌——Nvidia确实也在卖给很多有真金白银的真实买家。  \n  \n但这种结构在股价上涨时看起来像天才操作，跌下去时就会显得很明显。他更愿意趁股价还在历史高位时先说出来，而不是等财报难看了再解释。\n\n💬1🔄0❤️0👀273📊1",
+      "tags": [
+        "Nvidia",
+        "循环融资",
+        "股价风险"
+      ],
+      "score": 55,
+      "summary": "转述 Nvidia 交易结构风险，认为股价高位时需警惕。",
+      "fetched_at": "2026-07-28T17:43:19.047940+08:00"
+    },
+    {
+      "title": "1/ Nvidia现在手里同时压着超过7500亿美元的AI交易。\n\nBloomberg说，这些交易的结构方式，连持有这只股票的人都开始不安了。",
+      "link": "https://x.com/FinanceYF5/status/2082013229195427954",
+      "published": "2026-07-28T16:00:10+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "1/ Nvidia现在手里同时压着超过7500亿美元的AI交易。  \n  \nBloomberg说，这些交易的结构方式，连持有这只股票的人都开始不安了。\n\n![Tweet Image](https://pbs.twimg.com/media/HOTL_7RbkAEimqL.png)\n\n💬2🔄0❤️1👀776📊2",
+      "tags": [
+        "Nvidia",
+        "7500亿",
+        "AI交易"
+      ],
+      "score": 50,
+      "summary": "Bloomberg 报道 Nvidia 超7500亿美元 AI 交易结构令投资者不安。",
+      "fetched_at": "2026-07-28T17:43:19.047941+08:00"
+    },
+    {
+      "title": "I bet it’s more or less an LLM",
+      "link": "https://x.com/amasad/status/2082025429901390266",
+      "published": "2026-07-28T16:48:39+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "I bet it’s more or less an LLM\n\n![imjustnewatai](https://pbs.twimg.com/profile_images/1921625539938222082/9bFPHCIL_normal.jpg)\n\nimjustnewatai@imjustnewatai\n\ni think we finally have enough clues to reverse-engineer ilya sutskever’s secret SSI research.  \n  \nmy highest-probability guess: SSI has found a brain-inspired way to make an AI continually learn.  \n  \ntoday’s frontier models learn mostly during training. afterward, their core knowledge is largely frozen. they consume enormous datasets and still fail strangely when a problem falls outside their training.  \n  \nSSI may have an early system that can:  \n  \n• learn a new skill from very few experiences  \n• recognize when an approach is failing before reaching the final answer  \n• update itself without erasing old skills  \n• transfer one lesson into completely different problems  \n• keep learning after deployment  \n  \nthink of it like a gifted teenager instead of a finished encyclopedia. it may not begin knowing every profession, but it could rapidly learn any profession.  \n  \nthe evidence lines up almost too cleanly:  \n  \nilya called poor generalization the fundamental limitation of current AI. models “generalize dramatically worse than people.”  \nhe described SSI’s target as a “superintelligent 15-year-old” capable of learning any job.  \nwhen asked how to create human-like learning, he said there is a machine-learning principle he has opinions about but cannot discuss publicly.  \nWSJ now reports that SSI’s secret research focuses on “overlooked aspects of how the human brain functions.”  \nNvidia received rare access to the research, made a substantial investment, gave SSI 10x more compute, and agreed to let SSI help shape future computing platforms.  \n  \nmy technical guess:  \n  \nexperience → internal judgment → self-correction → durable learning → transfer → repeat  \n  \nthe internal judgment may be the brain-inspired component.  \n  \nhumans do not wait until the end of a 10,000-step task to know they are failing. emotions, intuition and judgment provide constant feedback. ilya has argued that AI needs an equivalent internal “value function.”  \n  \nthis could also explain SSI’s central promise: capability and safety trained together.  \n  \nthe same mechanism that teaches the AI what works may also teach it what it should care about.  \n  \nmy confidence is roughly 70% on human-like generalization plus continual learning, and 40% that an internal value system is the central mechanism.  \n  \nthe simplest description:  \n  \nan AI whose intelligence compounds from experience, with its values learning inside the same loop.\n\n![Tweet Image](https://pbs.twimg.com/media/HOPb4mZWMAEWbV1.jpg)![Tweet Image](https://pbs.twimg.com/media/HOPb4miXYAALS5q.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/imjustnewatai/status/2081749227730809127)\n\n💬2🔄0❤️20👀2477📊3",
+      "tags": [
+        "SSI",
+        "Ilya Sutskever",
+        "持续学习"
+      ],
+      "score": 65,
+      "summary": "Amjad Masad 猜测 SSI 研究核心是让 AI 持续学习，类似天才少年。",
+      "fetched_at": "2026-07-28T17:43:19.047943+08:00"
+    },
+    {
+      "title": "hit massive diminishing returns training my chess LLM on board→move pairs. \n\nthen an accident: a \"th...",
+      "link": "https://x.com/amasad/status/2082014295177724025",
+      "published": "2026-07-28T16:04:24+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "hit massive diminishing returns training my chess LLM on board→move pairs.   \n  \nthen an accident: a \"think before you move\" branch failed (hallucinated moves) but mixing just ~8% of those reasoning traces into plain board→move training beat pure move data at equal budget.   \n  \nthe model internalizes the thinking without ever doing it at inference.\n\n![Amjad Masad](https://pbs.twimg.com/profile_images/1897858917507776512/TRVTyKFk_normal.jpg)\n\nAmjad Masad@amasad\n\nJust deployed a new chess engine; we're closing in on an estimated 1200 Elo.   \n  \nThe goal is to get it to 2000+, while keeping the constraints:  \n  \n1. One small finetuned LLM (no custom pretraining or architecture)  \n2. The model has to produce the moves with no chess engine assistance  \n  \nIf you relax these constraints, it gets much easier.\n\n![Tweet Image](https://pbs.twimg.com/media/HOGAZyQbkAAvbvC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/amasad/status/2081086837263937543)\n\n💬5🔄3❤️20👀3255📊6",
+      "tags": [
+        "国际象棋LLM",
+        "推理痕迹",
+        "训练技巧"
+      ],
+      "score": 70,
+      "summary": "Amjad Masad 发现混合少量推理痕迹数据比纯棋谱训练国际象棋 LLM 效果更好。",
+      "fetched_at": "2026-07-28T17:43:19.047945+08:00"
+    },
+    {
+      "title": "Cursor Start 在印度开发者退出649卢比的价格也就是差不多人民币50元左右的套餐。\n\n兄弟们，懂了吧~",
+      "link": "https://x.com/berryxia/status/2082017553837367794",
+      "published": "2026-07-28T16:17:21+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "Cursor Start 在印度开发者退出649卢比的价格也就是差不多人民币50元左右的套餐。  \n  \n兄弟们，懂了吧~\n\n![Tweet Image](https://pbs.twimg.com/media/HOTP6zQbYAAVKOp.png)\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nToday we're launching Cursor Start, a new ₹649/month plan for developers in India.  \n  \nStart includes generous access to Grok 4.5 and Composer, so you can plan, build, test, and ship with agents every day.\n\n![Tweet Image](https://pbs.twimg.com/media/HOSr9QJaQAA6z-S.png)\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2081978255004053560)\n\n💬3🔄0❤️0👀487📊3",
+      "tags": [
+        "Cursor",
+        "印度定价",
+        "649卢比"
+      ],
+      "score": 55,
+      "summary": "Cursor 在印度推出每月649卢比（约50元）的 Start 套餐。",
+      "fetched_at": "2026-07-28T17:43:19.047947+08:00"
+    },
+    {
+      "title": "现在包括 Cursor、Droid、Opencode 等等几乎所有流行的产品，提供的 Kimi 模型都是从 Fireworks、Together AI、Baseten 进货的。很多人觉得那我直接从源头...",
+      "link": "https://x.com/dingyi/status/2082027280826863781",
+      "published": "2026-07-28T16:56:00+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "现在包括 Cursor、Droid、Opencode 等等几乎所有流行的产品，提供的 Kimi 模型都是从 Fireworks、Together AI、Baseten 进货的。很多人觉得那我直接从源头买不让中间商赚差价不就完了吗？但个人买完全没有价格优势，还是按量付费，还不如官方的 coding plan 呢。当然如果你追求极致的速度多花钱还是值得的。\n\n💬1🔄0❤️0👀323📊1",
+      "tags": [
+        "Kimi",
+        "API供应",
+        "Cursor"
+      ],
+      "score": 50,
+      "summary": "Ding 指出主流产品中 Kimi 模型由第三方 API 供应，个人购买不划算。",
+      "fetched_at": "2026-07-28T17:43:19.047949+08:00"
+    },
+    {
+      "title": "In fact this looks so odd that it must be a mistake. No portrait painter would have done this in 187...",
+      "link": "https://x.com/paulg/status/2082018274989031789",
+      "published": "2026-07-28T16:20:13+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "In fact this looks so odd that it must be a mistake. No portrait painter would have done this in 1870. This is an image generated by an auction house to show scale, and something must have gone wrong, because judging from the published dimensions the head should be 9 inches high.\n\n💬1🔄0❤️7👀7220📊2",
+      "tags": [
+        "画作",
+        "比例",
+        "争议"
+      ],
+      "score": 30,
+      "summary": "Paul Graham 质疑拍卖行生成的画作比例图片有误。",
+      "fetched_at": "2026-07-28T17:43:19.047951+08:00"
+    },
+    {
+      "title": "A few vintage watch dealers don't like it when you ask for timegrapher numbers. But 10% of the time ...",
+      "link": "https://x.com/paulg/status/2082013200980099410",
+      "published": "2026-07-28T16:00:03+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "A few vintage watch dealers don't like it when you ask for timegrapher numbers. But 10% of the time the response is \"Oops, the numbers are terrible. We'd better have our watchmaker look at this before we sell it.\" Which is why I always ask.\n\n💬14🔄2❤️73👀15737📊18",
+      "tags": [
+        "手表",
+        "时差仪",
+        "经销商"
+      ],
+      "score": 20,
+      "summary": "Paul Graham 分享要求手表经销商提供时差仪数据的经验。",
+      "fetched_at": "2026-07-28T17:43:19.047952+08:00"
+    },
+    {
+      "title": "这个giffgaff 要关，是真的还是假的？我今天用了一下，发现还是能用的，有没有其他用的朋友说一下？现在除了这张卡，还有一张 Ultra Mobile 的 PayGo 紫卡，3 美元一个月的，看来还...",
+      "link": "https://x.com/vikingmute/status/2082010628051685534",
+      "published": "2026-07-28T15:49:50+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "这个giffgaff 要关，是真的还是假的？我今天用了一下，发现还是能用的，有没有其他用的朋友说一下？现在除了这张卡，还有一张 Ultra Mobile 的 PayGo 紫卡，3 美元一个月的，看来还要寻思一下还有没有什么备选方案。\n\n![luolei](https://pbs.twimg.com/profile_images/1550157622300786688/672YmCpB_normal.jpg)\n\nluolei@luoleiorg\n\nGiffgaff UK 卡正式关门！  \n刚刚收到 giffgaff 的邮件，相信绝大多数拥有这个卡的用户，也会在近几天陆续收到这个通知，建议早点迁移相关的关联注册账号。  \n在审查您的账户使用情况后，我们已决定断开您的服务（手机号码尾号 xxxx）。根据我们的条款和条件，我们的服务主要用于英国境内使用，漫游仅供短期旅行使用。由于您的使用模式显示您可能在英国境外长期或永久使用，您的账户已不再符合该服务的资格要求。因此，您的服务将很快被断开，任何相关访问权限也将终止。\n\n![Tweet Image](https://pbs.twimg.com/media/HOOLq_uaAAAF1N7.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/luoleiorg/status/2081661061220979141)\n\n💬2🔄0❤️1👀1523📊2",
+      "tags": [
+        "giffgaff",
+        "英国卡",
+        "关闭"
+      ],
+      "score": 10,
+      "summary": "用户讨论 giffgaff 英国卡因长期境外使用被关闭。",
+      "fetched_at": "2026-07-28T17:43:19.047954+08:00"
+    },
+    {
+      "title": "腾讯第一季度业绩发布中，马化腾就已经宣布：\nWorkBuddy 目前是中国使用最广的效率 AI 智能体服务\n\n发布于 5.13，当时我还没正经用过 WorkBuddy，但 6-7 月份明显感觉周围用 ...",
+      "link": "https://x.com/shao__meng/status/2082025674198696009",
+      "published": "2026-07-28T16:49:37+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "腾讯第一季度业绩发布中，马化腾就已经宣布：  \nWorkBuddy 目前是中国使用最广的效率 AI 智能体服务  \n  \n发布于 5.13，当时我还没正经用过 WorkBuddy，但 6-7 月份明显感觉周围用 WorkBuddy 办公的非开发者朋友多起来了。  \n  \n8.12 腾讯会发布第二季度业绩，好奇到时 WorkBuddy 会不会公布更详细的使用数据。\n\n![Tweet Image](https://pbs.twimg.com/media/HOTWwGzaIAAnvkY.jpg)\n\n💬0🔄0❤️0👀88",
+      "tags": [
+        "WorkBuddy",
+        "腾讯",
+        "AI智能体"
+      ],
+      "score": 65,
+      "summary": "马化腾称 WorkBuddy 是中国使用最广的效率 AI 智能体，8月将公布更多数据。",
+      "fetched_at": "2026-07-28T17:43:19.047956+08:00"
+    },
+    {
+      "title": "Windows 7 的简洁优雅，现在看还是完全不过时的\nhttps://t.co/Bso3vDAlM3",
+      "link": "https://x.com/shao__meng/status/2082014877431087157",
+      "published": "2026-07-28T16:06:43+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Windows 7 的简洁优雅，现在看还是完全不过时的  \n[ojo.art/s/HImKdvjK0SsO](https://ojo.art/s/HImKdvjK0SsO)\n\n![Tweet Image](https://pbs.twimg.com/media/HOTM6BGb0AALBM5.jpg)\n\n💬1🔄0❤️2👀361📊2",
+      "tags": [
+        "Windows 7",
+        "设计",
+        "怀旧"
+      ],
+      "score": 5,
+      "summary": "欣赏 Windows 7 简洁优雅的设计。",
+      "fetched_at": "2026-07-28T17:43:19.047958+08:00"
+    },
+    {
+      "title": "Remix 3 Beta Preview Ditches React for a Web-Standards Full-Stack Framework",
+      "link": "https://www.infoq.com/news/2026/07/remix-3-beta-preview/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-28T17:02:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/remix-3-beta-preview/en/headerimage/generatedHeaderImage-1785171903193.jpg)\n\nRemix 3 is a full-stack web framework that moves away from React, focusing on web platform primitives. It integrates routes, request handlers, and UI components into a single structure, utilizing a forked Preact for the frontend. Unlike previous versions, it emphasizes server ownership of the request lifecycle. Migration from Remix 2 is not straightforward, as it requires changes to existing apps.\n\n*By Daniel Curtis*",
+      "tags": [
+        "Remix 3",
+        "Web框架",
+        "Preact"
+      ],
+      "score": 70,
+      "summary": "Remix 3 Beta 抛弃 React，转向基于 Web 标准和使用 Preact 的全栈框架。",
+      "fetched_at": "2026-07-28T17:43:19.047960+08:00"
+    },
+    {
+      "title": "Article: The Hard-Stop Rule: From 3 HCM Monoliths to 120 Domain Microservices",
+      "link": "https://www.infoq.com/articles/pull-based-migration/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-28T17:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/articles/pull-based-migration/en/headerimage/pull-based-migration-header-1784812950594.jpg)\n\nA payroll and HR software team rebuilt three monoliths into over 120 smaller services over five years, with no dedicated migration budget. Every new feature was built as its own service instead of changing the old ones. The article covers the pull-based migration, the tools that made this possible, how costs were kept down, and the problems the team ran into along the way.\n\n*By Prashanth Pasham*",
+      "tags": [
+        "微服务迁移",
+        "HCM",
+        "拉式架构"
+      ],
+      "score": 65,
+      "summary": "HCM 团队五年内将三个单体应用拆分为 120 多个微服务，采用拉式迁移策略。",
+      "fetched_at": "2026-07-28T17:43:19.047962+08:00"
     }
   ]
 }
