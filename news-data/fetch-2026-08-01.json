@@ -1279,6 +1279,397 @@
       "score": 65,
       "summary": "HashiCorp 推出 tfpolicy，HCL 策略即代码框架。",
       "fetched_at": "2026-08-01T02:28:42.376922+08:00"
+    },
+    {
+      "title": "Announcing the Agentic Catalog Experience in Amazon Quick",
+      "link": "https://aws.amazon.com/blogs/machine-learning/announcing-the-agentic-catalog-experience-in-amazon-quick/",
+      "published": "2026-08-01T03:53:04+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "As organizations embrace AI-powered analytics, the value of a natural language (Text2SQL) answer is only as good as the business context behind it. We’re entering a phase where semantic richness (table and column descriptions, and relationships) must flow directly from where it’s authored in upstream data catalogs and semantic tools into the AI products that serve end users. Products like Amazon Quick can no longer operate in isolation. They need to natively consume and reason over the definitions, relationships, and governance metadata that data teams curate in systems like AWS Glue Data Catalog and Databricks Unity Catalog. This shift from siloed metadata to connected, catalog-aware AI is what enables intelligent analytics at scale.\n\n## The challenge: Bridging the last mile\n\n### The investment is done\n\nEnterprise data teams have done the hard work. They have invested heavily in upstream catalog platforms such as AWS Glue, Databricks Unity Catalog, Snowflake Horizon, Collibra, and dbt. On these platforms, they meticulously define table descriptions, column semantics, primary and foreign key relationships, glossary terms, and metric definitions.\n\nYet when it comes to enabling end users (such as sales managers, marketing directors, and finance leads) for production-ready AI and trusted dashboards, a significant gap remains.\n\n### Three compounding challenges\n\nWhen data curators (business intelligence engineers, analytics leads, and senior analysts) need to enable their business users in Amazon Quick, they face three compounding challenges:\n\n1. **Limited discoverability**: With thousands of tables in enterprise catalogs, discovering the right upstream assets that are curated and approved for reporting is a needle-in-a-haystack problem. There’s no way to describe what you need and have the system find it.\n2. **Semantic fragmentation and manual recreation**: Rich metadata that already exists upstream (business descriptions on tables and columns, and primary and foreign key relationships) does not flow through. Curators must recreate assets from scratch, redefine descriptions, and reconcile definitions manually. Does “revenue” mean gross or net? Does “active customer” mean a purchase within 30 days or 90 days? These definitions exist upstream but require manual re-entry.\n3. **Time to insight in weeks, not hours**: The combination of manual discovery and manual recreation means that the time from data to actionable insights stretches from hours to weeks. Worse, when upstream definitions change, manually created semantics in Quick Datasets become stale, causing semantic drift that erodes trust in AI answers and dashboards over time.\n\n### The gap\n\nThe problem isn’t upstream. The metadata exists. The governance is defined. The relationships are mapped.\n\nThe problem is the last mile: translating that rich catalog context into a curated, consumable experience that delivers grounded AI answers and deterministic dashboards end users can trust.\n\n## Introducing the Agentic Catalog Experience in Amazon Quick\n\nToday, we’re announcing the Agentic Catalog Experience in Amazon Quick, an AI-powered workflow that helps data curators rapidly define their context boundary, inherit upstream semantics, and enable end users for grounded Q&A and trusted dashboards at scale.\n\nAt the heart of this experience is the Quick Agent, scoped to discovery, creation, and inheritance tasks within the catalog context. It uses the semantic context from the catalog connection to summarize the entire catalog at a glance, engage the customer in natural language conversation, surface the most relevant tables and relationships based on the customer’s use case, and assess metadata readiness. Then, with a single conversational confirmation, it auto-creates Catalog-Generated Datasets and Topics with targeted metadata inherited from the upstream catalog.\n\n**No manual configuration. No context-switching. No weeks of setup.**\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/AgenticCatalogExperience.png)\n\n## How it works\n\n### Natural language asset discovery\n\nInstead of scrolling through thousands of tables to find the right ones, curators use natural language. With the Agentic Catalog Experience, curators describe what they need:\n\n> Curator: “I’m a Senior Analyst on the Finance team. I need tables for quarterly revenue reporting and cost analysis.”\n\nThe Quick Agent searches across your entire catalog to surface the most relevant tables instantly, using all available metadata including business descriptions, tags, Gold/Silver/Bronze classifications, quality scores, table health scores, and glossary terms. No more manual browsing. No more guessing.\n\n### Bulk agentic dataset creation\n\nAfter the curator selects their tables, the Quick Agent creates catalog representations (Datasets) at scale in a single guided workflow. Your upstream catalog remains the source of truth because the default creation path is Direct Query. Datasets with inherited semantics are flagged with a clear “Semantics Inherited” badge, and their metadata is read-only. Authors can refresh inherited metadata on demand by choosing the sync button to stay aligned with their catalog.\n\n> Quick Agent: “Creating 6 Catalog-Generated Datasets now: `revenue_by_region` created (DirectQuery, read-only metadata), `cost_centers` created, and `gl_transactions` created.”\n\n### Semantic and relationship inheritance\n\nThe Quick Agent carries forward targeted metadata from your catalog into the assets it creates. Today, inheritance is deliberately focused on two key areas to avoid noise and keep Datasets clean:\n\n* **Table and column definitions to Datasets**: Business descriptions and column definitions are inherited directly into the created Datasets, so that curators and end users have the semantic context they need.\n* **Primary and foreign key relationships to Topics**: The Agent detects relationships and uses them to suggest and create multi-dataset constructs (Topics) with star and snowflake schema joins preconfigured.\n\n**Note**: While all available metadata (Gold/Silver classifications, quality scores, tags, and health scores) is used during discovery to find the right tables, inheritance into Datasets is intentionally scoped to table and column definitions today. We plan to add more metadata types to Datasets over time.\n\n> Quick Agent: “I detected 3 relationships between these tables and created a Topic called ‘Finance Revenue Model’ with the star schema joins preconfigured. Table and column definitions have been inherited from the upstream catalog.”\n\n### Immediate consumption\n\nThe curated Datasets and Topics are ready for use immediately:\n\n* **Ask questions**: Start a Q&A conversation with your new Datasets. The AI agent uses inherited business descriptions, glossary terms, and quality scores to deliver grounded answers.\n* **Create dashboards**: Build deterministic visualizations with full semantic context already in place.\n* **Share with end users**: Add Datasets to a Space and share them with business users for self-service Q&A.\n\nAfter creation, the metadata tied to these Datasets and Topics feeds into the Amazon Quick semantic store, which powers re-ranking and unified context for AI-powered Q&A. Getting from catalog connection to the first business question takes minutes, not weeks.\n\n## Architecture: Consumer, not catalog\n\nA key design principle underpins this experience: Amazon Quick is a consumer of upstream catalog metadata, not a dedicated catalog itself. This means:\n\n* **No data duplication**: Catalog-Generated Datasets use DirectQuery. No data is copied or moved.\n* **Metadata consumed for context**: Inherited semantics are read-only in Amazon Quick and flow into the semantic store to power re-ranking and AI answer grounding. Your upstream catalog remains the authoritative source.\n* **Manual semantic sync**: Authors can refresh inherited metadata on demand by choosing the sync button. Scheduled automatic sync is on the roadmap.\n* **Extensibility with transparency**: Catalog-Generated Datasets show inherited semantics as read-only (marked as catalog representations). If an Author chooses to edit a Dataset, Amazon Quick provides a clear notification that editing creates a custom Dataset and that semantic sync no longer applies. This gives Authors full control while preserving catalog integrity by default.\n\n### Supported catalogs today\n\n|  |  |\n| --- | --- |\n| **Catalog platform** | **Authentication** |\n| AWS Glue Data Catalog | AWS Identity and Access Management (IAM) Role ARN |\n| Databricks Unity Catalog | OAuth 2.0 / Personal Access Token |\n\nSupport for additional catalog platforms is coming soon.\n\n### What gets inherited\n\nMetadata inheritance is intentionally focused to keep Datasets clean and production-ready:\n\n#### Into Datasets (table and column definitions)\n\n* Table business and technical descriptions.\n* Column descriptions and display names.\n* Data types and nullability.\n* Glossary terms and synonyms.\n\n#### Into Topics (relationships)\n\n* Primary and foreign key relationships.\n* Relationship definitions and cardinality.\n* Star and snowflake schema models.\n\n## The end-user experience\n\nHere’s what this means for the business users downstream:\n\n> A sales manager asks: “What were our Q4 sales by region?”\n\nBehind the scenes, the AI agent:\n\n1. Searches Catalog-Generated Datasets using business descriptions and glossary terms.\n2. Identifies the `sales.revenue_by_product` table (Gold, 98 percent quality).\n3. Applies preconfigured joins from the Topic to combine relevant dimensions.\n4. Respects personally identifiable information (PII) masking rules from catalog metadata.\n5. Returns a grounded, trusted answer in seconds.\n\nNo manual dataset configuration required. The curator defined the context boundary once with the Quick Agent, and every end user benefits immediately.\n\n### Unified enterprise context\n\nThe Agentic Catalog Experience doesn’t exist in isolation. Combined with the broader platform capabilities of Amazon Quick (including integration with Slack, Outlook, documents, and knowledge bases), end users get the full enterprise context:\n\n* **Structured data** from catalogs through Catalog-Generated Datasets.\n* **Unstructured context** from documents, email messages, and conversations.\n* **Business rules** from glossary terms and metric definitions.\n\nThis unified context enables production-ready AI answers, grounded in your organization’s specific data and semantics.\n\n### Connecting to AWS Glue Data Catalog\n\nTo get started with the Agentic Catalog Experience, create a data source connection to your AWS Glue Data Catalog in Amazon Quick. After you establish the connection, the Quick Agent guides you through discovery, schema exploration, and Topic creation in a single conversational workflow. In this walkthrough, we connect to a Glue Data Catalog and build a Financial Analytics Topic.\n\nIn Amazon Quick, create a new data source. From the list of connection types, select **Glue Data Catalog** (available in preview), and then choose **Next**. This connection is for the metadata. With it, Amazon Quick can consume the table and column definitions and the relationships your teams have already curated in AWS Glue.\n\n![Amazon Quick new data source page with Glue Data Catalog selected from the connection types](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-1.png)\n\nFigure 1: Selecting the Glue Data Catalog connection type in Amazon Quick\n\nA Glue Data Catalog connection works together with an Amazon Athena connection. Glue provides the metadata, and Athena provides the query path to the data itself in Amazon Simple Storage Service (Amazon S3). Create the Athena data source as well, so that Amazon Quick can run queries against the underlying data. After you create both, the Data sources page shows the two entries side by side: the Glue Data Catalog source for the metadata and the Athena source for the data.\n\n![Amazon Quick Data sources page showing the Glue Data Catalog and Amazon Athena connections side by side](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-2.png)\n\nFigure 2: The Glue Data Catalog and Athena data sources listed together\n\nOpen the GDC-Demo data source detail page. Under **Data connections**, you can see the linked Athena data source that Amazon Quick uses to query the data. Choose **Explore data** to launch the Quick Agent scoped to this data source.\n\n![GDC-Demo data source detail page with the linked Athena connection and the Explore data option](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-3.png)\n\nFigure 3: Launching the Quick Agent from the data source detail page\n\nThe Quick Agent panel opens on the right side of the screen, automatically scoped to the Glue Data Catalog data source. The “Specific data” mode is selected, with “GDC-Demo” pinned as the context boundary. As a result, the Agent surfaces only metadata from this specific catalog connection.\n\n![Quick Agent panel scoped to the GDC-Demo Glue Data Catalog data source in Specific data mode](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-4.png)\n\nFigure 4: The Quick Agent scoped to a specific catalog connection\n\nAsk the Agent to explore your catalog. The Agent summarizes the available catalogs and databases at a glance, so you can quickly see what is curated in your Glue Data Catalog. For this post, we use the “fa-demo” database as our example, a Finance Analytics Demo star schema for banking analytics. This walkthrough illustrates how the feature works and is not an exact scenario, so you can apply the same steps to your own catalog.\n\n![Quick Agent summarizing the catalogs and databases available in the Glue Data Catalog](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-5.png)\n\nFigure 5: The Agent summarizing available catalogs and databases\n\nAsk the Agent to explore the fa-demo database. The Agent identifies a classic star schema with 7 tables: 2 fact tables (`fact_transactions` and `fact_loans`) and 5 dimension tables (`dim_account`, `dim_date_transactions`, `dim_date_loans`, `dim_merchant`, and `dim_txn_category`). All are stored as external tables in Amazon S3. The Agent recognizes the schema as covering customer account transactions and loan portfolios, with supporting dimensions for merchants, transaction categories, and date hierarchies.\n\n![Quick Agent describing the fa-demo star schema with two fact tables and five dimension tables](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-6.png)\n\nFigure 6: The Agent identifying the fact and dimension tables in the fa-demo database\n\nAsk the Agent to create a star schema diagram for fa-demo. The Agent analyzes the tables, identifies the primary and foreign key relationships, and presents a complete logical data model with a schema summary. It highlights that `dim_account` is the shared conformed dimension connecting both fact tables. Choose **Create datasets & Topic** to let the Agent build everything automatically.\n\n![Star schema diagram generated by the Quick Agent showing dim_account connecting both fact tables](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-7.png)\n\nFigure 7: The generated logical data model for the fa-demo schema\n\nThe Agent creates a fully configured Topic with all Datasets and relationships in place. In this example, it creates the “Financial Analytics” Topic with all seven Datasets from the fa-demo database and 6 preconfigured star schema joins. Each Dataset carries its inherited business description, and the join relationships between the fact and dimension tables are validated automatically. The Topic is immediately ready for natural language Q&A, so you can ask questions like “What is the total transaction amount by merchant category?” or “Show me delinquent loans by risk rating.”\n\n![Quick Agent showing the Financial Analytics Topic with seven Datasets and six preconfigured joins](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-8.png)\n\nFigure 8: The fully configured Financial Analytics Topic\n\nNow, let’s see how the Financial Analytics Topic created from the Glue Data Catalog works in action. With the Topic pinned as context, end users can ask questions in plain language and get grounded answers instantly. For example, a user can ask “Total transaction amount by merchant category” and the Agent returns a ranked breakdown with key highlights. The user can then follow up with “Delinquent loans by risk rating” to see a risk-level summary with insights. Because the Datasets and relationships were inherited from the catalog, every answer is backed by the trusted schema, joins, and business definitions defined upstream. This is the power of the Agentic Catalog Experience: curators define the context boundary once, and every end user can explore the data conversationally from there.\n\n![Animation of a user asking questions and the Quick Agent returning ranked answers from the Financial Analytics Topic](https://d2908q01vomqb2.cloudfront.net/artifacts/DBSBlogs/ML-21554/ML-21554-9.gif)\n\nFigure 9: Asking natural language questions against the Financial Analytics Topic\n\n### Connecting to Databricks Unity Catalog\n\nThe same experience works with Databricks Unity Catalog. Here is a quick example that shows the full flow, from configuring the connection to creating Datasets and a Topic.\n\nCreate a Databricks Unity Catalog data source, and then choose **Explore data** to launch the Quick Agent. The Agent summarizes the catalog, and with a single confirmation it creates the Datasets and a Topic with the star schema joins already configured.\n\n![Animation of creating Databricks Unity Catalog Datasets and a Topic through the Quick Agent](https://d2908q01vomqb2.cloudfront.net/artifacts/DBSBlogs/ML-21554/ML-21554-10.gif)\n\nFigure 10: Creating Datasets and a Topic from Databricks Unity Catalog\n\nAfter the Topic is ready, end users can ask complex questions that span multiple related tables. In this example, the Agent answers “Top 5 brands by revenue per region” by joining across the Topic relationships, and returns a grounded, visual result.\n\n![Animation of the Quick Agent answering a multi-table question about top brands by revenue per region](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-11.gif)\n\nFigure 11: Answering a multi-table question across Topic relationships\n\n## The result\n\nCurators deliver trusted data, full enterprise context, and production-ready AI answers and dashboards in a fraction of the time. End users get grounded answers they can trust, backed by Gold-standard data with full semantic lineage.\n\n**From weeks of manual configuration to minutes of guided conversation.**\n\n*That’s the Agentic Catalog Experience in Amazon Quick.*\n\n---\n\n## About the authors\n\n![Srikanth Baheti](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-12.png)\n\n### Srikanth Baheti\n\nSrikanth is a Senior Manager for Amazon QuickSight. He started his career as a consultant and worked for multiple private and government organizations. Later he worked for PerkinElmer Health and Sciences & eResearch Technology Inc, where he was responsible for designing and developing high traffic web applications and highly scalable and maintainable data pipelines for reporting platforms using AWS services and serverless computing.\n\n![Vignessh Baskaran](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-13.png)\n\n### Vignessh Baskaran\n\nVignessh is a Sr. Technical Product Manager in Amazon Quick, where he owns AI-powered data products for connectivity, catalog & semantics, and data preparation. He has over a decade of experience in developing large-scale data and analytics solutions. Outside of work, he enjoys watching Cricket, playing Racquetball and exploring different cuisines in Seattle.\n\n![Ashok Dasineni](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-14.png)\n\n### Ashok Dasineni\n\nAshok is a Solutions Architect for Amazon Quick Suite. Before joining AWS, Ashok worked with clients and organizations in the banking and financial domain, focusing on fraud research and prevention. He designed and implemented innovative solutions to improve business process, reduce cost, and increase revenue, helping companies around the world achieve their highest potential through data.\n\n![Salim Khan](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/31/ML-21554-15.png)\n\n### Salim Khan\n\nSalim is a Senior Worldwide Generative AI Solutions Architect for Amazon Quick at AWS. He has over 16 years of experience implementing enterprise business intelligence solutions. At AWS, Salim works with customers globally to design and implement AI-powered BI and generative AI capabilities on Amazon Quick. Prior to AWS, he worked as a BI consultant across industry verticals including Automotive, Healthcare, Entertainment, Consumer, Publishing, and Financial Services, delivering business intelligence, data warehousing, data integration, and master data management solutions.",
+      "tags": [
+        "Amazon Quick",
+        "Agentic Catalog",
+        "Text2SQL"
+      ],
+      "score": 82,
+      "summary": "AWS宣布Amazon Quick推出Agentic Catalog Experience，连接数据目录与语义元数据，提升AI驱动分析。",
+      "fetched_at": "2026-08-01T04:27:44.974202+08:00"
+    },
+    {
+      "title": "Simplify your morning with this vibe-coded schedule app.",
+      "link": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/glanceboard-gemini-flash-nano-banana/",
+      "published": "2026-08-01T03:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Glanceboard_socialshare.max-600x600.format-webp.webp)Tired of starting your morning staring at bright screens and stressful notifications? Raph, a creative technologist at Google, built a custom app called Glanceboard with…",
+      "tags": [
+        "Glanceboard",
+        "Gemini Flash",
+        "Nano Banana"
+      ],
+      "score": 72,
+      "summary": "Google创意技术专家用Gemini Flash和Nano Banana构建日程应用Glanceboard，简化早晨查看。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Glanceboard_socialshare.max-600x600.format-webp.webp",
+      "fetched_at": "2026-08-01T04:27:44.974215+08:00"
+    },
+    {
+      "title": "Qwen-UI-Agent Technical Report\n\nToward Next-Generation Real-World Centric Foundation GUI Agents\n\npap...",
+      "link": "https://x.com/_akhaliq/status/2083258008004354343",
+      "published": "2026-08-01T02:26:28+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "Qwen-UI-Agent Technical Report  \n  \nToward Next-Generation Real-World Centric Foundation GUI Agents  \n  \npaper: [huggingface.co/papers/2607.28…](https://huggingface.co/papers/2607.28227)\n\n![Tweet Image](https://pbs.twimg.com/media/HOk4CZMXcAAG4IL.jpg)\n\n💬3🔄4❤️11👀3246📊5",
+      "tags": [
+        "Qwen-UI-Agent",
+        "GUI Agent"
+      ],
+      "score": 85,
+      "summary": "AK分享Qwen-UI-Agent技术报告，提出面向真实世界的GUI代理。",
+      "fetched_at": "2026-08-01T04:27:44.974220+08:00"
+    },
+    {
+      "title": "When you notice something is AI-generated, your desire to read it drops by 100%. Tell me I’m wrong.",
+      "link": "https://x.com/aaditsh/status/2083271385447624924",
+      "published": "2026-08-01T03:19:38+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "When you notice something is AI-generated, your desire to read it drops by 100%. Tell me I’m wrong.\n\n💬2🔄0❤️8👀2757📊3",
+      "tags": [
+        "AI生成",
+        "阅读意愿"
+      ],
+      "score": 15,
+      "summary": "言论称用户识别出AI生成内容后阅读意愿下降。",
+      "fetched_at": "2026-08-01T04:27:44.974223+08:00"
+    },
+    {
+      "title": "With Outposts, Devin can natively run and test apps on any computer. \n\nLearn more: https://t.co/DE2b...",
+      "link": "https://x.com/cognition/status/2083279105038889323",
+      "published": "2026-08-01T03:50:18+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "With Outposts, Devin can natively run and test apps on any computer.   \n  \nLearn more: [devin.ai/blog/introduci…](https://devin.ai/blog/introducing-devin-outposts)\n\n💬0🔄1❤️9👀747📊2",
+      "tags": [
+        "Devin",
+        "Outposts"
+      ],
+      "score": 85,
+      "summary": "Cognition宣布Devin新增Outposts功能，可本地运行和测试应用。",
+      "fetched_at": "2026-08-01T04:27:44.974226+08:00"
+    },
+    {
+      "title": "Using Devin for native iOS development:",
+      "link": "https://x.com/cognition/status/2083276622430457973",
+      "published": "2026-08-01T03:40:26+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Using Devin for native iOS development:\n\n![nader dabit](https://pbs.twimg.com/profile_images/1951619597695672321/c1FsysWP_normal.jpg)\n\nnader dabit@dabit3\n\nYou can't build iOS apps without a Mac, so we gave Devin one.  \n  \nDevin Cloud Agents now run macOS, with Xcode, iOS simulator, and your signing setup, all in a real macOS environment (with full computer use).  \n  \nIn this demo, Devin builds a native iOS game, then plays and tests it with computer use. Devin then sends a screen recording of the gameplay along with a test report for my review.  \n  \nWith [@namespacelabs](https://x.com/namespacelabs) you get as many macOS environments as you'd like, configurable with many major versions of macOS operating system and Xcode.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082864215308546048/vid/avc1/1222x970/M8n6njYEobOplwK0.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/dabit3/status/2082868506576519560/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/dabit3/status/2082868506576519560)\n\n💬6🔄5❤️37👀5443📊9",
+      "tags": [
+        "Devin",
+        "macOS",
+        "Xcode"
+      ],
+      "score": 86,
+      "summary": "Cognition展示Devin支持原生iOS开发，可在真实macOS环境运行。",
+      "fetched_at": "2026-08-01T04:27:44.974229+08:00"
+    },
+    {
+      "title": "How it feels presenting your work",
+      "link": "https://x.com/figma/status/2083262308743299127",
+      "published": "2026-08-01T02:43:34+08:00",
+      "source": "Figma(@figma)",
+      "content": "How it feels presenting your work\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081830985394425856/vid/avc1/576x312/cvpP4Zx3FMq1gepU.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/jussawhole/status/2081830999789633542/video/1)\n\n💬6🔄5❤️54👀8043📊12",
+      "tags": [
+        "Figma",
+        "演示视频"
+      ],
+      "score": 30,
+      "summary": "Figma官方分享“演示工作感受”的视频。",
+      "fetched_at": "2026-08-01T04:27:44.974232+08:00"
+    },
+    {
+      "title": "source:",
+      "link": "https://x.com/GaryMarcus/status/2083273826457280980",
+      "published": "2026-08-01T03:29:20+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "source:\n\n![Anissa Gardizy](https://pbs.twimg.com/profile_images/1729447423024754688/YV60VKs-_normal.jpg)\n\nAnissa Gardizy@anissagardizy8\n\nThe first in-depth account of the last 48 hours inside Leopold’s Situational Awareness.  \n  \nW/ [@rudegeair](https://x.com/rudegeair)[@berber\\_jin1](https://x.com/berber_jin1)[@GZuckerman](https://x.com/GZuckerman)[wsj.com/finance/leopol…](https://www.wsj.com/finance/leopold-aschenbrenner-situational-awareness-ai-fund-597633d3)[@WSJ](https://x.com/WSJ)\n\n![Tweet Image](https://pbs.twimg.com/media/HOkz3DJbsAAtvjg.jpg)![Tweet Image](https://pbs.twimg.com/media/HOkz3DIbkAAUPli.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/anissagardizy8/status/2083253339878555863)\n\n💬0🔄1❤️0👀646",
+      "tags": [
+        "Situational Awareness",
+        "Leopold",
+        "WSJ"
+      ],
+      "score": 85,
+      "summary": "Gary Marcus转引WSJ深度报道Leopold的Situational Awareness基金近况。",
+      "fetched_at": "2026-08-01T04:27:44.974234+08:00"
+    },
+    {
+      "title": "Sentence of the day: “Aschenbrenner’s time with Bankman-Fried’s charitable arm does not appear on hi...",
+      "link": "https://x.com/GaryMarcus/status/2083273460231655905",
+      "published": "2026-08-01T03:27:52+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Sentence of the day: “Aschenbrenner’s time with Bankman-Fried’s charitable arm does not appear on his LinkedIn page, where he once listed his nearly perfect LSAT score.”   \n- [@WSJ](https://x.com/WSJ) by [@rudegeair](https://x.com/rudegeair)[@GZuckerman](https://x.com/GZuckerman)[@anissagardizy8](https://x.com/anissagardizy8)\n\n💬2🔄0❤️3👀1008📊2",
+      "tags": [
+        "Aschenbrenner",
+        "Bankman-Fried"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus引用WSJ披露Aschenbrenner在FTX慈善机构经历未列于LinkedIn。",
+      "fetched_at": "2026-08-01T04:27:44.974237+08:00"
+    },
+    {
+      "title": "Nope, there is no vaccine for stupid.",
+      "link": "https://x.com/GaryMarcus/status/2083271671872733441",
+      "published": "2026-08-01T03:20:46+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Nope, there is no vaccine for stupid.\n\n![Edward Luce](https://pbs.twimg.com/profile_images/1496252327732387843/H0VHpAXx_normal.jpg)\n\nEdward Luce@EdwardGLuce\n\nRon Johnson: Ivermectin works. Hydroxychloroquine works...  \n  \nHow I wish there were a vaccine for stupid\n\n[🔗 View Quoted Tweet](https://x.com/EdwardGLuce/status/2082458555991400801)\n\n💬2🔄1❤️3👀1484📊2",
+      "tags": [
+        "Ron Johnson",
+        "疫苗"
+      ],
+      "score": 10,
+      "summary": "Gary Marcus转发关于Ron Johnson的言论，评论“没有疫苗治愚蠢”。",
+      "fetched_at": "2026-08-01T04:27:44.974239+08:00"
+    },
+    {
+      "title": "➡️ @OpenAIDevs has reduced prices for GPT-5.6 Luna by 80% and GPT-5.6 Terra by 20%.\n\nTry them out in...",
+      "link": "https://x.com/github/status/2083261791363363273",
+      "published": "2026-08-01T02:41:30+08:00",
+      "source": "GitHub(@github)",
+      "content": "➡️ [@OpenAIDevs](https://x.com/OpenAIDevs) has reduced prices for GPT-5.6 Luna by 80% and GPT-5.6 Terra by 20%.  \n  \nTry them out in GitHub Copilot wherever you work.\n\n![GitHub](https://pbs.twimg.com/profile_images/2051404708766507008/ATxxTJXO_normal.jpg)\n\nGitHub@github\n\n📣 [@OpenAIDevs](https://x.com/OpenAIDevs)'s GPT-5.6 family is now generally available and rolling out in GitHub Copilot.  \n  \nGPT-5.6 comes in three variants:  \n☀️ GPT-5.6 Sol: the highest reasoning ceiling in the family. Best for complex reasoning over large codebases and demanding, long-running agentic work.  \n  \n🌎 GPT-5.6 Terra: the balanced default. A strong all-round choice for everyday interactive and agentic coding.  \n  \n🌕 GPT-5.6 Luna: a lightweight, cost-efficient variant for smaller, faster tasks and the lowest-cost option in the family.  \n  \nTry one, two, or them all in [@code](https://x.com/code) or the GitHub Copilot ap[github.blog/changelog/2026…](https://github.blog/changelog/2026-07-09-openais-gpt-5-6-sol-terra-and-luna-are-now-available-in-github-copilot/)P6z\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2075274758032146432/vid/avc1/1280x720/9_sZjD00LpAQtbBL.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/github/status/2075274864110293060/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/github/status/2075274864110293060)\n\n💬8🔄4❤️63👀13546📊9",
+      "tags": [
+        "GPT-5.6",
+        "降价",
+        "GitHub Copilot"
+      ],
+      "score": 85,
+      "summary": "GitHub宣布GPT-5.6 Luna降价80%、Terra降价20%，并已在Copilot提供。",
+      "fetched_at": "2026-08-01T04:27:44.974242+08:00"
+    },
+    {
+      "title": "jevon's paradox at work",
+      "link": "https://x.com/gdb/status/2083259782891475431",
+      "published": "2026-08-01T02:33:31+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "jevon's paradox at work\n\n![Greg Kamradt](https://pbs.twimg.com/profile_images/1467896309453570052/BGy5XYVQ_normal.jpg)\n\nGreg Kamradt@GregKamradt\n\nI had a gnarly research project I needed done - 78K different classifications  \n  \nI let GPT-5.6 Luna run over night, batch mode ($.10/M input!)  \n  \n158K requests, 143M input tokens ended up being $60  \n  \nYou don't have enough tokens working for you\n\n[🔗 View Quoted Tweet](https://x.com/GregKamradt/status/2083228765594018157)\n\n💬28🔄8❤️243👀35234📊34",
+      "tags": [
+        "GPT-5.6",
+        "成本",
+        "Jevons悖论"
+      ],
+      "score": 80,
+      "summary": "Greg Brockman评论GPT-5.6 Luna批量处理158K请求仅60美元，显现杰文斯悖论。",
+      "fetched_at": "2026-08-01T04:27:44.974245+08:00"
+    },
+    {
+      "title": "Happy to partner with @trufflesec to help them perform the largest secret scan of AI training data e...",
+      "link": "https://x.com/julien_c/status/2083279558095077852",
+      "published": "2026-08-01T03:52:06+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Happy to partner with [@trufflesec](https://x.com/trufflesec) to help them perform the largest secret scan of AI training data ever 🙏\n\n![Truffle Security](https://pbs.twimg.com/profile_images/1290168433577848832/8hy64As5_normal.jpg)\n\nTruffle Security@trufflesec\n\nWe scanned HuggingFace. 👇👇👇  \n  \nThis was the largest secret scan of AI training data ever: 7.6 PB. 🔑🔑🔑🔑🔑🔑🔑🔑🔑  \n  \n🔍Found 221,303 live unique credentials in 6,003 public datasets  \n  \n☁️Cloud keys, live DBs, API keys worth ~$920K/yr.  \n  \n⚠️Training data has no undo: one key hit 1,131[trufflesecurity.com/blog/scanning-…](https://trufflesecurity.com/blog/scanning-7-6-petabytes-of-ai-training-data-for-secrets).co/H3Njla3uSB\n\n![Tweet Image](https://pbs.twimg.com/media/HOkZTnUa8AA5NV_.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/trufflesec/status/2083225136589840424)\n\n💬1🔄0❤️5👀626📊2",
+      "tags": [
+        "HuggingFace",
+        "Truffle Security",
+        "训练数据"
+      ],
+      "score": 85,
+      "summary": "Hugging Face与Truffle Security合作扫描7.6 PB AI训练数据，发现22万凭据。",
+      "fetched_at": "2026-08-01T04:27:44.974248+08:00"
+    },
+    {
+      "title": "I couldn't find this creator on X, but will link his profile + the full video on Rednote below.\n\nExc...",
+      "link": "https://x.com/venturetwins/status/2083263919842578642",
+      "published": "2026-08-01T02:49:58+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "I couldn't find this creator on X, but will link his profile + the full video on Rednote below.  \n  \nExcited to see a bunch of the newest video models have enabled video-to-video as a feature - like FLUX 3 and Google Omni.  \n  \nEditing wil drive massive value.  \n  \n[xiaohongshu.com/user/profile/5…](https://www.xiaohongshu.com/user/profile/5e05e86800000000010090bd)\n\n💬0🔄1❤️7👀719📊1",
+      "tags": [
+        "FLUX 3",
+        "Google Omni",
+        "视频编辑"
+      ],
+      "score": 70,
+      "summary": "Justine Moore看好视频到视频编辑，提及FLUX 3和Google Omni。",
+      "fetched_at": "2026-08-01T04:27:44.974251+08:00"
+    },
+    {
+      "title": "Editing is so underrated as a feature of generative video models. \n\nThis is a great example from See...",
+      "link": "https://x.com/venturetwins/status/2083263263899574475",
+      "published": "2026-08-01T02:47:21+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Editing is so underrated as a feature of generative video models.   \n  \nThis is a great example from Seedance 2.5 - replicating a Timberland ad exactly and just swapping out the shoes.  \n  \nImagine the use cases here in advertising and even post-production - no more reshoots needed!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083261144463278080/vid/avc1/1280x720/8AcEceJObvHs645H.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2083263263899574475/video/1)\n\n💬5🔄4❤️43👀2898📊10",
+      "tags": [
+        "Seedance 2.5",
+        "视频编辑",
+        "广告"
+      ],
+      "score": 75,
+      "summary": "Justine Moore展示Seedance 2.5能精确复刻广告并替换商品的视频编辑能力。",
+      "fetched_at": "2026-08-01T04:27:44.974253+08:00"
+    },
+    {
+      "title": "In 15 minutes, Robert Xu from the LangChain team breaks down: \n✅ What Deep Agents actually are \n✅ Ho...",
+      "link": "https://x.com/LangChain/status/2083266449238618486",
+      "published": "2026-08-01T03:00:01+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "In 15 minutes, Robert Xu from the LangChain team breaks down:   \n✅ What Deep Agents actually are   \n✅ How the \"harness\" concept fits into the model + harness equation  \n✅ How Deep Agents relate to LangChain and LangGraph  \n✅ How to move Deep Agents into production\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082864604091215872/vid/avc1/1920x1080/SO7pbko2_A-Kps4g.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2083266449238618486/video/1)\n\n💬1🔄2❤️13👀2308📊4",
+      "tags": [
+        "LangChain",
+        "Deep Agents"
+      ],
+      "score": 75,
+      "summary": "LangChain视频解析Deep Agents的核心概念及生产应用。",
+      "fetched_at": "2026-08-01T04:27:44.974256+08:00"
+    },
+    {
+      "title": "Excited to announce that the man the myth the legend @karrisaarinen will be speaking at Lenny &amp; ...",
+      "link": "https://x.com/lennysan/status/2083262056283967872",
+      "published": "2026-08-01T02:42:34+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Excited to announce that the man the myth the legend [@karrisaarinen](https://x.com/karrisaarinen) will be speaking at Lenny & Friends Summit  \n  \nSee full lineup here: <https://t.co/WNxqQRyGYC>\n\n![Tweet Image](https://pbs.twimg.com/media/HOk7c1vbIAAqxCd.jpg)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nThe Lenny and Friends Summit returns on Thursday, September 10, in San Francisco\n\n![Tweet Image](https://pbs.twimg.com/media/HIserfba4AAXR6K.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2056771689456001363)\n\n💬1🔄0❤️13👀3535📊2",
+      "tags": [
+        "Lenny & Friends",
+        "Karrisa Arinen"
+      ],
+      "score": 50,
+      "summary": "Lenny宣布Karrisa Arinen将出席Lenny & Friends峰会。",
+      "fetched_at": "2026-08-01T04:27:44.974258+08:00"
+    },
+    {
+      "title": "You can find the paper, dataset and code here: https://t.co/MC8cfyNnvx",
+      "link": "https://x.com/NVIDIAAI/status/2083258626291171452",
+      "published": "2026-08-01T02:28:56+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "You can find the paper, dataset and code here: [nvidia.github.io/Spatial-IQ/](https://nvidia.github.io/Spatial-IQ/)\n\n![Tweet Image](https://pbs.twimg.com/media/HOk4rHGb0AAw13K.jpg)\n\n💬0🔄1❤️4👀1612📊1",
+      "tags": [
+        "Spatial-IQ",
+        "论文",
+        "代码"
+      ],
+      "score": 65,
+      "summary": "NVIDIA AI提供Spatial-IQ论文、数据集和代码链接。",
+      "fetched_at": "2026-08-01T04:27:44.974261+08:00"
+    },
+    {
+      "title": "Humans count the boxes in this image, hidden ones included, with 82.1% accuracy. The best off-the-sh...",
+      "link": "https://x.com/NVIDIAAI/status/2083258269875798275",
+      "published": "2026-08-01T02:27:31+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Humans count the boxes in this image, hidden ones included, with 82.1% accuracy. The best off-the-shelf multimodal model manages 17.7%.  \n  \nSpatial-IQ is a diagnostic benchmark from NVIDIA Research that breaks 3D object counting into nine perceptual and cognitive sub-tasks, from counting columns to inferring the blocks that must be underneath to hold the structure up, and scores each one separately. Training on those sub-tasks lifted Qwen2.5-VL-32B object-counting accuracy from 2.9% to 62.6%.  \n  \nFor researchers developing multimodal reasoning systems, this creates a practical loop: identify where spatial reasoning fails, target the missing capability, and verify that improvement reflects composition, not just a better final score.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HOk4WwWXIAAuWPG.jpg)](https://video.twimg.com/tweet_video/HOk4WwWXIAAuWPG.mp4)\n\n💬10🔄4❤️40👀4079📊14",
+      "tags": [
+        "Spatial-IQ",
+        "空间推理",
+        "Qwen2.5-VL"
+      ],
+      "score": 85,
+      "summary": "NVIDIA发布Spatial-IQ基准，人类3D计数准确率82.1%，最强多模态模型仅17.7%。",
+      "fetched_at": "2026-08-01T04:27:44.974264+08:00"
+    },
+    {
+      "title": "\"We might as well, because it probably won't be that hard.\"\n\n— Patrick Collison on why he and John s...",
+      "link": "https://x.com/paulg/status/2083272479586263184",
+      "published": "2026-08-01T03:23:59+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "\"We might as well, because it probably won't be that hard.\"  \n  \n— Patrick Collison on why he and John started Stripe\n\n💬33🔄9❤️284👀16525📊50",
+      "tags": [
+        "Patrick Collison",
+        "Stripe"
+      ],
+      "score": 40,
+      "summary": "Paul Graham引用Patrick Collison创立Stripe的动机。",
+      "fetched_at": "2026-08-01T04:27:44.974266+08:00"
+    },
+    {
+      "title": "坐过，连这个位子的地板，我在3-5岁的时候都睡过。后来我只有一个疑问：这个椅子是哪个没脑子的设计的，90度的直角！",
+      "link": "https://x.com/feltanimalworld/status/2083269497943662988",
+      "published": "2026-08-01T03:12:08+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "坐过，连这个位子的地板，我在3-5岁的时候都睡过。后来我只有一个疑问：这个椅子是哪个没脑子的设计的，90度的直角！\n\n![朱韵和](https://pbs.twimg.com/profile_images/633313799383060480/3SqyD6-x_normal.png)\n\n朱韵和@zhu0588\n\n这幅画作是清华大学美术学院雕塑系林金福的作品，题为《在火车上》（On the Train），创作于2009年。  \n大人们都在昏睡，只有不谙世事的孩子，还清醒地看着这个世界。\n\n![Tweet Image](https://pbs.twimg.com/media/HOgmNACbMAAjsT2.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/zhu0588/status/2082957158040383702)\n\n💬5🔄0❤️1👀439📊4",
+      "tags": [
+        "火车",
+        "椅子"
+      ],
+      "score": 10,
+      "summary": "网友吐槽火车座位设计成90度直角，不舒适。",
+      "fetched_at": "2026-08-01T04:27:44.974269+08:00"
+    },
+    {
+      "title": "Tune in: https://t.co/H6CNlvbWu7\n\nFull transcript: https://t.co/jO98yuS1hz",
+      "link": "https://x.com/ycombinator/status/2083271694979141942",
+      "published": "2026-08-01T03:20:52+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Tune in: [youtu.be/5d6y3poKwK4](https://youtu.be/5d6y3poKwK4)  \n  \nFull transcript: [ycrootaccess.com/p/patrick-coll…](https://www.ycrootaccess.com/p/patrick-collison-what-if-you-succeed)\n\n![Tweet Image](https://pbs.twimg.com/media/HOk_Xz6a0AA_ZH-.jpg)\n\n💬0🔄0❤️1👀1124📊1",
+      "tags": [
+        "YC",
+        "Patrick Collison"
+      ],
+      "score": 70,
+      "summary": "YC分享Patrick Collison访谈视频和完整文字记录。",
+      "fetched_at": "2026-08-01T04:27:44.974271+08:00"
+    },
+    {
+      "title": "In 2009, @patrickc and @collision went to Startup School in Berkeley, got sushi in Potrero Hill afte...",
+      "link": "https://x.com/ycombinator/status/2083271691841765734",
+      "published": "2026-08-01T03:20:51+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "In 2009, [@patrickc](https://x.com/patrickc) and [@collision](https://x.com/collision) went to Startup School in Berkeley, got sushi in Potrero Hill afterward, and decided on the walk home to start [@Stripe](https://x.com/Stripe). The reasoning, as Patrick remembers it, was that “we might as well because it probably won’t be that hard.”  \n  \nIt took them two years to launch.  \n  \nSeventeen years later, at Startup School 2026, he talks with YC's [@harjtaggar](https://x.com/harjtaggar) about dropping out of MIT twice, why founders should ask what happens if they succeed, and what Stripe’s own data says about the best time to start a company.  \n  \n00:07 — What Should You Still Learn in the Age of AI?  \n02:01 — Knowledge Still Matters  \n05:12 — Should You Drop Out of College?  \n09:58 — Why Stripe Worked  \n12:10 — Building Stripe Before Launching  \n17:20 — Is the Lean Startup Still the Right Playbook?  \n19:07 — The Hidden Reward of Building Stripe  \n22:36 — Will AI Kill Your Startup?  \n25:17 — Why It's Never Been a Better Time to Start a Company  \n29:23 — What Stripe's Data Says About the AI Economy  \n30:45 — Build Something People Truly Need\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083265414671532032/vid/avc1/3840x2160/0y4xO-tPwCxvnzYb.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2083271691841765734/video/1)\n\n💬4🔄3❤️16👀4067📊6",
+      "tags": [
+        "Stripe",
+        "YC",
+        "AI经济"
+      ],
+      "score": 70,
+      "summary": "YC回顾Stripe创立历程，并分享Patrick Collison关于AI经济与创业的访谈要点。",
+      "fetched_at": "2026-08-01T04:27:44.974274+08:00"
+    },
+    {
+      "title": "FDE应该是两个角色\n一个E一个I\n不然脑袋会打架的",
+      "link": "https://x.com/yangyi/status/2083263229275549716",
+      "published": "2026-08-01T02:47:13+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "FDE应该是两个角色  \n一个E一个I  \n不然脑袋会打架的\n\n💬2🔄0❤️0👀439📊2",
+      "tags": [
+        "FDE"
+      ],
+      "score": 20,
+      "summary": "有网友认为FDE应分设两个角色，避免思维冲突。",
+      "fetched_at": "2026-08-01T04:27:44.974277+08:00"
+    },
+    {
+      "title": "You can just do things.",
+      "link": "https://x.com/a16z/status/2083266546391253030",
+      "published": "2026-08-01T03:00:24+08:00",
+      "source": "a16z(@a16z)",
+      "content": "You can just do things.\n\n![Tweet Image](https://pbs.twimg.com/media/HOk_4lzaYAArtdA.png)\n\n💬7🔄13❤️80👀6385📊17",
+      "tags": [
+        "a16z"
+      ],
+      "score": 30,
+      "summary": "a16z发布“Just do things”的激励性推文。",
+      "fetched_at": "2026-08-01T04:27:44.974279+08:00"
+    },
+    {
+      "title": "GPT-5.6 Sol (xHigh), Luna (xHigh) and Terra (xHigh) scores for Document, Vision and Text are also in...",
+      "link": "https://x.com/arena/status/2083263682000420892",
+      "published": "2026-08-01T02:49:01+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "GPT-5.6 Sol (xHigh), Luna (xHigh) and Terra (xHigh) scores for Document, Vision and Text are also in:   \n- Document Arena: Sol is #11, Terra is #10, and Luna is #18.   \n- Vision Arena: Sol is #14, Terra is #25, and Luna is #40.   \n- Text Arena: Sol is #13, Terra is #34, and Luna is #56.   \n  \nSee all leaderboards at: [arena.ai/leaderboard/](https://arena.ai/leaderboard/)\n\n💬1🔄0❤️6👀1891📊2",
+      "tags": [
+        "GPT-5.6",
+        "LMArena",
+        "排行榜"
+      ],
+      "score": 85,
+      "summary": "LMArena公布GPT-5.6系列在文档、视觉、文本竞技场的得分排名。",
+      "fetched_at": "2026-08-01T04:27:44.974282+08:00"
+    },
+    {
+      "title": "Fullstack Code Arena scores for GPT-5.6 Sol, Terra  and Luna by @OpenAI are here.\n\n- Sol (xHigh) is ...",
+      "link": "https://x.com/arena/status/2083263678435238059",
+      "published": "2026-08-01T02:49:00+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Fullstack Code Arena scores for GPT-5.6 Sol, Terra and Luna by [@OpenAI](https://x.com/OpenAI) are here.  \n  \n- Sol (xHigh) is #3 in Fullstack (1638 pts), and #5 overall (1623 pts)  \n- Terra (xHigh) is #10 in Fullstack (1579 pts), and #20 overall (1522 pts)  \n- Luna (xHigh) is #14 in Fullstack (1568 pts), and #18 overall (1525 pts)  \n  \nOpus 5 (Max) is coming to the Fullstack leaderboard very soon. Stay tuned.\n\n![Tweet Image](https://pbs.twimg.com/media/HOk7rnCboAAM9VP.jpg)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nSol, Terra, and Luna, our GPT‑5.6 family of models, are starting to roll out now in ChatGPT, Codex, and the API.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2075270581357080576/vid/avc1/3840x2160/L35nsf8FUU5q4qVR.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/OpenAI/status/2075271421149020426/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2075271421149020426)\n\n💬17🔄15❤️215👀20379📊31",
+      "tags": [
+        "GPT-5.6",
+        "Fullstack",
+        "LMArena"
+      ],
+      "score": 85,
+      "summary": "LMArena公布GPT-5.6在Fullstack Code Arena中Sol排名第3。",
+      "fetched_at": "2026-08-01T04:27:44.974284+08:00"
     }
   ]
 }
