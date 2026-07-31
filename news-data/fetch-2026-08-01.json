@@ -1,0 +1,708 @@
+{
+  "meta": {
+    "date": "2026-08-01"
+  },
+  "entries": [
+    {
+      "title": "Optimizing production agents with Amazon Bedrock AgentCore Observability",
+      "link": "https://aws.amazon.com/blogs/machine-learning/optimizing-production-agents-with-amazon-bedrock-agentcore-observability/",
+      "published": "2026-07-31T23:33:11+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "As your AI agents move from prototype to production, the challenges shift from getting them to work to keeping them fast and efficient. In [Part 1](https://aws.amazon.com/blogs/machine-learning/debugging-production-agents-with-amazon-bedrock-agentcore-observability/) of this series, we walked through debugging two common agent failures: infinite loops and tool invocation errors. Those scenarios dealt with agents that were broken. In this post, we tackle a different challenge: agents that work correctly but perform poorly. Slow response times and unbounded memory growth are the most common operational issues that surface after you resolve the initial debugging problems. They don’t trigger error alerts, but they erode user trust and increase costs over time.\n\nUsing [AgentCore Observability](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html), a capability of Amazon Bedrock AgentCore, and [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/), you will learn how to identify performance bottlenecks across your agent’s execution path and diagnose memory issues in long-running sessions. You will also implement monitoring practices that catch degradation before users notice it. For additional information and best practices, review [AgentCore Evaluations](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations.html), a capability of Amazon Bedrock AgentCore, and [AgentCore Insights](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/insights.html).\n\n# Prerequisites\n\nYou need an AWS account with Amazon Bedrock AgentCore access, CloudWatch Transaction Search enabled, and a deployed agent. See Part 1 for full setup details.\n\n## Scenario 3: Performance bottlenecks\n\nAgents experience performance bottlenecks when they work correctly but respond too slowly. You expect sub-second responses but experience multi-second delays. Agents complete tasks successfully, but the latency makes them impractical for interactive use cases. This scenario is particularly challenging because *slow* is subjective. What’s acceptable for a batch processing agent is unacceptable for a customer service chatbot. You must establish performance budgets for your specific use case, then systematically identify which components violate those budgets.\n\n### Symptoms to watch for\n\nPerformance degradation often manifests gradually. Agents might start with acceptable 2-second response times, but as you add features, integrate more tools, or accumulate more memory, latency creeps to 5 seconds, then 10, then becomes unusable. P95 response times exceed your thresholds, users abandon sessions, but error rates stay low. The agent works correctly but responds too slowly.\n\n![CloudWatch session view showing three agent invocations with high 7.5-8.2 second span latency](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20467-1.png)\n\n*Figure 1 — Session details showing multiple traces with consistently high latency. The three invocations took 7.5-8.2 seconds (average span latency), demonstrating a systemic performance bottleneck rather than occasional slowness. This pattern indicates the agent’s architecture needs optimization.*\n\nTo find bottlenecks, start by identifying high-latency requests. Query CloudWatch for agent invocations that exceed your performance budget:\n\n```\nfields @timestamp, RequestId, Latency\n| filter Operation like /InvokeAgent/\n| filter Latency > 3000\n| sort Latency desc\n| limit 50\n```\n\nThis query returns agent invocations that took longer than 3 seconds (adjust the threshold based on your requirements), sorted by latency. Pick a representative high-latency request and note its `RequestId`.\n\nNext, analyze the request timeline to understand where time is spent:\n\n```\nfields @timestamp, Operation, Duration, SpanName\n| filter RequestId = \"<RequestId>\"\n| sort @timestamp asc\n```\n\nThe query shows you the sequence of operations within the request and how long each took. Look for operations that consume disproportionate time. Common culprits include memory retrieval operations, tool invocations, token generation, and sequential operations that could run in parallel.\n\n![OpenTelemetry trace timeline with 17 spans across three sequential tool-execution cycles](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20467-2.png)\n\n*Figure 2 — OpenTelemetry trace timeline showing 17 spans across three sequential execute\\_event\\_loop\\_cycle operations. The tools (customer\\_lookup, order\\_history) execute one after another rather than in parallel, with each cycle waiting for the previous one to complete. This sequential pattern compounds latency across each tool invocation.*\n\nCheck memory retrieval latency specifically:\n\n```\nfields @timestamp, MemoryRetrievalLatency, MemoryNamespace\n| filter RequestId = \"<RequestId>\"\n| stats avg(MemoryRetrievalLatency), max(MemoryRetrievalLatency) by MemoryNamespace\n```\n\nMemory retrieval should complete in under 200 milliseconds, representing the point where users begin perceiving noticeable delays in interactive applications. Higher latency suggests inefficient memory organization.\n\nExamine tool invocation latency to identify slow integrations:\n\n```\nfields @timestamp, ToolName, ToolLatency\n| filter RequestId = \"<RequestId>\"\n| sort ToolLatency desc\n```\n\nThe query identifies which tools contribute most to overall latency. A single slow tool can bottleneck the entire agent workflow.\n\n### Root cause analysis\n\nPerformance bottlenecks typically stem from three root causes. *Slow tool execution* occurs when external tools take seconds to respond because of poor optimization, overload, or network issues. Latencies compound with sequential calls, so a 2-second tool called three times becomes a 6-second bottleneck. *Excessive token generation* is a factor because foundation models (FMs) produce tokens sequentially, meaning a 500-token response takes 5x longer than a 100-token one, impacting both latency and cost. Finally, *sequential processing*, performing independent operations one at a time instead of in parallel, increases both cost and compute times.\n\n### The fix\n\nFor slow tool execution, implement caching, connection pooling, and proper database indexing to reduce response times. Set timeout limits and consider faster tool alternatives. If a tool consistently lags, profile it independently. The issue might be network latency, cold starts, or resource contention rather than the tool’s logic itself.\n\nFor memory retrieval, replace single large namespaces with topic-specific partitions, such as preferences, history, and domain knowledge, to reduce search space. Summarize old conversations into compact entries rather than storing them verbatim, and set size limits per namespace, such as 100 preferences, 50 recent messages, or 500 domain facts.\n\nFor token generation, optimize prompts to encourage brief, direct answers of 2–3 sentences unless more detail is requested. Add explicit length constraints and monitor token usage with alerts for unexpectedly long responses.\n\nFor sequential processing, run independent tool calls in parallel. Sequential calls totaling 4.5s (2s + 1.5s + 1s) drop to only 2s when parallelized, often cutting latency by 50 percent or more with minimal effort. To verify your optimizations, re-run the latency query from the identifying bottlenecks section. Confirm that P95 response times now fall within your performance budget and that the trace timeline shows parallel execution where expected.\n\n## Scenario 4: Memory issues in long-running sessions\n\nAgents experience memory issues in long-running sessions when they maintain sessions where memory usage grows unbounded. Agents accumulate context, and eventually, agents hit token limits, lose important context, or exhaust available memory. Sessions fail unexpectedly, and you lose conversation state. This scenario is particularly problematic for agents that support extended workflows, such as customer service sessions, research assistants, or monitoring agents. Without proper memory management, these use cases become impractical.\n\n### Symptoms to watch for\n\nWhen abnormally long agent sessions exist, token usage grows linearly with session duration. Memory retrieval latency increases over time as memory stores grow. Sessions terminate unexpectedly with out-of-memory errors or context window exceeded errors.\n\n![Session details showing 6 traces and 15.7K tokens, with token usage rising each invocation](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20467-3.png)\n\n*Figure 3 — Session details for the memorygrowth\\_Agent showing 6 traces, 15.7K total tokens consumed, and an average trace latency of 3,757 ms within a single session. Token usage grows with each successive invocation, demonstrating unbounded context accumulation. In production sessions spanning hours, this pattern leads to context window exhaustion and unexpected session failures.*\n\nTo identify long-running sessions with high memory usage:\n\n```\nfields @timestamp, SessionId, SessionDuration, MemorySize, TokenUsage\n| filter SessionDuration > 3600\n| sort MemorySize desc\n| limit 20\n```\n\nThe query returns sessions lasting longer than one hour (3600 seconds), sorted by memory size. Pick a session with unusually high memory usage and note its `SessionId`.\n\nExamine memory extraction patterns to verify consolidation is occurring:\n\n```\nfields @timestamp, MemoryExtractionStatus, MemoryExtractionLatency, MemoriesExtracted\n| filter SessionId = \"<SessionId>\"\n| sort @timestamp asc\n```\n\n![CloudWatch Logs Insights showing 209 memory log entries spiking around 18:20 without consolidation](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20467-4.png)\n\n*Figure 4 — CloudWatch Logs Insights showing 209 memory-related log entries concentrated around 18:20. The spike in memory operations indicates the agent storing information without consolidation. Each invocation adds new memory entries (through add\\_conversation\\_note and add\\_user\\_context tools) without pruning or summarizing old data, demonstrating the unbounded growth pattern.*\n\nMemory extraction should occur regularly throughout the session. If you see gaps where no extraction happens for extended periods, the agent isn’t consolidating memories properly.\n\nCheck for memory extraction failures:\n\n```\nfields @timestamp, ErrorMessage, MemoryExtractionStatus\n| filter SessionId = \"<SessionId>\"\n| filter MemoryExtractionStatus = \"Failed\"\n```\n\nFailed memory extraction stops agents from consolidating context, causing unbounded growth. Common failure reasons include token limits exceeded during summarization, invalid memory formats that can’t be processed, network timeouts when writing to memory storage, and permission errors that block memory updates.\n\nAnalyze memory namespace organization:\n\n```\nfields @timestamp, MemoryNamespace, MemoryCount, MemorySize\n| filter SessionId = \"<SessionId>\"\n| stats sum(MemoryCount) as TotalMemories, sum(MemorySize) as TotalSize by MemoryNamespace\n| sort TotalSize desc\n```\n\nMemories are distributed across namespaces. Poor namespace organization can lead to inefficient memory retrieval and consolidation. If you see a single namespace containing thousands of memories, that’s a red flag indicating your agent needs [better memory organization](https://aws.amazon.com/blogs/machine-learning/organizing-agents-memory-at-scale-namespace-design-patterns-in-agentcore-memory/).\n\n### Root cause analysis\n\nMemory issues typically stem from misconfigured settings, filter on inbuilt datetime metadata of the record. For a deeper understanding of how AgentCore memory works, see [AgentCore memory](https://aws.amazon.com/blogs/machine-learning/amazon-bedrock-agentcore-memory-building-context-aware-agents/).\n\n### The fix\n\nTo resolve memory issues, verify your memory strategies include a consolidation configuration so AgentCore memory merges and summarizes records over time rather than accumulating them indefinitely. Organize records using namespace templates in your strategy definitions to make sure retrieval stays scoped to relevant context. Set `eventExpiryDuration` to control how long raw events persist (between 7–365 days). For implementation details, see [AgentCore memory implementation](https://aws.amazon.com/blogs/machine-learning/amazon-bedrock-agentcore-memory-building-context-aware-agents/).\n\n# Production best practices\n\nHaving covered the four failure scenarios across both parts, we now turn to production best practices that stop these issues before they occur. The troubleshooting workflows we’ve covered help you respond when things go wrong, but a well-architected observability strategy helps you proactively catch issues. The integration of AgentCore with CloudWatch provides the foundation for this proactive approach, giving you real-time visibility into agent health and performance.\n\nTurn on comprehensive instrumentation for production agents, memory systems, and gateways. Configure CloudWatch logs, CloudWatch metrics, and OpenTelemetry traces.\n\nConfigure CloudWatch alarms for critical metrics. Set thresholds for error rates (5 percent), 95th percentile (P95) latency (3 seconds), and token usage per session. Don’t wait for users to report problems. Let CloudWatch alert you when metrics exceed acceptable thresholds.\n\nCreate operational dashboards. Build a primary dashboard showing total invocations (last 24 hours), error rate (current compared to baseline), P50/P95/P99 latency, token usage trends, and active sessions count. Create per-agent dashboards showing agent-specific invocation patterns, tool usage breakdown, memory consumption trends, error types distribution, and cost per session. Review these dashboards daily to spot trends before they become problems.\n\nInvest in observability infrastructure before you need it. Build monitoring into your development process from day one. Share dashboards with product managers and stakeholders so everyone understands agent performance. When someone diagnoses a tricky production issue, share the approach with the team to build institutional knowledge about common failure patterns.\n\nTo monitor tool accuracy at scale, you can use Amazon Bedrock [AgentCore Evaluators](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluators.html) to continuously and automatically assess agent behavior. Instead of manually reviewing traces after failures occur, Evaluators inspect agent sessions in real time, scoring them against predefined quality criteria. Amazon Bedrock [AgentCore Insights (preview)](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/insights.html) builds off Evaluators and provides triage analysis. Insights can provide failure analysis, user intent extraction, and execution summary.\n\n# Cleaning up\n\nAfter testing the optimization techniques in this post, clean up resources to avoid unnecessary charges.\n\nFor CloudWatch resources, delete test CloudWatch dashboards created during debugging, remove CloudWatch alarms set up for testing purposes, and consider archiving or deleting old CloudWatch log groups if no longer needed.\n\nFor AgentCore resources, if you created test agents specifically for this tutorial, delete them through the [AgentCore console](https://console.aws.amazon.com/bedrock/). Remove any test memory namespaces created during memory optimization testing. Delete any temporary tool integrations used for performance testing.\n\nFor cost optimization, review your Amazon CloudWatch Logs retention settings and adjust based on your compliance requirements. Consider using CloudWatch Logs data protection to cut storage costs for older logs.\n\nTo delete CloudWatch log groups:\n\n```\naws logs delete-log-group --log-group-name /aws/bedrock-agentcore/your-agent-name\n```\n\nTo remove CloudWatch alarms:\n\n```\naws cloudwatch delete-alarms --alarm-names your-alarm-name\n```\n\n# Conclusion\n\nPerformance bottlenecks and memory issues represent the most common operational challenges for production agents beyond the debugging scenarios covered in Part 1. With systematic diagnosis using CloudWatch traces and metrics, you can identify whether latency stems from slow tools, inefficient memory retrieval, excessive token generation, or sequential processing. For long-running sessions, monitoring memory growth patterns and implementing consolidation strategies keeps agents stable over extended interactions.\n\n### Next steps\n\nReady to put these techniques into practice? Start by turning on AgentCore Observability for your production agents if you haven’t already. This one-time setup provides the foundation for everything we’ve covered. Set up CloudWatch alarms for critical metrics. Create troubleshooting runbooks for your specific agents and workflows, documenting the queries you run, the thresholds that indicate problems, and the fixes you implement.\n\nPractice debugging in non-production environments. Deliberately introduce failures and practice diagnosing them using the workflows we’ve covered. Build muscle memory for troubleshooting before you need it in production. Share this knowledge with your team to help confirm everyone who operates your agents understands these debugging techniques and knows how to use the observability features of AgentCore.\n\nProduction agents often fail for preventable reasons. With the right observability tools, systematic troubleshooting approaches, and a culture that treats every issue as a chance to improve, you can catch problems early, resolve them quickly, and build agents that earn lasting trust.\n\n### Learn more\n\nFor more information about AgentCore and observability features, visit the [AgentCore documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability-configure.html). To get started with AgentCore, visit the [AgentCore console](https://console.aws.amazon.com/bedrock/). For additional CloudWatch monitoring best practices, see the [CloudWatch User Guide](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/).\n\n---\n\n## About the authors\n\n![Joshua Lacy](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20467-5.jpeg)\n\n### Joshua Lacy\n\nJoshua is a Solutions Architect at AWS in the Commercial Sector, supporting ISV customers. He has a passion for helping builders integrate AI into production applications and designing architectures that scale securely across multi-tenant environments. He specializes in agentic AI, Amazon Bedrock AgentCore, and generative AI application development.\n\n![Jenny Shen](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20467-6.png)\n\n### Jenny Shen\n\nJenny is a Solutions Architect at AWS in the Telecom, Media and Entertainment space. She has a passion for helping customers build production-ready systems and finding ways to simplify how teams operate their cloud workloads. She specializes in CloudOps and AI/ML transformations.",
+      "tags": [
+        "AgentCore",
+        "可观测性",
+        "性能优化"
+      ],
+      "score": 82,
+      "summary": "AWS官方博客介绍用AgentCore Observability和CloudWatch诊断生产Agent性能瓶颈与内存问题。",
+      "fetched_at": "2026-08-01T00:08:20.928614+08:00"
+    },
+    {
+      "title": "Hiring: Part Time Instructor, Write Production Grade Code with AI",
+      "link": "https://blog.bytebytego.com/p/hiring-part-time-instructor-write",
+      "published": "2026-07-31T23:01:37+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "We’re hiring a part-time instructor for “𝐖𝐫𝐢𝐭𝐞 𝐏𝐫𝐨𝐝𝐮𝐜𝐭𝐢𝐨𝐧 𝐆𝐫𝐚𝐝𝐞 𝐂𝐨𝐝𝐞 𝐰𝐢𝐭𝐡 𝐀𝐈”. This is a live, cohort-based course for software engineers.\n\nThis course is about teaching engineers how to reliably ship production-grade software with coding agents. Students will learn how to delegate real work to coding agents, write specs and plans that agents can execute, and verify, review, and secure the code that comes back.\n\nYou’ll help refine the curriculum, teach live sessions, answer student questions, and share practical lessons from your own experience building software with AI. The initial onboarding requires some preparation, but after that the commitment is approximately 2 to 10 hours every two weeks. This is a flexible opportunity that fits alongside a full time engineering role. **Compensation is competitive and based on experience.**\n\nYou’re a great fit if you:\n\n* Are excited about helping engineering teams avoid AI slop\n* 5+ years of professional software engineering experience building production systems\n* Use AI coding agents such as Claude Code, Codex, Cursor, etc., daily.\n* Understand how coding agents work, including planning, tool use, context management, and common failure modes.\n* Have experience breaking complex engineering problems into clear specifications and implementation plans that AI can execute\n* Have worked extensively with large or legacy codebases and know how to make them AI friendly\n* Have reviewed significant amounts of AI generated code and know how to verify correctness, catch subtle bugs, identify security risks, and maintain long term code quality\n* Have strong software engineering fundamentals, including testing, CI/CD, debugging, code review, etc.\n* Enjoy teaching\n\nIf this sounds like you, email **jobs@bytebytego.com** with your background, how you use AI in your engineering workflow, or any teaching, writing, speaking work that demonstrates your expertise.",
+      "tags": [
+        "ByteByteGo",
+        "招聘讲师"
+      ],
+      "score": 40,
+      "summary": "ByteByteGo招聘兼职讲师，教授使用AI编码代理编写生产级代码。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!1eXV!,w_256,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8a5609ae-1239-4400-9491-6010a15c4d60_504x504.png",
+      "fetched_at": "2026-08-01T00:08:20.928622+08:00"
+    },
+    {
+      "title": "Cursor now shows you demos, not diffs",
+      "link": "https://youtu.be/XbZvC4KTH68?si=sEDqt3JtV0PoqLei",
+      "published": "2026-08-01T00:05:20+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "演示模式"
+      ],
+      "score": 75,
+      "summary": "Cursor推出新功能，用演示而非差异展示AI代码变更效果。",
+      "fetched_at": "2026-08-01T00:08:20.928626+08:00"
+    },
+    {
+      "title": "John Schulman on dead ends, scaling RL, and building research institutions",
+      "link": "https://youtu.be/29BYxvvF1iM?si=LRmoeWAwilHKmjGY",
+      "published": "2026-08-01T00:05:20+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Schulman",
+        "RL扩展"
+      ],
+      "score": 82,
+      "summary": "Cursor发布John Schulman访谈，讨论强化学习扩展和科研机构建设。",
+      "fetched_at": "2026-08-01T00:08:20.928628+08:00"
+    },
+    {
+      "title": "Our designer built an operating system with Cursor",
+      "link": "https://youtu.be/TQhv6Wol6Ns?si=bb8_Jr5u7Kb8n6jk",
+      "published": "2026-08-01T00:05:20+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "设计师",
+        "操作系统"
+      ],
+      "score": 72,
+      "summary": "Cursor分享设计师用Cursor构建操作系统的视频。",
+      "fetched_at": "2026-08-01T00:08:20.928631+08:00"
+    },
+    {
+      "title": "AI Foundations: Introduction",
+      "link": "https://youtu.be/IccjZDV93lw?si=f3mepO4Ptiqdg4F8",
+      "published": "2026-08-01T00:05:20+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "AI基础",
+        "教程"
+      ],
+      "score": 70,
+      "summary": "Cursor推出AI基础入门视频教程，介绍AI概念。",
+      "fetched_at": "2026-08-01T00:08:20.928633+08:00"
+    },
+    {
+      "title": "What’s new in AI infrastructure and orchestration this month",
+      "link": "https://cloud.google.com/blog/topics/ai-infrastructure/whats-new-in-ai-infrastructure-this-month/",
+      "published": "2026-08-01T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "At Google, AI is a soup-to-nuts endeavor. Obviously, we make leading AI models like Gemini and Nano Banana. We incorporate AI into the tools you use every day (think Gmail, BigQuery, AlloyDB, Google Cloud Code and Google Cloud Assist). We make software frameworks to help you build with AI, like Gemini Enterprise Agent Platform, JAX, or MaxTest. And we co-design the powerful infrastructure platform that runs underneath it all, including a broad range of standard compute, accelerators like TPUs and GPUs, optimized networks and storage, as well as orchestration software like GKE and Cluster Director. Then we package them all up into supercomputing platforms like AI Hypercomputer to power the industry-wide transformation to the AI and agentic future.\n\nThis is critical in today’s agentic era, where AI is evolving from answering questions to reasoning and taking action. Companies that want to lead in this next phase of AI need computing infrastructure that’s designed and optimized for these new requirements, so they can innovate faster, deliver compelling user and customer experiences, and optimize for cost and energy efficiency — all at massive scale.\n\nTo support this, we are making AI infrastructure and orchestration news at a furious pace. In this blog, we provide a monthly snapshot of the recent launches and milestones that you need to know about to keep up-to-date, deep dives on architecture and performance tuning, and discussions of specialized use cases, always with pointers to where you can learn more. Keep an eye out for updates to this blog every month. \n\n---\n\n### July 2026\n\n#### Product, technology, and tools updates\n\n* **Product update:** [Google Cloud Managed Lustre](https://cloud.google.com/products/managed-lustre) is now GA, and available in four distinct performance tiers that deliver throughput ranging from 125 MB/s, 250 MB/s, 500 MB/s, to 1000 MB/s per TiB of capacity — with the ability to scale up to 8 PB of storage capacity. The Managed Lustre solution is powered by DDN’s EXAScaler, combining DDN's decades of leadership in high-performance storage with Google Cloud's expertise in cloud infrastructure.\n* **Product update:** [C4N network and storage optimized VMs are now GA](https://cloud.google.com/blog/products/compute/c4n-network-and-storage-optimized-vms?e=0). C4N is our first network- and block-storage-optimized VM series built to eliminate data-transfer bottlenecks. Powered by 5th Gen Intel Xeon Scalable processors and built on Google's [Titanium](https://cloud.google.com/titanium?e=0) offloading hardware, it achieves 400 Gbps network bandwidth, 95 million packets per second (MPPS), and up to 25 GiB/s of block storage throughput when paired with Hyperdisk Extreme.\n* **New feature:** [GKE Dataplane V2 up to 15K Nodes with Network Policies (GA)](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/planning-large-clusters#clusters-5k-nodes). This capability enables standard GKE clusters to scale up to 15,000 nodes while maintaining full active Network Policy enforcement, supporting the massive infrastructure needs of large enterprise and AI/ML customers.\n* **New feature:** [Co-operative time-slicing in llm-d](https://cloud.google.com/blog/products/containers-kubernetes/introducing-co-operative-time-slicing-for-rl-in-llm-d?e=0). If you’re running reinforcement learning (RL) workloads, you can now interleave independent RL jobs onto shared physical hardware, increasing aggregate accelerator duty cycles from a ~40% baseline up to 70% without impacting model convergence or accuracy.\n* **New AI security tool:** [Looking to secure your AI supply chain on GKE](https://cloud.google.com/blog/products/identity-security/introducing-k8s-aibom-on-gke-for-automated-ai-bills-of-materials?e=0), deploy AI workloads safely, and cut down on shadow AI? We open-sourced k8s-aibom, a lightweight, unprivileged Kubernetes controller that continuously monitors container clusters to automatically detect running AI runtimes (like vLLM and Triton) and generate standard CycloneDX Machine Learning Bill of Materials (ML-BOMs). Check out the [k8s-aibom project](https://github.com/GoogleCloudPlatform/k8s-aibom) and get involved.\n\n#### Practitioner guides and how-tos\n\n* **How-to guide:** On July 27, Google announced [Day 0 support for Moonshot AI’s Kimi K3](https://discuss.google.dev/t/announcing-day-0-support-for-kimi-k3-on-google-cloud/385392) 2.8-trillion-parameter open-weight model, the day weights were released. Whichever your preferred deployment path — via Model Garden, custom orchestration, or GKE with llm-d recipes — this guide offers detailed step-by-step instructions to help you evaluate and pilot Kimi K3 in Google Cloud.\n* **How-to guide:** [Google Kubernetes Engine (GKE) managed DRANET supports both GPUs and TPUs](https://cloud.google.com/blog/topics/developers-practitioners/autopilot-clusters-with-gke-managed-dranet-gpus-and-tpus). There are several configurations to use this implementation, including standard cluster (where you have full control) and autopilot cluster (where Google does the heavy configs for you). Take a deeper dive in the hands-on lab, [GKE Autopilot clusters with TPUs, GKE managed DRANET and Gemma 4](https://codelabs.developers.google.com/codelabs/gke-autopilot-tpus-dranet-gemma#0).\n* **How-to guide:** Learn to run Ray on TPUs, not GPUs. In [Part 1](https://developers.googleblog.com/run-ray-on-tpu-part-1-the-foundations/) of this two-part series, we discuss TPU slices (hint: Ray thinks of them as just another accelerator on which to schedule), then walk through Ray’s various AI libraries ([Part 2](https://developers.googleblog.com/run-ray-on-tpu-part-2-ray-ai-libraries/)).\n* **How-to guide:** Evaluate TPUs for sample workloads using a new microbenchmark suite that helps you accurately assess whether a device is achieving its theoretical performance specifications, and to identify specific performance gaps or architecture-specific bottlenecks. Dive in [here](https://developers.googleblog.com/how-to-use-google-microbenchmarks-for-evaluating-tpu-performance/).\n* **How-to guide:** Scale your agents without killing your budget. [Learn how GKE orchestration can help you safely pack more agents onto a fixed compute footprint](https://cloud.google.com/blog/products/containers-kubernetes/reduce-your-agents-costs-with-gke-agent-sandbox?e=48754805) with GKE Agent Sandbox and Pod snapshots. Whether your goal is performance or cost optimization, we teach you how to turn the right dials for optimal agent efficiency.\n* **Technical blueprint:** Inside the optimization of Mistral 3 large inference on Ironwood. This blog outlines how one Google team optimized Mistral 3 large MoE model inference on Google’s Ironwood (TPU v7x), achieving a 1.5x performance gain. They did so with hybrid sharding, replacing linear VPU summations with tree reductions, optimizing GMM/MLA kernels, and adopting asynchronous scheduling. As a result, they boosted throughput by up to 48% while maintaining benchmark accuracy neutrality. Read the full blog [here](https://discuss.google.dev/t/inside-the-optimization-of-mistral-3-large-inference-on-ironwood/385847).\n\n#### Research, reports and deep-dives\n\n* **Report:** Google was named a Leader in the inaugural [GartnerⓇ Magic Quadrant™ for AI Infrastructure](https://cloud.google.com/blog/topics/ai-infrastructure/google-is-a-leader-in-gartner-magic-quadrant-for-ai-infra?e=0), positioned highest for ‘Ability to Execute’ and furthest for ‘Completeness of Vision’. Gartner called out Google’s proprietary scalable compute, integrated AI Hypercomputer architecture, and the scale of our AI compute capacity as key strengths. Download a copy [here](https://cloud.google.com/resources/content/2026-gartner-mq-ai-infrastructure?e=0).\n* **Report:** We recently surveyed more than 1,400 senior IT leaders for our [State of AI Infrastructure report](https://cloud.google.com/resources/content/state-of-infrastructure-in-the-agentic-ai-era?e=48754805), and a resounding pattern emerged: The gap between AI ambition and infrastructure reality is widening. In fact, 83% of organizations say they require infrastructure upgrades to support production-grade agentic AI. [Read the accompanying blog](https://cloud.google.com/blog/products/compute/state-of-ai-infrastructure-report-overview?e=0) to understand how adapting your infrastructure to meet the demands that agentic applications place on your systems will help you move from pilot to production.\n\n---\n\n### June 2026\n\n#### Product, technology and tool updates\n\n* **Product update:** Protecting sensitive data used with AI is a critical part of advanced and secure cloud infrastructure. [Confidential Computing](https://cloud.google.com/security/products/confidential-computing?e=0) cryptographically protects data in use in hardware-based Trusted Execution Environments (TEEs) with verifiable data integrity, and is [now available](https://cloud.google.com/blog/products/identity-security/verifiable-trust-in-the-ai-era-whats-new-in-confidential-computing?e=0) on the accelerator-optimized [G4 machine series](https://docs.cloud.google.com/compute/docs/accelerator-optimized-machines#g4-series), featuring [NVIDIA RTX PRO 6000 Blackwell Server Edition GPUs](https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000-family/). Get started with [Confidential G4 VMs](https://docs.cloud.google.com/confidential-computing/confidential-vm/docs/create-a-confidential-vm-instance-with-gpu) and [Confidential G4 GKE Nodes](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/gpus-confidential-nodes).\n* **Developer resource:** The new [TPU Developer Hub](https://cloud.google.com/products/tpu/tpu-developer?e=0) is the place to go for model builders, optimizers, and developers to learn to unlock the full performance of Google Cloud TPUs. Read more in this [blog](https://developers.googleblog.com/unlocking-the-power-of-the-tpu-stack-introducing-our-new-developer-hub/).\n* **New product:** Scale your AI workloads with the new [OpenTelemetry-Based TPU AI Telemetry Collector Agent](https://discuss.google.dev/t/stop-training-blind-scaling-ai-with-the-new-opentelemetry-based-tpu-ai-telemetry-collector-agent/375210). For the first time, you can route high-fidelity TPU hardware telemetry to Google Cloud Monitoring, Google Managed Prometheus, or your own self-hosted Grafana stack.\n\n#### Practitioner guides and how-tos\n\n* **How-to guide:** Learn how to build high availability into an AI inference workload running on GKE Inference Gateway with TPUs, Cloud Storage FUSE and Dynamic Resource Allocation (DRA). This [blog](https://cloud.google.com/blog/topics/developers-practitioners/experimenting-with-tpus-gke-managed-dranet-and-multi-cluster-inference-gateway?_gl=1*jj3plw*_ga*OTAxNzc0MzU1LjE3ODIyMjAxNDk.*_ga_4LYFWVHBEB*czE3ODI3NTc3NzAkbzkkZzEkdDE3ODI3NTg2MDEkajYwJGwwJGgw&e=0) provides an overview, or you can get all the technical details in the [hands-on codelab](https://codelabs.developers.google.com/codelabs/gke-inference-gateway-multi-cluster-tpus-dranet#0).\n* **How-to guide:** Did you know you can connect your AI agents to unstructured data in [Cloud Storage](https://cloud.google.com/storage) via Model Context Protocol (MCP)? In [this blog](https://cloud.google.com/blog/topics/developers-practitioners/build-ai-agents-faster-with-gcs-google-cloud-storage-mcp-server), learn about why would want to do that from three customer examples, then how to do it, choosing either a fully managed service, or a self-managed local server for more customization and control.\n\n#### Research, reports and deep-dives\n\n* **Report:** According to an independent benchmark report, [GKE Inference Gateway](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/about-gke-inference-gateway) outperforms the next leading managed Kubernetes service with 15.7% higher throughput, 92.8% shorter wait times, and 62.6% lower inter-token latency. This performance can be attributed to its use of prefix caching, which optimizes LLM performance by storing the KV cache (activation states) of long, repetitive prompt prefixes. Learn more in the [blog](https://cloud.google.com/blog/products/containers-kubernetes/gke-inference-gateway-prefix-caching-accelerates-ai-inference?e=0).\n* **Architecture deep dive:** A closer look at [the cold start problem, this time for TPUs and GKE](https://discuss.google.dev/t/accelerate-tpu-model-loading-while-saving-ram-on-gke/374835), and how the Run:ai Model Streamer can help change the dynamic.\n\n#### Customer and partner updates\n\n* **Customer win:** Leveraging GKE, BigQuery, Cloud SQL, and Gemini Enterprise Agent Platform, [Pager Health is eliminating operational fragmentation to deliver a simplified, personalized U.S. healthcare experience](https://www.youtube.com/watch?v=x36QJ-QKRGg) that transforms lives.\n* **Customer win:** Trustpilot, the customer review platform, built a high-volume streaming pipeline using fine-tuned Gemma models with Dataflow and Gemini Enterprise Agent Platform running on cost-optimized A2 VMs using A100 GPUs, as well as optimized version of vLLM maintained by Gemini Enterprise Agent Platform.\n\n---\n\n### May 2026\n\n#### Product, technology and tool updates\n\n* **Product update:** [GKE Agent Sandbox](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox) is now generally available.\n* **New open-source project:** [Agent Substrate](https://github.com/agent-substrate/substrate) is a new open-source project aimed at continuing to push the limits of agentic infrastructure density\n* **New feature:** [Google AI Edge Portal](https://ai.google.dev/edge/ai-edge-portal), a solution for testing and benchmarking on-device machine learning (ML) at scale, now supports benchmarking and debugging on-device LLMs. Read more [here](https://cloud.google.com/blog/products/ai-machine-learning/benchmark-llms-on-device-with-ai-edge-portal?e=48754805).\n* **Product deep dive:** We went [into depth about Cloud Storage Rapid](https://cloud.google.com/blog/products/storage-data-transfer/cloud-storage-rapid-turbocharges-object-storage-for-ai-analytics?e=48754805), a new family of high-performance storage offerings for AI workloads. At launch, offerings include Rapid Bucket (formerly Rapid Storage), a high-performance zonal object storage offering, and Rapid Cache (formerly Anywhere Cache), which accelerates reads on-demand and colocates compute and data for workloads in existing buckets.\n\n#### Research, reports and deep dives\n\n* **Architecture deep dive:** Google Global Infrastructure VP Bikash Koley and Engineering Fellow Arjun Singh provide a high-level overview of [the challenges that AI workloads pose to network infrastructure](https://cloud.google.com/blog/products/networking/data-center-and-global-networks-built-for-ai-era), and discuss the deep enhancements we’ve made to our data center fabrics, WAN, and global networks to better support them.\n* **Architecture deep dive:** We unveiled a [new cluster-level reliability model](https://cloud.google.com/blog/products/compute/cluster-reliability-for-trillion-parameter-models-on-tpus?e=48754805) for developing frontier AI models on TPUs, ditching instance-level reliability\n\n#### Customer and partner updates\n\n* **Customer win:** Visual media provider [Imgix serves more than 8 billion images and videos from AI Hypercomputer](https://cloud.google.com/blog/products/infrastructure/how-imgix-processes-8-billion-images-daily-with-g4-vms-powered-by-nvidia-blackwell?e=48754805) equipped with G4 VMs powered by NVIDIA RTX PRO 6000 Blackwell GPUs.",
+      "tags": [
+        "Google Cloud",
+        "AI基础设施",
+        "月度更新"
+      ],
+      "score": 75,
+      "summary": "Google Cloud发布AI基础设施与编排月度动态汇总，包括Managed Lustre GA。",
+      "image_url": "https://storage.googleapis.com/gweb-cloudblog-publish/images/Whats_new_in_AI_infrastructure.max-600x600.jpg",
+      "fetched_at": "2026-08-01T00:08:20.928635+08:00"
+    },
+    {
+      "title": "Dispatches from O'Reilly: The best risk mitigation strategy in data? A single source of truth​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌…",
+      "link": "https://stackoverflow.blog/2026/07/31/dispatches-from-o-reilly-the-best-risk-mitigation-strategy-in-data-a-single-source-of-truth/",
+      "published": "2026-07-31T22:08:31+08:00",
+      "source": "Stack Overflow Blog",
+      "content": "Your semantic layer is a risk mitigation strategy. Not risk in the abstract, compliance-framework sense, but the practical, operational risk that quietly drains organizations every day..​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌‍‍‌‌‍‌﻿‌‍‍‌‌‍﻿‍​‍​‍​﻿‍‍​‍​‍‌﻿​﻿‌‍​‌‌‍﻿‍‌‍‍‌‌﻿‌​‌﻿‍‌​‍﻿‍‌‍‍‌‌‍﻿﻿​‍​‍​‍﻿​​‍​‍‌‍‍​‌﻿​‍‌‍‌‌‌‍‌‍​‍​‍​﻿‍‍​‍​‍‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​﻿‍‍​‍﻿﻿​‍﻿﻿‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍﻿﻿‌‍‍‌‌‍﻿‍‌﻿‌​‌‍‌‌‌‍﻿‍‌﻿‌​​‍﻿﻿‌‍‌‌‌‍‌​‌‍‍‌‌﻿‌​​‍﻿﻿‌‍﻿‌‌‍﻿﻿‌‍‌​‌‍‌‌​﻿﻿‌‌﻿​​‌﻿​‍‌‍‌‌‌﻿​﻿‌‍‌‌‌‍﻿‍‌﻿‌​‌‍​‌‌﻿‌​‌‍‍‌‌‍﻿﻿‌‍﻿‍​﻿‍﻿‌‍‍‌‌‍‌​​﻿﻿‌​﻿‍​‌‍‌‌​﻿​﻿​﻿​​‌‍​‍​﻿‌‍‌‍‌‌‌‍​‍​‍﻿‌​﻿‌‌​﻿‌​‌‍‌​​﻿​​​‍﻿‌​﻿‌​​﻿‌﻿​﻿‍‌‌‍‌‌​‍﻿‌‌‍​‍‌‍​‌‌‍​‍​﻿​﻿​‍﻿‌​﻿‌﻿​﻿​‌​﻿​﻿​﻿‍‌‌‍​‌​﻿‍‌‌‍​‍​﻿​﻿​﻿‌﻿‌‍‌​‌‍​﻿​﻿‌‍​﻿‍﻿‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​﻿‍﻿‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​﻿﻿﻿‌‍​‍‌‍​‌‌﻿​﻿‌‍‌‌‌‌‌‌‌﻿​‍‌‍﻿​​﻿﻿‌‌‍‍​‌﻿‌​‌﻿‌​‌﻿​​‌﻿​﻿​‍‌‌​﻿​﻿‌​​‌​‍‌‌​﻿​‍‌​‌‍​‍‌‌​﻿​‍‌​‌‍‌‍​﻿‌‍﻿‌‌﻿​﻿​‍﻿‍‌﻿​﻿‌﻿‌​‌‍​‌‌‍​﻿‌‍‍﻿‌‍﻿﻿‌﻿‌‍‌‍‌‌‌﻿​‍‌‍‌‍‌‍﻿​‌‍﻿﻿‌﻿‌﻿​‍﻿‍‌‍​﻿‌‍﻿﻿​‍‌‍‌‍‍‌‌‍‌​​﻿﻿‌​﻿‍​‌‍‌‌​﻿​﻿​﻿​​‌‍​‍​﻿‌‍‌‍‌‌‌‍​‍​‍﻿‌​﻿‌‌​﻿‌​‌‍‌​​﻿​​​‍﻿‌​﻿‌​​﻿‌﻿​﻿‍‌‌‍‌‌​‍﻿‌‌‍​‍‌‍​‌‌‍​‍​﻿​﻿​‍﻿‌​﻿‌﻿​﻿​‌​﻿​﻿​﻿‍‌‌‍​‌​﻿‍‌‌‍​‍​﻿​﻿​﻿‌﻿‌‍‌​‌‍​﻿​﻿‌‍​‍‌‍‌﻿‌​‌﻿‍‌‌﻿​​‌‍‌‌​﻿﻿‌‌‍​‍‌‍﻿​‌‍﻿﻿‌‍‌﻿‌‌​​‌‍﻿﻿‌﻿​﻿‌﻿‌​​‍‌‍‌﻿​​‌‍​‌‌﻿‌​‌‍‍​​﻿﻿‌‌‍‌‌‌﻿‍​‌‍​﻿‌‍‌‌‌﻿​‍‌﻿​​‌﻿‌​​‍‌‍‌﻿​​‌‍‌‌‌﻿​‍‌﻿​﻿‌﻿​​‌‍‌‌‌‍​﻿‌﻿‌​‌‍‍‌‌﻿‌‍‌‍‌‌​﻿﻿‌‌﻿​​‌﻿‌‌‌‍​‍‌‍﻿​‌‍‍‌‌﻿​﻿‌‍‍​‌‍‌‌‌‍‌​​‍​‍‌﻿﻿‌",
+      "tags": [
+        "数据管理",
+        "单一事实来源"
+      ],
+      "score": 68,
+      "summary": "Stack Overflow博文讨论以单一事实来源作为数据风险缓解策略。",
+      "fetched_at": "2026-08-01T00:08:20.928637+08:00"
+    },
+    {
+      "title": "Don’t stop early: Case-folding source code at memory speed",
+      "link": "https://github.blog/engineering/architecture-optimization/dont-stop-early-case-folding-source-code-at-memory-speed/",
+      "published": "2026-08-01T00:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "Suppose a user searches for café and your corpus contains CAFÉ, or they type straße and you’ve stored STRASSE. To make these count as matches, you need a canonical form that erases case distinctions, so that two strings which differ only in case compare equal. That form is case folding, and it shows up wherever text is matched rather than displayed: search engines, regex (?i) flags, case-insensitive usernames and hostnames.\n\nIt’s a basic operation, but at GitHub we run it a lot. Blackbird, GitHub’s code search engine, indexes over 180 million repositories—more than 480TB of source code. Every byte is case-folded before we extract ngrams and build the index, and for every potential query result, another (implicit or explicit) case folding operation is needed to locate matches. At that scale, the speed of even a basic operation starts to matter.\n\nThis post is about how we made it fast, and it starts somewhere counterintuitive: the biggest win in the ASCII fast path came from removing an optimization, not adding one. It turns out to be faster to sweep the whole buffer with no branches than to stop early at the first non-ASCII byte. We open-sourced the result as a Rust crate called casefold.\n\n## Folding is not lowercasing\n\nIt is tempting to reach for `str::to_lowercase`, but lowercasing and folding are different operations with different goals:\n\nLowercasing is for display, and it’s locale- and context-sensitive: Greek final sigma lowercases to ς at the end of a word and σ elsewhere, and Turkish I lowercases differently than English I. Case folding is for comparison, and it’s deliberately context-free and locale-independent. The point is a relation that stays stable and symmetric, so that if A folds to match B, B folds to match A in any locale. The Unicode Character Database ships an explicit CaseFolding.txt for exactly that.\n\nThe two operations diverge on real characters—ß, İ, final sigma—which is why lowercasing as a stand-in silently produces wrong matches. This crate implements only the simple (1-to-1) folds—statuses C and S in `CaseFolding.txt`—and not the multi-character “full” folds (ß → ss) or Turkic locale folds (the dotted İ). This isn’t an unusual choice: common tools and regex engines like ripgrep make the same restriction, and being consistent across tools is important.\n\n## The counterintuitive core: Don’t stop early\n\nWe deal mostly with source code, so the text we fold is overwhelmingly ASCII and making it run at memory speed is the single most important thing we can do. Everything else just has to keep the rare non-ASCII path from spoiling it.\n\nThe fold of an ASCII letter is trivial—`A..=Z` map to `a..=z`, everything else is unchanged—so the ASCII pass is really just “sweep the buffer, lowercase in place.” Ask any LLM for it and you might get something like this:\n\n```\nlet bytes = s.as_bytes_mut(); \nfor (i, b) in bytes.iter_mut().enumerate() { \n    if *b >= 0x80 { \n        break; // non-ASCII at index i: hand the rest to the Unicode path \n    } \n    if b.is_ascii_uppercase() { \n        *b += 32; // 'A'..='Z' → 'a'..='z' \n    } \n}\n```\n\nIt looks ideal: do the cheap byte work, and the instant you hit a non-ASCII byte, break and let the “real” Unicode path take over: “only do the cheap work until you have to.” On an Apple M4 this runs at about **3 GiB/s**. That sounds fine in isolation, but it is more than **15× short** of “optimal” because of the if branches.\n\nLet’s delete every branch, line by line:\n\n* `if b >= 0x80 { break }` → don’t stop at all. `OR`every byte into an accumulator and test it *once*, after the loop: `high_bit_acc |= *b`. Same information (was there any non-ASCII byte?), zero branches in the body.\n* **The** `A..=Z` **range test** → make it arithmetic. `b.wrapping_sub(b'A') < 26` is true exactly for `A..=Z` (any other byte wraps to ≥ 26), yielding a 0/1 mask with no branch.\n* **The conditional write** → fold the mask into the store.`| (is_upper << 5)`sets bit 5—turning an upper-case letter lower-case and being a no-op on everything else—the byte is always written, never branched on.\n\nWhat’s left has no branch in its body and no early exit:\n\n```\nlet mut high_bit_acc: u8 = 0; \nfor b in &mut bytes { \n    high_bit_acc |= *b; // detect any non-ASCII byte \n    let is_upper = b.wrapping_sub(b'A') < 26; // branchless A..=Z test \n    *b |= u8::from(is_upper) << 5; // set bit 5 → lowercase, else no-op \n} \nif high_bit_acc & 0x80 == 0 { \n    return bytes; // pure ASCII: already folded in place, no second buffer \n}\n```\n\nA loop with no data-dependent control flow is trivially vectorizable: LLVM emits 16-byte-at-a-time NEON and the whole thing runs at > **45 GiB/s**—essentially memory bandwidth. And we come out of the pass already knowing, from `high_bit_acc`, whether there’s any non-ASCII work left to do.\n\nHow much did each step matter? Measuring the cumulative ladder on pure ASCII (Apple M4, 5.7 KB buffer):\n\n| **Version** | **Throughput** | **Vectorized?** |\n| --- | --- | --- |\n| naive (break + branch test) | 3.1 GiB/s | no (0 vector instrs) |\n| → branchless test/write, *keep* break | 2.6 GiB/s | no (0 vector instrs) |\n| → drop the early-exit break | 7.6 GiB/s | **partially** (25 vector instrs) |\n| → branchless test + write (the loop) | **>45 GiB/s** | fully (41 vector instrs) |\n\nThe early-exit is what gates vectorization: keep the break but make the body perfectly branch-free and you still get **zero** vector instructions (~2.6 GiB/s); a data-dependent loop exit is enough on its own to keep the loop scalar. Only once the break is gone can the compiler vectorize. The final step—making the upper-case fold branchless—then turns a *partially* vectorized loop (which still compiles the conditional store to a compare-blend-masked-store, ~7.6 GiB/s) into the straight-line arithmetic that hits memory bandwidth.\n\n|  |\n| --- |\n| **Note: Branchless is a** **pessimization** **in scalar code.** Look again at the table: making the body branchless while *keeping* the break (2.6 GiB/s) is actually **slower** than the naive branchy loop (3.1 GiB/s). The asm explains why. The branchy version only stores a byte when it actually changes one; its conditional `strb`is skipped for every lowercase letter, digit and space (the vast majority of real text), and the well-predicted branch that guards it is nearly free. The branchless version replaces that rarely taken store with an **unconditional** `strb`**every iteration**, writing back all ~5,700 bytes instead of just the handful of upper-case ones. Extra write traffic for no benefit. Branchless-write only *wins* once the loop vectorizes, because then the store becomes a single 16-byte vector write regardless of content, and the per-byte cost disappears. The lesson: a branchless body is worth it **only** as the enabler for vectorization. On its own, in scalar code, it can cost you. |\n\nThere’s also a middle ground, and it’s what standard libraries use. Instead of testing one byte at a time, `[u8]::is_ascii` scans a **machine word at a time**—on a 64-bit target it tests 16 bytes per iteration by OR-ing two u64 lanes and checking all their high bits with a `single & 0x8080_8080_8080_8080` mask. You can build the ASCII fast path on top of that: chunk-scan to find the ASCII prefix, then run the branchless (vectorizable) convert over it. That keeps the early-exit ability—it still bails on the first non-ASCII block—while letting both halves go fast. The catch is that it reads the data **twice** (once to scan, once to convert), landing at about **23 GiB/s**—roughly half of the single-pass branchless sweep, and ~7× the naive break loop. A solid, general-purpose default; just not the absolute ceiling when you control the whole loop and can fold detection and conversion into one branch-free pass.\n\n**Wouldn’t** ***fusing*** **the two passes be faster?** It’s the obvious next thought: keep the chunked early-exit but convert each 16-byte block right after you’ve confirmed it’s ASCII, reading the data only *once*. Measured, it’s **~2.6× slower**—8.7 GiB/s versus the two-pass 23. The inner block convert still vectorizes to a single 16-byte op, but now there’s a data-dependent early-exit branch *every 16 bytes*, and that branch pins the loop to one block at a time: the compiler doesn’t unroll or software-pipeline across blocks, and each iteration pays the full load→test→branch→convert→store latency with nothing to hide it behind. Split into two passes, each one is clean: the scan is a branch-light, **store-free** word scan that races through memory, and the convert is the fully-vectorized branch-free sweep at >45 GiB/s. Two fast, branch-free passes beat one branchy fused pass—even though the fused version touches the data half as many times. It’s the same lesson one more time: in the hot loop, the branch is the enemy.\n\n## Avoiding the heap\n\nForty-Five GiB/s also means doing zero unnecessary allocation. `simple_fold` takes the input String *by value*, owning the heap buffer it can mutate and return it. If the OR-accumulator’s high bit was clear, the input was pure ASCII already folded in place. We hand the **same allocation** straight back, no second buffer and no copy. Otherwise, we `memchr`to the first non-ASCII byte and scan the tail from there, leaving the output buffer *unallocated* (a null write cursor) until we hit a character that folds to **different bytes**. Text whose multibyte content never folds—CJK, Hangul, Kana, Arabic, Hebrew, symbols—also returns the original allocation untouched, never copying a byte.\n\nWhy a *second* buffer rather than rewriting in place like the ASCII pass? Because folding can make the string **longer**: almost every fold preserves the UTF-8 length or shrinks it, but two outliers grow—`U+023A` (Ⱥ) and `U+023E` (Ɀ) are 2 bytes each yet fold to 3-byte characters (ⱥ, ɀ). Once one appears, the output no longer fits in the input’s bytes, and we need somewhere new to write.\n\nWe allocate that buffer **once**, sized for the worst case, rather than growing it as more folds appear. Incremental reserve calls would mean re-checking capacity, occasionally reallocating, copying everything written so far, and juggling extra length/capacity bookkeeping; a single up-front allocation lets a raw write cursor run straight to the end with none of that. And since the cursor is `null`until that first growing/changing fold, it doubles as the “have we allocated the extra buffer yet?” flag.\n\nSizing it needs a bound on growth, and those same two outliers give it: every 2 input bytes yield at most 3 output bytes, capping the output at **1.5× the input**—exactly the capacity we reserve:\n\n```\nout = Vec::with_capacity(bytes.len() + bytes.len() / 2 + 4);\n```\n\nAfter that the loop writes through a raw pointer with no capacity checks and calls `set_len` once at the end. Two more details keep it branch-light. The run of unchanged bytes between two folds is moved with a single `copy_nonoverlapping` rather than byte by byte. And each fold unconditionally writes all 4 bytes of a little-endian word before bumping the cursor by only the *folded* length (1–4)—dropping a branch on the output length from the hot path, with the + 4 in the reservation as the headroom that makes the final character’s over-store safe.\n\n## Making Unicode cheap too\n\nWhen a character *does* fold, we still don’t want to fall off a cliff—decode UTF-8, hash lookup, re-encode. Unicode 16.0 has 1484 simple-fold mappings, but they’re a *very* sparse and *very* structured relation. Four observations shrink them to **1776 bytes** and let the fold run **without ever decoding a full character**.\n\nEven on the non-ASCII path, the overwhelming majority of characters do not fold. The hot operation isn’t really “fold this character,” it’s “does this character fold?” Almost always no. The table has to make that **negative test** as cheap as possible; the actual folding is the rare case on an already-rare path. That priority is what shapes the layout below—the page bitmap exists precisely so a non-folding character is rejected in a single bit test, straight from its leading UTF-8 bytes, without decoding or scanning anything.\n\nThis is exactly why a `HashMap<u32, u32>` is the *wrong* shape for the job, not just a bigger one. A hash map is optimized for the **hit**: it finds a present key in roughly one probe, and only spends extra work (more probes, full key comparison) when load factor or collisions bite. But our workload is dominated by **misses**—characters that aren’t in the table at all—and a miss is a hash map’s *least* favorite query: it still has to hash the key, jump to a bucket, and walk the probe sequence far enough to *prove absence*.\n\n## Foldable code points cluster into 64-code-point “pages”\n\nFoldable code points bunch together. Slice the code space into 64-code-point “pages” and the ~1484 folds touch just **59** of ~1960 possible pages. A one-bit-per-page **presence** **bitmap** answers the negative test on its own: a clear bit is a *definitive* “no fold”—copy through, done—which is what makes fold-free scripts cheap. Only on a set bit do we consult a second structure, a **cumulative-popcount side table** that ranks the page (how many populated pages precede it) to find its slice of entries, storing nothing for the ~1900 empty pages.\n\n```\nlet (word_idx, bit_idx, c_len) = if lead < 0xE0 { \n    (0usize, lead & 0x1F, 2usize) // 2-byte: word 0 \n} else if lead < 0xF0 { \n    ((lead & 0x0F) as usize, bytes[read + 1] & 0x3F, 3) // 3-byte: word = nibble \n \n} else { \n    ( \n        (((lead & 0x07) as usize) << 6) | (bytes[read + 1] & 0x3F) as usize, \n        bytes[read + 2] & 0x3F, \n        4usize, \n    ) // 4-byte: merge 2 bytes \n}; \n// reject without decoding: clear bit ⇒ no fold \nif word_idx >= PAGE_BITMAP.len() || (PAGE_BITMAP[word_idx] >> bit_idx) & 1 == 0 { \n    read += c_len; \n    continue; \n}\n```\n\nBecause `word_idx`depends only on the lead byte (and, for four-byte sequences, the first continuation byte), the bitmap load can be issued early.\n\n## Within a page, folds come in runs\n\nA set page bit tells us *something* on this page folds, but not which code points or to what. The obvious encoding is one entry per foldable code point—but that is both bulky and slow to search: a page can hold dozens of folds, and we’d have to scan them all to find the one matching the current code point. The structure of the data rescues us again. Adjacent code points overwhelmingly share the same delta to their fold: A–Z all map `+32`, and Latin Extended is full of *alternating* runs like `0x0100`, `0x0102`, `0x0104`, … where every second code point folds. Instead of per-code-point entries we store **runs**—start, end, stride, delta—and a 1-bit stride flag covers both the contiguous and the every-other case. This interval compression collapses the ~1484 individual folds into just **238** runs across the 59 pages (≈four per page), leaving the within-page search only a handful of entries to look at instead of dozens. This range-with-delta encoding (including the stride trick) is borrowed from Go’s unicode package, whose [`CaseRange`](https://github.com/golang/go/blob/master/src/unicode/tables.go) records store a Lo/Hi range plus per-case deltas, with an `UpperLower` sentinel marking the alternating blocks. Runs are split at the page boundaries so a run never straddles two pages.\n\n## A run record is two clean bytes\n\nWith both endpoints inside one page they fit in 6 bits, split across two arrays: ``` RUN_END_LOW[``i``] = end & 0x3F ``` (the scan key) and ``` RUN_START_STRIDE[``i``] = (start & 0x3F) | ((stride − 1) << 6) ``` (read only on a hit). Because each key is one clean byte, the within-page search can go **wide**: rather than comparing `cp & 0x3F` against the runs one at a time, we load **8 end\\_low bytes into a single u64 and test all of them at once** with one branchless SWAR step—`(chunk | 0x80…80) − broadcast(low) & 0x80…80` sets the top bit of every lane whose key is `≥ cp & 0x3F`. A single bit-scan of that mask (the keys are sorted, so the first set lane is the run we want) finds the slot. A page holds ~4 runs on average; that one 8-wide compare almost always resolves the entire search in a single step. One unlucky page does hold 30 runs, which puts the compare inside a short loop that strides eight keys at a time—but that loop trips at most a handful of times on exactly one page in all of Unicode, and never on the common ones. Either way: no per-run branch, and no code-point reconstruction anywhere.\n\n```\n/// Offset of the first run with `end_low >= low_v` in a page of `n` runs, \n/// or `n` if none. Scans 8 `end_low` bytes at a time via SWAR. \n#[inline] \nfn scan_end_low(lo: usize, n: usize, low_v: u8) -> usize { \n    const HIGH: u64 = 0x8080_8080_8080_8080; \n    const ONES: u64 = 0x0101_0101_0101_0101; \n    let bcast = (low_v as u64).wrapping_mul(ONES); \n    let mut base = 0; \n    while base < n { \n        // RUN_END_LOW is padded by 8 bytes so this read is always in bounds. \n        let chunk = u64::from_le_bytes( \n            RUN_END_LOW[lo + base..lo + base + 8] \n                .try_into() \n                .expect(\"8-byte slice\"), \n        ); \n        // `(b | 0x80) - low_v` keeps its high bit iff `b >= low_v` (no \n        // cross-lane borrow). The first set lane is the first run `>= low_v`. \n        let ge = (chunk | HIGH).wrapping_sub(bcast) & HIGH; \n        if ge != 0 { \n            let j = base + (ge.trailing_zeros() / 8) as usize; \n            return if j < n { j } else { n }; \n        } \n        base += 8; \n    } \n    n \n}\n```\n\n## Folding is a little-endian byte addition\n\nOn a little-endian machine the folded character’s UTF-8 bytes, read as a `u32`, equal the source bytes (as a `u32`) plus a **per-run constant**. A parallel `BYTE_DELTA[i]` table then turns the whole fold into a masked load, one `wrapping_add`, and a 4-byte store:\n\n```\nlet word = u32::from_le_bytes(next_four_bytes) & length_mask; // keep this char's bytes \nlet folded = word.wrapping_add(BYTE_DELTA[i]); // the fold, as one byte add \nwrite_u32_le(dst, folded); // store all 4 bytes... \ndst += utf8_len(folded); // ...advance by the folded length\n```\n\nBoth lengths in that snippet—the `length_mask` for the source character and the *advance by the folded length* for the destination—come from one more tiny trick. A UTF-8 sequence’s length is fixed by the top four bits of its lead byte, letting the 16 possible lengths pack one nibble each into a single 64-bit constant (`0x4322_1111_1111_1111`); the length is then a shift and a mask, `(LEN_BITS >> (4 * (lead >> 4))) & 0xF`—no if chain, no table memory, nothing for the predictor to get wrong. (A *count leading ones*—`(!lead).leading_zeros()`—would also work, since a lead byte carries one leading 1-bit per byte of the sequence.)\n\n```\n/// Number of bytes in the UTF-8 sequence whose lead byte is `lead`. \n#[inline] \npub fn utf8_len(lead: u8) -> usize { \n    const UTF8_LEN_BY_LEAD: u64 = 0x4322_1111_1111_1111; \n    ((UTF8_LEN_BY_LEAD >> (4 * (lead >> 4))) & 0xF) as usize \n}\n```\n\nBecause we advance by the *folded* length, this even handles length-changing folds—`U+212A` KELVIN SIGN (3 bytes) → k (1 byte), or `U+023A` Ⱥ (2 bytes) → `U+2C65` ⱥ (3 bytes)—by writing fewer or more bytes than were read. That’s the part we believe is genuinely new: every other folder we looked at—ICU, Go’s unicode, Rust’s regex, CPython, glibc—decodes UTF-8 to a code point, applies the fold there, and re-encodes (even SIMD folders decode first). Doing the arithmetic in byte space skips both the decode and the encode, which is exactly why this path can outrun a hash map that already has the answer tabulated—the hash map still has to decode its key and encode its result. The byte-space arithmetic assumes the input is **well-formed, shortest-form UTF-8**—every code point encoded with the minimal number of bytes. Reading the source bytes as a `u32`and adding a per-run delta only lands on the correct folded encoding when the source is in canonical form; an *overlong* encoding (a code point padded into more bytes than necessary, e.g. / as `0xC0 0xAF`) has a different byte pattern and would break the`length_mask` and the delta arithmetic. This is not a real restriction in Rust—`&str`/`String` are guaranteed to hold valid UTF-8, which by definition rejects overlong sequences—but a caller feeding raw bytes from elsewhere must validate (or otherwise normalize) them first.\n\n## The ASCII shortcut in the tail loop\n\nOne more shortcut rounds out the tail loop. Remember the first pass already lowercased every ASCII byte, so when the scan meets an ASCII byte in the tail it advances a single byte and moves on—no page probe, no table touch at all. And it doesn’t copy that byte either: unmodified bytes (ASCII and non-folding multibyte alike) aren’t moved one at a time. The scan just keeps walking until it reaches a character that actually folds, then flushes the whole unchanged run between the last fold and this one with a single `copy_nonoverlapping`. Mixed text—CJK with ASCII spaces and punctuation, or code with the occasional accented identifier—therefore races through the ASCII filler and only consults the bitmap for genuine multibyte characters, copying in bulk rather than byte by byte.\n\n## Putting it together: the whole table\n\n| **Component** | **Bytes** |\n| --- | --- |\n| PAGE\\_BITMAP (1 bit per 64-cp page) | 248 |\n| POPCNT\\_SAMPLES (cumulative popcount) | 32 |\n| PAGE\\_OFFSET (per populated page) | 60 |\n| RUN\\_END\\_LOW (scan key, end & 0x3F, +8 pad) | 246 |\n| RUN\\_START\\_STRIDE (start & 0x3F | stride) | 238 |\n| BYTE\\_DELTA (little-endian fold delta per run) | 952 |\n| **Total** | **1776** |\n\nThat’s **9.6 bits per fold entry**, over half of it the `BYTE_DELTA` side table we trade for the decode-free path; the index + run records alone are ~4.4 bits/entry.\n\nNext to the obvious alternatives, that 1776 bytes is an order of magnitude or more smaller—and unlike most of them, it never decodes a character:\n\n| **Representation** | **Size** |\n| --- | --- |\n| Naïve [(u32, u32); 1484] | ~11.6 KB |\n| regex-syntax’s case\\_folding\\_simple table | ~70 KB |\n| Go’s unicode.SimpleFold (orbit + ASCII + ranges) | ~7.3 KB |\n| A runtime HashMap<u32, u32> | ~17 KB |\n| **This crate (paged bitmap + packed runs)** | **1776 B** |\n\n## Where it lands against the alternatives\n\nOn the common case, ASCII, folding runs at memory bandwidth (>45 GiB/s), more than an order of magnitude ahead of other real folders and more than 50% faster than the (non-equivalent) `str::to_lowercase` function. To get a rough “upper bound” for the non-ASCII case, we measured the optimized Utf8 decoding + encoding round trip without performing any actual case folding using the simdutf crate. This experiment achieves consistently about 2GB/sec and is only about twice as fast than our solution for the worst case all-folding input. A naive hash map trails everything on all workloads.\n\nThe three columns are real case folders that produce identical output: simple\\_fold (this crate), simd\\_normalizer (the simd-normalizer crate), and HashMap (naive CaseFolding.txt lookup). The workload rows are chosen to simulate different scenarios from typical to worst case:\n\n| **Workload (input size)** | **simple\\_fold** | **simd\\_normalizer** | **HashMap (byte path)** |\n| --- | --- | --- | --- |\n| Pure ASCII (5.7 KB) | **>45 GiB/s** | 1.21 GiB/s | 213 MiB/s |\n| **C**hinese/**J**apanese/**K**orean, no folds (8.1 KB) | **2.95 GiB/s** | 1.97 GiB/s | 558 MiB/s |\n| Symbols / Myanmar, no folds (9.0 KB) | **2.96 GiB/s** | 1.56 GiB/s | 410 MiB/s |\n| Worst case: Latin/Greek/Cyrillic (Unicode U+0000–U+FFFF), all folding (8.8 KB) | 869 MiB/s | **922 MiB/s** | 334 MiB/s |\n| Length-changing folds (1.7 KB) | **1.26 GiB/s** | 716 MiB/s | 233 MiB/s |\n\n*Treat the absolute figures as illustrative, not portable: the whole design leans on auto-vectorization, SWAR, and little-endian byte arithmetic, so the numbers—and even the ratios between rows—can shift substantially on a different microarchitecture (a wider or narrower vector unit, different memory bandwidth, a big-endian target, x86 vs ARM).*\n\nMore details can be found in the [performance section of the README](https://github.com/github/rust-gems/blob/main/crates/casefold/README.md#performance).\n\n## Take this with you\n\nCase folding is about as basic as text operations get, which is exactly why it was worth the effort: we run it across every byte we index. The wins came from two ideas that both cut against instinct—sweep the whole buffer branch-free instead of stopping early, and do the fold as byte-space arithmetic instead of decoding to a code point. Together they let the common case run at memory bandwidth and the rare fold run without a decode, in a table small enough (1776 bytes) to stay resident. The decode-free byte-space fold is the piece we believe is genuinely new; it’s why this path can beat a hash map that already has the answer.\n\nThere’s surely more to find here, and we’d like to see it. The crate is [casefold](https://crates.io/crates/casefold); the generated table and full design notes live alongside the source.\n\nThe post [Don’t stop early: Case-folding source code at memory speed](https://github.blog/engineering/architecture-optimization/dont-stop-early-case-folding-source-code-at-memory-speed/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub",
+        "casefold",
+        "代码搜索"
+      ],
+      "score": 75,
+      "summary": "GitHub博客介绍代码搜索中case-folding优化，并开源Rust crate casefold。",
+      "fetched_at": "2026-08-01T00:08:20.928640+08:00"
+    },
+    {
+      "title": "Find out what’s new in the Gemini app in July's Gemini Drop.",
+      "link": "https://blog.google/products-and-platforms/products/gemini/gemini-drop-july-2026/",
+      "published": "2026-08-01T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Gemini_Drops_Social.max-600x600.format-webp.webp)Gemini Drops is our regular monthly update on how to get the most out of the Gemini app.",
+      "tags": [
+        "Gemini",
+        "月度更新"
+      ],
+      "score": 75,
+      "summary": "Google发布Gemini应用7月更新Gemini Drop。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Gemini_Drops_Social.max-600x600.format-webp.webp",
+      "fetched_at": "2026-08-01T00:08:20.928642+08:00"
+    },
+    {
+      "title": "美团正式发布 CatPaw：全场景 AI Agent，从个人提效到企业智能化",
+      "link": "https://tech.meituan.com/2026/07/28/CatPaw-LongCat.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "本月，美团 LongCat 2.0 已[正式开源](https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html)，总参数 1.6T，平均激活约 48B，动态范围 33B 到 56B，原生支持 1M 超长上下文。这是首个在五万张国产算力卡上完成全流程训练与推理的万亿参数模型。开源只是第一步，让 LongCat 2.0 在真实的工作任务中成为可靠的“工作伙伴”，才是真正的考验。\n\n现在，搭载 LongCat 2.0 的美团全场景 AI Agent 平台 [CatPaw](https://catpaw.meituan.com/) 正式上线，将模型能力从“跑得动”推向“用得好”。CatPaw 提供开箱即用的 AI 智能工作台与企业级 Agent 开发托管能力。\n\n不仅如此，依托美团十余年深耕本地生活的行业积累，CatPaw 将商家经营、服务履约与消费决策的深度认知融入其中，助力企业构建 AI 数字员工、推进业务智能化升级。\n\n目前，CatPaw 已在美团内部大规模落地：累计覆盖 9 万员工、搭建 Agent 3 万个，并在多个真实业务场景中完成验证。\n\n## 全时段运行，多终端协作的 AI 智能工作台\n\n### 01 移动/PC/云端，全时段多端协作\n\n提供独立的**移动端 App 与 PC 客户端**，双端任务实时同步、无缝协作。移动端支持随时发起任务、查看进度与远程确认关键决策；PC 端专注本地深度执行，具备文件操作、浏览器控制与终端命令等完整能力。\n\n云端模式支持 **7 × 24 小时不间断运行**，即使本地设备关机或断网也不受影响。长程任务与定时任务于云端持续运转，完成后随时打开手机或电脑即可查看成果。\n\n![](https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png)\n\n### 02 深耕本地生活，融合美团业务生态\n\n在全场景通用 AI Agent 能力的基础上，CatPaw 进一步融入了美团在本地生活领域的全链路行业认知。从门店经营、评价体系、营销转化到履约配送，这些深度积累已被封装为即装即用的**专家与技能**，覆盖门店评价诊断与优化、商品文案生成、营销物料设计评估、活动策划、经营数据分析等场景。\n\nCatPaw 既是人人可用的**全能 AI 助手**，也是真正懂本地生活生意的智能搭档。\n\n![](https://p1.meituan.net/meituantechblog/864f86011bdcc6a2428f980323605284136476.png)\n\n### 03 专家与技能，丰富能力即装即用\n\nCatPaw **支持 AI 专家**，每位专家**集成多项技能与子代理，高效完成特定领域的复杂任务**。从专家广场**一键安装**即可使用，也可通过对话将自己的工作方式快速封装为专属专家，团队共享复用。\n\n平台内置丰富的技能库，开箱即用。内嵌浏览器还**支持操作过程一键录制**，将日常高频流程自动生成专属技能，让个人与团队经验沉淀为可复用的数字化资产。\n\n支持**跨会话长期记忆**，自动记忆用户的个性化偏好、操作习惯与历史上下文，跨设备、跨对话保持连续理解，越用越懂你。\n\n![](https://p0.meituan.net/meituantechblog/7f715c1d858cead54dad86e431e30153313940.png)\n\n### 04 对话即交付，多 Agent 自主协同\n\n只需明确最终目标，Agent 便会**自主规划步骤并在授权范围内深度执行**：读取文件、操作浏览器、运行终端命令，直接交付 Excel、可视化报告或代码等可用成果。\n\n面对跨领域的复杂任务，系统动态进行任务拆解，**调度多个具备专属工具的 Agent 并发处理**，各 Agent 在独立环境中互不干扰，进度实时可见，结果自动汇总。\n\n![](https://p0.meituan.net/meituantechblog/2122a550b13a060033f2a0343680ccfa345379.png)\n\n## 从 AI 工作台到业务系统：Managed Agents\n\nCatPaw Managed Agents 是企业级 AI Agent 开发与托管平台，提供开箱即用的工程底座，**无需从零搭建底层基建**，即可快速构建、部署与管理专属 Agent。\n\n### 01 数字员工，扫码即用灵活配置\n\n数字员工是运行在飞书、企微等 IM 中的 AI 虚拟同事，@ 即可唤醒使用。**平台预置多种角色模板，扫码即用**；美团在本地生活领域的长期积累也已沉淀为专属模板，不只是通用的聊天机器人，而是理解业务的行业 AI 助手。\n\n同时支持通过 **AI 对话描述需求，快速生成专属数字员工**。从 Agent 创建到环境部署、会话初始化，**全程自动完成，无需手动配置**。\n\n提示词、知识库、凭证、工具均支持在线管理，团队可按业务场景灵活搭建。\n\n![](https://p0.meituan.net/meituantechblog/a4a4286eab88dc7a9fb8ad4a359f57d3202455.png)\n\n### 02 企业级安全，数据隔离可控\n\n**Agent 运行环境严格隔离**，租户间数据互不可见。凭证集中托管，**确保 Agent 全程零接触敏感资产**。\n\n支持**分级权限管控**与私有化部署，全面满足企业合规与安全审计要求。\n\n![](https://p0.meituan.net/meituantechblog/d8ea3582939d36764915e7b5f848790e478278.png)\n\n### 03 Agent 托管运行，持续在线\n\n支持**按需配置运行环境**，一键托管上线，**资源动态扩缩**。\n\n沙箱环境轻量隔离，百毫秒级冷启动，闲时自动释放，兼顾响应速度与成本。\n\n![](https://p0.meituan.net/meituantechblog/1c65c6d75279f7085030ad763eeff3b2368282.png)\n\n### 04 可视化运维，全链路可观测\n\n提供统一的运维管理界面，**会话记录完整留存可追溯**，支持在线调试实时排查问题，**模型调用量与消耗清晰可见**。\n\n多维度数据统计与分析，帮助团队持续评估 Agent 表现、优化运行效果。\n\n![](https://p0.meituan.net/meituantechblog/4344c5e90e47733d89ef9ee3d792f88f140185.png)\n\n## 从个人提效到组织智能化：与商家一起探索更多可能\n\n在全场景 AI 能力之上，CatPaw 提供**组织级的管理与管控能力**，满足商家\\*\\*规模化落地 AI \\*\\*的管理需求。\n\nCatPaw 提供统一管理后台，支持团队账号体系。团队成员与权限集中管理，用量明细与消耗实时可查，成本清晰可控。AI 专家和技能支持按团队或角色集中配置与精准下发，一线员工开箱即用，AI 能力快速转化为实际生产力。\n\n此外，CatPaw 还提供与**美团业态深度关联的专属专家与技能**，覆盖外卖、服务零售、医药健康等多个行业。以服务零售为例，美团商家运营专家整合了经营数据分析、评价管理、门店装修等核心场景，帮助商家实现智能化运营。\n\nCatPaw 将持续深入行业场景，让 AI Agent **真正成为驱动经营增长的数字化伙伴**。更多能力陆续开放中，**诚邀美团合作商家抢先体验**。\n\n**体验地址**：<https://catpaw.meituan.com/>",
+      "tags": [
+        "美团",
+        "CatPaw",
+        "LongCat 2.0"
+      ],
+      "score": 92,
+      "summary": "美团正式发布全场景AI Agent平台CatPaw，搭载LongCat 2.0，内部覆盖9万员工。",
+      "image_url": "https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png",
+      "fetched_at": "2026-08-01T00:08:20.928645+08:00"
+    },
+    {
+      "title": "ICML 2026 | 美团技术团队学术论文精选",
+      "link": "https://tech.meituan.com/2026/06/29/ICML-2026.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "ICML（International Conference on Machine Learning，国际机器学习大会）是机器学习领域最具影响力的国际顶级学术会议之一。大会旨在探讨机器学习未来发展所面临的关键挑战与核心问题，并通过征集和评估具有重要理论价值和实际影响的前沿研究成果，推动领域发展并引领未来研究方向。2026年，ICML共收到全球篇论文23918投稿，最终6352篇被接收，接收率约为26.6%。本文解读了美团技术团队被收录的13篇论文，覆盖智能体推理、强化学习训练、复杂任务生成、智能体基准测试、监督微调等技术方向。\n\n## 01 MemOCR: Layout-Aware Visual Memory for Efficient Long-Horizon Reasoning\n\n**MemOCR：面向高效长程推理的版面感知视觉记忆机制**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.21468)\n\n![](https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp)\n\n**论文简介**：长时间跨度的智能体推理需要将不断增长的交互历史有效压缩到有限的上下文窗口中。现有的大多数记忆系统将历史序列化为文本，其中token级别的开销是均匀的，且与长度线性增长。为此，我们提出了MemOCR，一种多模态记忆智能体，通过视觉布局实现自适应信息密度的记忆空间分配，从而在紧张的上下文预算下提升长时间跨度推理能力。在长上下文多跳和单跳问答基准测试中，MemOCR优于强文本基线方法，并在极端预算条件下实现了更有效的上下文利用。\n\n## 02 ScaleEnv: Scaling Environment Synthesis from Scratch for Generalist Interactive Tool-Use Agent Training\n\n**ScaleEnv: 从零开始构建可扩展的环境合成系统用于通用交互式工具使用智能体的训练**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.06820)\n\n![](https://p1.meituan.net/meituantechblog/ccceeac77d665e5ffea65436222decc7118744.webp)\n\n**论文简介**：为智能体配备交互式环境和可验证任务以进行自我探索，对于培养能够适应多样化场景的通用智能体至关重要。我们提出了ScaleEnv，一个完全从零开始构建全交互式环境和可验证任务的框架。ScaleEnv通过程序化测试确保环境的可靠性，通过工具依赖图扩展和可执行动作验证来保证任务的完整性和可解性。在未见过的多轮工具使用基准测试上展示了显著的性能提升，突显了强大的泛化能力。\n\n## 03 V\\_0: A Generalist Value Model for Any Policy at State Zero\n\n**V\\_0：一种适用于任意策略在初始状态下的通用价值模型**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.03584)\n\n![](https://p0.meituan.net/meituantechblog/78419c635c8bc694f07882566afb116176626.webp)\n\n**论文简介**：大语言模型的强化学习训练中的价值模型面临耦合困境：它们需要与更新中的策略同步训练。我们提出了V\\_0，一种通用价值模型，通过将任务重新定义为上下文学习来预测未见策略的性能，从而将价值估计与特定策略参数解耦。实验结果表明，V\\_0在GRPO训练过程中追踪策略演化方面优于耦合价值模型，能够优化冷启动预算分配，并在推理路由中逼近性能-成本的帕累托前沿。\n\n## 04 Learning to Self-Verify Makes Language Models Better Reasoners\n\n**学习自我验证使语言模型成为更好的推理者**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.07594)\n\n![](https://p1.meituan.net/meituantechblog/75add83935b72c67529dc96ae4b6a9b268520.webp)\n\n**论文简介**：近期的大语言模型在为复杂任务生成有前景的推理路径方面表现出色，但在验证自身答案方面仍然薄弱。我们发现学习自我验证能够有效提升生成性能，产生更高效的推理轨迹。我们提出了一个多任务强化学习框架，将生成和自我验证作为两个独立但互补的目标进行联合优化。实验表明，该方法在生成和验证能力上均优于仅进行生成训练的方法。\n\n## 05 AgentNoiseBench: Benchmarking Robustness of Tool-Using LLM Agents Under Noisy Condition\n\n**AgentNoiseBench：噪声条件下工具使用型大语言模型智能体的鲁棒性基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.11348)\n\n![](https://p0.meituan.net/meituantechblog/31e3e86e970c5c79e9b4d762b09326dd118430.webp)\n\n**论文简介**：随着基于大语言模型的智能体越来越多地部署在实际工作流程中，现有的智能体基准测试不足以刻画智能体在不完美用户指令和不可靠工具反馈下的鲁棒性。我们提出了AgentNoiseBench，一个用于系统评估大语言模型智能体交互式噪声鲁棒性的框架。该基准建模了用户侧指令噪声和工具侧结果噪声两种主要噪声来源，提供模块化噪声注入管道和多维度评估指标。通过对25个工具使用模型的评估，发现工具侧噪声通常比用户侧噪声引起更大幅度的性能下降。\n\n## 06 AJ-Bench: Benchmarking Agent-as-a-Judge for Environment-Aware Evaluation\n\n**AJ-Bench：面向环境感知评估的智能体裁判基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.18240)\n\n![](https://p1.meituan.net/meituantechblog/2b3544e8ab174ad18492a3a6c98ed6b9127010.webp)\n\n**论文简介**：随着强化学习不断推动基于大语言模型的智能体训练规模化，在复杂环境中可靠地验证智能体行为变得日益困难。现有方法依赖基于规则的验证器或 LLM-as-a-Judge 模型，但这些方法难以泛化到狭窄领域之外。Agent-as-a-Judge 通过主动与环境和工具交互以获取可验证的证据来解决这一局限性，但其能力仍未得到充分探索。 我们提出了一个基准测试 AJ-Bench，用于系统性地评估\"智能体充当评判者\"在三个领域——搜索、数据系统和图形用户界面——中的表现，涵盖155个任务和516条标注轨迹。该基准全面评估了评判智能体在信息获取、状态验证和过程验证方面的能力。实验表明，相比 LLM-as-a-Judge 基线方法，该方法取得了稳定的性能提升，同时也揭示了基于智能体的验证中仍存在的重大开放性挑战。\n\n## 07 LUVE : Latent-Cascaded Ultra-High-Resolution Video Generation with Dual Frequency Experts\n\n**LUVE：基于双频率专家的潜空间级联超高分辨率视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.11564)\n\n![](https://p0.meituan.net/meituantechblog/adcdda2e2386d052a06f76362ffc24df164210.webp)\n\n**论文简介**：为解决超高分辨率视频生成中连贯性与算力难以兼顾的难题，该论文提出了基于双频专家的潜空间级联框架LUVE。该框架创新性地采用三阶段架构：先通过低分辨率生成保障运动一致性；接着利用潜空间上采样直接提升分辨率，大幅降低内存与计算开销；最后融合高低频专家细化高分辨内容，全面增强全局语义与局部细节。实验表明，LUVE展现出了卓越的逼真度与内容保真度，其核心思想现已成功应用于美团LongCat-Video模型中。\n\n## 08 Infinite-World: Scaling Interactive World Models to 1000-Frame Horizons via Pose-Free Hierarchical Memory\n\n**Infinite-World：通过无位姿层次化记忆将交互式世界模型扩展至1000帧**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.02393)\n\n![](https://p0.meituan.net/meituantechblog/7e37532eff0ab36936a1b9cd21f869e7119212.webp)\n\n**论文简介**：Infinite-World 是面向真实场景中的长程交互式世界模型，其目标是在 1000+ 帧生成中保持稳定的视觉记忆和动作响应。针对真实视频中位姿噪声大、视角回访稀少的问题，论文提出三点创新：用无位姿层级记忆压缩器将历史 latent 压缩为固定预算记忆，降低长程建模成本；用不确定性感知动作标注提升噪声轨迹下的动作学习；再通过高回访数据微调增强 loop closure 能力。整体上，它让世界模型更适合从真实视频学习长时空一致性。\n\n## 09 WildActor: Unconstrained Identity-Preserving Video Generation\n\n**WildActor：无约束身份保持视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2603.00586)\n\n![](https://p1.meituan.net/meituantechblog/24933777ccb49e8a29a709b287221cd8309446.webp)\n\n**论文简介**：本文提出 WildActor，一种面向无约束身份保留的视频生成新框架，旨在应对现有方法在动态长镜头和视角剧烈切换时面临的全身体态不一致、面部漂移及姿态僵死伪影。在机制层面，WildActor 构建了含1.6M视频和18M多视角图像的大规模数据集 Actor-18M，有效解决原始数据中的正脸偏置；同时引入非对称身份保留注意力（AIPA）解耦身份与运动生成，并结合身份感知3D旋转位置编码（I-ROPE）显式分离时空 Token，配合视角自适应蒙特卡洛采样实现了鲁棒的任意视角条件控制。实验表明，WildActor 在新构建的 Actor-Bench 连贯叙事与泛化测试中，不仅全身一致性与文本对齐度显著超越现有开源及商业大模型，还验证了其在复杂现实场景下保持物理恒常性的优越性。\n\n## 10 Navigating the Pareto Frontier of Alignment: Spectrum-Adaptive Fine-Tuning for LLMs\n\n**SAFT：面向大语言模型的谱自适应微调方法**\n\n**论文下载**：[PDF](https://github.com/sjtu-scx/SAFT/blob/main/SAFT.pdf)\n\n![](https://p0.meituan.net/meituantechblog/f7b88b332a240ef7176c970b7c6879cd170832.webp)\n\n**论文简介**：监督微调常用交叉熵作为目标函数，虽然学习高效，但它并非正确率的光滑近似，还会因为特别关注预测概率低的样本从而容易对噪音过度拟合并过度自信。DFT则在梯度层面等同优化正确率的光滑近似函数，在保持训推一致性的同时提升了鲁棒性，但也会削弱对可学习的难样本的学习效率。因此，SFT 与 DFT 构成效率—鲁棒性两个端点，而真实数据应选择哪种折中取决于其未知的内在 SNR。我们提出轻量的 pre-test protocol：用少量训练数据分别训练 SFT/DFT 并在验证集比较表现，SFT 更优则判定为高 SNR 并选择几何插值Geo-SAFT，DFT 更优则判定为低 SNR 并选择调和插值Har-SAFT。相比仍保留低置信梯度发散的线性插值，SAFT 通过数据自适应的几何/调和非线性插值匹配不同噪声 regime，从而获得更优的鲁棒性—效率 Pareto trade-off。\n\n## 11 TRIP-Bench: A Benchmark for Long-Horizon Interactive Agents in Real-World Scenarios\n\n**TRIP-Bench：真实场景中长时域交互式智能体的基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.01675)\n\n![](https://p0.meituan.net/meituantechblog/99f9fc23599da395c9ace3cba6c7d90787516.webp)\n\n**论文简介**：本论文提出了 TRIP-Bench，一个面向长程交互式 Agent 的旅行规划评测基准。它基于真实世界数据构建，包含 18 个工具和 40 多类旅行约束，重点考察模型在多轮对话中保持全局约束、调用工具、处理用户需求变化和方案反复修改的能力。其困难任务最长可达 15 轮用户交互、150 次以上工具调用，甚至超过 20 万 tokens 上下文。实验表明，现有先进模型在该基准上仍表现有限。论文进一步提出 GTPO 多轮强化学习方法，通过奖励归一化和轮次级奖励差分提升模型鲁棒性，使 Qwen2.5-32B-Instruct 在评测中超过 Gemini-3-Pro。\n\n## 12 InfVSR: Toward Consistency-Driven Streaming Generative Video Super-Resolution\n\n**InfVSR：面向一致性驱动的流式生成视频超分辨率**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2510.00948)\n\n![](https://p0.meituan.net/meituantechblog/8120868b5fc25080dc2c2986f2323c5468146.webp)\n\n**论文简介**：本文提出了 InfVSR，一种面向一致性驱动的流式生成视频超分辨率新框架，旨在解决扩散式视频超分方法在长视频场景中存在的推理效率低、显存占用大和时序不一致问题。其核心机制包括：将预训练视频 DiT 改为因果流式架构，引入滚动 KV 缓存以维持局部过渡平滑性；设计联合视觉引导通过交叉注意力注入全局语义锚点，抑制累积误差漂移。训练阶段结合分块像素监督与跨块分布匹配，双重约束时序一致性，并将扩散过程蒸馏为高效单步推理。实验表明，InfVSR 在多项基准上取得 SOTA 性能，时序一致性显著领先，推理速度提升 58 倍且长序列显存占用恒定。\n\n## 13 DRIVE: Distributional and Retrieval-Augmented Bidding with Value Evaluation\n\n**DRIVE**：基于混合分布与检索增强的价值评估出价策略\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.14192)\n\n![](https://p0.meituan.net/meituantechblog/3c5da2f5bb1f05cb0e55acd180e633f544634.webp)\n\n**论文简介**：针对标准Decision Transformer (DT)在复杂竞价环境中的三大痛点（“平均动作”陷阱、长尾幻觉、缺乏推理优化），提出“生成—检索—评估”闭环框架：1）用高斯混合模型替代确定性输出，解决多模态策略坍缩问题；2）引入检索机制增强长尾场景记忆，避免参数化模型幻觉；3）通过IQL Critic实现闭环择优，对生成动作与历史动作进行实时评估。该方案显著提升决策鲁棒性。",
+      "tags": [
+        "ICML 2026",
+        "美团",
+        "13篇论文"
+      ],
+      "score": 85,
+      "summary": "美团技术团队解读ICML 2026被收录的13篇论文，涵盖Agent推理和强化学习。",
+      "image_url": "https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp",
+      "fetched_at": "2026-08-01T00:08:20.928647+08:00"
+    },
+    {
+      "title": "LongCat 开源 VitaBench 2.0：长期动态智能体基准新标杆",
+      "link": "https://tech.meituan.com/2026/06/29/LongCat-VitaBench-2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "一个经常加班的白领，一个带着孩子出游的父亲，你的AI助理能分清他们需要什么样的服务吗？\n\n现实是，它常常分不清。\n\nAI能执行你明确的指令，却很难记住那些藏在场景和身份背后的真实需求。它们是真的无法理解，还是“情商”不够高呢？\n\n自去年10月发布了 **VitaBench 1.0**，首次定义了生活场景下智能体任务的复杂度，美团 Longcat 团队再次推出 VitaBench 2.0，它不再仅仅关注任务有多难，而是将目光投向了更深层次的挑战。\n\n**VitaBench 2.0 是首个真实生活场景下面向长期动态用户建模的智能体评测基准，它系统性地评测大语言模型在长期、真实、动态的用户互动中个性化与主动性的能力**。\n\n**VitaBench 2.0 的 核心“硬核”看点**：\n\n* 高难度业界首创：首次将智能体场景与丰富用户生态相结合，打造面向长期动态用户建模的智能体基准。其包含56名真实特征用户、819个复杂任务、超2000个动态偏好及66个可执行工具。\n* 超长跨度动态追踪：平均每位用户包含 2093 个交互事件，平均时间跨度长达 1580 天，严格按时间线向 Agent 暴露，真实还原用户偏好的演进与漂移。\n* 统一评测生态：针对长文本上下文学习（In-context learning）与智能体记忆策略（Memory Strategy）的统一评测平台。\n\n## 01 设计原理：VitaBench 2.0的三维解构\n\n能得出这些结论，得益于VitaBench 2.0的核心设计。它不再是简单的问答，而是围绕三大创新构建了一个前所未有的评测体系。\n\n![图1：VitaBench 2.0 概览图](https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp)\n\n### 1.1 搭建“人生副本”：让AI在真实用户轨迹中接受考验\n\n不同于一次性的问答，VitaBench 2.0为56位虚拟用户，在送餐、到店、差旅等多个真实领域中，构建了包含2000多种动态偏好、跨度长达数年的生活轨迹。\n\n这背后是庞大而真实的数据支撑。如下图所示，这些图表直观地展示了我们构建的用户画像和偏好分布的真实性与复杂性。\n\n![图2：VitaBench 2.0 用户画像统计图](https://p0.meituan.net/meituantechblog/54c8ca3a15f23f55b88d079885aedf63148034.webp)\n\n![图3：VitaBench 2.0 用户偏好统计图](https://p0.meituan.net/meituantechblog/765450b81465c59972ae583ca0946e64149788.webp)\n\n具体来说，这个数据生态包含：\n\n* 56个拟真用户，每个用户都拥有基于真实世界统计数据构建的独特身份、习惯和需求。\n* 819个可执行任务，贯穿于用户的整个生命周期。\n* 用户的偏好不是静态标签，而是会随着时间、事件而动态演变，平均每个用户的偏好会发生超过48次动态变化。\n\n这些偏好被巧妙地嵌入到碎片化的互动历史中，包括对话记录和行为日志（如浏览、搜索、下单）。智能体必须像侦探一样，从这些混杂着“信号”与“噪音”的线索中，持续对用户进行理解。\n\n### 1.2 引入“时间标尺”：将持续理解作为核心目标\n\n传统的Agent评测关注“单个任务是否完成”，而VitaBench 2.0的核心目标是评测**智能体是否在持续理解一个动态的人**。\n\n为此，我们将评测的时间轴拉长到了前所未有的尺度，用户的平均交互周期长达**1580天（约4.3年）**，最长甚至达到 **2,974** 天。在这漫长的时间线里，智能体需要不断地**提取、利用、并更新**对用户的理解，才能在后续的任务中做出正确决策。这从根本上改变了评测的焦点，从单次任务的成功，转向了对用户偏好的考核。\n\n### 1.3 设立“记忆擂台”：对决AI的两种记忆模式\n\n为了探究记忆在长期用户建模中的作用，VitaBench 2.0搭建了首个真实用户场景下的统一长期智能体评测平台，通过可扩展的接口，让两种代表性机制在此对决：\n\n* **智能体记忆**： AI自己决定记住什么、忘记什么，主动维护一个精炼的用户档案。\n* **RAG记忆**： 像一个外部搜索引擎，根据当前任务检索最相关的历史片段。\n\n通过对比这两种模式，我们可以清晰地看到不同记忆架构，以及同架构下的不同设计对个性化决策的真实影响，从而回答“AI应该如何记忆”这一关键问题。同时，为了考验AI的“眼力劲”，我们还设计了主动性任务。在这些任务中，AI必须意识到信息不足并主动提问，而不是盲目决策。\n\n## 02 核心洞察：用数据看清模型的短板\n\nVitaBench 2.0不仅给出了总分，更用数据揭示了模型们犯错的具体原因。如表1所示，这是主要模型在不同记忆设置下的性能排行榜。\n\n![表1：主要模型在不同记忆设置下的性能表现](https://p1.meituan.net/meituantechblog/521cabb68ee8fad43452344cba3bb4a1649960.webp)\n\n从排行榜（表1）可以看出，即使在能看到全部历史记录的“开卷”模式下，最强的模型Claude-Opus-4.6的平均分也刚过0.5，说明从海量信息中准确提炼偏好本身就比较困难。而一旦切换到更真实的记忆模式，模型的表现出现了不同程度的下滑。\n\n**洞察一：时间越长，AI忘得越快**\n\n如下图所示，随着任务序列索引增加（即时间推移），所有模型的平均性能都在下降。这说明，无论是处理超长上下文的能力，还是记忆模块的累积误差，都严重限制了AI的长期服务能力。\n\n**更关键的是，记忆并没有成为解药**。对比实验结果发现，大部分模型在接入Agentic Memory或RAG Memory后，性能反而低于直接使用全历史记录的场景——**记忆不是装上就好**，如何正确更新、检索和利用，才是真正的挑战。\n\n![图4：模型性能随任务序列（时间）的衰减分析](https://p1.meituan.net/meituantechblog/212aa3a638a9bcacbbcadea7718d77d628306.webp)\n\n**洞察二：高“智商”不等于高“情商”**\n\n一个常见的假设是，开启模型的“思考模式”能提升其表现。然而，VitaBench 2.0 的实验结果给出了相反的答案：**开启思考模式，在个性化任务上并不总是有帮助**。\n\n下图展示了模型在开启/关闭思考模式下的性能与效率关系。横轴是完成任务所需的交互轮数（越少越好），纵轴是平均性能（越高越好），理想的模型应位于左上角。可以看到，开启思考模式的点并没有稳定地比关闭模式更优越。\n\n![图5：开启/关闭思考模式下的模型性能与效率](https://p0.meituan.net/meituantechblog/5e633bfcc648e2d8d5b34eaaa9469a7048792.webp)\n\n**洞察三：AI普遍缺乏“主动沟通”的意愿**\n\n模型普遍缺乏在信息不足时主动提问的“眼力见”。所有模型家族在需要主动提问的任务上，得分都出现了“断崖式”下跌。例如，Claude家族的平均分从46.0骤降至27.4。这表明，AI倾向于“想当然”，而不是在不确定时“多问一句”。\n\n![图6：模型在主动性任务上的性能表现](https://p0.meituan.net/meituantechblog/dc9b1835d1107a759336fabf3ba6870074674.webp)\n\n**洞察四：就算“喂到嘴边”，AI也未必会吃**\n\n为了分离“提取偏好”和“利用偏好”这两个难题，我们直接把真实用户偏好告诉模型。虽然性能有所提升，但仍有很大进度空间。**即便把真实偏好直接告诉模型，多数模型仍然失败**。这说明，即使拥有了准确的用户画像，在高压、多约束的决策中正确应用这些偏好，本身就是一个巨大的挑战。\n\n![图7：在提供真实偏好下的模型性能](https://p1.meituan.net/meituantechblog/cf75832fa9983f74bb404bf899cac91223446.webp)\n\n**洞察五：从“工具失误”到“情商不足”的瓶颈转移**\n\n我们对模型的失败原因进行了分类统计。在由**66个真实工具**构成的复杂生活服务场景中，早期模型更多地犯下工具使用错误（A类），例如选错API或填错参数。而更强的模型（如DeepSeek-V4-Pro）虽然工具用得更好了，但在偏好理解和应用（B类）上的失败却成了主要矛盾。这表明随着模型基础能力的提升，**个性化已是当前 Agent 的最大瓶颈**。\n\n![图8：模型失败模式分析（DeepSeek家族为例）](https://p1.meituan.net/meituantechblog/8cdd5784d215584793d4eabed47c184f59698.webp)\n\n## 03 总结：定义下一代智能体评测范式\n\nVitaBench 2.0清晰地揭示了，当前AI在成为“高情商助理”的路上，依然任重道远。\n\n它的核心价值，在于推动了评测范式的演进：**从单点任务到长期陪伴，从被动执行到主动沟通，从黑盒到透明**。这使得VitaBench 2.0成为一座连接技术与产品的“桥梁”，它用可量化的数据回答了“我的AI为什么不够好用”的问题，并为开发者指明了模型在“服务于人”这一终极目标上的具体短板。\n\n我们希望，VitaBench 2.0能成为一个起点，激发更多研究关注智能体的个性化、记忆和主动性，共同推动AI从一个强大的“工具”进化为一个有温度的“伙伴”。\n\n**VitaBench 2.0 已全面开源，欢迎各大模型前来接受“情商”大考**。\n\n**开源地址**\n\n* **项目主页**： <https://vitabench2.github.io/>\n* **论文链接**： <https://arxiv.org/abs/2605.27141>\n* **GitHub**： <https://github.com/meituan-longcat/vitabench-2.0>\n* **HuggingFace**：<https://huggingface.co/datasets/meituan-longcat/VitaBench-2.0>",
+      "tags": [
+        "VitaBench",
+        "LongCat",
+        "智能体基准"
+      ],
+      "score": 85,
+      "summary": "美团LongCat发布VitaBench 2.0，用于长期动态用户建模的Agent评测基准。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp",
+      "fetched_at": "2026-08-01T00:08:20.928649+08:00"
+    },
+    {
+      "title": "美团海报生成 AIGC 技术创新与实践",
+      "link": "https://tech.meituan.com/2026/06/18/AIGC-poster.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "一张商业海报，对设计师来说可能是半天工作；对百万中小商家来说，却可能是一道迈不过去的门槛。外包一张专业海报，少则数百、多则数千元；临时促销要求分钟级交付，传统设计流水线却要1到3天；好不容易批量生产出来，质量又参差不齐——这是美团平台上数百万商家每天都在面对的真实困境。AIGC 给了我们一个新的答案，但「生成一张看起来还行的图」和「生成一张真正可用的商业海报」之间，横亘着精准文字渲染、和谐版式布局、多任务统一支持、质量可量化评估等多项相互交织的技术挑战。过去两年，美团智能创作团队围绕这一问题，构建了覆盖「能生成、能编辑、能评判」的完整技术体系：\n\n* PosterCraft（ICLR 2026）：摒弃模块化流水线，端到端统一优化文字、视觉与版式，在文字渲染准确率上接近Top级别的闭源商业系统；\n* PosterOmni（CVPR 2026）：单一模型覆盖扩图、补全、比例调整、风格迁移等六类设计任务，更接近\"基于参考稿工作的智能设计助手\"；\n* PosterReward（CVPR 2026）：首个专门面向海报质量评估的奖励模型，在专项评测基准上达到 86% 准确率，远超现有基线，既驱动生成模型持续进化，也承担线上质检把关。\n\n三者形成「生成-编辑-评判」的技术闭环，相互支撑、持续自我进化。目前三项工作均已全部开源于 MeiGen-AI 仓库，并在美团外卖套餐图生成、品牌 IP 袋鼠团团、点评信息流治理等多个真实业务场景中完成落地。本文将系统拆解这套技术体系的核心思路、关键创新与实战经验。\n\n## 一、背景与挑战\n\n### 1.1 业务背景：百万商家的\"创意平权\"难题\n\n美团连接数百万商家与数亿消费者，海报作为核心视觉营销载体，贯穿商家日常运营全场景。然而，百万商家普遍面临四重困境：\n\n* **设计资源匮乏**：专业营销海报外包动辄数百至数千元，中小商家难以承受；即便是大型连锁品牌，面对多城市、多门店的差异化营销需求，设计师团队同样捉襟见肘。\n* **时效性要求苛刻**：天气突变、突发热点、临时促销等本地生活场景要求海报\"分钟级\"交付，传统设计流水线 1–3 天的周期已严重脱节。\n* **内容同质化严重**：大量商家依赖固定模板做简单文字替换，海报千篇一律，在信息爆炸时代难以触达消费者，营销转化率持续走低。\n* **批量生产质量失控**：从精雕细琢转向规模化生产后，如何保证每张海报达到商业可用标准，成为新的运营难题。\n\n### 1.2 技术挑战：高质量海报生成的多维难题\n\nAIGC 为上述问题提供了新思路，但**高质量海报生成**远非简单的文生图任务，面临五大相互交织的技术挑战。\n\n**挑战一：精准的文字渲染**\n\n海报文字要求\"零容错\"——任何错误、缺失或模糊都导致整张海报不可用。主流扩散模型在多行文字、中文字符和小字号文本上仍有明显短板，中文场景下难度尤甚。\n\n**挑战二：和谐的版式布局**\n\n优秀海报遵循对比、重复、对齐、亲密性等设计原则，这种\"设计感\"难以规则化，更多依赖对大量优秀作品的隐式学习，是一个开放性难题。\n\n**挑战三：统一的美学风格**\n\n色彩和谐、视觉层次、品牌调性等多维度共同构成美学判断，且不同行业标准迥异：餐饮要\"食欲感\"，美妆要\"精致感\"，科技要\"未来感\"。模型需在保持整体美学水准的同时适配多样化风格需求。\n\n**挑战四：多任务场景的统一**\n\n真实设计需求横跨\"局部编辑\"（文字排版叠加、局部填充）和\"全局创作\"（风格迁移、版式重组）两大范畴，如何在单一模型中同时支持所有场景，是模型设计和训练策略上的重大挑战。\n\n**挑战五：质量评估的可量化**\n\n现有图像质量指标（FID、IS 等）无法捕捉海报特有的排版质量、文字准确性和设计规范性，而人工评估成本高昂且难以规模化。我们需要一套既能驱动模型优化（作为 RL 奖励信号），又能承担线上质检的自动化评估体系。\n\n### 1.3 我们的解法：构建\"生成-编辑-评判\"技术闭环\n\n面对上述挑战，我们团队围绕海报生成构建了一套完整的技术体系，覆盖**基础模型能力提升**、**多任务统一模型融合**和**质量评估模型**三大核心环节，形成了\"能生成、能编辑、能评判\"的技术闭环。\n\n* **能生成**：端到端高美感海报生成，精准文字渲染；技术方案→ [PosterCraft](https://arxiv.org/pdf/2506.10741)｜[Code](https://github.com/MeiGen-AI/PosterCraft)（ICLR 2026）\n* **能编辑**：六大任务统一，局部编辑与全局创作融合；技术方案→ [PosterOmni](https://arxiv.org/pdf/2602.12127)｜[Code](https://github.com/MeiGen-AI/PosterOmni)（CVPR 2026）\n* **能评判**：真实海报结构化解析 + 生成海报偏好评估；技术方案→营销海报结构化 + [PosterReward](https://arxiv.org/pdf/2603.29855)（CVPR 2026）\n\n三者相互支撑、协同进化：评估驱动生成优化，生成拓展编辑边界，编辑反哺评估标准，共同构成一个持续自我进化的后训练系统。相关工作已产出三篇顶级学术会议论文，并全部开源于[MeiGen-AI仓库](https://github.com/MeiGen-AI)。\n\n## 二、技术体系全景\n\n我们的海报生成技术体系遵循一个清晰的演进路径：\n\n![](https://p0.meituan.net/meituantechblog/861434cef3a148ae0093da6666e149361816826.png)\n\n各层相互支撑：**PosterCraft** 奠定端到端生成基础；**PosterOmni** 在此之上拓展至多任务统一编辑；质量评估层构建\"双线并行\"体系——**营销海报结构化**面向线上存量海报，提供构图、配色、氛围感的结构化解析与美学评分；**PosterReward** 面向 AI 生成内容，提供偏好评估信号，既驱动生成模型持续进化（RL 奖励函数），也承担工业化生产的质检把关。\n\n## 三、端到端高美感海报生成：PosterCraft（ICLR 2026）\n\n### 3.1 核心思想\n\n过去的海报生成方法大多采用**模块化设计**——先由视觉语言模型规划布局，再将文字叠加到单独生成的背景上。这种流水线方案存在根本性缺陷：美学一致性难以保证，视觉质量受限于各模块的短板拼接。\n\nPosterCraft 的核心思路是：**摒弃模块化流水线，让模型端到端地自由探索视觉连贯的设计组合**。渐进式的组件级改进不足以带来美学层面的质的飞跃，需要一套统一框架来协同优化文字、视觉和版式。\n\n### 3.2 四阶段级联优化工作流\n\nPosterCraft 设计了四阶段训练流程，每个阶段针对一个关键瓶颈：\n\n![](https://p0.meituan.net/meituantechblog/1f7bf60eec315936b2067365a7c074d31158073.png)\n\n**阶段一：大规模文字渲染优化**\n\n构建 **Text-Render-2M** 数据集（200 万样本，涵盖多样文字内容、大小、位置和旋转角度）。通过 Flow Matching 微调，显著提升文字渲染准确率，有效解决基础模型常见的文字缺失、重复和错误问题。\n\n![](https://p1.meituan.net/meituantechblog/ca634a457456cbb9a9cf9f1cd5f84649110870.png)\n\n**阶段二：高质量海报微调 + 区域感知校准**\n\n构建 **HQ-Poster-100K**，经多级管线筛选超过 10 万张高质量海报。关键创新是区域感知校准（Region-Aware Calibration）机制，对不同区域差异化加权：非文字区域（1.0）、主要文字区域（0.6）、次要文字区域（0.2），在保持文字准确的同时更注重整体艺术性。\n\n**阶段三：美学-文本强化学习**\n\n构建 **Poster-Preference-100K**：对每个 prompt 生成 5 张海报，用 HPSv2 打分结合 Gemini 验证文字准确性，筛选出 6000 个高质量偏好对。采用 Best-of-N 偏好优化（DPO），让模型学习色彩和谐、版式平衡等高阶美学偏好。\n\n**阶段四：视觉-语言反馈精炼**\n\n构建 **Poster-Reflect-120K**：对每个 prompt 生成 6 张海报，由 Gemini 选择最优并生成结构化反馈建议。利用 InternVL-3-8B 微调为 VLM 评论家，在推理时提供迭代式反馈优化。\n\n### 3.3 核心成果\n\nPosterCraft 在文字召回率、F-score 和准确率上**显著超越所有开源基线**，接近 SOTA 闭源商业系统（如 Gemini 2.0-Flash-Gen）的水平，证明了统一端到端框架在海报生成任务上的巨大潜力。\n\n![](https://p0.meituan.net/meituantechblog/da0ef43ee67c6680870a987f778393fd4129254.png)\n\n## 四、多任务统一的图像到海报创作：PosterOmni（CVPR 2026）\n\n### 4.1 核心思想：从 Text-to-Poster 到 Image-to-Poster\n\n不少 AI 海报生成方法将输入设定为文本提示（Text-to-Poster），但真实设计场景中，更常见的起点是**一张参考图、旧版海报或产品主视觉**——设计目标不是完全重做，而是在保留核心主体的基础上完成扩图、补全、比例调整、风格迁移和版式重组。\n\nPosterOmni 的核心定位：\n\n> **A unified open model for versatile multi-task image/poster-to-poster generation.**\n\n它通过一个统一的开源模型覆盖多类设计需求，既能处理局部编辑，也能完成风格重塑和版式重构——更接近一个\"**基于参考稿工作的智能设计助手**\"，而非\"编辑模块 + 生成模块\"的简单拼接。\n\n![](https://p0.meituan.net/meituantechblog/d5db45749034556fffac53e65fd393991778168.png)\n\n### 4.2 统一\"图到海报\"范式：单一模型覆盖六类典型设计需求\n\nPosterOmni 将 image/poster-to-poster 场景中的常见需求整理为 **6 类任务**，统一由一个模型完成：\n\n![](https://p0.meituan.net/meituantechblog/64f8c774a7d1659fac7c754a1d85ea4d223570.png)\n\n这些能力共同对应了一个真实的设计流程：\n\n![](https://p0.meituan.net/meituantechblog/734a4d8143a2ed82fefb9955ee99e57e1995735.png)\n\n### 4.3 核心难点：多任务冲突的缓解\n\n多任务统一建模的核心难点在于**任务间的相互干扰**：局部编辑强调像素级一致性和自然过渡，全局创作则关注风格抽象和大幅度重构。直接混合训练容易导致模型\"什么都会一点\"，但整体不稳定。\n\nPosterOmni 采用\"数据—蒸馏—奖励\"闭环：\n\n1. 分别训练局部编辑和全局创作两类专家模型。\n2. 通过任务蒸馏整合为统一学生模型（PosterOmni-SFT）。\n3. 加入统一奖励与强化学习，对齐审美偏好、编辑准确性和指令遵循能力。\n\n### 4.4 方法论：四阶段训练流水线\n\n#### 阶段 1：自动化数据构建（PosterOmni-200K）\n\n构建 **PosterOmni-200K**，形成完整数据闭环：创意描述生成 → 候选图生成 → 多模态筛选 → 任务配对整理。\n\n**（1）提示词与基础图生成：贴近真实设计 brief**\n\n组合主体/品类/场景/风格标签，借助 VLM（GPT、Qwen3）扩展为带版式约束的结构化描述，再用强 T2I 模型（Qwen-Image 等）渲染候选图，并过滤主体缺失、文字崩坏等不合格样本。\n\n**（2）多模态过滤：噪声控制是合成数据的真正瓶颈**\n\n对于合成数据而言，真正的瓶颈往往不在数量，而在噪声控制。我们设计了一套分层过滤机制：\n\n* **训练集**：PaddleOCR 检查文本可读性 + jina-clip-v2 图文一致性判断。\n* **评测集**：额外引入 Gemini 2.5 Flash 评估\"任务匹配度\"。\n* **结构信号**：SAM 2 生成分割区域，为补全、扩图等任务提供 mask 级监督。\n\n**（3）六类任务配对构建**\n\n基于经过过滤的\"文本→海报\"基础数据，进一步构造六类 image/poster-to-poster 训练任务。每一类任务对应一个模块化的数据生成器：\n\n* **Extending / Filling**：SAM2 构造局部 mask。\n* **Rescaling**：借鉴 BrushNet，构建\"比例变化→内容重排\"监督对。\n* **ID-driven**：PaddleDet 提取主体 + 增强编辑器构造\"主体不变、其余可调\"样本。\n* **Layout / Style-driven**：prompt-controlled rerendering，继承布局或风格但不直接复制。\n\n最终覆盖商品、美食、活动/旅行、自然、教育、娱乐六大海报主题，产出超过 **20 万个高质量配对样本**。\n\n![](https://p0.meituan.net/meituantechblog/94e267f5110d845ebdeb3e6d46053e7c2588744.png)\n\n#### 阶段 2：任务蒸馏——先拆开学，再合到一起\n\n如果直接把六类任务混在一起联合训练，最容易出现的问题就是任务冲突：局部任务强调像素对齐与细节保真，全局任务则更关注构图重组与风格抽象，两者在同一个参数空间中往往会互相拉扯。为了解决这个问题，PosterOmni 采用：**先训练专家，再蒸馏成统一学生模型**。\n\n**（1）专家训练：**\n\n* **局部编辑专家**：负责 Extending / Filling / Rescaling / ID-driven，学习主体一致性与可控编辑能力。\n* **全局创作专家**：负责 Layout-driven / Style-driven，学习版式组织逻辑与风格协调性。\n\n同时加入辅助文本渲染训练信号，保证文字可读性。\n\n**（2）蒸馏到单一学生：PosterOmni-SFT**\n\n最终的统一模型不是简单做\"参数拼接\"，而是训练一个学生网络去逼近专家模型的速度场/预测行为。整体损失由两部分组成：\n\n```\nL_total = L_text_render (辅助文本渲染损失，保证文字稳定清晰)\n        + λ · L_distill  (任务蒸馏损失，复现专家输出)\n```\n\nPosterOmni-SFT 同时具备\"局部精修的稳定性\"和\"全局创作的生成性\"，不再依赖多个模型串联。\n\n![](https://p0.meituan.net/meituantechblog/ae87c984e187bfb13cfa2fc65c738c871590352.png)\n\n#### 阶段 3：统一奖励模型训练（RomniR\\_{omni}Romni​）\n\nSFT 使模型\"会做\"，但难以进一步学会\"做得更美观\"。我们训练统一奖励模型 RomniR\\_{omni}Romni​，**同时输出通用审美质量与任务完成度的综合分数**。\n\n**偏好数据构建：** PosterOmni-SFT 生成多个候选，Gemini-2.5-Pro 初筛后由标注者选优。关键创新是 **negative-pair 策略**：将\"输入参考图\"记为 rejected、\"编辑后输出\"记为 chosen，显式强化\"有效修改本身有价值\"的认知，防止模型在 layout/style 任务中直接拷贝参考图投机。\n\n**模型结构：** 基于 Qwen3-VL 编码器 + 轻量 MLP head，编码\"视觉质量 + 指令 + 任务类型\"，采用 Bradley-Terry 目标优化排序损失 LBTL\\_{BT}LBT​。最终，RomniR\\_{omni}Romni​ 学到的不只是\"什么更好看\"，还有\"对这个任务来说什么算做对、什么算偷懒\"。\n\n#### 阶段 4：Omni-Edit 强化学习\n\n沿用 **DiffusionNFT** 思路，在正向扩散过程中直接优化，用对比式 Diffusion Loss 将速度预测器推向高奖励行为：从旧策略 voldv\\_{old}vold​ 构造隐式正/负策略，用奖励 r∈[0,1]r \\in [0,1]r∈[0,1] 对目标加权，同时做归一化以稳定训练尺度。\n\n将 DiffusionNFT 适配到 image-to-poster 条件输入（输入图 + 指令 + 任务类型），在统一机制下同时处理局部编辑和全局创作。\n\n**与通用 VLM 奖励的关键区别**：通用 VLM 打分不理解 poster 任务的完成标准，容易出现\"看起来像但任务没做对\"的投机解。RomniR\\_{omni}Romni​ 给出 **task-aware** 分数，使 RL 优化方向不仅是\"更好看\"，也是\"更像完成了这个任务\"。\n\n### 4.5 PosterOmni-Bench：统一评测基准\n\n**PosterOmni-Bench** 是首个面向多任务设计场景的统一测试基准：\n\n* **规模**：中英文共 **1020 条**测试指令（540 中文 + 480 英文）。\n* **覆盖**：六类核心任务 × 六大海报主题，同时覆盖单/多参考图输入。\n* **评测**：Gemini-2.5-Pro 打分，1–5 分范围内综合评价审美质量与任务完成情况。\n\n这个 Benchmark 测的不是\"能不能生成一张图\"，而是\"能不能像设计师一样完成海报修改与再设计\"。\n\n### 4.6 实验结果\n\n**定量结果：六项任务全面领先**\n\n在 PosterOmni-Bench 上对比主流开源方法（Qwen-Image-Edit、FLUX.1 Kontext、BAGEL、UniWorld-V2 等）及闭源系统（Seedream 系列）：\n\n* **PosterOmni 在全部六类任务上均取得开源模型最佳表现**，整体评分超过部分闭源模型。\n* 提升来自\"局部精修 + 全局创作\"两类能力的**同时增强**，而非集中于某一子任务。\n* 相较 Qwen-Image-Edit：在 Layout-driven / Style-driven 上增幅最大，说明模型真正学到了布局与风格背后的生成规则。\n* 相较 Seedream-4.0：整体平均已实现反超，单一开源模型已具备处理复杂设计需求的实际可用性。\n\n![](https://p0.meituan.net/meituantechblog/d3043c6dd6453d62e3d2566d8ccbeefd334071.png)\n\n**定性对比：学风格/学布局 ≠ 直接 copy**\n\n**Style-driven 的常见失败**：很多 baseline 会把参考图的局部元素直接\"贴\"过来。PosterOmni 更偏向学习配色、材质感、字体气质等\"风格本质\"，再迁移到新主体上。\n\n**Rescale / Layout-driven 的常见失败**：很多系统只做裁剪/拉伸。PosterOmni 更像在做\"改比例→重排版\"：标题层级、留白、元素间距随之调整，主体也更稳定。\n\n![](https://p1.meituan.net/meituantechblog/c09df87d809bdcc92683b549f1423c843511341.png)\n\n## 五、海报质量评估：PosterReward（CVPR 2026）\n\n海报评估是整个技术体系的\"质量守门人\"，沿两条互补路线展开——核心差异不在于处理对象，而在于**质量信号的来源方式**：\n\n* **真实海报的结构化评估**：面向线上运营海报素材，以**专业设计规范的显式标准**为锚，通过多维度结构化解析实现智能质检与规范管理\n* **生成海报的奖励模型**：面向 AI 生成内容，以**用户主观偏好对齐**为驱动，通过端到端学习提供精准质量信号，驱动生成模型持续进化\n\n两者共同构成\"存量评估 + 增量优化\"的完整评估体系。\n\n![](https://p0.meituan.net/meituantechblog/face43475149dfc38233ca2e0badef5e1945335.png)\n\n### 5.1 真实海报的结构化评估：营销海报图像结构化\n\n#### 5.1.1 问题定义\n\n营销海报是\"人工制作\"的信息载体，具有明确的信息要素和规则搭配，简单的整图美学评分存在显著局限。\n\n我们提出**营销海报图像结构化**解析方案：将海报从多维度拆解分析，把视觉信息转换为规范化的结构化描述，并输出各维度量化美学评分。整套方案围绕三大核心维度展开：**排版构图、色系搭配、氛围风格**。\n\n![](https://p0.meituan.net/meituantechblog/cf3831dceb0c82644d32de0051c4c3802491234.png)\n\n#### 5.1.2 排版构图解析\n\n营销海报设计遵循页面排版四大基础原则：**对比、重复、对齐、亲密性**。要理解海报构图的好坏，首先需要对海报内容元素做精准解析。\n\n**内容定位算法**\n\n构建营销海报内容定位模型（准确率 90%+），定位 **12 种常见元素**：\n\n> 文案、价格、修饰、卡通动漫、美团Logo、其他Logo、人像、美团IP、红包、菜品、商品\n\n模型对任意输入的海报图，返回各元素在图中的位置坐标及对应类别，覆盖不同类型、不同尺寸的营销海报。\n\n![](https://p0.meituan.net/meituantechblog/c9b31b0191c8275ead99023af304ade92117053.png)\n\n**构图美学评价算法**\n\n基于元素定位结果，通过 CNN 回归模型拟合设计师主观评价，输出量化构图美学分数：\n\n* 5 分制构图得分误差仅 **0.3794**（归一化误差 0.0759）。\n* 近 **90%** 的图片得分误差控制在 1 分以内。\n\n算法可判断海报构图手法（上下/左右/居中构图等），并评估主体占比、布局紧凑度、画面留白等维度。\n\n![营销海报构图人机打分差异](https://p0.meituan.net/meituantechblog/f7105bd1f74cbaf157f97c44bbe1197c969668.png)\n\n#### 5.1.3 色系搭配识别\n\n色彩是营销海报传达情感的重要介质。不同业务类型适配不同的色系——粉色系营造浪漫/女生氛围，绿色系迎合健康环保调性，黑色系打造科技感或高端奢华风格。\n\n**主色系识别算法**\n\n模型准确率96.2%，支持识别 **11 种色系**：\n\n> 粉色系、绿色系、黑色系、白色系、橙黄系、蓝色系、银灰系、红色系、紫色系、棕色系、多色系\n\n同时输出各色系置信度，对多色系海报也有良好理解能力。\n\n![海报主色系识别算法结果展示](https://p0.meituan.net/meituantechblog/23f462713dff153b7cbb319fca6a8a0c1469655.png)\n\n**色彩解析算法**\n\n支持 12 种基础颜色的占比识别，以及基于 HSV 色彩空间的冷暖色调判断，为色彩和谐度评估提供基础数据。\n\n![海报色彩解析算法结果展示](https://p0.meituan.net/meituantechblog/36981484e1059d142e51f3739374ff4c488816.png)\n\n**色彩美学评价**\n\n将色彩美学拆解为**色彩饱和度**和**颜色和谐度**两个维度，通过深度学习拟合设计师主观评价，输出量化色彩美学分值。\n\n![色彩美学评价得分展示](https://p0.meituan.net/meituantechblog/29ef0ea5ed74ebf86230b06dabfc94ce1306535.png)\n\n#### 5.1.4 氛围感风格识别\n\n一张优秀的营销海报需要告别千篇一律的模板感，让消费者感受到身临其境的独特氛围——这也是海报从\"能看\"到\"吸引人\"的关键跃迁。\n\n**风格识别算法**\n\n模型准确率91.50%，支持识别 **12 种常见海报风格**：\n\n> 节日、卡通、简洁、多彩、科技、柔美、素雅、促销、撞色、实拍、标准、其他\n\n海报风格与文案/商品内容无关，由海报模板及装饰元素营造的**整体氛围感**决定。\n\n![营销海报常见风格定义](https://p0.meituan.net/meituantechblog/2102cc97980395624f9cba2a4d638bdb1862841.png)\n\n#### 5.1.5 整体美学综合评价\n\n在构图、色彩、氛围感等主观维度，以及清晰度、分辨率等客观维度的基础上，综合输出**整体美学评分**，基本拟合设计师的主观评价标准。\n\n![海报整体美学得分展示](https://p0.meituan.net/meituantechblog/e5cb33dbf135c193a5882ae45f723b0c1261786.png)\n\n### 5.2 生成海报的奖励模型\n\n#### 5.2.1 核心思想\n\nPosterReward 是**首个专门面向海报质量评估的奖励模型**，集成结构布局、文字渲染准确性和美学表达三个维度的统一评分能力。现有通用奖励模型主要关注全局图像美学，忽略了海报特有的排版质量和文字渲染维度，加之领域偏好数据极度稀缺，生成海报评估长期是制约生成质量提升的核心瓶颈。PosterReward 的评估维度继承了结构化评估的实践经验——构图、色彩、整体美学在两套方案中形成概念对齐与技术递进。\n\n#### 5.2.2 AI 偏好数据集自动构建（Poster-Preference-70K）\n\n![](https://p0.meituan.net/meituantechblog/97c08edd5d0c4542353c48e491b4e1d8892964.png)\n\n高质量偏好数据是训练奖励模型的基石。我们设计了一套自动化偏好数据构建管线：\n\n**数据来源**：Seedream 3.0、Seedream 4.0 和 Qwen-Image-Lightning 生成的海报池（覆盖影视类和非影视类两大场景）。\n\n**级联式过滤**：\n\n* 影视海报：HPSv3 初筛 → Kendall's W 一致性筛选 → 轻量闭源模型多轮排序 → 最终多模型验证。\n* 非影视海报：同尺寸过滤 → CLIP+DINOv3 差异性筛选 → 多模型最终验证。\n\n**最终多模型验证**：四个开源模型（CLIP、DINOv3、HPSv3、GLM-4.5V）和三个闭源模型（Gemini-2.5-Flash-Lite、Gemini-2.5-Pro、GPT-5）进行多维度共识判定，最终产出 **7万高质量海报偏好对**，覆盖文字渲染、布局设计、美学价值、指令一致性等多个维度。\n\n#### 5.2.3 级联式多阶段训练\n\n![](https://p1.meituan.net/meituantechblog/6289aff1230af0e3fc1da9b0844c3fd41016894.png)\n\nPosterReward 采用四阶段级联训练策略：\n\n**阶段一：联合监督微调（Joint SFT）** 双任务并行——单图分析 + 配对比较，使用 24.6万 单图分析样本 + 16万 配对偏好样本微调 Qwen3-VL-8B。\n\n**阶段二：联合拒绝采样微调（Joint RSFT）**\n每个 prompt 采样三个回答，由 Gemini-2.5-Flash-Lite 选择最高质量响应精炼。\n\n**阶段三：评分模块训练（Score Module Training）**\n训练判别式评分模块（Qwen3-VL-8B + 两层 MLP），采用 Bradley-Terry 损失优化。\n\n**阶段四：强化学习精炼（GRPO）**\n以冻结的评分模块为奖励函数，通过 GRPO 对分析模块进行强化学习微调。\n\n#### 5.2.4 多变体适配\n\n为适应不同应用场景，PosterReward 提供三种变体：\n\n![](https://p1.meituan.net/meituantechblog/f8633fc74396af81573ebd9eaf8ddbc0157579.png)\n\n#### 5.2.5 评测基准与核心成果\n\n我们发布了两个评测基准：**PosterRewardBench**（Basic + Advanced 两个难度级别，评估奖励模型偏好判断准确性）和 **PosterBench**（评估文生图模型的海报生成能力）。\n\n在 PosterRewardBench-Advanced 上，PosterReward 达到 **86.0% 准确率**，远超现有基线（大多在 40%–53% 之间）。**PosterReward-Pairwise** 在 pairwise 评测中保持强竞争力，位置偏置更小，平衡式数据构造和顺序交换策略有效提升了判断稳定性。\n\n![](https://p0.meituan.net/meituantechblog/dcc87144886a18086ef2e796ceeac72f116735.png)\n\n![](https://p0.meituan.net/meituantechblog/4f4db6535bd77ebf92f82afb51630a32129708.png)\n\n### 5.3 评估体系的演进逻辑\n\n回顾整个评估体系的建设路径，可以看到一条清晰的技术演进线：\n\n![](https://p0.meituan.net/meituantechblog/acdfb97a94f12c35dd61412d0aff9741196537.png)\n\n结构化评估积累的维度定义经验（构图、色彩、氛围感）为 PosterReward 的多维度分析模块提供了领域知识参照；PosterReward 的端到端学习能力则克服了传统结构化评估在泛化性和可优化性上的瓶颈。两者的融合是未来评估体系演进的方向。\n\n## 六、技术闭环：各模块如何协同？\n\n整个技术体系并非独立存在的几块工作，而是构成了一个**自我进化的后训练系统**：\n\n![](https://p0.meituan.net/meituantechblog/a810a1f3854bc8468b49dc94d5a0bb281739540.png)\n\n1. **PosterCraft** 建立端到端生成的基础能力，四阶段工作流已引入奖励模型驱动的美学优化。\n2. **PosterOmni** 在 PosterCraft 基础上拓展至多任务场景，其统一 Reward 模型是 PosterReward 理念的任务特化。\n3. **营销海报结构化** 从构图、配色、氛围感等维度提供可解释的设计规范标准，为生成链路的评估维度提供领域知识支撑。\n4. **PosterReward** 将设计知识内化为端到端奖励信号，既驱动生成模型持续进化（RL 奖励函数），也承担线上\"质检线\"的品质保障。\n\n## 七、落地实践\n\n**实际案例 1：与美团设计师合作上线美团品牌IP（PosterCraft生成能力）**\n\n> 生图 prompt（下左）：给我设计一张袋鼠团团的大寒的节日节气海报。\n\n![](https://p0.meituan.net/meituantechblog/3a32d65cc8fea6d91dc99487a3ba284b2230619.png)\n\n> 生图 prompt（上右）：袋鼠团团三维C4D风格，2026年马年新年主视觉，整体节日氛围浓厚，主色调为红色与金色。画面中央是袋鼠团团骑着白马（红色的马鞍，无马缰绳，马蹄上有金和红穗子配饰点缀，呼应生肖主题，活力精神的马年生肖，），面带开心、喜庆的表情，角色主体有柔和的轮廓光，氛围强，作为画面核心主体。画面中点缀烟花、红灯笼等新年元素。背景为中国唐代风格的古建筑群，具有浓厚的东方传统节日氛围。整体画面呈现热闹、喜庆、隆重的新年庆祝场景。主标题： “马年大吉”顶部居中，毛笔创意字体金色，笔触流畅设计感强，大师字体，副标题：“Happy New Year 2026”主标题下面。\n\n**实际案例 2：图生商品海报（PosterOmni 的主体保持能力）**\n\n![](https://p1.meituan.net/meituantechblog/bae54b0cde7b24ce35d25b170098db603218537.png)\n\n## 八、总结与展望\n\n我们通过 PosterCraft、PosterOmni 和 PosterReward 三项工作，构建了覆盖\"**基础生成能力 → 多任务统一融合 → 精准质量评估**\"的完整技术体系，三项工作全部开源，期待推动海报/图形设计生成领域的共同发展。\n\n**未来，我们将继续探索：**\n\n* **更强的可控性**：支持更精细的设计意图传达。\n* **更广的场景覆盖**：从静态海报延伸至动态视觉内容，从零售电商拓展到酒旅、丽人等服务电商场景。\n* **更深的评估维度**：将结构化设计规范知识持续注入奖励模型，实现\"可解释 + 可优化\"的统一。\n* **更紧的产业闭环**：让规范标准与奖励模型的 RL 信号深度融合，直接驱动生成模型自我进化。\n\n从效率到效能，从\"能用\"到\"好用\"，AIGC 海报生成正在重新定义百万商家的创意生产方式。",
+      "tags": [
+        "美团",
+        "海报生成",
+        "PosterCraft"
+      ],
+      "score": 80,
+      "summary": "美团分享海报生成AIGC技术体系，包括PosterCraft等三项成果。",
+      "image_url": "https://p0.meituan.net/meituantechblog/861434cef3a148ae0093da6666e149361816826.png",
+      "fetched_at": "2026-08-01T00:08:20.928651+08:00"
+    },
+    {
+      "title": "In case you want to discover new products or startup launch videos...\n\nhttps://t.co/D9Y3jHwVvE",
+      "link": "https://x.com/dingyi/status/2083207084041293976",
+      "published": "2026-07-31T23:04:07+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "In case you want to discover new products or startup launch videos...  \n  \n[whatships.com](https://whatships.com/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083207057461972992/vid/avc1/1146x720/znBYN4acjdrSPC-n.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/dingyi/status/2083207084041293976/video/1)\n\n💬0🔄0❤️2👀401📊1",
+      "tags": [
+        "whatships",
+        "产品发现"
+      ],
+      "score": 30,
+      "summary": "Ding分享产品发现网站whatships.com。",
+      "fetched_at": "2026-08-01T00:08:20.928654+08:00"
+    },
+    {
+      "title": "Fine-tune your own embedding model for the price of a coffee.\n\nA great reranker can't surface a doc ...",
+      "link": "https://x.com/FireworksAI_HQ/status/2083213213701988390",
+      "published": "2026-07-31T23:28:29+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Fine-tune your own embedding model for the price of a coffee.  \n  \nA great reranker can't surface a doc that was never retrieved. A RAG pipeline cannot cite a case it failed to retrieve.  \n  \nSee how contrastive fine-tuning adapts Qwen3-Embedding-8B to specific domains for under $10 on Fireworks.   \n  \nHere are 3 straightforward experiments and results, e.g. +36% nDCG.  \n  \nRead the breakdown → [fireworks.ai/blog/fine-tuni…](https://fireworks.ai/blog/fine-tuning-your-own-embeddings-model)\n\n💬0🔄1❤️2👀387📊1",
+      "tags": [
+        "Fireworks AI",
+        "嵌入模型",
+        "微调"
+      ],
+      "score": 75,
+      "summary": "Fireworks AI介绍用不到10美元微调Qwen3 Embedding模型，可提升36% nDCG。",
+      "fetched_at": "2026-08-01T00:08:20.928656+08:00"
+    },
+    {
+      "title": "Leopold is taking on it the chin now, but in the end SoftBank may take the bigger hit.",
+      "link": "https://x.com/GaryMarcus/status/2083195427978105154",
+      "published": "2026-07-31T22:17:48+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Leopold is taking on it the chin now, but in the end SoftBank may take the bigger hit.\n\n💬2🔄2❤️17👀2296📊4",
+      "tags": [
+        "Gary Marcus",
+        "SoftBank"
+      ],
+      "score": 45,
+      "summary": "Gary Marcus评论当前局势，认为最终软银可能损失更大。",
+      "fetched_at": "2026-08-01T00:08:20.928658+08:00"
+    },
+    {
+      "title": "想知道本机装了哪些 AI 工具、用了哪些 AI 网站、token 和花费各是多少，用 Surface 在本地扫一遍就有答案。\n\nRust 写的，扫描本机已安装的 AI 工具、浏览器历史里的 AI 站点...",
+      "link": "https://x.com/geekbb/status/2083214099723563076",
+      "published": "2026-07-31T23:32:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "想知道本机装了哪些 AI 工具、用了哪些 AI 网站、token 和花费各是多少，用 Surface 在本地扫一遍就有答案。  \n  \nRust 写的，扫描本机已安装的 AI 工具、浏览器历史里的 AI 站点，以及 Claude Code、Codex、OpenCode 写下的转录记录，统计 token 用量并按 LiteLLM 公开价格表折算成美元。  \n  \n[github.com/holistic-ai/su…](https://github.com/holistic-ai/surface)\n\n![Tweet Image](https://pbs.twimg.com/media/HOij_sQb0AAHO1y.jpg)\n\n💬0🔄0❤️1👀471",
+      "tags": [
+        "Surface",
+        "AI工具统计"
+      ],
+      "score": 72,
+      "summary": "Geek分享开源工具Surface，可扫描本机AI工具和token花费。",
+      "fetched_at": "2026-08-01T00:08:20.928660+08:00"
+    },
+    {
+      "title": "在系统托盘里集中看 Claude Code、Codex、Cursor、Copilot、Devin、Grok、OpenRouter、Zai 等 AI 编程服务的额度、重置时间和预计花费。\n\nhttps:...",
+      "link": "https://x.com/geekbb/status/2083194470275960901",
+      "published": "2026-07-31T22:14:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "在系统托盘里集中看 Claude Code、Codex、Cursor、Copilot、Devin、Grok、OpenRouter、Zai 等 AI 编程服务的额度、重置时间和预计花费。  \n  \n[github.com/deviffyy/OpenQ…](https://github.com/deviffyy/OpenQuota)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083161555399827456/vid/avc1/1024x898/8L5mfrKIulYhmS9Q.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/geekbb/status/2083194470275960901/video/1)\n\n💬3🔄1❤️10👀1855📊5",
+      "tags": [
+        "OpenQuota",
+        "额度管理"
+      ],
+      "score": 72,
+      "summary": "Geek分享开源工具OpenQuota，在系统托盘查看AI编程服务额度。",
+      "fetched_at": "2026-08-01T00:08:20.928662+08:00"
+    },
+    {
+      "title": "This will be the norm as software projects transition to agentic software factories.\n\nIssue → Agent ...",
+      "link": "https://x.com/rauchg/status/2083208578526314513",
+      "published": "2026-07-31T23:10:03+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "This will be the norm as software projects transition to agentic software factories.  \n  \nIssue → Agent → PR → Release 🔁  \n  \nThe job of the author / maintainer is to work on the loop that yields the highest quality product and sets the criteria for what should be worked on.\n\n![Turborepo](https://pbs.twimg.com/profile_images/1584620135490338816/tCCcROZD_normal.png)\n\nTurborepo@turborepo\n\nThis week, Turborepo reached 20 million weekly downloads and 0 known issues.\n\n![Tweet Image](https://pbs.twimg.com/media/HOkJqKZaoAAfK6J.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/turborepo/status/2083206925949567071)\n\n💬14🔄5❤️78👀5015📊17",
+      "tags": [
+        "Rauch",
+        "Agentic软件工厂"
+      ],
+      "score": 82,
+      "summary": "Vercel CEO评论Turborepo，预测Issue到Agent自动化软件工厂成常态。",
+      "fetched_at": "2026-08-01T00:08:20.928665+08:00"
+    },
+    {
+      "title": "deepagents is slept on!",
+      "link": "https://x.com/hwchase17/status/2083199758064361713",
+      "published": "2026-07-31T22:35:00+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "deepagents is slept on!\n\n![Bounty](https://pbs.twimg.com/profile_images/2082482773625831424/nThNw_eR_normal.jpg)\n\nBounty@bountyAIhunter\n\n[@hwchase17](https://x.com/hwchase17) langgraph and langsmith are obvious picks but deepagents is the one i keep seeing people sleep on\n\n[🔗 View Quoted Tweet](https://x.com/bountyAIhunter/status/2083172437772931181)\n\n💬5🔄0❤️13👀2168📊5",
+      "tags": [
+        "LangChain",
+        "deepagents"
+      ],
+      "score": 65,
+      "summary": "LangChain创始人认为deepagents被低估。",
+      "fetched_at": "2026-08-01T00:08:20.928667+08:00"
+    },
+    {
+      "title": "@a16z @PhotaLabs @ElevenLabs @stuffyokodraws @ceciliazhang77 You can RSVP below, approval is require...",
+      "link": "https://x.com/venturetwins/status/2083221249912975512",
+      "published": "2026-08-01T00:00:25+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "[@a16z](https://x.com/a16z)[@PhotaLabs](https://x.com/PhotaLabs)[@ElevenLabs](https://x.com/ElevenLabs)[@stuffyokodraws](https://x.com/stuffyokodraws)[@ceciliazhang77](https://x.com/ceciliazhang77) You can RSVP below, approval is required to attend because we have limited spots.  \n  \nIf you're exploring something in stealth in this space but don't yet have a product / website to link to - DM me and I'll get you in!  \n  \n[luma.com/vxelvp97](https://luma.com/vxelvp97)\n\n💬0🔄0❤️1👀55",
+      "tags": [
+        "a16z",
+        "AI创意工具"
+      ],
+      "score": 30,
+      "summary": "a16z举办AI创意工具活动，需RSVP审批参加。",
+      "fetched_at": "2026-08-01T00:08:20.928669+08:00"
+    },
+    {
+      "title": "Working on AI creative tools? \n\nOur team at @a16z is hosting a happy hour next Wednesday in SF with ...",
+      "link": "https://x.com/venturetwins/status/2083220680410304826",
+      "published": "2026-07-31T23:58:09+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Working on AI creative tools?   \n  \nOur team at [@a16z](https://x.com/a16z) is hosting a happy hour next Wednesday in SF with [@PhotaLabs](https://x.com/PhotaLabs).   \n  \nWe'll have several lightning talks on image and audio gen (from [@ElevenLabs](https://x.com/ElevenLabs))...and a great group of founders, creators, and builders in this space!  \n  \nLink 👇\n\n![Tweet Image](https://pbs.twimg.com/media/HOkVRaUbsAAviGo.png)\n\n💬2🔄0❤️4👀454📊2",
+      "tags": [
+        "a16z",
+        "AI创意工具",
+        "活动"
+      ],
+      "score": 30,
+      "summary": "a16z下周三举行AI创意工具happy hour，涉及图像和音频生成。",
+      "fetched_at": "2026-08-01T00:08:20.928671+08:00"
+    },
+    {
+      "title": "LOST EGYPTIAN FOOTAGE FOUND 👀",
+      "link": "https://x.com/Kling_ai/status/2083206062547898438",
+      "published": "2026-07-31T23:00:04+08:00",
+      "source": "Kling AI(@Kling_ai)",
+      "content": "LOST EGYPTIAN FOOTAGE FOUND 👀\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083151521240272896/vid/avc1/1080x1920/_YjMQHdivycbV8ku.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Kling_ai/status/2083206062547898438/video/1)\n\n💬3🔄1❤️20👀1632📊5",
+      "tags": [
+        "Kling AI",
+        "视频生成"
+      ],
+      "score": 60,
+      "summary": "Kling AI官方发布AI生成的埃及场景演示视频。",
+      "fetched_at": "2026-08-01T00:08:20.928673+08:00"
+    },
+    {
+      "title": "🎉 𝗠𝗶𝗹𝘃𝘂𝘀 𝟯.𝟬 𝗶𝘀 𝗻𝗼𝘄 𝗮𝘃𝗮𝗶𝗹𝗮𝗯𝗹𝗲, 𝗮𝗻𝗱 𝗶𝘁’𝘀 𝗮 𝗺𝗮𝗷𝗼𝗿 𝘀𝘁𝗲𝗽 ...",
+      "link": "https://x.com/milvusio/status/2083206057665728752",
+      "published": "2026-07-31T23:00:02+08:00",
+      "source": "Milvus(@milvusio)",
+      "content": "🎉 𝗠𝗶𝗹𝘃𝘂𝘀 𝟯.𝟬 𝗶𝘀 𝗻𝗼𝘄 𝗮𝘃𝗮𝗶𝗹𝗮𝗯𝗹𝗲, 𝗮𝗻𝗱 𝗶𝘁’𝘀 𝗮 𝗺𝗮𝗷𝗼𝗿 𝘀𝘁𝗲𝗽 𝘁𝗼𝘄𝗮𝗿𝗱 𝗹𝗮𝗸𝗲-𝗻𝗮𝘁𝗶𝘃𝗲 𝘃𝗲𝗰𝘁𝗼𝗿 𝘀𝗲𝗮𝗿𝗰𝗵.  \n  \n🔥 Key highlights:  \n• External Collections let teams build retrieval directly where their data already lives: in object storage, open data formats like Parquet and Vortex, and open table formats like Lance and Iceberg.  \n• Loon Storage v3 improves point reads for lake-native retrieval on S3-style object storage.  \n• Snapshots, Spark DataSource V2, and live schema changes bring stable collection views into batch workflows, recovery, backfill, and schema evolution.  \n• ORDER BY, aggregation, and faceted search move more result processing into the retrieval engine.  \n• StructArray and SINDI strengthen multi-vector, sparse, and hybrid retrieval workloads.  \n  \nFor builders working on RAG, agents, multimodal search, and AI data pipelines, Milvus 3.0 reduces duplicate data movement and pushes more retrieval logic into the engine itself.  \n  \nIt is a big step toward a cleaner architecture: lake-native storage, offline data improvement, online serving, and retrieval-time processi[github.com/milvus-io/milv…](http://github.com/milvus-io/milvus)one open-source vector[milvus.io/blog/announcin…](https://milvus.io/blog/announcing-milvus-3-lake-native-vector-search-and-a-more-powerful-retrieval-engine.md)<https://t.co/3ckzkUVicH>   \n📖 Full launch blog: <https://t.co/hq4qqZASuX>\n\n![Tweet Image](https://pbs.twimg.com/media/HOi7OxNakAAQE8j.jpg)\n\n💬1🔄0❤️1👀50📊1",
+      "tags": [
+        "Milvus 3.0",
+        "湖原生向量搜索"
+      ],
+      "score": 84,
+      "summary": "Milvus 3.0发布，支持湖原生向量搜索和外部集合。",
+      "fetched_at": "2026-08-01T00:08:20.928675+08:00"
+    },
+    {
+      "title": "One week to go!\n\nJoin us for “Why does my RAG-agent get worse? A live autopsy” with @DylanCouzon fro...",
+      "link": "https://x.com/qdrant_engine/status/2083206054255673517",
+      "published": "2026-07-31T23:00:02+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "One week to go!  \n  \nJoin us for “Why does my RAG-agent get worse? A live autopsy” with [@DylanCouzon](https://x.com/DylanCouzon) from Qdrant and Rishabh from FutureAGI.  \n  \nAs your RAG system evolves, quality can quietly degrade. In this live session, we’ll build, debug, and improve a RAG agent while measuring the impact of every change.  \n  \nWe’ll cover:  \n→ Finding where your agent is losing quality  \n→ Migrating to a new embedding model with zero downtime  \n→ Removing duplicate and fragmented chunks  \n→ Adding late interaction reranking  \n→ Comparing evaluation scores before and after each optimization  \n  \nWe’re also looking for 5-minute community demos before the webinar. If you’d like to present your project, apply here: [docs.google.com/forms/d/10-9oy…](https://docs.google.com/forms/d/10-9oydryTxuL1HCsNxH9Jw2H0j1jvYymoVGIP3SEdJc/)  \n  \nDate: August 6  \nTime: 6:30 PM CEST | 9:30 AM PDT | 10:00 PM IST  \n  \nRegister now: [luma.com/future-pq6q](https://luma.com/future-pq6q)\n\n![Tweet Image](https://pbs.twimg.com/media/HOjYXtEbgAAOW3j.jpg)\n\n💬0🔄0❤️0👀73",
+      "tags": [
+        "Qdrant",
+        "RAG",
+        "Webinar"
+      ],
+      "score": 45,
+      "summary": "Qdrant将举办RAG Agent质量下降排查的线上研讨会。",
+      "fetched_at": "2026-08-01T00:08:20.928677+08:00"
+    },
+    {
+      "title": "There's still time to submit your 15–30 second ad for a product that doesn't exist. Post it with #Ru...",
+      "link": "https://x.com/runwayml/status/2083195155520127192",
+      "published": "2026-07-31T22:16:43+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "There's still time to submit your 15–30 second ad for a product that doesn't exist. Post it with #RunwayBigAdContest and submit it on the contest page before 11:59pm ET tonight.\n\n![Runway](https://pbs.twimg.com/profile_images/1999115192232292353/zOq5-uwB_normal.jpg)\n\nRunway@runwayml\n\nIntroducing Another Big Ad Contest For Products That Don't Exist. Your chance to make any ad you can imagine for up to $100K in cash prizes. No client notes. No producers saying no. Just 7 new briefs to choose from and 4 weeks to make your wildest concepts come to life. Big ideas win big.  \n  \nLearn more and get started at the link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072345784205352960/vid/avc1/1920x1080/acAKWuU64Ye4iAKV.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2072346724312498383/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/runwayml/status/2072346724312498383)\n\n💬4🔄2❤️30👀6614📊6",
+      "tags": [
+        "Runway",
+        "广告大赛"
+      ],
+      "score": 30,
+      "summary": "Runway提醒提交不存在产品广告参赛，截止今晚。",
+      "fetched_at": "2026-08-01T00:08:20.928680+08:00"
+    },
+    {
+      "title": "i see your moore's law and i raise you 20x",
+      "link": "https://x.com/sama/status/2083203642975502640",
+      "published": "2026-07-31T22:50:27+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "i see your moore's law and i raise you 20x\n\n![nic](https://pbs.twimg.com/profile_images/2073153937465659392/NZ1R9m-T_normal.jpg)\n\nnic@nicdunz\n\nGPT-5.4 full at xhigh scored 51, exactly where Luna max sits today. GPT-5.4 costs $2.50/$15; Luna now costs $0.20/$1.20. In other words, roughly four months later, OpenAI is selling March’s full flagship intelligence at about one-thirteenth the token price.\n\n[🔗 View Quoted Tweet](https://x.com/nicdunz/status/2082884002201878824)\n\n💬218🔄88❤️1755👀162677📊255",
+      "tags": [
+        "Sam Altman",
+        "GPT-5.4",
+        "性价比"
+      ],
+      "score": 85,
+      "summary": "Sam Altman评论GPT-5.4相比Luna实现20倍性价比提升。",
+      "fetched_at": "2026-08-01T00:08:20.928682+08:00"
+    },
+    {
+      "title": "it could be faster",
+      "link": "https://x.com/sama/status/2083198135812383197",
+      "published": "2026-07-31T22:28:34+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "it could be faster\n\n![Tibo](https://pbs.twimg.com/profile_images/2075819673263001600/pj1vyX6I_normal.jpg)\n\nTibo@thsottiaux\n\nThe day we develop really good models. There will be signs.  \n  \nReliability increasing despite load going up and up. Sudden efficiency gains. Things getting faster. Resets.  \n  \nThese kinds of things.\n\n[🔗 View Quoted Tweet](https://x.com/thsottiaux/status/2083053369351090254)\n\n💬322🔄68❤️2183👀209437📊331",
+      "tags": [
+        "Sam Altman",
+        "模型速度"
+      ],
+      "score": 50,
+      "summary": "Sam Altman评论模型进展，认为还可更快。",
+      "fetched_at": "2026-08-01T00:08:20.928684+08:00"
+    },
+    {
+      "title": "其实一直是个硬件DIY天才，以前只是为了生活被写代码给耽误了....突然之间很多人都这么想啊....我在想我们的思维也许是链接着一个共同的“场”，并不是完全割裂的。",
+      "link": "https://x.com/feltanimalworld/status/2083201391120535607",
+      "published": "2026-07-31T22:41:30+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "其实一直是个硬件DIY天才，以前只是为了生活被写代码给耽误了....突然之间很多人都这么想啊....我在想我们的思维也许是链接着一个共同的“场”，并不是完全割裂的。\n\n![Cell 细胞](https://pbs.twimg.com/profile_images/1634900405724545031/gQgQEpaj_normal.jpg)\n\nCell 细胞@cellinlab\n\n我发现我小时候就喜欢搞这些，  \n被写代码耽误了，  \n感觉现在是 软件转硬件 的最好时候了\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082304396176855040/vid/avc1/1920x1080/xpAOzeXFRhXyahuk.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/jmat2022/status/2082726889064697890/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/cellinlab/status/2083001548683309097)\n\n💬3🔄1❤️9👀663📊4",
+      "tags": [
+        "硬件DIY",
+        "感慨"
+      ],
+      "score": 10,
+      "summary": "个人感慨软件转硬件趋势。",
+      "fetched_at": "2026-08-01T00:08:20.928686+08:00"
+    },
+    {
+      "title": "openconnector确实很不错\n希望提供一个一键托管业务\n自己去分别申请oauth授权确实有点儿头疼",
+      "link": "https://x.com/yangyi/status/2083218609132965894",
+      "published": "2026-07-31T23:49:55+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "openconnector确实很不错  \n希望提供一个一键托管业务  \n自己去分别申请oauth授权确实有点儿头疼\n\n![ruanyf](https://pbs.twimg.com/profile_images/2363795309/wbi37mdkxhr2trsr4ofa_normal.jpeg)\n\nruanyf@ruanyf\n\n最近看到一款开源的密码连接网关 OpenConnector，能够防止 AI Agent 泄漏密码到上下文，统一管理连接授权。 [github.com/oomol-lab/open…](https://github.com/oomol-lab/open-connector)  \n  \n它可以严格保存密码/授权凭证，统一负责与各种外部应用的连接，Agent 只能拿到账号标签、元数据和执行结果，不会发生密码泄漏。  \n  \n用户只需通过它连接一次外部应用，它就会自动保存连接信息，目前已经支持1000多个身份提供商和10000多个应用服务。  \n  \n部署方面，可以放在 Cloudflare Workers 或者 [Fly.io](http://Fly.io) + SQLite，也支持本地 Node.js / Docker 部署。如果觉得麻烦，它还有 SaaS 云服务 OOMOL。[oomol.com/apps](https://oomol.com/apps)\n\n![Tweet Image](https://pbs.twimg.com/media/HOhUmgja8AAe0FQ.jpg)![Tweet Image](https://pbs.twimg.com/media/HOhUnSEbcAAcjBZ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ruanyf/status/2083007895789260948)\n\n💬0🔄0❤️0👀112",
+      "tags": [
+        "连接网关",
+        "AI安全"
+      ],
+      "score": 65,
+      "summary": "用户评论OpenConnector密码连接网关，希望提供一键托管。",
+      "fetched_at": "2026-08-01T00:08:20.928688+08:00"
+    },
+    {
+      "title": "在姚老师超牛的元提示词助力下\nNewMax增加了优化提示词功能\n你不知道如何和AI沟通或下达明确指令，别担心\n只要点一下优化提示词\n稍等一小会儿\n就能获得很好的指令结果\n你可以基于这个结果做一些人工修...",
+      "link": "https://x.com/yangyi/status/2083212553195499699",
+      "published": "2026-07-31T23:25:51+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "在姚老师超牛的元提示词助力下  \nNewMax增加了优化提示词功能  \n你不知道如何和AI沟通或下达明确指令，别担心  \n只要点一下优化提示词  \n稍等一小会儿  \n就能获得很好的指令结果  \n你可以基于这个结果做一些人工修改  \n  \n在这种情况下让Agent干活儿，会干的更好  \n  \n做这个功能，降低使用门槛，让产品变得更简单  \n友商们是不是都要跟进一波了\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083211728570195968/vid/avc1/1660x1080/aI95ASzuMWHbnUkS.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yangyi/status/2083212553195499699/video/1)\n\n![姚金刚](https://pbs.twimg.com/profile_images/2039226063088463872/_zw7eSeM_normal.jpg)\n\n姚金刚@yaojingang\n\n收到来自[@yangyi](https://x.com/yangyi) 的建议  \n对元提示词进行一轮整体的升级，已推送到GitHub，提示词链接、元提示词报告和升级相关方法参考，见评论区  \n  \n1、两个核心能力升级，一是对现有的提示词进行质量强化，二是高质量创建初版提示词  \n2、基本的原理与能力包括，用户的需求与意图识别、现有提示词的多维度诊断、静默对标学习与参考、专业工程优化、质量评估、静态测试与模型实测等  \n3、原则：简单任务用最小充分结构，复杂任务再加入工具规则、异常处理和质量门槛，还会区分事实、假设和方法级参考，避免为了显得专业堆一大串没有依据的内容  \n  \n用法参考：  \n1、可以把需求、零散想法、应用场景，甚至一段写到一半的提示词发给它，AI会通过这套元提示词，先还原真正要解决的问题，梳理受众、场景、交付物、约束和成功标准，再生成一份可以直接复制使用的正式提示词  \n2、如果已经有旧提示词，它会先找出原来的核心意图和必须保留的内容，再处理重复、冲突、模糊要求和缺失环节  \n3、也可以把元提示词直接整段发给AI，然后AI会先邀请你说说想做什么，并给出一个很轻的填写模板，只说一句话也能开始，想到多少就说多少  \n  \n整体而言，这套元提示词适合两种情况：有一个模糊想法，想把它整理成可执行的提示词；手里已经有一版，希望把它改得更清楚、更稳定  \n  \n之后和 [@yangyi](https://x.com/yangyi) 也会将这套元提示词扔到NewMax AI，欢迎体验\n\n![Tweet Image](https://pbs.twimg.com/media/HOYluY3aYAEBSI2.jpg)![Tweet Image](https://pbs.twimg.com/media/HOYmBbgaEAAeGxT.jpg)![Tweet Image](https://pbs.twimg.com/media/HOYmFGgaQAAvf3k.jpg)![Tweet Image](https://pbs.twimg.com/media/HOYmKE-aEAAT5O8.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/yaojingang/status/2082395518865727651)\n\n💬2🔄1❤️5👀987📊2",
+      "tags": [
+        "NewMax",
+        "元提示词",
+        "提示词优化"
+      ],
+      "score": 68,
+      "summary": "NewMax新增基于元提示词的提示词优化功能，可自动生成指令。",
+      "fetched_at": "2026-08-01T00:08:20.928691+08:00"
+    },
+    {
+      "title": "感谢🙏努力变好",
+      "link": "https://x.com/yangyi/status/2083195596580806971",
+      "published": "2026-07-31T22:18:28+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "感谢🙏努力变好\n\n![薄荷清尘](https://pbs.twimg.com/profile_images/1992145911800307712/a20dMfhe_normal.jpg)\n\n薄荷清尘@ASMD545523\n\n[@yangyi](https://x.com/yangyi) 非常好用！两分钟就帮我抓取了58篇论文并整理好，希望越来越好，就是不知道harness强不强，想用来coding\n\n[🔗 View Quoted Tweet](https://x.com/ASMD545523/status/2083139000790122653)\n\n💬0🔄0❤️0👀1163",
+      "tags": [
+        "NewMax",
+        "用户反馈"
+      ],
+      "score": 20,
+      "summary": "用户反馈NewMax两分钟抓取58篇论文并整理好。",
+      "fetched_at": "2026-08-01T00:08:20.928693+08:00"
+    },
+    {
+      "title": "感谢🙏我们再接再厉",
+      "link": "https://x.com/yangyi/status/2083195442192658752",
+      "published": "2026-07-31T22:17:51+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "感谢🙏我们再接再厉\n\n![Daniel](https://pbs.twimg.com/profile_images/1595993843165724672/ivW3T-If_normal.jpg)\n\nDaniel@Denissjones007\n\n[@yangyi](https://x.com/yangyi) NewMax做的相当好了，继续加油。😎👏👏👍👍\n\n[🔗 View Quoted Tweet](https://x.com/Denissjones007/status/2083193678018011235)\n\n💬0🔄0❤️0👀1045",
+      "tags": [
+        "NewMax",
+        "用户反馈"
+      ],
+      "score": 20,
+      "summary": "用户称赞NewMax做得好。",
+      "fetched_at": "2026-08-01T00:08:20.928695+08:00"
+    },
+    {
+      "title": "A $100K/year customer gets white-glove treatment while a $10/year customer gets a help center. @Deca...",
+      "link": "https://x.com/a16z/status/2083205848642592955",
+      "published": "2026-07-31T22:59:13+08:00",
+      "source": "a16z(@a16z)",
+      "content": "A $100K/year customer gets white-glove treatment while a $10/year customer gets a help center. [@DecagonAI](https://x.com/DecagonAI)'s bet is that AI closes that gap, and enterprise is buying it.  \n  \nCo-founders Jesse Zhang and Ashwin Sreenivas sit down with a16z's Kimberly Tan and Sarah Wang to discuss what they've learned running agents inside the biggest banks, airlines, and telcos:  \n  \n- Smart-vs-cheap models are a false trade-off  \n- Start with frontier models on new use cases, then migrate to open-source after they mature  \n- Fine-tuning per use case works at the application layer  \n- Support demand always outran supply: make it cheaper and companies buy more of it  \n  \n00:00 Intro  \n01:07 90% of Decagon runs on open-source  \n05:00 The smart vs. cheap trade-off is false  \n09:26 Building a model factory in-house  \n15:07 Are the labs the last startups?  \n21:21 Are forward deployed engineers a trap?  \n28:36 The agent that builds the agent  \n37:02 Glass box beats black box  \n47:55 From help desk to AI concierge  \n1:14:45 Jevons paradox in customer support  \n  \n[@thejessezhang](https://x.com/thejessezhang)[@AshwinSreenivas](https://x.com/AshwinSreenivas)[@kimberlywtan](https://x.com/kimberlywtan)[@sarahdingwang](https://x.com/sarahdingwang)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083204517739556865/vid/avc1/1280x720/tgImtyCMmOR1OXl7.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2083205848642592955/video/1)\n\n💬5🔄2❤️20👀8237📊7",
+      "tags": [
+        "a16z",
+        "Decagon",
+        "企业AI"
+      ],
+      "score": 78,
+      "summary": "a16z与Decagon创始人讨论AI客服，称90%运行在开源模型上。",
+      "fetched_at": "2026-08-01T00:08:20.928697+08:00"
+    },
+    {
+      "title": "Already running tools like @SocketSecurity, @XBOW, or @JFrog?\n\nBolt’s Security Agent integrates with...",
+      "link": "https://x.com/boltdotnew/status/2083205693524644323",
+      "published": "2026-07-31T22:58:36+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "Already running tools like [@SocketSecurity](https://x.com/SocketSecurity), [@XBOW](https://x.com/XBOW), or [@JFrog](https://x.com/JFrog)?  \n  \nBolt’s Security Agent integrates with the best security tools in the market.  \n  \nActing as a security vanguard, Bolt takes the first pass at scanning & hardening your application before handing it off to the enterprise grade tools in your CI/CD pipeline.\n\n💬1🔄0❤️15👀192📊2",
+      "tags": [
+        "bolt.new",
+        "安全代理",
+        "集成"
+      ],
+      "score": 72,
+      "summary": "bolt.new安全代理可集成SocketSecurity、XBOW等安全工具。",
+      "fetched_at": "2026-08-01T00:08:20.928699+08:00"
+    },
+    {
+      "title": "Every audit is free. And so are the fixes. Nothing gets billed for keeping your own app safe.\n\nNo on...",
+      "link": "https://x.com/boltdotnew/status/2083205695026200987",
+      "published": "2026-07-31T22:58:36+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "Every audit is free. And so are the fixes. Nothing gets billed for keeping your own app safe.  \n  \nNo one works harder than hackers. Except the new Bolt Security Agent.  \n  \nHit publish. See what they catch at [bolt.new](http://bolt.new) or learn more here: [bolt.new/platform/secur…](http://bolt.new/platform/security)\n\n💬0🔄0❤️15👀171📊1",
+      "tags": [
+        "bolt.new",
+        "安全审计",
+        "免费"
+      ],
+      "score": 70,
+      "summary": "bolt.new称安全代理的审计和修复均免费。",
+      "fetched_at": "2026-08-01T00:08:20.928701+08:00"
+    },
+    {
+      "title": "Today we're shipping a security engineer into every Bolt project.\n\nAI made building faster. It made ...",
+      "link": "https://x.com/boltdotnew/status/2083205470559650260",
+      "published": "2026-07-31T22:57:42+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "Today we're shipping a security engineer into every Bolt project.  \n  \nAI made building faster. It made attackers faster too.  \n  \nSo we’ve made SoTA agentic security the default. For free. 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082986256699428864/vid/avc1/1920x1080/lgXGxMg8-rMbJTrz.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/boltdotnew/status/2083205470559650260/video/1)\n\n💬17🔄22❤️57👀16274📊34",
+      "tags": [
+        "bolt.new",
+        "安全代理",
+        "产品发布"
+      ],
+      "score": 75,
+      "summary": "bolt.new发布内置安全代理，为每个项目提供免费安全审计。",
+      "fetched_at": "2026-08-01T00:08:20.928703+08:00"
+    },
+    {
+      "title": "We got attacked by secret unreleased proprietary models and defended ourselves with an open model, m...",
+      "link": "https://x.com/ClementDelangue/status/2083204212180017522",
+      "published": "2026-07-31T22:52:42+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "We got attacked by secret unreleased proprietary models and defended ourselves with an open model, more precisely the [@nvidia](https://x.com/nvidia) quantized version of GLM 5.2 coming from [@Zai\\_org](https://x.com/Zai_org).  \n  \nBanning any open model would hurt first cyber security defenders, startups, small companies, researchers and everyone who's not a frontier lab and need on-prem affordable controlable models to compete and protect themselves. Let's not do that!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083203121593942016/vid/avc1/1280x720/Z0QNmiyDhwdyMSeK.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ClementDelangue/status/2083204212180017522/video/1)\n\n💬26🔄49❤️269👀24168📊64",
+      "tags": [
+        "Clement",
+        "GLM 5.2",
+        "开源模型"
+      ],
+      "score": 84,
+      "summary": "HuggingFace CEO称被专有模型攻击，用开源GLM 5.2防御。",
+      "fetched_at": "2026-08-01T00:08:20.928705+08:00"
+    },
+    {
+      "title": "Opus 5 - Build a photorealistic ThreeJS app that zooms continuously through nine powers of ten, from...",
+      "link": "https://x.com/omarsar0/status/2083210384236855600",
+      "published": "2026-07-31T23:17:14+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Opus 5 - Build a photorealistic ThreeJS app that zooms continuously through nine powers of ten, from a leaf on a branch down to the single magnesium atom at the centre of a chlorophyll molecule.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083209972012204032/vid/avc1/3784x2160/RHZ7NiNNYvOsDsrT.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2083210384236855600/video/1)\n\n💬0🔄0❤️2👀580📊1",
+      "tags": [
+        "Opus 5",
+        "ThreeJS"
+      ],
+      "score": 65,
+      "summary": "用户展示Opus 5生成的光线追踪ThreeJS应用。",
+      "fetched_at": "2026-08-01T00:08:20.928708+08:00"
+    },
+    {
+      "title": "i've been building some smaller apps over the last weeks for myself, friends and family and discover...",
+      "link": "https://x.com/ericzakariasson/status/2083206179254309036",
+      "published": "2026-07-31T23:00:31+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "i've been building some smaller apps over the last weeks for myself, friends and family and discovered a pretty nice pattern in the process  \n  \nyou see, after building, i'm not particularly interested in fixing bugs or triaging feature requests. i just want to get the job done  \n  \nso i've set up a system that lets me and other users fix bugs and build features without me having to actually open cursor  \n  \nthe flow:  \n1. someone files feedback in the app  \n2. it lands in posthog with the submitted text, session replay, events, and errors  \n3. a cursor cloud agent picks it up with that context, plus live read-only posthog mcp  \n4. it loops until the fix is verified, then opens a github pr with tests  \n5. i get a ping and review it on my phone  \n  \nwe give our cloud agents access to all the necessary user context, and they'll figure it out  \n  \nwith this in place, we can start setting up more abstractions in between. if we're getting a high volume, we might want to triage first with another cloud agent or some automation. the feedback can create a github or linear issue, which we later pick up with a cron-backed cloud agent that decides which are duplicates. there are so many ways to configure this, you just gotta try it out and see what works for you  \n  \nbut there's so much more here that is untapped. with session replays and event logs, you can have a cloud agent look at each session replay to extract ux pitfalls and improvement areas. you can have another agent looking at event logs to see weird patterns. another one for errors or similar  \n  \ntry it out and see what you can do!\n\n![Tweet Image](https://pbs.twimg.com/media/HOkI-sWaYAAiiD8.jpg)\n\n💬9🔄3❤️57👀2309📊24",
+      "tags": [
+        "Cursor",
+        "Cloud Agent",
+        "自动化"
+      ],
+      "score": 72,
+      "summary": "开发者分享用Cursor Cloud Agent自动处理bug反馈的工作流。",
+      "fetched_at": "2026-08-01T00:08:20.928710+08:00"
+    },
+    {
+      "title": "轮子造完了，已经在用新轮子做项目了。\n\n明天正式发布。🌚",
+      "link": "https://x.com/idoubicc/status/2083205325344457164",
+      "published": "2026-07-31T22:57:08+08:00",
+      "source": "idoubi(@idoubicc)",
+      "content": "轮子造完了，已经在用新轮子做项目了。  \n  \n明天正式发布。🌚\n\n![Tweet Image](https://pbs.twimg.com/media/HOkIHXfaQAAFToX.jpg)\n\n![idoubi](https://pbs.twimg.com/profile_images/1657754264729448448/1AOP0K4c_normal.jpg)\n\nidoubi@idoubicc\n\n造轮子最重要的是开心。😊\n\n![Tweet Image](https://pbs.twimg.com/media/HOimKvQb0AAeZQ0.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/idoubicc/status/2083101434640560480)\n\n💬1🔄0❤️0👀305📊1",
+      "tags": [
+        "预告",
+        "新工具"
+      ],
+      "score": 20,
+      "summary": "开发者预告明天正式发布新工具。",
+      "fetched_at": "2026-08-01T00:08:20.928712+08:00"
+    },
+    {
+      "title": "Seedance 2.5 京剧表演\n\n更多介绍和案例：https://t.co/t71qv3a4Z5",
+      "link": "https://x.com/xiaohu/status/2083206400646557699",
+      "published": "2026-07-31T23:01:24+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Seedance 2.5 京剧表演  \n  \n更多介绍和案例：[best.xiaohu.ai/article/seedan…](https://best.xiaohu.ai/article/seedance-2-5/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083200449285603329/vid/avc1/1280x720/nwPRRBKaRk9lGUMZ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2083206400646557699/video/1)\n\n💬1🔄0❤️5👀834📊2",
+      "tags": [
+        "Seedance 2.5",
+        "AI视频"
+      ],
+      "score": 70,
+      "summary": "小互展示Seedance 2.5生成的京剧表演视频。",
+      "fetched_at": "2026-08-01T00:08:20.928714+08:00"
+    },
+    {
+      "title": "这个人物表情也是非常的到位",
+      "link": "https://x.com/xiaohu/status/2083199066352345475",
+      "published": "2026-07-31T22:32:16+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "这个人物表情也是非常的到位\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083198460011147265/vid/avc1/1280x720/spgDmG6esw_SHz3F.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2083199066352345475/video/1)\n\n💬0🔄0❤️2👀990",
+      "tags": [
+        "Seedance 2.5",
+        "演示"
+      ],
+      "score": 20,
+      "summary": "小互评论Seedance 2.5视频的人物表情到位。",
+      "fetched_at": "2026-08-01T00:08:20.928716+08:00"
+    },
+    {
+      "title": "牛P\n\n感觉动作、表情协调什么的都非常好",
+      "link": "https://x.com/xiaohu/status/2083198231077585352",
+      "published": "2026-07-31T22:28:56+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "牛P  \n  \n感觉动作、表情协调什么的都非常好\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083198026353684480/vid/avc1/1280x720/XNe7bZjuVQsv3c01.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2083198231077585352/video/1)\n\n💬1🔄0❤️2👀1558📊1",
+      "tags": [
+        "Seedance 2.5",
+        "演示"
+      ],
+      "score": 20,
+      "summary": "小互称赞Seedance 2.5视频动作和表情协调。",
+      "fetched_at": "2026-08-01T00:08:20.928718+08:00"
+    },
+    {
+      "title": "Seedance 2.5 正式发布\n\n单次生成最长 30 秒\n\n最多支持 50 个参考素材输入，角色、道具、风格等参考可以一次全塞进去\n\nSeedance 2.5即将登陆 Higgsfield\n\n先看...",
+      "link": "https://x.com/xiaohu/status/2083195263355916349",
+      "published": "2026-07-31T22:17:09+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Seedance 2.5 正式发布  \n  \n单次生成最长 30 秒  \n  \n最多支持 50 个参考素材输入，角色、道具、风格等参考可以一次全塞进去  \n  \nSeedance 2.5即将登陆 Higgsfield  \n  \n先看看这段演示绝对的颠覆现有你对AI视频的认知，镜头运用、特效、人物的表现完全是电影级的  \n  \n而且是一次生成出来的，没有分段拼接...  \n  \n不可思议\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083161067451219968/vid/avc1/1280x720/noVdWkT9cCxtd6jD.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2083195263355916349/video/1)\n\n![Higgsfield AI 🧩](https://pbs.twimg.com/profile_images/2029949430317637632/6qPl4MTS_normal.jpg)\n\nHiggsfield AI 🧩@higgsfield\n\n14 days of unlimited Seedance on Higgsfield.  \nSeedance 2.5 is coming soon to Higgsfield.  \n  \nRight now get 7 days of unlimited Seedance 2.0 in 4K, the most premium Seedance model, then switch to ANY other Seedance for 7 more days.  \n  \nSeedance 2.5 is coming soon to Higgsfield.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083105131604963328/vid/avc1/1920x1080/LKAA_EQbmmuIkzd5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/higgsfield/status/2083105837795745797/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/higgsfield/status/2083105837795745797)\n\n💬7🔄0❤️10👀4348📊6",
+      "tags": [
+        "Seedance 2.5",
+        "30秒",
+        "50参考"
+      ],
+      "score": 85,
+      "summary": "Seedance 2.5正式发布，支持单次30秒生成、50个参考素材输入。",
+      "fetched_at": "2026-08-01T00:08:20.928720+08:00"
+    },
+    {
+      "title": "Building abundant intelligence",
+      "link": "https://openai.com/index/building-abundant-intelligence",
+      "published": "2026-07-31T23:00:00+08:00",
+      "source": "OpenAI News",
+      "content": "A full-stack approach to making advanced AI more capable, more affordable, and more widely useful.",
+      "tags": [
+        "OpenAI",
+        "丰富智能"
+      ],
+      "score": 85,
+      "summary": "OpenAI发布文章，阐述以全栈方法构建丰富智能的愿景。",
+      "fetched_at": "2026-08-01T00:08:20.928722+08:00"
+    },
+    {
+      "title": "Dropbox Integrates MCP and Dash to Close the Gap Between Security Design and Code Review",
+      "link": "https://www.infoq.com/news/2026/07/dropbox-mcp-ai-code-review/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-07-31T22:36:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/dropbox-mcp-ai-code-review/en/headerimage/generatedHeaderImage-1785008611092.jpg)\n\nDropbox has integrated Model Context Protocol (MCP) with its internal knowledge platform, Dash, to surface security design context during AI assisted code reviews. The system retrieves threat models and security requirements for pull requests, helping reviewers validate implementation against design intent. An InfoQ Q&A explores the architecture and key lessons learned.\n\n*By Leela Kumili*",
+      "tags": [
+        "Dropbox",
+        "MCP",
+        "代码审查"
+      ],
+      "score": 75,
+      "summary": "Dropbox集成MCP和Dash，在AI代码审查中提供安全设计上下文。",
+      "fetched_at": "2026-08-01T00:08:20.928724+08:00"
+    }
+  ]
+}
