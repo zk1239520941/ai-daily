@@ -1670,6 +1670,385 @@
       "score": 85,
       "summary": "LMArena公布GPT-5.6在Fullstack Code Arena中Sol排名第3。",
       "fetched_at": "2026-08-01T04:27:44.974284+08:00"
+    },
+    {
+      "title": "Oxide and Friends: The Open Weight Revolution with Simon Willison",
+      "link": "https://simonwillison.net/2026/Jul/31/oxide-and-friends/#atom-everything",
+      "published": "2026-08-01T05:33:13+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Oxide and Friends: The Open Weight Revolution with Simon Willison](https://oxide-and-friends.transistor.fm/episodes/the-open-weight-revolution-with-simon-willison)**\n\nOn Monday Bryan Cantrill and Adam Leventhal invited me to join their podcast to talk about the *wild* week we've had - with Kimi K3 showing open weight models can stand toe-to-toe with proprietary frontier ones, [accidental cybersecurity attacks](https://simonwillison.net/2026/Jul/22/openai-cyberattack/), and public letters about [Open Weights and American AI Leadership](https://www.microsoft.com/en-us/corporate-responsibility/topics/open-weight/) signed by almost every big name in AI (with one [notable exception](https://www.anthropic.com/news/position-open-weights-models)).\n\nIt was a great conversation, even though it's already out-of-date! [DeepSeek V4 Flash 0731](https://artificialanalysis.ai/models/deepseek-v4-flash) and [Anthropic's own embarrassing cyber incident](https://simonwillison.net/2026/Jul/30/three-real-world-incidents/) would absolutely have made the cut if we had recorded just a few days later.\n\nWe also talk about [Golden Gate Claude](https://www.anthropic.com/news/golden-gate-claude), the [Zizians](https://en.wikipedia.org/wiki/Zizians), [Alameda wild turkey attacks](https://abc7news.com/post/83-year-old-alameda-woman-attacked-wild-turkeys-city-warns-residents-take-precautions-during-mating-season/19190785/), [Soviet Marburg virus research](https://en.wikipedia.org/wiki/Soviet_biological_weapons_program), the [Lead-crime hypothesis](https://en.wikipedia.org/wiki/Lead–crime_hypothesis), and a bunch of other worthy digressions.\n\nFinally, we revisited some of [our predictions from January](https://simonwillison.net/2026/Jan/8/llm-predictions-for-2026/), and we [added a new Pope prediction](https://simonwillison.net/2026/May/25/encyclical-on-ai/#another-2026-prediction-down):\n\n> Prediction by the end of this year: the Pope says something about open models.\n\nTags: [predictions](https://simonwillison.net/tags/predictions), [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [local-llms](https://simonwillison.net/tags/local-llms), [llms](https://simonwillison.net/tags/llms), [oxide](https://simonwillison.net/tags/oxide), [bryan-cantrill](https://simonwillison.net/tags/bryan-cantrill), [ai-in-china](https://simonwillison.net/tags/ai-in-china), [ai-security-research](https://simonwillison.net/tags/ai-security-research)",
+      "tags": [
+        "开放权重革命",
+        "Kimi K3",
+        "DeepSeek V4 Flash"
+      ],
+      "score": 82,
+      "summary": "Simon Willison在播客中与Oxide and Friends讨论开放权重模型革命及Kimi K3等最新进展。",
+      "fetched_at": "2026-08-01T06:14:02.752504+08:00"
+    },
+    {
+      "title": "smevals - a small eval suite for evaluating models, prompts, and harnesses",
+      "link": "https://simonwillison.net/2026/Jul/31/smevals/#atom-everything",
+      "published": "2026-08-01T05:15:23+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[smevals - a small eval suite for evaluating models, prompts, and harnesses](https://primeradiant.com/blog/2026/smevals.html)**\n\nI've been working with Jesse Vincent's [Prime Radiant](https://primeradiant.com) applied AI research lab building out this evals framework to help answer questions about the capabilities of different models.\n\nThe result is **[smevals](https://github.com/prime-radiant-inc/smevals)**, a new tool for running small eval suites across different model configurations and grading the results.\n\nThis blog entry describes the tool in detail. Here's the 10 second version:\n\n1. Tell your coding agent to `run uvx smevals docs` to learn the tool (this outputs [the README](https://github.com/prime-radiant-inc/smevals/blob/main/README.md))\n2. Then tell it to build you an eval suite\n\nOnce you've created an eval - which takes the form of a directory with some YAML files - you can run it against models like this:\n\n```\nuvx smevals run path-to-eval/ -m gpt-5.5 -m claude-opus-4.6\n```\n\nRuns are treated separately from grading operations - you can grade your runs (against your defined set of checks) using:\n\n```\nuvx smevals grade path-to-eval/\n```\n\nThen you can run a localhost web server to explore the results:\n\n```\nuvx smevals serve path-to-eval/\n```\n\nOr run the `smevals build` command to build that report as static HTML, which you can then host anywhere. Here's [an example](https://static.simonwillison.net/static/2026/smevals-haiku-build/#/haiku) showing an eval suite I built to evaluate how well models can write haikus.\n\n![Screenshot of an evaluation dashboard for a haiku-writing benchmark, testing whether models can reply with exactly three non-empty lines. A header describes the eval, with panels below showing a leaderboard ranking three GPT models by score, lists of recent runs and recent grades, tag pass rates, the two haiku prompts that were tested, and details of the graders used with a 0.8 pass threshold.](https://static.simonwillison.net/static/2026/smevals-report.webp)\n\nI've been trying to figure out an approach I like for evals for several years now. `smevals` is my third iteration on the idea and it feels right to me. I'm looking forward to expanding this more in the future, as well as pointing it at some of my own projects.\n\nTags: [projects](https://simonwillison.net/tags/projects), [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [llm](https://simonwillison.net/tags/llm), [evals](https://simonwillison.net/tags/evals), [jesse-vincent](https://simonwillison.net/tags/jesse-vincent)",
+      "tags": [
+        "smevals",
+        "模型评测",
+        "Prime Radiant"
+      ],
+      "score": 75,
+      "summary": "Simon Willison介绍smevals，一个用于评估模型、提示词和工具链的小型评测套件。",
+      "fetched_at": "2026-08-01T06:14:02.752518+08:00"
+    },
+    {
+      "title": "pst in nyc",
+      "link": "https://x.com/akothari/status/2083306136405438477",
+      "published": "2026-08-01T05:37:43+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "pst in nyc\n\n![Tweet Image](https://pbs.twimg.com/media/HOlj42lXEAAo19Z.jpg)\n\n💬1🔄0❤️1👀303📊1",
+      "tags": [
+        "NYC"
+      ],
+      "score": 25,
+      "summary": "Akshay Kothari发布'pst in nyc'推文，无实质内容。",
+      "fetched_at": "2026-08-01T06:14:02.752522+08:00"
+    },
+    {
+      "title": "Work with just your voice, hands free.\n\nSee—and hear— ChatGPT Voice in action, now on macOS and Wind...",
+      "link": "https://x.com/ChatGPT/status/2083305352469352714",
+      "published": "2026-08-01T05:34:36+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Work with just your voice, hands free.  \n  \nSee—and hear— ChatGPT Voice in action, now on macOS and Windows.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083301084681170944/vid/avc1/1920x1080/pRzdIz5Wzqf7k11C.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ChatGPT/status/2083305352469352714/video/1)\n\n💬12🔄9❤️148👀5849📊30",
+      "tags": [
+        "ChatGPT Voice",
+        "macOS",
+        "Windows"
+      ],
+      "score": 80,
+      "summary": "ChatGPT官方宣布ChatGPT Voice现已在macOS和Windows桌面应用上线。",
+      "fetched_at": "2026-08-01T06:14:02.752524+08:00"
+    },
+    {
+      "title": "Your pets have found a shortcut to ChatGPT Voice 👀\n\nIn the desktop app, click your pet to open Voic...",
+      "link": "https://x.com/ChatGPT/status/2083287694852112400",
+      "published": "2026-08-01T04:24:26+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Your pets have found a shortcut to ChatGPT Voice 👀  \n  \nIn the desktop app, click your pet to open Voice, check on work, and approve or stop tasks without missing a beat.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083287651755696128/vid/avc1/3840x2160/ZBtyO2lJDpRNBXMq.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ChatGPT/status/2083287694852112400/video/1)\n\n💬72🔄52❤️797👀71423📊160",
+      "tags": [
+        "ChatGPT Voice",
+        "宠物快捷键",
+        "桌面应用"
+      ],
+      "score": 72,
+      "summary": "ChatGPT官方展示桌面应用内通过点击宠物图标快速启动语音功能。",
+      "fetched_at": "2026-08-01T06:14:02.752526+08:00"
+    },
+    {
+      "title": "Everyone’s going on about how smart Leopold Aschennbrenner is (or was).\n\nBut\n\n1. He obviously didn’t...",
+      "link": "https://x.com/GaryMarcus/status/2083286332236005851",
+      "published": "2026-08-01T04:19:01+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Everyone’s going on about how smart Leopold Aschennbrenner is (or was).  \n  \nBut  \n  \n1. He obviously didn’t know anything at all about risk management. (Or arrogantly chose to disregard whatever he might have been told). He also worked for a while for SBF which I see as perhaps a second error in judgement.  \n  \n2. He completely failed to factor in what might happen if LLMs turned out to be commodity, even though people like me warned for years that would likely happen.  \n  \n3. So far all the rise in the LLM industry has been on hope, rather than actual return for the LLM companies. His fund’s biggest remaining hope is their chunk of Anthropic, but it is still unclear whether Anthropic can find a sustainable business model.  \n  \nLA/SALP certainly made big, bold bets, and some of them were golden in the short-term, until they weren’t.   \n  \nWhether they were correct long term (aside from his recently being squeezed) remains to be seen.\n\n💬7🔄4❤️33👀3266📊11",
+      "tags": [
+        "Gary Marcus",
+        "Leopold Aschenbrenner",
+        "AI风险"
+      ],
+      "score": 80,
+      "summary": "Gary Marcus批评Leopold Aschenbrenner缺乏风险管理意识，质疑AI行业估值和Anthropic商业模式。",
+      "fetched_at": "2026-08-01T06:14:02.752528+08:00"
+    },
+    {
+      "title": "Learn more about this project here: https://t.co/0007Mn21KY",
+      "link": "https://x.com/antigravity/status/2083298998857670682",
+      "published": "2026-08-01T05:09:21+08:00",
+      "source": "Google Antigravity(@antigravity)",
+      "content": "Learn more about this project here: [developers.googleblog.com/bridging-the-d…](https://developers.googleblog.com/bridging-the-domain-gap-ai-race-coach-built-with-antigravity-and-gemini/)\n\n💬1🔄0❤️4👀1205📊1",
+      "tags": [
+        "Antigravity",
+        "AI Race Coach"
+      ],
+      "score": 60,
+      "summary": "Google Antigravity官方账号发布AI Race Coach项目博客链接，无具体内容。",
+      "fetched_at": "2026-08-01T06:14:02.752530+08:00"
+    },
+    {
+      "title": "At Sonoma Raceway, Google Developer Experts built an AI Race Coach using Google Antigravity to bridg...",
+      "link": "https://x.com/antigravity/status/2083298994411716613",
+      "published": "2026-08-01T05:09:20+08:00",
+      "source": "Google Antigravity(@antigravity)",
+      "content": "At Sonoma Raceway, Google Developer Experts built an AI Race Coach using Google Antigravity to bridge software code and vehicle telemetry.  \n  \nTapping 100+ car sensors on a Pixel 10, Gemma 4 ran locally to deliver real-time audio coaching.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083298765549543424/vid/avc1/1280x720/DICdVht_X5RswV2q.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/antigravity/status/2083298994411716613/video/1)\n\n💬6🔄2❤️40👀3325📊10",
+      "tags": [
+        "Antigravity",
+        "AI Race Coach",
+        "Gemma 4"
+      ],
+      "score": 76,
+      "summary": "Google Antigravity官方展示AI Race Coach，通过Gemma 4本地运行，利用100+车载传感器提供实时语音指导。",
+      "fetched_at": "2026-08-01T06:14:02.752532+08:00"
+    },
+    {
+      "title": "Gemini Spark is rolling out to Google AI Pro users outside the U.S.\n\nSpark is your personal AI agent...",
+      "link": "https://x.com/GeminiApp/status/2083302569796059271",
+      "published": "2026-08-01T05:23:33+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "Gemini Spark is rolling out to Google AI Pro users outside the U.S.  \n  \nSpark is your personal AI agent that works in the background 24/7 to get things done under your direction, handling the heavy lifting so you can focus on what matters.\n\n![Google Gemini](https://pbs.twimg.com/profile_images/1940093473564073984/jiafRcO0_normal.png)\n\nGoogle Gemini@GeminiApp\n\nGemini Spark is now also starting to roll out to Google AI Pro subscribers in the U.S., and we'll be bringing it to AI Pro subscribers in more countries soon.  \n  \nMore info on where Gemini Spark is available here: [goo.gle/4fc7349](https://goo.gle/4fc7349)\n\n[🔗 View Quoted Tweet](https://x.com/GeminiApp/status/2080401074083799229)\n\n💬13🔄7❤️56👀7510📊14",
+      "tags": [
+        "Gemini Spark",
+        "Google AI Pro",
+        "个人AI代理"
+      ],
+      "score": 82,
+      "summary": "Google Gemini App宣布Gemini Spark开始向美国以外AI Pro用户推出，作为24/7后台运行的AI代理。",
+      "fetched_at": "2026-08-01T06:14:02.752533+08:00"
+    },
+    {
+      "title": "More info on where Gemini Spark is available here: https://t.co/HUF0DN8aVt",
+      "link": "https://x.com/GeminiApp/status/2083302571595485589",
+      "published": "2026-08-01T05:23:33+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "More info on where Gemini Spark is available here: [goo.gle/4fc7349](https://goo.gle/4fc7349)\n\n💬2🔄0❤️9👀1289📊3",
+      "tags": [
+        "Gemini Spark"
+      ],
+      "score": 58,
+      "summary": "Gemini App官方发布Gemini Spark可用地区查询链接。",
+      "fetched_at": "2026-08-01T06:14:02.752535+08:00"
+    },
+    {
+      "title": "pets and voice make chatgpt desktop so much more fun to use",
+      "link": "https://x.com/gdb/status/2083294351883743442",
+      "published": "2026-08-01T04:50:53+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "pets and voice make chatgpt desktop so much more fun to use\n\n![ChatGPT](https://pbs.twimg.com/profile_images/2081980424666935296/qU5G7mQg_normal.jpg)\n\nChatGPT@ChatGPT\n\nYour pets have found a shortcut to ChatGPT Voice 👀  \n  \nIn the desktop app, click your pet to open Voice, check on work, and approve or stop tasks without missing a beat.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083287651755696128/vid/avc1/3840x2160/ZBtyO2lJDpRNBXMq.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ChatGPT/status/2083287694852112400/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/ChatGPT/status/2083287694852112400)\n\n💬33🔄8❤️207👀23353📊34",
+      "tags": [
+        "Greg Brockman",
+        "ChatGPT桌面"
+      ],
+      "score": 50,
+      "summary": "Greg Brockman转发ChatGPT官方推文，称宠物和语音让ChatGPT桌面版更有趣。",
+      "fetched_at": "2026-08-01T06:14:02.752537+08:00"
+    },
+    {
+      "title": "Hitting this every time I see a wedding photo on LinkedIn",
+      "link": "https://x.com/venturetwins/status/2083308566589636690",
+      "published": "2026-08-01T05:47:22+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Hitting this every time I see a wedding photo on LinkedIn\n\n![Paul W. Swaney III](https://pbs.twimg.com/profile_images/2062017167907057665/YH1eXjgw_normal.jpg)\n\nPaul W. Swaney III@paulswaney3\n\nWhatever product manager came up with the “seems like AI slop” button for LinkedIn deserves a raise\n\n![Tweet Image](https://pbs.twimg.com/media/HOg04-QWMAAv_K5.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/paulswaney3/status/2082972984394879126)\n\n💬7🔄0❤️21👀1274📊6",
+      "tags": [
+        "LinkedIn",
+        "AI slop"
+      ],
+      "score": 35,
+      "summary": "Justine Moore转发关于LinkedIn'AI slop'按钮的调侃推文。",
+      "fetched_at": "2026-08-01T06:14:02.752538+08:00"
+    },
+    {
+      "title": "\"Systems thinking\" has now come up on the last five podcast interviews I've done.\n\nAs teams move fas...",
+      "link": "https://x.com/lennysan/status/2083301121783890186",
+      "published": "2026-08-01T05:17:47+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "\"Systems thinking\" has now come up on the last five podcast interviews I've done.  \n  \nAs teams move faster and products get more complex, the ability to think about the big picture, build platforms and building blocks, and think about 2nd and 3rd order effects of your changes becomes more and more valuable.\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nI asked [@Netflix](https://x.com/Netflix)'s CPTO Elizabeth Stone what skills are trending up with the rise of AI.  \n  \nHer answer: systems thinking.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079312218433454080/vid/avc1/1920x1080/9UewW_lCXlvk0d-b.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2079312680201142780/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2079312680201142780)\n\n💬0🔄4❤️16👀2005📊3",
+      "tags": [
+        "系统思维",
+        "AI技能",
+        "Netflix"
+      ],
+      "score": 62,
+      "summary": "Lenny Rachitsky称系统思维是AI时代重要技能，引用Netflix CPTO观点。",
+      "fetched_at": "2026-08-01T06:14:02.752540+08:00"
+    },
+    {
+      "title": "And you can watch on YouTube: https://t.co/mWUKPkCd0R : )",
+      "link": "https://x.com/OfficialLoganK/status/2083291671106814082",
+      "published": "2026-08-01T04:40:14+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "And you can watch on YouTube: [youtube.com/watch?v=-rYFDe…](https://www.youtube.com/watch?v=-rYFDefcq3k) : )\n\n💬0🔄3❤️17👀5405📊3",
+      "tags": [
+        "Gemini Robotics 2",
+        "YouTube"
+      ],
+      "score": 55,
+      "summary": "Logan Kilpatrick分享Gemini Robotics 2对话视频的YouTube链接。",
+      "fetched_at": "2026-08-01T06:14:02.752542+08:00"
+    },
+    {
+      "title": "A conversation with the Google DeepMind Robotics team about our latest Gemini Robotics 2 model, the ...",
+      "link": "https://x.com/OfficialLoganK/status/2083291516689322483",
+      "published": "2026-08-01T04:39:37+08:00",
+      "source": "Logan Kilpatrick(@OfficialLoganK)",
+      "content": "A conversation with the Google DeepMind Robotics team about our latest Gemini Robotics 2 model, the arc of robotics progress, and where we go next 🤖\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083289812333973504/vid/avc1/1280x720/Q8rGm9TVW-klTo2d.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OfficialLoganK/status/2083291516689322483/video/1)\n\n💬17🔄14❤️170👀19381📊36",
+      "tags": [
+        "Gemini Robotics 2",
+        "DeepMind Robotics",
+        "机器人"
+      ],
+      "score": 82,
+      "summary": "Logan Kilpatrick分享与Google DeepMind机器人团队关于Gemini Robotics 2的对话视频。",
+      "fetched_at": "2026-08-01T06:14:02.752543+08:00"
+    },
+    {
+      "title": "ICYMI: We passed on GPT-5.6 efficiency gains, reducing model costs by 80% for Luna and 20% for Terra...",
+      "link": "https://x.com/OpenAIDevs/status/2083301257566159105",
+      "published": "2026-08-01T05:18:20+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "ICYMI: We passed on GPT-5.6 efficiency gains, reducing model costs by 80% for Luna and 20% for Terra.  \n  \n[x.com/OpenAI/status/…](https://x.com/OpenAI/status/2082878156483219672)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nWe are committed to pushing the model frontier across cost efficiency, capability, and speed.  \n  \nStarting today, we are reducing prices for GPT-5.6 Luna by 80% and GPT-5.6 Terra by 20% , and offering a faster option for GPT-5.6 Sol in the API.  \n  \nLuna and Terra’s lower prices are reflected in how usage is counted in Codex and ChatGPT Work, so your usage goes further.\n\n![Tweet Image](https://pbs.twimg.com/media/HOfepUra4AAUEZi.png)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2082878156483219672)\n\n💬5🔄0❤️78👀8482📊9",
+      "tags": [
+        "GPT-5.6",
+        "降价80%",
+        "API"
+      ],
+      "score": 80,
+      "summary": "OpenAI宣布GPT-5.6 Luna降价80%，Terra降价20%，并推出更快的Sol版本。",
+      "fetched_at": "2026-08-01T06:14:02.752545+08:00"
+    },
+    {
+      "title": "GPT-5.4 and GPT-5.4 mini will no longer be available for users signed in with ChatGPT starting Augus...",
+      "link": "https://x.com/OpenAIDevs/status/2083301245390143831",
+      "published": "2026-08-01T05:18:17+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "GPT-5.4 and GPT-5.4 mini will no longer be available for users signed in with ChatGPT starting August 31.  \n  \nThe models will remain available on the OpenAI API and Codex sessions authenticated with an API key.  \n  \n[learn.chatgpt.com/docs/changelog…](https://learn.chatgpt.com/docs/changelog#codex-2026-07-31)\n\n💬27🔄15❤️311👀17872📊55",
+      "tags": [
+        "GPT-5.4",
+        "下线",
+        "API保留"
+      ],
+      "score": 75,
+      "summary": "OpenAI宣布GPT-5.4及mini将于8月31日起从ChatGPT下线，API和Codex仍可用。",
+      "fetched_at": "2026-08-01T06:14:02.752547+08:00"
+    },
+    {
+      "title": "See what needs you next.\n\nThe new Activity view in the ChatGPT desktop app brings together conversat...",
+      "link": "https://x.com/OpenAIDevs/status/2083288643310133716",
+      "published": "2026-08-01T04:28:12+08:00",
+      "source": "OpenAI Developers(@OpenAIDevs)",
+      "content": "See what needs you next.  \n  \nThe new Activity view in the ChatGPT desktop app brings together conversations that need your attention and recent updates across your projects.\n\n![Tweet Image](https://pbs.twimg.com/media/HOlT-Zla8AAbwBn.jpg)\n\n💬90🔄31❤️996👀98526📊185",
+      "tags": [
+        "ChatGPT桌面",
+        "Activity视图",
+        "更新"
+      ],
+      "score": 72,
+      "summary": "OpenAI推出ChatGPT桌面应用新Activity视图，集中展示待处理对话和项目更新。",
+      "fetched_at": "2026-08-01T06:14:02.752549+08:00"
+    },
+    {
+      "title": "\"Life is indescribably better!\"\n\n— a founder after getting a jerk to leave his board",
+      "link": "https://x.com/paulg/status/2083291942247342196",
+      "published": "2026-08-01T04:41:19+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "\"Life is indescribably better!\"  \n  \n— a founder after getting a jerk to leave his board\n\n💬37🔄23❤️621👀56616📊80",
+      "tags": [
+        "创业",
+        "董事会"
+      ],
+      "score": 20,
+      "summary": "Paul Graham引用创始人对赶走董事会成员的评价，与AI无关。",
+      "fetched_at": "2026-08-01T06:14:02.752550+08:00"
+    },
+    {
+      "title": "This seems like a great idea. I bet one day all services used by agents will do this. Which in the l...",
+      "link": "https://x.com/paulg/status/2083289602127716384",
+      "published": "2026-08-01T04:32:01+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "This seems like a great idea. I bet one day all services used by agents will do this. Which in the limit case = all services, since those that can't be used by agents will go out of business.\n\n![Supabase](https://pbs.twimg.com/profile_images/1822981431586439168/7xkKXRGQ_normal.jpg)\n\nSupabase@supabase\n\nIntroducing Supabase Evals.  \n  \nOur benchmark for how well AI coding agents build with Supabase. We run agents like Claude Code, Codex, and Open Code against real tasks and score what they do.\n\n![Tweet Image](https://pbs.twimg.com/media/HOlOFCRW4AABB1K.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/supabase/status/2083282155170340898)\n\n💬29🔄14❤️252👀49749📊50",
+      "tags": [
+        "Supabase Evals",
+        "AI Agent",
+        "Paul Graham"
+      ],
+      "score": 68,
+      "summary": "Paul Graham评论Supabase Evals基准测试，预测未来所有服务都将支持AI代理使用。",
+      "fetched_at": "2026-08-01T06:14:02.752552+08:00"
+    },
+    {
+      "title": "That doesn't mean that all people must have access and be trustworthy. It is possible to have subcom...",
+      "link": "https://x.com/RayDalio/status/2083296644574122110",
+      "published": "2026-08-01T05:00:00+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "That doesn't mean that all people must have access and be trustworthy. It is possible to have subcommittees who have access to sensitive information and make recommendations to the board that are substantiated with enough information to make good judgments, but without disclosing the highly sensitive particulars. #principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HOkqDjDWUAAQXSX.png)\n\n💬10🔄7❤️75👀23551📊16",
+      "tags": [
+        "董事会",
+        "信息保密"
+      ],
+      "score": 15,
+      "summary": "Ray Dalio分享关于董事会信息访问与保密的原则。",
+      "fetched_at": "2026-08-01T06:14:02.752554+08:00"
+    },
+    {
+      "title": "New video out! a full walkthrough of Replit Design\n\nTemplates to start fast. Ambient intelligence so...",
+      "link": "https://x.com/Replit/status/2083296650538217753",
+      "published": "2026-08-01T05:00:01+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "New video out! a full walkthrough of Replit Design  \n  \nTemplates to start fast. Ambient intelligence so you're never stuck. Design systems so everything you make belongs together.  \n  \nWatch it here 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083292541982502912/vid/avc1/1920x1080/Ye-CdGo6yKTT_fY-.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2083296650538217753/video/1)\n\n💬2🔄2❤️20👀3629📊7",
+      "tags": [
+        "Replit Design",
+        "产品导览",
+        "AI编程"
+      ],
+      "score": 72,
+      "summary": "Replit官方发布Replit Design完整演示视频，展示模板、环境智能和设计系统。",
+      "fetched_at": "2026-08-01T06:14:02.752555+08:00"
+    },
+    {
+      "title": "Tired of not winning",
+      "link": "https://x.com/ylecun/status/2083290542956224643",
+      "published": "2026-08-01T04:35:45+08:00",
+      "source": "Yann LeCun(@ylecun)",
+      "content": "Tired of not winning\n\n![Republicans against Trump](https://pbs.twimg.com/profile_images/1552023520347099136/tIGoFfQt_normal.jpg)\n\nRepublicans against Trump@RpsAgainstTrump\n\nDonald Trump “erupted” during a meeting with his top national security team last week, reportedly yelling expletives at those present, according to NBC News.  \n  \nThe report says Trump is “exasperated” by the lack of progress in ending the Iran war and the lack of a clear strategy.  \n  \nOne Trump ally said, “The president is exasperated. I don’t think he believed it was going to be this difficult to get the Iranians to agree to a deal.”\n\n![Tweet Image](https://pbs.twimg.com/media/HOhVk66XgAAUTdd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/RpsAgainstTrump/status/2083008924370800680)\n\n💬15🔄1❤️109👀28016📊15",
+      "tags": [
+        "政治",
+        "特朗普"
+      ],
+      "score": 15,
+      "summary": "Yann LeCun转发特朗普相关新闻并评论'厌倦失败'，与AI无关。",
+      "fetched_at": "2026-08-01T06:14:02.752558+08:00"
+    },
+    {
+      "title": "Narrative violation!",
+      "link": "https://x.com/a16z/status/2083295417153015876",
+      "published": "2026-08-01T04:55:07+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Narrative violation!\n\n![Tweet Image](https://pbs.twimg.com/media/HOlaJDVaMAAJrb_.jpg)\n\n![Jesse Zhang](https://pbs.twimg.com/profile_images/1987633437843566592/PeXsIDsc_normal.jpg)\n\nJesse Zhang@thejessezhang\n\nAI will take jobs but not careers. We also went deep on open source adoption.  \n  \nGreat chat with [@sarahdingwang](https://x.com/sarahdingwang)[@kimberlywtan](https://x.com/kimberlywtan)!\n\n[🔗 View Quoted Tweet](https://x.com/thejessezhang/status/2083213982505296302)\n\n💬4🔄3❤️35👀9290📊6",
+      "tags": [
+        "a16z",
+        "AI就业",
+        "职业生涯"
+      ],
+      "score": 68,
+      "summary": "a16z转发Jesse Zhang观点：AI将取代工作但不会取代职业生涯，并讨论开源采用。",
+      "fetched_at": "2026-08-01T06:14:02.752559+08:00"
+    },
+    {
+      "title": "Neat work on long-horizon agents.\n\nSplitting a hard task across agents is typically how standard mul...",
+      "link": "https://x.com/omarsar0/status/2083292876587577549",
+      "published": "2026-08-01T04:45:02+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Neat work on long-horizon agents.  \n  \nSplitting a hard task across agents is typically how standard multi-agent work. The usual design lets them exchange findings only at phase boundaries, through staged handoffs or synchronized rounds, so communication and work stay mutually exclusive.  \n  \nAgentRadio breaks that constraint with an asynchronous message-passing layer. Three primitives, threads, messages, and waiting for mentions. The last one runs as a background task, surfacing a teammate's discovery without interrupting foreground work.  \n  \nOn SWE-Atlas QnA, a single Claude Code agent on Opus 4.6 resolves 32.3% of tasks. Four agents wired through AgentRadio resolve 62.1%. That also beats a single Claude Code agent running the newer Opus 4.8 at 57.2%.  \n  \nRubric-level analysis shows the gain growing with task difficulty, which points at mid-course correction as the mechanism rather than raw parallelism.  \n  \nPaper: [arxiv.org/abs/2607.28430](https://arxiv.org/abs/2607.28430)  \n  \nTrack more trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HOlX1JCacAAd-Kb.jpg)\n\n💬5🔄4❤️4👀1587📊7",
+      "tags": [
+        "AgentRadio",
+        "异步消息传递",
+        "多Agent"
+      ],
+      "score": 85,
+      "summary": "AgentRadio通过异步消息传递，将Claude Opus 4.6多智能体任务解决率从32.3%提升至62.1%。",
+      "fetched_at": "2026-08-01T06:14:02.752561+08:00"
+    },
+    {
+      "title": "Connect Superwhisper to Grok Build with your SuperGrok or X Premium subscription",
+      "link": "https://x.com/SpaceXAI/status/2083312089620222378",
+      "published": "2026-08-01T06:01:22+08:00",
+      "source": "xAI(@xai)",
+      "content": "Connect Superwhisper to Grok Build with your SuperGrok or X Premium subscription\n\n![superwhisper](https://pbs.twimg.com/profile_images/2059688992715534337/Hl9aVUmY_normal.jpg)\n\nsuperwhisper@superwhisper\n\nKeep a tab on your agents from anywhere. Our integration is now live in [@Grok](https://x.com/Grok) Build✨\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083284675028500480/vid/avc1/3840x2160/3Wforh_48NJ35qhP.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/superwhisper/status/2083285646387433827/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/superwhisper/status/2083285646387433827)\n\n💬17🔄15❤️133👀20569📊22",
+      "tags": [
+        "Superwhisper",
+        "Grok Build",
+        "集成"
+      ],
+      "score": 72,
+      "summary": "xAI官方宣布Superwhisper集成现已在Grok Build中上线，支持订阅用户使用。",
+      "fetched_at": "2026-08-01T06:14:02.752562+08:00"
     }
   ]
 }
