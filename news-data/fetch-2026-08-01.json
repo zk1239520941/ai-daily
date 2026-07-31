@@ -703,6 +703,582 @@
       "score": 75,
       "summary": "Dropbox集成MCP和Dash，在AI代码审查中提供安全设计上下文。",
       "fetched_at": "2026-08-01T00:08:20.928724+08:00"
+    },
+    {
+      "title": "Docker OIDC connections for GitHub Actions available for Docker Orgs",
+      "link": "https://www.docker.com/blog/docker-oidc-connections-for-github-actions-available-for-docker-orgs/",
+      "published": "2026-08-01T00:30:48+08:00",
+      "source": "Docker",
+      "content": "###### Eliminate Stored Credentials in Your CI/CD Pipelines\n\nTL;DR: Docker now supports [OpenID Connect](https://openid.net/developers/how-connect-works/) (OIDC) for GitHub Actions. Your workflows can authenticate with short-lived, per-run tokens instead of stored PATs or OATs. No secrets to rotate, no credentials to leak.\n\nGitHub OIDC connections are available to organizations with Docker Team, Docker Business, or [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/) subscriptions, as well as organizations enrolled in the [Docker Sponsored Open Source Program (DSOS)](https://docs.docker.com/docker-hub/repos/manage/trusted-content/dsos-program/).\n\n### Table of contents\n\n* The problem with stored credentials\n* Who should use this\n* How OIDC connections work\n* Getting started\n* What doesn’t change\n* Learn more\n\n*OIDC token exchange flow between GitHub Actions and Docker*\n\n![diagram final](https://www.docker.com/app/uploads/2026/07/diagram-final.png \"- diagram final\")\n\n## **The problem with stored credentials**\n\nEvery GitHub Actions workflow that pushes or pulls images from Docker Hub authenticates with a personal access token (PAT) or organization access token (OAT) stored as a GitHub secret. These credentials are long-lived. Someone has to remember to rotate them. A leaked token grants access to your registry — pulling private images, pushing malicious ones — and that access persists until someone discovers and revokes it. Rotation is manual and does not scale. As pipelines multiply, so do the credentials that need tracking, and stale tokens are a common audit finding.\n\n## **Who should use this**\n\n1. GitHub issues a signed identity token (a JWT) that encodes the repository, branch, environment, and other metadata about the workflow run.\n2. The workflow calls [docker/](https://github.com/docker/oidc-action)[login](https://github.com/docker/login-action)[-action](https://github.com/docker/oidc-action), which presents this token to Docker.\n3. Docker verifies the token’s signature against GitHub’s public key registry and checks it against rulesets configured in the Admin Console.\n4. If the token matches a ruleset, Docker returns a short-lived access token scoped to the resources defined in that ruleset.\n5. [docker/login-action](https://github.com/docker/login-action) uses this token to authenticate to Docker Hub. From there, docker pull, docker push, and docker build commands work as usual.\n\nThe entire exchange happens without any stored secrets, API keys, or access tokens. The short-lived Docker access token expires in minutes and cannot be reused.\n\nThis is the same pattern that AWS and GCP already use for cloud resource access ([AWS OIDC for GitHub Actions](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services), [GCP Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation)). Docker is applying it to container registry access.\n\n## **Getting started**\n\nSetup is a one-time connection in [Docker Home](https://app.docker.com/) plus a small update to your workflow YAML.\n\n### Step 1: Create a connection\n\nSign in to [Docker Home](https://app.docker.com/), select your organization, and navigate to OIDC connections. Select Create OIDC connection and configure the rulesets that control which repositories, branches, and workflows can access which Docker Hub resources. You can create up to five rulesets per connection. When a workflow triggers an OIDC exchange, Docker checks the token against every ruleset defined in your connection. If a ruleset’s conditions are satisfied, Docker grants access based on the parameters set by that ruleset.\n\nRulesets use OIDC subject claims to match incoming tokens. You can pin to specific repos and branches as a recommended security best practice:\n\n* repo:my-org/my-repo:ref:refs/heads/main — only the main branch of a specific repo\n* repo:my-org/my-repo:ref:refs/heads/release-\\* — all release branches\n* repo:my-org/my-repo:\\* – all branches of this repo\n* repo:my-org/\\* — any repo in the organization (not recommended)\n\nCopy the connection ID when you are done.\n\nNote: GitHub repositories created after July 15, 2026 use immutable identifiers for default subject claims. For example: repo:octocat@123456/my-repo@456789:ref:refs/heads/main. See the [GitHub changelog](https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/) for more details.\n\n### Step 2: Update your workflow\n\nUpdate your GitHub Actions workflow. Replace `<YOUR_CONNECTION_ID>` with the ID from the previous step and `<YOUR_ORG_NAME>` with your Docker organization name:\n\n```\npermissions:\n  contents: read\n  id-token: write\n\nsteps:\n    - name: Docker login                                                                                                                                                                 \n      uses: docker/login-action@v4 # v4.5.0+                                                                                                                                                                \n      with:                           \n        username: <YOUR_ORG_NAME>\n      env:                                                                                                                                                                               \n        DOCKERHUB_OIDC_CONNECTIONID: <YOUR_CONNECTION_ID>\n```\n\nThe `id-token`: write permission lets the workflow request a GitHub OIDC token. The `docker/login-action` handles the token exchange and Docker login in a single step when `DOCKERHUB_OIDC_CONNECTIONID` is set. From there, `docker pull,` `docker push`, and `docker build` commands work as usual.details of the incoming claim sub value, which you can use to diagnose why the connection failed.\n\n### \n\n### Step 3: Verify the OIDC connection works\n\nRun your workflow and confirm it completes successfully. If you encounter an error, the Failures tab of the OIDC connection page will show the details of the incoming claim sub value, which you can use to diagnose why the connection failed.\n\n### Step 4: Remove the stored credential\n\nAfter verifying your workflow runs successfully with OIDC, remove the old PAT or OAT from your GitHub repository secrets. You no longer need it.\n\n### Migration Checklist\n\n* Create a connection\n* Update your workflow\n* Verify the OIDC connection works\n* Remove stored credentials\n\n## What doesn’t change\n\n* Existing PATs and OATs keep working. Organizations can migrate workflows to OIDC connections at their own pace.\n* Images, registries, and build workflows are unchanged. OIDC connections only replace the authentication step; everything downstream is the same.\n* Local development and non-GitHub CI still use PATs and OATs. OIDC connections are the recommended replacement for GitHub Actions specifically. Other CI providers will follow based on demand.\n\n## Learn more\n\n* Learn more about [OpenID Connect](https://openid.net/developers/how-connect-works/)\n* Visit [Docker Home](https://app.docker.com/) to get started\n* Read the [documentation](https://docs.docker.com/enterprise/security/oidc-connections/)",
+      "tags": [
+        "OIDC",
+        "GitHub",
+        "Docker"
+      ],
+      "score": 75,
+      "summary": "Docker 为 GitHub Actions 推出 OIDC 连接，消除 CI/CD 存储凭据。",
+      "fetched_at": "2026-08-01T02:28:42.376806+08:00"
+    },
+    {
+      "title": "Community is one of the remaining moats in technology that can't be replicated.\n\nThere have now been...",
+      "link": "https://x.com/antonosika/status/2083241061821157460",
+      "published": "2026-08-01T01:19:08+08:00",
+      "source": "Anton Osika – eu/acc(@antonosika)",
+      "content": "Community is one of the remaining moats in technology that can't be replicated.  \n  \nThere have now been 1340 Lovable community events around the world.  \n  \nWe're upgrading how our community works and are selectively accepting new ambassador roles.  \n  \nAmbassadors get resources from our team, exclusive events, and a direct line to the team and what we’re building next.  \n  \nApply here: [community.lovable.app/ambassadors](https://community.lovable.app/ambassadors)\n\n![Tweet Image](https://pbs.twimg.com/media/HOkotMOaEAAivpX.jpg)\n\n💬1🔄1❤️14👀1233📊3",
+      "tags": [
+        "Lovable",
+        "社区",
+        "大使"
+      ],
+      "score": 55,
+      "summary": "Lovable 创始人称社区是技术护城河，已有1340场活动。",
+      "fetched_at": "2026-08-01T02:28:42.376819+08:00"
+    },
+    {
+      "title": "The primary reason people don't achieve big goals is because they don't realize that the only source...",
+      "link": "https://x.com/thedankoe/status/2083252202739491003",
+      "published": "2026-08-01T02:03:24+08:00",
+      "source": "DAN KOE(@thedankoe)",
+      "content": "The primary reason people don't achieve big goals is because they don't realize that the only source of truth is making mistakes. They soak up advice and theory, expecting it to be an exact match to their mind, experience, and situation just to fail once and give up completely.\n\n💬26🔄18❤️188👀4574📊48",
+      "tags": [
+        "个人成长",
+        "犯错"
+      ],
+      "score": 30,
+      "summary": "DAN KOE 称实现大目标的唯一来源是犯错。",
+      "fetched_at": "2026-08-01T02:28:42.376823+08:00"
+    },
+    {
+      "title": "If LoRA is underperforming, don't reach for more expensive full parameter fine-tuning right away.\n\nW...",
+      "link": "https://x.com/FireworksAI_HQ/status/2083239426164134287",
+      "published": "2026-08-01T01:12:38+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "If LoRA is underperforming, don't reach for more expensive full parameter fine-tuning right away.  \n  \nWe ran three cheap tests (data coverage, optimization, rank) to see if we could close the gap between LoRA and FullFT.  \n  \nSometimes we could, sometimes we couldn't.  \n  \n[fireworks.ai/blog/three-tes…](https://fireworks.ai/blog/three-tests-to-run-before-you-switch-from-LoRa-to-FullFT)\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HOknKcdaIAAZrLA.jpg)](https://video.twimg.com/tweet_video/HOknKcdaIAAZrLA.mp4)\n\n💬0🔄2❤️8👀724📊3",
+      "tags": [
+        "LoRA",
+        "FullFT",
+        "微调"
+      ],
+      "score": 80,
+      "summary": "Fireworks AI 用三个测试评估何时从 LoRA 切换到全参数微调。",
+      "fetched_at": "2026-08-01T02:28:42.376827+08:00"
+    },
+    {
+      "title": "After planning your idea, it’s time to build. 🏗️\n\nThis video shows you how you can use the Google e...",
+      "link": "https://x.com/googleaidevs/status/2083245181063852521",
+      "published": "2026-08-01T01:35:30+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "After planning your idea, it’s time to build. 🏗️  \n  \nThis video shows you how you can use the Google ecosystem to construct and deploy AI-native apps seamlessly for the Build with Gemini [@XPrize](https://x.com/XPrize) Hackathon, live through August 17.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083230579601137668/vid/avc1/3840x2160/pVaQGm3M74fiyhJs.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2083245181063852521/video/1)\n\n💬1🔄0❤️0👀555📊1",
+      "tags": [
+        "Gemini",
+        "XPrize",
+        "黑客松"
+      ],
+      "score": 72,
+      "summary": "Google AI Devs 演示如何用 Google 生态构建 AI 应用以参加黑客松。",
+      "fetched_at": "2026-08-01T02:28:42.376830+08:00"
+    },
+    {
+      "title": "Get more details:\nhttps://t.co/3wIjYTqOJZ",
+      "link": "https://x.com/googleaidevs/status/2083245182322123211",
+      "published": "2026-08-01T01:35:30+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Get more details:  \n[geminixprize.com](https://www.geminixprize.com/)\n\n💬0🔄0❤️0👀9",
+      "tags": [
+        "GeminiXPrize",
+        "详情"
+      ],
+      "score": 70,
+      "summary": "Google 公布 Gemini XPrize 黑客松详情页面。",
+      "fetched_at": "2026-08-01T02:28:42.376833+08:00"
+    },
+    {
+      "title": "6) Create personalized images in Gemini\n\nUse Gemini to create deeply personalized images based on yo...",
+      "link": "https://x.com/GeminiApp/status/2083233602532454650",
+      "published": "2026-08-01T00:49:30+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "6) Create personalized images in Gemini  \n  \nUse Gemini to create deeply personalized images based on your unique interests and preferences. Now available to all users in the U.S.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083233506688380928/vid/avc1/1200x1200/I6bpSCvgTqRFdcwn.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GeminiApp/status/2083233602532454650/video/1)\n\n💬1🔄1❤️10👀3404📊3",
+      "tags": [
+        "Gemini",
+        "个性化",
+        "美国"
+      ],
+      "score": 75,
+      "summary": "Gemini 个性化图像功能向全美用户开放。",
+      "fetched_at": "2026-08-01T02:28:42.376836+08:00"
+    },
+    {
+      "title": "That’s a wrap on this month’s Gemini Drops!\n\nTo learn more about everything that’s new, check out th...",
+      "link": "https://x.com/GeminiApp/status/2083233603966972375",
+      "published": "2026-08-01T00:49:30+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "That’s a wrap on this month’s Gemini Drops!  \n  \nTo learn more about everything that’s new, check out the Gemini Drops Hub: [gemini.google/gemini-drops](http://gemini.google/gemini-drops)\n\n💬0🔄1❤️10👀3214📊1",
+      "tags": [
+        "GeminiDrops",
+        "更新"
+      ],
+      "score": 70,
+      "summary": "本月 Gemini Drops 更新收官，汇总已发布。",
+      "fetched_at": "2026-08-01T02:28:42.376839+08:00"
+    },
+    {
+      "title": "4) Set up your digital avatars to use with Nano Banana\n\nSet up your digital avatar in Gemini once, a...",
+      "link": "https://x.com/GeminiApp/status/2083233598224977942",
+      "published": "2026-08-01T00:49:29+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "4) Set up your digital avatars to use with Nano Banana  \n  \nSet up your digital avatar in Gemini once, and you can seamlessly create custom images or videos of yourself without having to upload a selfie as your reference image.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083233351859888128/vid/avc1/1200x1200/Lr4N6VMqKXpCHj6G.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GeminiApp/status/2083233598224977942/video/1)\n\n💬2🔄1❤️11👀3271📊4",
+      "tags": [
+        "NanoBanana",
+        "数字头像",
+        "Gemini"
+      ],
+      "score": 75,
+      "summary": "Gemini 支持设置数字头像，用于 Nano Banana 生成图像视频。",
+      "fetched_at": "2026-08-01T02:28:42.376842+08:00"
+    },
+    {
+      "title": "2) Access Gemini Spark in more countries and languages\n\nNow even more people across the world can us...",
+      "link": "https://x.com/GeminiApp/status/2083233594395517183",
+      "published": "2026-08-01T00:49:28+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "2) Access Gemini Spark in more countries and languages  \n  \nNow even more people across the world can use Gemini Spark as their 24/7 personal AI agent to get things done more efficiently.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083233170821177345/vid/avc1/1200x1200/sW_wcW_h07D-ZWFJ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GeminiApp/status/2083233594395517183/video/1)\n\n💬3🔄1❤️26👀2423📊5",
+      "tags": [
+        "GeminiSpark",
+        "多国",
+        "AI代理"
+      ],
+      "score": 70,
+      "summary": "Gemini Spark 扩展到更多国家和语言。",
+      "fetched_at": "2026-08-01T02:28:42.376844+08:00"
+    },
+    {
+      "title": "3) Try Gemini 3.6 Flash & 3.5 Flash-Lite\n\nUpgraded versions of our Flash and Flash-Lite models are n...",
+      "link": "https://x.com/GeminiApp/status/2083233596362600840",
+      "published": "2026-08-01T00:49:28+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "3) Try Gemini 3.6 Flash & 3.5 Flash-Lite  \n  \nUpgraded versions of our Flash and Flash-Lite models are now available, bringing better reasoning at greater speeds.  \n  \nTry them by selecting “3.6 Flash” or “3.5 Flash-Lite” from the model dropdown menu at [gemini.google](http://gemini.google) or in the app.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083233267378180096/vid/avc1/1200x1200/wCP59onOLyI6_O98.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GeminiApp/status/2083233596362600840/video/1)\n\n💬2🔄1❤️8👀1868📊3",
+      "tags": [
+        "3.6Flash",
+        "3.5Flash",
+        "Gemini"
+      ],
+      "score": 82,
+      "summary": "Gemini 3.6 Flash 和 3.5 Flash 模型上线，推理更快。",
+      "fetched_at": "2026-08-01T02:28:42.376847+08:00"
+    },
+    {
+      "title": "1) Use your voice in the Gemini app for macOS\n\nDictate, summarize files, and rewrite copy directly i...",
+      "link": "https://x.com/GeminiApp/status/2083233592512233803",
+      "published": "2026-08-01T00:49:27+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "1) Use your voice in the Gemini app for macOS  \n  \nDictate, summarize files, and rewrite copy directly into any window with your voice in the Gemini app for macOS.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083233096032542723/vid/avc1/1200x1200/WLF_vykQ5W2AkpQ7.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GeminiApp/status/2083233592512233803/video/1)\n\n💬2🔄1❤️24👀2624📊5",
+      "tags": [
+        "Gemini",
+        "macOS",
+        "语音"
+      ],
+      "score": 72,
+      "summary": "Gemini macOS 应用新增语音输入功能。",
+      "fetched_at": "2026-08-01T02:28:42.376850+08:00"
+    },
+    {
+      "title": "This month’s Gemini Drops brings even more intelligence and agentic power to your desktop and mobile...",
+      "link": "https://x.com/GeminiApp/status/2083232971197456452",
+      "published": "2026-08-01T00:46:59+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "This month’s Gemini Drops brings even more intelligence and agentic power to your desktop and mobile experience.   \n  \nLet's dive into what's new in this 🧵\n\n💬31🔄15❤️141👀22325📊45",
+      "tags": [
+        "GeminiDrops",
+        "更新"
+      ],
+      "score": 70,
+      "summary": "本月 Gemini Drops 带来更多智能和代理能力。",
+      "fetched_at": "2026-08-01T02:28:42.376853+08:00"
+    },
+    {
+      "title": "precise lip-sync!",
+      "link": "https://x.com/Hailuo_AI/status/2083228914982543458",
+      "published": "2026-08-01T00:30:52+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "precise lip-sync!\n\n![Kyle Coghlan](https://pbs.twimg.com/profile_images/2033249009029271552/bVZHyTML_normal.jpg)\n\nKyle Coghlan@Kyle\\_Coghlan\n\nOK IM SOLD SHUT UP AND TAKE ALL MY MONEY [@Hailuo\\_AI](https://x.com/Hailuo_AI)   \n  \nMinimax 3 is insane!!  \n  \nMusic videos are going to be wild.   \n  \nUse a reference image with 4 pieces of text with quick cuts.   \n  \nPrompt:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083223616230240256/vid/avc1/2560x1440/IBtgjAfykk8ORFlV.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Kyle_Coghlan/status/2083223746807234853/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Kyle_Coghlan/status/2083223746807234853)\n\n💬0🔄1❤️8👀1168📊1",
+      "tags": [
+        "MiniMax3",
+        "唇形同步"
+      ],
+      "score": 65,
+      "summary": "用户称赞 MiniMax 3 唇形同步精准。",
+      "fetched_at": "2026-08-01T02:28:42.376855+08:00"
+    },
+    {
+      "title": "love the jazz vibe🎺",
+      "link": "https://x.com/Hailuo_AI/status/2083228539911102678",
+      "published": "2026-08-01T00:29:23+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "love the jazz vibe🎺\n\n![Captain HaHaa](https://pbs.twimg.com/profile_images/1992173726641930241/IPyQDwW4_normal.jpg)\n\nCaptain HaHaa@CaptainHaHaa\n\nAnother test using [@Hailuo\\_AI](https://x.com/Hailuo_AI) new model with a little number I call \"tryin out a new thing\"  \n  \nThis time checking out its lip syncing capabilities, I've got to say it handles it well.   \n  \nYou can even put in the entire song in and select the part you want lip synced which is very handy.   \n  \n#MiniMaxH3\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083201119774457856/vid/avc1/1920x1080/OpfNW8FEIaXQdXtQ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/CaptainHaHaa/status/2083202523587137979/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/CaptainHaHaa/status/2083202523587137979)\n\n💬2🔄0❤️5👀859📊3",
+      "tags": [
+        "MiniMax3",
+        "唇形同步",
+        "音乐视频"
+      ],
+      "score": 65,
+      "summary": "用户测试 MiniMax 3 唇形同步，表现良好。",
+      "fetched_at": "2026-08-01T02:28:42.376858+08:00"
+    },
+    {
+      "title": "sharing more about how we evaluate different agents we build internally\n\ncommon themes (from this an...",
+      "link": "https://x.com/hwchase17/status/2083240039522463929",
+      "published": "2026-08-01T01:15:04+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "sharing more about how we evaluate different agents we build internally  \n  \ncommon themes (from this and future benchmarks):  \n- standardize on harbor  \n- skill for going from traces/raw data to harbor tasks\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\n[x.com/i/article/2083…](http://x.com/i/article/2083185690137792512)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2083236117839499511)\n\n💬2🔄2❤️12👀1332📊4",
+      "tags": [
+        "Harrison",
+        "Agent评估",
+        "Harbor"
+      ],
+      "score": 85,
+      "summary": "Harrison Chase 分享内部 agent 评估方法，标准化到 Harbor。",
+      "fetched_at": "2026-08-01T02:28:42.376861+08:00"
+    },
+    {
+      "title": "https://t.co/94wZIRwUKe",
+      "link": "https://x.com/HeyGen/status/2083237300516102339",
+      "published": "2026-08-01T01:04:11+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "[x.com/i/article/2083…](http://x.com/i/article/2083231397574303746)\n\n💬5🔄5❤️15👀1588📊7",
+      "tags": [
+        "HeyGen",
+        "文章"
+      ],
+      "score": 45,
+      "summary": "HeyGen 官方发布新文章链接，内容未展示。",
+      "fetched_at": "2026-08-01T02:28:42.376863+08:00"
+    },
+    {
+      "title": "Seedance 2.5 outputs are starting to pop up on Rednote.\n\nThe creator said this 30 second clip was a ...",
+      "link": "https://x.com/venturetwins/status/2083229818435624993",
+      "published": "2026-08-01T00:34:27+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Seedance 2.5 outputs are starting to pop up on Rednote.  \n  \nThe creator said this 30 second clip was a one-shot continuous generation 🤯  \n  \nBut it’s apparently quite expensive (twice the cost of Seedance 2).\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083229782800818179/vid/avc1/1280x720/1ndnqLytHcUHAYRP.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2083229818435624993/video/1)\n\n💬5🔄5❤️49👀4550📊12",
+      "tags": [
+        "Seedance2.5",
+        "连续生成",
+        "成本"
+      ],
+      "score": 72,
+      "summary": "Seedance 2.5 连续生成演示出现，但成本为两倍。",
+      "fetched_at": "2026-08-01T02:28:42.376866+08:00"
+    },
+    {
+      "title": "We wanted a benchmark tied to the kinds of issues our reviewers catch in real PRs, so we built Revie...",
+      "link": "https://x.com/LangChain/status/2083236426833891829",
+      "published": "2026-08-01T01:00:43+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "We wanted a benchmark tied to the kinds of issues our reviewers catch in real PRs, so we built ReviewBench.  \n1️⃣Start from real reviews  \n2️⃣Curate them into concrete review issues  \n3️⃣Turn them into reproducible [@harborframework](https://x.com/harborframework) tasks  \n  \nAn inside look from [@nickhollon10](https://x.com/nickhollon10).\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\n[x.com/i/article/2083…](http://x.com/i/article/2083185690137792512)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2083236117839499511)\n\n💬1🔄1❤️8👀2131📊2",
+      "tags": [
+        "ReviewBench",
+        "LangChain",
+        "代码审查"
+      ],
+      "score": 83,
+      "summary": "LangChain 推出 ReviewBench，基于真实代码审查构建基准。",
+      "fetched_at": "2026-08-01T02:28:42.376869+08:00"
+    },
+    {
+      "title": "https://t.co/2mffiKkWZa",
+      "link": "https://x.com/LangChain/status/2083236117839499511",
+      "published": "2026-08-01T00:59:29+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "[x.com/i/article/2083…](http://x.com/i/article/2083185690137792512)\n\n💬2🔄4❤️16👀7559📊9",
+      "tags": [
+        "LangChain",
+        "技术文章"
+      ],
+      "score": 70,
+      "summary": "LangChain 发布内部技术文章，内容待阅。",
+      "fetched_at": "2026-08-01T02:28:42.376871+08:00"
+    },
+    {
+      "title": "OpenAI's Head of Design @iansilber's website is fun\n\nhttps://t.co/XYjW9jEYUh",
+      "link": "https://x.com/lennysan/status/2083227660889768058",
+      "published": "2026-08-01T00:25:53+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "OpenAI's Head of Design [@iansilber](https://x.com/iansilber)'s website is fun  \n  \n[iansilber.com](https://iansilber.com/)\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HOkcBiJbEAAx3in.jpg)](https://video.twimg.com/tweet_video/HOkcBiJbEAAx3in.mp4)\n\n💬9🔄2❤️45👀5012📊15",
+      "tags": [
+        "OpenAI",
+        "设计",
+        "网站"
+      ],
+      "score": 40,
+      "summary": "Lenny 分享 OpenAI 设计主管的有趣网站。",
+      "fetched_at": "2026-08-01T02:28:42.376874+08:00"
+    },
+    {
+      "title": "Gen-4.5: Generate controllable, cinematic, and consistent video with precise prompt adherence and ad...",
+      "link": "https://x.com/OpenRouter/status/2083241863922983044",
+      "published": "2026-08-01T01:22:19+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Gen-4.5: Generate controllable, cinematic, and consistent video with precise prompt adherence and advanced motion quality across diverse generation modes.  \n  \n[openrouter.ai/runway/gen-4.5](https://openrouter.ai/runway/gen-4.5)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083241720310005760/vid/avc1/1280x720/mzbTq-CxCeeCmEEM.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenRouter/status/2083241863922983044/video/1)\n\n💬0🔄1❤️3👀829📊1",
+      "tags": [
+        "Gen-4.5",
+        "Runway",
+        "OpenRouter"
+      ],
+      "score": 82,
+      "summary": "OpenRouter 上线 Runway Gen-4.5 视频生成模型。",
+      "fetched_at": "2026-08-01T02:28:42.376877+08:00"
+    },
+    {
+      "title": "Aleph 2.0: Get the video you need from the video you already have. Edit one frame to look the way yo...",
+      "link": "https://x.com/OpenRouter/status/2083241707173552326",
+      "published": "2026-08-01T01:21:42+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Aleph 2.0: Get the video you need from the video you already have. Edit one frame to look the way you want, then apply that direction consistently across the rest of the video.  \n  \n[openrouter.ai/runway/aleph-2](https://openrouter.ai/runway/aleph-2)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083241571324219392/vid/avc1/1280x720/ke7okau8ZJYEOSm2.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenRouter/status/2083241707173552326/video/1)\n\n💬1🔄0❤️3👀894📊1",
+      "tags": [
+        "Aleph2.0",
+        "Runway",
+        "OpenRouter"
+      ],
+      "score": 82,
+      "summary": "OpenRouter 上线 Runway Aleph 2.0，支持帧级编辑。",
+      "fetched_at": "2026-08-01T02:28:42.376879+08:00"
+    },
+    {
+      "title": "Runway @runwayml is now on OpenRouter, starting with Aleph 2.0 and Gen-4.5.\n\nEdit existing footage o...",
+      "link": "https://x.com/OpenRouter/status/2083241557852123252",
+      "published": "2026-08-01T01:21:06+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Runway [@runwayml](https://x.com/runwayml) is now on OpenRouter, starting with Aleph 2.0 and Gen-4.5.  \n  \nEdit existing footage or generate a new scene with the same API. More on each below ↓  \n  \n[openrouter.ai/runway](https://openrouter.ai/runway)\n\n💬2🔄3❤️8👀1958📊3",
+      "tags": [
+        "Runway",
+        "OpenRouter",
+        "视频生成"
+      ],
+      "score": 82,
+      "summary": "Runway 模型正式接入 OpenRouter 平台。",
+      "fetched_at": "2026-08-01T02:28:42.376882+08:00"
+    },
+    {
+      "title": "So good to see how Seedance 2.5 can be used to reimagine learning!\n\nCinematic streets, glowing lante...",
+      "link": "https://x.com/itsPaulAi/status/2083236572003004905",
+      "published": "2026-08-01T01:01:18+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "So good to see how Seedance 2.5 can be used to reimagine learning!  \n  \nCinematic streets, glowing lanterns, and one unforgettable line bring classical Chinese poetry to life on screen.  \n  \nIt turns culture and history into something students can not only study... but truly feel.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083235806743834624/vid/avc1/1280x720/blxXfngCazqjX5m1.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/itsPaulAi/status/2083236572003004905/video/1)\n\n💬0🔄1❤️11👀1741📊2",
+      "tags": [
+        "Seedance2.5",
+        "教育",
+        "古诗"
+      ],
+      "score": 65,
+      "summary": "Seedance 2.5 将古诗转化为电影感教学视频。",
+      "fetched_at": "2026-08-01T02:28:42.376885+08:00"
+    },
+    {
+      "title": "\"The fertility collapse now underway has no historical precedent.\"\n\n— Jesús Fernández-Villaverde",
+      "link": "https://x.com/paulg/status/2083232587674169392",
+      "published": "2026-08-01T00:45:28+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "\"The fertility collapse now underway has no historical precedent.\"  \n  \n— Jesús Fernández-Villaverde\n\n💬42🔄17❤️264👀33179📊58",
+      "tags": [
+        "生育率",
+        "PaulGraham"
+      ],
+      "score": 30,
+      "summary": "Paul Graham 引用他人称生育率崩溃无历史先例。",
+      "fetched_at": "2026-08-01T02:28:42.376887+08:00"
+    },
+    {
+      "title": "人机协同编辑文档没啥稀奇的",
+      "link": "https://x.com/yangyi/status/2083227597945921562",
+      "published": "2026-08-01T00:25:38+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "人机协同编辑文档没啥稀奇的\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083227496087207936/vid/avc1/1104x720/cGzKGvKhDsVxTC-I.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yangyi/status/2083227597945921562/video/1)\n\n![Andy Stewart](https://pbs.twimg.com/profile_images/768239262/HaskellIcon_normal.jpg)\n\nAndy Stewart@manateelazycat\n\n腾讯：我大模型 Coding 能力干不过你  \n  \n但我懂办公啊🤡\n\n![Tweet Image](https://pbs.twimg.com/media/HOhWfWjbEAAZ80F.png)\n\n[🔗 View Quoted Tweet](https://x.com/manateelazycat/status/2083010057185481131)\n\n💬1🔄0❤️1👀1093📊1",
+      "tags": [
+        "人机协同",
+        "文档",
+        "腾讯"
+      ],
+      "score": 45,
+      "summary": "网友认为人机协同文档编辑不稀奇，暗讽腾讯。",
+      "fetched_at": "2026-08-01T02:28:42.376890+08:00"
+    },
+    {
+      "title": ".@DecagonAI co-founder and CEO Jesse Zhang says enterprise open-source adoption is falling right now...",
+      "link": "https://x.com/a16z/status/2083243829097021523",
+      "published": "2026-08-01T01:30:08+08:00",
+      "source": "a16z(@a16z)",
+      "content": ".[@DecagonAI](https://x.com/DecagonAI) co-founder and CEO Jesse Zhang says enterprise open-source adoption is falling right now, and that's a sign of adoption rather than rejection:  \n  \n\"Even though there's a lot of hype for open-source, the share of open-source inference is actually going down right now.\"  \n  \n\"People are spinning up all these new use cases, and if you're spinning up new use cases, of course you're gonna use the frontier models until they're working.\"  \n  \n\"Once it's at that point, they're heavily incentivized to use open-source because it's way cheaper and faster.\"  \n  \n\"Enterprises have a lot of desire to move, but they can only do so many use cases at once. There is inertia there, and they have to go through all the model risk governance and all the security things.\"  \n  \n\"I think it'll take time, but it will get there.\"  \n  \n[@thejessezhang](https://x.com/thejessezhang)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083243801423106048/vid/avc1/1280x720/lrBeY79-TlDgPKHn.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2083243829097021523/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nA $100K/year customer gets white-glove treatment while a $10/year customer gets a help center. [@DecagonAI](https://x.com/DecagonAI)'s bet is that AI closes that gap, and enterprise is buying it.  \n  \nCo-founders Jesse Zhang and Ashwin Sreenivas sit down with a16z's Kimberly Tan and Sarah Wang to discuss what they've learned running agents inside the biggest banks, airlines, and telcos:  \n  \n- Smart-vs-cheap models are a false trade-off  \n- Start with frontier models on new use cases, then migrate to open-source after they mature  \n- Fine-tuning per use case works at the application layer  \n- Support demand always outran supply: make it cheaper and companies buy more of it  \n  \n00:00 Intro  \n01:07 90% of Decagon runs on open-source  \n05:00 The smart vs. cheap trade-off is false  \n09:26 Building a model factory in-house  \n15:07 Are the labs the last startups?  \n21:21 Are forward deployed engineers a trap?  \n28:36 The agent that builds the agent  \n37:02 Glass box beats black box  \n47:55 From help desk to AI concierge  \n1:14:45 Jevons paradox in customer support  \n  \n[@thejessezhang](https://x.com/thejessezhang)[@AshwinSreenivas](https://x.com/AshwinSreenivas)[@kimberlywtan](https://x.com/kimberlywtan)[@sarahdingwang](https://x.com/sarahdingwang)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083204517739556865/vid/avc1/1280x720/tgImtyCMmOR1OXl7.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2083205848642592955/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2083205848642592955)\n\n💬0🔄1❤️7👀5383📊1",
+      "tags": [
+        "DecagonAI",
+        "企业开源",
+        "AI采用"
+      ],
+      "score": 84,
+      "summary": "DecagonAI CEO 称企业开源推理占比下降，是采纳前兆。",
+      "fetched_at": "2026-08-01T02:28:42.376893+08:00"
+    },
+    {
+      "title": "Unmuting to say \"nothing from my end\" hasn't left\n\nCharts of the Week: https://t.co/IXXDfM8Wph",
+      "link": "https://x.com/a16z/status/2083228934188278195",
+      "published": "2026-08-01T00:30:57+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Unmuting to say \"nothing from my end\" hasn't left  \n  \nCharts of the Week: [a16z.news/p/charts-of-th…](https://www.a16z.news/p/charts-of-the-week-moar-machines)\n\n![Tweet Image](https://pbs.twimg.com/media/HOkdrPabYAEyu6V.jpg)\n\n💬3🔄0❤️17👀6538📊4",
+      "tags": [
+        "DecagonAI",
+        "企业AI",
+        "模型选择"
+      ],
+      "score": 80,
+      "summary": "a16z 分享 DecagonAI 对模型选择与成本的观点。",
+      "fetched_at": "2026-08-01T02:28:42.376895+08:00"
+    },
+    {
+      "title": "Full interview is here. Thanks @KateBolduan https://t.co/6DH2e3wW9X",
+      "link": "https://x.com/ClementDelangue/status/2083246653398508004",
+      "published": "2026-08-01T01:41:21+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "Full interview is here. Thanks [@KateBolduan](https://x.com/KateBolduan)[cnn.com/2026/07/31/us/…](https://www.cnn.com/2026/07/31/us/video/hugging-face-ceo-speaks-out-after-company-hacked-during-openai-test-cnc)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083246401031475200/vid/avc1/960x540/w2CaFyPuw1kNYNdv.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ClementDelangue/status/2083246653398508004/video/1)\n\n💬1🔄1❤️8👀1249📊3",
+      "tags": [
+        "HuggingFace",
+        "黑客攻击",
+        "CEO"
+      ],
+      "score": 75,
+      "summary": "Hugging Face CEO 评论公司遭黑客攻击，分享 CNN 采访。",
+      "fetched_at": "2026-08-01T02:28:42.376898+08:00"
+    },
+    {
+      "title": "Great release for recursive self-improving in ML Engineering.",
+      "link": "https://x.com/omarsar0/status/2083235209642663964",
+      "published": "2026-08-01T00:55:53+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Great release for recursive self-improving in ML Engineering.\n\n![DAIR.AI](https://pbs.twimg.com/profile_images/1643277398522187778/31dedbLo_normal.jpg)\n\nDAIR.AI@dair\\_ai\n\nVery interesting paper on recursive self-improvement.  \n  \nThe whole stack is released.  \n  \nMachine learning engineering gives recursive self-improvement a concrete, executable testbed. OpenMLE is an open full-stack system for that research, spanning verifiable task environments with execution feedback, operator learning, and long-horizon search.  \n  \nOn top of it the team post-trains Frontis-MA1, a 35B meta-evolution agent aligned around four atomic program-evolution operators. Draft, Improve, Debug, Crossover. The same four operators are trained through execution-grounded SFT and RL, then composed into long-horizon search, so learning and evolution run in one loop.  \n  \nOn MLE-Bench Lite under a 12-hour per-task budget on a single RTX 4090 capped at 12 GB VRAM, Medal Average climbs from 39.39% to 60.61% over the base model, reaching 71.21% with asynchronous search and benchmark-independent experience priors. That exceeds GPT-5.5 with Codex and approaches GPT-5.6 Sol and the 2.8T Kimi K3.  \n  \nWith the framework fixed, swapping in the trained model raises Match-SOTA from 50% to 70%. With the model fixed, swapping in the search framework raises it from 20% to 50%.  \n  \nPaper: [arxiv.org/abs/2607.28568](https://arxiv.org/abs/2607.28568)  \n  \nLearn to build effective AI agents in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HOkgNhUbYAMfWgw.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dair_ai/status/2083231722913882159)\n\n💬3🔄1❤️11👀2840📊5",
+      "tags": [
+        "OpenMLE",
+        "递归自我改进",
+        "Frontis-MA1"
+      ],
+      "score": 85,
+      "summary": "OpenMLE 开源递归自我改进系统，Frontis-MA1 模型表现超 GPT-5.5。",
+      "fetched_at": "2026-08-01T02:28:42.376901+08:00"
+    },
+    {
+      "title": "New research from Microsoft.\n\nThis one is on training computer-use agents at scale.\n\nRecent pipeline...",
+      "link": "https://x.com/omarsar0/status/2083232479641821418",
+      "published": "2026-08-01T00:45:02+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "New research from Microsoft.  \n  \nThis one is on training computer-use agents at scale.  \n  \nRecent pipelines generate synthetic environments in bulk, which moved the bottleneck from how many exist to what is inside each one. Echoverse compiles specifications into stateful applications whose tasks are graded against the application's own database, then runs a co-evolution loop that reads every graded rollout twice. Once as repairs to the environment, its tasks and its verifier. Once as training signal for the model.  \n  \nOn the same domains, shallow environments pushed live-site accuracy below the base model, from 80.0 down to 75.0. Deep ones raised it, 80.0 to 85.0 and 48.0 to 65.0.  \n  \nRepairing a single environment lifted the model trained on it from 16.2% to 38.5%. Across twelve environments, a 9B model went from 36.5% to 67.1% on fourteen evaluation splits, within fourteen points of the much larger frontier model that taught it.  \n  \nThey release four environments as a benchmark with applications, seed data and grounded graders.  \n  \nPaper: [arxiv.org/abs/2607.28074](https://arxiv.org/abs/2607.28074)  \n  \nTrack trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HOkg5kLbYAIKtTU.png)\n\n💬5🔄3❤️22👀3137📊9",
+      "tags": [
+        "Echoverse",
+        "计算机Agent",
+        "微软"
+      ],
+      "score": 85,
+      "summary": "微软提出 Echoverse 大规模训练计算机使用代理，深度环境提升准确率。",
+      "fetched_at": "2026-08-01T02:28:42.376903+08:00"
+    },
+    {
+      "title": "Learn more about AutoEval and our methodology at: https://t.co/2kEg4iZUSG",
+      "link": "https://x.com/arena/status/2083249757074657398",
+      "published": "2026-08-01T01:53:41+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Learn more about AutoEval and our methodology at: [x.com/arena/status/2…](https://x.com/arena/status/2082878509131907477)\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nToday we’re launching AutoEval: a new evaluation methodology that ranks models using reward models based on millions of real Arena user preferences.  \n  \nHighlights:  \n- High-quality evaluation signals calibrated on real preference data  \n- Strong alignment with live human evaluations  \n- Evaluations that are several orders of magnitude faster (hours instead of days)  \n- Support for Text, Vision, Image, and Code Arena  \n  \nAutoEval enables us to evaluate newly launched models much faster and share results with the community sooner. We’ll now show AutoEval estimated scores for new models directly on the leaderboard.  \n  \nMore details in the thread. 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HOfdgSxagAAkZeP.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2082878509131907477)\n\n💬0🔄1❤️1👀1159",
+      "tags": [
+        "AutoEval",
+        "LMArena",
+        "奖励模型"
+      ],
+      "score": 85,
+      "summary": "LM Arena 推出 AutoEval，用奖励模型基于人工偏好快速评估模型。",
+      "fetched_at": "2026-08-01T02:28:42.376906+08:00"
+    },
+    {
+      "title": "Inkling-Small doesn't redraw the frontier, but here's where it lands next to the models that do.\n\nRe...",
+      "link": "https://x.com/arena/status/2083249753291456685",
+      "published": "2026-08-01T01:53:40+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Inkling-Small doesn't redraw the frontier, but here's where it lands next to the models that do.  \n  \nRead more about [@thinkymachines](https://x.com/thinkymachines)'s Inkling-Small at: [thinkingmachines.ai/news/inkling-s…](https://thinkingmachines.ai/news/inkling-small/)\n\n![Tweet Image](https://pbs.twimg.com/media/HOkwj6HbkAA8oOy.jpg)\n\n💬1🔄2❤️5👀855📊2",
+      "tags": [
+        "InklingSmall",
+        "Arena",
+        "高效模型"
+      ],
+      "score": 80,
+      "summary": "Inkling-Small 在 LM Arena 排名约 88，效率优于同类模型。",
+      "fetched_at": "2026-08-01T02:28:42.376909+08:00"
+    },
+    {
+      "title": "Inkling-Small by @thinkymachines landed in Text Arena with an overall rank of ~#88 (1431 pts, AutoEv...",
+      "link": "https://x.com/arena/status/2083249749399089275",
+      "published": "2026-08-01T01:53:39+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Inkling-Small by [@thinkymachines](https://x.com/thinkymachines) landed in Text Arena with an overall rank of ~#88 (1431 pts, AutoEval) ~#21 among open - but this is with only 12B active params (276B total).  \n  \nThis is neck-and-neck with open models running way more compute:  \n- Minimax M2.7: 1417 (10B active / 230B total)  \n- Nemotron 3 Ultra 1426 (55B active / 550B total)  \n- MiMo V2.5: 1434 (15B active/309B total)  \n- Deepseek V4 Flash: 1436 (13B active/ 284B total)  \n- Qwen3.5 397b-A17b: 1443 (17B active /397B total)  \n  \nSame reasoning strength at a fraction of the active parameters.\n\n![Tweet Image](https://pbs.twimg.com/media/HOkwEOYa4AASKif.jpg)\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nInkling-Small ([@thinkymachines](https://x.com/thinkymachines)) debuts at rank ~#88 (1431 pts, AutoEval) in Text Arena and ~#21 among open.  \n  \nThis makes it one of only five US models in the top 25 open models overall.  \n  \nNote: this is an early AutoEval score, in which a Reward Model trained on Arena's human preference data casts automatic votes in place of live voting, giving a day-1 signal right at release. Scores are tagged preliminary until correlated with live votes. See the thread for more on how AutoEval works and the methodology behind it.  \n  \nCongrats to [@thinkymachines](https://x.com/thinkymachines) for another strong contribution to the open ecosystem!  \n  \nWe’ll continue to track to see where it lands in rank as live votes come in.\n\n![Tweet Image](https://pbs.twimg.com/media/HOfog9KagAAnbON.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2082890136858263896)\n\n💬1🔄3❤️8👀1967📊2",
+      "tags": [
+        "InklingSmall",
+        "12B激活",
+        "Arena"
+      ],
+      "score": 80,
+      "summary": "Inkling-Small 以 12B 激活参数与更大模型并驾齐驱。",
+      "fetched_at": "2026-08-01T02:28:42.376911+08:00"
+    },
+    {
+      "title": "Screenshots are real, tell us which one's happened to you. \n\nStay tuned to see how we solved it..\n#c...",
+      "link": "https://x.com/mem0ai/status/2083228970565460036",
+      "published": "2026-08-01T00:31:05+08:00",
+      "source": "mem0(@mem0ai)",
+      "content": "Screenshots are real, tell us which one's happened to you.   \n  \nStay tuned to see how we solved it..  \n#comingsoon\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083228463507660800/vid/avc1/1920x1080/bYDMApg6fBK7Q4F3.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/mem0ai/status/2083228970565460036/video/1)\n\n💬3🔄1❤️11👀1382📊7",
+      "tags": [
+        "mem0",
+        "预告"
+      ],
+      "score": 40,
+      "summary": "mem0 发布预告，暗示解决某问题。",
+      "fetched_at": "2026-08-01T02:28:42.376914+08:00"
+    },
+    {
+      "title": "简单说下，为什么我没有用现在 subagent/临时 worker 模式；核心是我认为 agent 想要工作好，就是要花时间盯着轨迹，通过 prompt/装工具来调教它。\ncodex/manus 这些...",
+      "link": "https://x.com/yan5xu/status/2083229960417009682",
+      "published": "2026-08-01T00:35:01+08:00",
+      "source": "yan5xu(@yan5xu)",
+      "content": "简单说下，为什么我没有用现在 subagent/临时 worker 模式；核心是我认为 agent 想要工作好，就是要花时间盯着轨迹，通过 prompt/装工具来调教它。  \ncodex/manus 这些 agent runtime/harness 会在他们的目标领域，调研，Web 开发，code，提前调教好。  \n但每个人的工作都有自己的特殊性，如果超脱这个范围就会出现，agent 瞎干活，质量下降，或者成本爆炸。  \n所以临时 worker 这种 一个 prompt，one-shot 中间不做干预（也没有历史 trajectory 去 follow） 只适合非常小非常具体，边界 spec 摸的非常熟的任务。\n\n![HiVince](https://pbs.twimg.com/profile_images/2074463784832507905/0LdWL_9t_normal.jpg)\n\nHiVince@hi\\_\\_vince\n\n[@yan5xu](https://x.com/yan5xu) 文章仔细拜读了，但是感觉少一些对照来证明 Agent Team 是可以产生更高的净收益，比如对比Main Agent + 临时 Worker，或者什么时候才有必要启用 domain agent\n\n[🔗 View Quoted Tweet](https://x.com/hi__vince/status/2083118827068629388)\n\n💬3🔄0❤️5👀650📊4",
+      "tags": [
+        "Agent",
+        "subagent",
+        "工作流"
+      ],
+      "score": 70,
+      "summary": "yan5xu 解释为何不用临时 worker 模式，强调过程监督。",
+      "fetched_at": "2026-08-01T02:28:42.376917+08:00"
+    },
+    {
+      "title": "Disrupting a Criminal Scam Operation",
+      "link": "https://openai.com/index/disrupting-malicious-uses-of-ai-criminal-scam-operation",
+      "published": "2026-08-04T08:00:00+08:00",
+      "source": "OpenAI News",
+      "content": "OpenAI disrupted a Cambodia-based scam operation using ChatGPT to support investment, romance, gambling, and impersonation schemes.",
+      "tags": [
+        "OpenAI",
+        "诈骗",
+        "安全"
+      ],
+      "score": 80,
+      "summary": "OpenAI 捣毁柬埔寨诈骗运营，涉及 ChatGPT 滥用。",
+      "fetched_at": "2026-08-01T02:28:42.376919+08:00"
+    },
+    {
+      "title": "Terraform Introduces tfpolicy, an HCL-based Policy-as-Code Framework",
+      "link": "https://www.infoq.com/news/2026/07/terraform-policy-as-code/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-01T02:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/07/terraform-policy-as-code/en/headerimage/terraform-1-4-null-resource-1785517729441.jpeg)\n\nHashiCorp has introduced tfpolicy, a new HCL-based policy-as-code framework for Terraform, now available in public beta within HCP Terraform. It is designed to simplify and modernize infrastructure governance by integrating policy creation and enforcement directly into Terraform workflows, eliminating the need for separate tools and languages.\n\n*By Sergio De Simone*",
+      "tags": [
+        "Terraform",
+        "tfpolicy",
+        "HCL"
+      ],
+      "score": 65,
+      "summary": "HashiCorp 推出 tfpolicy，HCL 策略即代码框架。",
+      "fetched_at": "2026-08-01T02:28:42.376922+08:00"
     }
   ]
 }
