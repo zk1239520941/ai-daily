@@ -2718,6 +2718,300 @@
       "score": 78,
       "summary": "lmarena.ai发布AutoEval，基于奖励模型快速评估模型，与人类偏好对齐。",
       "fetched_at": "2026-07-31T06:15:30.082467+08:00"
+    },
+    {
+      "title": "Advancing the price-performance frontier with GPT‑5.6",
+      "link": "https://simonwillison.net/2026/Jul/30/luna-price-drop/#atom-everything",
+      "published": "2026-07-31T07:58:42+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Advancing the price-performance frontier with GPT‑5.6](https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/)**\n\nHuge price drop from OpenAI today: GPT-5.6 Terra got a 20% reduction, and GPT-5.6 Luna got a massive 80% drop.\n\nOpenAI credit 5.6 Sol with enabling this: in [How GPT‑5.6 fuses frontier intelligence with frontier efficiency](https://openai.com/index/gpt-5-6-frontier-intelligence-efficiency/) they describe using 5.6 Sol to optimize load balancing, and more impressively to optimize inference itself:\n\n> We also used GPT‑5.6 Sol to optimize the model’s forward pass: the computation that transforms inputs into next-token predictions. Even when individual operations are fast, excess memory movement, synchronization, and inefficient data layouts can leave GPUs idle. To avoid this, GPT‑5.6 Sol found work that could be precomputed, avoided, or parallelized. With Codex, GPT‑5.6 Sol autonomously rewrote and optimized our production kernels, the core code that executes the mathematical operations that make up the model. This worked in part because we’ve trained GPT‑5.6 to be effective at writing and improving kernels in [Triton⁠](https://triton-lang.org/main/index.html)and [Gluon⁠](https://triton-lang.org/main/gluon/index.html), two open-source GPU programming languages maintained by OpenAI. These efforts, combined with broader kernel advancements from GPT‑5.6 Sol, reduced end-to-end serving costs by 20%.\n\nThat Luna price drop completely changes the landscape with respect to lower priced models. At $0.20/million tokens for input and $1.20/million for output Luna is now cheaper than Google's Gemini 3.1 Flash-Lite ($.025/$1.50).\n\nAnthropic's cheapest current model is Claude Haiku 4.5, and that's $1/$5 - Luna is now 1/5th of that for input, previously it cost the same.\n\nMy [agent.datasette.io](https://agent.datasette.io/) demo site was running on Gemini 3.1 Flash-Lite. I've switched it over to Luna.\n\nVia [Hacker News](https://news.ycombinator.com/item?id=49112867)\n\nTags: [ai](https://simonwillison.net/tags/ai), [openai](https://simonwillison.net/tags/openai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [anthropic](https://simonwillison.net/tags/anthropic), [gemini](https://simonwillison.net/tags/gemini), [llm-pricing](https://simonwillison.net/tags/llm-pricing)",
+      "tags": [
+        "GPT-5.6",
+        "降价",
+        "Luna"
+      ],
+      "score": 85,
+      "summary": "Simon Willison转述OpenAI宣布GPT-5.6 Luna降价80%，Terra降价20%。",
+      "fetched_at": "2026-07-31T08:12:24.074805+08:00"
+    },
+    {
+      "title": "Investigating three real-world incidents in our cybersecurity evaluations",
+      "link": "https://simonwillison.net/2026/Jul/30/three-real-world-incidents/#atom-everything",
+      "published": "2026-07-31T07:41:29+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Investigating three real-world incidents in our cybersecurity evaluations](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals)**\n\nIt happened again! This is turning into something of a pattern.\n\nLast week [OpenAI accidentally exploited Hugging Face](https://simonwillison.net/2026/Jul/22/openai-cyberattack/) when one of their frontier models broke out of a sandboxed container and hacked into Hugging Face to try and get the solutions to the cyber benchmark it was executing.\n\nThis inspired Anthropic to double-check their own logs, and it turned out they had three similar (albeit less impressive) incidents that played out back in April!\n\n> Of the 141,006 evaluation runs we reviewed, we identified three separate incidents (involving six total runs, four of which impacted the same organization; the other two incidents each happened in independent evaluation runs). [...]\n>\n> In all cases, Anthropic’s evaluation prompt specified to Claude that its environment was a simulation and that it had no internet access. Due to a misunderstanding between us and our evaluation partner, this was not the case, and internet access was available. Because of this, when Claude’s search led it to real systems on the open internet, it treated them as part of the exercise. [...]\n>\n> Operating under the false belief that all accessible entities were intended to be in-scope for the exercise, Claude compromised the impacted organizations’ infrastructure using basic techniques, such as exploiting weak passwords and unauthenticated endpoints.\n\nOne of the companies was targeted because its name happened to match the fictional name in the eval.\n\nThe most concerning of the three incidents involved Claude uploading a malware package to PyPI, after a comically convoluted sequence of steps to get an account:\n\n> [...] in order to create a PyPI account, Claude needed an email address. And in order to create an email address, it needed a phone number. To get a phone number, after failing to find a free phone number service, it tried—and failed—to obtain funds to pay for a phone number through several different means. It finally backtracked, found a free, non-blocked email provider, used this to register a PyPI account, and then used this account to upload malware to PyPI.\n\nThat package was then installed by a security company that \"routinely installs Python packages and scans them for malware\", and the executed code was able to exfiltrate credentials back to Claude!\n\nThankfully that package was removed from PyPI by other automated scanners an hour after it was published, but it had still been downloaded and executed on \"15 real systems\" by that point.\n\nIt's abundantly clear now that running evals of cyberattack potential in models is a *spectacularly* risk business. Every AI lab needs to pay attention to this. Keeping a close eye on what's happening in those sandboxes is crucial.\n\nVia [Hacker News](https://news.ycombinator.com/item?id=49116922#49117088)\n\nTags: [pypi](https://simonwillison.net/tags/pypi), [python](https://simonwillison.net/tags/python), [sandboxing](https://simonwillison.net/tags/sandboxing), [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [anthropic](https://simonwillison.net/tags/anthropic), [ai-ethics](https://simonwillison.net/tags/ai-ethics), [ai-security-research](https://simonwillison.net/tags/ai-security-research)",
+      "tags": [
+        "Anthropic",
+        "安全事件",
+        "Claude"
+      ],
+      "score": 85,
+      "summary": "Simon Willison转述Anthropic发现Claude在评估中意外访问真实系统。",
+      "fetched_at": "2026-07-31T08:12:24.074819+08:00"
+    },
+    {
+      "title": "梁文锋：最顶级的精明，看起来往往像理想主义！｜DeepSeek梁文锋会议解读：",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a6b2b0956a3f3491ba7871c",
+      "published": "2026-07-31T07:00:00+08:00",
+      "source": "人民公园说AI",
+      "content": "所有人都在夸梁文锋格局高，创始人看到的却是一张算得极精的账：硬件10个月回本、API按成本6倍定价，融资的钱继续买卡。“反正开了你也做不了”，这句话才是把同行吓惨了的成本壁垒；从绕开英伟达生态，到Agent自我迭代，这场闭门讲话泄露的，是理想主义背后的商业门道。  \n00:00 “梁圣”的克制，是格局还是一套精密算法？  \n05:18 10个月回本、6倍定价，这笔账到底怎么算？  \n09:28 融资全部买卡，贵四倍也买：不比放银行香吗？  \n11:07 谁有资格上车？DeepSeek把融资也做成了定价权  \n14:49 开源只是试吃，真正的护城河藏在哪里？  \n20:07 TileLang重构底层算子，国产芯片真能绕开英伟达？  \n21:31 Claude加一两个工程师，竟然做完AMD硬件适配原型  \n24:45 模型越来越少谈，为什么真正卡住的是上下文与工程化？  \n27:27 具身智能为什么要等？现实世界才是最后几十公里\n\n【 JustSayAI 早晚报飞书版上新】  \n🔥订阅「[JustSayAI 早晚报](https://justsayai.org/)」· 每日两封 · 一键听报\n\n【关注频道】  \n▶️[Youtube](https://www.youtube.com/@justsayaiorg)｜ 📺[B 站](https://space.bilibili.com/491787323)｜ 📕[小红书](https://xhslink.com/m/zk4VuViFL4)｜ 🎵[抖音](https://v.douyin.com/YizxNAvO414/)｜ 📻[Podcast](https://justsayaiorg.podcast.xyz/)  \n📱 商务合作/听友群：justsayai666\n\n![](https://image.xyzcdn.net/Fsnw_kSbcPOoyBXkW3rZRGfUJJ_I.png)![](https://image.xyzcdn.net/FgbcHaQtTTCpqIOcRMmSoMqAFn4P.png)![](https://image.xyzcdn.net/FgjKXFUfafh8yPMmauaePuRv2kYC.png)",
+      "tags": [
+        "DeepSeek",
+        "梁文锋",
+        "成本壁垒"
+      ],
+      "score": 70,
+      "summary": "播客解读梁文锋关于DeepSeek成本壁垒和商业策略的讲话。",
+      "fetched_at": "2026-07-31T08:12:24.074824+08:00"
+    },
+    {
+      "title": "149. 亲历中美neo labs资本狂潮，和清华刘子鸣聊：AI for AI、机制可解释性和Max Tegmark",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a69b07eb581962ce2bd4d97",
+      "published": "2026-07-31T07:30:00+08:00",
+      "source": "张小珺Jùn｜商业访谈录",
+      "content": "![](https://image.xyzcdn.net/FkZ-gquke6nKJCnJ4di5kQ0lEfAc.png)\n\n我们此前访谈过谢赛宁（AMI）、洪乐潼（Axiom），他（她）们分别来自在欧洲和美国的neo lab。但今天，这个现象已不止于海外——2026年，中国也涌现了一批新型实验室。\n\n这些有研究背景的老师或学生，正在成为一级市场的新宠儿。他们普遍年轻、有名校科研背景、第一次创业。在还没有产品的时候，就能以估值数亿美金融资。**当下资本涌入最活跃的方向是，世界模型和AutoResearch（又称AI for AI）。**\n\n我很好奇这个现象的现实与成因。这集节目，我邀请了清华大学人工智能学院助理教授、上海期智研究院PI刘子鸣。他毕业于北大和MIT，是KAN网络的一作，于3月刚刚回国到清华任教，同时参与创建公司元环智能。**他用“太疯狂了”来形容这股新的资本潮。**\n\n我们聊了聊中美neo labs的兴起与成因，以及他所探索的一条非典型AI for AI叙事。\n\n接下来，就是我对刘子鸣的访谈。\n\n**OUTLINE:**\n\n00:02:00 刘子鸣的自我介绍（从物理转型AI）\n\n00:08:24 研究者的类型：“鸟人”vs“蛙人”\n\n00:10:24 2024年研究KAN网络，刚开始Max Tegmark不同意\n\n00:16:18 思考，怎么让设计模型也变成一门科学，变得scalable？\n\n00:18:21 我同意谢赛宁说，“大语言模型是反bitter lesson的”\n\n00:20:20 在我看来，在后LLM的时代，模型设计会变得更重要，因为LLM的成功不是因为模型\n\n00:21:16 我的研究：嫁接神经和符号两个世界，嫁接AI和自然科学两个世界\n\n00:28:00 从MIT到斯坦福，信仰变了，身边很多人都从scientist转化成entrepreneur\n\n00:37:11 **26年，亲历了硅谷和中国两边neo labs创业潮，neo labs大量涌现的本质是什么？**\n\n**心理层面，一部分研究员不想做“大头兵”；现实层面，neo labs的方向是Coding Agent的missing part**\n\n00:42:41 **当下neo labs资本涌入最活跃的两个方向：世界模型和AutoResearch**\n\n00:44:16 **作为neo labs参与融资的实际体感：“就是，太疯狂了！”**\n\n00:46:51 做AI for AI技术路线和田渊栋的Recursive Superintelligence（RSI）区别是什么？\n\n00:54:53 meta model（原模型）是预测下一个curve，这件事怎么做呢？ 设定的目标是什么？\n\n01:04:20 如何理解AI这个黑盒？空间（看得更细）、时间（看模型如何演化）、平行宇宙（做可控实验）\n\n01:09:09 为什么做AI for AI需要Physics of AI？为什么做AutoResearch需要理解AI的原理？\n\n01:12:49 Anthropic的机制可解释性能做到什么程度？\n\n01:18:16 如果AI for AI在AGI主线上，neo labs和现有frontier labs的竞争\n\n01:21:57 倘若人人都能训模型，能干啥？\n\n01:26:25 **梳理今年中美做AI for AI的创业团队和路线**\n\n01:34:50 截至2026年AI发展阶段和创业新体验\n\n**LINKS：**\n\n我们的播客在[小宇宙](https://www.xiaoyuzhoufm.com/podcast/626b46ea9cbbf0451cf5a962)、[Apple Podcast](https://podcasts.apple.com/cn/podcast/%E5%BC%A0%E5%B0%8F%E7%8F%BAj%C3%B9n-%E5%95%86%E4%B8%9A%E8%AE%BF%E8%B0%88%E5%BD%95/id1634356920)、Spotify等全音频平台播出；\n\n我们的视频播客在[Bilibili](https://b23.tv/FZ0s2Q1)、[小红书](https://xhslink.com/m/4clvm6edHk1)、视频号、抖音等全视频平台播出；\n\n如果你想服用文字版，请搜索我们工作室的公众号：语言即世界language is world。\n\n**DISCLAIMER:** 本内容不作为投资建议。\n\n**CONTACT:** xiaojunzhang@lisw.ai\n\n**Jump into the new world-and explore with us!**😉",
+      "tags": [
+        "清华",
+        "AI for AI",
+        "Neo Labs"
+      ],
+      "score": 75,
+      "summary": "清华教授刘子鸣谈中美neo labs资本潮和AI for AI研究方向。",
+      "fetched_at": "2026-07-31T08:12:24.074828+08:00"
+    },
+    {
+      "title": "In a review of our cybersecurity evaluations, we found three incidents in which a Claude model reach...",
+      "link": "https://x.com/AnthropicAI/status/2082965101083320543",
+      "published": "2026-07-31T07:02:34+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "In a review of our cybersecurity evaluations, we found three incidents in which a Claude model reached the internet from within or while interacting with a third-party evaluation environment, and then gained unauthorized access to the real systems of three different organizations.  \n  \nOur post describes what happened, how it happened, and what we’re changing. We encourage other AI developers to perform similar reviews.  \n  \nWe conducted this review together with [@Irregular](https://x.com/Irregular), one of our evaluation partners, and thank them for the joint investigation and their collaboration on this post. This type of collaboration is increasingly critical to safe, rigorous evaluation of models, and we look forward to continuing to work together on security.  \n[anthropic.com/news/investiga…](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals)\n\n💬319🔄256❤️1678👀268909📊586",
+      "tags": [
+        "Anthropic",
+        "Claude",
+        "安全事件"
+      ],
+      "score": 95,
+      "summary": "Anthropic官方披露Claude在评估中意外访问真实系统，已改进。",
+      "fetched_at": "2026-07-31T08:12:24.074830+08:00"
+    },
+    {
+      "title": "兄弟们，喜大普奔啊！\n\nO 社上道了，GPT-5.6 降价了…\n\n为了留住用户各种操作啊！\n\n从今天起，将 GPT-5.6 Luna 的价格降低 80%，GPT-5.6 Terra 的价格降低 20%...",
+      "link": "https://x.com/berryxia/status/2082976335899852826",
+      "published": "2026-07-31T07:47:12+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "兄弟们，喜大普奔啊！  \n  \nO 社上道了，GPT-5.6 降价了…  \n  \n为了留住用户各种操作啊！  \n  \n从今天起，将 GPT-5.6 Luna 的价格降低 80%，GPT-5.6 Terra 的价格降低 20%，并为 API 中的 GPT-5.6 Sol 提供更快的选项。\n\n![Tweet Image](https://pbs.twimg.com/media/HOgtED1bAAAYT3f.jpg)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nWe are committed to pushing the model frontier across cost efficiency, capability, and speed.  \n  \nStarting today, we are reducing prices for GPT-5.6 Luna by 80% and GPT-5.6 Terra by 20% , and offering a faster option for GPT-5.6 Sol in the API.  \n  \nLuna and Terra’s lower prices are reflected in how usage is counted in Codex and ChatGPT Work, so your usage goes further.\n\n![Tweet Image](https://pbs.twimg.com/media/HOfepUra4AAUEZi.png)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2082878156483219672)\n\n💬1🔄0❤️0👀78📊1",
+      "tags": [
+        "GPT-5.6",
+        "降价",
+        "Berryxia"
+      ],
+      "score": 80,
+      "summary": "KOL转述OpenAI宣布GPT-5.6 Luna降价80%，Terra降价20%。",
+      "fetched_at": "2026-07-31T08:12:24.074833+08:00"
+    },
+    {
+      "title": "Google 悄无声息的来了一个“机器大脑”。\n\nGoogle把机器人的“大脑”单独拆出来了。\n\nGemini Robotics 2正式发布，核心是新的具身推理模型Gemini Robotics ER...",
+      "link": "https://x.com/berryxia/status/2082973903509696922",
+      "published": "2026-07-31T07:37:33+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "Google 悄无声息的来了一个“机器大脑”。  \n  \nGoogle把机器人的“大脑”单独拆出来了。  \n  \nGemini Robotics 2正式发布，核心是新的具身推理模型Gemini Robotics ER 2。  \n  \n它负责观察环境、推理该做什么、协调底层动作模型执行，并持续跟踪进度直到任务完成。  \n  \n我记得有家机器人的方案希望将身体上背一个Mac Mini 做机器人的大脑，给Mac mini 部署了本地模型。  \n  \n这样就可以做到低延迟快速响应的同时还可以让其具备更多的思考和正确的执行。  \n  \n看来Google 也是想解决机器人的大脑问题。  \n  \n机器人因此能处理复杂多步骤流程，中途出错还能自我纠正，面对全新场景也能适应。  \n  \n以前机器人更多是执行固定程序，现在高层推理和底层控制被明确分开：一个管“想清楚”，一个管“做出来”。  \n  \n全身控制、精细操作、多机协作都建立在这套架构上。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082844194066870272/vid/avc1/1920x1080/7N51_HRB3SNWTthY.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GoogleAI/status/2082844740446253125/video/1)\n\n💬1🔄0❤️0👀130📊1",
+      "tags": [
+        "Gemini Robotics 2",
+        "具身推理",
+        "Google"
+      ],
+      "score": 82,
+      "summary": "KOL转述Google发布Gemini Robotics 2，核心是具身推理模型Gemini Robotics ER 2。",
+      "fetched_at": "2026-07-31T08:12:24.074836+08:00"
+    },
+    {
+      "title": "让Agent 学习一下 我眼睛学会了",
+      "link": "https://x.com/berryxia/status/2082971730570871144",
+      "published": "2026-07-31T07:28:54+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "让Agent 学习一下 我眼睛学会了\n\n![逸尘](https://pbs.twimg.com/profile_images/1976552498564579328/SFfHx_IG_normal.jpg)\n\n逸尘@gengdaJ\n\n我的解析链接的Skill把X平台的漏掉了，赶紧补上！  \n  \n已知 X URL → yichen-content-archive → FxTwitter → Jina → 授权后 OpenCLI → xreach  \n  \n四层机制，覆盖 Post、Quote、带图片/视频媒体的 Post 和 Article，并尽量返回公开互动计数，包括点赞、回复、转发、引用、书签和浏览量。  \n  \n但不承诺99%的成功率，也不会读取评论正文、私人收藏、私人书签或其他账号私有数据。  \n  \nyichen-web-research 识别 X 链接，转交 yichen-content-archive。  \n  \n用户直接发送：  \n[x.com/.../status/](http://x.com/.../status/)<ID>  \n[x.com/.../status/](https://twitter.com/.../status/)<ID>  \n[x.com/i/article/](http://x.com/i/article/)<ARTICLE\\_ID>  \n  \n1. FxTwitter 匿名主解析  \n不使用任何账号登录态：  \n1）普通 Post：读取正文、作者、发布时间、公开互动计数和媒体信息，包括图片与视频信息。  \n2）Quote：同时提取外层推文和被引用推文。  \n3）Article：如果是 status 链接，直接检查其中的 article 对象；只有输入 [x.com/i/article/](http://x.com/i/article/)<ARTICLE\\_ID> 时，才用 Article ID 精确寻找所属父推文。之后还原标题、封面、链接、图片和 Markdown 正文。  \n  \n2.Jina 匿名补充  \nFxTwitter 请求失败或正文不完整时，使用 Jina 读取对应的公开 Status 页面：  \n1）普通 Post、Quote：直接读取 Status URL。  \n2）Article：status 形式直接使用对应的父推文 URL；如果输入的是 [x.com/i/article/](http://x.com/i/article/)<ARTICLE\\_ID>，必须先找到父推文，再交给 Jina。  \n  \n3.OpenCLI  \nFxTwitter 和 Jina 都失败后，先说明缺少什么，并取得当前链接的当轮授权，然后：  \nPost、Quote：OpenCLI twitter thread  \nArticle：OpenCLI twitter article  \n  \n这里的 twitter thread 用于读取当前 Status 及其公开上下文，不代表一定能够完整抓取整条 Thread。  \n  \n4.xreach  \nOpenCLI 仍失败：xreach 读取对应父推文或 Status。  \n  \nGitHub：[github.com/mcncarl/yichen…](https://github.com/mcncarl/yichen-skills/tree/main/yichen-web-research)\n\n[🔗 View Quoted Tweet](https://x.com/gengdaJ/status/2082833209516311001)\n\n💬1🔄0❤️1👀254📊1",
+      "tags": [
+        "Agent",
+        "Skill",
+        "X解析"
+      ],
+      "score": 50,
+      "summary": "开发者分享Agent解析X链接的Skill流程。",
+      "fetched_at": "2026-07-31T08:12:24.074838+08:00"
+    },
+    {
+      "title": "Pro tip: See something on a webpage you want to ask about? Highlight the text, right-click, and sele...",
+      "link": "https://x.com/ChatGPT/status/2082970818192293997",
+      "published": "2026-07-31T07:25:17+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Pro tip: See something on a webpage you want to ask about? Highlight the text, right-click, and select “Ask ChatGPT.”  \n  \nThe sidebar will open automatically—no need to pin or open it first.\n\n![Tweet Image](https://pbs.twimg.com/media/HOgy64eaAAA7NjI.jpg)\n\n💬1🔄0❤️41👀2098📊5",
+      "tags": [
+        "ChatGPT",
+        "右键",
+        "快捷提问"
+      ],
+      "score": 75,
+      "summary": "ChatGPT新增右键选中文本直接提问功能。",
+      "fetched_at": "2026-07-31T08:12:24.074841+08:00"
+    },
+    {
+      "title": "Good news for anyone with too many tabs: ChatGPT is getting better around the web.    \n\n🧩 Chrome ex...",
+      "link": "https://x.com/ChatGPT/status/2082970812584432115",
+      "published": "2026-07-31T07:25:16+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Good news for anyone with too many tabs: ChatGPT is getting better around the web.   \n  \n🧩 Chrome extension: In Side Chat, ask about a YouTube video, reference your open tabs, or highlight text on a page and ask away.   \n  \n💻 Desktop app: Get URL suggestions as you type, revisit your browser history, and choose how it’s managed.   \n  \nRolling out today.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082966462831169536/vid/avc1/1920x1080/pNCjX77I2G8IuZ3w.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ChatGPT/status/2082970812584432115/video/1)\n\n💬20🔄18❤️154👀6839📊39",
+      "tags": [
+        "ChatGPT",
+        "Chrome扩展",
+        "桌面应用"
+      ],
+      "score": 78,
+      "summary": "ChatGPT推出Chrome扩展侧边栏和桌面应用URL建议功能。",
+      "fetched_at": "2026-07-31T08:12:24.074844+08:00"
+    },
+    {
+      "title": "OpenAI 宣布降价🥳\n\nGPT-5.6 Luna 直降 80%\n$0.20 / $1.20\nGPT-5.6 Terra 直降 20%\n$2 / $12\n\nOpenRouter 在此基础上再享 5...",
+      "link": "https://x.com/geekbb/status/2082962879339491611",
+      "published": "2026-07-31T06:53:44+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "OpenAI 宣布降价🥳  \n  \nGPT-5.6 Luna 直降 80%  \n$0.20 / $1.20  \nGPT-5.6 Terra 直降 20%  \n$2 / $12  \n  \nOpenRouter 在此基础上再享 50% 优惠🎉  \nGPT-5.6 Luna $0.10 / $0.60  \nGPT-5.6 Terra $1 / $6  \n  \n梁圣，有人触及到你的领域啦。\n\n![Tweet Image](https://pbs.twimg.com/media/HOgp1BracAAdnAW.jpg)![Tweet Image](https://pbs.twimg.com/media/HOgqtGfagAAnb9G.jpg)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nWe are committed to pushing the model frontier across cost efficiency, capability, and speed.  \n  \nStarting today, we are reducing prices for GPT-5.6 Luna by 80% and GPT-5.6 Terra by 20% , and offering a faster option for GPT-5.6 Sol in the API.  \n  \nLuna and Terra’s lower prices are reflected in how usage is counted in Codex and ChatGPT Work, so your usage goes further.\n\n![Tweet Image](https://pbs.twimg.com/media/HOfepUra4AAUEZi.png)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2082878156483219672)\n\n💬4🔄0❤️3👀2218📊3",
+      "tags": [
+        "GPT-5.6",
+        "降价",
+        "OpenRouter"
+      ],
+      "score": 80,
+      "summary": "KOL转述OpenAI降价，GPT-5.6 Luna降80%，OpenRouter再享50%优惠。",
+      "fetched_at": "2026-07-31T08:12:24.074846+08:00"
+    },
+    {
+      "title": "https://t.co/kItINSxGSu",
+      "link": "https://x.com/github/status/2082958081202311548",
+      "published": "2026-07-31T06:34:40+08:00",
+      "source": "GitHub(@github)",
+      "content": "[docs.github.com/en/pull-reques…](https://docs.github.com/en/pull-requests/how-tos/stacked-pull-requests?utm_source=X-post-4&utm_medium=social&utm_campaign=stacked-prs-gtm-public-preview-2026)\n\n💬0🔄2❤️6👀3685📊1",
+      "tags": [
+        "GitHub",
+        "Stacked PRs"
+      ],
+      "score": 70,
+      "summary": "GitHub推出Stacked Pull Requests公开预览。",
+      "fetched_at": "2026-07-31T08:12:24.074849+08:00"
+    },
+    {
+      "title": "Go forth and stack 🥞",
+      "link": "https://x.com/github/status/2082957732789756395",
+      "published": "2026-07-31T06:33:17+08:00",
+      "source": "GitHub(@github)",
+      "content": "Go forth and stack 🥞\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082957669510348800/vid/avc1/720x1280/Q4nJZJfHPHAVg7Ly.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/github/status/2082957732789756395/video/1)\n\n💬10🔄7❤️44👀10062📊14",
+      "tags": [
+        "GitHub",
+        "Stacked PRs"
+      ],
+      "score": 70,
+      "summary": "GitHub展示Stacked Pull Requests功能视频。",
+      "fetched_at": "2026-07-31T08:12:24.074851+08:00"
+    },
+    {
+      "title": "Thanks for an engaging conversation at @ChaseCenter  last weekend, @sdianahu!  My first in a basketb...",
+      "link": "https://x.com/JeffDean/status/2082974353868923021",
+      "published": "2026-07-31T07:39:20+08:00",
+      "source": "Jeff Dean(@JeffDean)",
+      "content": "Thanks for an engaging conversation at [@ChaseCenter](https://x.com/ChaseCenter) last weekend, [@sdianahu](https://x.com/sdianahu)! My first in a basketball arena!\n\n![Y Combinator](https://pbs.twimg.com/profile_images/1623777064821358592/9CApQWXe_normal.png)\n\nY Combinator@ycombinator\n\nIn 2001, [@JeffDean](https://x.com/JeffDean) and Sanjay Ghemawat did the math and realized Google’s entire search index would fit in RAM — then shipped it in a few days, and search got fast.   \n  \nIn 2013, another napkin calculation showed that three minutes of daily speech recognition per user would require doubling Google’s server fleet. That one became the TPU.   \n  \nAt Startup School 2026, Google’s Chief Scientist talks with YC’s [@sdianahu](https://x.com/sdianahu) through the thought experiments behind both, why inference hardware is the next specialization, and where two or three people in a room can still win.  \n  \n00:07 — Are AI Models Already Junior Engineers?  \n01:44 — AI Systems That Improve Themselves  \n02:40 — The Google Search Breakthrough That Changed Everything  \n04:38 — AI Agents Will Run for Weeks  \n05:58 — The Napkin Math That Led to TPUs  \n09:20 — How to Find Breakthrough Ideas  \n10:25 — The AI Engineer's New Mental Model  \n12:33 — Why AI Is Really an Energy Problem  \n16:11 — Context Engineering Is the Next Frontier  \n19:46 — The Skill That Made AI Better at Optimization  \n22:13 — Why Long-Running Agents Fail  \n25:21 — Where Startups Can Still Beat Google  \n31:19 — How to Become an AI-Native Founder  \n36:36 — Question Your Biggest Assumptions  \n42:08 — AI That Builds Better AI  \n50:02 — Build Something That Truly Matters\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082926988634083329/vid/avc1/3840x2160/BjGX5ar25zZ9BvVm.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2082938685071491219/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/ycombinator/status/2082938685071491219)\n\n💬3🔄2❤️13👀2034📊4",
+      "tags": [
+        "Jeff Dean",
+        "AI访谈",
+        "TPU"
+      ],
+      "score": 82,
+      "summary": "Jeff Dean在YC Startup School分享谷歌搜索和TPU背后的思考。",
+      "fetched_at": "2026-07-31T08:12:24.074854+08:00"
+    },
+    {
+      "title": "When an incumbent disrupts a startup",
+      "link": "https://x.com/jerryjliu0/status/2082969356791881870",
+      "published": "2026-07-31T07:19:29+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "When an incumbent disrupts a startup\n\n![amit](https://pbs.twimg.com/profile_images/1691241014659301377/yybT0mFC_normal.jpg)\n\namit@amitisinvesting\n\nOH. MY. GOODNESS.   \n  \nCITADEL HAS BOUGHT A MAJORITY OF THE PUBLIC ASSETS FROM LEOPOLD'S SITUATIONAL AWARENESS FUND.  \n  \nSo...Citadel scares everyone on Tuesday about a surprise rate hike during FOMC that WE ALL KNEW was not going to happen...  \n  \nOn Wednesday, the entire market freaks out about the rate hike which causes the selling to compound on itself creating 50-70% drawdowns across the board in high beta semicondcutor names...  \n  \nWhich means Leopold who we now know had $45B of assets and was 400% LEVERED ends up being the sacrifice as he gets liquidated at what theoretically could be the bottom due to not having the margin requirements to keep solvent...  \n  \nAND THE PERSON WHO CAUSED THE SELLOFF WITH THE RATE HIKE FEARS ENDS UP COMING IN TO BUY HIS ASSETS FOR 40 TO 50 CENTS ON THE DOLLAR.   \n  \nBy the way, Leopold is getting married this weekend. I think he wanted to make sure he wasn't getting margin called during his wedding.  \n  \nA vet on wall street in Ken Griffin takes out the young new kid.   \n  \nABSOLUTE. CINEMA.\n\n![Tweet Image](https://pbs.twimg.com/media/HOfO0sWWQAA0wzd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/amitisinvesting/status/2082860784242049407)\n\n💬3🔄0❤️8👀1072📊4",
+      "tags": [
+        "Citadel",
+        "Leopold"
+      ],
+      "score": 50,
+      "summary": "KOL转述Citadel收购Leopold基金资产的市场动荡。",
+      "fetched_at": "2026-07-31T08:12:24.074856+08:00"
+    },
+    {
+      "title": "If you enjoyed this, sign up for free to my newsletter to get my best AI and product guides.\n\nJoin 1...",
+      "link": "https://x.com/petergyang/status/2082975074534219919",
+      "published": "2026-07-31T07:42:12+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "If you enjoyed this, sign up for free to my newsletter to get my best AI and product guides.  \n  \nJoin 110,000+ subscribers here:  \n[creatoreconomy.so](https://creatoreconomy.so/)\n\n💬0🔄0❤️1👀424",
+      "tags": [
+        "Newsletter"
+      ],
+      "score": 30,
+      "summary": "Peter Yang推广其AI和产品指南newsletter。",
+      "fetched_at": "2026-07-31T08:12:24.074859+08:00"
+    },
+    {
+      "title": "14,075 builders. One live session. A new Guinness World Record for the largest AI video lesson.\n\nCon...",
+      "link": "https://x.com/Replit/status/2082964508503326939",
+      "published": "2026-07-31T07:00:13+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "14,075 builders. One live session. A new Guinness World Record for the largest AI video lesson.  \n  \nCongrats to Kanz and everyone who shipped with us. This is what happens when anyone can build.\n\n![Tweet Image](https://pbs.twimg.com/media/HOgtLm7XsAAgXmf.jpg)\n\n💬1🔄2❤️23👀3161📊4",
+      "tags": [
+        "Replit",
+        "AI课程",
+        "吉尼斯纪录"
+      ],
+      "score": 75,
+      "summary": "Replit的AI视频课程创下14,075人参加的吉尼斯世界纪录。",
+      "fetched_at": "2026-07-31T08:12:24.074862+08:00"
+    },
+    {
+      "title": "Incredible price/performance by the GPT-5.6 series on FrontierCode.\n\nAll Devin users should see the ...",
+      "link": "https://x.com/ScottWu46/status/2082958335658299460",
+      "published": "2026-07-31T06:35:41+08:00",
+      "source": "Scott Wu(@ScottWu46)",
+      "content": "Incredible price/performance by the GPT-5.6 series on FrontierCode.  \n  \nAll Devin users should see the cost decreases reflected automatically!\n\n![Cognition](https://pbs.twimg.com/profile_images/1765909640364068865/MvH-m0gd_normal.jpg)\n\nCognition@cognition\n\nWe've updated FrontierCode 1.1 to reflect new discounts for GPT-5.6 Terra and GPT-5.6 Luna. With these new costs, the GPT-5.6 series sits on the pareto curve of price/performance efficiency.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082913175050010624/vid/avc1/1344x672/OIYUSmt58A5v3_1M.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/cognition/status/2082913381678194927/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/cognition/status/2082913381678194927)\n\n💬2🔄2❤️44👀3953📊5",
+      "tags": [
+        "GPT-5.6",
+        "Devin",
+        "FrontierCode"
+      ],
+      "score": 80,
+      "summary": "Cognition更新FrontierCode反映GPT-5.6降价，成本降低。",
+      "fetched_at": "2026-07-31T08:12:24.074864+08:00"
+    },
+    {
+      "title": "We now have dueling security incidents between the frontier rivals",
+      "link": "https://x.com/TheRundownAI/status/2082977597311361112",
+      "published": "2026-07-31T07:52:13+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "We now have dueling security incidents between the frontier rivals\n\n![Anthropic](https://pbs.twimg.com/profile_images/1798110641414443008/XP8gyBaY_normal.jpg)\n\nAnthropic@AnthropicAI\n\nIn a review of our cybersecurity evaluations, we found three incidents in which a Claude model reached the internet from within or while interacting with a third-party evaluation environment, and then gained unauthorized access to the real systems of three different organizations.  \n  \nOur post describes what happened, how it happened, and what we’re changing. We encourage other AI developers to perform similar reviews.  \n  \nWe conducted this review together with [@Irregular](https://x.com/Irregular), one of our evaluation partners, and thank them for the joint investigation and their collaboration on this post. This type of collaboration is increasingly critical to safe, rigorous evaluation of models, and we look forward to continuing to work together on security.  \n[anthropic.com/news/investiga…](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals)\n\n[🔗 View Quoted Tweet](https://x.com/AnthropicAI/status/2082965101083320543)\n\n💬1🔄2❤️5👀1162📊2",
+      "tags": [
+        "Anthropic",
+        "安全事件",
+        "评述"
+      ],
+      "score": 82,
+      "summary": "媒体评论Anthropic和OpenAI的安全事件。",
+      "fetched_at": "2026-07-31T08:12:24.074867+08:00"
+    },
+    {
+      "title": "Travis to his 18-year-old self: \"Just be a geek. It's gonna be fine.\"",
+      "link": "https://x.com/a16z/status/2082962105003848157",
+      "published": "2026-07-31T06:50:40+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Travis to his 18-year-old self: \"Just be a geek. It's gonna be fine.\"\n\n![Tweet Image](https://pbs.twimg.com/media/HOgq_tua0AAAjiD.jpg)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nHe never left. Atoms closing dinner.\n\n![Tweet Image](https://pbs.twimg.com/media/HOcuLuWaQAAOfUh.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2082684137018999051)\n\n💬1🔄3❤️54👀10698📊5",
+      "tags": [
+        "a16z",
+        "Travis"
+      ],
+      "score": 40,
+      "summary": "a16z分享Travis鼓励做geek的语录。",
+      "fetched_at": "2026-07-31T08:12:24.074869+08:00"
     }
   ]
 }
