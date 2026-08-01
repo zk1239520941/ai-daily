@@ -969,6 +969,168 @@
       "score": 65,
       "summary": "宝玉重复分享 Codex 中 handoff 和验收标准的实践经验。",
       "fetched_at": "2026-08-02T04:15:21.268184+08:00"
+    },
+    {
+      "title": "datasette-apps 0.2a0",
+      "link": "https://simonwillison.net/2026/Aug/1/datasette-apps/#atom-everything",
+      "published": "2026-08-02T05:23:56+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**Release:** [datasette-apps 0.2a0](https://github.com/datasette/datasette-apps/releases/tag/0.2a0)\n\n> Changes that improve Datasette Apps when created and edited using [Datasette Agent](https://agent.datasette.io/):\n>\n> * New `app_debug()` tool allowing agent to open an app (invisibly) and test it using JavaScript. [#33](https://github.com/datasette/datasette-apps/pull/33)\n> * New `app_list()` tool for listing apps the user has permission to edit, so the agent can edit them. [#36](https://github.com/datasette/datasette-apps/issues/36)\n\nThe `app_debug()` tool is pretty neat: it works by displaying the app in a `opacity: 0` iframe with `pointer-events: none` (so it can't be seen or interacted with) and then executing agent-provided JavaScript inside that sandboxed iframe. This means the agent can smoke test that the app is working and even do things like measure the dimensions of different elements.\n\nThis uses the new `context.browser_task()` mechanism added in [datasette-agent 0.4a0](https://simonwillison.net/2026/Jul/31/datasette-agent/).\n\nTags: [iframes](https://simonwillison.net/tags/iframes), [datasette](https://simonwillison.net/tags/datasette), [datasette-apps](https://simonwillison.net/tags/datasette-apps)",
+      "tags": [
+        "Datasette",
+        "app_debug",
+        "Agent"
+      ],
+      "score": 75,
+      "summary": "datasette-apps 0.2a0发布，新增app_debug()让Agent可测试应用。",
+      "fetched_at": "2026-08-02T06:04:47.121840+08:00"
+    },
+    {
+      "title": "Ten advances in mathematics and theoretical computer science",
+      "link": "https://simonwillison.net/2026/Aug/1/ten-advances-in-mathematics/#atom-everything",
+      "published": "2026-08-02T04:34:49+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Ten advances in mathematics and theoretical computer science](https://openai.com/index/ten-advances-in-mathematics/)**\n\nA few days ago it was Anthropic [discovering cryptographic weaknesses with Claude](https://simonwillison.net/2026/Jul/28/discovering-cryptographic-weaknesses-with-claude/) using Mythos Preview, spending $100,000 on tokens and with prompts that included \"again we are not looking for low hanging fruit, we want proper research to find genuinly hard findings.\"\n\nNow it's OpenAI's turn to flex. They set \"an internal version of Astra, our next major model\" on finding solutions to ten mathematical problems that \"have seen no progress on the main result for at least a decade\". They claim to have spent less than $2,000 at GPT-5.6 Sol token prices on each one.\n\n(No news on how many problems they spent $2,000 on *without* reaching a solution though.)\n\nThe [openai/ten-proofs](https://github.com/openai/ten-proofs) repository has Lean 4 formalizations of their results, and there's also [a paper](https://cdn.openai.com/pdf/ten-proofs-oai.pdf) describing the solutions and an additional [LLM-generated PDF](https://cdn.openai.com/pdf/reasoning-walkthroughs.pdf) where the model \"reconstructs how the proof came together\" based on the unpublished reasoning traces.\n\nThat's a decent level of transparency, but I want to see the prompts they used!\n\nA lot of mathematicians online are experiencing a collective burst of [Deep Blue](https://simonwillison.net/2026/Feb/15/deep-blue/).\n\nOpenAI's results reminds me of what Terence Tao described as \"big mathematics\" in [IEEE Spectrum in June](https://spectrum.ieee.org/ai-in-mathematics):\n\n> Unlike some of his peers, Tao is neither dismissive of AI nor fearful. Instead, he sees it as the catalyst for a fundamental shift in the discipline—a transition toward what he calls “big mathematics.” He envisions a future of large-scale, decentralized collaborations between humans and machines, where complex mathematical tasks can be diced and sliced, with humans claiming the creative parts and AI doing the lion’s share of the technical grunt work.\n\nVia [Hacker News](https://news.ycombinator.com/item?id=49132058)\n\nTags: [mathematics](https://simonwillison.net/tags/mathematics), [ai](https://simonwillison.net/tags/ai), [openai](https://simonwillison.net/tags/openai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [deep-blue](https://simonwillison.net/tags/deep-blue)",
+      "tags": [
+        "Astra",
+        "数学证明",
+        "Lean"
+      ],
+      "score": 88,
+      "summary": "OpenAI用Astra模型解决十个数学难题，Simon Willison评论成本与透明度。",
+      "fetched_at": "2026-08-02T06:04:47.121853+08:00"
+    },
+    {
+      "title": "we seem to be at an impasse 🤣\n\npeople here will never accept me unless i bow down to their god of A...",
+      "link": "https://x.com/GaryMarcus/status/2083655852918231466",
+      "published": "2026-08-02T04:47:22+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "we seem to be at an impasse 🤣  \n  \npeople here will never accept me unless i bow down to their god of ASI  \n  \nbut i will not bow down unless/until i see actual evidence that it has arrived.  \n  \nmarketing essays without details will never move me.  \n  \nsorry!   \n  \n🤷‍♂️\n\n💬18🔄2❤️53👀3432📊20",
+      "tags": [
+        "Gary Marcus",
+        "ASI",
+        "证据"
+      ],
+      "score": 55,
+      "summary": "Gary Marcus称除非有实际证据，否则不会相信ASI。",
+      "fetched_at": "2026-08-02T06:04:47.121857+08:00"
+    },
+    {
+      "title": "the cope and intellectual dishonesty and confirmation bias here today is really something.\n\nwe have ...",
+      "link": "https://x.com/GaryMarcus/status/2083651895831441916",
+      "published": "2026-08-02T04:31:39+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "the cope and intellectual dishonesty and confirmation bias here today is really something.  \n  \nwe have a trifecta of people leaping to conclusions without having seen any evidence (eg of generality to nonformal  \nproblems), people misrepresenting my positions (that I have explained clearly and in depth many times), and people shifting goalposts while accusing others of doing so (without evidence).  \n  \npeople are positively desperate to believe that Astra is ASI.   \n  \nand completely unwilling to await evidence or even their own experience.  \n  \nit’s actually kind of sad.\n\n💬8🔄5❤️35👀3793📊12",
+      "tags": [
+        "Gary Marcus",
+        "Astra",
+        "ASI"
+      ],
+      "score": 55,
+      "summary": "Gary Marcus批评人们未经证据就认定Astra是ASI。",
+      "fetched_at": "2026-08-02T06:04:47.121860+08:00"
+    },
+    {
+      "title": "jubilation about OpenAI’s new proofs: tens of millions of views \n\nconsideration of a putative dispro...",
+      "link": "https://x.com/GaryMarcus/status/2083645796898279587",
+      "published": "2026-08-02T04:07:24+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "jubilation about OpenAI’s new proofs: tens of millions of views   \n  \nconsideration of a putative disproof of one of the putative counter-examples from a PhD student in math?  \n  \nless than a dozen 🙄\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nUh oh! At least one of the putative Astra proofs might turn out to be wrong:\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2083635594421494037)\n\n💬5🔄6❤️18👀4813📊6",
+      "tags": [
+        "Gary Marcus",
+        "Astra",
+        "反例"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus指出有人质疑Astra证明，但关注度低。",
+      "fetched_at": "2026-08-02T06:04:47.121863+08:00"
+    },
+    {
+      "title": "July shipped 🚢\n\nGitHub Copilot app for every plan, new models, and of course, stacked pull requests...",
+      "link": "https://x.com/github/status/2083665175757160793",
+      "published": "2026-08-02T05:24:25+08:00",
+      "source": "GitHub(@github)",
+      "content": "July shipped 🚢  \n  \nGitHub Copilot app for every plan, new models, and of course, stacked pull requests �[x.com/i/article/2082…](http://x.com/i/article/2082563593552404480)HR\n\n💬6🔄5❤️28👀6759📊8",
+      "tags": [
+        "GitHub",
+        "Copilot",
+        "堆叠PR"
+      ],
+      "score": 75,
+      "summary": "GitHub发布7月更新，Copilot应用扩展至所有计划并支持新模型。",
+      "fetched_at": "2026-08-02T06:04:47.121866+08:00"
+    },
+    {
+      "title": "They recently asked my 3-year-old at school: “what does your daddy do for work?” He answered: he exe...",
+      "link": "https://x.com/rauchg/status/2083664853256843437",
+      "published": "2026-08-02T05:23:08+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "They recently asked my 3-year-old at school: “what does your daddy do for work?” He answered: he exercises. That’s what he sees.   \n  \nIt’s not just you who’s a byproduct of your habits, it’s your children and grandchildren too.\n\n💬18🔄2❤️112👀8189📊25",
+      "tags": [
+        "Guillermo Rauch"
+      ],
+      "score": 30,
+      "summary": "Guillermo Rauch分享儿子的童言，感慨习惯影响后代。",
+      "fetched_at": "2026-08-02T06:04:47.121869+08:00"
+    },
+    {
+      "title": "Niiiiiiiiiiiiiice @HyperFrames_",
+      "link": "https://x.com/lennysan/status/2083646014897238243",
+      "published": "2026-08-02T04:08:16+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Niiiiiiiiiiiiiice [@HyperFrames\\_](https://x.com/HyperFrames_)\n\n![Bin Liu](https://pbs.twimg.com/profile_images/1627970921108742144/2U2CnUQj_normal.jpg)\n\nBin Liu@liu8in\n\nbeen getting so much value from Lenny, can finally contribute back a tiny bit  \n  \nhere’s a launch video for you made with Opus 5 & [@HyperFrames\\_](https://x.com/HyperFrames_) (w/ our internal agent harness)  \n  \nhave a few more options for you if you are interested! [@lennysan](https://x.com/lennysan)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083645218163941376/vid/avc1/1920x1080/-dImMb1ARKEi5KV-.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/liu8in/status/2083645511043801524/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/liu8in/status/2083645511043801524)\n\n💬3🔄0❤️22👀9415📊5",
+      "tags": [
+        "Opus 5",
+        "HyperFrames"
+      ],
+      "score": 50,
+      "summary": "Lenny Rachitsky点赞用Opus 5和HyperFrames制作的AI视频。",
+      "fetched_at": "2026-08-02T06:04:47.121872+08:00"
+    },
+    {
+      "title": "Your design, your model.\n\nCreate with your pick of the world's leading models, including Claude, GPT...",
+      "link": "https://x.com/Replit/status/2083658830458614104",
+      "published": "2026-08-02T04:59:12+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Your design, your model.  \n  \nCreate with your pick of the world's leading models, including Claude, GPT-5, Gemini, Kimi, and GLM. Compare outputs across model families and keep the result that nails it.  \n  \nOne suite, every top model for design.  \n  \nTry now at [replit.com/design](http://replit.com/design)\n\n![Tweet Image](https://pbs.twimg.com/media/HOqkp2lXcAAHD6J.jpg)\n\n💬0🔄1❤️4👀871📊1",
+      "tags": [
+        "Replit",
+        "Claude",
+        "GPT-5"
+      ],
+      "score": 65,
+      "summary": "Replit设计平台宣传支持Claude、GPT-5等多款模型。",
+      "fetched_at": "2026-08-02T06:04:47.121874+08:00"
+    },
+    {
+      "title": "I keep saying that the token efficiency on these models are underestimated. Be more ambitious with t...",
+      "link": "https://x.com/omarsar0/status/2083669314033369431",
+      "published": "2026-08-02T05:40:51+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "I keep saying that the token efficiency on these models are underestimated. Be more ambitious with these models. Try different harnesses.  \n  \nIntelligence too cheap to meter is here!\n\n![Cline](https://pbs.twimg.com/profile_images/2046714588948033536/86HNYurv_normal.jpg)\n\nCline@cline\n\nWhile DeepSeek V4-Flash is significantly cheaper on price per token, this can be misleading if the overall cost per task ends up being higher due to more turns being made.  \n  \nHowever, [@ArtificialAnlys](https://x.com/ArtificialAnlys) reports DeepSeek completing the same benchmark tasks as Fable at 105x lower cost.\n\n![Tweet Image](https://pbs.twimg.com/media/HOqPVK6bcAAPhhv.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/cline/status/2083638204037820734)\n\n💬1🔄0❤️3👀1348📊1",
+      "tags": [
+        "DeepSeek",
+        "V4-Flash",
+        "Cline"
+      ],
+      "score": 65,
+      "summary": "Elvis引用Cline数据称DeepSeek V4-Flash任务成本低105倍。",
+      "fetched_at": "2026-08-02T06:04:47.121877+08:00"
+    },
+    {
+      "title": "Humans frame the questions, scrutinize the answers, and give discoveries meaning.\n\nAI explores possi...",
+      "link": "https://x.com/dongxi_nlp/status/2083658725558976619",
+      "published": "2026-08-02T04:58:47+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "Humans frame the questions, scrutinize the answers, and give discoveries meaning.  \n  \nAI explores possibilities at extraordinary scale.  \n  \nThis could be the future of every field of expertise, shaped by deeper collaboration between human and AI.\n\n![Sebastien Bubeck](https://pbs.twimg.com/profile_images/1709609135321583616/6bXuF85D_normal.jpg)\n\nSebastien Bubeck@SebastienBubeck\n\nyes, nonsofic groups exist: this statement is one of many new beautiful results proved by Astra, our next major model.  \n  \nWe're releasing 10 such Astra proofs, complete with lean certificates and CoT walkthroughs for each of them. The results are wide-ranging, from von Neumann algebras (disproof of Connes' Rigidity Conjecture) to better bounds for high dimensional sphere packing, for circuit complexity, for monochromatic triangles in multicolored graphs, and more.  \n  \nMore thoughts here: [openai.com/index/ten-adva…](https://openai.com/index/ten-advances-in-mathematics/)\n\n[🔗 View Quoted Tweet](https://x.com/SebastienBubeck/status/2083456300692979886)\n\n💬0🔄0❤️1👀126",
+      "tags": [
+        "Astra",
+        "数学证明",
+        "OpenAI"
+      ],
+      "score": 80,
+      "summary": "转述OpenAI研究者称Astra模型证明了多个数学难题。",
+      "fetched_at": "2026-08-02T06:04:47.121880+08:00"
     }
   ]
 }
