@@ -2716,6 +2716,265 @@
       "score": 62,
       "summary": "Tibo宣布重置Codex和ChatGPT Work的使用额度限制。",
       "fetched_at": "2026-08-01T15:34:50.728911+08:00"
+    },
+    {
+      "title": "微软一天连发3篇之：LLM记性好、忘性差的原因找到了",
+      "link": "https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247509518&idx=1&sn=7e33fffed175d40b2bff3129b82380b1",
+      "published": "2026-08-01T16:26:00+08:00",
+      "source": "PaperAgent",
+      "content": "PaperAgent 2026-08-01 16:26 河南\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e3788e0e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwDjrITej2T3vfoFNtoyqgiaWAVmP4hkHzjjibJ7757OUh5n1eUxu2v9syjhyvuRQqLRPSdic1Xhg6hIPmCKBCpiamYaWeU1yaXhEVk%2F0%3Fwx_fmt%3Djpeg)\n\n大家好，我是PaperAgent，不是Agent！\n\n让**Claude Code/Codex**干活，明明中间改过需求，它却死活咬着第一轮的说法不放；或者你补充了一个关键条件，它嘴上说好的，给出的答案却还是上一版的老路子。\n\n以前我们怪它笨，**微软（Microsoft Research）**最新研究告诉我们——**这不是笨，是迷路**。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=d50c886e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwAcxtYZj3C9lLmJr0I93Zx5JNcj6H1rJBMZ5t1SzKvV4ricVbia6m0ric1ickYLfIic809mt3sJeWREqCkhqtP7u6ibaX8zGJ4yOUpJ8%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n微软3连发[微软一天连发3篇之：打造自己的Harness原生Agents](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247509457&idx=1&sn=415de0fff48693ff66ba677b285ccd85&scene=21#wechat_redirect)之后，今天分享第二篇：《**LLMs Get Lost in Evolving User Intent**》。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7f9697cf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwCEC2GpZibO0thNULsOjuK1BBtjDfbtcQIJFyymqWBjJgWGIuDqNg0EkWWSyOg6drnlquvDFI7oQRp6NCB4zCSlo29I5ibRp7ibA0%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n针对动态场景（Evolving User Intent），他们给出了多个解决方案**记忆机制、提示工程，强化学习微调小模型**，效果均有提升。\n\n## 1. 静态评测测不出来的能力盲区\n\n现在 LLM 越来越以协作Agent的形态上岗：vibe coding、deep research、迭代式文档编辑。这些场景有个共同点——**用户不会一开始就把需求说清楚**，而是边聊边补、边做边改、甚至中途换个更紧急的任务。\n\n但问题是，主流评测几乎全是单轮、需求一次给全的设定，有的多轮 Benchmark 也有硬伤。\n\n![Figure 1：LLMs 在演化意图中迷失。](https://wechat2rss.bestblogs.dev/img-proxy/?k=271baf16&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F5gibgibpTuuwCO75kb3W3r32ycpb0hFwXOObTDMpLDK2nnyeUT9rXWMXXBQ01omOicpfzJ4EqJHdnYd1SHicBhnkZU01PPbZbYv75b1BoyweHXY%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 1：LLMs 在演化意图中迷失。\n\n于是作者提出一个关键问题：**单轮任务能不能被抬升（lift）成意图动态演化的多轮交互，同时保住原来的可验证性？** 答案是肯定的——而抬升之后，所有模型的遮羞布都被掀开了。\n\n## 2. 核心建模：用户意图的三种变脸方式\n\n作者把第 t 轮的用户意图形式化为一个四元组：\n\n**I\\_t = (f\\_t, C\\_t, C^rev\\_t, y\\_t)**\n\n其中 f\\_t 是用户想完成的”函数”（比如 find\\_restaurant），C\\_t 是参数槽位集合（城市、菜系等），C^rev\\_t 是已经透露给 Agent 的参数子集，y\\_t 是该任务的可验证答案。\n\n![Figure 2：三种意图状态跳转示意图。](https://wechat2rss.bestblogs.dev/img-proxy/?k=54637a11&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F5gibgibpTuuwAU2s5mzxJ1f5lo32ib1BWLIDwXKWsToT8pxmtRiaqTHRtMyIHmSXicy5JfBA3ZeDicHgtWs1pPOfoGJvBekFuuorNib3ErbHDiahBuY%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 2：三种意图状态跳转示意图。\n\n在此之上，定义了三种意图状态跳转（可在同一轮中共现）：\n\n| 跳转类型 | 含义 | 例子 | Agent 的挑战 |\n| --- | --- | --- | --- |\n| **Argument Reveal（参数披露）** | 意图本身不变，只是信息分批给出 | \"找家纽约的餐厅\" → \"对了，我吃素\" | 持续收集缺失约束 |\n| **Argument Revision（参数修订）** | 已透露的参数被改值，意图变了 | \"纽约\" → \"改成布鲁克林\" | 更新信念，不能锚定旧值 |\n| **Function Switch（任务切换）** | 任务本身换了，但参数有继承 | \"找餐厅\" → \"帮我订这家\" | 察觉跳转，复用相关上下文 |\n\n这套形式化的妙处在于：**Reveal 天然受参数个数限制，但 Revision 和 Switch 可以无限叠加**——长程、任意复杂度的演化意图对话由此可规模化合成。\n\n## 3. 方法框架：锚定最后一轮，反向编出历史\n\n这是全文最聪明的设计。多轮意图数据标注贵到离谱，作者反其道而行——**不从前往后造对话，而是从后往前推**：\n\n![Figure 3：从单轮数据生成演化意图对话的全流程。](https://wechat2rss.bestblogs.dev/img-proxy/?k=c92a1957&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwAVGAxuGrr2kTUGSO2DJicXsvCg59cTdrtHhs0GCfHP5hkzg4opOt64JEKZ5ibvfeHrDwMjXYkKeZYlxf4y7j0cbTvIQpaHRCd2c%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 3：从单轮数据生成演化意图对话的全流程。\n\n1. **意图抽取（Intent Extraction）**：从任意可验证单轮数据集的 (问题, 答案) 对中，用 LLM 抽取出函数和参数，把这个三元组钉死为对话**最后一轮的锚点意图**。因为最后一轮 = 源任务，所以 Agent 的最终动作可以直接用原数据集的 verifier 打分，零新增标注。\n2. **回溯扩展（Retrospective Expansion）**：为 Revision 合成”反事实参数”（先说纽约、后改布鲁克林）；为 Switch 递归合成”前驱函数链”（find\\_appointment\\_location → find\\_restaurant → book\\_restaurant），且强制前后任务参数集合有交集，保证上下文可继承。\n3. **情境化模拟（Situated Simulation）**：调度器在给定轮数 T 内排布各类跳转事件，遵守五条一致性规则（最后一轮锚定、首轮非空、同轮参数唯一、任务说清才能切换、反事实必须先于修订出现）；渲染器再按”只说增量”的原则把每轮意图增量 ΔI\\_t 翻译成自然语言，配上”Wait, I forgot to mention…“这类口语前缀。\n\n## 4. 主实验：单轮高分 ≠ 多轮靠谱\n\n主设定是 6 次意图跳转（三种各 2 次，共 7 轮对话），结果触目惊心：\n\n![Table 1：四个数据集上 Single vs Evolve 准确率对比。Evolve 为三种跳转各施加 2 次共 6 次意图跳转。括号内为相对 Single 的变化，底色越深退化越严重](https://wechat2rss.bestblogs.dev/img-proxy/?k=93ab7b90&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwANvGtlLdHqQydoibXmn3jqywQ2khKAiaf4XbiaSKwJdR6jjAmuPm3cSicze7ZwEBGf0uAYE0csL9e2iafPbDOxbeUibQOfuqJkcCjmI%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nTable 1：四个数据集上 Single vs Evolve 准确率对比。Evolve 为三种跳转各施加 2 次共 6 次意图跳转。括号内为相对 Single 的变化，底色越深退化越严重\n\n几个最值得圈出来的数字：\n\n* **GPT 5.5**（全表最强）：GSM8K 99.0 → 80.5（-18.7%），BIRD-SQL 80.0 → 71.0；\n* **DeepSeek V3.2** 在 BIRD-SQL 上 76.0 → 53.0（-30.3%），BrowseComp+ 上 36.0 → 15.0（-58.3%）；\n* **Mistral Large 3** 在 BrowseComp+ 上 17.0 → 5.0（-70.6%）；\n* **SWE-Bench 出现极端退化**：GPT 5.1、Grok 4.20、Mistral Large 3 三家从 72%/84%/56% **直接跌到 0.0**——它们在演化设定下疯狂消耗工具调用预算（100 次/轮），陷在超长的思考里超时。进一步分析发现，模型把绝大多数预算花在 sed/grep/find 这类探索上，每轮真正执行类调用（pytest、apply\\_edits()）不到 4 次——**更多的工具机会没帮上忙，累积的上下文和工具痕迹本身成了干扰源**。\n\n为什么掉得这么狠？作者的解释是：多轮演化意图要求模型既要跨轮累积信息，又要**选择性地只关注更新后的意图、丢弃过时信息**——维持一个”忠实的内部信念”远比单轮困难。\n\n## 5. 消融实验：哪种变脸最致命\n\n### 5.1 跳转次数越多，掉分越狠\n\n在 GSM8K 上独立缩放每种跳转的次数，四个模型全部单调下滑。其中 **Function Switch 的下降曲线最陡**——因为它要求的信念更新幅度最大（要丢弃大量已累积上下文，而不只是吸收新信息）。\n\n![Figure 4：随意图跳转次数增加，准确率单调退化。](https://wechat2rss.bestblogs.dev/img-proxy/?k=4b7e95c0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwBNSj3V4qMCCJ8ZViaicvB3j0jnGshFgia5pGuUKibpHx8yU7sJ7ibpQPEsLps9XYTXOHIuERQVYia8vg7waic2Q0LRFo6aibNoSlMt8ics%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 4：随意图跳转次数增加，准确率单调退化。\n\n### 5.2 组合越复杂，模型越懵\n\n从单一跳转到三种全组合（6 次跳转），性能随组合复杂度持续退化，Function Switch 始终是全场最难：\n\n![Table 2：意图跳转组合的消融。](https://wechat2rss.bestblogs.dev/img-proxy/?k=42ca4dfe&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F5gibgibpTuuwDfuMKpjAb8q3Rerk1IfCEdcbvRfQ8dbiaIEpicNsnOTJj7P4Aj5fgJ7Cn4o8xYtNbtrkDkp65N8ntcicrKO9e4dQAvgpcFR9C8l4%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nTable 2：意图跳转组合的消融。\n\n### 5.3 “换任务”之后，旧上下文会”失忆”\n\n一个更精细的发现：如果评测点紧跟在 Switch 之后，模型表现尚可；但只要 Switch 之后再插入几轮 Reveal/Revision，准确率就明显再掉一截。说明 Agent **刚切完任务还能接住，但无法把”切换前的上下文”和”切换后的更新”联合起来**——早期的共享参数在后续扰动中逐渐被”洗”掉了。\n\n![Figure 5：Function Switch 后立即评测 vs 再经过若干跳转后评测。](https://wechat2rss.bestblogs.dev/img-proxy/?k=dcbbe24a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwB4U7e7FRr1xe3QM4MaL1U9HVibkpJyNxOzemdtoK7WVblHl5l1cpsdxZazJia1v7FjoGdyCMqj6e1yCGIh5goQRKqe5G5TBmgrY%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 5：Function Switch 后立即评测 vs 再经过若干跳转后评测。\n\n## 6. 缓解措施：记忆机制有用，但补不上窟窿\n\n既然问题是”信念追踪”，加个记忆机制行不行？作者测了两种：\n\n* **Prompt Recap**：每轮前置一句提醒，让模型回答前先仔细回顾对话；\n* **Oracle Recap**：每轮直接重述截至当前已揭示的完整意图（作弊级上限）。\n\n结果（GPT 5.5 / BIRD-SQL）：两者都有实质提升，Oracle Recap 在 Function Switch 场景把准确率从 65% 拉到 75%。\\*\\*但即便开着”天眼”，所有场景依然到不了单轮的 80%\\*\\*。\n\n![Figure 6：记忆机制有帮助但无法弥合差距。](https://wechat2rss.bestblogs.dev/img-proxy/?k=3129c37a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwCHskxmm9uyrqnJLLzbSb0YMNK0zkiazGs9X874QGpONkGKMZyvl3MBw9gckkFE8IRFpU2YhUgSslWrx2stKv42UkFKvYLLa6nc%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 6：记忆机制有帮助但无法弥合差距。\n\n这个结论对做 Agent 产品的人很有杀伤力：**被动的上下文回顾不是解药**，未来需要能主动 recap “用户现在到底想要什么”、同时抑制无关上下文注意力的系统。\n\n## 7. 补充分析：越难的题，多轮放大效应越强；意图追踪卡在 Switch\n\n**难度叠加效应**：利用 BIRD-SQL 可选的外部知识 hint 控制题目难度。单轮下，难题相对易题只多掉 3.6%；多轮演化设定下，这个差距被放大到 9.0%。**任务越难，多轮动态的惩罚越狠**——而真实用户委托给 Agent 的，恰恰都是难题。\n\n![Figure 7：多轮交互会放大问题难度。](https://wechat2rss.bestblogs.dev/img-proxy/?k=c8e31a3b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F5gibgibpTuuwB1PQrLnjJ17I0Ya8m7bg9ItMoibj4sqY5UKSvu9z0IgPoUfZ84Sk1fpY5HCicV5ZbOBF5nicpIWjtxjDQqzESGX2ibg6cIE2uHeMI%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nFigure 7：多轮交互会放大问题难度。\n\n**逐轮意图追踪探针**：每轮结束时直接问模型”用户现在的意图是什么”，由独立 judge 打分。Reveal 和 Revision 的追踪准确率接近满分（96–99%），但 \\*\\*Function Switch 在出现 2 次时掉到 82%\\*\\*——坐实了病灶位置：不是信息收集出问题，而是”换任务”这件事本身让模型的信念状态崩了。\n\n![Table 3：逐轮意图追踪准确率（GPT 5.1 / GSM8K）。Reveal/Change 几乎满分，Function Switch 随出现次数明显退化](https://wechat2rss.bestblogs.dev/img-proxy/?k=b81a5dc4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwBxvpo0x9icrqNtc2Oj3icEibIUfQOT8bfvyrxxAiaNdDqzUbIegEoM3sRBAEN0uyPVeZNaC6eYZHNQ1l3oMj6NGOiclCS0neemyv4k%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nTable 3：逐轮意图追踪准确率（GPT 5.1 / GSM8K）。Reveal/Change 几乎满分，Function Switch 随出现次数明显退化\n\n```\nhttps://arxiv.org/pdf/2607.20734  \nLLMs Get Lost in Evolving User Intent\n```\n\n[动手设计AI Agents：（编排、记忆、插件、workflow、协作）](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247492838&idx=2&sn=1e25832e7300ef312721325d0def30b4&scene=21#wechat_redirect)\n\nLoop工程已死，Graph工程永生\n\n[一篇Loop+Harness的自进化Agent最新综述](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247508769&idx=1&sn=1c079514aee90450f55fccb41c7ec282&scene=21#wechat_redirect)\n\n[2026，做Agentic AI，绕不开这两篇开年综述](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247508495&idx=1&sn=309c84ca5c2822416fddc1a9dd4f6048&scene=21#wechat_redirect)\n\n已经读到这了，不妨点个👍、❤️、↗️三连，加个星标⭐，不迷路哦~\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=4bf41920&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzk0MTYzMzMxMA%3D%3D%26mid%3D2247509518%26idx%3D1%26sn%3D7e33fffed175d40b2bff3129b82380b1)",
+      "tags": [
+        "微软研究",
+        "意图演化",
+        "多轮交互"
+      ],
+      "score": 80,
+      "summary": "微软研究揭示LLM在用户意图动态演化中迷失，提出记忆机制等方案。",
+      "fetched_at": "2026-08-01T18:09:02.657605+08:00"
+    },
+    {
+      "title": "100G本地部署DeepSeek-V4-Flash正式版最佳实践",
+      "link": "https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247509518&idx=2&sn=8e4fa22e889134b3ca6aa52443605064",
+      "published": "2026-08-01T16:26:00+08:00",
+      "source": "PaperAgent",
+      "content": "PaperAgent 2026-08-01 16:26 河南\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=a2a9f228&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwBxicf9DmmA2t5SogXt140VFZiaaPEhgrSD0iadsaYdkMnHNXOjaoW1qibO41A2MqibMT6bRiaahibroCkO19Bp2yET7OqvRtldwg3ABw%2F0%3Fwx_fmt%3Djpeg)\n\n昨天，**DeepSeek-V4-Flash-0731**正式版发布，284B 参数仅 13B 激活，**Agent** 基准反超 V4-Pro-Preview，核心是通过重做后训练（Post-Training）实现的。[刚发布，DeepSeek-V4-Flash就要被玩坏了](https://mp.weixin.qq.com/s?__biz=Mzk2NDQ2ODY2Mg==&mid=2247486844&idx=1&sn=622591d9ec00d1c69dc5e25cabc7c760&scene=21#wechat_redirect)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=87808281&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwC3saquxrEia8WcjiaO5iaVibGH26PyAc99evqQz7mWiaPTmflIkSjicuGYiaLffaX6IzaEibGRFxNt3OCmocFuJibveqlZIzgj6qhnjdDg%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n借助 Unsloth Dynamic 2.0 的 **UD-Q8\\_K\\_XL**无损量化（162GB），一台 **169GB** 内存的机器即可本地跑满血版，与官方 API 输出逐位一致。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=87e516e4&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2F5gibgibpTuuwCfaEfQhTXsrpj4WicArR47NG76w0ibV01PM73XibyeelGBs4w4pU5cdn4iaEEXrgTEibeY3QBdJAkOcILNwekfUyaYicIUc7ibumlYOA%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n1-bit或2-bit情况下，大约**100G**\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=a6e18cf0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwANOjQ6l0STbliaLj1MjF797At5IIPqy2lxozAkBGDniaUUYfJRS410qhHX1w03OG5Q6kScJvhgnSvHz4Ma6VJ1rBdn8FibSo2B90%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n## 一、为什么是 DeepSeek-V4-Flash？\n\n7 月 31 日，DeepSeek 宣布 V4-Flash 官方 API 正式开启公测。这代模型的核心卖点：\n\n* **小激活、大能力**：284B 总参数、仅 13B 激活，1M token 上下文窗口，面向 Coding、Agentic、Chat 场景；\n* **反超自家 Pro**：Terminal Bench 2.1 得分 82.7，DeepSWE 54.4，NL2Repo 54.2，全面超越 V4-Pro-Preview，逼近 Opus-4.8；\n* **工程友好**：原生支持 Responses API，适配 Codex；三种推理模式 Non-think / Think High（默认）/ Think Max；\n* **架构不变**：0731 与 Preview 版架构、规模完全一致，老量化直接复用。\n\n![DeepSeek 官方 Benchmark](https://wechat2rss.bestblogs.dev/img-proxy/?k=c008b6f5&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwDTjN35nxgia6bKkzsDcI6bNEbP3FVWLoM3icliaCuUyuwKkbMVgHcNGFklX7ibiaEtSMv51YBu2ISE1SdV3rWpA5RsZ2eGEJunha4o%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nDeepSeek 官方 Benchmark\n\n更关键的是：模型采用量化感知训练（QAT），96% 的 routed experts 原生以 MXFP4 存储。这意味着本地无损部署第一次变得现实——UD-Q8\\_K\\_XL 量化与官方权重 **1,328 个 tensor 逐位一致**，KLD≈0，top-token 一致率 100%。\n\n## 二、量化怎么选：质量-体积前沿\n\nUnsloth Dynamic 2.0 提供从 1-bit（82.5GB）到 8-bit（162GB）共 12 个档位。下图横轴为磁盘体积、纵轴为相对无损档的 KL 散度（越低越好）：\n\n![GGUF 量化质量对比](https://wechat2rss.bestblogs.dev/img-proxy/?k=33359b9a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwCQ8CJl8l1pZQiaSY3G7kmic0wIY7p4pm4p0MsaNwcAusVXB6EbXcmpOZjZV1gwEWYuLJvnWjkU8u9PvRpxLGPKDWIyg96RtMibGA%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nGGUF 量化质量对比\n\n实测数据（wikitext-2, ctx 512, 4×B200，参考=官方权重）：\n\n| Quant | 体积 (GB) | PPL | Mean KLD | Same top token | Bit-exact |\n| --- | --- | --- | --- | --- | --- |\n| Official（参考） | 156.4 | 4.5319 | 0 | 100% | 100% |\n| **Unsloth UD-Q8\\_K\\_XL** | 161.9 | 4.5319 | ~0（无损） | 100.000% | 100.000% |\n| **Unsloth UD-Q4\\_K\\_XL** | 155.1 | 4.5335 | 0.0102 | 96.28% | 97.46% |\n| bartowski MXFP4 | 156.0 | 4.5351 | 0.0105 | 96.18% | 97.57% |\n| antirez Q4KExperts-F16 (imatrix) | 164.6 | 4.5743 | 0.0291 | 93.95% | 0.51% |\n\nUD-Q8\\_K\\_XL 是唯一的无损点；UD-Q4\\_K\\_XL 专家权重同样 bit-exact、仅 4% 非专家 tensor 量化到 Q8\\_0，是性价比之选。\n\n## 三、部署实战\n\n### 方式 A：Unsloth Studio（图形化，推荐）\n\n```\n# macOS / Linux / WSL  \ncurl -fsSL https://unsloth.ai/install.sh | sh  \n# Windows  \nirm https://unsloth.ai/install.ps1 | iex  \n# 启动  \nunsloth studio -H 0.0.0.0 -p 8888\n```\n\n浏览器打开 <http://127.0.0.1:8888，搜索> DeepSeek-V4-Flash 下载即可。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=0b91120d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwD61j2eDgkVISuCjpzf5wrKoSrMic2jib1dqtzKVyCj13oJtMO8pucTzkQ23CJGPUEwsmc7KNtThiay3tObpaquIW1GgHib70DhXPo%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n推理参数自动配置，右侧面板可切换 Non-think / Think High / Think Max。\n\n![Unsloth Studio 界面](https://wechat2rss.bestblogs.dev/img-proxy/?k=0a1d3f2e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwArcvN283U0EzUicKYur2Zf8hAA6l7ITPmvyFQcSGwiaz7aOkBEaaQqtR61zQbE0rqetqq00wXUadllvTRbEiaiaLepZmHP2nchYU0%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\nUnsloth Studio 界面\n\n### 方式 B：llama.cpp（命令行）\n\n```\n# 编译（无 GPU / Mac 改 -DGGML_CUDA=OFF，Metal 默认开启）  \ngit clone https://github.com/ggml-org/llama.cpp  \ncmake llama.cpp -B llama.cpp/build -DBUILD_SHARED_LIBS=OFF -DGGML_CUDA=ON  \ncmake --build llama.cpp/build --config Release -j --clean-first \\  \n    --target llama-cli llama-server llama-gguf-split  \ncp llama.cpp/build/bin/llama-* llama.cpp  \n# 手动下载无损档（共 4 个分片）  \npip install huggingface_hub  \nhf download unsloth/DeepSeek-V4-Flash-0731-GGUF \\  \n    --local-dir unsloth/DeepSeek-V4-Flash-0731-GGUF \\  \n    --include \"*UD-Q8_K_XL*\"  \n# 运行  \n./llama.cpp/llama-cli \\  \n    --model unsloth/DeepSeek-V4-Flash-0731-GGUF/UD-Q8_K_XL/DeepSeek-V4-Flash-0731-UD-Q8_K_XL-00001-of-00004.gguf \\  \n    --temp 1.0 --top-p 1.0 --min-p 0.0\n```\n\n### 参数与模式调节\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=66683c3b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2F5gibgibpTuuwC9F6NvftEISFHrJgvWelmd6cgksuJqOKKcicE4vgnWia9VyYibvichw68usujqFX3UmeNiaAPwRdTxS3YhrVicDkf4wrc8ker2rtwyo%2F640%3Fwx_fmt%3Dwebp%26from%3Dappmsg)\n\n* Think Max 模式建议 context ≥ 384K（上限 1,048,576）；\n* 推理强度：--chat-template-kwargs '{\"reasoning\\_effort\":\"max\"}'（可选 max / high）；\n* 关闭思考：--chat-template-kwargs '{\"enable\\_thinking\":false}'，llama.cpp 也支持 --reasoning on/off；\n* 常用调优：--threads（CPU 线程）、--ctx-size（上下文）、--n-gpu-layers（GPU 卸载层数，OOM 调小）。\n\n```\nhttps://unsloth.ai/docs/models/deepseek-v4  \nhttps://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731\n```\n\n[动手设计AI Agents：（编排、记忆、插件、workflow、协作）](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247492838&idx=2&sn=1e25832e7300ef312721325d0def30b4&scene=21#wechat_redirect)\n\n[Loop工程已死，Graph工程永生](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247509270&idx=1&sn=53a5ffa2cd51583947e1cc379c8703d4&scene=21#wechat_redirect)\n\n[一篇Loop+Harness的自进化Agent最新综述](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247508769&idx=1&sn=1c079514aee90450f55fccb41c7ec282&scene=21#wechat_redirect)\n\n[2026，做Agentic AI，绕不开这两篇开年综述](https://mp.weixin.qq.com/s?__biz=Mzk0MTYzMzMxMA==&mid=2247508495&idx=1&sn=309c84ca5c2822416fddc1a9dd4f6048&scene=21#wechat_redirect)\n\n已经读到这了，不妨点个👍、❤️、↗️三连，加个星标⭐，不迷路哦~\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=e1d91877&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzk0MTYzMzMxMA%3D%3D%26mid%3D2247509518%26idx%3D2%26sn%3D8e4fa22e889134b3ca6aa52443605064)",
+      "tags": [
+        "DeepSeek V4",
+        "本地部署",
+        "量化"
+      ],
+      "score": 85,
+      "summary": "DeepSeek-V4-Flash正式版发布，Agent基准超越V4-Pro，支持100G本地量化部署。",
+      "fetched_at": "2026-08-01T18:09:02.657622+08:00"
+    },
+    {
+      "title": "源：\nhttps://t.co/ExQzLwMFIX",
+      "link": "https://x.com/FinanceYF5/status/2083473226689331379",
+      "published": "2026-08-01T16:41:40+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：  \n[x.com/minchoi/status…](https://x.com/minchoi/status/2083400558023438731)\n\n![Min Choi](https://pbs.twimg.com/profile_images/1638359113221517312/CBZaJFyA_normal.jpg)\n\nMin Choi@minchoi\n\nPROMPT:  \n## Before implementing  \n  \nWork like a contractor who bills for rework: the cost of a wrong assumption is   \nyours to avoid, and the cost of an unnecessary question is mine to pay.  \n  \n### 1. Investigate before you ask  \nRead the relevant code, tests, configs, and dependency manifests first. Anything   \ndiscoverable in under a minute of searching is not a question — it's research   \nyou owe me. Never ask about test framework, language version, lint rules, error   \nhandling conventions, directory layout, or existing abstractions that already   \nexist in the repo. If the codebase contradicts itself, that's worth raising.  \n  \n### 2. Then produce this, and stop  \n  \n\\*\\*Goal.\\*\\* One paragraph restating what I asked for in your own words, including   \nthe acceptance criteria you'll hold yourself to. If your restatement is wrong,   \nthat's the cheapest possible place to find out.  \n  \n\\*\\*Blocking questions (0–3).\\*\\* Only ask when a wrong answer means throwing work   \naway, not adjusting it. Each question gets your recommended default so I can   \nreply \"yes to all\" — never ask an open question where a proposed answer would do.   \nIf nothing is genuinely blocking, say so and list zero.  \n  \n\\*\\*Assumptions.\\*\\* Numbered, specific, falsifiable. \"Inputs are under 10k rows and   \nfit in memory\" is an assumption. \"The code should be maintainable\" is not. Cover   \nwhichever of these the task actually touches:  \n - Data: shape, volume, trust level, encoding, what a malformed input looks like  \n - Failure: what should happen on timeout, partial write, or downstream 500 —   \n retry, fail loud, or degrade  \n - Boundaries: who calls this, what's public API vs. internal, backwards-compat   \n obligations  \n - State: concurrency, idempotency, transactionality, ordering guarantees  \n - Environment: runtime version, where it deploys, what it's allowed to reach  \n - Scope: what you're deliberately \\*not\\* doing, and what you're leaving as TODO  \n - Testing: what you'll write tests for and what you'll leave uncovered  \n  \n\\*\\*Plan.\\*\\* Files you'll create or modify, the key function/type signatures, and   \nthe order you'll work in. Where you chose between real alternatives, name the   \nalternative and say why you rejected it in one clause.  \n  \nThen wait. Do not begin implementing.  \n  \n### 3. Proportionality  \nThis ceremony scales with blast radius. A typo fix, a rename, or a change under   \n~20 lines with one obvious correct form: just do it. A new module, a schema   \nchange, anything touching auth, money, migrations, or deletion: full treatment,   \nand be more suspicious than usual of your own assumptions.  \n  \n### 4. After I approve  \nImplement the plan as approved. If you discover mid-implementation that an   \nassumption was wrong or the plan doesn't survive contact with the code, stop and   \ntell me — don't quietly improvise a different design and don't press on with an   \napproach you now believe is wrong.\n\n[🔗 View Quoted Tweet](https://x.com/minchoi/status/2083400558023438731)\n\n💬0🔄0❤️0👀630",
+      "tags": [
+        "Claude Code",
+        "提示词"
+      ],
+      "score": 72,
+      "summary": "转发高效Claude Code提示词，要求先调查再提问，减少无效沟通。",
+      "fetched_at": "2026-08-01T18:09:02.657628+08:00"
+    },
+    {
+      "title": "有人发现了一条 Claude Code 提示词，效果堪比时薪300美元的资深工程师。🤯",
+      "link": "https://x.com/FinanceYF5/status/2083473214580367781",
+      "published": "2026-08-01T16:41:38+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有人发现了一条 Claude Code 提示词，效果堪比时薪300美元的资深工程师。🤯\n\n![Tweet Image](https://pbs.twimg.com/media/HOn72RFa4AAEDsi.png)\n\n💬3🔄1❤️7👀1490📊5",
+      "tags": [
+        "Claude Code",
+        "提示词"
+      ],
+      "score": 60,
+      "summary": "KOL宣称发现堪比资深工程师的Claude Code提示词，未提供细节。",
+      "fetched_at": "2026-08-01T18:09:02.657632+08:00"
+    },
+    {
+      "title": "源：https://t.co/FhnU7S6Xzw",
+      "link": "https://x.com/FinanceYF5/status/2083472329641021694",
+      "published": "2026-08-01T16:38:07+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/rohanpaul\\_ai/s…](https://x.com/rohanpaul_ai/status/2082695402953031825)\n\n![Rohan Paul](https://pbs.twimg.com/profile_images/1816185267037859840/Fd18CH0v_normal.jpg)\n\nRohan Paul@rohanpaul\\_ai\n\nClaude Code creator Boris Cherny ( [@bcherny](https://x.com/bcherny) )  \n  \n\"For people who aren’t building agentic products but are using Claude Code, every 6 months, delete your claude.md file, delete your skills, and delete your hooks. Then see what the model does. It might surprise you.  \n  \nFor Opus 5, we strongly recommend trying to delete all of these things because the model may no longer need the extensive instructions that were necessary for previous models.\"  \n  \n- at Y Combinator Startup School 2026.  \n  \n----  \n  \nFrom \"Y Combinator\" YouTube channel, (full video link in comment)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082694658451558400/vid/avc1/1920x1080/QH0jAm5ZWcuIWbxd.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/rohanpaul_ai/status/2082695402953031825/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/rohanpaul_ai/status/2082695402953031825)\n\n💬0🔄0❤️0👀523",
+      "tags": [
+        "Boris Cherny",
+        "Claude Code",
+        "删除配置"
+      ],
+      "score": 80,
+      "summary": "Boris Cherny建议每6个月删除配置和Skill，让模型裸跑发挥。",
+      "fetched_at": "2026-08-01T18:09:02.657634+08:00"
+    },
+    {
+      "title": "完整视频：\nhttps://t.co/oas9gmgokw",
+      "link": "https://x.com/FinanceYF5/status/2083472318006010072",
+      "published": "2026-08-01T16:38:04+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "完整视频：  \n[youtube.com/watch?v=qyPCVq…](https://www.youtube.com/watch?v=qyPCVqFUyDo&t=1480s)\n\n💬1🔄0❤️0👀543📊1",
+      "tags": [
+        "Y Combinator",
+        "视频"
+      ],
+      "score": 40,
+      "summary": "提供Boris Cherny在Y Combinator的完整演讲视频链接。",
+      "fetched_at": "2026-08-01T18:09:02.657637+08:00"
+    },
+    {
+      "title": "Claude Code 创作者 Boris Cherny 给了一个反常识建议：\n\n每隔6个月，删掉 CLAUDE .md、Skills 和 Hooks，再看看模型自己能做到什么。\n\n尤其升级到 Opu...",
+      "link": "https://x.com/FinanceYF5/status/2083472305855033413",
+      "published": "2026-08-01T16:38:01+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Claude Code 创作者 Boris Cherny 给了一个反常识建议：  \n  \n每隔6个月，删掉 CLAUDE .md、Skills 和 Hooks，再看看模型自己能做到什么。  \n  \n尤其升级到 Opus 5 后，过去为旧模型写的大量规则，可能已经从“帮助”变成了“限制”。先做一次裸跑，结果也许会让人意外。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083472286791909376/vid/avc1/1280x720/o2a7wP7q_DQa70dD.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2083472305855033413/video/1)\n\n💬2🔄0❤️4👀1162📊3",
+      "tags": [
+        "Boris Cherny",
+        "Claude Code",
+        "6个月"
+      ],
+      "score": 75,
+      "summary": "转述Boris Cherny建议定期删除配置，尤其升级Opus 5后更应裸跑。",
+      "fetched_at": "2026-08-01T18:09:02.657640+08:00"
+    },
+    {
+      "title": "OpenAI内部发现了一个很微妙的现象：\n\n同事本人来求助，大家通常愿意帮忙；但如果是对方的ChatGPT通过Slack发来任务，很多人会本能地反感。\n\n人们真正期待的，是AI把时间还给人与人之间的关...",
+      "link": "https://x.com/FinanceYF5/status/2083470472793252203",
+      "published": "2026-08-01T16:30:44+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "OpenAI内部发现了一个很微妙的现象：  \n  \n同事本人来求助，大家通常愿意帮忙；但如果是对方的ChatGPT通过Slack发来任务，很多人会本能地反感。  \n  \n人们真正期待的，是AI把时间还给人与人之间的关系，而不是变成隔在彼此中间的一层。  \n[x.com/gdb/status/208…](https://x.com/gdb/status/2083435180392673714)\n\n![Greg Brockman](https://pbs.twimg.com/profile_images/1347621377503711233/bHg3ipfD_normal.jpg)\n\nGreg Brockman@gdb\n\nat openai, many people hook their chatgpt up to slack.  \n  \npeople really don't like when a coworker's chatgpt contacts them asking for help with a task, even when they'd be perfectly happy doing that same work if asked by that coworker.  \n  \nreinforces how much people care about human relationships and helping each other, and want AI to give time back — or enhance time together — rather than become a layer separating people.\n\n[🔗 View Quoted Tweet](https://x.com/gdb/status/2083435180392673714)\n\n💬1🔄0❤️0👀856📊1",
+      "tags": [
+        "OpenAI",
+        "ChatGPT",
+        "Slack"
+      ],
+      "score": 72,
+      "summary": "OpenAI内部发现人们反感同事的ChatGPT通过Slack求助，强调人际价值。",
+      "fetched_at": "2026-08-01T18:09:02.657643+08:00"
+    },
+    {
+      "title": "源：https://t.co/HyIL0PNU4W",
+      "link": "https://x.com/FinanceYF5/status/2083469486150336936",
+      "published": "2026-08-01T16:26:49+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/anshuc/status/…](https://x.com/anshuc/status/2081185524199674196)\n\n![Anshu](https://pbs.twimg.com/profile_images/2062938542280712192/gds8Qtn8_normal.jpg)\n\nAnshu@anshuc\n\nOh my god Opus 5 is ridiculously good at mobile apps. It might be better than Fable? wtf?  \n  \nI tried my old \"conversational calorie tracker\" prompts. DAMN this is clean for a v1:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2081184854943858688/vid/avc1/1212x2160/jh0LskGZ5WeyrPp3.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/anshuc/status/2081185524199674196/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/anshuc/status/2081185524199674196)\n\n💬0🔄0❤️0👀442",
+      "tags": [
+        "Opus 5",
+        "移动应用",
+        "Claude"
+      ],
+      "score": 75,
+      "summary": "用户测试Claude Opus 5生成移动应用，效果惊艳，或超过Fable。",
+      "fetched_at": "2026-08-01T18:09:02.657645+08:00"
+    },
+    {
+      "title": "有人用以前的“对话式卡路里追踪器”提示词测试 Claude Opus 5，结果第一版就做得非常干净。\n\n界面、交互和完成度都超出预期，甚至让他开始怀疑：\n\nOpus 5 做移动应用，会不会已经比 Fa...",
+      "link": "https://x.com/FinanceYF5/status/2083469474448216353",
+      "published": "2026-08-01T16:26:46+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有人用以前的“对话式卡路里追踪器”提示词测试 Claude Opus 5，结果第一版就做得非常干净。  \n  \n界面、交互和完成度都超出预期，甚至让他开始怀疑：  \n  \nOpus 5 做移动应用，会不会已经比 Fable 更强？\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083469455204786176/vid/avc1/720x1282/Fvxb1gOt27jyajL2.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2083469474448216353/video/1)\n\n💬2🔄1❤️4👀967📊3",
+      "tags": [
+        "Opus 5",
+        "移动应用",
+        "Fable"
+      ],
+      "score": 73,
+      "summary": "转述用户测试Claude Opus 5移动应用能力，认为可能超越Fable。",
+      "fetched_at": "2026-08-01T18:09:02.657648+08:00"
+    },
+    {
+      "title": "ChatCut确实非常简单和好用\n\n我现在的直播是基于图文教程来的\n直播结束后，把整个直播视频下载下来丢给Codex\n并且加上飞书云文档\n\n封装好的skill就会先读文档\n再基于逐字稿拆分整个视频\n加...",
+      "link": "https://x.com/PMbackttfuture/status/2083468003379761342",
+      "published": "2026-08-01T16:20:55+08:00",
+      "source": "AI产品黄叔(@PMbackttfuture)",
+      "content": "ChatCut确实非常简单和好用  \n  \n我现在的直播是基于图文教程来的  \n直播结束后，把整个直播视频下载下来丢给Codex  \n并且加上飞书云文档  \n  \n封装好的skill就会先读文档  \n再基于逐字稿拆分整个视频  \n加上少量的概念卡片和字幕  \n包括背景音乐  \n  \n中间无需任何干预  \n一次性完成整个视频的剪辑+下载  \n  \n问题来了，Skill是怎么出来的呢？  \n也很简单，整体逻辑还是上面的  \n每次剪辑后看看有哪里需要优化的  \n优化好了就把优化要点固化到Skill里  \n  \n几次下来就成型了\n\n![Tweet Image](https://pbs.twimg.com/media/HOn2ce9XcAAEuK9.jpg)\n\n💬2🔄0❤️4👀486📊3",
+      "tags": [
+        "ChatCut",
+        "Codex",
+        "视频剪辑"
+      ],
+      "score": 72,
+      "summary": "分享用Codex和ChatCut自动剪辑直播视频，并将优化固化到Skill。",
+      "fetched_at": "2026-08-01T18:09:02.657651+08:00"
+    },
+    {
+      "title": "1、完成注册即可获得68元免费token额度\nhttps://t.co/PG1U2j0Yha\n2、不下载客户端的化试试打开：https://t.co/D2xeP4lBP5 \n3、调用Base URL：...",
+      "link": "https://x.com/berryxia/status/2083477996338659520",
+      "published": "2026-08-01T17:00:38+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "1、完成注册即可获得68元免费token额度  \n[tokenrhythm.studio/i/rf\\_tr\\_ITLJOm…](https://tokenrhythm.studio/i/rf_tr_ITLJOmsgKgVDI-rFQFTQDEGt)  \n2、不下载客户端的化试试打开：[tokenrhythm.studio/account](https://tokenrhythm.studio/account)   \n3、调用Base URL：[tokenrhythm.studio/v1](https://tokenrhythm.studio/v1)  \nChat 接口：/chat/completions  \n示例模型：deepseek-v4-flash\n\n💬0🔄0❤️0👀158",
+      "tags": [
+        "tokenrhythm",
+        "免费额度"
+      ],
+      "score": 30,
+      "summary": "推广tokenrhythm平台，注册送68元免费token额度支持DeepSeek。",
+      "fetched_at": "2026-08-01T18:09:02.657654+08:00"
+    },
+    {
+      "title": "兄弟们，手慢无！（非广！！）\n\n群友分享的一个新羊毛，免费撸68元！可以直接使用DeepSeek！\n\n注册方式见评论区👇🏻",
+      "link": "https://x.com/berryxia/status/2083477994035957931",
+      "published": "2026-08-01T17:00:37+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "兄弟们，手慢无！（非广！！）  \n  \n群友分享的一个新羊毛，免费撸68元！可以直接使用DeepSeek！  \n  \n注册方式见评论区👇🏻\n\n![Tweet Image](https://pbs.twimg.com/media/HOoAK_vbcAA44BR.jpg)\n\n💬1🔄0❤️1👀294📊1",
+      "tags": [
+        "DeepSeek",
+        "免费额度"
+      ],
+      "score": 20,
+      "summary": "KOL推广DeepSeek免费额度活动，称可撸68元羊毛。",
+      "fetched_at": "2026-08-01T18:09:02.657656+08:00"
+    },
+    {
+      "title": "herdr 真的好用啊，看到一些资深的 Linux 大佬都抛弃 tmux 转投 herdr 了，那么多年的 tmux 死忠用户都妥协了。\n\nhttps://t.co/0Ki7Dlwk0k",
+      "link": "https://x.com/dingyi/status/2083477587658256522",
+      "published": "2026-08-01T16:59:00+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "herdr 真的好用啊，看到一些资深的 Linux 大佬都抛弃 tmux 转投 herdr 了，那么多年的 tmux 死忠用户都妥协了。  \n  \n[herdr.dev](https://herdr.dev/)\n\n💬1🔄1❤️13👀1489📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-01T18:09:02.657659+08:00"
+    },
+    {
+      "title": "UU 远程\n我愿称之为 AICoding 年代帮忙打辅助的最好用的免费 iPhone 应用\n远程速度、清晰度、延迟都处理得非常好\n配合 Claude / Codex 手机版，真好用啊！",
+      "link": "https://x.com/HiTw93/status/2083490176463233169",
+      "published": "2026-08-01T17:49:02+08:00",
+      "source": "Tw93(@HiTw93)",
+      "content": "UU 远程  \n我愿称之为 AICoding 年代帮忙打辅助的最好用的免费 iPhone 应用  \n远程速度、清晰度、延迟都处理得非常好  \n配合 Claude / Codex 手机版，真好用啊！\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083490089544663040/vid/avc1/1260x2736/YPn_l3UPkoaeIyu9.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/HiTw93/status/2083490176463233169/video/1)\n\n💬0🔄0❤️2👀181📊1",
+      "tags": [
+        "UU远程",
+        "Claude",
+        "Codex"
+      ],
+      "score": 65,
+      "summary": "推荐UU远程iPhone应用，用于辅助AI编程，体验良好。",
+      "fetched_at": "2026-08-01T18:09:02.657662+08:00"
+    },
+    {
+      "title": "经典的 iPod 剪影广告\n让 Seedance 2.5 重制成了视频\n如此抽象的东西，几乎没太多参考，完全就是模型的推理能力了",
+      "link": "https://x.com/oran_ge/status/2083478714529267964",
+      "published": "2026-08-01T17:03:29+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "经典的 iPod 剪影广告  \n让 Seedance 2.5 重制成了视频  \n如此抽象的东西，几乎没太多参考，完全就是模型的推理能力了\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083478379433721856/vid/avc1/1280x720/pcf67ZYbUBXp9PSk.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/oran_ge/status/2083478714529267964/video/1)\n\n💬2🔄0❤️4👀1596📊3",
+      "tags": [
+        "Seedance 2.5",
+        "视频生成"
+      ],
+      "score": 65,
+      "summary": "用Seedance 2.5将iPod剪影广告重制为视频。",
+      "fetched_at": "2026-08-01T18:09:02.657665+08:00"
+    },
+    {
+      "title": "经典的可口可乐圣诞老人广告海报\n用 seedance 2.5 重制成了视频\n30秒很难驾驭，也可以给你一个垃圾，可以给你一个惊喜\n这个模型要好好写提示词，好的提示词值得花费一小时来写",
+      "link": "https://x.com/oran_ge/status/2083478229986451758",
+      "published": "2026-08-01T17:01:33+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "经典的可口可乐圣诞老人广告海报  \n用 seedance 2.5 重制成了视频  \n30秒很难驾驭，也可以给你一个垃圾，可以给你一个惊喜  \n这个模型要好好写提示词，好的提示词值得花费一小时来写\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083478021022031872/vid/avc1/1280x720/3SW9zS0eOw9cxF79.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/oran_ge/status/2083478229986451758/video/1)\n\n💬1🔄0❤️1👀963📊1",
+      "tags": [
+        "Seedance 2.5",
+        "视频生成",
+        "可口可乐"
+      ],
+      "score": 65,
+      "summary": "用Seedance 2.5重制可口可乐圣诞广告，强调提示词重要性。",
+      "fetched_at": "2026-08-01T18:09:02.657668+08:00"
+    },
+    {
+      "title": "这个周期的很多中文推友X收入有所增长\n\n我觉得那些银狐机器人和色色机器人\n\n功不可没\n\n很多人包括我的互动量实际这个月没那多，但是发的钱都涨了不少🙂",
+      "link": "https://x.com/xiaohu/status/2083481650793754747",
+      "published": "2026-08-01T17:15:09+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "这个周期的很多中文推友X收入有所增长  \n  \n我觉得那些银狐机器人和色色机器人  \n  \n功不可没  \n  \n很多人包括我的互动量实际这个月没那多，但是发的钱都涨了不少🙂\n\n💬1🔄0❤️3👀553📊1",
+      "tags": [
+        "X收入",
+        "银狐机器人"
+      ],
+      "score": 30,
+      "summary": "KOL调侃中文推友X收入增长归功于银狐等机器人。",
+      "fetched_at": "2026-08-01T18:09:02.657670+08:00"
     }
   ]
 }
