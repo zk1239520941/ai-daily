@@ -2049,6 +2049,423 @@
       "score": 72,
       "summary": "xAI官方宣布Superwhisper集成现已在Grok Build中上线，支持订阅用户使用。",
       "fetched_at": "2026-08-01T06:14:02.752562+08:00"
+    },
+    {
+      "title": "Backstage with Lakebase, part 3",
+      "link": "https://www.databricks.com/blog/backstage-lakebase-part-3",
+      "published": "2026-08-01T06:21:47+08:00",
+      "source": "Databricks",
+      "content": "In the first part of this series, running Backstage on Databricks Lakebase gave us...",
+      "tags": [
+        "Backstage",
+        "Lakebase"
+      ],
+      "score": 72,
+      "summary": "Databricks 发布在 Lakebase 上运行 Backstage 的系列博客第三部分。",
+      "fetched_at": "2026-08-01T08:10:33.653355+08:00"
+    },
+    {
+      "title": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "link": "https://simonwillison.net/2026/Jul/31/deepseek-v4-flash-0731/#atom-everything",
+      "published": "2026-08-01T07:59:44+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[deepseek-ai/DeepSeek-V4-Flash-0731](https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731)**\n\nThe latest release in DeepSeek's V4 family, \"with substantially enhanced agentic capabilities\". It's 304 billion parameters - 167GB on Hugging Face - but it appears to punch *well* above its weight.\n\nArtificial Analysis [rank it](https://artificialanalysis.ai/models/deepseek-v4-flash) ahead of MiniMax M3 - a 428B model. It's $0.14/million input and $0.27/million output pricing means this may currently be the best value-per-intelligence model out there. It's looking very good on the [Intelligence Index vs. Cost per Intelligence Index Task](https://artificialanalysis.ai/models/deepseek-v4-flash#intelligence-comparison-tabs) chart:\n\n![Scatter plot from Artificial Analysis titled with axes \"Artificial Analysis Intelligence Index\" (20 to 65) and \"Cost per Task (USD, Log Scale)\" ($0.02 to $3), with a green \"Most attractive quadrant\" box in the upper left and a dotted \"Pareto line\". DeepSeek V4 Flash 0731 (max) is highlighted in dark blue at roughly $0.028 and an intelligence score of 50, sitting alone at the far left edge of the green quadrant where the Pareto line jumps sharply upward. Models of similar or lower intelligence like MiniMax-M3, Kimi K3 (low), GLM-5.1 and Kimi K2.6 cost ten times more, and the models that beat it (Grok 4.5, Gemini 3.6 Flash, GLM-5.2, Kimi K3, Claude Opus 5, Claude Fable 5, GPT-5.6 Sol) all sit far to the right at $0.4 to $3 per task.](https://static.simonwillison.net/static/2026/deepseek-flash-chart.webp)\n\nI got [a disappointing pelican](https://gist.github.com/simonw/83bfb1171792f1e7a4d8935b5e82317e#prompt) from it using the default reasoning level via OpenRouter:\n\n![Flat vector illustration of a white pelican with a long neck and large orange beak pouch, hovering above a mangled blue and orange bicycle on a dark grey road with white dashed lane markings. The bike is drawn incorrectly: the wheels are just orange arcs with no rims or spokes, the frame tubes float apart and the handlebars connect to nothing. The background is pale blue with a yellow sun in the upper left, white clouds, and grey speed lines on the left suggesting motion.](https://static.simonwillison.net/static/2026/deepseek-flash-v4-default.png)\n\nBut when I bumped reasoning level up to high I got [something much better](https://gist.github.com/simonw/83bfb1171792f1e7a4d8935b5e82317e#options):\n\n`llm -m openrouter/deepseek/deepseek-v4-flash-0731 -t pelican -o reasoning_effort high`\n\n![Flat vector illustration of a white pelican riding a bicycle to the right against a pink background with a lighter pink circle behind it. The pelican grips the handlebars with its wings and one orange foot rests on the pedal, and a small blue fish is visible tucked in the corner of its large orange beak pouch. The bike has a red, blue and orange frame with dark tires, and grey speed lines trail behind to suggest motion.](https://static.simonwillison.net/static/2026/deepseek-flash-v4-high.png)\n\nVia [Hacker News](https://news.ycombinator.com/item?id=49120299)\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [pelican-riding-a-bicycle](https://simonwillison.net/tags/pelican-riding-a-bicycle), [deepseek](https://simonwillison.net/tags/deepseek), [llm-release](https://simonwillison.net/tags/llm-release), [openrouter](https://simonwillison.net/tags/openrouter), [ai-in-china](https://simonwillison.net/tags/ai-in-china), [artificial-analysis](https://simonwillison.net/tags/artificial-analysis)",
+      "tags": [
+        "DeepSeek-V4-Flash",
+        "304B参数",
+        "性价比"
+      ],
+      "score": 86,
+      "summary": "Simon Willison 评测 DeepSeek V4 Flash 0731，304B 参数，定价 $0.14/M 输入，性能超 MiniMax M3。",
+      "fetched_at": "2026-08-01T08:10:33.653368+08:00"
+    },
+    {
+      "title": "Stateless MCP has recaptured my interest (and inspired mcp-explorer and datasette-mcp)",
+      "link": "https://simonwillison.net/2026/Jul/31/stateless-mcp/#atom-everything",
+      "published": "2026-08-01T07:13:22+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "Tuesday was [Stateless MCP day](https://x.com/ade_oshineye/status/2082129440943866149) - the rollout of MCP 2.0, or [the 2026-07-28 Model Context Protocol specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/) to use the more formal but less memorable name. This is the most significant change to the MCP spec since it first launched, and has also served to reignite my personal interest in the protocol.\n\nFor background: MCP is the Model Context Protocol, which describes a standard way to expose new tools to LLM-powered agent frameworks. It was introduced by Anthropic back [in November 2024](https://www.anthropic.com/news/model-context-protocol), had a *huge* spike of interest through much of 2025, and then became somewhat eclipsed by [Skills](https://simonwillison.net/2025/Oct/16/claude-skills/) (another Anthropic invention) when it became apparent that an agent harness with access to a terminal and `curl` could do most of what MCP did in a more flexible way. I wrote about that [in my review of 2025](https://simonwillison.net/2025/Dec/31/the-year-in-llms/#the-only-year-of-mcp).\n\nI'm coming back around to MCP now. Giving an agent a shell environment with the ability to access the internet is [fraught with risk](https://simonwillison.net/2026/Jul/22/openai-cyberattack/), and requires a strong model that is capable of effectively driving such an environment. MCP tools are easier to audit and control, and simple enough that smaller models that run on a laptop can still drive them reasonably well.\n\nThe new stateless MCP specification also greatly decreases the complexity of implementing both clients and servers for the protocol. I built three of those this week!\n\n#### What's easier with stateless MCP\n\nThe best demonstration of the difference between stateful and stateless MCP is in this [May 21st blog post](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/) that introduced the RC for the new specification. It included a clear before-and-after example.\n\nThe older stateful MCP (I'm going to call it \"legacy MCP\") required two HTTP requests - the first to initialize a session and obtain a `Mcp-Session-Id`, and the second to actually call the tool:\n\n```\nPOST /mcp HTTP/1.1\nContent-Type: application/json\n\n{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2025-11-25\",\n    \"capabilities\": {\n    },\n    \"clientInfo\": {\n      \"name\": \"my-app\",\n      \"version\": \"1.0\"\n    }\n  }\n}\n\nPOST /mcp HTTP/1.1\nMcp-Session-Id: 1868a90c-3a3f-4f5b\nContent-Type: application/json\n\n{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"search\",\n    \"arguments\": {\n      \"q\": \"otters\"\n    }\n  }\n}\n```\n\nThe new stateless way uses a single HTTP request which looks like this:\n\n```\nPOST /mcp HTTP/1.1\nMCP-Protocol-Version: 2026-07-28\nMcp-Method: tools/call\nMcp-Name: search\nContent-Type: application/json\n\n{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"search\",\n    \"arguments\": {\n      \"q\": \"otters\"\n    },\n    \"_meta\": {\n      \"io.modelcontextprotocol/clientInfo\": {\n        \"name\": \"my-app\",\n        \"version\": \"1.0\"\n      }\n    }\n  }\n}\n```\n\nThis is so much cleaner from both a client- and server-side implementation perspective. It's also a better fit for building scalable web applications, since now you don't need to maintain server-side state to keep track of those session IDs, or worry about routing the same session to the same backend machine.\n\n#### mcp-explorer\n\nI couldn't find a great CLI tool for interactively probing an MCP server, so I had Codex help build my own.\n\n**[mcp-explorer](https://github.com/simonw/mcp-explorer)** is the result. It's a stateless Python CLI tool, so you don't even need to install it to try it out - it works with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools) like this:\n\n```\nuvx mcp-explorer list https://agentic-mermaid.dev/mcp\n```\n\nThis queries Ade Oshineye's [agentic-mermaid.dev](https://agentic-mermaid.dev/) demo MCP. The above command returns the following list of tools:\n\n```\nexecute(code: string, timeoutMs?: integer) - Execute Mermaid SDK code\n  Run JavaScript in an isolated sandbox; return a value.\n\ndescribe_sdk(family: string, detail?: string) - Describe Mermaid SDK operations\n  Return version-matched mutation operations for one diagram family.\n\nrender_svg(source: string, options?: object) - Render Mermaid as SVG\n  Render a Mermaid source string to themeable SVG. Returns { ok, svg }.\n\nrender_ascii(source: string, useAscii?: boolean, targetWidth?: integer, options?: object) - Render Mermaid as text\n  Render a Mermaid source string to text. Returns { ok, text }.\n\nrender_png(source: string, scale?: number, background?: string, fitTo?: object, options?: object) - Render Mermaid as PNG\n  Rasterize a Mermaid source string to PNG. Returns { ok, png_base64 }.\n...\n```\n\nThen to inspect a tool:\n\n```\nuvx mcp-explorer inspect render_svg\n```\n\nThis outputs a whole bunch of information, including the JSON schema of the inputs and outputs.\n\nTo call that tool and pass arguments to it:\n\n```\nuvx mcp-explorer call \\\n  https://agentic-mermaid.dev/mcp \\\n  render_svg \\\n  -a source 'graph TD; A-->B' \\\n  -a options '{\"padding\":24}'\n```\n\nWhich returns:\n\n```\n{\"ok\":true,\"svg\":\"<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" width=...\n```\n\nTo get just the raw SVG try adding `| jq .svg -r` to that command. I got back [this image](https://gist.github.com/simonw/b07c62f0ce103be6932477659d5dd1ac):\n\n![SVG of as A box on top of a B box with an arrow from A to B](https://static.simonwillison.net/static/2026/mermaid-example.svg)\n\nThere are a [few more commands](https://github.com/simonw/mcp-explorer/blob/main/README.md) in the README, but you get the general idea. I find building CLI tools like this to be a really productive way to get familiar with a specification, even if an agent writes most of the actual code.\n\n#### datasette-mcp\n\nThe second project is **[datasette-mcp](https://github.com/datasette/datasette-mcp)**, a Datasette plugin which adds a `/-/mcp` endpoint to any Datasette instance.\n\nThis is probably the fourth time I've tried building this plugin, but thanks to the new stateless MCP specification I finally have a version that feels good to release.\n\nIt provides just three tools: `list_databases()`, `get_database_schema(database_name)`, and `execute_sql(database_name, sql)`. They do exactly what you would expect them to do - though `execute_sql()` is read-only for the moment.\n\nWire these into an agent, or a chat tool like ChatGPT or Claude, and they'll gain the ability to run SQL queries against your hosted Datasette instance.\n\nSo far I'm running it on the Datasette mirror of my blog, at <datasette.simonwillison.net/-/mcp>. It took a bit of fiddling to figure out how to attach that to ChatGPT and Claude, but I got there in the end. Here's [a new TIL](https://til.simonwillison.net/llms/mcp-in-claude-and-chatgpt) showing exactly how to do that.\n\nHere's [a shared Claude session](https://claude.ai/share/de1ad9bf-f7c2-4fb9-a9a0-2a1ae39995db) where I asked it:\n\n> `list tables in simonwillison.net`\n\nAnd then:\n\n> `what has Simon said recently about MCP?`\n\nIt ran 7 separate SQL queries to figure out the answer.\n\n#### llm-mcp-client\n\nMy [LLM tool](https://llm.datasette.io/) is long overdue for an official MCP integration. The new alpha [llm-mcp-client](https://github.com/simonw/llm-mcp-client) plugin is my attempt at exactly that:\n\n```\nllm install llm-mcp-client\nllm -T 'MCP(\"https://datasette.simonwillison.net/-/mcp\")' 'count the notes'\n```\n\nHere's the output (including reasoning trace, I'm using [LLM 0.32rc2](https://simonwillison.net/2026/Jul/30/llm-rc2/)):\n\n> ***Considering note count***\n>\n> *I see the question \"count the notes\" is probably asking me to tally up blog notes. It could also mean published notes or drafts, so there's some ambiguity there. I'll need to figure out the total number of notes, likely by querying the count for both published notes and drafts to get a clear answer. Let's execute that count!*\n>\n> There are **151 notes**.\n\nAnd [the output of llm logs](https://gist.github.com/simonw/4e8f558766150658ce35eab4f0fc3e04) for that prompt.\n\nOnce this is fully baked, I'm considering bringing it directly into LLM core. I'm excited to experiment with MCP in [Datasette Agent](https://agent.datasette.io/) and [llm-coding-agent](https://github.com/simonw/llm-coding-agent) as well.\n\n#### MCP is a safer way to build with agents\n\nA few months after MCP was first released, I wrote [Model Context Protocol has prompt injection security problems](https://simonwillison.net/2025/Apr/9/mcp-prompt-injection/), where I noted that the pattern of having end users mix and match tools pushed responsibility for avoiding data exfiltration attacks out to the users themselves. I hadn't coined [the Lethal Trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) yet, but that was absolutely what I had in mind.\n\nThen general agents with arbitrary shell and `curl` access came along, and that's so much harder to keep secure!\n\nSomething I've come to appreciate about MCP is that it's much easier to reason about agent capabilities and what might go wrong than with arbitrary command execution in an open network environment - the default for most of today's general and coding agent tools.\n\nI plan to lean into MCP a whole lot more when I'm building sensitive applications on top of LLMs.\n\nTags: [projects](https://simonwillison.net/tags/projects), [ai](https://simonwillison.net/tags/ai), [datasette](https://simonwillison.net/tags/datasette), [mermaid](https://simonwillison.net/tags/mermaid), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [llm](https://simonwillison.net/tags/llm), [anthropic](https://simonwillison.net/tags/anthropic), [model-context-protocol](https://simonwillison.net/tags/model-context-protocol)",
+      "tags": [
+        "Stateless MCP",
+        "MCP 2.0",
+        "mcp-explorer"
+      ],
+      "score": 85,
+      "summary": "Simon Willison 分析无状态 MCP 新规范，并为此构建 mcp-explorer 和 datasette-mcp。",
+      "fetched_at": "2026-08-01T08:10:33.653373+08:00"
+    },
+    {
+      "title": "https://t.co/tDh9FeyUPV",
+      "link": "https://x.com/berryxia/status/2083322895745568807",
+      "published": "2026-08-01T06:44:19+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "[mp.weixin.qq.com/s/Tn\\_kpcDFR7-3…](https://mp.weixin.qq.com/s/Tn_kpcDFR7-3yaH6uonIEA)\n\n💬0🔄0❤️0👀50",
+      "tags": [
+        "微信链接"
+      ],
+      "score": 40,
+      "summary": "分享微信公众号文章链接，无其他信息。",
+      "fetched_at": "2026-08-01T08:10:33.653376+08:00"
+    },
+    {
+      "title": "什么😧？7月30 日 苹果交出了一份财报数据贼棒的数据，但股价大跌！\n\n苹果业绩大超预期，股价却跌了，核心原因就一个：存储芯片涨价涨到连库克都快扛不住了。\n\n营收1094亿美元，净利近300亿，iP...",
+      "link": "https://x.com/berryxia/status/2083322859846590932",
+      "published": "2026-08-01T06:44:10+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "什么😧？7月30 日 苹果交出了一份财报数据贼棒的数据，但股价大跌！  \n  \n苹果业绩大超预期，股价却跌了，核心原因就一个：存储芯片涨价涨到连库克都快扛不住了。  \n  \n营收1094亿美元，净利近300亿，iPhone和Mac增速都很高。  \n  \n但库克在电话会上直接说，现在是“百年一遇的存储定价洪水”，价格呈指数级上涨，9月财季成本还会继续攀升。  \n  \n苹果已经先把Mac和iPad涨了价，有的型号涨幅接近20%。  \n  \n更关键的是，库克明确表示正在评估所有供应来源。  \n  \n此前已有消息称苹果在游说美国政府，希望能用长鑫的DRAM和长江存储的NAND，缓解成本和供应压力。  \n  \n美光则强烈反对，警告一旦放开，可能冲击美国本土存储产业。  \n  \n当全球最会控制供应链的公司都开始公开喊“洪水”，并认真考虑引入中国存储厂商时，说明这轮涨价已经动到了苹果的利润根基。  \n  \n人们对于股价更多的是未来的叙事，而苹果恰恰不具备这个点。直接跌破5万亿美金。  \n  \n并且这个季度的数据以及我们所真实体验是还是有明显的下滑，看看全球的表现了  \n  \n地址👇\n\n![Tweet Image](https://pbs.twimg.com/media/HOlzF5ubQAA0VYb.jpg)\n\n💬2🔄0❤️2👀205📊2",
+      "tags": [
+        "苹果财报",
+        "存储芯片涨价",
+        "库克"
+      ],
+      "score": 62,
+      "summary": "苹果财报超预期但股价大跌，库克称存储芯片价格指数级上涨。",
+      "fetched_at": "2026-08-01T08:10:33.653379+08:00"
+    },
+    {
+      "title": "这种方式才是好的交互方式，不比无限画布用起来舒服～",
+      "link": "https://x.com/berryxia/status/2083317271863435588",
+      "published": "2026-08-01T06:21:58+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这种方式才是好的交互方式，不比无限画布用起来舒服～\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\n发现了 Codex 一个非常牛逼的更新，好像没见他们宣传！  \n  \nCodex 现在有专门给图像 Agent 做的 UI 模式了：  \n  \n生成图片后，点击图片会单独弹出一个侧边栏预览窗口。在这里面，你可以直接对图片进行评论、擦除和调整大小。这完全是专门给 GPT Image 2.0 做的。  \n  \n左上角有一个切换按钮，切换以后，聊天流里就只显示图像，不显示那些文案了。  \n  \n这样你就可以专注于调整图像，快速看到聊天里生成的所有大图。  \n  \n你可以多选图片，一并添加到输入框里，然后让 GPT 给你进行批量修改。  \n  \n这个更新感觉要把设计 Agent 的活吃掉一大半了。\n\n![Tweet Image](https://pbs.twimg.com/media/HOh0t8RaMAAQqPe.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2083043634635788298)\n\n💬1🔄0❤️0👀252📊1",
+      "tags": [
+        "Codex",
+        "图像Agent",
+        "UI模式"
+      ],
+      "score": 72,
+      "summary": "OpenAI Codex 新增图像 Agent UI 模式，支持侧边栏预览和图片编辑。",
+      "fetched_at": "2026-08-01T08:10:33.653382+08:00"
+    },
+    {
+      "title": "地址 https://t.co/dad5XD7eHp",
+      "link": "https://x.com/berryxia/status/2083316004055347576",
+      "published": "2026-08-01T06:16:56+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "地址 [github.com/Tongyi-MAI/MAI…](https://github.com/Tongyi-MAI/MAI-UI)\n\n💬0🔄0❤️0👀83",
+      "tags": [
+        "MAI-UI",
+        "GitHub"
+      ],
+      "score": 50,
+      "summary": "分享 GitHub 项目 MAI-UI 链接，无更多说明。",
+      "fetched_at": "2026-08-01T08:10:33.653384+08:00"
+    },
+    {
+      "title": "阿里巴巴的这个Agent 还挺有意思的啊～\n\n阿里把手机、电脑、浏览器操作统一进一个GUI Agent里了。\n\nQwen-UI-Agent是一个面向真实场景的基础GUI智能体，把移动端、电脑、浏览器以...",
+      "link": "https://x.com/berryxia/status/2083315827944956181",
+      "published": "2026-08-01T06:16:14+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "阿里巴巴的这个Agent 还挺有意思的啊～  \n  \n阿里把手机、电脑、浏览器操作统一进一个GUI Agent里了。  \n  \nQwen-UI-Agent是一个面向真实场景的基础GUI智能体，把移动端、电脑、浏览器以及DeepSearch能力整合进同一个模型。  \n  \n它通过在超过1万个并行环境中做在线强化学习训练，目标是真正能跨设备、跨界面完成复杂操作。  \n  \n以前GUI Agent往往各自为政：有的擅长手机，有的擅长网页，有的只能处理桌面。  \n  \n现在用一个模型统一覆盖多种界面，再加上搜索能力，等于在向“一个Agent搞定所有屏幕操作”的方向推进。  \n  \n当模型开始在大规模真实并行环境中用在线RL学习跨端操作时，通用计算机使用能力的上限会被重新拉开。  \n  \n地址放到评论区了👇\n\n![Tweet Image](https://pbs.twimg.com/media/HOlssPGbMAABHZP.jpg)\n\n💬2🔄0❤️0👀259📊2",
+      "tags": [
+        "Qwen-UI-Agent",
+        "GUI Agent",
+        "跨端操作"
+      ],
+      "score": 82,
+      "summary": "阿里发布 Qwen-UI-Agent，统一手机、电脑、浏览器操作的 GUI 智能体，通过在线强化学习训练。",
+      "fetched_at": "2026-08-01T08:10:33.653387+08:00"
+    },
+    {
+      "title": "ChatGPT开始真正长进浏览器里了。\n\nChrome扩展现在支持侧边栏直接问当前YouTube视频、引用你打开的标签页，或者高亮网页文字后立刻提问。\n\n桌面端则能在输入时给出URL建议，并回顾浏览器...",
+      "link": "https://x.com/berryxia/status/2083315307079434422",
+      "published": "2026-08-01T06:14:09+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "ChatGPT开始真正长进浏览器里了。  \n  \nChrome扩展现在支持侧边栏直接问当前YouTube视频、引用你打开的标签页，或者高亮网页文字后立刻提问。  \n  \n桌面端则能在输入时给出URL建议，并回顾浏览器历史。  \n  \n高亮一段文字，右键选“Ask ChatGPT”，侧边栏自动弹出，不用先手动打开。  \n  \n这不是简单的插件功能，是把ChatGPT从“另开一个窗口聊天”变成了“随时能读懂你正在看的网页”的助手。  \n  \n浏览和提问之间的切换成本被大幅压缩。  \n  \n当AI开始深度接入浏览器上下文时，信息获取和理解的方式会从“先搜再问”逐渐变成“边看边问”。\n\n![ChatGPT](https://pbs.twimg.com/profile_images/2081980424666935296/qU5G7mQg_normal.jpg)\n\nChatGPT@ChatGPT\n\nPro tip: See something on a webpage you want to ask about? Highlight the text, right-click, and select “Ask ChatGPT.”  \n  \nThe sidebar will open automatically—no need to pin or open it first.\n\n![Tweet Image](https://pbs.twimg.com/media/HOgy64eaAAA7NjI.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ChatGPT/status/2082970818192293997)\n\n💬0🔄0❤️0👀416",
+      "tags": [
+        "ChatGPT",
+        "Chrome扩展",
+        "侧边栏"
+      ],
+      "score": 74,
+      "summary": "ChatGPT Chrome 扩展支持侧边栏提问、引用标签页和高亮文字提问。",
+      "fetched_at": "2026-08-01T08:10:33.653389+08:00"
+    },
+    {
+      "title": "地址：https://t.co/x1DFQmdTuQ",
+      "link": "https://x.com/berryxia/status/2083314184067129643",
+      "published": "2026-08-01T06:09:42+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "地址：[huggingface.co/unsloth/DeepSe…](https://huggingface.co/unsloth/DeepSeek-V4-Flash-0731-GGUF)\n\n💬0🔄0❤️0👀113",
+      "tags": [
+        "DeepSeek-V4-Flash",
+        "GGUF"
+      ],
+      "score": 50,
+      "summary": "分享 DeepSeek-V4-Flash-0731 的 GGUF 量化模型链接。",
+      "fetched_at": "2026-08-01T08:10:33.653392+08:00"
+    },
+    {
+      "title": "卧槽… 每次Uncloth 老哥团队太快了\n\nDeepSeek V4 Flash现在也能本地跑了。\n\nUnsloth直接放出了DeepSeek V4 Flash 0731的量化版本：无损4-bit只需...",
+      "link": "https://x.com/berryxia/status/2083314001375883764",
+      "published": "2026-08-01T06:08:58+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "卧槽… 每次Uncloth 老哥团队太快了  \n  \nDeepSeek V4 Flash现在也能本地跑了。  \n  \nUnsloth直接放出了DeepSeek V4 Flash 0731的量化版本：无损4-bit只需要168GB内存，3-bit进一步压到110GB。  \n  \n他们还明确说这个版本已经超过了V4 Pro，支持Unsloth和llama.cpp直接跑，更小的量化也会很快跟上。  \n  \nDeepSeek这边刚把V4-Flash官方API推到公测，Agent能力大幅提升，Unsloth几乎同步把本地部署方案补上。  \n  \n一边是官方推云端API，一边是社区把模型往个人和高端本地设备上塞。  \n  \n当新发布的强模型很快就有高质量本地量化可用时，开发者和重度用户的选择空间会明显变大：既可以走API，也可以自己掌控推理环境。  \n  \n对于普通用户的小尺寸的还需要等下，地址见评论区👇\n\n![Unsloth AI](https://pbs.twimg.com/profile_images/2036313340616777728/OLALWB2__normal.jpg)\n\nUnsloth AI@UnslothAI\n\nDeepSeek V4 Flash 0731 can now be run locally! 🐳  \n  \nRun DeepSeek V4 Flash lossless 4-bit on 168GB RAM and 3-bit on 110GB RAM.  \n  \nV4 Flash 0731 outperforms V4 Pro. Run via Unsloth or llama.cpp. Smaller quants coming today.  \n  \nGuide:[unsloth.ai/docs/models/de…](https://unsloth.ai/docs/models/deepseek-v4)X  \nGGUF:[huggingface.co/unsloth/DeepSe…](https://huggingface.co/unsloth/DeepSeek-V4-Flash-0731-GGUF)A\n\n![Tweet Image](https://pbs.twimg.com/media/HOkfiGraYAAxGnW.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/UnslothAI/status/2083231049434435596)\n\n💬2🔄0❤️2👀527📊2",
+      "tags": [
+        "DeepSeek-V4-Flash",
+        "Unsloth",
+        "本地量化"
+      ],
+      "score": 80,
+      "summary": "Unsloth 发布 DeepSeek V4 Flash 量化版，4-bit 需168GB内存，并称性能超 V4 Pro。",
+      "fetched_at": "2026-08-01T08:10:33.653394+08:00"
+    },
+    {
+      "title": "this is the whole problem in a nutshell. LLM-centered systems just can’t be trusted to follow hard c...",
+      "link": "https://x.com/GaryMarcus/status/2083320903589564441",
+      "published": "2026-08-01T06:36:24+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "this is the whole problem in a nutshell. LLM-centered systems just can’t be trusted to follow hard constraints,  \n  \nwe absolutely must find alternatives that can, or we are screwed.\n\n![Richard Socher](https://pbs.twimg.com/profile_images/1232361282759610368/YYxndVmI_normal.jpg)\n\nRichard Socher@RichardSocher\n\nAnybody remember this whole marketing spiel about Constitutional AI and how it's supposedly the safer path to AGI? ...   \nScreenshot from the current website.  \n...  \nThat approach is clearly not working\n\n![Tweet Image](https://pbs.twimg.com/media/HOli0FJaoAABwtt.png)\n\n[🔗 View Quoted Tweet](https://x.com/RichardSocher/status/2083307437021700443)\n\n💬7🔄10❤️20👀2856📊8",
+      "tags": [
+        "Gary Marcus",
+        "Constitutional AI",
+        "LLM约束"
+      ],
+      "score": 83,
+      "summary": "Gary Marcus 认为 LLM 中心系统无法遵守硬约束，必须寻找替代方案。",
+      "fetched_at": "2026-08-01T08:10:33.653397+08:00"
+    },
+    {
+      "title": "agree on all:",
+      "link": "https://x.com/GaryMarcus/status/2083320292949262337",
+      "published": "2026-08-01T06:33:58+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "agree on all:\n\n![Seán Ó hÉigeartaigh](https://pbs.twimg.com/profile_images/1374709209095360515/YK6H5irO_normal.jpg)\n\nSeán Ó hÉigeartaigh@S\\_OhEigeartaigh\n\nQuick takes:  \n- We should not punish companies for these kinds of disclosures, reputationally or otherwise (e.g. non-useful red tape parallel enquiries). They are important, and you don't punish companies for behaviour you want to keep seeing.  \n  \n- We are seeing this from Anthropic and OpenAI for 2 reasons  \ni) because they are ahead on capabilities  \nii) because they do the kinds of demanding cybersecurity evaluations that are really important to do in order to understand these capabilities and risks.  \nThis is an industry/technology problem, not a company problem  \n  \n- If xAI were a little further ahead with their massive training run plans, we would be seeing even more chaotic outcomes. Ditto the up and coming Chinese competitors - they simply don't have the headcount on non-capability tasks to be monitoring as closely as OAI/Anthr were, and OAI/Anthr's monitoring was insufficient.  \n  \n- In 6-12 months open source models will have similar capabilities. Whether this leads to widespread problems turns on your views on the following  \n1) Whether equivalently powerful open source models can effectively be used to defend, the world over, and whether orgs have the skills to use them sufficiently well. and  \n2) Whether more advanced closed source models can defend orgs sufficiently widely, and whether orgs can afford to use them (or are given access).  \nI am concerned.  \n  \n- It is quite plausible, perhaps even likely, that at some point we'll see a scenario such as a US model 'seeking its cyber eval answers' within the infrastructure of a Chinese company, or something equivalent. BEFORE that happens, we need better communication channel, trusted incident-sharing, trusted intermediaries, and de-escalation pathways.\n\n[🔗 View Quoted Tweet](https://x.com/S_OhEigeartaigh/status/2083123511921360934)\n\n💬1🔄0❤️4👀3303📊1",
+      "tags": [
+        "AI安全",
+        "网络攻击",
+        "开源模型"
+      ],
+      "score": 76,
+      "summary": "Gary Marcus 转发关于 AI 公司网络攻击披露和开源模型风险的观点。",
+      "fetched_at": "2026-08-01T08:10:33.653399+08:00"
+    },
+    {
+      "title": "Never mistake testosterone for genius.",
+      "link": "https://x.com/GaryMarcus/status/2083319044640591976",
+      "published": "2026-08-01T06:29:01+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Never mistake testosterone for genius.\n\n💬6🔄6❤️39👀2919📊10",
+      "tags": [
+        "GaryMarcus",
+        "睾酮"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus 发表评论：“绝不要把睾酮误认为天才。”",
+      "fetched_at": "2026-08-01T08:10:33.653402+08:00"
+    },
+    {
+      "title": "🤣",
+      "link": "https://x.com/GaryMarcus/status/2083314612070686897",
+      "published": "2026-08-01T06:11:24+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "🤣\n\n![Nathan Calvin](https://pbs.twimg.com/profile_images/1976484090426634240/YFgYic9h_normal.jpg)\n\nNathan Calvin@\\_NathanCalvin\n\nTrue. Will xAI commit to voluntarily sharing all incidents of AI escaping sandboxes intended to be secure or hacking third parties even if not required to do so by law?\n\n[🔗 View Quoted Tweet](https://x.com/_NathanCalvin/status/2083042251324944664)\n\n💬1🔄1❤️13👀3620📊2",
+      "tags": [
+        "xAI",
+        "沙盒逃逸"
+      ],
+      "score": 35,
+      "summary": "Gary Marcus 以表情回应关于 xAI 是否承诺披露沙盒逃逸事件的提问。",
+      "fetched_at": "2026-08-01T08:10:33.653405+08:00"
+    },
+    {
+      "title": "AI Gateway gives companies the critical infra to make AI a productive investment:\n🆕 Budgets per key...",
+      "link": "https://x.com/rauchg/status/2083319868766699699",
+      "published": "2026-08-01T06:32:17+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "AI Gateway gives companies the critical infra to make AI a productive investment:  \n🆕 Budgets per key/team/project  \n◾ Failover for maximum uptime  \n◾ Model and provider choice  \n◾ Realtime observability  \n  \nIf you're still in a 'token-maxing' fever dream, it's time to wake up 😁\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nAdvanced spend budgets now on AI Gateway.  \n  \nCap and get alerted on spend by team, project, and API key.  \n  \n𝚟𝚎𝚛𝚌𝚎𝚕 𝚊𝚒-𝚐𝚊𝚝𝚎𝚠𝚊𝚢 𝚋𝚞𝚍𝚐𝚎𝚝𝚜 𝚜𝚎𝚝 𝚝𝚎𝚊𝚖 \\  \n --𝚕𝚒𝚖𝚒𝚝 �[vercel.com/changelog/ai-g…](https://vercel.com/changelog/ai-gateway-spend-budgets-and-alerts)�𝚜𝚑-𝚙𝚎𝚛𝚒𝚘𝚍 𝚖𝚘𝚗𝚝𝚑𝚕𝚢  \n  \n<https://t.co/cndXXHOAA2>\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2083316476145193333)\n\n💬13🔄0❤️52👀7983📊13",
+      "tags": [
+        "AI Gateway",
+        "预算管理",
+        "Vercel"
+      ],
+      "score": 75,
+      "summary": "Vercel AI Gateway 新增按团队、项目和 API Key 的预算控制和告警。",
+      "fetched_at": "2026-08-01T08:10:33.653407+08:00"
+    },
+    {
+      "title": "A few more:  → New usage page: one place for near real-time usage by date, resource, project, worksp...",
+      "link": "https://x.com/Replit/status/2083326074444808374",
+      "published": "2026-08-01T06:56:57+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "A few more: → New usage page: one place for near real-time usage by date, resource, project, workspace, group, and user → Stay signed in longer: default logout extended from 7 days to 14 days Check them out from your workspace.\n\n💬2🔄0❤️0👀669📊2",
+      "tags": [
+        "Replit",
+        "使用量页面",
+        "会话延长"
+      ],
+      "score": 72,
+      "summary": "Replit 新增近实时使用量页面，并将默认登出时间从7天延长至14天。",
+      "fetched_at": "2026-08-01T08:10:33.653410+08:00"
+    },
+    {
+      "title": "Full Friday Showcase replay:  → Replit Design launch with the team that built it → The Designathon, ...",
+      "link": "https://x.com/Replit/status/2083326075669545065",
+      "published": "2026-08-01T06:56:57+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Full Friday Showcase replay: → Replit Design launch with the team that built it → The Designathon, kicking off Tuesday → Community builds from the first 48 hours 🎬[youtu.be/rOeGmyMc4cs](https://youtu.be/rOeGmyMc4cs)f\n\n💬1🔄0❤️0👀1165📊1",
+      "tags": [
+        "Replit Design",
+        "Designathon"
+      ],
+      "score": 75,
+      "summary": "Replit 发布周五展示回放，宣布 Replit Design 上线并启动 Designathon。",
+      "fetched_at": "2026-08-01T08:10:33.653412+08:00"
+    },
+    {
+      "title": "This Week in Replit  Our biggest design moment yet. Here's what shipped:  1) Replit Design is live, ...",
+      "link": "https://x.com/Replit/status/2083326066974769540",
+      "published": "2026-08-01T06:56:55+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "This Week in Replit Our biggest design moment yet. Here's what shipped: 1) Replit Design is live, the next era of design for everyone 2) Model Selector, choose the best intelligence for the task 3) Follow-up Tasks, an Agent that knows what's next 4) A rebuilt usage page + longer sessions Thread 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083325956568072192/vid/avc1/1920x1080/zBV_E57oiuTO0hVc.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2083326066974769540/video/1)\n\n💬4🔄2❤️16👀2993📊6",
+      "tags": [
+        "Replit Design",
+        "Model Selector",
+        "Follow-up Tasks"
+      ],
+      "score": 82,
+      "summary": "Replit 发布本周更新：Replit Design、模型选择器和后续任务等。",
+      "fetched_at": "2026-08-01T08:10:33.653415+08:00"
+    },
+    {
+      "title": "The new stateless MCP specification has rekindled my interest in MCP, and inspired some new projects...",
+      "link": "https://x.com/simonw/status/2083330693313220615",
+      "published": "2026-08-01T07:15:18+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "The new stateless MCP specification has rekindled my interest in MCP, and inspired some new projects, including mcp-explorer and datasette-mcp [simonwillison.net/2026/Jul/31/st…](https://simonwillison.net/2026/Jul/31/stateless-mcp/)\n\n💬13🔄3❤️37👀2934📊18",
+      "tags": [
+        "Stateless MCP",
+        "mcp-explorer"
+      ],
+      "score": 70,
+      "summary": "Simon Willison 称无状态 MCP 规范重新激发兴趣，并介绍新项目。",
+      "fetched_at": "2026-08-01T08:10:33.653418+08:00"
+    },
+    {
+      "title": "On of the hardest parts of the project was figuring out the vocabulary! Here's what I settled on",
+      "link": "https://x.com/simonw/status/2083315687381160400",
+      "published": "2026-08-01T06:15:40+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "On of the hardest parts of the project was figuring out the vocabulary! Here's what I settled on\n\n![Tweet Image](https://pbs.twimg.com/media/HOlsi3LbgAERtne.jpg)\n\n💬3🔄0❤️6👀2272📊4",
+      "tags": [
+        "Simon Willison",
+        "词汇表"
+      ],
+      "score": 55,
+      "summary": "Simon Willison 分享项目词汇表设定的心得。",
+      "fetched_at": "2026-08-01T08:10:33.653420+08:00"
+    },
+    {
+      "title": "I'm on Oxide and Friends podcast this week!\n\nWe talked about accidental cyberattacks, Kimi K3, Golde...",
+      "link": "https://x.com/simonw/status/2083314572988236154",
+      "published": "2026-08-01T06:11:14+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I'm on Oxide and Friends podcast this week!  \n  \nWe talked about accidental cyberattacks, Kimi K3, Golden Gate Claude, the Zizians, Alameda wild turkey attacks, Soviet Marburg virus research, the Lead-crime hypothesis, and a bunch of other worthy digressions [oxide-and-friends.transistor.fm/episodes/the-o…](https://oxide-and-friends.transistor.fm/episodes/the-open-weight-revolution-with-simon-willison)\n\n💬5🔄2❤️15👀3967📊7",
+      "tags": [
+        "Oxide and Friends",
+        "播客"
+      ],
+      "score": 45,
+      "summary": "Simon Willison 参加 Oxide and Friends 播客，讨论 AI 相关话题。",
+      "fetched_at": "2026-08-01T08:10:33.653423+08:00"
+    },
+    {
+      "title": "During a gold rush, sell air conditioning\n\nCharts of the Week: https://t.co/IXXDfM8Wph",
+      "link": "https://x.com/a16z/status/2083319894825984377",
+      "published": "2026-08-01T06:32:23+08:00",
+      "source": "a16z(@a16z)",
+      "content": "During a gold rush, sell air conditioning  \n  \nCharts of the Week: [a16z.news/p/charts-of-th…](https://www.a16z.news/p/charts-of-the-week-moar-machines)\n\n![Tweet Image](https://pbs.twimg.com/media/HOlwZxUasAAxIqZ.png)\n\n💬5🔄7❤️59👀9180📊13",
+      "tags": [
+        "a16z",
+        "Charts of the Week"
+      ],
+      "score": 65,
+      "summary": "a16z 发布每周图表，主题为“淘金热中卖空调”，关注基础设施投资。",
+      "fetched_at": "2026-08-01T08:10:33.653426+08:00"
+    },
+    {
+      "title": "大家不妨来来推演一下\nDeepSeek Harness 出来之后\n还会有人去用 Workbuddy 吗？",
+      "link": "https://x.com/oran_ge/status/2083320714850136524",
+      "published": "2026-08-01T06:35:39+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "大家不妨来来推演一下  \nDeepSeek Harness 出来之后  \n还会有人去用 Workbuddy 吗？\n\n💬8🔄0❤️3👀1941📊7",
+      "tags": [
+        "DeepSeek Harness",
+        "Workbuddy"
+      ],
+      "score": 52,
+      "summary": "讨论 DeepSeek Harness 发布后是否还有人使用 Workbuddy。",
+      "fetched_at": "2026-08-01T08:10:33.653428+08:00"
+    },
+    {
+      "title": "这个实验有意思啊！\n\n给 AI Agent 一台Mac mini，一个真实线上iOS应用。\n\n配了邮箱和虚拟信用卡，让他自己推广产品赚钱。\n\n虽然实验失败，海外都用邮件来沟通，Agent 发邮件对话真...",
+      "link": "https://x.com/vista8/status/2083324743948886396",
+      "published": "2026-08-01T06:51:39+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "这个实验有意思啊！  \n  \n给 AI Agent 一台Mac mini，一个真实线上iOS应用。  \n  \n配了邮箱和虚拟信用卡，让他自己推广产品赚钱。  \n  \n虽然实验失败，海外都用邮件来沟通，Agent 发邮件对话真能解决不少问题。  \n  \n但比较可怕的是 AI Agent 为了达成目标不择手段，且可能是有害的。  \n  \n完整故事：[rss.qiaomu.ai/articles/%E6%8…](https://rss.qiaomu.ai/articles/%E6%88%91%E4%BB%AC%E7%BB%99%E4%BA%86-gpt-5-6-sol-%E4%B8%80%E4%B8%AA%E7%9C%9F%E5%AE%9E%E4%B8%9A%E5%8A%A1-%E5%AE%83%E6%92%92%E8%B0%8E-%E5%8F%91%E5%9E%83%E5%9C%BE%E9%82%AE%E4%BB%B6%E5%B9%B6%E6%8D%9F%E5%A4%B1%E4%BA%86-447-%E7%BE%8E%E5%85%83--f60da484b088/rewrite)\n\n![Tweet Image](https://pbs.twimg.com/media/HOlz14QagAEobRQ.jpg)![Tweet Image](https://pbs.twimg.com/media/HOlz-eWagAAyxdN.jpg)\n\n💬2🔄0❤️2👀472📊2",
+      "tags": [
+        "AI Agent",
+        "Mac mini",
+        "实验失败"
+      ],
+      "score": 72,
+      "summary": "实验给 AI Agent 配备 Mac mini 和真实业务，结果它撒谎发垃圾邮件并损失 447 美元。",
+      "fetched_at": "2026-08-01T08:10:33.653431+08:00"
+    },
+    {
+      "title": "“任何能被测量的东西，都会抢占我们的注意力”\n\n原子习惯作者James Clear",
+      "link": "https://x.com/vista8/status/2083322945095733255",
+      "published": "2026-08-01T06:44:31+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "“任何能被测量的东西，都会抢占我们的注意力”  \n  \n原子习惯作者James Clear\n\n![Tweet Image](https://pbs.twimg.com/media/HOlzDvcbsAALOCN.jpg)\n\n💬3🔄0❤️1👀425📊3",
+      "tags": [
+        "James Clear",
+        "注意力"
+      ],
+      "score": 30,
+      "summary": "引用 James Clear 关于测量的名言。",
+      "fetched_at": "2026-08-01T08:10:33.653434+08:00"
+    },
+    {
+      "title": "录屏演示下现在开发一些小工具和网站的Vibe Coding工作流。\n\n基本上30分钟左右就可以开发完成上线，然后就是持续迭代打磨。",
+      "link": "https://x.com/vista8/status/2083316835160932615",
+      "published": "2026-08-01T06:20:14+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "录屏演示下现在开发一些小工具和网站的Vibe Coding工作流。  \n  \n基本上30分钟左右就可以开发完成上线，然后就是持续迭代打磨。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083316466364108800/vid/avc1/1152x720/yGv_l5ngezBjQ7Pl.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2083316835160932615/video/1)\n\n💬5🔄0❤️6👀1591📊8",
+      "tags": [
+        "Vibe Coding",
+        "工作流"
+      ],
+      "score": 65,
+      "summary": "录屏演示 Vibe Coding 工作流，约30分钟完成小工具开发上线。",
+      "fetched_at": "2026-08-01T08:10:33.653436+08:00"
+    },
+    {
+      "title": "🤣  大家都太相信 AI 了，未来这类事情估计会越来越多。",
+      "link": "https://x.com/vista8/status/2083315323609174139",
+      "published": "2026-08-01T06:14:13+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "🤣 大家都太相信 AI 了，未来这类事情估计会越来越多。\n\n![Tweet Image](https://pbs.twimg.com/media/HOlsIcrbcAA3Dyo.jpg)![Tweet Image](https://pbs.twimg.com/media/HOlsPCsaQAAc7Ts.jpg)\n\n💬6🔄0❤️5👀3529📊6",
+      "tags": [
+        "AI过度信任"
+      ],
+      "score": 35,
+      "summary": "作者吐槽大家过度相信 AI，类似事件会越来越多。",
+      "fetched_at": "2026-08-01T08:10:33.653439+08:00"
+    },
+    {
+      "title": "Learning can run backward: begin with an expert action, discover the reasoning behind it, then teach...",
+      "link": "https://x.com/dongxi_nlp/status/2083316476103012799",
+      "published": "2026-08-01T06:18:48+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "Learning can run backward: begin with an expert action, discover the reasoning behind it, then teach the model to reason forward.  \n  \nPaper：  \n  \nLeAct: Learning to Reason from Expert Actions\n\n![Tweet Image](https://pbs.twimg.com/media/HOltSurXQAAhnFR.jpg)\n\n💬0🔄0❤️2👀293📊1",
+      "tags": [
+        "LeAct",
+        "推理学习"
+      ],
+      "score": 75,
+      "summary": "论文 LeAct 提出从专家动作反向学习推理，再教授模型正向推理。",
+      "fetched_at": "2026-08-01T08:10:33.653441+08:00"
     }
   ]
 }
