@@ -1,0 +1,404 @@
+{
+  "meta": {
+    "date": "2026-08-03"
+  },
+  "entries": [
+    {
+      "title": "Cursor now shows you demos, not diffs",
+      "link": "https://youtu.be/XbZvC4KTH68?si=sEDqt3JtV0PoqLei",
+      "published": "2026-08-03T00:07:47+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "Demos"
+      ],
+      "score": 72,
+      "summary": "Cursor更新产品展示模式，由diff对比改为演示效果。",
+      "fetched_at": "2026-08-03T00:09:38.362968+08:00"
+    },
+    {
+      "title": "John Schulman on dead ends, scaling RL, and building research institutions",
+      "link": "https://youtu.be/29BYxvvF1iM?si=LRmoeWAwilHKmjGY",
+      "published": "2026-08-03T00:07:47+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "John Schulman",
+        "强化学习",
+        "研究机构"
+      ],
+      "score": 85,
+      "summary": "John Schulman在访谈中讨论RL扩展死胡同与研究机构建设。",
+      "fetched_at": "2026-08-03T00:09:38.362977+08:00"
+    },
+    {
+      "title": "Our designer built an operating system with Cursor",
+      "link": "https://youtu.be/TQhv6Wol6Ns?si=bb8_Jr5u7Kb8n6jk",
+      "published": "2026-08-03T00:07:47+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "操作系统",
+        "设计师"
+      ],
+      "score": 75,
+      "summary": "Cursor设计师展示用该工具构建操作系统的案例。",
+      "fetched_at": "2026-08-03T00:09:38.362981+08:00"
+    },
+    {
+      "title": "AI Foundations: Introduction",
+      "link": "https://youtu.be/IccjZDV93lw?si=f3mepO4Ptiqdg4F8",
+      "published": "2026-08-03T00:07:47+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [
+        "Cursor",
+        "AI基础",
+        "教程"
+      ],
+      "score": 70,
+      "summary": "Cursor发布AI基础入门教程。",
+      "fetched_at": "2026-08-03T00:09:38.362984+08:00"
+    },
+    {
+      "title": "吴恩达最新开源 AI 同事，在Github爆火了！",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247724896&idx=1&sn=527227ca49bfad6c7328ae73f234600d",
+      "published": "2026-08-02T22:38:00+08:00",
+      "source": "Datawhale",
+      "content": "原创 Datawhale 2026-08-02 22:38 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=36bc9105&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FzW6S9vt0cSicwMp7bXxwTBLA0s3EgkTVKUemabU5P6rHZnwADaWFtTSyLiaI7d79cnRENEZp92pEiamo9rdlhtM1QbeiaHYpZIQ4vCteDVy9HM8%2F0%3Fwx_fmt%3Djpeg)\n\nDatawhale干货 \n\n******开源项目：**OpenWorker********\n\n上周，吴恩达和 Rohit Prasad 一起开源了 **OpenWorker**，一个桌面端的 AI Agent。MIT 协议，完全免费。短短一周，就直接冲到了1.1w Star。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=3cc4dfa2&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cS8RicPrdw4w6yDajjm4iagd40M6TWIxyibwpibbKN8hHjEhvOxh3dHLk0CQicJiauXbRLwY7JaibON5tFIGWNTYzpSCDHgSKic4OFNpwCI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n```\n项目地址：https://github.com/andrewyng/openworker  \n官网下载：https://openworker.com\n```\n\nOpenWorker 的定位用一句话就能说清：**不是聊天机器人，是交付成果的本地 AI 同事。**\n\n**你告诉它你要什么结果，比如\"帮我准备明天和客户的会议简报\"\"整理一下这周的日历\"\"把 Slack 里这个频道的消息分个类\"。它自己拆任务、跨工具执行，最后交给你一份可以直接用的文件。不是一段对话，不是一个待办清单，是成品。**\n\n**做任何有后果的操作之前（发消息、改日历、跑命令），它会先停下来问你。你说行，它才动。**\n\n**两位作者的背景值得提一下：**一个是 AI 教育和投资领域的标杆人物，一个做过十亿级设备上 Agent 交互的工程主管**。吴恩达不用多介绍了，DeepLearning.AI 创始人、AI Fund 管理合伙人、斯坦福教授、Amazon 董事会成员。Rohit Prasad 大家可能没那么熟：前 Amazon Alexa 首席科学家，后来升任 Amazon AGI 团队负责人，直接向 Andy Jassy 汇报，去年底离开 Amazon。**\n\n一、OpenWorker 四层架构，全跑在本地\n\nOpenWorker 的技术栈分四层，全部跑在本地。\n\n```\n┌────────────────────────────────────────────────┐  \n│              OpenWorker desktop app            │  Tauri 2 + React 18  \n├────────────────────────────────────────────────┤  \n│           local agent server (Python)          │  FastAPI · 127.0.0.1:8765  \n├───────────────┬────────────────┬───────────────┤  \n│  your files   │   your tools   │  your model   │  25+ 集成 + MCP  \n│  & terminal   │ 25+ connectors │  any provider │  30 个预置模型 + Ollama  \n└───────────────┴────────────────┴───────────────┘\n```\n\n最上面是**桌面壳**，Tauri 2 + React 18，就是你看到的那个桌面应用窗口。Tauri 负责原生容器，React 负责 UI 渲染。\n\n往下是**本地 Agent 服务器**，Python 写的，FastAPI + uvicorn，默认绑定 127.0.0.1:8765。这是整个系统的核心，负责任务规划、工具调用和记忆管理。\n\n再往下是**能力和连接器层**。本地工具包括文件系统、Git、ripgrep 搜索、终端；远程集成有 25 个以上，GitHub、Slack、Jira、Notion、Linear、HubSpot、Outlook、monday.com、Gmail、Google Calendar 都在列。不够用的话，任何支持 MCP 协议的工具都能接进来。\n\n最底下是**模型路由层**，这里用到了吴恩达自己的另一个开源项目 **aisuite**，一个轻量级 Python 库，提供跨 LLM 厂商的统一 chat-completions 接口，外加 Agent 层、工具层和 MCP 支持。OpenWorker 官方 README 里写得很直白：如果你想自己搭 Agent 框架而不是用我们的，先去看 aisuite，这个仓库本身就是 aisuite 能做什么的一个参考实现。\n\n模型支持方面，预置了 30 个经过工具调用验证的模型，覆盖 OpenAI、Anthropic、Google Gemini、DeepSeek、Kimi、GLM、Qwen、MiniMax、Mistral、xAI Grok，加上 Together 和 Fireworks 上的开源权重模型，以及通过 Ollama 跑的本地模型。最新的 v0.1.7 又加入了 AWS Bedrock、Google Vertex AI、OpenRouter 和 Meta Muse Spark。自带 API Key，选谁用谁，随时切换。\n\n二、最值得看的设计：权限模型，为 Agent 安全而生\n\n这部分是 OpenWorker 最值得拆开看的设计。\n\n大多数 Agent 项目处理权限的方式比较粗放：要么让 Agent 自由执行，要么每个操作都弹窗确认。OpenWorker 做了一套分级系统。\n\n首先，每一次工具调用都会被分到四个风险等级之一：\n\n* read：读取，没有副作用，始终允许。\n* write\\_local：本地写入，限定在工作区路径范围内。\n* exec：执行命令。\n* external：向外部发送信息（发消息、调 API、改日历）。\n\n在此之上，有五种权限模式来决定每个等级的操作怎么处理：\n\n**discuss** 和 **plan** 是纯只读模式，Agent 只分析不动手。**interactive** 是默认模式，读取自动通过，写入、执行和外部操作都需要你确认。**auto** 允许所有操作但限定路径范围。**custom** 让你指定哪些工具自动放行。\n\n这套设计里有一个很反直觉的决策：**无人值守模式不会提升 Agent 的自主权限上限。**\n\n什么意思？如果你让 OpenWorker 在后台跑一个定时任务（比如每天早上自动整理一份简报），它遇到需要确认的操作时不会自己做主，也不会跳过。它会把确认请求放进一个收件箱（Inbox），然后暂停 session，等你回来处理。\n\n大多数 Agent 框架把\"用户在不在\"和\"Agent 能干什么\"混在一起。你不在，它就默认可以干更多。OpenWorker 把这两个维度拆开了：你不在场只改变 Agent 找你的方式，不改变它能做的事。另外，shell 命令在任何模式下都必须确认，没有例外。\n\n## 三、适合想改造 Agent 框架的开发者\n\nOpenWorker 目前是 Open Beta 状态。Mac 版已上线，签名公证都有，支持自动更新。Windows 版有安装包（分 Windows 10 和 11），但还没完成代码签名，安装时会触发 SmartScreen 警告。没有 Linux 版。没有中文界面。\n\n它的代码规模不小：coworker/ 目录下有约 119 个 Python 文件（约 32400 行），surfaces/gui/ 下有约 149 个 TypeScript/TSX 文件，加上 78 个后端测试模块，是一个有完整工程结构的产品级代码库。\n\n但它确实还在快速迭代。从 7 月 23 日发布到现在，已经更新到 v0.1.7，加了自动上下文压缩、token 用量显示、Anthropic 模型的 prompt caching 等功能。项目主页也明确说了，团队内部有一套开发计划，不一定会接受所有方向的 PR。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=0e73eafd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cS8wuZadSz9eF1W0tWb0rUwzwppmsw1ek9K8x9YakaLKFcFHR1msEERSGzMZ4k5kU5T7FfOptMEY76MUdl6ianzgzYIe0FcibYvPY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n跟商业产品对比的话：Claude Cowork 和 ChatGPT Work 在集成度和打磨程度上目前领先，但两者都锁定在各自的模型生态里，数据走云端。OpenWorker 的优势在于开源、本地优先、模型无关，适合对数据隐私有要求或者想自己改造 Agent 框架的团队和开发者。\n\n如果你想从源码跑：\n\n```\ngit clone https://github.com/andrewyng/openworker  \ncd openworker  \n# 初始化环境（创建 .venv）  \nbash packaging/setup_dev_env.sh  \n# 启动本地 Agent 服务器  \n.venv/bin/openworker-server --cwd ~/your/project --port 8765  \n# 另开一个终端，启动 UI  \ncd surfaces/gui  \nnpm install  \nnpm run dev\n```\n\n需要 Python 3.10+、Node 20+。如果要跑完整的桌面版而不是浏览器 UI，需要 Rust 工具链，把最后一步换成 npm run tauri dev。\n\n或者直接去 openworker.com 下载桌面客户端，装好之后填一个模型的 API Key 就能用。\n\n```\n项目地址：https://github.com/andrewyng/openworker\n```\n\n![图片](https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247724896&idx=1&sn=527227ca49bfad6c7328ae73f234600d)\n\n**一起“**点****赞”****三连**↓**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=b36b3e53&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIyNjM2MzQyNg%3D%3D%26mid%3D2247724896%26idx%3D1%26sn%3D527227ca49bfad6c7328ae73f234600d)",
+      "tags": [
+        "OpenWorker",
+        "吴恩达",
+        "AI Agent"
+      ],
+      "score": 88,
+      "summary": "吴恩达开源AI Agent OpenWorker，一周获1.1万Star。",
+      "fetched_at": "2026-08-03T00:09:38.362987+08:00"
+    },
+    {
+      "title": "Welcome to Agents Week",
+      "link": "https://blog.cloudflare.com/agents-week-welcome/",
+      "published": "2026-08-03T00:00:00+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "This week is Agents Week.\n\nAs we started thinking about and planning the week, we wrestled with a broader question of what it means to support this new era of agents and what a purpose-built foundation for agents actually looks like.  Which brought us to a simpler framing: what is an Agent Cloud?\n\nWe quickly realized however, that our framing was wrong. Not because it’s the wrong question to ask, but because of who we were asking — ourselves, instead of our agents. It’s no longer about us and what we think, but about what agents need.\n\nThat, in a nutshell, is what Agents Week is about.\n\nThe cloud we have today, and the web it sits on, were built for people. Every layer assumes a human is watching: pages designed to hold your attention, dashboards to click through, interfaces tuned for how we read and decide. But agents don't work that way. They don't get distracted, tired or fatigued…  and they have their own needs around speed, structure, and access.\n\nAn Agent Cloud has to do two things at once. It has to set us up for an agent-native future, where the primitives are built for agents from the ground up rather than retrofitted from human tools. And realistically, it has to meet us where we are today, acting as a translation layer between the human-shaped web that exists now and the agent-shaped one we're moving toward.\n\nThat's the throughline for the next five days: the shape of a cloud built for agents and humans and how they interact. The week will explore the theme through what that means for the primitives and execution layer you need, the updated agentic software development lifecycle, how organizations can securely enable employees and agents to interact with safe controls, how this shapes the agentic web, and finally, grounding all of it in the reality of agents and humans today.\n\nGoing back to the question: what does your agent need from an Agent Cloud? Well, rather than copy and pasting responses we got from our agents, we encourage you to ask your own agent that, and share any interesting insights and responses you get. Here’s an example prompt for you to use, but we encourage you to explore answers of your own:\n\n*What do you, as an agent, need from an agent cloud? Imagine things across the categories of a storage & compute cloud and the execution and storage primitives you need, your dev lifecycle (adlc - like sdlc but with humans taken out of the loop), secure access to systems of record within an organization to get deep work done, and the web (discovery, access, payments...).*\n\nLet us know what your agent says by replying here, we’d love to see the responses!\n\n[Follow along on the blog this week](https://blog.cloudflare.com/) for the latest innovations around Agents, and [reach out on X](https://x.com/CloudflareDev) to join in the conversation.",
+      "tags": [
+        "Cloudflare",
+        "Agent Cloud",
+        "Agents Week"
+      ],
+      "score": 82,
+      "summary": "Cloudflare启动Agents Week，探讨Agent Cloud概念与需求。",
+      "fetched_at": "2026-08-03T00:09:38.362990+08:00"
+    },
+    {
+      "title": "美团正式发布 CatPaw：全场景 AI Agent，从个人提效到企业智能化",
+      "link": "https://tech.meituan.com/2026/07/28/CatPaw-LongCat.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "本月，美团 LongCat 2.0 已[正式开源](https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html)，总参数 1.6T，平均激活约 48B，动态范围 33B 到 56B，原生支持 1M 超长上下文。这是首个在五万张国产算力卡上完成全流程训练与推理的万亿参数模型。开源只是第一步，让 LongCat 2.0 在真实的工作任务中成为可靠的“工作伙伴”，才是真正的考验。\n\n现在，搭载 LongCat 2.0 的美团全场景 AI Agent 平台 [CatPaw](https://catpaw.meituan.com/) 正式上线，将模型能力从“跑得动”推向“用得好”。CatPaw 提供开箱即用的 AI 智能工作台与企业级 Agent 开发托管能力。\n\n不仅如此，依托美团十余年深耕本地生活的行业积累，CatPaw 将商家经营、服务履约与消费决策的深度认知融入其中，助力企业构建 AI 数字员工、推进业务智能化升级。\n\n目前，CatPaw 已在美团内部大规模落地：累计覆盖 9 万员工、搭建 Agent 3 万个，并在多个真实业务场景中完成验证。\n\n## 全时段运行，多终端协作的 AI 智能工作台\n\n### 01 移动/PC/云端，全时段多端协作\n\n提供独立的**移动端 App 与 PC 客户端**，双端任务实时同步、无缝协作。移动端支持随时发起任务、查看进度与远程确认关键决策；PC 端专注本地深度执行，具备文件操作、浏览器控制与终端命令等完整能力。\n\n云端模式支持 **7 × 24 小时不间断运行**，即使本地设备关机或断网也不受影响。长程任务与定时任务于云端持续运转，完成后随时打开手机或电脑即可查看成果。\n\n![](https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png)\n\n### 02 深耕本地生活，融合美团业务生态\n\n在全场景通用 AI Agent 能力的基础上，CatPaw 进一步融入了美团在本地生活领域的全链路行业认知。从门店经营、评价体系、营销转化到履约配送，这些深度积累已被封装为即装即用的**专家与技能**，覆盖门店评价诊断与优化、商品文案生成、营销物料设计评估、活动策划、经营数据分析等场景。\n\nCatPaw 既是人人可用的**全能 AI 助手**，也是真正懂本地生活生意的智能搭档。\n\n![](https://p1.meituan.net/meituantechblog/864f86011bdcc6a2428f980323605284136476.png)\n\n### 03 专家与技能，丰富能力即装即用\n\nCatPaw **支持 AI 专家**，每位专家**集成多项技能与子代理，高效完成特定领域的复杂任务**。从专家广场**一键安装**即可使用，也可通过对话将自己的工作方式快速封装为专属专家，团队共享复用。\n\n平台内置丰富的技能库，开箱即用。内嵌浏览器还**支持操作过程一键录制**，将日常高频流程自动生成专属技能，让个人与团队经验沉淀为可复用的数字化资产。\n\n支持**跨会话长期记忆**，自动记忆用户的个性化偏好、操作习惯与历史上下文，跨设备、跨对话保持连续理解，越用越懂你。\n\n![](https://p0.meituan.net/meituantechblog/7f715c1d858cead54dad86e431e30153313940.png)\n\n### 04 对话即交付，多 Agent 自主协同\n\n只需明确最终目标，Agent 便会**自主规划步骤并在授权范围内深度执行**：读取文件、操作浏览器、运行终端命令，直接交付 Excel、可视化报告或代码等可用成果。\n\n面对跨领域的复杂任务，系统动态进行任务拆解，**调度多个具备专属工具的 Agent 并发处理**，各 Agent 在独立环境中互不干扰，进度实时可见，结果自动汇总。\n\n![](https://p0.meituan.net/meituantechblog/2122a550b13a060033f2a0343680ccfa345379.png)\n\n## 从 AI 工作台到业务系统：Managed Agents\n\nCatPaw Managed Agents 是企业级 AI Agent 开发与托管平台，提供开箱即用的工程底座，**无需从零搭建底层基建**，即可快速构建、部署与管理专属 Agent。\n\n### 01 数字员工，扫码即用灵活配置\n\n数字员工是运行在飞书、企微等 IM 中的 AI 虚拟同事，@ 即可唤醒使用。**平台预置多种角色模板，扫码即用**；美团在本地生活领域的长期积累也已沉淀为专属模板，不只是通用的聊天机器人，而是理解业务的行业 AI 助手。\n\n同时支持通过 **AI 对话描述需求，快速生成专属数字员工**。从 Agent 创建到环境部署、会话初始化，**全程自动完成，无需手动配置**。\n\n提示词、知识库、凭证、工具均支持在线管理，团队可按业务场景灵活搭建。\n\n![](https://p0.meituan.net/meituantechblog/a4a4286eab88dc7a9fb8ad4a359f57d3202455.png)\n\n### 02 企业级安全，数据隔离可控\n\n**Agent 运行环境严格隔离**，租户间数据互不可见。凭证集中托管，**确保 Agent 全程零接触敏感资产**。\n\n支持**分级权限管控**与私有化部署，全面满足企业合规与安全审计要求。\n\n![](https://p0.meituan.net/meituantechblog/d8ea3582939d36764915e7b5f848790e478278.png)\n\n### 03 Agent 托管运行，持续在线\n\n支持**按需配置运行环境**，一键托管上线，**资源动态扩缩**。\n\n沙箱环境轻量隔离，百毫秒级冷启动，闲时自动释放，兼顾响应速度与成本。\n\n![](https://p0.meituan.net/meituantechblog/1c65c6d75279f7085030ad763eeff3b2368282.png)\n\n### 04 可视化运维，全链路可观测\n\n提供统一的运维管理界面，**会话记录完整留存可追溯**，支持在线调试实时排查问题，**模型调用量与消耗清晰可见**。\n\n多维度数据统计与分析，帮助团队持续评估 Agent 表现、优化运行效果。\n\n![](https://p0.meituan.net/meituantechblog/4344c5e90e47733d89ef9ee3d792f88f140185.png)\n\n## 从个人提效到组织智能化：与商家一起探索更多可能\n\n在全场景 AI 能力之上，CatPaw 提供**组织级的管理与管控能力**，满足商家\\*\\*规模化落地 AI \\*\\*的管理需求。\n\nCatPaw 提供统一管理后台，支持团队账号体系。团队成员与权限集中管理，用量明细与消耗实时可查，成本清晰可控。AI 专家和技能支持按团队或角色集中配置与精准下发，一线员工开箱即用，AI 能力快速转化为实际生产力。\n\n此外，CatPaw 还提供与**美团业态深度关联的专属专家与技能**，覆盖外卖、服务零售、医药健康等多个行业。以服务零售为例，美团商家运营专家整合了经营数据分析、评价管理、门店装修等核心场景，帮助商家实现智能化运营。\n\nCatPaw 将持续深入行业场景，让 AI Agent **真正成为驱动经营增长的数字化伙伴**。更多能力陆续开放中，**诚邀美团合作商家抢先体验**。\n\n**体验地址**：<https://catpaw.meituan.com/>",
+      "tags": [
+        "CatPaw",
+        "美团",
+        "LongCat 2.0"
+      ],
+      "score": 88,
+      "summary": "美团发布全场景AI Agent平台CatPaw，已覆盖9万员工。",
+      "image_url": "https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png",
+      "fetched_at": "2026-08-03T00:09:38.362993+08:00"
+    },
+    {
+      "title": "ICML 2026 | 美团技术团队学术论文精选",
+      "link": "https://tech.meituan.com/2026/06/29/ICML-2026.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "ICML（International Conference on Machine Learning，国际机器学习大会）是机器学习领域最具影响力的国际顶级学术会议之一。大会旨在探讨机器学习未来发展所面临的关键挑战与核心问题，并通过征集和评估具有重要理论价值和实际影响的前沿研究成果，推动领域发展并引领未来研究方向。2026年，ICML共收到全球篇论文23918投稿，最终6352篇被接收，接收率约为26.6%。本文解读了美团技术团队被收录的13篇论文，覆盖智能体推理、强化学习训练、复杂任务生成、智能体基准测试、监督微调等技术方向。\n\n## 01 MemOCR: Layout-Aware Visual Memory for Efficient Long-Horizon Reasoning\n\n**MemOCR：面向高效长程推理的版面感知视觉记忆机制**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.21468)\n\n![](https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp)\n\n**论文简介**：长时间跨度的智能体推理需要将不断增长的交互历史有效压缩到有限的上下文窗口中。现有的大多数记忆系统将历史序列化为文本，其中token级别的开销是均匀的，且与长度线性增长。为此，我们提出了MemOCR，一种多模态记忆智能体，通过视觉布局实现自适应信息密度的记忆空间分配，从而在紧张的上下文预算下提升长时间跨度推理能力。在长上下文多跳和单跳问答基准测试中，MemOCR优于强文本基线方法，并在极端预算条件下实现了更有效的上下文利用。\n\n## 02 ScaleEnv: Scaling Environment Synthesis from Scratch for Generalist Interactive Tool-Use Agent Training\n\n**ScaleEnv: 从零开始构建可扩展的环境合成系统用于通用交互式工具使用智能体的训练**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.06820)\n\n![](https://p1.meituan.net/meituantechblog/ccceeac77d665e5ffea65436222decc7118744.webp)\n\n**论文简介**：为智能体配备交互式环境和可验证任务以进行自我探索，对于培养能够适应多样化场景的通用智能体至关重要。我们提出了ScaleEnv，一个完全从零开始构建全交互式环境和可验证任务的框架。ScaleEnv通过程序化测试确保环境的可靠性，通过工具依赖图扩展和可执行动作验证来保证任务的完整性和可解性。在未见过的多轮工具使用基准测试上展示了显著的性能提升，突显了强大的泛化能力。\n\n## 03 V\\_0: A Generalist Value Model for Any Policy at State Zero\n\n**V\\_0：一种适用于任意策略在初始状态下的通用价值模型**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.03584)\n\n![](https://p0.meituan.net/meituantechblog/78419c635c8bc694f07882566afb116176626.webp)\n\n**论文简介**：大语言模型的强化学习训练中的价值模型面临耦合困境：它们需要与更新中的策略同步训练。我们提出了V\\_0，一种通用价值模型，通过将任务重新定义为上下文学习来预测未见策略的性能，从而将价值估计与特定策略参数解耦。实验结果表明，V\\_0在GRPO训练过程中追踪策略演化方面优于耦合价值模型，能够优化冷启动预算分配，并在推理路由中逼近性能-成本的帕累托前沿。\n\n## 04 Learning to Self-Verify Makes Language Models Better Reasoners\n\n**学习自我验证使语言模型成为更好的推理者**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.07594)\n\n![](https://p1.meituan.net/meituantechblog/75add83935b72c67529dc96ae4b6a9b268520.webp)\n\n**论文简介**：近期的大语言模型在为复杂任务生成有前景的推理路径方面表现出色，但在验证自身答案方面仍然薄弱。我们发现学习自我验证能够有效提升生成性能，产生更高效的推理轨迹。我们提出了一个多任务强化学习框架，将生成和自我验证作为两个独立但互补的目标进行联合优化。实验表明，该方法在生成和验证能力上均优于仅进行生成训练的方法。\n\n## 05 AgentNoiseBench: Benchmarking Robustness of Tool-Using LLM Agents Under Noisy Condition\n\n**AgentNoiseBench：噪声条件下工具使用型大语言模型智能体的鲁棒性基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.11348)\n\n![](https://p0.meituan.net/meituantechblog/31e3e86e970c5c79e9b4d762b09326dd118430.webp)\n\n**论文简介**：随着基于大语言模型的智能体越来越多地部署在实际工作流程中，现有的智能体基准测试不足以刻画智能体在不完美用户指令和不可靠工具反馈下的鲁棒性。我们提出了AgentNoiseBench，一个用于系统评估大语言模型智能体交互式噪声鲁棒性的框架。该基准建模了用户侧指令噪声和工具侧结果噪声两种主要噪声来源，提供模块化噪声注入管道和多维度评估指标。通过对25个工具使用模型的评估，发现工具侧噪声通常比用户侧噪声引起更大幅度的性能下降。\n\n## 06 AJ-Bench: Benchmarking Agent-as-a-Judge for Environment-Aware Evaluation\n\n**AJ-Bench：面向环境感知评估的智能体裁判基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.18240)\n\n![](https://p1.meituan.net/meituantechblog/2b3544e8ab174ad18492a3a6c98ed6b9127010.webp)\n\n**论文简介**：随着强化学习不断推动基于大语言模型的智能体训练规模化，在复杂环境中可靠地验证智能体行为变得日益困难。现有方法依赖基于规则的验证器或 LLM-as-a-Judge 模型，但这些方法难以泛化到狭窄领域之外。Agent-as-a-Judge 通过主动与环境和工具交互以获取可验证的证据来解决这一局限性，但其能力仍未得到充分探索。 我们提出了一个基准测试 AJ-Bench，用于系统性地评估\"智能体充当评判者\"在三个领域——搜索、数据系统和图形用户界面——中的表现，涵盖155个任务和516条标注轨迹。该基准全面评估了评判智能体在信息获取、状态验证和过程验证方面的能力。实验表明，相比 LLM-as-a-Judge 基线方法，该方法取得了稳定的性能提升，同时也揭示了基于智能体的验证中仍存在的重大开放性挑战。\n\n## 07 LUVE : Latent-Cascaded Ultra-High-Resolution Video Generation with Dual Frequency Experts\n\n**LUVE：基于双频率专家的潜空间级联超高分辨率视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.11564)\n\n![](https://p0.meituan.net/meituantechblog/adcdda2e2386d052a06f76362ffc24df164210.webp)\n\n**论文简介**：为解决超高分辨率视频生成中连贯性与算力难以兼顾的难题，该论文提出了基于双频专家的潜空间级联框架LUVE。该框架创新性地采用三阶段架构：先通过低分辨率生成保障运动一致性；接着利用潜空间上采样直接提升分辨率，大幅降低内存与计算开销；最后融合高低频专家细化高分辨内容，全面增强全局语义与局部细节。实验表明，LUVE展现出了卓越的逼真度与内容保真度，其核心思想现已成功应用于美团LongCat-Video模型中。\n\n## 08 Infinite-World: Scaling Interactive World Models to 1000-Frame Horizons via Pose-Free Hierarchical Memory\n\n**Infinite-World：通过无位姿层次化记忆将交互式世界模型扩展至1000帧**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.02393)\n\n![](https://p0.meituan.net/meituantechblog/7e37532eff0ab36936a1b9cd21f869e7119212.webp)\n\n**论文简介**：Infinite-World 是面向真实场景中的长程交互式世界模型，其目标是在 1000+ 帧生成中保持稳定的视觉记忆和动作响应。针对真实视频中位姿噪声大、视角回访稀少的问题，论文提出三点创新：用无位姿层级记忆压缩器将历史 latent 压缩为固定预算记忆，降低长程建模成本；用不确定性感知动作标注提升噪声轨迹下的动作学习；再通过高回访数据微调增强 loop closure 能力。整体上，它让世界模型更适合从真实视频学习长时空一致性。\n\n## 09 WildActor: Unconstrained Identity-Preserving Video Generation\n\n**WildActor：无约束身份保持视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2603.00586)\n\n![](https://p1.meituan.net/meituantechblog/24933777ccb49e8a29a709b287221cd8309446.webp)\n\n**论文简介**：本文提出 WildActor，一种面向无约束身份保留的视频生成新框架，旨在应对现有方法在动态长镜头和视角剧烈切换时面临的全身体态不一致、面部漂移及姿态僵死伪影。在机制层面，WildActor 构建了含1.6M视频和18M多视角图像的大规模数据集 Actor-18M，有效解决原始数据中的正脸偏置；同时引入非对称身份保留注意力（AIPA）解耦身份与运动生成，并结合身份感知3D旋转位置编码（I-ROPE）显式分离时空 Token，配合视角自适应蒙特卡洛采样实现了鲁棒的任意视角条件控制。实验表明，WildActor 在新构建的 Actor-Bench 连贯叙事与泛化测试中，不仅全身一致性与文本对齐度显著超越现有开源及商业大模型，还验证了其在复杂现实场景下保持物理恒常性的优越性。\n\n## 10 Navigating the Pareto Frontier of Alignment: Spectrum-Adaptive Fine-Tuning for LLMs\n\n**SAFT：面向大语言模型的谱自适应微调方法**\n\n**论文下载**：[PDF](https://github.com/sjtu-scx/SAFT/blob/main/SAFT.pdf)\n\n![](https://p0.meituan.net/meituantechblog/f7b88b332a240ef7176c970b7c6879cd170832.webp)\n\n**论文简介**：监督微调常用交叉熵作为目标函数，虽然学习高效，但它并非正确率的光滑近似，还会因为特别关注预测概率低的样本从而容易对噪音过度拟合并过度自信。DFT则在梯度层面等同优化正确率的光滑近似函数，在保持训推一致性的同时提升了鲁棒性，但也会削弱对可学习的难样本的学习效率。因此，SFT 与 DFT 构成效率—鲁棒性两个端点，而真实数据应选择哪种折中取决于其未知的内在 SNR。我们提出轻量的 pre-test protocol：用少量训练数据分别训练 SFT/DFT 并在验证集比较表现，SFT 更优则判定为高 SNR 并选择几何插值Geo-SAFT，DFT 更优则判定为低 SNR 并选择调和插值Har-SAFT。相比仍保留低置信梯度发散的线性插值，SAFT 通过数据自适应的几何/调和非线性插值匹配不同噪声 regime，从而获得更优的鲁棒性—效率 Pareto trade-off。\n\n## 11 TRIP-Bench: A Benchmark for Long-Horizon Interactive Agents in Real-World Scenarios\n\n**TRIP-Bench：真实场景中长时域交互式智能体的基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.01675)\n\n![](https://p0.meituan.net/meituantechblog/99f9fc23599da395c9ace3cba6c7d90787516.webp)\n\n**论文简介**：本论文提出了 TRIP-Bench，一个面向长程交互式 Agent 的旅行规划评测基准。它基于真实世界数据构建，包含 18 个工具和 40 多类旅行约束，重点考察模型在多轮对话中保持全局约束、调用工具、处理用户需求变化和方案反复修改的能力。其困难任务最长可达 15 轮用户交互、150 次以上工具调用，甚至超过 20 万 tokens 上下文。实验表明，现有先进模型在该基准上仍表现有限。论文进一步提出 GTPO 多轮强化学习方法，通过奖励归一化和轮次级奖励差分提升模型鲁棒性，使 Qwen2.5-32B-Instruct 在评测中超过 Gemini-3-Pro。\n\n## 12 InfVSR: Toward Consistency-Driven Streaming Generative Video Super-Resolution\n\n**InfVSR：面向一致性驱动的流式生成视频超分辨率**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2510.00948)\n\n![](https://p0.meituan.net/meituantechblog/8120868b5fc25080dc2c2986f2323c5468146.webp)\n\n**论文简介**：本文提出了 InfVSR，一种面向一致性驱动的流式生成视频超分辨率新框架，旨在解决扩散式视频超分方法在长视频场景中存在的推理效率低、显存占用大和时序不一致问题。其核心机制包括：将预训练视频 DiT 改为因果流式架构，引入滚动 KV 缓存以维持局部过渡平滑性；设计联合视觉引导通过交叉注意力注入全局语义锚点，抑制累积误差漂移。训练阶段结合分块像素监督与跨块分布匹配，双重约束时序一致性，并将扩散过程蒸馏为高效单步推理。实验表明，InfVSR 在多项基准上取得 SOTA 性能，时序一致性显著领先，推理速度提升 58 倍且长序列显存占用恒定。\n\n## 13 DRIVE: Distributional and Retrieval-Augmented Bidding with Value Evaluation\n\n**DRIVE**：基于混合分布与检索增强的价值评估出价策略\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.14192)\n\n![](https://p0.meituan.net/meituantechblog/3c5da2f5bb1f05cb0e55acd180e633f544634.webp)\n\n**论文简介**：针对标准Decision Transformer (DT)在复杂竞价环境中的三大痛点（“平均动作”陷阱、长尾幻觉、缺乏推理优化），提出“生成—检索—评估”闭环框架：1）用高斯混合模型替代确定性输出，解决多模态策略坍缩问题；2）引入检索机制增强长尾场景记忆，避免参数化模型幻觉；3）通过IQL Critic实现闭环择优，对生成动作与历史动作进行实时评估。该方案显著提升决策鲁棒性。",
+      "tags": [
+        "ICML 2026",
+        "美团",
+        "学术论文"
+      ],
+      "score": 80,
+      "summary": "美团13篇论文被ICML 2026接收，覆盖智能体推理等方向。",
+      "image_url": "https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp",
+      "fetched_at": "2026-08-03T00:09:38.362996+08:00"
+    },
+    {
+      "title": "LongCat 开源 VitaBench 2.0：长期动态智能体基准新标杆",
+      "link": "https://tech.meituan.com/2026/06/29/LongCat-VitaBench-2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "一个经常加班的白领，一个带着孩子出游的父亲，你的AI助理能分清他们需要什么样的服务吗？\n\n现实是，它常常分不清。\n\nAI能执行你明确的指令，却很难记住那些藏在场景和身份背后的真实需求。它们是真的无法理解，还是“情商”不够高呢？\n\n自去年10月发布了 **VitaBench 1.0**，首次定义了生活场景下智能体任务的复杂度，美团 Longcat 团队再次推出 VitaBench 2.0，它不再仅仅关注任务有多难，而是将目光投向了更深层次的挑战。\n\n**VitaBench 2.0 是首个真实生活场景下面向长期动态用户建模的智能体评测基准，它系统性地评测大语言模型在长期、真实、动态的用户互动中个性化与主动性的能力**。\n\n**VitaBench 2.0 的 核心“硬核”看点**：\n\n* 高难度业界首创：首次将智能体场景与丰富用户生态相结合，打造面向长期动态用户建模的智能体基准。其包含56名真实特征用户、819个复杂任务、超2000个动态偏好及66个可执行工具。\n* 超长跨度动态追踪：平均每位用户包含 2093 个交互事件，平均时间跨度长达 1580 天，严格按时间线向 Agent 暴露，真实还原用户偏好的演进与漂移。\n* 统一评测生态：针对长文本上下文学习（In-context learning）与智能体记忆策略（Memory Strategy）的统一评测平台。\n\n## 01 设计原理：VitaBench 2.0的三维解构\n\n能得出这些结论，得益于VitaBench 2.0的核心设计。它不再是简单的问答，而是围绕三大创新构建了一个前所未有的评测体系。\n\n![图1：VitaBench 2.0 概览图](https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp)\n\n### 1.1 搭建“人生副本”：让AI在真实用户轨迹中接受考验\n\n不同于一次性的问答，VitaBench 2.0为56位虚拟用户，在送餐、到店、差旅等多个真实领域中，构建了包含2000多种动态偏好、跨度长达数年的生活轨迹。\n\n这背后是庞大而真实的数据支撑。如下图所示，这些图表直观地展示了我们构建的用户画像和偏好分布的真实性与复杂性。\n\n![图2：VitaBench 2.0 用户画像统计图](https://p0.meituan.net/meituantechblog/54c8ca3a15f23f55b88d079885aedf63148034.webp)\n\n![图3：VitaBench 2.0 用户偏好统计图](https://p0.meituan.net/meituantechblog/765450b81465c59972ae583ca0946e64149788.webp)\n\n具体来说，这个数据生态包含：\n\n* 56个拟真用户，每个用户都拥有基于真实世界统计数据构建的独特身份、习惯和需求。\n* 819个可执行任务，贯穿于用户的整个生命周期。\n* 用户的偏好不是静态标签，而是会随着时间、事件而动态演变，平均每个用户的偏好会发生超过48次动态变化。\n\n这些偏好被巧妙地嵌入到碎片化的互动历史中，包括对话记录和行为日志（如浏览、搜索、下单）。智能体必须像侦探一样，从这些混杂着“信号”与“噪音”的线索中，持续对用户进行理解。\n\n### 1.2 引入“时间标尺”：将持续理解作为核心目标\n\n传统的Agent评测关注“单个任务是否完成”，而VitaBench 2.0的核心目标是评测**智能体是否在持续理解一个动态的人**。\n\n为此，我们将评测的时间轴拉长到了前所未有的尺度，用户的平均交互周期长达**1580天（约4.3年）**，最长甚至达到 **2,974** 天。在这漫长的时间线里，智能体需要不断地**提取、利用、并更新**对用户的理解，才能在后续的任务中做出正确决策。这从根本上改变了评测的焦点，从单次任务的成功，转向了对用户偏好的考核。\n\n### 1.3 设立“记忆擂台”：对决AI的两种记忆模式\n\n为了探究记忆在长期用户建模中的作用，VitaBench 2.0搭建了首个真实用户场景下的统一长期智能体评测平台，通过可扩展的接口，让两种代表性机制在此对决：\n\n* **智能体记忆**： AI自己决定记住什么、忘记什么，主动维护一个精炼的用户档案。\n* **RAG记忆**： 像一个外部搜索引擎，根据当前任务检索最相关的历史片段。\n\n通过对比这两种模式，我们可以清晰地看到不同记忆架构，以及同架构下的不同设计对个性化决策的真实影响，从而回答“AI应该如何记忆”这一关键问题。同时，为了考验AI的“眼力劲”，我们还设计了主动性任务。在这些任务中，AI必须意识到信息不足并主动提问，而不是盲目决策。\n\n## 02 核心洞察：用数据看清模型的短板\n\nVitaBench 2.0不仅给出了总分，更用数据揭示了模型们犯错的具体原因。如表1所示，这是主要模型在不同记忆设置下的性能排行榜。\n\n![表1：主要模型在不同记忆设置下的性能表现](https://p1.meituan.net/meituantechblog/521cabb68ee8fad43452344cba3bb4a1649960.webp)\n\n从排行榜（表1）可以看出，即使在能看到全部历史记录的“开卷”模式下，最强的模型Claude-Opus-4.6的平均分也刚过0.5，说明从海量信息中准确提炼偏好本身就比较困难。而一旦切换到更真实的记忆模式，模型的表现出现了不同程度的下滑。\n\n**洞察一：时间越长，AI忘得越快**\n\n如下图所示，随着任务序列索引增加（即时间推移），所有模型的平均性能都在下降。这说明，无论是处理超长上下文的能力，还是记忆模块的累积误差，都严重限制了AI的长期服务能力。\n\n**更关键的是，记忆并没有成为解药**。对比实验结果发现，大部分模型在接入Agentic Memory或RAG Memory后，性能反而低于直接使用全历史记录的场景——**记忆不是装上就好**，如何正确更新、检索和利用，才是真正的挑战。\n\n![图4：模型性能随任务序列（时间）的衰减分析](https://p1.meituan.net/meituantechblog/212aa3a638a9bcacbbcadea7718d77d628306.webp)\n\n**洞察二：高“智商”不等于高“情商”**\n\n一个常见的假设是，开启模型的“思考模式”能提升其表现。然而，VitaBench 2.0 的实验结果给出了相反的答案：**开启思考模式，在个性化任务上并不总是有帮助**。\n\n下图展示了模型在开启/关闭思考模式下的性能与效率关系。横轴是完成任务所需的交互轮数（越少越好），纵轴是平均性能（越高越好），理想的模型应位于左上角。可以看到，开启思考模式的点并没有稳定地比关闭模式更优越。\n\n![图5：开启/关闭思考模式下的模型性能与效率](https://p0.meituan.net/meituantechblog/5e633bfcc648e2d8d5b34eaaa9469a7048792.webp)\n\n**洞察三：AI普遍缺乏“主动沟通”的意愿**\n\n模型普遍缺乏在信息不足时主动提问的“眼力见”。所有模型家族在需要主动提问的任务上，得分都出现了“断崖式”下跌。例如，Claude家族的平均分从46.0骤降至27.4。这表明，AI倾向于“想当然”，而不是在不确定时“多问一句”。\n\n![图6：模型在主动性任务上的性能表现](https://p0.meituan.net/meituantechblog/dc9b1835d1107a759336fabf3ba6870074674.webp)\n\n**洞察四：就算“喂到嘴边”，AI也未必会吃**\n\n为了分离“提取偏好”和“利用偏好”这两个难题，我们直接把真实用户偏好告诉模型。虽然性能有所提升，但仍有很大进度空间。**即便把真实偏好直接告诉模型，多数模型仍然失败**。这说明，即使拥有了准确的用户画像，在高压、多约束的决策中正确应用这些偏好，本身就是一个巨大的挑战。\n\n![图7：在提供真实偏好下的模型性能](https://p1.meituan.net/meituantechblog/cf75832fa9983f74bb404bf899cac91223446.webp)\n\n**洞察五：从“工具失误”到“情商不足”的瓶颈转移**\n\n我们对模型的失败原因进行了分类统计。在由**66个真实工具**构成的复杂生活服务场景中，早期模型更多地犯下工具使用错误（A类），例如选错API或填错参数。而更强的模型（如DeepSeek-V4-Pro）虽然工具用得更好了，但在偏好理解和应用（B类）上的失败却成了主要矛盾。这表明随着模型基础能力的提升，**个性化已是当前 Agent 的最大瓶颈**。\n\n![图8：模型失败模式分析（DeepSeek家族为例）](https://p1.meituan.net/meituantechblog/8cdd5784d215584793d4eabed47c184f59698.webp)\n\n## 03 总结：定义下一代智能体评测范式\n\nVitaBench 2.0清晰地揭示了，当前AI在成为“高情商助理”的路上，依然任重道远。\n\n它的核心价值，在于推动了评测范式的演进：**从单点任务到长期陪伴，从被动执行到主动沟通，从黑盒到透明**。这使得VitaBench 2.0成为一座连接技术与产品的“桥梁”，它用可量化的数据回答了“我的AI为什么不够好用”的问题，并为开发者指明了模型在“服务于人”这一终极目标上的具体短板。\n\n我们希望，VitaBench 2.0能成为一个起点，激发更多研究关注智能体的个性化、记忆和主动性，共同推动AI从一个强大的“工具”进化为一个有温度的“伙伴”。\n\n**VitaBench 2.0 已全面开源，欢迎各大模型前来接受“情商”大考**。\n\n**开源地址**\n\n* **项目主页**： <https://vitabench2.github.io/>\n* **论文链接**： <https://arxiv.org/abs/2605.27141>\n* **GitHub**： <https://github.com/meituan-longcat/vitabench-2.0>\n* **HuggingFace**：<https://huggingface.co/datasets/meituan-longcat/VitaBench-2.0>",
+      "tags": [
+        "VitaBench 2.0",
+        "LongCat",
+        "智能体基准"
+      ],
+      "score": 85,
+      "summary": "美团LongCat开源长期动态智能体基准VitaBench 2.0。",
+      "image_url": "https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp",
+      "fetched_at": "2026-08-03T00:09:38.362998+08:00"
+    },
+    {
+      "title": "美团海报生成 AIGC 技术创新与实践",
+      "link": "https://tech.meituan.com/2026/06/18/AIGC-poster.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "一张商业海报，对设计师来说可能是半天工作；对百万中小商家来说，却可能是一道迈不过去的门槛。外包一张专业海报，少则数百、多则数千元；临时促销要求分钟级交付，传统设计流水线却要1到3天；好不容易批量生产出来，质量又参差不齐——这是美团平台上数百万商家每天都在面对的真实困境。AIGC 给了我们一个新的答案，但「生成一张看起来还行的图」和「生成一张真正可用的商业海报」之间，横亘着精准文字渲染、和谐版式布局、多任务统一支持、质量可量化评估等多项相互交织的技术挑战。过去两年，美团智能创作团队围绕这一问题，构建了覆盖「能生成、能编辑、能评判」的完整技术体系：\n\n* PosterCraft（ICLR 2026）：摒弃模块化流水线，端到端统一优化文字、视觉与版式，在文字渲染准确率上接近Top级别的闭源商业系统；\n* PosterOmni（CVPR 2026）：单一模型覆盖扩图、补全、比例调整、风格迁移等六类设计任务，更接近\"基于参考稿工作的智能设计助手\"；\n* PosterReward（CVPR 2026）：首个专门面向海报质量评估的奖励模型，在专项评测基准上达到 86% 准确率，远超现有基线，既驱动生成模型持续进化，也承担线上质检把关。\n\n三者形成「生成-编辑-评判」的技术闭环，相互支撑、持续自我进化。目前三项工作均已全部开源于 MeiGen-AI 仓库，并在美团外卖套餐图生成、品牌 IP 袋鼠团团、点评信息流治理等多个真实业务场景中完成落地。本文将系统拆解这套技术体系的核心思路、关键创新与实战经验。\n\n## 一、背景与挑战\n\n### 1.1 业务背景：百万商家的\"创意平权\"难题\n\n美团连接数百万商家与数亿消费者，海报作为核心视觉营销载体，贯穿商家日常运营全场景。然而，百万商家普遍面临四重困境：\n\n* **设计资源匮乏**：专业营销海报外包动辄数百至数千元，中小商家难以承受；即便是大型连锁品牌，面对多城市、多门店的差异化营销需求，设计师团队同样捉襟见肘。\n* **时效性要求苛刻**：天气突变、突发热点、临时促销等本地生活场景要求海报\"分钟级\"交付，传统设计流水线 1–3 天的周期已严重脱节。\n* **内容同质化严重**：大量商家依赖固定模板做简单文字替换，海报千篇一律，在信息爆炸时代难以触达消费者，营销转化率持续走低。\n* **批量生产质量失控**：从精雕细琢转向规模化生产后，如何保证每张海报达到商业可用标准，成为新的运营难题。\n\n### 1.2 技术挑战：高质量海报生成的多维难题\n\nAIGC 为上述问题提供了新思路，但**高质量海报生成**远非简单的文生图任务，面临五大相互交织的技术挑战。\n\n**挑战一：精准的文字渲染**\n\n海报文字要求\"零容错\"——任何错误、缺失或模糊都导致整张海报不可用。主流扩散模型在多行文字、中文字符和小字号文本上仍有明显短板，中文场景下难度尤甚。\n\n**挑战二：和谐的版式布局**\n\n优秀海报遵循对比、重复、对齐、亲密性等设计原则，这种\"设计感\"难以规则化，更多依赖对大量优秀作品的隐式学习，是一个开放性难题。\n\n**挑战三：统一的美学风格**\n\n色彩和谐、视觉层次、品牌调性等多维度共同构成美学判断，且不同行业标准迥异：餐饮要\"食欲感\"，美妆要\"精致感\"，科技要\"未来感\"。模型需在保持整体美学水准的同时适配多样化风格需求。\n\n**挑战四：多任务场景的统一**\n\n真实设计需求横跨\"局部编辑\"（文字排版叠加、局部填充）和\"全局创作\"（风格迁移、版式重组）两大范畴，如何在单一模型中同时支持所有场景，是模型设计和训练策略上的重大挑战。\n\n**挑战五：质量评估的可量化**\n\n现有图像质量指标（FID、IS 等）无法捕捉海报特有的排版质量、文字准确性和设计规范性，而人工评估成本高昂且难以规模化。我们需要一套既能驱动模型优化（作为 RL 奖励信号），又能承担线上质检的自动化评估体系。\n\n### 1.3 我们的解法：构建\"生成-编辑-评判\"技术闭环\n\n面对上述挑战，我们团队围绕海报生成构建了一套完整的技术体系，覆盖**基础模型能力提升**、**多任务统一模型融合**和**质量评估模型**三大核心环节，形成了\"能生成、能编辑、能评判\"的技术闭环。\n\n* **能生成**：端到端高美感海报生成，精准文字渲染；技术方案→ [PosterCraft](https://arxiv.org/pdf/2506.10741)｜[Code](https://github.com/MeiGen-AI/PosterCraft)（ICLR 2026）\n* **能编辑**：六大任务统一，局部编辑与全局创作融合；技术方案→ [PosterOmni](https://arxiv.org/pdf/2602.12127)｜[Code](https://github.com/MeiGen-AI/PosterOmni)（CVPR 2026）\n* **能评判**：真实海报结构化解析 + 生成海报偏好评估；技术方案→营销海报结构化 + [PosterReward](https://arxiv.org/pdf/2603.29855)（CVPR 2026）\n\n三者相互支撑、协同进化：评估驱动生成优化，生成拓展编辑边界，编辑反哺评估标准，共同构成一个持续自我进化的后训练系统。相关工作已产出三篇顶级学术会议论文，并全部开源于[MeiGen-AI仓库](https://github.com/MeiGen-AI)。\n\n## 二、技术体系全景\n\n我们的海报生成技术体系遵循一个清晰的演进路径：\n\n![](https://p0.meituan.net/meituantechblog/861434cef3a148ae0093da6666e149361816826.png)\n\n各层相互支撑：**PosterCraft** 奠定端到端生成基础；**PosterOmni** 在此之上拓展至多任务统一编辑；质量评估层构建\"双线并行\"体系——**营销海报结构化**面向线上存量海报，提供构图、配色、氛围感的结构化解析与美学评分；**PosterReward** 面向 AI 生成内容，提供偏好评估信号，既驱动生成模型持续进化（RL 奖励函数），也承担工业化生产的质检把关。\n\n## 三、端到端高美感海报生成：PosterCraft（ICLR 2026）\n\n### 3.1 核心思想\n\n过去的海报生成方法大多采用**模块化设计**——先由视觉语言模型规划布局，再将文字叠加到单独生成的背景上。这种流水线方案存在根本性缺陷：美学一致性难以保证，视觉质量受限于各模块的短板拼接。\n\nPosterCraft 的核心思路是：**摒弃模块化流水线，让模型端到端地自由探索视觉连贯的设计组合**。渐进式的组件级改进不足以带来美学层面的质的飞跃，需要一套统一框架来协同优化文字、视觉和版式。\n\n### 3.2 四阶段级联优化工作流\n\nPosterCraft 设计了四阶段训练流程，每个阶段针对一个关键瓶颈：\n\n![](https://p0.meituan.net/meituantechblog/1f7bf60eec315936b2067365a7c074d31158073.png)\n\n**阶段一：大规模文字渲染优化**\n\n构建 **Text-Render-2M** 数据集（200 万样本，涵盖多样文字内容、大小、位置和旋转角度）。通过 Flow Matching 微调，显著提升文字渲染准确率，有效解决基础模型常见的文字缺失、重复和错误问题。\n\n![](https://p1.meituan.net/meituantechblog/ca634a457456cbb9a9cf9f1cd5f84649110870.png)\n\n**阶段二：高质量海报微调 + 区域感知校准**\n\n构建 **HQ-Poster-100K**，经多级管线筛选超过 10 万张高质量海报。关键创新是区域感知校准（Region-Aware Calibration）机制，对不同区域差异化加权：非文字区域（1.0）、主要文字区域（0.6）、次要文字区域（0.2），在保持文字准确的同时更注重整体艺术性。\n\n**阶段三：美学-文本强化学习**\n\n构建 **Poster-Preference-100K**：对每个 prompt 生成 5 张海报，用 HPSv2 打分结合 Gemini 验证文字准确性，筛选出 6000 个高质量偏好对。采用 Best-of-N 偏好优化（DPO），让模型学习色彩和谐、版式平衡等高阶美学偏好。\n\n**阶段四：视觉-语言反馈精炼**\n\n构建 **Poster-Reflect-120K**：对每个 prompt 生成 6 张海报，由 Gemini 选择最优并生成结构化反馈建议。利用 InternVL-3-8B 微调为 VLM 评论家，在推理时提供迭代式反馈优化。\n\n### 3.3 核心成果\n\nPosterCraft 在文字召回率、F-score 和准确率上**显著超越所有开源基线**，接近 SOTA 闭源商业系统（如 Gemini 2.0-Flash-Gen）的水平，证明了统一端到端框架在海报生成任务上的巨大潜力。\n\n![](https://p0.meituan.net/meituantechblog/da0ef43ee67c6680870a987f778393fd4129254.png)\n\n## 四、多任务统一的图像到海报创作：PosterOmni（CVPR 2026）\n\n### 4.1 核心思想：从 Text-to-Poster 到 Image-to-Poster\n\n不少 AI 海报生成方法将输入设定为文本提示（Text-to-Poster），但真实设计场景中，更常见的起点是**一张参考图、旧版海报或产品主视觉**——设计目标不是完全重做，而是在保留核心主体的基础上完成扩图、补全、比例调整、风格迁移和版式重组。\n\nPosterOmni 的核心定位：\n\n> **A unified open model for versatile multi-task image/poster-to-poster generation.**\n\n它通过一个统一的开源模型覆盖多类设计需求，既能处理局部编辑，也能完成风格重塑和版式重构——更接近一个\"**基于参考稿工作的智能设计助手**\"，而非\"编辑模块 + 生成模块\"的简单拼接。\n\n![](https://p0.meituan.net/meituantechblog/d5db45749034556fffac53e65fd393991778168.png)\n\n### 4.2 统一\"图到海报\"范式：单一模型覆盖六类典型设计需求\n\nPosterOmni 将 image/poster-to-poster 场景中的常见需求整理为 **6 类任务**，统一由一个模型完成：\n\n![](https://p0.meituan.net/meituantechblog/64f8c774a7d1659fac7c754a1d85ea4d223570.png)\n\n这些能力共同对应了一个真实的设计流程：\n\n![](https://p0.meituan.net/meituantechblog/734a4d8143a2ed82fefb9955ee99e57e1995735.png)\n\n### 4.3 核心难点：多任务冲突的缓解\n\n多任务统一建模的核心难点在于**任务间的相互干扰**：局部编辑强调像素级一致性和自然过渡，全局创作则关注风格抽象和大幅度重构。直接混合训练容易导致模型\"什么都会一点\"，但整体不稳定。\n\nPosterOmni 采用\"数据—蒸馏—奖励\"闭环：\n\n1. 分别训练局部编辑和全局创作两类专家模型。\n2. 通过任务蒸馏整合为统一学生模型（PosterOmni-SFT）。\n3. 加入统一奖励与强化学习，对齐审美偏好、编辑准确性和指令遵循能力。\n\n### 4.4 方法论：四阶段训练流水线\n\n#### 阶段 1：自动化数据构建（PosterOmni-200K）\n\n构建 **PosterOmni-200K**，形成完整数据闭环：创意描述生成 → 候选图生成 → 多模态筛选 → 任务配对整理。\n\n**（1）提示词与基础图生成：贴近真实设计 brief**\n\n组合主体/品类/场景/风格标签，借助 VLM（GPT、Qwen3）扩展为带版式约束的结构化描述，再用强 T2I 模型（Qwen-Image 等）渲染候选图，并过滤主体缺失、文字崩坏等不合格样本。\n\n**（2）多模态过滤：噪声控制是合成数据的真正瓶颈**\n\n对于合成数据而言，真正的瓶颈往往不在数量，而在噪声控制。我们设计了一套分层过滤机制：\n\n* **训练集**：PaddleOCR 检查文本可读性 + jina-clip-v2 图文一致性判断。\n* **评测集**：额外引入 Gemini 2.5 Flash 评估\"任务匹配度\"。\n* **结构信号**：SAM 2 生成分割区域，为补全、扩图等任务提供 mask 级监督。\n\n**（3）六类任务配对构建**\n\n基于经过过滤的\"文本→海报\"基础数据，进一步构造六类 image/poster-to-poster 训练任务。每一类任务对应一个模块化的数据生成器：\n\n* **Extending / Filling**：SAM2 构造局部 mask。\n* **Rescaling**：借鉴 BrushNet，构建\"比例变化→内容重排\"监督对。\n* **ID-driven**：PaddleDet 提取主体 + 增强编辑器构造\"主体不变、其余可调\"样本。\n* **Layout / Style-driven**：prompt-controlled rerendering，继承布局或风格但不直接复制。\n\n最终覆盖商品、美食、活动/旅行、自然、教育、娱乐六大海报主题，产出超过 **20 万个高质量配对样本**。\n\n![](https://p0.meituan.net/meituantechblog/94e267f5110d845ebdeb3e6d46053e7c2588744.png)\n\n#### 阶段 2：任务蒸馏——先拆开学，再合到一起\n\n如果直接把六类任务混在一起联合训练，最容易出现的问题就是任务冲突：局部任务强调像素对齐与细节保真，全局任务则更关注构图重组与风格抽象，两者在同一个参数空间中往往会互相拉扯。为了解决这个问题，PosterOmni 采用：**先训练专家，再蒸馏成统一学生模型**。\n\n**（1）专家训练：**\n\n* **局部编辑专家**：负责 Extending / Filling / Rescaling / ID-driven，学习主体一致性与可控编辑能力。\n* **全局创作专家**：负责 Layout-driven / Style-driven，学习版式组织逻辑与风格协调性。\n\n同时加入辅助文本渲染训练信号，保证文字可读性。\n\n**（2）蒸馏到单一学生：PosterOmni-SFT**\n\n最终的统一模型不是简单做\"参数拼接\"，而是训练一个学生网络去逼近专家模型的速度场/预测行为。整体损失由两部分组成：\n\n```\nL_total = L_text_render (辅助文本渲染损失，保证文字稳定清晰)\n        + λ · L_distill  (任务蒸馏损失，复现专家输出)\n```\n\nPosterOmni-SFT 同时具备\"局部精修的稳定性\"和\"全局创作的生成性\"，不再依赖多个模型串联。\n\n![](https://p0.meituan.net/meituantechblog/ae87c984e187bfb13cfa2fc65c738c871590352.png)\n\n#### 阶段 3：统一奖励模型训练（RomniR\\_{omni}Romni​）\n\nSFT 使模型\"会做\"，但难以进一步学会\"做得更美观\"。我们训练统一奖励模型 RomniR\\_{omni}Romni​，**同时输出通用审美质量与任务完成度的综合分数**。\n\n**偏好数据构建：** PosterOmni-SFT 生成多个候选，Gemini-2.5-Pro 初筛后由标注者选优。关键创新是 **negative-pair 策略**：将\"输入参考图\"记为 rejected、\"编辑后输出\"记为 chosen，显式强化\"有效修改本身有价值\"的认知，防止模型在 layout/style 任务中直接拷贝参考图投机。\n\n**模型结构：** 基于 Qwen3-VL 编码器 + 轻量 MLP head，编码\"视觉质量 + 指令 + 任务类型\"，采用 Bradley-Terry 目标优化排序损失 LBTL\\_{BT}LBT​。最终，RomniR\\_{omni}Romni​ 学到的不只是\"什么更好看\"，还有\"对这个任务来说什么算做对、什么算偷懒\"。\n\n#### 阶段 4：Omni-Edit 强化学习\n\n沿用 **DiffusionNFT** 思路，在正向扩散过程中直接优化，用对比式 Diffusion Loss 将速度预测器推向高奖励行为：从旧策略 voldv\\_{old}vold​ 构造隐式正/负策略，用奖励 r∈[0,1]r \\in [0,1]r∈[0,1] 对目标加权，同时做归一化以稳定训练尺度。\n\n将 DiffusionNFT 适配到 image-to-poster 条件输入（输入图 + 指令 + 任务类型），在统一机制下同时处理局部编辑和全局创作。\n\n**与通用 VLM 奖励的关键区别**：通用 VLM 打分不理解 poster 任务的完成标准，容易出现\"看起来像但任务没做对\"的投机解。RomniR\\_{omni}Romni​ 给出 **task-aware** 分数，使 RL 优化方向不仅是\"更好看\"，也是\"更像完成了这个任务\"。\n\n### 4.5 PosterOmni-Bench：统一评测基准\n\n**PosterOmni-Bench** 是首个面向多任务设计场景的统一测试基准：\n\n* **规模**：中英文共 **1020 条**测试指令（540 中文 + 480 英文）。\n* **覆盖**：六类核心任务 × 六大海报主题，同时覆盖单/多参考图输入。\n* **评测**：Gemini-2.5-Pro 打分，1–5 分范围内综合评价审美质量与任务完成情况。\n\n这个 Benchmark 测的不是\"能不能生成一张图\"，而是\"能不能像设计师一样完成海报修改与再设计\"。\n\n### 4.6 实验结果\n\n**定量结果：六项任务全面领先**\n\n在 PosterOmni-Bench 上对比主流开源方法（Qwen-Image-Edit、FLUX.1 Kontext、BAGEL、UniWorld-V2 等）及闭源系统（Seedream 系列）：\n\n* **PosterOmni 在全部六类任务上均取得开源模型最佳表现**，整体评分超过部分闭源模型。\n* 提升来自\"局部精修 + 全局创作\"两类能力的**同时增强**，而非集中于某一子任务。\n* 相较 Qwen-Image-Edit：在 Layout-driven / Style-driven 上增幅最大，说明模型真正学到了布局与风格背后的生成规则。\n* 相较 Seedream-4.0：整体平均已实现反超，单一开源模型已具备处理复杂设计需求的实际可用性。\n\n![](https://p0.meituan.net/meituantechblog/d3043c6dd6453d62e3d2566d8ccbeefd334071.png)\n\n**定性对比：学风格/学布局 ≠ 直接 copy**\n\n**Style-driven 的常见失败**：很多 baseline 会把参考图的局部元素直接\"贴\"过来。PosterOmni 更偏向学习配色、材质感、字体气质等\"风格本质\"，再迁移到新主体上。\n\n**Rescale / Layout-driven 的常见失败**：很多系统只做裁剪/拉伸。PosterOmni 更像在做\"改比例→重排版\"：标题层级、留白、元素间距随之调整，主体也更稳定。\n\n![](https://p1.meituan.net/meituantechblog/c09df87d809bdcc92683b549f1423c843511341.png)\n\n## 五、海报质量评估：PosterReward（CVPR 2026）\n\n海报评估是整个技术体系的\"质量守门人\"，沿两条互补路线展开——核心差异不在于处理对象，而在于**质量信号的来源方式**：\n\n* **真实海报的结构化评估**：面向线上运营海报素材，以**专业设计规范的显式标准**为锚，通过多维度结构化解析实现智能质检与规范管理\n* **生成海报的奖励模型**：面向 AI 生成内容，以**用户主观偏好对齐**为驱动，通过端到端学习提供精准质量信号，驱动生成模型持续进化\n\n两者共同构成\"存量评估 + 增量优化\"的完整评估体系。\n\n![](https://p0.meituan.net/meituantechblog/face43475149dfc38233ca2e0badef5e1945335.png)\n\n### 5.1 真实海报的结构化评估：营销海报图像结构化\n\n#### 5.1.1 问题定义\n\n营销海报是\"人工制作\"的信息载体，具有明确的信息要素和规则搭配，简单的整图美学评分存在显著局限。\n\n我们提出**营销海报图像结构化**解析方案：将海报从多维度拆解分析，把视觉信息转换为规范化的结构化描述，并输出各维度量化美学评分。整套方案围绕三大核心维度展开：**排版构图、色系搭配、氛围风格**。\n\n![](https://p0.meituan.net/meituantechblog/cf3831dceb0c82644d32de0051c4c3802491234.png)\n\n#### 5.1.2 排版构图解析\n\n营销海报设计遵循页面排版四大基础原则：**对比、重复、对齐、亲密性**。要理解海报构图的好坏，首先需要对海报内容元素做精准解析。\n\n**内容定位算法**\n\n构建营销海报内容定位模型（准确率 90%+），定位 **12 种常见元素**：\n\n> 文案、价格、修饰、卡通动漫、美团Logo、其他Logo、人像、美团IP、红包、菜品、商品\n\n模型对任意输入的海报图，返回各元素在图中的位置坐标及对应类别，覆盖不同类型、不同尺寸的营销海报。\n\n![](https://p0.meituan.net/meituantechblog/c9b31b0191c8275ead99023af304ade92117053.png)\n\n**构图美学评价算法**\n\n基于元素定位结果，通过 CNN 回归模型拟合设计师主观评价，输出量化构图美学分数：\n\n* 5 分制构图得分误差仅 **0.3794**（归一化误差 0.0759）。\n* 近 **90%** 的图片得分误差控制在 1 分以内。\n\n算法可判断海报构图手法（上下/左右/居中构图等），并评估主体占比、布局紧凑度、画面留白等维度。\n\n![营销海报构图人机打分差异](https://p0.meituan.net/meituantechblog/f7105bd1f74cbaf157f97c44bbe1197c969668.png)\n\n#### 5.1.3 色系搭配识别\n\n色彩是营销海报传达情感的重要介质。不同业务类型适配不同的色系——粉色系营造浪漫/女生氛围，绿色系迎合健康环保调性，黑色系打造科技感或高端奢华风格。\n\n**主色系识别算法**\n\n模型准确率96.2%，支持识别 **11 种色系**：\n\n> 粉色系、绿色系、黑色系、白色系、橙黄系、蓝色系、银灰系、红色系、紫色系、棕色系、多色系\n\n同时输出各色系置信度，对多色系海报也有良好理解能力。\n\n![海报主色系识别算法结果展示](https://p0.meituan.net/meituantechblog/23f462713dff153b7cbb319fca6a8a0c1469655.png)\n\n**色彩解析算法**\n\n支持 12 种基础颜色的占比识别，以及基于 HSV 色彩空间的冷暖色调判断，为色彩和谐度评估提供基础数据。\n\n![海报色彩解析算法结果展示](https://p0.meituan.net/meituantechblog/36981484e1059d142e51f3739374ff4c488816.png)\n\n**色彩美学评价**\n\n将色彩美学拆解为**色彩饱和度**和**颜色和谐度**两个维度，通过深度学习拟合设计师主观评价，输出量化色彩美学分值。\n\n![色彩美学评价得分展示](https://p0.meituan.net/meituantechblog/29ef0ea5ed74ebf86230b06dabfc94ce1306535.png)\n\n#### 5.1.4 氛围感风格识别\n\n一张优秀的营销海报需要告别千篇一律的模板感，让消费者感受到身临其境的独特氛围——这也是海报从\"能看\"到\"吸引人\"的关键跃迁。\n\n**风格识别算法**\n\n模型准确率91.50%，支持识别 **12 种常见海报风格**：\n\n> 节日、卡通、简洁、多彩、科技、柔美、素雅、促销、撞色、实拍、标准、其他\n\n海报风格与文案/商品内容无关，由海报模板及装饰元素营造的**整体氛围感**决定。\n\n![营销海报常见风格定义](https://p0.meituan.net/meituantechblog/2102cc97980395624f9cba2a4d638bdb1862841.png)\n\n#### 5.1.5 整体美学综合评价\n\n在构图、色彩、氛围感等主观维度，以及清晰度、分辨率等客观维度的基础上，综合输出**整体美学评分**，基本拟合设计师的主观评价标准。\n\n![海报整体美学得分展示](https://p0.meituan.net/meituantechblog/e5cb33dbf135c193a5882ae45f723b0c1261786.png)\n\n### 5.2 生成海报的奖励模型\n\n#### 5.2.1 核心思想\n\nPosterReward 是**首个专门面向海报质量评估的奖励模型**，集成结构布局、文字渲染准确性和美学表达三个维度的统一评分能力。现有通用奖励模型主要关注全局图像美学，忽略了海报特有的排版质量和文字渲染维度，加之领域偏好数据极度稀缺，生成海报评估长期是制约生成质量提升的核心瓶颈。PosterReward 的评估维度继承了结构化评估的实践经验——构图、色彩、整体美学在两套方案中形成概念对齐与技术递进。\n\n#### 5.2.2 AI 偏好数据集自动构建（Poster-Preference-70K）\n\n![](https://p0.meituan.net/meituantechblog/97c08edd5d0c4542353c48e491b4e1d8892964.png)\n\n高质量偏好数据是训练奖励模型的基石。我们设计了一套自动化偏好数据构建管线：\n\n**数据来源**：Seedream 3.0、Seedream 4.0 和 Qwen-Image-Lightning 生成的海报池（覆盖影视类和非影视类两大场景）。\n\n**级联式过滤**：\n\n* 影视海报：HPSv3 初筛 → Kendall's W 一致性筛选 → 轻量闭源模型多轮排序 → 最终多模型验证。\n* 非影视海报：同尺寸过滤 → CLIP+DINOv3 差异性筛选 → 多模型最终验证。\n\n**最终多模型验证**：四个开源模型（CLIP、DINOv3、HPSv3、GLM-4.5V）和三个闭源模型（Gemini-2.5-Flash-Lite、Gemini-2.5-Pro、GPT-5）进行多维度共识判定，最终产出 **7万高质量海报偏好对**，覆盖文字渲染、布局设计、美学价值、指令一致性等多个维度。\n\n#### 5.2.3 级联式多阶段训练\n\n![](https://p1.meituan.net/meituantechblog/6289aff1230af0e3fc1da9b0844c3fd41016894.png)\n\nPosterReward 采用四阶段级联训练策略：\n\n**阶段一：联合监督微调（Joint SFT）** 双任务并行——单图分析 + 配对比较，使用 24.6万 单图分析样本 + 16万 配对偏好样本微调 Qwen3-VL-8B。\n\n**阶段二：联合拒绝采样微调（Joint RSFT）**\n每个 prompt 采样三个回答，由 Gemini-2.5-Flash-Lite 选择最高质量响应精炼。\n\n**阶段三：评分模块训练（Score Module Training）**\n训练判别式评分模块（Qwen3-VL-8B + 两层 MLP），采用 Bradley-Terry 损失优化。\n\n**阶段四：强化学习精炼（GRPO）**\n以冻结的评分模块为奖励函数，通过 GRPO 对分析模块进行强化学习微调。\n\n#### 5.2.4 多变体适配\n\n为适应不同应用场景，PosterReward 提供三种变体：\n\n![](https://p1.meituan.net/meituantechblog/f8633fc74396af81573ebd9eaf8ddbc0157579.png)\n\n#### 5.2.5 评测基准与核心成果\n\n我们发布了两个评测基准：**PosterRewardBench**（Basic + Advanced 两个难度级别，评估奖励模型偏好判断准确性）和 **PosterBench**（评估文生图模型的海报生成能力）。\n\n在 PosterRewardBench-Advanced 上，PosterReward 达到 **86.0% 准确率**，远超现有基线（大多在 40%–53% 之间）。**PosterReward-Pairwise** 在 pairwise 评测中保持强竞争力，位置偏置更小，平衡式数据构造和顺序交换策略有效提升了判断稳定性。\n\n![](https://p0.meituan.net/meituantechblog/dcc87144886a18086ef2e796ceeac72f116735.png)\n\n![](https://p0.meituan.net/meituantechblog/4f4db6535bd77ebf92f82afb51630a32129708.png)\n\n### 5.3 评估体系的演进逻辑\n\n回顾整个评估体系的建设路径，可以看到一条清晰的技术演进线：\n\n![](https://p0.meituan.net/meituantechblog/acdfb97a94f12c35dd61412d0aff9741196537.png)\n\n结构化评估积累的维度定义经验（构图、色彩、氛围感）为 PosterReward 的多维度分析模块提供了领域知识参照；PosterReward 的端到端学习能力则克服了传统结构化评估在泛化性和可优化性上的瓶颈。两者的融合是未来评估体系演进的方向。\n\n## 六、技术闭环：各模块如何协同？\n\n整个技术体系并非独立存在的几块工作，而是构成了一个**自我进化的后训练系统**：\n\n![](https://p0.meituan.net/meituantechblog/a810a1f3854bc8468b49dc94d5a0bb281739540.png)\n\n1. **PosterCraft** 建立端到端生成的基础能力，四阶段工作流已引入奖励模型驱动的美学优化。\n2. **PosterOmni** 在 PosterCraft 基础上拓展至多任务场景，其统一 Reward 模型是 PosterReward 理念的任务特化。\n3. **营销海报结构化** 从构图、配色、氛围感等维度提供可解释的设计规范标准，为生成链路的评估维度提供领域知识支撑。\n4. **PosterReward** 将设计知识内化为端到端奖励信号，既驱动生成模型持续进化（RL 奖励函数），也承担线上\"质检线\"的品质保障。\n\n## 七、落地实践\n\n**实际案例 1：与美团设计师合作上线美团品牌IP（PosterCraft生成能力）**\n\n> 生图 prompt（下左）：给我设计一张袋鼠团团的大寒的节日节气海报。\n\n![](https://p0.meituan.net/meituantechblog/3a32d65cc8fea6d91dc99487a3ba284b2230619.png)\n\n> 生图 prompt（上右）：袋鼠团团三维C4D风格，2026年马年新年主视觉，整体节日氛围浓厚，主色调为红色与金色。画面中央是袋鼠团团骑着白马（红色的马鞍，无马缰绳，马蹄上有金和红穗子配饰点缀，呼应生肖主题，活力精神的马年生肖，），面带开心、喜庆的表情，角色主体有柔和的轮廓光，氛围强，作为画面核心主体。画面中点缀烟花、红灯笼等新年元素。背景为中国唐代风格的古建筑群，具有浓厚的东方传统节日氛围。整体画面呈现热闹、喜庆、隆重的新年庆祝场景。主标题： “马年大吉”顶部居中，毛笔创意字体金色，笔触流畅设计感强，大师字体，副标题：“Happy New Year 2026”主标题下面。\n\n**实际案例 2：图生商品海报（PosterOmni 的主体保持能力）**\n\n![](https://p1.meituan.net/meituantechblog/bae54b0cde7b24ce35d25b170098db603218537.png)\n\n## 八、总结与展望\n\n我们通过 PosterCraft、PosterOmni 和 PosterReward 三项工作，构建了覆盖\"**基础生成能力 → 多任务统一融合 → 精准质量评估**\"的完整技术体系，三项工作全部开源，期待推动海报/图形设计生成领域的共同发展。\n\n**未来，我们将继续探索：**\n\n* **更强的可控性**：支持更精细的设计意图传达。\n* **更广的场景覆盖**：从静态海报延伸至动态视觉内容，从零售电商拓展到酒旅、丽人等服务电商场景。\n* **更深的评估维度**：将结构化设计规范知识持续注入奖励模型，实现\"可解释 + 可优化\"的统一。\n* **更紧的产业闭环**：让规范标准与奖励模型的 RL 信号深度融合，直接驱动生成模型自我进化。\n\n从效率到效能，从\"能用\"到\"好用\"，AIGC 海报生成正在重新定义百万商家的创意生产方式。",
+      "tags": [
+        "PosterCraft",
+        "AIGC海报",
+        "美团"
+      ],
+      "score": 75,
+      "summary": "美团开源海报生成AIGC技术体系，覆盖生成、编辑、评判。",
+      "image_url": "https://p0.meituan.net/meituantechblog/861434cef3a148ae0093da6666e149361816826.png",
+      "fetched_at": "2026-08-03T00:09:38.363001+08:00"
+    },
+    {
+      "title": "My LLM chess engine is now on LiChess autonomously playing real games against people and bots. \n\n125...",
+      "link": "https://x.com/amasad/status/2083926395403821427",
+      "published": "2026-08-02T22:42:24+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "My LLM chess engine is now on LiChess autonomously playing real games against people and bots.   \n  \n1253 Elo: [lichess.org/@/amasad](https://lichess.org/@/amasad)\n\n![Amjad Masad](https://pbs.twimg.com/profile_images/1897858917507776512/TRVTyKFk_normal.jpg)\n\nAmjad Masad@amasad\n\n~1500 Elo!  \n  \nConsistently beats frontier models and Stockfish level 0.  \n  \nFun seeing an 8b model mogging GPT 5.6 with high reasoning and response chaining. Spends 1-2 seconds per move vs 30 seconds.  \n  \nPlay it: [qwen-chess.replit.app](https://qwen-chess.replit.app)\n\n![Tweet Image](https://pbs.twimg.com/media/HOnPpBXbcAABmTd.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/amasad/status/2083424608993300824)\n\n💬10🔄2❤️61👀8005📊13",
+      "tags": [
+        "LLM国际象棋",
+        "Qwen",
+        "Elo"
+      ],
+      "score": 75,
+      "summary": "Amjad Masad的LLM象棋引擎在LiChess达1500 Elo，击败GPT 5.6。",
+      "fetched_at": "2026-08-03T00:09:38.363003+08:00"
+    },
+    {
+      "title": "see also eg https://t.co/X159JOvctd",
+      "link": "https://x.com/GaryMarcus/status/2083945286939165026",
+      "published": "2026-08-02T23:57:28+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "see also eg [x.com/garymarcus/sta…](https://x.com/garymarcus/status/2083917830999945598?s=46)\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nholy shit! this captures the entire AI discourse!  \n  \n1. i asked a dude to show me where i was wrong. like with actual quotes.  \n2. to my amazement he actually replied. (most people run away at that point and never respond)  \n3. but the quote he gave was fake from a fake account impersonating me on reddit! from a fabricated screenshot.   \n  \ncc [@TaylorLorenz](https://x.com/TaylorLorenz)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2083917830999945598)\n\n💬0🔄0❤️0👀293",
+      "tags": [
+        "Gary Marcus",
+        "AI争论"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus指称有人用伪造截图冒充他发言。",
+      "fetched_at": "2026-08-03T00:09:38.363006+08:00"
+    },
+    {
+      "title": "i never said pure LLMs weren’t useful. i said horses weren’t carriages, back when people somehow tho...",
+      "link": "https://x.com/GaryMarcus/status/2083944853399044167",
+      "published": "2026-08-02T23:55:45+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "i never said pure LLMs weren’t useful. i said horses weren’t carriages, back when people somehow thought they were.  \n  \nthese guys lie about me, endlessly.\n\n![ℏεsam](https://pbs.twimg.com/profile_images/1978647680357134336/ioMmfkXF_normal.jpg)\n\nℏεsam@Hesamation\n\nthe LLM used a calculator, burn the impure bastard.\n\n![Tweet Image](https://pbs.twimg.com/media/HOtC5lYXQAAtGUG.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Hesamation/status/2083834143083745584)\n\n💬2🔄0❤️5👀1054📊2",
+      "tags": [
+        "Gary Marcus",
+        "LLM观点"
+      ],
+      "score": 45,
+      "summary": "Gary Marcus辩解自己从未否定LLM的价值。",
+      "fetched_at": "2026-08-03T00:09:38.363008+08:00"
+    },
+    {
+      "title": "retweeting from January 2025 because this is still the core issue (and also to establish that my goa...",
+      "link": "https://x.com/GaryMarcus/status/2083937356885966865",
+      "published": "2026-08-02T23:25:58+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "retweeting from January 2025 because this is still the core issue (and also to establish that my goalposts have not, contrary to rumor, changed)\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nThe “stronger performance in coding a math” is a bit of tell that this advance is NOT domain-general.   \n  \nInstead, it smells like a lot of domain specific data augmentation, and/or reliance on verification that is easier in those domains than in open-ended problems.  \n  \nWith all their talk of AGI, what OpenAI is actually doing appears to be reinventing hacks for domainwise-engineering. Very 1980s!\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/1885324139386572844)\n\n💬5🔄2❤️9👀2377📊5",
+      "tags": [
+        "Gary Marcus",
+        "OpenAI",
+        "AGI"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus转发旧文称OpenAI只是领域特化工程。",
+      "fetched_at": "2026-08-03T00:09:38.363010+08:00"
+    },
+    {
+      "title": "it’s a shame that almost nobody asks these kinds of questions.",
+      "link": "https://x.com/GaryMarcus/status/2083932848176943206",
+      "published": "2026-08-02T23:08:03+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "it’s a shame that almost nobody asks these kinds of questions.\n\n![xjdr](https://pbs.twimg.com/profile_images/1789823365479530496/02FVQMtn_normal.jpg)\n\nxjdr@\\_xjdr\n\nthese results are impressive but im much more interested in the process and harness etc . why was this possible now when it wasn't before? is it simple model capability or is it refined process? can you repeat the same tests with luna med and a little better steering / more formalized problem statements?   \n  \nthe other questions are around what type of post training makes this work and how is that different between 5.6 and astra but dems the trade secrets\n\n[🔗 View Quoted Tweet](https://x.com/_xjdr/status/2083671436619850094)\n\n💬5🔄2❤️18👀3402📊5",
+      "tags": [
+        "Gary Marcus",
+        "AI实验",
+        "提问"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus感慨少有人问及实验过程与研究细节。",
+      "fetched_at": "2026-08-03T00:09:38.363013+08:00"
+    },
+    {
+      "title": "Yet another paper argues that LLMs aren’t close to doing real discovery.",
+      "link": "https://x.com/GaryMarcus/status/2083929671922835791",
+      "published": "2026-08-02T22:55:25+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Yet another paper argues that LLMs aren’t close to doing real discovery.\n\n![How To Prompt](https://pbs.twimg.com/profile_images/2009866827518881792/Th8eH2US_normal.jpg)\n\nHow To Prompt@HowToPrompt\\_\\_\n\nMIT and Harvard argue LLMs are nowhere near doing real scientific discovery.  \n  \nThey published a paper called “Evaluating Large Language Models in Scientific Discovery.”  \n  \nEvery week, tech labs claim an LLM has made a breakthrough in biology, physics, or chemistry.  \n  \nBut this proves they are faking it.  \n  \nFor years, AI benchmarks have tested models using static, multiple-choice science trivia. Models ace these tests, leading everyone to believe AI is right on the verge of autonomous scientific discovery.  \n  \nResearchers built a new evaluation framework called SDE to test what happens when you take LLMs out of the multiple-choice quiz and put them into real, open-ended research projects.  \n  \nThey tested frontier models across biology, chemistry, materials science, and physics.  \n  \nThe results are sobering.  \n  \nWhen forced to handle the actual loop of discovery—proposing a testable hypothesis, designing simulations, running experiments, and interpreting ambiguous results iteratively, current LLMs fall apart.  \n  \nThere is a massive, glaring performance gap between passing standard science benchmarks and doing real science.  \n  \nWhy do they fail? Because real science requires iterative reasoning, handling imperfect evidence, and adapting to unexpected observations.  \n  \nLLMs are built to predict the next token based on existing internet data. They can regurgitate a textbook explanation of photosynthesis or quantum mechanics instantly.  \n  \nBut when placed inside an uncharted loop where the textbook doesn't have the answer yet, they hit a wall.  \n  \nWorse still, the researchers discovered diminishing returns. Simply scaling up model sizes and adding raw compute isn't fixing the gap. Top-tier models from different providers share the exact same blind spots.  \n  \nWe are miles away from general scientific superintelligence.  \n  \nThe tech industry is selling a narrative that AI is about to automate labs, run clinical trials, and invent materials on autopilot.  \n  \nBut right now, AI isn't doing science.  \n  \nIt's just remembering it.\n\n![Tweet Image](https://pbs.twimg.com/media/HOsRFQjaAAARjuL.png)\n\n[🔗 View Quoted Tweet](https://x.com/HowToPrompt__/status/2083778565817127295)\n\n💬10🔄10❤️39👀4372📊13",
+      "tags": [
+        "LLM科学发现",
+        "MIT",
+        "哈佛"
+      ],
+      "score": 72,
+      "summary": "MIT与哈佛研究称LLM无法进行真正的科学发现。",
+      "fetched_at": "2026-08-03T00:09:38.363015+08:00"
+    },
+    {
+      "title": "coda to that:",
+      "link": "https://x.com/GaryMarcus/status/2083918656837419425",
+      "published": "2026-08-02T22:11:39+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "coda to that:\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nholy shit! this captures the entire AI discourse!  \n  \n1. i asked a dude to show me where i was wrong. like with actual quotes.  \n2. to my amazement he actually replied. (most people run away at that point and never respond)  \n3. but the quote he gave was fake from a fake account impersonating me on reddit! from a fabricated screenshot.   \n  \ncc [@TaylorLorenz](https://x.com/TaylorLorenz)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2083917830999945598)\n\n💬1🔄0❤️3👀2039📊1",
+      "tags": [
+        "Gary Marcus",
+        "伪造引用"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus补充指称有人用伪造截图冒充他。",
+      "fetched_at": "2026-08-03T00:09:38.363018+08:00"
+    },
+    {
+      "title": "holy shit! this captures the entire AI discourse!\n\n1. i asked a dude to show me where i was wrong. l...",
+      "link": "https://x.com/GaryMarcus/status/2083917830999945598",
+      "published": "2026-08-02T22:08:22+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "holy shit! this captures the entire AI discourse!  \n  \n1. i asked a dude to show me where i was wrong. like with actual quotes.  \n2. to my amazement he actually replied. (most people run away at that point and never respond)  \n3. but the quote he gave was fake from a fake account impersonating me on reddit! from a fabricated screenshot.   \n  \ncc [@TaylorLorenz](https://x.com/TaylorLorenz)\n\n![Victor Bash](https://pbs.twimg.com/profile_images/2047000799830589440/FEElhcJm_normal.jpg)\n\nVictor Bash@notvictorbash\n\n[@GaryMarcus](https://x.com/GaryMarcus)[@midsusnight](https://x.com/midsusnight)[@skdh](https://x.com/skdh) This enough context for you sir wrongMan the incorrect ?\n\n![Tweet Image](https://pbs.twimg.com/media/HOt9fBfWMAEFFtu.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/notvictorbash/status/2083897232600736042)\n\n💬11🔄3❤️32👀8308📊12",
+      "tags": [
+        "Gary Marcus",
+        "AI讨论"
+      ],
+      "score": 45,
+      "summary": "Gary Marcus批评AI讨论中有人用伪造截图冒充自己。",
+      "fetched_at": "2026-08-03T00:09:38.363020+08:00"
+    },
+    {
+      "title": "摩根大通/路透社预测 GLM 5.5 将于八月发布。\n\n梁圣：具体几号？",
+      "link": "https://x.com/geekbb/status/2083924885064282616",
+      "published": "2026-08-02T22:36:24+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "摩根大通/路透社预测 GLM 5.5 将于八月发布。  \n  \n梁圣：具体几号？\n\n💬0🔄0❤️0👀1449",
+      "tags": [
+        "GLM 5.5",
+        "摩根大通",
+        "发布预测"
+      ],
+      "score": 62,
+      "summary": "摩根大通/路透社预测GLM 5.5将于八月发布，具体日期未定。",
+      "fetched_at": "2026-08-03T00:09:38.363022+08:00"
+    },
+    {
+      "title": "H3 speaks your language!",
+      "link": "https://x.com/Hailuo_AI/status/2083933128658411606",
+      "published": "2026-08-02T23:09:10+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "H3 speaks your language!\n\n![Glitter Gal](https://pbs.twimg.com/profile_images/2073921051654864896/m8r0IgqY_normal.jpg)\n\nGlitter Gal@GlitterPixely\n\nTested t2v 😂 I wanted to see if it would let me hit someone with a wok, lol. [@Hailuo\\_AI](https://x.com/Hailuo_AI)#MiniMaxH33\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082673067856158720/vid/avc1/2560x1440/fA5sn-0avvH-t5Oc.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GlitterPixely/status/2082673918721057255/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/GlitterPixely/status/2082673918721057255)\n\n💬2🔄0❤️7👀1319📊3",
+      "tags": [
+        "Hailuo AI",
+        "H3",
+        "文生视频"
+      ],
+      "score": 70,
+      "summary": "MiniMax官方转发用户使用H3生成视频的测试。",
+      "fetched_at": "2026-08-03T00:09:38.363025+08:00"
+    },
+    {
+      "title": "Finally 👑",
+      "link": "https://x.com/julien_c/status/2083936879322210587",
+      "published": "2026-08-02T23:24:04+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Finally 👑\n\n![Big Tech Alert](https://pbs.twimg.com/profile_images/1042038715764355072/OrNa6QBv_normal.jpg)\n\nBig Tech Alert@BigTechAlert\n\n🆕 [@finkd](https://x.com/finkd) has started following [@huggingface](https://x.com/huggingface)\n\n![Tweet Image](https://pbs.twimg.com/media/HOqghwvWkAAWj3b.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/BigTechAlert/status/2083654281387757986)\n\n💬0🔄0❤️3👀282",
+      "tags": [
+        "Zuckerberg",
+        "Hugging Face"
+      ],
+      "score": 20,
+      "summary": "Mark Zuckerberg开始关注Hugging Face，Julien Chaumond表示终于。",
+      "fetched_at": "2026-08-03T00:09:38.363027+08:00"
+    },
+    {
+      "title": "Every Saturday, I write a short essay on working less, earning enough, and living right now.\n\nRead b...",
+      "link": "https://x.com/thejustinwelsh/status/2083930975000477738",
+      "published": "2026-08-02T23:00:36+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Every Saturday, I write a short essay on working less, earning enough, and living right now.  \n  \nRead by 200,000+.  \n  \nJoin us for free here: [justinwelsh.me/subscribe](https://www.justinwelsh.me/subscribe)\n\n💬0🔄0❤️1👀638",
+      "tags": [
+        "Justin Welsh",
+        "订阅推广"
+      ],
+      "score": 10,
+      "summary": "Justin Welsh宣传个人订阅通讯。",
+      "fetched_at": "2026-08-03T00:09:38.363030+08:00"
+    },
+    {
+      "title": "I was asking ChatGPT a question about programming languages and it started talking about me. But whe...",
+      "link": "https://x.com/paulg/status/2083929305630089297",
+      "published": "2026-08-02T22:53:58+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "I was asking ChatGPT a question about programming languages and it started talking about me. But when I tried fishing for a compliment I got what I deserved.\n\n![Tweet Image](https://pbs.twimg.com/media/HOuai9faYAA7O_y.png)\n\n💬27🔄3❤️143👀11916📊31",
+      "tags": [
+        "Paul Graham",
+        "ChatGPT"
+      ],
+      "score": 50,
+      "summary": "Paul Graham分享与ChatGPT关于编程语言的趣事。",
+      "fetched_at": "2026-08-03T00:09:38.363032+08:00"
+    },
+    {
+      "title": "my early mentors were these apps, especially Rdio, Mailbox, and Apple\n\nthey made new patterns that m...",
+      "link": "https://x.com/ryolu_/status/2083939454017053179",
+      "published": "2026-08-02T23:34:18+08:00",
+      "source": "Ryo Lu(@ryolu_)",
+      "content": "my early mentors were these apps, especially Rdio, Mailbox, and Apple  \n  \nthey made new patterns that made software feel simpler and intuitive to touch  \n  \nas we leave the world of apps behind, what parts of software will remain visible, and how could it feel?\n\n![Artiom Dashinsky](https://pbs.twimg.com/profile_images/1625444893366820865/u3_2pk_Z_normal.jpg)\n\nArtiom Dashinsky@hvost\n\nRemember spending hours studying the UI and interactions in these?\n\n![Tweet Image](https://pbs.twimg.com/media/HOqIcjEXwAAIxqe.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/hvost/status/2083630205524914541)\n\n💬5🔄1❤️14👀902📊6",
+      "tags": [
+        "App设计",
+        "未来软件"
+      ],
+      "score": 30,
+      "summary": "Ryo Lu分享早期App对其设计思维的影响。",
+      "fetched_at": "2026-08-03T00:09:38.363034+08:00"
+    },
+    {
+      "title": "前两天我说我想起了VCD时代，其实是我看到华强北的崛起。手机时代开始，我就离开深圳去上大学了。我认为，有志向的华强北玩家最终必须出海。华强北发展到今天，真正的瓶颈已经不在供给端，而在需求端。因为散装玩...",
+      "link": "https://x.com/feltanimalworld/status/2083928781777998196",
+      "published": "2026-08-02T22:51:53+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "前两天我说我想起了VCD时代，其实是我看到华强北的崛起。手机时代开始，我就离开深圳去上大学了。我认为，有志向的华强北玩家最终必须出海。华强北发展到今天，真正的瓶颈已经不在供给端，而在需求端。因为散装玩家，我认为除了某些大厂，你要么是个民族骄傲，要么已经大到能发商票了（当然以前我们以为的恒大背景也硬到能发商票），那你就是个散装玩家。不是贬义词，是一个某个时间点你觉得赚到钱就能抽身那种灵活。要是改革开放几十年，还没看明白随时抽身是个优点的话...  \n  \n国内供应链太成熟，工程师太多，产品复制速度太快。一家公司花很大力气做出的新功能、新结构和新产品，几个月之内就可能被整个供应链学会。随后竞争迅速退化为参数、价格、流量和交付速度的竞争。你可以在这里被训练出极强的工程能力，却很难留下足够利润。\n\n![Robinson · 鲁棒逊](https://pbs.twimg.com/profile_images/1980814059525033985/d9tb6rAG_normal.jpg)\n\nRobinson · 鲁棒逊@python\\_xxt\n\n国内充电头这条赛道，是真的卷无可卷了。  \n  \n各种45W、65W、100W 的氮化镓，琳琅满目，充电协议一个不落地堆满，PD、PPS、QC、SCP，恨不得把所有标准都焊进去；体积也一代比一代小，纹波也压得漂亮。  \n  \n价格也被打下来了，早两年一个 60W都要一百大几， 现在 100W 都能杀到七十块出头，大家就是贴着 BOM 打。  \n  \n我随手买了个倍思 100W，mini 头，纯粹当备用，扔包里那种。  \n  \n结果到手一摸，把我干沉默了。  \n  \n外壳严丝合缝，磨砂手感细腻，折叠插脚一开一合都是阻尼感，重量均匀刚好压手，给我一种 七十块价格，三百块手感的体验。  \n  \n国内的各行各业，真是太卷了  \n  \n还是得像anker 学习，卷出去，出海卷\n\n[🔗 View Quoted Tweet](https://x.com/python_xxt/status/2083747389891129499)\n\n💬1🔄0❤️12👀1530📊2",
+      "tags": [
+        "华强北",
+        "供应链"
+      ],
+      "score": 20,
+      "summary": "作者讨论华强北发展瓶颈已从供给转向需求。",
+      "fetched_at": "2026-08-03T00:09:38.363037+08:00"
+    },
+    {
+      "title": "不在一个模型鏖战是我发现的很好的技巧，有时候也不是某个模型能力不行，长时间拉扯会污染上下文，而且模型能力是有偏好的，发现同一个模型，新开一个全新的 session 效果也不同。\n\n我的流程是：几轮搞不...",
+      "link": "https://x.com/vikingmute/status/2083919902348554733",
+      "published": "2026-08-02T22:16:36+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "不在一个模型鏖战是我发现的很好的技巧，有时候也不是某个模型能力不行，长时间拉扯会污染上下文，而且模型能力是有偏好的，发现同一个模型，新开一个全新的 session 效果也不同。  \n  \n我的流程是：几轮搞不定，用 /handoff 把当前会话压成一份干净的交接文档，甚至可以让多个模型并行改 bug，开 worktree，（有点大炮打蚊子，但是这样改残留高难度 bug 很高效）最后由主模型比较并且做 reconcile\n\n![图拉鼎](https://pbs.twimg.com/profile_images/675270246509350912/lV9-F5ey_normal.jpg)\n\n图拉鼎@tualatrix\n\n让 GPT 5.6 干了两次十分钟以上都没有干好的活，Grok 4.5 三分钟就给我搞定了。不应该在一个 AI 上恋战啊…\n\n[🔗 View Quoted Tweet](https://x.com/tualatrix/status/2083893588895953143)\n\n💬3🔄0❤️7👀1701📊4",
+      "tags": [
+        "模型切换",
+        "bug修复",
+        "工作流"
+      ],
+      "score": 65,
+      "summary": "Viking分享通过切换模型和handoff流程高效修复bug的技巧。",
+      "fetched_at": "2026-08-03T00:09:38.363039+08:00"
+    },
+    {
+      "title": "玩玩 Midjourney",
+      "link": "https://x.com/op7418/status/2083921281951617148",
+      "published": "2026-08-02T22:22:05+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "玩玩 Midjourney\n\n![Tweet Image](https://pbs.twimg.com/media/HOuTTHyawAAhaP2.jpg)![Tweet Image](https://pbs.twimg.com/media/HOuTTH0bsAAdO-z.jpg)\n\n💬1🔄0❤️14👀2946📊3",
+      "tags": [
+        "Midjourney"
+      ],
+      "score": 10,
+      "summary": "歸藏分享使用Midjourney生成的图片。",
+      "fetched_at": "2026-08-03T00:09:38.363042+08:00"
+    }
+  ]
+}
