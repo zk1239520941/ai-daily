@@ -1706,6 +1706,80 @@
       "score": 78,
       "summary": "Cloudflare推出基于QuePaxa的全局一致控制面Meerkat，支持无领导写入。",
       "fetched_at": "2026-08-02T15:38:57.833772+08:00"
+    },
+    {
+      "title": "四种 Agent 开发方法对比：BMAD、Spec Kit、GSD 和 Skills 怎么选",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzU2NzkxNDY0Ng==&mid=2247490669&idx=1&sn=3a78c38836e53eafd94a2e8a2a128a79",
+      "published": "2026-08-02T16:35:00+08:00",
+      "source": "山行AI",
+      "content": "原创 山行AI 2026-08-02 16:35 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e6beba47&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FWHl70lu0cr6sL75pr2A8xcbhmcic3pFQtNaoRfczOTXEiaAm693zYbNTROSNibxknggMkDv0Fic6LLnLY5yZ6PbklpZ2kLf2Zq4iaZHOaNKdSL9c%2F0%3Fwx_fmt%3Djpeg)\n\nAGENT METHOD2026.07只靠提示词Agent 开发方法到底怎么选BMAD · Spec Ki\n\nAGENT METHOD2026.07\n\n只靠提示词\n\nAgent 开发方法\n\n到底怎么选\n\nBMAD · Spec Kit · GSD Core · Skills\n\n流程、规范、上下文、工程习惯\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=31663922&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWHl70lu0cr50lcFfLE5l8nf9d8TSmiaaibP7icq2YZRzGyqYXdaCzDVKmmr3IJGiakFyDASIpLF4VP5sm9Do4OFSroOcDqQaEW2MAc74thed0aY%2F640%3Ffrom%3Dappmsg)\n\n— 四种 Agent 开发方法的控制层级对比\n\n过去半年，AI 编程工具的讨论正在从模型能不能写代码，转向另一个更现实的问题：当 Agent 真的参与开发，团队到底该把多少流程交给它？\n\nBMAD METHOD、Spec Kit、GSD Core 和 Matt Pocock Skills 都在解决 Agent 编程失控的问题，但切入层级完全不同。\n\n「BMAD 管团队流程，Spec Kit 管规范入口，GSD 管上下文质量，Skills 管工程习惯。」\n\n数据说明：本文的 Star、Fork、Issue、语言和默认分支数据抓取于 2026-07-30，GitHub 数据会随时间变化。\n\n01\n\nPART\n\n先放在同一张坐标系里\n\nMETHOD · MAP\n\n这四个项目不是简单替代关系，真正差别在于 Agent 接管到哪一层。BMAD 和 Spec Kit 更像把开发组织方式固定下来，GSD 更像让 Agent 长任务不烂尾，Matt Pocock Skills 更像保留控制权的小工具箱。\n\n•BMAD METHOD：51,265 Star，多角色敏捷框架，强调 34+ workflows 和模块生态。\n\n•Spec Kit：124,531 Star，spec-driven development 工具包，强调 constitution、spec、plan、tasks、implement。\n\n•GSD Core：7,415 Star，上下文工程框架，强调 Discuss、Plan、Execute、Verify、Ship 五阶段循环。\n\n•Matt Pocock Skills：195,022 Star，工程技能集合，强调可编辑、可组合、按失败模式调用。\n\n02\n\nPART\n\nBMAD：多角色敏捷框架\n\nROLE · WORKFLOW\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=6abed08c&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWHl70lu0cr7ZIazXibgY6stD9CdlC4FYCgpwWAibzx4R81LqoxVBZULLpHcfXX02qwicgC7GFEV8BWxB1wYqcm8CtacXLRiaHEo2DE0e8CBN2qA%2F640%3Ffrom%3Dappmsg)\n\n— BMAD METHOD 项目横幅\n\nBMAD METHOD 不是一个单点提示词，而是一套 AI-driven agile development 框架。它把需求澄清、产品设计、架构、UX、开发、测试和研究拆成多个专家 Agent 与工作流。\n\n•核心能力：34+ workflows、多 Agent 角色协作、Party Mode、模块生态和 Web Bundles。\n\n•架构模式：业务目标进入多角色 Agent，再由结构化 workflow 编排，最终沉淀 PRD、架构、UX、任务和研究产物。\n\n•优势：体系完整、角色边界清晰，适合复杂产品和多人协作。\n\n•限制：流程较重，团队需要接受它的工作方式；个人快速修 bug 时可能显得过于正式。\n\ntext\n\n业务目标\n\n -> 多角色 Agent 拆解\n\n -> 结构化 workflow 编排\n\n -> IDE 或 Agent 环境执行\n\n03\n\nPART\n\nSpec Kit：规格说明变成入口\n\nSPEC · GOVERNANCE\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=7e6ce9ac&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWHl70lu0cr5wGpyrbPBJB6pcfASF6scoDeZjm6ckVD7HdH2hm6RkQ5qWMmgXbmnlQphTO3J9yxm0QhWRoibTPK1z8EKVzKj3b6rwk374tLkU%2F640%3Ffrom%3Dappmsg)\n\n— Spec Kit 标识\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=1ff6e92a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FWHl70lu0cr6hYBS61g7tSYqHmKotEtnNV5RyRB5ljYe3t4wHbMib53yZmx7uHKpadkvp1HNJsvhS1QMWoVyTyOrygjLwWxXYNY4vJibR7gLdI%2F640%3Ffrom%3Dappmsg)\n\n— Spec Kit 视频头图\n\nSpec Kit 强调 Spec-Driven Development：先定义要构建什么，再让 AI coding agent 去实现。它的关键观念是，规格说明不再只是写完就丢的脚手架，而是会继续参与实现过程的可执行资产。\n\n•核心流程：specify init、constitution、specify、plan、tasks、implement。\n\n•扩展机制：Extension 增加新能力，Preset 改造既有 workflow，Bundle 组合角色化安装包。\n\n•优势：组织治理能力强，能把需求、计划、任务和审查沉淀为资产。\n\n•限制：spec 写得差，后面的 plan 和 tasks 也会跟着偏；流程资产越多，维护成本越高。\n\ntext\n\nspecify init\n\n -> /speckit.constitution\n\n -> /speckit.specify\n\n -> /speckit.plan\n\n -> /speckit.tasks\n\n -> /speckit.implement\n\n04\n\nPART\n\nGSD：对抗长任务上下文失真\n\nCONTEXT · LOOP\n\nGSD Core 的核心不是更多角色，而是 context engineering。它认为 AI 编程在规模化时最常见的问题，是上下文不断膨胀后输出质量下降，也就是 context rot。\n\n•五阶段循环：Discuss、Plan、Execute、Verify、Ship。\n\n•关键机制：重研究、规划和执行放进 fresh-context subagents，主会话保持精简。\n\n•状态资产：STATE.md 和 CONTEXT.md 保存跨 session 的结构化记忆。\n\n•优势：适合长任务、多会话和跨 Agent 协作。\n\n•限制：更偏执行质量与上下文纪律，产品和组织治理层需要自己补足。\n\ntext\n\n主会话保持轻量\n\n -> 阶段循环驱动任务\n\n -> fresh-context subagents 执行重任务\n\n -> STATE.md / CONTEXT.md 保存状态\n\n -> Verify 后再 Ship\n\n05\n\nPART\n\nSkills：不接管流程，只补工程纪律\n\nSKILL · COMPOSABLE\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=9921a83f&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FWHl70lu0cr46JQUWMq0D2sDj6CG2SVicU8dn4n8TSARWMUxpQkdMyXP3IPZfGnuoAvsDV9ibNyRobXIIqT2NpTbuiclL2zw8Lx33QWjtMDGf5w%2F640%3Ffrom%3Dappmsg)\n\n— Matt Pocock Skills 横幅\n\nMatt Pocock Skills 的立场和前三者明显不同。它不建一个大框架，而是把真实工程里的失败模式拆成小技能。\n\n•需求没对齐：用 grill-me 或 grill-with-docs 先问清楚。\n\n•术语混乱：用 shared language、CONTEXT.md 和 ADR 建立项目共享语言。\n\n•代码跑不起来：用 tdd 和 diagnosing-bugs 建立反馈循环。\n\n•代码库变泥球：用 to-spec 和 improve-codebase-architecture 做持续修复。\n\n•优势：轻量、可改、可组合，迁移成本低。\n\n•限制：不会替你设计整条开发流程，团队工程纪律弱时只装 skills 不会自动变强。\n\n06\n\nPART\n\n怎么选：看接管哪一层\n\nDECISION · GUIDE\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=f7805c00&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FWHl70lu0cr5W2SWhxiaWy7uK6RxWf9FWRBRCicrFmNLibzUC2wV5g5ibzyyK7uIs5bH2JZfG2KyHtvCF9jCcrMRre1xlVfL5vswIJHMsuV9jCOI%2F640%3Ffrom%3Dappmsg)\n\n— 四种方法选择决策图\n\n可以先问四个问题：你要统一团队开发流程吗？你最怕什么失败模式？你能接受多少流程资产？你希望框架替你决策，还是只提醒你？\n\n•团队从 0 到 1 做复杂产品：先看 BMAD。\n\n•组织想把需求、计划、任务治理起来：先看 Spec Kit。\n\n•长任务经常因为上下文膨胀而失真：先看 GSD Core。\n\n•个人或小团队想保持控制权，只补工程纪律：先看 Matt Pocock Skills。\n\n「真正要避免的，是在一个团队里同时引入多套最高指挥部，最后人和 Agent 都不知道听谁的。」\n\n///\n\nLAST\n\n结语：从 prompt 走向操作系统\n\nSUMMARY\n\n这四个项目共同说明了一件事：Agent 开发已经不再只是写几个提示词，而是在重建软件工程的操作层。\n\nBMAD 把它做成多角色协作系统，Spec Kit 把它做成规范资产，GSD 把它做成上下文工程循环，Matt Pocock Skills 把它做成可组合工程纪律。\n\n如果你正在给团队选型，别先问哪个最火。更应该先问：我们到底缺的是流程、规范、上下文，还是工程习惯？\n\n「答案不同，工具就不同。」\n\n声明\n\n本文由山行整理自：GSD Core、BMAD METHOD、Spec Kit、Matt Pocock Skills，如果对您有帮助，请帮忙点赞、关注、收藏，谢谢～\n\n来源：<https://github.com/open-gsd/gsd-core> ｜ <https://github.com/bmad-code-org/BMAD-METHOD> ｜ <https://github.com/github/spec-kit> ｜ <https://github.com/mattpocock/skills>\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=8a0b04c3&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzU2NzkxNDY0Ng%3D%3D%26mid%3D2247490669%26idx%3D1%26sn%3D3a78c38836e53eafd94a2e8a2a128a79)",
+      "tags": [
+        "BMAD",
+        "Spec Kit",
+        "GSD Core"
+      ],
+      "score": 76,
+      "summary": "文章对比了BMAD、Spec Kit、GSD和Skills四种Agent开发方法的适用场景与特性。",
+      "fetched_at": "2026-08-02T18:06:19.852184+08:00"
+    },
+    {
+      "title": "卧槽我刚才是不是被盗号了？？？怎么发了一条币安的帖子。。。两步验证也不行吗？",
+      "link": "https://x.com/dingyi/status/2083843412168716478",
+      "published": "2026-08-02T17:12:40+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "卧槽我刚才是不是被盗号了？？？怎么发了一条币安的帖子。。。两步验证也不行吗？\n\n💬8🔄0❤️2👀1286📊7",
+      "tags": [
+        "盗号",
+        "币安"
+      ],
+      "score": 20,
+      "summary": "用户质疑账号被盗并发布了币安相关帖子，感叹两步验证无效。",
+      "fetched_at": "2026-08-02T18:06:19.852199+08:00"
+    },
+    {
+      "title": "自从 Raycast 决定改技术框架后，出来好多竞品。目前 Mac 上用下来这个 SuperCmd 确实是最好的，那些 Raycast Pro 版 96 美金/年才给的功能，SuperCmd 只要一次...",
+      "link": "https://x.com/dingyi/status/2083840981854789642",
+      "published": "2026-08-02T17:03:00+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "自从 Raycast 决定改技术框架后，出来好多竞品。目前 Mac 上用下来这个 SuperCmd 确实是最好的，那些 Raycast Pro 版 96 美金/年才给的功能，SuperCmd 只要一次性付费 19.99 美金就给你了。  \n  \nv2 版本用 Swift 完全重构了，内存占用比 Raycast 少 3 倍，磁盘只占 50mb，完全本地运行。关键是还兼容 Raycast 的扩展，迁移成本几乎为零。  \n  \n甚至还支持语音输入和截图，打算尝试一段时间，合适的话就取消订阅 Raycast 了，每年节省 96 美金呢！\n\n![Shobhit - Building SuperCmd](https://pbs.twimg.com/profile_images/1983220476395544576/REUfCUkX_normal.jpg)\n\nShobhit - Building SuperCmd@nullbytes00\n\nIntroducing SuperCmd v2 🚀 - Completely rebuilt in Swift for native performance. Raycast alternative.  \n  \n3x less memory usage compared to Raycast ⚡️  \n50mb on disk, completely local, full privacy!  \n  \nAll the features from SuperCmd v1 including Raycast extensions support!  \n  \nAnd here's what's new in v2 ✨  \n• CleanShotX styled screenshot tool  \n• Windows styled alt + tab tile manager  \n• Widgets in main launcher  \n• Login via ChatGPT (no need to pay for AI subs)  \n• AI Agents with harness (directory aware)  \n• Voice based AI agents powered by [@OpenAI](https://x.com/OpenAI) GPT realtime (just like clicky)  \n• Execute terminal commands from launcher  \n• Double tap as hotkey support  \n• Dedicated AI chat window with web search  \n• Translate command  \n• Browser search with history & profiles  \n• Custom paths for file search[supercmd.sh/new](http://supercmd.sh/new)L\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082751085459247104/vid/avc1/1660x1080/cAH2mEpoHmMUVCxi.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/nullbytes00/status/2082754587174580453/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/nullbytes00/status/2082754587174580453)\n\n💬2🔄1❤️3👀1547📊3",
+      "tags": [
+        "SuperCmd",
+        "Raycast替代",
+        "Swift重写"
+      ],
+      "score": 65,
+      "summary": "推荐SuperCmd v2，称其内存占用比Raycast少3倍，一次付费19.99美元，兼容Raycast扩展。",
+      "fetched_at": "2026-08-02T18:06:19.852205+08:00"
+    },
+    {
+      "title": "Google 发布了第八代 TPU \n\n最核心的变化：以前一颗芯片什么活都干，这次拆成了两颗，各管一头。\n\n- TPU 8t — 专门用来训练模型\n- TPU 8i — 专门用来推理，跑模型\n\n为什么...",
+      "link": "https://x.com/xiaohu/status/2083829267797041580",
+      "published": "2026-08-02T16:16:27+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Google 发布了第八代 TPU   \n  \n最核心的变化：以前一颗芯片什么活都干，这次拆成了两颗，各管一头。  \n  \n- TPU 8t — 专门用来训练模型  \n- TPU 8i — 专门用来推理，跑模型  \n  \n为什么要拆？ 因为这两件事要的东西已经彻底不一样了：  \n  \n训练要的是\"能一次吞下海量数据\"，慢一点无所谓；  \n  \n而跑模型要的是\"反应快\"——你问一句它得立刻答上来。  \n  \n现在 AI 进入了Agent时代（AI 自己一步步干活、反复思考），一个任务要来回想很多轮，每轮慢一点点，加起来用户就等不了了。  \n  \n TPU 8t（训练）：定位为：万亿参数级大模型预训练， 一组 9600 颗芯片，121 exaflops 算力、2 PB 共享内存， 峰值性能是上一代的 3 倍  \n  \n TPU 8i（推理）： 后训练 + 实时推理，通信密集任务延迟最多少一半\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083828088614612992/vid/avc1/1280x720/Omrc9d3sHTrEIvCI.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2083829267797041580/video/1)\n\n![Google Cloud](https://pbs.twimg.com/profile_images/2047008530478346240/2ZoDIjwe_normal.jpg)\n\nGoogle Cloud@googlecloud\n\nTPU 8i and TPU 8t deliver sustainable economics—offering up to 80% better performance-per-dollar for low-latency serving while seamlessly scaling to 1M+ chips!  \n  \nLearn how our 8th-generation TPU system drives the next frontier of AI ↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083262465576517632/vid/avc1/1280x720/Zidh1kKndY2Lx1Da.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/googlecloud/status/2083323071897747667/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/googlecloud/status/2083323071897747667)\n\n💬7🔄3❤️15👀6568📊7",
+      "tags": [
+        "TPU 8t",
+        "TPU 8i",
+        "第八代TPU"
+      ],
+      "score": 85,
+      "summary": "Google发布第八代TPU，分为训练用TPU 8t和推理用TPU 8i，性能大幅提升。",
+      "fetched_at": "2026-08-02T18:06:19.852209+08:00"
+    },
+    {
+      "title": "Codepilot 0.63.0 版本更新\n\n现在可以将你用 AI 生成的任何内容加入素材库了\n\n比如 Codex 里用 GPT- Image 2.0 生成的图片和 AI 生成的 HTML 都可以加入...",
+      "link": "https://x.com/op7418/status/2083827624070234507",
+      "published": "2026-08-02T16:09:55+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Codepilot 0.63.0 版本更新  \n  \n现在可以将你用 AI 生成的任何内容加入素材库了  \n  \n比如 Codex 里用 GPT- Image 2.0 生成的图片和 AI 生成的 HTML 都可以加入素材库了，还能给素材打标签  \n  \n同时适配了 Deepseek V4 Flash 0731，增加了可选的推理强度  \n  \n[github.com/op7418/CodePil…](https://github.com/op7418/CodePilot/releases/tag/v0.63.0)\n\n![Tweet Image](https://pbs.twimg.com/media/HOs5QRYakAAPjoS.jpg)\n\n💬6🔄0❤️14👀3999📊8",
+      "tags": [
+        "Codepilot",
+        "0.63.0",
+        "Deepseek V4 Flash"
+      ],
+      "score": 74,
+      "summary": "Codepilot 0.63.0支持将AI生成内容加入素材库并添加标签，同时适配Deepseek V4 Flash。",
+      "fetched_at": "2026-08-02T18:06:19.852212+08:00"
     }
   ]
 }
