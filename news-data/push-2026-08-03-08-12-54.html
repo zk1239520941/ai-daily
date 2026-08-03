@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="theme-color" content="#F5F5F2"/>
+  <title>Google 发布第八代 TPU 8t/8i 拆分训练与推理，吴恩达开源 OpenWorker，DeepSeek V4-Flash 成本仅 Fable 的 1/105 · AI Daily</title>
+  <meta property="og:image" content="https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Noto+Serif+SC:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../static/pages.css"/>
+</head>
+<body class="article-page">
+  <div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+  <div class="site-shell">
+    <nav class="site-nav site-nav--compact">
+      <div class="site-brand">
+        <a href="../index.html">AI Daily</a>
+      </div>
+      
+      <a class="back-link" href="../index.html">← 返回首页</a>
+    </nav>
+
+    <article class="article-main">
+      <header class="article-hero reveal">
+        <div class="article-hero__top">
+          <time datetime="2026年08月03日 · 08:12">2026年08月03日 · 08:12</time>
+          <span class="article-edition">早报</span>
+        </div>
+        <figure class="article-cover"><img src="https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp" alt="" loading="eager" referrerpolicy="no-referrer" decoding="async"/></figure>
+        <h1>Google 发布 TPU 8t/8i，吴恩达开源 OpenWorker</h1>
+        <p class="article-lead">Google Cloud 发布第八代 TPU 8t/8i，首次拆分训练与推理芯片；吴恩达开源桌面 AI Agent OpenWorker，一周获 1.1 万 Star；DeepSeek V4-Flash 经第三方测算完成同任务成本仅 Fable 的 1/105。</p>
+        <div class="highlight-tags"><span><i>1</i>Google 首次拆分训练与推理芯片，发布 TPU 8t/8i</span><span><i>2</i>吴恩达开源 OpenWorker，发布一周获 1.1 万 Star</span><span><i>3</i>DeepSeek V4-Flash 完成同任务成本仅 Fable 的 1/105</span></div>
+        <div class="article-stats"><span>10 个来源</span><span>10 条精选</span></div><div class="article-sections">RSS 精选 10 · GitHub 趋势 3 · Hacker News 3 · 今日洞察</div>
+      </header>
+
+      <nav class="article-toc reveal" aria-label="栏目导航"><a class="article-toc__link" href="#board-rss">RSS 精选<span class="article-toc__count">10</span></a><a class="article-toc__link" href="#board-github">GitHub 趋势<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-hackernews">Hacker News<span class="article-toc__count">3</span></a><a class="article-toc__link" href="#board-insights">今日洞察</a></nav>
+
+      <div class="article-body">
+        <section class="board-section board-rss" id="board-rss"><header class="board-section__head"><h2 class="board-section__title">RSS 精选</h2></header><div class="board-section__body"><hr>
+<p>title: "吴恩达开源 OpenWorker，Google 发布 TPU 8t/8i"<br>
+lead: "吴恩达与 Rohit Prasad 开源桌面 AI Agent OpenWorker，一周获 1.1 万 Star；Google 发布第八代 TPU 8t/8i，训练与推理分体；Karpathy 用 Opus 5 生成《指环王》3D 场景；Cloudflare 启动 Agents Week；美团 LongCat 开源 VitaBench 2.0。"<br>
+highlights:<br>
+  - "吴恩达开源 OpenWorker，一周 1.1 万 Star"<br>
+  - "Google 发布 TPU 8t/8i，训练与推理分体"<br>
+  - "Karpathy 用 Opus 5 生成《指环王》3D 场景"</p>
+<section class="story-block reveal" id="story-1"><h3>吴恩达开源 OpenWorker：本地优先的“AI 同事”一周获 1.1 万 Star</h3>
+<ul>
+<li><strong>核心发布</strong>：吴恩达与前 Amazon Alexa 首席科学家 Rohit Prasad 联合开源桌面 AI Agent OpenWorker，MIT 协议，定位为交付成品的本地 AI 同事，发布一周星标数达 1.1 万。</li>
+<li><strong>技术架构</strong>：Tauri 2 + React 18 桌面壳，本地 Python（FastAPI）Agent 服务器，支持 25+ 远程集成和任意 MCP 工具；模型层预置 30 个验证过的模型，并通过 aisuite 统一路由，可用 Ollama 跑本地模型。</li>
+<li><strong>权限设计</strong>：工具调用按 read/write_local/exec/external 分四级风险，配 discuss/plan/interactive/auto/custom 五种模式；无人值守模式只改变 Agent 联系用户的方式，不提高自主权限上限，shell 命令任何模式都需确认。</li>
+<li><strong>现状</strong>：Open Beta，Mac 版已签名支持自动更新；Windows 版未签名；暂无 Linux 版与中文界面。</li>
+</ul>
+<p>🔗 <a href="https://github.com/andrewyng/openworker">GitHub</a> | <a href="https://openworker.com">官网</a> | <a href="https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&amp;mid=2247724896&amp;idx=1&amp;sn=527227ca49bfad6c7328ae73f234600d">Datawhale 解读</a></p></section>
+<section class="story-block reveal" id="story-2"><h3>Google 发布第八代 TPU：训练与推理分体，TPU 8t/8i</h3>
+<ul>
+<li><strong>核心发布</strong>：Google Cloud 推出第八代 TPU 系统，首次拆分为训练专用 TPU 8t 与推理专用 TPU 8i 两条产品线。</li>
+<li><strong>规格</strong>：TPU 8t 面向万亿参数预训练，9600 芯片组提供 121 exaflops 算力与 2 PB 共享内存，峰值性能为上一代 3 倍；TPU 8i 面向后训练与实时推理，通信密集任务延迟最多降低一半。</li>
+<li><strong>官方数据</strong>：低延迟推理场景性能/美元提升最高 80%，系统可扩展至 100 万+ 芯片。</li>
+<li><strong>行业意义</strong>：Agent 时代多轮推理对延迟高度敏感，训练与推理硬件路线分化成为明确趋势。</li>
+</ul>
+<p>🔗 <a href="https://x.com/googlecloud/status/2083323071897747667">Google Cloud 推文</a> | <a href="https://x.com/xiaohu/status/2083829267797041580">中文解读</a></p></section>
+<section class="story-block reveal" id="story-3"><h3>DeepMind 新研究 SkillSmith：让模型权重成为 LLM 可读的模态</h3>
+<ul>
+<li><strong>核心发布</strong>：Google DeepMind 发布 SkillSmith，将模型权重前缀作为额外模态交给 LLM 原生读取，输入描述能力关系的文本后直接输出新的权重前缀，实现“指令引导的参数合成”。</li>
+<li><strong>关键变化</strong>：技能组合从训练时操作变为推理时操作，不再需要为每个技能单独跑训练。</li>
+<li><strong>效果</strong>：论文称其增益超过单独使用文本适配或权重适配的结果。</li>
+</ul>
+<p>🔗 <a href="https://arxiv.org/abs/2607.27497">论文</a> | <a href="https://x.com/omarsar0/status/2083951213171925221">介绍推文</a></p></section>
+<section class="story-block reveal" id="story-4"><h3>Karpathy 实测：Opus 5 用 2 小时写 5500 行代码渲染《指环王》</h3>
+<ul>
+<li><strong>核心实验</strong>：Karpathy 给 Opus 5 一段《指环王》开头、100 万 token 预算（约 10 美元），要求用 Three.js 程序化渲染故事，模型耗时约 2 小时写出 5500 行代码并生成可运行场景。</li>
+<li><strong>核心洞察</strong>：LLM 的耐力让“没人会花时间写的超定制代码”变成“反正便宜，为什么不呢”，指向按需生成超定制世界/临时 GTA 的可能性。</li>
+<li><strong>暴露短板</strong>：模型无法高效观看视频或亲自游玩生成场景，只能逐点截图检查，导致视觉与逻辑瑕疵无法被快速审计，多模态与游戏内感知仍是明显缺口。</li>
+</ul>
+<p>🔗 <a href="https://x.com/karpathy/status/2083749667410727319">Karpathy 推文</a></p></section>
+<section class="story-block reveal" id="story-5"><h3>Cloudflare 启动 Agents Week：提出“Agent Cloud”概念</h3>
+<ul>
+<li><strong>核心发布</strong>：Cloudflare 宣布本周为 Agents Week，并重新定义要回答的问题：不是“Agent Cloud 是什么”，而是“你的 Agent 需要什么样的云”。</li>
+<li><strong>核心判断</strong>：现有云和 Web 是为人类观看设计的；Agent 需要的是速度、结构和访问方式完全不同的原语，同时需要一个翻译层兼容人类形态的现有 Web。</li>
+<li><strong>计划</strong>：未来五天围绕 agent 执行层原语、agentic 软件开发生命周期、组织内安全控制、agentic web 以及现实落地展开。</li>
+</ul>
+<p>🔗 <a href="https://blog.cloudflare.com/agents-week-welcome/">Cloudflare Blog</a></p></section>
+<section class="story-block reveal" id="story-6"><h3>美团 LongCat 开源 VitaBench 2.0：长期动态智能体评测基准</h3><div class="pretext-block pretext-left"><figure class="entry-figure pretext-figure"><img src="https://p0.meituan.net/meituantechblog/ecfdc52ee4ab7253a877d5df75217f21127484.webp" alt="" loading="lazy" referrerpolicy="no-referrer" decoding="async"/></figure><div class="story-prose"><ul>
+<li><strong>核心发布</strong>：美团 LongCat 团队发布 VitaBench 2.0，首个真实生活场景下的长期动态用户建模智能体基准，并全面开源。</li>
+<li><strong>规模</strong>：56 名拟真用户、819 个任务、超 2000 个动态偏好、66 个可执行工具；平均每位用户 2093 个交互事件，平均时间跨度 1580 天。</li>
+<li><strong>关键发现</strong>：开卷模式下最强模型 Claude-Opus-4.6 平均分刚过 0.5；接入记忆模块后多数模型性能反降；所有模型在主动提问任务上断崖下跌（Claude 家族 46.0→27.4）；DeepSeek-V4-Pro 等强模型的主要失败点从工具使用转向偏好理解。</li>
+</ul>
+<p>🔗 <a href="https://tech.meituan.com/2026/06/29/LongCat-VitaBench-2.0.html">技术博客</a> | <a href="https://github.com/meituan-longcat/vitabench-2.0">GitHub</a> | <a href="https://huggingface.co/datasets/meituan-longcat/VitaBench-2.0">HuggingFace</a></p></div></div></section>
+<section class="story-block reveal" id="story-7"><h3>Vercel CEO：内部 Agent @v 已驱动全公司日常运营</h3>
+<ul>
+<li><strong>核心事实</strong>：Guillermo Rauch 披露，Vercel 内部 Agent @v 覆盖财务、沟通、文档、市场、工程与商业分析，每日交互量和 token 使用量指数增长。</li>
+<li><strong>能力细节</strong>：@v 按用户维护记忆、个性化工作流与日程安排，例如自主周期性检查 skills.sh 达到 100 万 skills 并提醒 CEO 分享。</li>
+<li><strong>设计立场</strong>：Rauch 强调公司应从源码、运行时、数据到 token 完全掌控自己的 Agent，而不是用“大厂 Slack 集成”；@v 也是 Vercel 新项目 eve.dev 的基础。</li>
+</ul>
+<p>🔗 <a href="https://x.com/rauchg/status/2084042561690456157">Rauch 推文</a></p></section>
+<section class="story-block reveal" id="story-8"><h3>Simon Willison 梳理近三周 AI 公开信：235 家公司 vs Anthropic vs 1324 名员工</h3>
+<ul>
+<li><strong>核心事实</strong>：Simon Willison 发布长文，系统梳理过去三周围绕 AI 发展的三封公开信。</li>
+<li><strong>三方立场</strong>：微软主导的《Open Weights and American AI Leadership》获 235 家公司签署，支持开放权重并明确为蒸馏辩护；Anthropic 缺席该信，三天后发布自家立场，Dario Amodei 呼吁打击工业级蒸馏但表示从未主张禁止开放权重；《Pacing the Frontier》由 1324 名前沿 AI 公司员工签署，要求美国政府支持国际协作“审慎推进”自动化 AI 开发。</li>
+<li><strong>背景信号</strong>：Anthropic 80% 代码由 Claude Code 生成、OpenAI 用 Sol 降低 20% 服务成本、Kimi K3 自研芯片等进展，是“自动化 AI 研究加速”担忧的直接来源。</li>
+</ul>
+<p>🔗 <a href="https://simonwillison.net/2026/Aug/2/open-letters/#atom-everything">Simon Willison 文章</a></p></section>
+<section class="story-block reveal" id="story-9"><h3>[持续跟踪] DeepSeek V4-Flash 0731：第三方测算成本比 Fable 低 105 倍</h3>
+<ul>
+<li><strong>前情提要</strong>：昨日 DeepSeek V4-Flash 0731 开放 API 公测，Agent 基准超越 V4-Pro-Preview，原生适配 Codex，定价 $0.14/$0.28。</li>
+<li><strong>最新进展</strong>：Artificial Analysis 测算显示，DeepSeek 以比 Fable 低 105 倍的成本完成相同基准任务；开发者实测将网站翻译切换至 V4-Flash 后，任务耗时从 20-60 分钟降至 3 分钟，单篇成本不足 0.1 元；社区建议在官方 harness 发布前搭配 Pi harness 使用。</li>
+</ul>
+<p>🔗 <a href="https://artificialanalysis.ai/models/deepseek-v4-flash?cost=evaluation-breakdown">Artificial Analysis</a> | <a href="https://x.com/xiaohu/status/2083808984486855124">翻译实测</a> | <a href="https://x.com/omarsar0/status/2084001897967444248">Pi harness 推荐</a></p></section>
+<section class="story-block reveal" id="story-10"><h3>0️⃣ MIT 与哈佛研究：LLM 离真正的科学发现还很远</h3>
+<ul>
+<li><strong>核心事实</strong>：MIT 和哈佛研究人员发表论文《Evaluating Large Language Models in Scientific Discovery》，提出 SDE 评估框架，将模型放入开放式研究流程：提出可检验假设、设计模拟、运行实验、迭代解释模糊结果。</li>
+<li><strong>结果</strong>：前沿模型在生物学、化学、材料科学和物理学中表现大幅下滑，与静态基准的高分形成明显差距；仅扩展模型规模和算力无法弥合该差距，不同厂商的顶级模型共享相同盲点。</li>
+<li><strong>核心结论</strong>：模型擅长“记住”教科书式答案，但在教科书尚未覆盖的未知循环中会碰壁；当前 AI 并未在真正从事科学发现。</li>
+</ul>
+<p>🔗 <a href="https://x.com/GaryMarcus/status/2083929671922835791">Gary Marcus 转述推文</a></p></section></div></section>
+<section class="board-section board-github" id="board-github"><header class="board-section__head"><h2 class="board-section__title">GitHub 趋势</h2></header><div class="board-section__body"><p><strong>📊 类别速览</strong></p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>类别</th>
+<th>Stars</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Panniantong/Agent-Reach</td>
+<td>AI Agent</td>
+<td>64.7k</td>
+</tr>
+<tr>
+<td>esengine/DeepSeek-Reasonix</td>
+<td>AI Agent</td>
+<td>29.0k</td>
+</tr>
+<tr>
+<td>antirez/ds4</td>
+<td>推理/模型</td>
+<td>20.0k</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<section class="story-block reveal" id="story-1"><h3>Panniantong/Agent-Reach ⭐ 今日 +659</h3>
+<p><strong>语言/许可：</strong> Python / MIT<br>
+<strong>总 Stars：</strong> 64.7k<br>
+<strong>仓库：</strong> <a href="https://github.com/Panniantong/Agent-Reach">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+为 AI Agent 提供统一的互联网信息访问层，解决 Twitter、Reddit、小红书等平台 API 付费、登录墙和反爬导致的 Agent“联网难”问题。</p>
+<p><strong>核心功能：</strong><br>
+- 一条命令安装/更新，自动为 Claude Code、Cursor、OpenClaw 等 Agent 注册 SKILL.md，Agent 可自主调用各平台读取能力<br>
+- 覆盖网页、YouTube、GitHub、Twitter/X、B站、小红书、Reddit、Facebook、Instagram、RSS、全网语义搜索等十余个渠道<br>
+- 每平台采用“首选 + 备选”多后端路由，上游工具失效时自动切换（如 B站读取从 yt-dlp 切换至 bili-cli）<br>
+- 提供 <code>agent-reach doctor</code> 一键诊断各渠道状态，凭据仅存本地且权限 600</p>
+<p><strong>技术亮点：</strong><br>
+基于 Jina Reader、yt-dlp、gh CLI、Exa MCP 等免费上游工具的编排层，通过 CLI + MCP 标准化接入，不自行实现读取逻辑，便于渠道动态替换。</p>
+<hr></section>
+<section class="story-block reveal" id="story-2"><h3>esengine/DeepSeek-Reasonix ⭐ 今日 +333</h3>
+<p><strong>语言/许可：</strong> Go / MIT<br>
+<strong>总 Stars：</strong> 29.0k<br>
+<strong>仓库：</strong> <a href="https://github.com/esengine/DeepSeek-Reasonix">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+面向 DeepSeek 模型优化的终端 AI 编码 Agent，以 prefix-cache 稳定性为设计核心，降低长会话 Agent 的 token 成本。</p>
+<p><strong>核心功能：</strong><br>
+- 配置驱动：provider、模型、工具、插件均在 <code>reasonix.toml</code> 声明，不硬编码<br>
+- 缓存感知上下文维护：启动注入稳定环境摘要，压缩前裁剪陈旧工具输出，保持 DeepSeek 前缀缓存命中<br>
+- 插件化工具链：外部工具以子进程 stdio JSON-RPC（MCP 兼容）接入，内建工具编译期自注册<br>
+- 多前端形态：同一引擎提供 CLI/TUI、桌面应用与 VS Code 扩展（ACP 协议）</p>
+<p><strong>技术亮点：</strong><br>
+CGO_ENABLED=0 单静态二进制、无运行时依赖；支持 executor + planner 双模型分离会话，各自维持独立缓存稳定上下文。</p>
+<hr></section>
+<section class="story-block reveal" id="story-3"><h3>antirez/ds4 ⭐ 今日 +139</h3>
+<p><strong>语言/许可：</strong> C / MIT<br>
+<strong>总 Stars：</strong> 20.0k<br>
+<strong>仓库：</strong> <a href="https://github.com/antirez/ds4">GitHub</a></p>
+<p><strong>项目定位：</strong><br>
+针对 DeepSeek V4 Flash/PRO 与 GLM 5.2 的专用本地推理引擎，解决消费级工作站上运行超大 MoE 模型的内存与吞吐瓶颈。</p>
+<p><strong>核心功能：</strong><br>
+- 非通用 GGUF runner，仅针对 DeepSeek V4 与 GLM 5.2 适配的专用推理路径<br>
+- 支持 Metal（Mac）、CUDA（含多卡与 DGX Spark）、ROCm（Strix Halo）三后端<br>
+- 内存不足时通过 SSD streaming 运行；CUDA 多卡支持微批解码，可部署为多用户 LLM 服务<br>
+- 非对称量化：仅对 routed MoE experts 做 2bit 量化，共享专家与投影层保持高精度</p>
+<p><strong>技术亮点：</strong><br>
+基于 llama.cpp/GGML 生态独立实现，针对 DeepSeek 稀疏路由结构定制量化与 KV 压缩；支持双机 RDMA tensor parallelism 与 pipeline parallelism 聚合内存。</p></section></div></section>
+<section class="board-section board-hackernews" id="board-hackernews"><header class="board-section__head"><h2 class="board-section__title">Hacker News</h2></header><div class="board-section__body"><section class="story-block reveal" id="story-1"><h3>Karpathy’s Pelican</h3>
+<p>406 pts · 318 comments · <a href="https://twitter.com/karpathy/status/2083749667410727319">twitter.com/karpathy</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>背景：Karpathy 用《魔戒》第一段文字作为唯一 prompt，给 Opus 5 约 1M token 预算（约 $10），要求生成一个 three.js 渲染。</li>
+<li>关键要点：模型自动运行约 2 小时、写出约 5500 行代码，以程序化方式生成并动画化场景；结果“有点 janky 但有趣”。Karpathy 认为这类“没人会手动做”的定制内容，会因 LLM 的低成本变成可消费品，并设想“按需生成的临时 GTA 式世界”。</li>
+<li>限制与影响：他同时指出 LLM 很难审计这类输出——不能原生看视频或玩游戏，只能靠截图检查，因此出现多处穿模/错乱；多模态与游戏内交互能力仍是当前短板。</li>
+<li>HN 关注点：该实验更像有效的新基准，还是社交媒体的 token 燃烧 demo？模型能力提升是否被高估？Karpathy 的身份和商业立场如何影响叙事？</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li>新基准 vs 旧基准：多数人认为 pelican SVG 已饱和，用长文本→3D 动画测试空间推理是自然延伸；但也有人指出这类任务昂贵、难量化，只是“面向 Twitter 的注意力测试”，真实评测应来自自身业务 traces。</li>
+<li>能力归因：有评论怀疑 Anthropic 专门强化过 three.js 生成，不能外推；反驳者认为从模糊文学段落到 3D 坐标、材质、动画需要大量隐式物理和空间知识。有用户分享用 Claude 做 WebGL 迁移和性能优化的实际经验，表示模型对 3D 与加载性能的理解确实很强。</li>
+<li>Karpathy 公信力争议：部分评论批评他 8 个月前还说“可靠 agent 至少十年后”，现在却展示 Anthropic 产品能力，是营销；支持者指出 8 个月来 agent 能力提升很快，而且这条推文本人就是在指出多模态审计短板，并非单纯广告。</li>
+<li>游戏行业视角：前游戏开发者认为这类“AI 生成世界”不解决玩家真正要的东西，AI slop 游戏从留存角度基本失败；也有观点认为 LLM 对游戏开发工具链会有实质帮助，只是 demo ≠ 产品。</li>
+<li>一次性软件讨论：有评论提出“软件变成廉价塑料，坏了就重新生成”的类比，适合一次性任务；反对者认为软件复制成本为零，与实体产品经济模型不同。</li>
+<li>成本与版权：$10 API 成本不等于“~free”，背后是烧投资人钱；普通用户可能因版权拒绝生成《魔戒》内容，而 Karpathy 有内部访问权限。</li>
+<li>其他技术点：生成结果明显依赖电影版 Bag End 的训练数据；有建议改用 Blender/USD、分段渲染或 comic 分镜来获得更可控和可比的输出。</li>
+</ul>
+<p>🔗 <a href="https://twitter.com/karpathy/status/2083749667410727319">原文</a> · <a href="https://news.ycombinator.com/item?id=49140998">HN 讨论页</a></p></div></details></section>
+<section class="story-block reveal" id="story-2"><h3>Show HN: Mu – Tools for Agents</h3>
+<p>8 pts · 1 comment · <a href="https://github.com/micro/mu">github.com/micro</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>作者想做什么：做一个面向 agent 的“工具包”，用一个 MCP endpoint 暴露 67 个真实工具，覆盖新闻、搜索、邮件、市场、天气、视频、位置、图片、文件、日历、联系人等。</li>
+<li>技术实现：Go 单二进制，基于 Go Micro registry 注册服务；服务声明一次后，自动变为 MCP 工具、CLI 子命令、内置 agent 工具和 Web app。邮件是真实 SMTP+DKIM，搜索/索引和存储也是自托管，而非第三方 API wrapper。</li>
+<li>产品与设计：支持 hosted 和 self-host；授权通过 MCP authorization 规范或 PAT；成本按调用消耗 credits；AGPL-3.0。</li>
+<li>用户反馈焦点：HN 评论极少，目前只有一条“Faith area is interesting”，尚未形成实质讨论。</li>
+</ul>
+<p>🔗 <a href="https://github.com/micro/mu">原文</a> · <a href="https://news.ycombinator.com/item?id=49148899">HN 讨论页</a></p></section>
+<section class="story-block reveal" id="story-3"><h3>My personal AI benchmark: &quot;Generate an SVG of a frog with a Habsburg jaw.&quot;</h3>
+<p>83 pts · 42 comments · <a href="https://frogs.vaguespac.es/">vaguespac.es</a></p>
+<p><strong>📌 内容总结</strong></p>
+<ul>
+<li>背景/作者意图：做一个公开、可重复的 AI benchmark：同一 prompt 下，让多个模型生成 “frog with a Habsburg jaw” 的 SVG，每个模型当月 3 次机会，并展示原始输出、耗时、体积和 SVG 内注释。</li>
+<li>关键要点：该 prompt 同时要求解剖特征和世界知识（Habsburg 家族史），能观察模型如何理解指令、是否会自行脑补。当前数据：14 个模型、42 次运行全部返回 SVG；Claude Opus 5 被多数评论认为最接近“人类作品”。</li>
+<li>观察/限制：不同模型行为差异明显——7/14 个模型自动引入皇室元素；Mistral 两次运行输出字节级相同；Gemini 在 SVG 里写了 65 条注释，Llama 不写注释。站点因 HN 流量一度过载。</li>
+<li>HN 关注点：这类 benchmark 能否衡量“生成训练集外内容”的能力？指令遵循和确定性比画得好看更值得关注？</li>
+</ul>
+<details class="discussion-fold"><summary>💬 讨论总结</summary><div class="discussion-fold__body">
+<ul>
+<li>共识：这是一个比 pelican 更有效的方向。它把“解剖学特征 + 历史知识”绑在一起，能区分“忠实执行指令”和“自作主张扩展”；模型对 Habsburg jaw 的联想（皇冠、皇室肖像）成为指令遵循的讨论焦点。</li>
+<li>工程经验：有评论指出这类测试和实际编码体验一致——模型能把局部细节画对，但整体结构常不合理。分享者提议增加侧脸、分镜等约束；也有评论将它与 MacBook SVG benchmark 类比。</li>
+<li>历史背景：Habsburg jaw 即 mandibular prognathism，因哈布斯堡家族近亲通婚而著名。这个背景知识本身就是模型跑题/发挥的诱因。</li>
+<li>反对/质疑：有人质疑这类随机任务不代表实际使用价值，回复认为它能测试模型处理训练集外概念的能力；另一条评论认为这是“为 AGI 叙事服务”的意识形态驱动，而非实用评测。</li>
+<li>风险/限制：当前所有模型产出的 SVG 仍与人类艺术差距明显，评分主观；网站流量洪峰也说明这类视觉 benchmark 容易成为社交传播热点，而非严谨评测。</li>
+</ul>
+<p>🔗 <a href="https://frogs.vaguespac.es/">原文</a> · <a href="https://news.ycombinator.com/item?id=49147622">HN 讨论页</a></p></div></details></section></div></section>
+<section class="board-section board-insights" id="board-insights"><header class="board-section__head"><h2 class="board-section__title">今日洞察</h2></header><div class="board-section__body"><p>VitaBench 2.0 给出反直觉结果：接入记忆模块后多数模型性能不升反降，Claude-Opus-4.6 开卷均分刚过 0.5；所有模型在主动提问任务上断崖下跌（Claude 家族 46.0→27.4）。长期记忆不是 Agent 的补丁——瓶颈不在“记住什么”，而在“何时该问、何时该动”。DeepSeek-V4-Pro 这类强模型的失败点已不在工具使用，而在偏好理解：工具调用正成为基准中的常量，真实分化在交互策略。</p>
+<p>105 倍成本差正在改变开发者行为。翻译网站切换到 V4-Flash 后，任务耗时从 20-60 分钟降至 3 分钟，单篇成本不足 0.1 元；GitHub 上 Reasonix 以 prefix-cache 稳定为核心、ds4 只量化 routed MoE experts——专用工具链围绕最便宜架构生长，进一步压低有效成本。模型选型已进入成本工程阶段。</p>
+<p>Google 将 TPU 拆成训练专用 8t 与推理专用 8i，是硬件层面对 Agent 多轮推理负载的正式回应。8i 低延迟推理性能/美元最高提升 80%，推理侧成本曲线将比训练侧下降更快，高调用量的 Agent 产品成为最大受益者。</p></div></section>
+      </div>
+    </article>
+
+
+
+    <footer class="site-footer">
+      AI Daily
+    </footer>
+  </div>
+  <script src="../static/pages.js" defer></script>
+</body>
+</html>
