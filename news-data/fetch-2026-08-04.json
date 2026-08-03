@@ -514,6 +514,476 @@
       "score": 65,
       "summary": "KOL称赞Qwen3.8-Max在Hermes Agent上表现，认为开源模型接近闭源。",
       "fetched_at": "2026-08-04T02:01:38.886316+08:00"
+    },
+    {
+      "title": "GEM Training: How Meta Doubled the Efficiency of Its LLM-Scale Ads Foundation Model",
+      "link": "https://engineering.fb.com/2026/08/03/ml-applications/training-gem-at-llm-scale-meta-ads-recommendation-foundation-model/",
+      "published": "2026-08-04T02:00:17+08:00",
+      "source": "Engineering at Meta",
+      "content": "* [Meta’s Generative Ads Recommendation Model (GEM),](https://engineering.fb.com/2025/11/10/ml-applications/metas-generative-ads-model-gem-the-central-brain-accelerating-ads-recommendation-ai-innovation/) the foundation model behind ads recommendations across Instagram and Facebook, now trains at LLM scale on several thousand of the latest-generation GPUs. This post goes into the details on how we achieved: doubling end-to-end (E2E) training efficiency to 20–25% Model FLOPs Utilization (MFU) while scaling training FLOPs 4x in 12 months, by co-designing kernels, precision, parallelism, networking, and memory together.\n* Training GEM presents unique engineering challenges at the intersection of recommendation systems and LLMs as the model combines a hybrid architecture plus recommendations-domain data properties that are unlike typical LLM workloads.\n* AI infrastructure optimized for LLM training (kernels, parallelism, low precision recipes etc.) does not directly transfer, requiring significant innovation and hardware/software co-design to reach LLM-scale training for recommendation models efficiently.\n* We tackled these challenges through complementary **compute efficiency** and **scaling efficiency** innovations:\n  + **Compute efficiency**: Achieved through a customized recommendation kernel library — Jagged Flash Attention (JFA), Generalized Dot-Product Attention (GDPA), BlockAttention, etc. — and mixed ultra-low precision training (including MXFP8 attention and MLP) optimized for recommendation workloads, purpose-built to exploit latest generation GPU’s architecture.\n  + **Scaling efficiency**: Topology-aware 5D parallelism with Streaming Multiprocessor (SM)-free collectives — 2D FSDP + Expert Parallelism for dense parameters, combined with Fully Sharded 2D Model Parallelism for sparse parameters — co-designed with Meta’s multi-tiered network hierarchy to reduce communication overhead.\n* The results: we doubled GEM’s E2E training efficiency to 20-25% MFU while scaling total training FLOPs 4x over the past 12 months.\n\n## GEM’s Architecture And Its Unique Training Challenges\n\nGEM is the central recommendations foundation model behind Meta’s ads system. It has a hybrid architecture with trillions of sparse embedding parameters and billions of dense parameters. GEM is trained on ad content and user engagement data with two categories of features: **sequence features** (e.g., user activity history) and **non-sequence features** (e.g., user location, ad creative representation). Customized attention mechanisms are applied to each group independently, while also enabling cross-feature learning.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image13.png)\n\nThe interplay between this hybrid architecture and rec-domain data properties is what makes GEM’s training uniquely challenging.\n\n### Challenge 1: Achieving High Per-GPU Utilization\n\nToday’s data center GPUs and their software stacks are mostly optimized for LLM workloads, whereas recommendation workloads have a fundamentally different profile due to unique data characteristics and rich user & ads signal interaction patterns that make it extremely difficult to achieve high GPU compute utilization for training a foundational recommendation model of GEM’s size.  \n\n* **Jagged Inputs**: Training samples have highly variable sequence length as user activity history can vary wildly. Padding to max length would waste up to 50% compute.\n* **Diverse interaction patterns and asymmetric sequences**: Self-attention operates on extremely long sequences (activity history) but short attention window; cross-attention learns user x ads interaction with long queries but short key/value; pooled multi-head attention (PMA) compress user activity history, resulting in short queries but long key/value. These asymmetric shapes make intra kernel pipelining less effective to saturate compute units.\n* **Memory-bound** **operations**: e.g., small embedding dimension for MLP and various normalizations for model quality and training stability leave compute units underutilized.\n* **Numerical sensitivity**: Ads optimization tasks (CTR/CVR prediction) are highly sensitive to numerical change (e.g., precision), making naïve low-precision training prone to quality regression.\n\n### Challenge 2: Scaling Efficiently Across Thousands of GPUs\n\nTraining GEM across thousands of GPUs with trillions of sparse embedding parameters and billions of dense parameters requires scaling efficiently, not just scaling up. Simply adding more GPUs does not translate to proportional speedup. In distributed training, E2E latency per training step is determined by: \n\n**E2E Latency = Max across GPU Rank (Max(Local Compute Time, Communication Time))**\n\nNear-linear scaling requires four conditions: \n\n* Total compute time >> total communication time.\n* Communication hidden behind compute without contention.\n* Minimal recomputation from memory pressure.\n* Good load balancing across ranks.\n\n GEM’s workload threatens every one of these: \n\n* O(Trillion) sparse parameters and O(Billion) dense parameters drive heavy communication with mixed compute patterns.\n* Architecture diversity across layers makes overlap windows uneven; resource contention between communication and computation makes hiding communication non-trivial.\n* Long sequences with large activations push memory usage toward its limit, forcing activation recomputation that erodes efficiency.\n* Jagged sequences across samples create data-driven load skew that varies across ranks.\n\n## Our Approach and Efficiency Framework\n\nGiven the challenges outlined above, we needed a framework that turned a sprawling co-design effort into a small number of technical levers. We measure training efficiency through E2E MFU, which decomposes into two factors:\n\n**E2E MFU = Local MFU (compute efficiency) × Scaling Ratio (scaling efficiency)**\n\nThese factors describe two related but distinct optimization problems.  \n\n**Local MFU (compute efficiency)**  measures how well a single GPU’s compute units are utilized — how close the workload runs to the hardware roofline. It is determined by kernel design, numerical precision, and how well the workload’s compute patterns (data dimensions, sequence lengths) map onto GPU architecture (Tensor cores, memory hierarchy, streaming multiprocessor scheduling).\n\n**Scaling Ratio (scaling efficiency)** measures how much single-GPU performance is retained when distributing across thousands of GPUs. A scaling ratio of 1.0 means perfect linear scaling; in practice, communication overhead, load imbalance, straggler effects, and activation recomputation from memory pressure all erode it.\n\nTo isolate local MFU, we run model layers individually on a single GPU and compute a weighted average MFU without activation recomputation or communication exposure. The scaling ratio is derived as the ratio between local and E2E MFU.\n\nThis decomposition matters because it lets us treat compute efficiency and scaling efficiency as related but distinct optimization problems, each with its own dedicated set of techniques:\n\n* **Compute efficiency** is a kernel-level and numerical-precision problem. The levers are kernel design and ultra-low-precision training — both targeting the per-GPU roofline.\n* **Scaling efficiency** is a distributed-systems problem. The levers are parallelism strategy, network topology mapping, networking efficiency, memory management, and load balancing — all targeting the gap between single-GPU and multi-GPU throughput.\n\nBoth must be addressed to maximize end-to-end MFU.\n\n## Optimizing Compute Efficiency With Recommendation Kernels and Ultra-Low-Precision Training\n\nTo address the recommendations-system-specific challenges mentioned above and push up GPU FLOPS utilization, we built a custom kernel library and an ultra-low-precision training recipe custom-built and optimized for recommendation workloads on the latest GPU hardware. \n\n* **JFA — eliminates** the up-to-50% compute waste from padding jagged inputs.\n* **BlockAttention** — reduces long user-history self-attention cost from O(L²) to O(L) while preserving model quality and efficiency\n* **GDPA** — unifies and accelerates GEM’s diverse, asymmetric attention modules where FlashAttention’s dense long-sequence assumptions break down\n* **MXFP8 attention + MLP** — turns lower-precision Tensor Core throughput into real end-to-end speedups without regressing precision-sensitive CTR/CVR objectives\n\n### Inside the Customized Kernel Library for Recommendation\n\n#### Jagged Sequence Flash Attention\n\nFlashAttention is designed for dense, fixed-length sequences common in LLMs. In recommendation models, user sequences are inherently jagged — varying from hundreds to tens of thousands of tokens per sample — and padding to max length could waste up to 50% of compute. \n\nStandard FlashAttention implementations assume uniform sequence lengths for efficient tiling and parallelization; with jagged inputs, naive approaches either pad (wasting compute) or leave SMs idle when short sequences finish early. We developed JFA, a custom FlashAttention implementation that operates directly on variable-length jagged tensors, eliminating padding overhead while supporting rec-specific features such as custom attention biases, asymmetric query/key-value lengths, and efficient backward passes.\n\nWe evolved JFA through four generations, progressively closing the gap from being slower than padded SDPA (scaled dot-product attention) to matching SOTA CUDA/Cutlass performance on latest-generation GPUs:\n\n* **Jagged masking via subtraction scheme**: Traditional 2D masking for jagged boundaries (marking invalid positions with -inf) consumes significant non-tensor-core instructions (~28% of executed instructions). We replaced this with a novel subtraction scheme — masking Query/Key with zeros (which the Tensor Memory Accelerator (TMA) does for free) and subtracting the extra exponents — producing numerically equivalent results without the masking overhead.\n\n* **Backward parallelization**: FlashAttention’s backward pass requires accumulating dQ across sequence tiles, typically via costly atomic adds. We explored multiple schemes (seq-parallel with atomics, no seq-parallel, seq-parallel with recompute, split dQ/dKdV) and found that for rec workloads with high batch x heads, a non-seq-parallel scheme with split dQ computation delivers 21-40% backward speedup by eliminating both atomic writes and redundant recomputation.\n* **Warp specialization and persistent kernels**: Upgrading to Triton Low-Level Extensions (TLX) enabled explicit warp specialization, along with use of TMA, and persistent kernel scheduling — unlocking 30-100% TFLOPS improvement by leveraging the latest hardware feature.\n\nJFA v4 (TLX) achieves 40-140% TFLOPS improvement over JFA v2, which delivers consistent gains under production jagged distributions (sparsity 0.5), contributing to 18.5% relative local MFU gain and 12% QPS gain.\n\n#### Generalized Dot-Product Attention (GDPA)\n\nGEM uses diverse attention-like interaction patterns — self-attention, PMA, and cross-attention — that share a common structure: two matrix multiplications with an element-wise activation in between, but replace softmax with activations like GELU or SiLU. We unify these modules under a single GDPA kernel optimized for production RecSys training workloads on latest generation GPUs.\n\nExisting FlashAttention kernels are designed for LLM-style dense, long-sequence inputs and perform poorly under real production traffic. We observed a **2.6x forward performance gap** and up to **4x worst-case gap** between real-world workloads and synthetic benchmarks driven by short/asymmetric K/V sequences, jagged inputs, and large batch sizes that break pipeline occupancy assumptions.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image7.png) ![](https://engineering.fb.com/wp-content/uploads/2026/07/image6.png)\n\nWe [redesigned the kernel pipeline, scheduling, and math](https://pytorch.org/blog/generalized-dot-product-attention-tackling-real-world-challenges-in-gpu-training-kernels/) to close the performance gap between real-world traffic and hardware roofline.\n\n* **Pipeline redesign for non-softmax activations**: Eliminating the softmax correction stage frees four warps and their registers. For short K/V sequences, outer-loop software pipelining recovers ~10% performance lost by inner-loop pipelining when the inner loop runs only 1–2 iterations.\n* **Software-level tile scheduling for jagged tensors**: precompute valid tiles on CPU, skip empty tiles entirely, and apply zigzag assignment across SMs — reducing workload skew from 6x to near-balanced.\n* **ALU-only activation approximation**: Replace GELU’s SFU-bound tanh with a 6th-order Taylor expansion (ALU-only), accurate within the bounded input range enforced by QK-norm (query/key normalization). Eliminates SFU contention in both forward and backward passes.\n\nWith these optimizations, the [optimized GDPA kernel achieves](https://pytorch.org/blog/generalized-dot-product-attention-tackling-real-world-challenges-in-gpu-training-kernels/#:~:text=Evaluated%20NVIDIA%20B200,SOTA%20attention%20kernel).) 2x forward speedup (1,145 BF16 TFLOPs, ~97% Tensor Core utilization) and 1.6x backward speedup over baseline. Under short K/V production settings, it achieves up to 3.5x forward speedup over Flash Attention 4 (FA4). Applied across the full model, these kernels deliver over 30% end-to-end training throughput improvement.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image1_8a57c9.png)\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image12.png)\n\n#### BlockAttention\n\nFor GEM self-attention, the core efficiency challenge was scaling long user sequences without paying the quadratic cost of full attention. We first moved the layer from full self-attention to sliding-window attention, limiting each token to nearby events and reducing complexity from O(L2) to O(L \\* window). This made longer sequences practical. The Sliding Window Attention (SWA) kernel skipped off-window tiles in JFA and [reduced long-sequence self-attention latency by up to 68% with neutral NE (normalized entropy, a model-quality metric)](https://pytorch.org/blog/tlx-block-attention-a-warp-specialized-blackwell-kernel-for-fixed-block-sparse-self-attention/).\n\nWe then pushed the structure further with block-aligned attention. Since GEM could safely use fixed 64-token blocks, each Q block only attends to its corresponding K/V block, turning attention into independent 64×64 problems. This removes the partial-window masking and multi-tile iteration still present in SWA, and lets a dedicated TLX kernel eliminate FlashAttention overheads such as online softmax correction, logsumexp HBM traffic, and separate Di preprocessing. \n\nFusing RoPE backward into the attention epilogue removes another memory-bound kernel and keeps gradients in FP32 registers. Together, [TLX block attention](https://pytorch.org/blog/tlx-block-attention-a-warp-specialized-blackwell-kernel-for-fixed-block-sparse-self-attention/) + fused rotary improves self-attention layer MFU by +30.6% over Triton block attention, or roughly +44% over the SWA baseline.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image2.png)\n\n### Mixed Ultra-Low-Precision Training\n\nOn a GPU, lower precision directly translates to higher Tensor core throughput. For the latest generation GPU, FP8 delivers 2x peak FLOPS over FP16, and FP4 delivers 4x. We expect the peak FLOPS of low precision to increase faster in next-generation GPUs. This makes low-precision training increasingly attractive as hardware vendors scale low-precision FLOPS faster than FP16. \n\nHowever, making low-precision training work without quality regression — addressing both numerical stability and quantization overhead — remains an industry-wide challenge. We developed MXFP8 Attention and MLP with numerical stability enhancement, which addressed both training stability and quantization overhead.     \n\n#### Low Precision Flash Attention\n\nWe extended the FA4 kernel with end-to-end MXFP8 blockscaled MMA for both forward and backward passes leveraging latest generation GPUs’ native support for low precision. The main challenge is that low precision attention is not just a datatype swap. Scale factors must be generated along each GEMM’s (General Matrix Multiplications) K dimension, staged through shared memory (SMEM) / tensor memory (TMEM) despite FA4’s already full TMEM footprint, and computed online for intermediates such as softmax P and backward dS. \n\nTo make the Tensor core speedup survive at module level, quantization was fused into upstream normalization and projection kernels, emitting FP8 activations and tensor-core-friendly scale layouts directly while avoiding extra BF16 global-memory traffic. For GEM’s jagged recommendation workloads, FP8 data stays at unpadded positions and only compact scale factors are scattered/padded for TMA. This turns MXFP8 block-scaled MMA support into practical E2E attention speedups without introducing model quality regressions.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image4.png)\n\nTo meet our unique requirements we had to develop three new innovations at the kernel level:\n\n* **TMEM scale factor placement:** The original FA4 fully utilized 512-column TMEM for accumulators, leaving no room for block-scale factors. We solve this by overlapping scale factors with temporarily-unused TMEM regions (e.g., placing S(i) scale factors in the S(1-i) accumulator region), requiring only one additional lightweight barrier that is hidden behind existing GEMM latency.\n* **Online P-to-MXFP8 conversion:** Softmax output (P) is quantized to MXFP8 in-place within the softmax warp, reusing the row-max already computed for softmax normalization to avoid redundant reductions. Scale factors are derived via optimized PTX bit-manipulation sequences instead of expensive log2/round/clamp operations.\n* **Block-wise Quantization:** We use [32, 32] square quantization computing one scale factor per 32×32 block via redux.sync.max.abs.f32 warp-wide reduction — making quantization transpose-invariant so each tensor is quantized only once. This is useful for the backward pass, where transposed Q,K values are needed.\n\nOn GEM representative shapes, measured on Meta internal power capped latest generation GPU, we achieved >1.3x speedup for the forward kernel with MXFP8. For the backward kernel, we achieved >1.5x speedup with MXFP8.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image11.png) ![](https://engineering.fb.com/wp-content/uploads/2026/07/image15.png)\n\n#### Handling Quantization Overhead\n\nQuantization overhead mainly comes from two sources, model parameters (weights) and intermediate tensors (activations). If handled naively, the extra casting, scaling, and data movement can offset the compute speedup from low-precision Tensor cores.\n\n* **Weight – quantization on Fully Sharded Data Parallel (FSDP) shard**\n\n* + Pre-all-gather shard quantization: quantize each rank’s local shard *before* FSDP all-gather to amortize the quantization cost across ranks, this avoids re-quantizing the fully gathered weight on every rank.\n  + Quantized FSDP communication: communicate low-precision payloads (vs. BF16) to reduce all-gather volume and cut all-gather latency which further neutralizes the quantization overhead.\n\n* **Activation – kernel fusion**\n\n* + Linear modules: Instead of doing a separate quantization step with extra kernel launch + HBM traffic, we fused activation quantization into the preceding normalization (PreNorm fusion) to avoid the overhead.\n  + Attention modules: In addition to PreNorm fusion, we also fused quantization into the preceding projection so the attention kernel consumes low-precision activations directly with no extra quantization step.\n\n#### \n\n#### Addressing Numerical Stability\n\nQuantization errors, outliers, and rounding bias can make low-precision training  numerically fragile, especially for gradient computation. We addressed these challenges with:\n\n* Outlier mitigation:\n  + We applied Random Hadamard Transforms spread outliers and smooth distributions prior to low precision quantization.\n* Recipe tuning (fine-grained controls):\n  + We used stochastic rounding to eliminate deterministic rounding bias.\n  + Skipping / higher-precision weight-gradient (WGrad): We observed activations and gradients can exhibit more severe outlier behavior; selectively skipping WGrad or using higher precision can materially improve model quality.\n* Mixed precision: \n  + We use ultra low precision  where it will have the most benefit  (e.g., large GEMMs) and fall back to BF16 (e.g., later layers in the model are more sensitive to quantization errors) where ultra low  precision is insufficient to meet model quality targets.\n\n## Scaling Efficiency: 5D Parallelism, Networking, Memory, And Load Balancing\n\nAs mentioned above, for large scale distributed training:  \n\n**E2E Latency = Max across GPU Rank (Max(Local Compute Time, Communication Time))**\n\nNear-linear scaling requires four conditions: total compute time > communication time, compute / communication overlapping without contention, minimal recomputation, and good load balancing.  Our optimizations address each condition to push up GEM’s scaling efficiency. \n\n| Condition | GEM’s Challenges | Optimizations |\n| --- | --- | --- |\n| Total compute time > total communication time | O(Trillion) sparse parameters and O(Billion) dense parameters drive heavy communication with mixed compute patterns. | Topology-aware 5D Parallelism |\n| Communication hidden behind compute without contention | Resource contention between communication and computation | SM Free Communication |\n| Minimal recomputation from memory pressure | Long sequences with large activations push memory usage toward its limit, forcing activation recomputation | Automatic Activation Checkpointing with Quantization |\n| Good load balancing across ranks | Jagged sequences across samples create data-driven load skew that varies across ranks | Sequence length aware load balancing |\n\n### 5D Parallelism, Optimized with Meta’s Network Topology\n\nGEM’s hybrid architecture requires distinct parallelism strategies for each component as dense and sparse parameters have different compute and communication patterns. We use 5D parallelism to scale GEM’s training efficiently across thousands of GPUs: 2D FSDP with Expert Parallelism (EP) for dense parameters, and Fully Sharded 2D Model Parallelism for sparse parameters. \n\nThe design principle is to match communication volume to available bandwidth across the topology hierarchy. When a collective becomes a bottleneck on a given tier, we introduce a new parallelism dimension that reduces message volume or group size on that tier.\n\nMeta’s training cluster used by GEM has a three-tier network hierarchy: Eight GPUs per host connected via NVLink , hosts within an [AI zone connected via RoCE](https://engineering.fb.com/2024/08/05/data-center-engineering/roce-network-distributed-ai-training-at-scale/), and AI zones connected via oversubscribed RoCE with bandwidth reduction. \n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image14.png)\n\n#### Dense Parallelism Evolution: From 1D to 3D Parallelism\n\nGEM’s O(Billion) dense parameters are sharded using FSDP. Parameters are distributed across GPUs and reconstructed via all-gather before computation, with gradients synchronized via reduce-scatter. We add two dimensions on top of FSDP — a replica (DDP) dimension (making it 2D FSDP) and EP — for a total of three dense parallelism dimensions (3D dense parallelism).\n\n| Parallelism Dimension | Collectives | Topology Tier | Bandwidth |\n| --- | --- | --- | --- |\n| EP (Expert Parallelism) | All-gather / reduce-scatter | Intra-node NVLink | High |\n| FSDP (within group) | All-gather / reduce-scatter | Inter-node (within AI zone) | Medium |\n| DDP (across groups) | All-reduce | Inter-node (potentially cross zone) | Low(Oversubscribed) |\n\nThis topology-aware distributed training is what makes 3D dense parallelism efficient — each dimension’s communication cost is matched to the bandwidth available at its topology level.\n\n**Why 2D FSDP: Reducing Group Size for Better Bandwidth**\n\nAt several thousands GPU scale, standard FSDP requires collectives across the full rank count, where effective bandwidth degrades with group size —  particularly when spanning multiple AI zones. 2D FSDP solves this by splitting the communication into two topology-aware tiers:\n\n* **FSDP shard group :** Parameters are sharded and reconstructed via all-gather / reduce-scatter across a much smaller group (e.g., 128-256 GPUs). The reduced group size achieves higher effective bandwidth.\n* **DDP replica group** : Gradients are synchronized via all-reduce across replica groups. Because parameters are already sharded by FSDP, each rank sends only a fraction — the message size is small enough to even tolerate the lower cross-zone bandwidth.\n\nWe aggressively pre-fetch parameter all-gathers, pipelining each module’s communication with the previous module’s compute to maximize overlap. This works well for most modules — however, large modules like DHEN (Deep Hierarchical Ensemble Network) experts have parameter sizes where communication time still outweighs neighboring compute time, becoming exposed and slowing down E2E efficiency.\n\n**Adding Expert Parallelism: Pushing Heavy Communication to the Fastest Links**\n\nTo address communication exposure from large dense expert modules, we layer EP on top of 2D FSDP. With EP, each rank holds only one expert, shrinking the FSDP all-gather to a single expert’s parameters — reducing both group size and message size.\n\nThe extra EP communication is placed on intra-node NVLink with high bandwidth  making it easily hidden. The forward and backward passes coordinate FSDP and EP collectives:\n\n* **Forward**: FSDP all-gather expert params (16-way, inter-node) → EP all-gather activations (2-way, intra-node NVLink) → compute local experts on full batch → EP reduce-scatter outputs (2-way, intra-node NVLink).\n* **Backward**: FSDP all-gather expert params (16-way, inter-node) → EP all-gather output gradients (2-way, intra-node NVLink) → compute expert gradients → EP reduce-scatter input gradients (2-way, intra-node NVLink) → FSDP reduce-scatter param gradients (16-way, inter-node).\n\n#### \n\n#### Sparse Parallelism Evolution: From 1D to 2D memory overhead free parallelism\n\nGEM’s sparse parameters (O(Trillion) embedding tables) present unique scaling challenges distinct from dense parameters. Embedding tables require model-parallel sharding with all-to-all communication for feature distribution, and their sheer size makes memory overhead a primary constraint. We evolved through three generations of sparse parallelism to address these challenges.\n\n|  | Load imbalance | Memory overhead | Communication cost |\n| --- | --- | --- | --- |\n| **V1: 1D Model Parallelism** | Poor | None | Very high – full rank |\n| **V2: 2D Model Parallelism** | Good | High — each replica group maintains a full copy of sparse parameters O(Trillion) | Moderate — reduced group size |\n| **V3: Fully Sharded 2D Model Parallelism** | Good | Near zero | Moderate — extra comm through fast NVLink |\n\n**V1 → V2: Solving Imbalance and Communication Bottlenecks**\n\nAt several thousands GPU scale, 1D model parallelism hits two fundamental bottlenecks for good efficiency: \n\n* **Load imbalance:** Distributing embedding table shards across thousands of ranks results in severe workload skew — each rank holds too few shards for balanced partitioning.\n* **Communication latency:** All-to-all collective group size scales with total rank count. Cross-node bandwidth degrades rapidly with group size, particularly when jobs span multiple AI zones where bandwidth is oversubscribed\n\n2D model parallelism addresses both by partitioning ranks into smaller model-parallel groups (e.g., 256 GPUs), with multiple replica groups performing data parallelism. Each replica group independently shards and communicates within a much smaller scope, reducing all-to-all latency and improving load balance — delivering significant QPS gains over 1D at large scale.\n\n**V2 → V3: Eliminating Memory Overhead**\n\nThe tradeoff of V2 is memory: each replica group must hold a full copy of its assigned shard’s parameters. For GEM’s trillion-parameter sparse tables, this O(T) overhead can consume significant HBM — blocking further model scaling.  \n\nFully Sharded 2D removes this overhead by further sharding each replica’s parameter copy across its groups. Each rank stores only a fraction of the shard, and parameters are reconstructed on-demand:\n\n* **Forward:** All-gather table shards → all-to-all feature distribution → embedding lookup → all-to-all embedding return\n* **Backward:** All-gather table shards → all-to-all gradient exchange → local update → reduce-scatter parameters\n\nThe extra all-gather and reduce-scatter from V3 are mapped to intra-node NVLink. We overlap these collectives with concurrent dense compute through pipelining, and schedule the all-gather to release reconstructed copies before peak memory usage.\n\nWith these optimizations, we’re able to make sparse scaling nearly overhead-free at GEM’s training scale with very minimal communication exposure.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image3.png)\n\n### Networking Efficiency : Getting Communication Off the SMs\n\nWith 5D parallelism, GEM hides most communication behind compute kernels through pipelining. However, communication collectives could also occupy SMs, which creates SM contention. Communication kernels occupy SMs (e.g. ~24 SMs for all-gather, reduce-scatter) that would otherwise be utilized by compute kernels running in parallel, costing up to 15% efficiency. What makes it worse is that compute kernel performance could drop more than SM occupancy loss, since wave scheduling could end up with more waste. \n\nHence, our primary networking efficiency push is SM-free communication — offloading data movement from SMs to dedicated hardware engines.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image5.png)\n\nFor pure data-movement collectives (e.g., all-gather), we use [NCCLX](https://arxiv.org/abs/2510.20171) — Meta’s extension to the NCCL library — for copy-free, SM-free communication. NCCLX leverages hardware features to move data without SM involvement: the Copy Engine (CE) handles intra-node NVLink transfers and RDMA handles inter-node transfers, reducing SM usage from 24 to 1 for all-gather. This reclaims ~23 SMs for compute, yielding ~5% E2E QPS gain at full training scale.\n\nFor collectives that require reduction (e.g., All-Reduce), we found NVLink SHARP with in-network reduction a viable option to reduce SM usage by offloading the reduction computation from SMs to the network switch hardware.\n\n### Memory Efficiency: Large Local Batches Without Paying the Full Memory Bill\n\nPer-GPU memory breaks down into three categories: activations, embedding tables, and dense parameters (including optimizer states). After parallelism shards embedding tables and dense parameters across GPUs, activations dominate per-GPU memory and scale with model and batch size. \n\nWe used two techniques to address this:\n\n**Compiler-based Automatic Activation Checkpointing (AutoAC)**\n\nPyTorch’s compiler-based activation checkpointing already beats traditional all-or-nothing recompute by reasoning over individual nodes in the joint forward–backward graph — saving expensive ops, recomputing cheap pointwise ops. But it still applies a single memory budget across the whole model, which leaves performance on the table when regions (compiled subgraphs between graph breaks) differ in recompute ROI (latency saved per GB of activation). We replaced the global budget with a customized per-region budget schedule, so memory flows to the regions with the highest payoff. This pushes the memory–latency tradeoff past what any uniform budget can achieve.\n\n**Activation Quantization**\n\nOn top of AutoAC, we further squeeze the memory usage via activation quantization. It operates on the checkpointed tensors — the set of intermediate activation tensors that AutoAC has already determined need to be stowed for the backward pass. When enabled, it quantizes these saved activation nodes (e.g., from BF16 to FP8/MX4) at the boundary between the forward and backward graphs. \n\nWith these optimizations, we’re able to use large local batch sizes (up to 1K+ samples) with modest activation recompute cost to train the GEM model efficiently. This is important for scaling since small batch size and heavy activation recompute both hurt MFU.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image17.png)\n\n### Load Balancing: A Recommendation-Specific Straggler Problem\n\nLLM training could avoid load balancing by padding all sequences to fixed length. For GEM, user sequences are inherently jagged, and padding wastes 50%+ of compute. Jagged kernels avoid per-rank waste but create a new problem – data-driven compute skew that varies every iteration.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image9.png)\n\nThe heaviest rank consistently exceeds the average by ~15% each iteration.\n\n**Choosing the Right Rebalancing Strategy**\n\nWe considered local and global rebalancing strategies to address workload imbalance:\n\n| Approach | Mechanism | Balancing Quality | Overhead |\n| --- | --- | --- | --- |\n| **Local (Intra-Rank)** | Each rank independently rebalances its own batches. | High: 90% of optimal | None (zero cross-rank communication). |\n| **Global (Cross-Rank)** | Ranks exchange samples via all-to-all. | Near-perfect | Introduces new all-to-all collective per training step. |\n\nThe overhead associated with the global approach — a collective on every training step — negates the very efficiency gains it aims to deliver. We developed a new technique that we call Base Batch Shuffling (BBS), where distributed readers generate small sub-batches (128 samples), which are sorted by total sequence length and interleaved (heaviest paired with lightest) when merged into full training batches (1k+ samples per rank) — capturing most of the theoretical optimal balance with zero cross-rank communication.\n\n![](https://engineering.fb.com/wp-content/uploads/2026/07/image10.png)\n\n**BBS delivered 4% efficiency gain** on GEM training, comprising 4% QPS improvement and 4% peak memory reduction. Upon activation, the maximum-over-average workload gap immediately dropped.\n\n## On to the Next Level of Scale and Efficiency\n\nTraining a foundation model at the intersection of LLMs and recommendation systems is a co-design problem, not a software problem or a hardware problem alone. The 2x efficiency gain we describe here came from carefully considering every layer of the stack for optimization— kernels, precision, parallelism, networking, and memory all had to move together. We expect the next 2x to come in a similar way and with even faster iteration speed as we embrace agents to automate some of the optimization cycles. As we continue to scale the GEM model, we expect to keep pushing system boundaries and extreme co-design across different layers of the AI infra stack to further advance compute and scaling efficiency. We’re sharing this work in the hope that the broader community sees similar opportunities in the workloads they run.\n\n## Acknowledgements\n\n*We would like to thank* *Tianshu Peng,* *Jiasheng Zhang,* *Angel Yang,* *Ruilin Chen,* *Rikin Shah,* *Ke San**g,* *Kevin Tang,* *Pawel Kadluczka,* *Jacky Zhou,* *Han Xu,* *Enes Palaz,* *Hao Yan,* *Jake Siso,* *Rupert Wu,* *Liangbei Xu,* *Yusuo Hu,* *Serena Liu,* *Hongtao Yu,* *Bor-Yiing Su*, *Santosh Mohan,* *Min Si,* *Shali Jiang,* *Laming Chen,* *Boyang Liu,* *Qinghai Zhou,* *Xiaozhen Xia,* *Jason Rudy,* *Jiayi Xu,* *Dan Chanpuriya,* *Justin Yang,* *Mandeep Chadha,* *Carmen Au,* *Hairong Kuang,* *Subodh Iyengar,**Balaji Balasubramanian,* *Viral Vimawala,* *Saket Gur,* *May Wang*, *Vibha Sinha,* *Rustam Hashimov,* *Ernest Wang,* *Max Leung,* *Shuo Chang,* *Musharaf Sultan,* *Jade Nie,* *Xian Chen,* *Ellie Wen,* *Chonglin Sun,* *Reva Srinivasan,* *Vivienne Sung,* *Patrick Phelps,* *Paolo Massimi,* *Jie Zheng,**Anuj Madan,* *Nikhil Garg,* *Xiaorui Gan,* *John Bocharov,* *Ritwik Tewari,* *Wenlin Chen,* *Rocky Liu,* *Tak Yan,* *Santanu Kolay,* *Sandeep Pandey,* *Matt Steiner**, and the entire v-team behind training Meta’s largest ads recommendation workloads at scale and efficiently.*\n\nThe post [GEM Training: How Meta Doubled the Efficiency of Its LLM-Scale Ads Foundation Model](https://engineering.fb.com/2026/08/03/ml-applications/training-gem-at-llm-scale-meta-ads-recommendation-foundation-model/) appeared first on [Engineering at Meta](https://engineering.fb.com).",
+      "tags": [
+        "GEM",
+        "MFU",
+        "5D并行"
+      ],
+      "score": 85,
+      "summary": "Meta官博详解GEM训练效率翻倍至20-25% MFU，FLOPs扩展4倍。",
+      "fetched_at": "2026-08-04T03:53:47.336544+08:00"
+    },
+    {
+      "title": "https://t.co/2ZJ93Z2tfV",
+      "link": "https://x.com/addyosmani/status/2084354578196443351",
+      "published": "2026-08-04T03:03:51+08:00",
+      "source": "Addy Osmani(@addyosmani)",
+      "content": "[x.com/i/article/2084…](http://x.com/i/article/2084104845875896320)\n\n💬2🔄2❤️13👀2369📊6",
+      "tags": [
+        "Addy Osmani"
+      ],
+      "score": 20,
+      "summary": "Addy Osmani转发x.com文章，无实质内容。",
+      "fetched_at": "2026-08-04T03:53:47.336559+08:00"
+    },
+    {
+      "title": "What the young genius didn’t appreciate was that the price of tokens has steadily dropped since the ...",
+      "link": "https://x.com/GaryMarcus/status/2084353864199979472",
+      "published": "2026-08-04T03:01:01+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "What the young genius didn’t appreciate was that the price of tokens has steadily dropped since the end of May.  \n  \nThe trend was already clear by the end of June.\n\n![zerohedge](https://pbs.twimg.com/profile_images/72647502/tyler_normal.jpg)\n\nzerohedge@zerohedge\n\nThe cost of intelligence is plunging every day, despite \"relentless demand\" for Agentic.   \n  \nThanks to China, token costs are back to where they were at the start of 2026, crushing Goldman's optimistic margin outlook.\n\n![Tweet Image](https://pbs.twimg.com/media/HOywxKgWkAADOo4.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/zerohedge/status/2084235388202213832)\n\n💬0🔄1❤️1👀1307",
+      "tags": [
+        "token价格",
+        "Goldman"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus评论token价格持续下跌，中国因素致成本回落。",
+      "fetched_at": "2026-08-04T03:53:47.336564+08:00"
+    },
+    {
+      "title": "future generations will have no idea what was real and what was not.",
+      "link": "https://x.com/GaryMarcus/status/2084351044159738131",
+      "published": "2026-08-04T02:49:48+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "future generations will have no idea what was real and what was not.\n\n![Matt Stoller](https://pbs.twimg.com/profile_images/1274443690480631809/tphZ0U99_normal.jpg)\n\nMatt Stoller@matthewstoller\n\n\"Generative AI is going to change everything in ways we cannot begin to imagine.\" - Abraham Lincoln\n\n[🔗 View Quoted Tweet](https://x.com/matthewstoller/status/2084291224836374548)\n\n💬9🔄0❤️19👀2326📊7",
+      "tags": [
+        "生成式AI",
+        "真实性"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus讽刺AI生成内容导致真实性混淆。",
+      "fetched_at": "2026-08-04T03:53:47.336568+08:00"
+    },
+    {
+      "title": "indeed, scientific review in general is compromised; one more negative externality of AI that societ...",
+      "link": "https://x.com/GaryMarcus/status/2084347512136298607",
+      "published": "2026-08-04T02:35:46+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "indeed, scientific review in general is compromised; one more negative externality of AI that society is stuck paying.\n\n![Woj Kulikowski](https://pbs.twimg.com/profile_images/2030668539997061120/Loo1ZHIc_normal.jpg)\n\nWoj Kulikowski@wojkuli\n\nNew Javons paradox: we are running out of mathematicians to review progress in maths\n\n![Tweet Image](https://pbs.twimg.com/media/HOpGYsOaUAAaOvJ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/wojkuli/status/2083555463300522400)\n\n💬4🔄1❤️13👀2378📊4",
+      "tags": [
+        "科学审查",
+        "AI外部性"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus称AI损害科学审查，数学家不足。",
+      "fetched_at": "2026-08-04T03:53:47.336571+08:00"
+    },
+    {
+      "title": "Etiquette question. is sharing DMs publicly cool? or a no no?\n\n(i personally always assumed the latt...",
+      "link": "https://x.com/GaryMarcus/status/2084341604173894049",
+      "published": "2026-08-04T02:12:18+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Etiquette question. is sharing DMs publicly cool? or a no no?  \n  \n(i personally always assumed the latter).\n\n💬7🔄0❤️7👀2415📊7",
+      "tags": [
+        "私信礼仪"
+      ],
+      "score": 30,
+      "summary": "Gary Marcus询问公开私信礼仪，与AI无关。",
+      "fetched_at": "2026-08-04T03:53:47.336573+08:00"
+    },
+    {
+      "title": "i doubt that a single person who has criticized me understands this.\n\nsince i have been perfectly cl...",
+      "link": "https://x.com/GaryMarcus/status/2084340189355561080",
+      "published": "2026-08-04T02:06:40+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "i doubt that a single person who has criticized me understands this.  \n  \nsince i have been perfectly clear about this, that’s on them.\n\n![Ruli Manurung](https://pbs.twimg.com/profile_images/603414324271452160/rwx9imDE_normal.jpg)\n\nRuli Manurung@rulimanurung\n\n[@gabriberton](https://x.com/gabriberton) Hmm, [@ylecun](https://x.com/ylecun) always clarified he was talking about autoregressive symbol prediction. In a similar vein, people like to dump on [@GaryMarcus](https://x.com/GaryMarcus) for being anti-AI, but he's actually bullish on what he terms neurosymbolic AI. Which is exactly what modern agentic coding loops are.\n\n[🔗 View Quoted Tweet](https://x.com/rulimanurung/status/2084339792137904295)\n\n💬3🔄1❤️9👀2628📊3",
+      "tags": [
+        "神经符号AI",
+        "Agentic编码"
+      ],
+      "score": 45,
+      "summary": "Gary Marcus回应批评，自认支持神经符号AI。",
+      "fetched_at": "2026-08-04T03:53:47.336576+08:00"
+    },
+    {
+      "title": "Docs shouldn’t trail the code.\n\nThe Aspire team used GitHub Agentic Workflows to turn merged feature...",
+      "link": "https://x.com/github/status/2084348327387132062",
+      "published": "2026-08-04T02:39:01+08:00",
+      "source": "GitHub(@github)",
+      "content": "Docs shouldn’t trail the code.  \n  \nThe Aspire team used GitHub Agentic Workflows to turn merged features into cross-repo docs PRs, with scoped permissions and SME review.  \n  \nResults: 82/82 merged, with a 44.8-hour median time to merge. ✅  \n[github.blog/ai-and-ml/gith…](https://github.blog/ai-and-ml/github-copilot/automating-cross-repo-documentation-with-github-agentic-workflows/)\n\n💬8🔄4❤️36👀7430📊11",
+      "tags": [
+        "Agentic Workflows",
+        "文档自动化"
+      ],
+      "score": 75,
+      "summary": "GitHub展示Agentic Workflows自动生成文档PR，82个全合并。",
+      "fetched_at": "2026-08-04T03:53:47.336579+08:00"
+    },
+    {
+      "title": "As you needs evolve, you can ask your agent to run 𝚟𝚎𝚛𝚌𝚎𝚕 𝚒 𝚔𝚎𝚛𝚗𝚎𝚕 or 𝚟𝚎𝚛𝚌𝚎𝚕 𝚒 ...",
+      "link": "https://x.com/rauchg/status/2084350588025008345",
+      "published": "2026-08-04T02:48:00+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "As you needs evolve, you can ask your agent to run 𝚟𝚎𝚛𝚌𝚎𝚕 𝚒 𝚔𝚎𝚛𝚗𝚎𝚕 or 𝚟𝚎𝚛𝚌𝚎𝚕 𝚒 𝚋𝚛𝚘𝚠𝚜𝚎𝚛𝚋𝚊𝚜𝚎 – which sets up [@usekernel](https://x.com/usekernel) / [@browserbase](https://x.com/browserbase), which perfect the operations of headless browsers especially on public internet browsing scale\n\n💬1🔄0❤️1👀1600📊2",
+      "tags": [
+        "Vercel",
+        "browserbase"
+      ],
+      "score": 65,
+      "summary": "Vercel CEO称agent可用vercel i kernel或browserbase优化浏览器。",
+      "fetched_at": "2026-08-04T03:53:47.336582+08:00"
+    },
+    {
+      "title": "Vercel Sandbox is an excellent choice for automating web browsers in basic scenarios. The ...",
+      "link": "https://x.com/rauchg/status/2084345210470097127",
+      "published": "2026-08-04T02:26:38+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Vercel Sandbox is an excellent choice for automating web browsers in basic scenarios. The 𝚛𝚎𝚖𝚘𝚝𝚎-𝚊𝚐𝚎𝚗𝚝-𝚋𝚛𝚘𝚠𝚜𝚎𝚛 API makes it delightful:  \n  \n𝚋𝚛𝚘𝚠𝚜𝚎𝚛.𝚎𝚡𝚎𝚌('𝚘𝚙𝚎𝚗', 𝚞𝚛𝚕)  \n𝚋𝚛𝚘𝚠𝚜[remote-agent-browser.dev](http://remote-agent-browser.dev)𝚔')  \n𝚋𝚛𝚘𝚠𝚜𝚎𝚛.𝚜𝚌𝚛𝚎𝚎𝚗𝚜𝚑𝚘𝚝()  \n  \n📦 <https://t.co/66GIcFI1o4>\n\n![Jiachi](https://pbs.twimg.com/profile_images/1773459837264740353/Yjk7f1EY_normal.jpg)\n\nJiachi@huozhi\n\nIntroducing remote-agent-browser  \n  \n→ Agent-friendly API for controlling agent-browser  \n→ Chromium-free, no browser binary to install  \n→ Fast-booting with managed cloud sandbox infrastructure  \n  \n[remote-agent-browser.dev](http://remote-agent-browser.dev)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084281407942082561/vid/avc1/1626x604/exeYbvJ7j3Xz0B-E.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/huozhi/status/2084282119975502085/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/huozhi/status/2084282119975502085)\n\n💬21🔄5❤️102👀13831📊29",
+      "tags": [
+        "remote-agent-browser",
+        "无头浏览器"
+      ],
+      "score": 72,
+      "summary": "Vercel CEO推荐remote-agent-browser，无需Chromium控浏览器。",
+      "fetched_at": "2026-08-04T03:53:47.336585+08:00"
+    },
+    {
+      "title": "Internal AI platforms have the potential to transform how companies function\n\nRead how Stripe built ...",
+      "link": "https://x.com/hwchase17/status/2084360686055067797",
+      "published": "2026-08-04T03:28:07+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Internal AI platforms have the potential to transform how companies function  \n  \nRead how Stripe built theirs\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\n\"My [@Stripe](https://x.com/Stripe) career is divided into before and after Kai.\"  \n  \nStripe built Kai, their Knowledge AI Platform, with Deep Agents in one week with just one engineer.  \n  \nHere’s the full story: [langchain.com/blog/how-strip…](https://www.langchain.com/blog/how-stripe-built-their-knowledge-ai-platform-on-deep-agents)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2084353609115009531)\n\n💬2🔄1❤️4👀475📊2",
+      "tags": [
+        "Stripe",
+        "Kai",
+        "知识AI平台"
+      ],
+      "score": 75,
+      "summary": "Harrison Chase称Stripe用Deep Agents一周构建知识AI平台Kai。",
+      "fetched_at": "2026-08-04T03:53:47.336587+08:00"
+    },
+    {
+      "title": "Your avatar puts you on camera for every listing without needing you behind the camera for it.\n\nPast...",
+      "link": "https://x.com/HeyGen/status/2084350943261577423",
+      "published": "2026-08-04T02:49:24+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "Your avatar puts you on camera for every listing without needing you behind the camera for it.  \n  \nPaste the Zillow link, it hosts the walkthrough in your voice, so a client asking about the home gets an immediate, engaging video back instead of a text. [x.com/i/article/2084…](http://x.com/i/article/2084347182027866112)\n\n💬8🔄3❤️9👀1027📊9",
+      "tags": [
+        "HeyGen",
+        "Avatar",
+        "Zillow"
+      ],
+      "score": 70,
+      "summary": "HeyGen推出Avatar功能，贴Zillow链接自动生成视频。",
+      "fetched_at": "2026-08-04T03:53:47.336590+08:00"
+    },
+    {
+      "title": "Nice new Web interface from the @interconnectsai team\n\n&gt; Artifacts Hub\n&gt; Tracking the models t...",
+      "link": "https://x.com/julien_c/status/2084361504883724430",
+      "published": "2026-08-04T03:31:22+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Nice new Web interface from the [@interconnectsai](https://x.com/interconnectsai) team  \n  \n> Artifacts Hub  \n> Tracking the models that matter for the open AI ecosystem  \n  \nGG [@natolambert](https://x.com/natolambert)[@xeophon](https://x.com/xeophon)\n\n![Tweet Image](https://pbs.twimg.com/media/HO0jg2eWYAAHlzQ.jpg)\n\n💬2🔄3❤️5👀671📊4",
+      "tags": [
+        "Artifacts Hub",
+        "开源模型跟踪"
+      ],
+      "score": 65,
+      "summary": "HuggingFace CEO推荐Artifacts Hub跟踪开源模型。",
+      "fetched_at": "2026-08-04T03:53:47.336593+08:00"
+    },
+    {
+      "title": "Want to actually generate revenue for your one-person business?\n\nGet my free 30-page guide on the 7 ...",
+      "link": "https://x.com/thejustinwelsh/status/2084338619628597299",
+      "published": "2026-08-04T02:00:26+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Want to actually generate revenue for your one-person business?  \n  \nGet my free 30-page guide on the 7 capacities that built my $15M one-person business.  \n  \nSeven specific exercises and a clear output, so you can execute today.  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬0🔄0❤️3👀1225📊1",
+      "tags": [
+        "一人企业",
+        "免费指南"
+      ],
+      "score": 20,
+      "summary": "Justin Welsh推广免费指南，教一人企业赚钱。",
+      "fetched_at": "2026-08-04T03:53:47.336595+08:00"
+    },
+    {
+      "title": "One-shot MiniMax H3 generation 🤯\n\nPrompt was \"Jim and Dwight from The Office discuss autonomous cod...",
+      "link": "https://x.com/venturetwins/status/2084353489061499021",
+      "published": "2026-08-04T02:59:31+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "One-shot MiniMax H3 generation 🤯  \n  \nPrompt was \"Jim and Dwight from The Office discuss autonomous coding agents\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084353384988250112/vid/avc1/2560x1440/3Z_KtQSqZ2vOspMT.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2084353489061499021/video/1)\n\n💬10🔄7❤️72👀3928📊20",
+      "tags": [
+        "MiniMax H3",
+        "视频生成",
+        "One-shot"
+      ],
+      "score": 75,
+      "summary": "a16z合伙人展示MiniMax H3一次生成视频。",
+      "fetched_at": "2026-08-04T03:53:47.336598+08:00"
+    },
+    {
+      "title": "\"My @Stripe career is divided into before and after Kai.\"\n\nStripe built Kai, their Knowledge AI Plat...",
+      "link": "https://x.com/LangChain/status/2084353609115009531",
+      "published": "2026-08-04T03:00:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "\"My [@Stripe](https://x.com/Stripe) career is divided into before and after Kai.\"  \n  \nStripe built Kai, their Knowledge AI Platform, with Deep Agents in one week with just one engineer.  \n  \nHere’s the full story: [langchain.com/blog/how-strip…](https://www.langchain.com/blog/how-stripe-built-their-knowledge-ai-platform-on-deep-agents)\n\n💬1🔄3❤️6👀2096📊4",
+      "tags": [
+        "Stripe",
+        "Kai",
+        "Deep Agents"
+      ],
+      "score": 75,
+      "summary": "LangChain官宣Stripe用Deep Agents构建Kai平台。",
+      "fetched_at": "2026-08-04T03:53:47.336601+08:00"
+    },
+    {
+      "title": "We’re releasing the manuscripts, formal Lean certificates, and reasoning walkthroughs so mathematici...",
+      "link": "https://x.com/OpenAI/status/2084352165464903730",
+      "published": "2026-08-04T02:54:16+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We’re releasing the manuscripts, formal Lean certificates, and reasoning walkthroughs so mathematicians can examine these results and build on their ideas. [openai.com/index/ten-adva…](https://openai.com/index/ten-advances-in-mathematics/)\n\n💬2🔄3❤️63👀6020📊8",
+      "tags": [
+        "OpenAI",
+        "数学",
+        "Lean证书"
+      ],
+      "score": 85,
+      "summary": "OpenAI发布数学成果手稿、Lean证书和推理过程。",
+      "fetched_at": "2026-08-04T03:53:47.336604+08:00"
+    },
+    {
+      "title": "An internal version of our next major model produced 10 new results on long-standing open problems i...",
+      "link": "https://x.com/OpenAI/status/2084352161404920316",
+      "published": "2026-08-04T02:54:15+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "An internal version of our next major model produced 10 new results on long-standing open problems in mathematics and theoretical computer science, using roughly $2,000 worth of tokens at GPT-5.6 Sol API rates.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084344857267683328/vid/avc1/1920x1080/1N2BjaqqjoKUIqAw.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OpenAI/status/2084352161404920316/video/1)\n\n💬41🔄41❤️504👀33510📊88",
+      "tags": [
+        "OpenAI",
+        "数学",
+        "10项新结果"
+      ],
+      "score": 88,
+      "summary": "OpenAI内部下一代模型产出10项数学新结果，花费$2000。",
+      "fetched_at": "2026-08-04T03:53:47.336606+08:00"
+    },
+    {
+      "title": "The results span sphere packing, coding theory, group theory, quantum complexity, lattice cryptograp...",
+      "link": "https://x.com/OpenAI/status/2084352164156293460",
+      "published": "2026-08-04T02:54:15+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "The results span sphere packing, coding theory, group theory, quantum complexity, lattice cryptography, extremal combinatorics, and more.  \n  \nAmong them: establishing the existence of non-sofic groups and exponential improvements to bounds on high dimensional sphere packing.\n\n💬3🔄1❤️86👀8035📊9",
+      "tags": [
+        "球堆积",
+        "非sofic群",
+        "量子复杂性"
+      ],
+      "score": 85,
+      "summary": "OpenAI数学成果涉及球堆积、群论等，证明非sofic群。",
+      "fetched_at": "2026-08-04T03:53:47.336609+08:00"
+    },
+    {
+      "title": "People who achieve success and drive progress deeply understand the cause-effect relationships that ...",
+      "link": "https://x.com/RayDalio/status/2084336773581136122",
+      "published": "2026-08-04T01:53:06+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "People who achieve success and drive progress deeply understand the cause-effect relationships that govern reality and have principles for using them to get what they want. The converse is also true: Idealists who are not well grounded in reality create problems, not progress.  \n  \nWhat does a successful life look like? We all have our own deepseated needs, so we each have to decide for ourselves what success is. I don’t care whether you want to be a master of the universe, a couch potato, or anything else—I really don’t. Some people want to change the world and others want to operate in simple harmony with it and savor life. Neither is better. Each of us needs to decide what we value most and choose the paths we take to achieve it.  \n#principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HO0M3ImWgAAOKyN.png)\n\n💬19🔄32❤️226👀32280📊45",
+      "tags": [
+        "成功哲学"
+      ],
+      "score": 30,
+      "summary": "Ray Dalio分享成功哲学，与AI无关。",
+      "fetched_at": "2026-08-04T03:53:47.336611+08:00"
+    },
+    {
+      "title": "Save your seat: https://t.co/qAl3e2FZKG",
+      "link": "https://x.com/recraftai/status/2084350696518750217",
+      "published": "2026-08-04T02:48:26+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Save your seat: [unknw.com/events/recraft…](https://unknw.com/events/recraft-campaign)\n\n💬0🔄0❤️0👀109",
+      "tags": [
+        "Recraft",
+        "活动"
+      ],
+      "score": 20,
+      "summary": "Recraft推广活动，仅报名链接。",
+      "fetched_at": "2026-08-04T03:53:47.336614+08:00"
+    },
+    {
+      "title": "Speed or quality? Wrong question.\n\nThis Thursday, a special edition of Office Hours. This session's ...",
+      "link": "https://x.com/recraftai/status/2084350628759752879",
+      "published": "2026-08-04T02:48:09+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Speed or quality? Wrong question.  \n  \nThis Thursday, a special edition of Office Hours. This session's host is Michael Rosenblatt, the director of UNKNW, with 23 years in the industry.  \n  \nAugust 6 at 7pm UK time / 2pm EDT.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084350266866835456/vid/avc1/1080x1080/O7XuTlOhoQqE5eyQ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/recraftai/status/2084350628759752879/video/1)\n\n💬2🔄0❤️2👀297📊2",
+      "tags": [
+        "Recraft",
+        "Office Hours"
+      ],
+      "score": 25,
+      "summary": "Recraft宣传周四Office Hours特别活动。",
+      "fetched_at": "2026-08-04T03:53:47.336617+08:00"
+    },
+    {
+      "title": "A benchmark site that sat unbuilt for weeks over design concerns, shipped in a day with Replit Desig...",
+      "link": "https://x.com/Replit/status/2084353660520186341",
+      "published": "2026-08-04T03:00:12+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "A benchmark site that sat unbuilt for weeks over design concerns, shipped in a day with Replit Design\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2084353639284436992/pu/vid/avc1/720x900/Ap4v48jkzi_AqIUw.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2084353660520186341/video/1)\n\n💬1🔄0❤️3👀567📊1",
+      "tags": [
+        "Replit Design",
+        "基准测试网站"
+      ],
+      "score": 70,
+      "summary": "Replit展示用Design一天建成基准测试网站。",
+      "fetched_at": "2026-08-04T03:53:47.336619+08:00"
+    },
+    {
+      "title": "A social media image for an iOS app, made in one shot",
+      "link": "https://x.com/Replit/status/2084353661564502352",
+      "published": "2026-08-04T03:00:12+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "A social media image for an iOS app, made in one shot\n\n![Tweet Image](https://pbs.twimg.com/media/HO0cmwGXsAAawxd.jpg)\n\n💬0🔄0❤️2👀562",
+      "tags": [
+        "Replit Design",
+        "iOS应用"
+      ],
+      "score": 70,
+      "summary": "Replit演示一次生成iOS应用社交媒体图片。",
+      "fetched_at": "2026-08-04T03:53:47.336622+08:00"
+    },
+    {
+      "title": "Check out what people are making with Replit Design.\n\nOpen thread 🧵",
+      "link": "https://x.com/Replit/status/2084353656875311340",
+      "published": "2026-08-04T03:00:11+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Check out what people are making with Replit Design.  \n  \nOpen thread 🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2084353639355678720/pu/vid/avc1/720x900/IqX1rpTUyluPXWdH.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2084353656875311340/video/1)\n\n💬4🔄2❤️12👀3424📊6",
+      "tags": [
+        "Replit Design",
+        "用户作品"
+      ],
+      "score": 70,
+      "summary": "Replit展示用户用Design创作的作品。",
+      "fetched_at": "2026-08-04T03:53:47.336625+08:00"
+    },
+    {
+      "title": "Something big for builders drops tomorrow. 👀\n\nBold designs. Real prizes. One week to prove anyone c...",
+      "link": "https://x.com/Replit/status/2084339559769190807",
+      "published": "2026-08-04T02:04:10+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Something big for builders drops tomorrow. 👀  \n  \nBold designs. Real prizes. One week to prove anyone can build standout work.  \n  \nThe Replit Designathon opens 8/4 — we're kicking it off live at 9am PT.  \n  \nSave your spot:[luma.com/70wipkmf](https://luma.com/70wipkmf)p\n\n![Tweet Image](https://pbs.twimg.com/media/HO0PyLkWEAA6x3d.jpg)\n\n💬3🔄2❤️21👀3000📊7",
+      "tags": [
+        "Replit",
+        "Designathon"
+      ],
+      "score": 60,
+      "summary": "Replit宣布Designathon设计竞赛明天开始。",
+      "fetched_at": "2026-08-04T03:53:47.336628+08:00"
+    },
+    {
+      "title": "American supermarkets draw more peak power than every hyperscale data center in the country combined",
+      "link": "https://x.com/a16z/status/2084353707647627413",
+      "published": "2026-08-04T03:00:23+08:00",
+      "source": "a16z(@a16z)",
+      "content": "American supermarkets draw more peak power than every hyperscale data center in the country combined\n\n![Tweet Image](https://pbs.twimg.com/media/HO0cppqacAA_bWK.jpg)\n\n![Tori Shivanandan](https://pbs.twimg.com/profile_images/2077124589499637760/qyZXP_7L_normal.jpg)\n\nTori Shivanandan@torishiv\n\n[x.com/i/article/2083…](http://x.com/i/article/2083045080550756352)\n\n[🔗 View Quoted Tweet](https://x.com/torishiv/status/2084318243918123491)\n\n💬3🔄7❤️26👀5787📊5",
+      "tags": [
+        "超市用电",
+        "数据中心"
+      ],
+      "score": 65,
+      "summary": "a16z称美国超市峰值电力超过超大规模数据中心。",
+      "fetched_at": "2026-08-04T03:53:47.336630+08:00"
+    },
+    {
+      "title": "Nuclear delivers more of its maximum possible output than any other source",
+      "link": "https://x.com/a16z/status/2084342292287291446",
+      "published": "2026-08-04T02:15:02+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Nuclear delivers more of its maximum possible output than any other source\n\n![Tweet Image](https://pbs.twimg.com/media/HO0SROtawAAG4LC.jpg)\n\n![Tori Shivanandan](https://pbs.twimg.com/profile_images/2077124589499637760/qyZXP_7L_normal.jpg)\n\nTori Shivanandan@torishiv\n\n[x.com/i/article/2083…](http://x.com/i/article/2083045080550756352)\n\n[🔗 View Quoted Tweet](https://x.com/torishiv/status/2084318243918123491)\n\n💬10🔄3❤️41👀9786📊9",
+      "tags": [
+        "核电",
+        "能源效率"
+      ],
+      "score": 65,
+      "summary": "a16z称核电输出效率高于其他能源。",
+      "fetched_at": "2026-08-04T03:53:47.336633+08:00"
+    },
+    {
+      "title": "thanks @MiaAI_lab @0xSero @Tech2Wild @nvidia for showing us how to do this!",
+      "link": "https://x.com/andrewchen/status/2084350919467262080",
+      "published": "2026-08-04T02:49:19+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "thanks [@MiaAI\\_lab](https://x.com/MiaAI_lab)[@0xSero](https://x.com/0xSero)[@Tech2Wild](https://x.com/Tech2Wild)[@nvidia](https://x.com/nvidia) for showing us how to do this!\n\n💬1🔄1❤️3👀613📊2",
+      "tags": [
+        "andrew chen"
+      ],
+      "score": 20,
+      "summary": "Andrew Chen感谢多团队分享方法，无细节。",
+      "fetched_at": "2026-08-04T03:53:47.336636+08:00"
+    },
+    {
+      "title": "honestly pretty incredible\n\nDSV4 Flash 0731 versus Opus 4.6:",
+      "link": "https://x.com/andrewchen/status/2084349060362965404",
+      "published": "2026-08-04T02:41:55+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "honestly pretty incredible  \n  \nDSV4 Flash 0731 versus Opus 4.6:\n\n![Tweet Image](https://pbs.twimg.com/media/HO0YVLGa4AAjBse.jpg)\n\n![andrew chen](https://pbs.twimg.com/profile_images/1610236905643249664/OdYs6aWP_normal.jpg)\n\nandrew chen@andrewchen\n\njust installed DeepSeek V4 Flash 0731 on my dual DGX sparks for some weekend testing! Let’s go!!\n\n[🔗 View Quoted Tweet](https://x.com/andrewchen/status/2083582537461608862)\n\n💬3🔄0❤️16👀3238📊3",
+      "tags": [
+        "DSV4 Flash",
+        "Opus 4.6",
+        "模型对比"
+      ],
+      "score": 70,
+      "summary": "Andrew Chen对比DSV4 Flash与Opus 4.6，称结果惊人。",
+      "fetched_at": "2026-08-04T03:53:47.336645+08:00"
+    },
+    {
+      "title": "This is a wild result.\n\nLocus, the automated research system from @intology, post-trained Qwen3 base...",
+      "link": "https://x.com/omarsar0/status/2084340684316700773",
+      "published": "2026-08-04T02:08:38+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "This is a wild result.  \n  \nLocus, the automated research system from [@intology](https://x.com/intology), post-trained Qwen3 base models that beat the official human-tuned Qwen3 1.7B Instruct release.   \n  \nSoTA on PostTrainBench!\n\n![Tweet Image](https://pbs.twimg.com/media/HO0QfCZWwAAFc3n.jpg)\n\n![Intology](https://pbs.twimg.com/profile_images/1991005812442136576/6WVrCaZ5_normal.jpg)\n\nIntology@intology\n\nThe models are improving the models.  \n  \nLocus, our automated AI research system, is SOTA on PostTrainBench and post-trains Qwen3 base models that surpass the human post-trained Qwen3 model.  \n  \nToday, LLMs post-trained end-to-end by Locus are in production to millions. 🧵👇  \n  \nPostTrainBench evaluates agents' ability to post-train models on various domains given 10 H100 hours.  \n  \nWe extend PostTrainBench via PostTrainBench+, which has a greatly expanded compute budget that provides clearer signal on automated post-training capabilities. We find that thousands of H100 hours help distinguish methods' performance post-training Qwen3 1.7B-Base models, and that Locus scales best. In this setting, modes trained by Locus collectively surpass the perforamce of the offical human post-trained Qwen3 1.7B model.  \n  \nIn a test of generalization, we ran Locus on all live Kaggle competitions with prize money and public leaderboards. After 16 days, Locus achieved the 4th highest average rank among all participants.\n\n![Tweet Image](https://pbs.twimg.com/media/HOz0_02bMAATM7v.png)\n\n[🔗 View Quoted Tweet](https://x.com/intology/status/2084319121332965804)\n\n💬5🔄2❤️12👀3156📊6",
+      "tags": [
+        "Locus",
+        "Qwen3",
+        "PostTrainBench"
+      ],
+      "score": 85,
+      "summary": "Locus自动后训练Qwen3超越官方版，PostTrainBench SOTA。",
+      "fetched_at": "2026-08-04T03:53:47.336650+08:00"
+    },
+    {
+      "title": "Check out this framework for inference on synthetic data through calibration on historical tasks, by...",
+      "link": "https://x.com/arena/status/2084340790915125521",
+      "published": "2026-08-04T02:09:04+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Check out this framework for inference on synthetic data through calibration on historical tasks, by Stanford PhD candidate and [@arena](https://x.com/arena) research intern, [@carrieeeeet](https://x.com/carrieeeeet)   \n  \nApplied across social-science surveys, AI evaluation, and early-read signals from the Agent Arena leaderboard, this approach accounts for bias in synthetic data stemmed from models, time, and changing conditions in general — without requiring ground-truth data for the task at hand. The key idea: When the data for your task does not exist, learn from the neighboring tasks that came before it.  \n  \n0:00 Intro: can you spot the real dog vs AI photo?  \n3:10 Synthetic data is cheap, fast, and scalable; ground-truth data is missing  \n4:38 The risk is non-negligible: systematic bias in synthetic data  \n6:52 Learn from historical tasks  \n9:09 Task Exchangeability: explained with a World Cup example  \n17:52 The method: three simple moves  \n23:00 Case study: social science coverage results  \n24:25 Case study: Bradley-Terry / AutoRater scoring  \n27:31 Case study: steerability score on the Agent Leaderboard  \n36:07 The bigger picture: from data points to tasks  \n39:05 Closing question: what is data, really?\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084339854733910016/vid/avc1/1920x1080/6F03PMnolJXSqb81.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/arena/status/2084340790915125521/video/1)\n\n💬4🔄2❤️23👀4624📊7",
+      "tags": [
+        "合成数据",
+        "校准",
+        "任务可交换性"
+      ],
+      "score": 75,
+      "summary": "斯坦福学者提出合成数据推断框架，通过历史任务校准。",
+      "fetched_at": "2026-08-04T03:53:47.336654+08:00"
+    },
+    {
+      "title": "Azure and Community Guidelines on Choosing Between a Skill or a Sub-Agent",
+      "link": "https://www.infoq.com/news/2026/08/choosing-between-subagent-skills/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-04T03:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/choosing-between-subagent-skills/en/headerimage/azure-skills-subagents-1785780670625.jpeg)\n\nIn a recent Azure Architecture blog article, Azure lead engineer Kishorekumar Pattabiraman outlines practical criteria for choosing between skills, sub-agents, and other approaches when building AI systems, emphasizing reusability, simplicity, and long-term maintainability.\n\n*By Sergio De Simone*",
+      "tags": [
+        "Azure",
+        "Skill",
+        "Sub-Agent"
+      ],
+      "score": 70,
+      "summary": "InfoQ报道Azure指南，帮助选择Skill或Sub-Agent。",
+      "fetched_at": "2026-08-04T03:53:47.336659+08:00"
     }
   ]
 }
