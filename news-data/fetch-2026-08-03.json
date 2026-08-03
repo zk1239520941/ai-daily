@@ -1810,6 +1810,703 @@
       "score": 65,
       "summary": "InfoQ播客讨论WebAssembly在JVM上的演进、性能优化及Endive迁移。",
       "fetched_at": "2026-08-03T20:35:39.103663+08:00"
+    },
+    {
+      "title": "LLM Security Basics: The Full Threat Model",
+      "link": "https://blog.bytebytego.com/p/llm-security-basics-the-full-threat",
+      "published": "2026-08-03T23:31:14+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [Matic: A new era of visually intelligent cleaning (Sponsored)](https://go.bytebytego.com/Matic_080326)\n\n[![](https://substackcdn.com/image/fetch/$s_!EMv8!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9cffb40a-0d57-476b-ac80-9fa4ba25bbff_1600x840.png)](https://go.bytebytego.com/Matic_080326)\n\nTry Matic, backed by their 6 month money back guarantee.\n\n[Get Matic](https://go.bytebytego.com/Matic_080326)\n\n---\n\nIn June 2025, security researchers at Aim Security demonstrated that a single email could cause Microsoft 365 Copilot to retrieve a company’s internal files and transmit them to an external server, with no user interaction.\n\nThe email contained ordinary text and exploited no software flaw. Copilot’s output was driven by hidden instructions in the email together with the user’s actual request, and the system applied no distinction between the two. Microsoft closed the specific path within days and reported that customers were unaffected.\n\nBut this incident sheds interesting light on how language models process text. The vulnerability was named EchoLeak, assigned CVE-2025-32711, and it serves as a useful study to understand the landscape of LLM security.\n\n[![](https://substackcdn.com/image/fetch/$s_!apZs!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F03870cf3-d5e5-4566-bad0-fe780a239a28_3342x1544.png)](https://substackcdn.com/image/fetch/$s_!apZs!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F03870cf3-d5e5-4566-bad0-fe780a239a28_3342x1544.png)\n\nFor contrast, consider a different case. For roughly $20 in API queries, a team extracted part of a production OpenAI model through its public interface. That sounds like the threat most teams should really fear.\n\nIn this article, we try to build a map of the full attack surface that threatens an LLM’s security. With it, a given LLM feature can be located, its exposure points identified, and new threats reasoned about as they appear.\n\nSo let’s start with the single most important property.\n\n*Disclaimer: This post is based on publicly shared details from various sources. References at the end. Please comment if you notice any inaccuracies.*\n\n## Trust Boundaries\n\nAlmost every LLM vulnerability traces to one property. A language model receives instructions and data as a single sequence of tokens, and that sequence contains no marker separating commands from information.\n\nTraditional software keeps the two apart.\n\nFor example, a parameterized database query holds the command in one position and the user’s input in another. This means that the text typed into a name field stays text even if it spells out a SQL statement, because the structure of the query enforces the separation.\n\nHowever, an LLM context has one position for everything. The system prompt defining the assistant’s role, the user’s message, a document retrieved from a database, and the output returned by a called tool all arrive concatenated in the same sequence. Any portion of that sequence can affect the generated output as if it were an instruction, because the model computes each next token from the entire preceding sequence with no separate treatment for any part of it.\n\nThis is where prompt injection comes in, which means the supply of instruction-like text so that the model output conforms to those instructions instead of the operator’s intent. It reaches the model by two routes:\n\n* The direct route is a hostile instruction typed into the chat box. This is the version most people picture.\n* The indirect route places the instruction inside the content that the model retrieves during a legitimate task, such as a web page being summarized, a document being read, or an email in a managed inbox.\n\n[![](https://substackcdn.com/image/fetch/$s_!B5Zd!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F22b60594-da4f-434e-9fdd-e0d0237de5f1_3144x1096.png)](https://substackcdn.com/image/fetch/$s_!B5Zd!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F22b60594-da4f-434e-9fdd-e0d0237de5f1_3144x1096.png)\n\nEchoLeak was an example of the indirect route. The user requested ordinary work, and the attacker’s instructions arrived in an email the user had not opened. In fact, the payload passed through Microsoft’s dedicated cross-prompt-injection classifier, which indicates that input filtering can be porous when used alone.\n\nThe property applies to any system that supplies external text to a model. A feature that processes retrieved search results, uploaded files, tickets, or comments carries indirect injection exposure by construction.\n\nParameterization solved SQL injection by separating code from data at the database boundary. No equivalent exists for natural language, because instructions and information are both expressed as words, and there is currently no reliable method to mark a span of text as inert and have that marking respected during generation. Filtering reduces the problem to some extent but does not eliminate it.\n\nSince the confusion can occur wherever text enters the model or an action leaves it, the next step is to map those points.\n\n## Attack Surface\n\nThe OWASP Top 10 for Large Language Model Applications is the industry reference for the most critical LLM risks. Its recent edition presents ten separate items. Placed against the path that data takes through an application, those ten items become positions on a single map.\n\nThe pipeline runs in stages.\n\nInput arrives from the user. The system frequently retrieves context to ground its answer, a step usually built on a vector database that stores documents as numerical embeddings and returns the ones most relevant to a query. That pattern is retrieval-augmented generation, or RAG. The model then processes the assembled input. It may call tools or other agents that take actions externally. Output returns to the user. Monitoring surrounds the pipeline, and every component within it originates from a supplier, which forms the supply chain beneath the system.\n\n[![](https://substackcdn.com/image/fetch/$s_!AsO2!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Faa5735f7-55fb-4d42-84a3-7e00b3f6628d_4046x1766.png)](https://substackcdn.com/image/fetch/$s_!AsO2!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Faa5735f7-55fb-4d42-84a3-7e00b3f6628d_4046x1766.png)\n\nHere are some more details about each stage and the potential risks associated with them:\n\n* **Input:** Direct prompt injection and unbounded consumption, which OWASP defines as uncontrolled resource use capable of running up a victim’s costs, sometimes called denial of wallet.\n* **Retrieval:** Indirect injection, vector, and embedding weaknesses. PoisonedRAG, a 2024 study, corrupted a RAG system’s answers by inserting as few as five malicious passages into a knowledge base of millions, reaching a 90 percent success rate on targeted questions.\n* **Model:** Training-data leakage, data and model poisoning, and system prompt leakage.\n* **Tools:** Excessive agency, the condition of an agent holding more permission than its task requires.\n* **Output:** Improper output handling, where the response passes downstream without sanitization, and misinformation, where a confident answer is incorrect.\n* **Supply chain:** Compromise of any component feeding the stages above.\n\nThe map provides a reference point for figuring out the specifics of an attack. A new attack can be located on it. The relevant questions are where it injects untrusted text and at which stage, and whether it abuses a permission the model should not hold. The answers indicate both the severity and the applicable defense.\n\nSupply chain cannot be cleanly placed on the path, because a compromised model or poisoned vector store affects every later stage at once. For that reason, it appears as its own segment that spans everything.\n\nThe map also exposes a mismatch in attention. The threats that generate the most concern and the threats that reach production are different.\n\n## Model Attacks\n\nAttacks aimed at the model’s interior, including weight theft, training-data extraction, and training-time poisoning, are quite real, but for most developers, they rank low for initial effort. They tend to be expensive, narrow, or already mitigated by the model provider.\n\nHere are a few examples:\n\n* **Model theft:** As mentioned earlier in the OpenAI scenario about a team that recovered the final embedding-projection layer of production OpenAI models for under twenty dollars and confirmed previously secret hidden dimensions. The result is significant and also bounded. It recovers one layer among many, and the researchers stated that reconstructing a full frontier model through an API remains impractical, since the cost exceeds training an equivalent model. OpenAI received advance notice and modified its API.\n\n* **Training-data extraction:** In late 2023, a group from Google DeepMind and several universities found that prompting ChatGPT to repeat a single word continuously could cause it to emit verbatim fragments of training data, including real contact details, with megabytes recoverable for a few hundred dollars. The privacy implications were serious, and OpenAI filtered the triggering behavior after disclosure.\n\n* **Poisoning:** In 2025, a team from Anthropic, the UK AI Security Institute, and the Alan Turing Institute found that approximately 250 malicious documents were sufficient to install a backdoor in models from 600 million to 13 billion parameters, with the count remaining roughly constant across model sizes. That finding overturned the assumption that larger models require proportionally more poisoned data. The researchers also stated the limitation directly. The backdoor produced only gibberish output on a trigger phrase, which is a low-stakes behavior they described as unlikely to pose significant risk in frontier models.\n\nThe graph below shows the placement of various threats on a fear vs frequency scale:\n\n[![](https://substackcdn.com/image/fetch/$s_!Mx75!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F4696b0ed-a36b-469a-a073-03a2f5980728_2418x1356.png)](https://substackcdn.com/image/fetch/$s_!Mx75!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F4696b0ed-a36b-469a-a073-03a2f5980728_2418x1356.png)\n\nThe ranking matters because attention is finite. A team focused on model theft while deploying an agent with broad permissions has addressed a rare attack and left a common one open.\n\nThe bounded status describes the present. These attacks rise in priority for teams that host open model weights, fine-tune on sensitive data, or operate their own training pipelines, where the model’s interior becomes the team’s responsibility rather than a provider’s.\n\nThe interior attacks sit at the edge of the map. The center, where the model triggers external actions, carries the larger risk.\n\n## Excessive Agency\n\nThe point at which LLM attacks cause material damage has a specific structure and is identifiable in a system. It is also called the lethal trifecta. It consists of three capabilities held together by a single agent:\n\n* Access to private data, such as an inbox, a customer database, or a source repository.\n* Exposure to untrusted content, meaning anything read from outside, including web pages, emails, and shared documents.\n* A channel to send data out or act externally, such as an outbound request, a sent message, or a tool call.\n\n[![](https://substackcdn.com/image/fetch/$s_!1z08!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F47256f68-6eab-4b8a-9626-07095340869d_2256x1910.png)](https://substackcdn.com/image/fetch/$s_!1z08!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F47256f68-6eab-4b8a-9626-07095340869d_2256x1910.png)\n\nAn agent holding all three can be directed by injected instructions to transfer private data to an attacker. Model alignment does not remove this exposure, because producing output that conforms to instruction-like input is how the model normally operates.\n\nA few documented cases follow the pattern:\n\n* GitHub’s MCP server, MCP being the Model Context Protocol that connects models to external tools and data, has been compromised using malicious issues filed on a public repository to expose data from a victim’s private repositories.\n* GitLab’s Duo assistant has been supplied a public project containing hidden instructions and made to leak private repository contents.\n* A Chevrolet dealership chatbot was once manipulated into agreeing to sell an SUV for one dollar.\n* A crypto trading agent was socially engineered into transferring 55 ETH.\n\nRemoving any one of the three capabilities reduces the exposure. The least costly reduction is usually cutting the outbound channel or narrowing what the agent can access, which tends to be cheaper than adding a stronger filter.\n\nConnecting tools through MCP is the most common way an agent acquires the third capability, and the protocol is recent enough that even established servers have shipped injectable configurations. Anthropic’s own official Git MCP server received three injection-related CVEs in 2025. Runtime input is one source of risk. The system’s components are another, and they can be compromised before any request arrives.\n\n## Supply Chain\n\nEvery model, adapter, vector store, and tool in a stack originates from a supplier, and any of them can arrive compromised. This is the supply chain surface, and it bypasses runtime defenses because the threat is present before input validation runs.\n\nThe common mechanism is straightforward.\n\nMany models are distributed as serialized files, and some serialization formats execute code when the file loads. In early 2025, ReversingLabs documented a technique named nullifAI, in which malicious models uploaded to Hugging Face concealed a reverse shell, code that opens a connection back to an attacker, inside a Python pickle file. The file was compressed in a manner that evaded Picklescan, the platform’s scanner, so the model appeared clean and executed hostile code on load.\n\n[![](https://substackcdn.com/image/fetch/$s_!Xf5x!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa7fc062d-8b5a-4ed3-93ab-f4fa05bdbcc2_2778x1602.png)](https://substackcdn.com/image/fetch/$s_!Xf5x!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa7fc062d-8b5a-4ed3-93ab-f4fa05bdbcc2_2778x1602.png)\n\nThe scale demands attention. Protect AI, which scans models hosted on Hugging Face, has examined more than four million and flagged roughly 352,000 as carrying unsafe or suspicious issues, across more than fifty thousand models.\n\nProvenance is one of the few fully controllable factors. The selection of which models, tools, and data sources to trust sits with the team, unlike most of the runtime surface.\n\nTwo mitigations are advancing:\n\n* Safer serialization formats that avoid executing code on load.\n* Model signing that verifies origin, comparable to signed releases in package ecosystems.\n\n## Defense in Depth\n\nNo single defense holds all the time, and the supporting evidence is strong enough that the realistic objective changes from preventing every attack to surviving the ones that succeed. The working posture is defense in depth, a set of independent layers arranged so that the failure of one is contained by another.\n\nOne layer is insufficient.\n\nIn November 2025, a team from OpenAI, Anthropic, and Google DeepMind published a study that took twelve previously proposed defenses against prompt injection and jailbreaking and defeated them, using attacks permitted to adapt and iterate. Strong production filters still allow a measurable fraction of attacks through, and a single success is enough. A lone guardrail provides confidence that the measurements do not support.\n\nThe more durable approach constrains the system around the model rather than relying on the model to resist manipulation.\n\nGoogle DeepMind’s CaMeL is one example. It treats the model as untrusted, uses a separate privileged component to plan actions, and quarantines externally retrieved data so that data cannot trigger sensitive operations on its own.\n\nMeta’s Agents Rule of Two is a simpler operational version, recommending that an agent satisfy at most two of three risky properties: processing untrusted input, holding sensitive access, and acting externally, without a human in the loop. Meta presents the rule as a supplement to least privilege rather than a complete solution.\n\n[![](https://substackcdn.com/image/fetch/$s_!Z4Uh!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe0019005-e2a8-4d23-8a44-58777dd3b0aa_2460x1344.png)](https://substackcdn.com/image/fetch/$s_!Z4Uh!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe0019005-e2a8-4d23-8a44-58777dd3b0aa_2460x1344.png)\n\nThe standard layers each cover a stage of the map:\n\n* Input is validated and constrained.\n* Retrieval sources are kept clean.\n* Each tool is scoped to the minimum permission its task requires.\n* Model output is treated as untrusted and sanitized before downstream use.\n* Monitoring watches for anomalies.\n* A human reviews the highest-consequence actions.\n\n## Conclusion\n\nThe threat model organizes around one fact.\n\nA language model processes instructions and data as the same sequence of tokens, and the full map follows from that property.\n\nThe OWASP Top 10 becomes a set of positions on a path rather than a list. The widely publicized attacks, model theft, and training-data extraction are bounded and largely mitigated, while the larger risk concentrates wherever an agent holds private data, untrusted content, and an external channel at once. The supply chain underlies every stage and is the surface most directly controlled by the team operating the system. Since no single layer holds, defense in depth is the realistic posture to implement for a team.\n\nThe cost is high. Every layer adds latency, expense, and friction, and the strongest mitigation, human review of consequential actions, also limits how autonomously a system can operate. The trade-off is unavoidable.\n\nThe landscape reduces to a few durable points:\n\n* The root cause is the absence of a boundary between instructions and data.\n* Named threats are positions on the pipeline rather than isolated facts.\n* The interior attacks are mostly bounded, and the trifecta marks where real damage occurs.\n* Provenance is the most directly controllable surface.\n* Defense in depth, rather than any single filter, contains the residual risk.\n\n**References:**\n\n* [EchoLeak: zero-click prompt injection in a production LLM (case study)](https://arxiv.org/abs/2509.10540)\n* [Stealing Part of a Production Language Model](https://arxiv.org/abs/2403.06634)\n* [Extracting Training Data from ChatGPT](https://not-just-memorization.github.io/extracting-training-data-from-chatgpt.html)\n* [A small number of samples can poison LLMs of any size](https://www.anthropic.com/research/small-samples-poison)\n* [PoisonedRAG: knowledge-base poisoning of retrieval-augmented generation](https://arxiv.org/abs/2402.07867)\n* [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/)\n* [The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)\n* [Malicious ML models discovered on Hugging Face (nullifAI)](https://www.reversinglabs.com/press-releases/reversinglabs-identifies-novel-ml-malware-hosted-on-leading-hugging-face-ai-model-platform)\n* [Hugging Face model-scanning findings](https://thenextweb.com/news/hugging-face-clawhub-malware-ai-supply-chain)\n* [New prompt injection papers: Agents Rule of Two and The Attacker Moves Second](https://simonwillison.net/2025/Nov/2/new-prompt-injection-papers/)\n* [Defeating Prompt Injections by Design (CaMeL)](https://arxiv.org/abs/2503.18813)\n* [Agents Rule of Two: a practical approach to AI agent security](https://ai.meta.com/blog/practical-ai-agent-security/)\n* [Anthropic Git MCP server injection advisory (CVE-2025-68143)](https://nvd.nist.gov/vuln/detail/CVE-2025-68143)",
+      "tags": [
+        "LLM安全",
+        "EchoLeak",
+        "威胁模型"
+      ],
+      "score": 80,
+      "summary": "ByteByteGo 分析 LLM 攻击面，提及 EchoLeak 漏洞与模型提取风险。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!apZs!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F03870cf3-d5e5-4566-bad0-fe780a239a28_3342x1544.png",
+      "fetched_at": "2026-08-03T23:51:55.458225+08:00"
+    },
+    {
+      "title": "The New Monday Morning Report: How Generative AI can deliver the insights your executives need.",
+      "link": "https://www.databricks.com/blog/new-monday-morning-report-how-generative-ai-can-deliver-insights-your-executives-need",
+      "published": "2026-08-03T22:00:00+08:00",
+      "source": "Databricks",
+      "content": "A VP of Sales at a major CPG has three decks open before her first coffee. One from...",
+      "tags": [
+        "生成式AI",
+        "高管洞察",
+        "Databricks"
+      ],
+      "score": 72,
+      "summary": "Databricks 探讨生成式 AI 为高管提供自动化洞察报告。",
+      "fetched_at": "2026-08-03T23:51:55.458241+08:00"
+    },
+    {
+      "title": "Node.js 26.6.0 (Current)",
+      "link": "https://nodejs.org/en/blog/release/v26.6.0",
+      "published": "2026-08-03T21:51:29+08:00",
+      "source": "Node.js Blog",
+      "content": "",
+      "tags": [
+        "Node.js 26.6.0",
+        "版本发布"
+      ],
+      "score": 70,
+      "summary": "Node.js 发布 26.6.0 Current 版本。",
+      "fetched_at": "2026-08-03T23:51:55.458247+08:00"
+    },
+    {
+      "title": "Node.js 24.19.0 (LTS)",
+      "link": "https://nodejs.org/en/blog/release/v24.19.0",
+      "published": "2026-08-03T21:49:39+08:00",
+      "source": "Node.js Blog",
+      "content": "",
+      "tags": [
+        "Node.js 24.19.0",
+        "LTS"
+      ],
+      "score": 70,
+      "summary": "Node.js 发布 24.19.0 LTS 版本。",
+      "fetched_at": "2026-08-03T23:51:55.458252+08:00"
+    },
+    {
+      "title": "Learn pandas the Right Way: A Python Library Course That Doesn’t Waste Your Time",
+      "link": "https://blog.jetbrains.com/education/2026/08/03/mastering-pandas-python-course/",
+      "published": "2026-08-03T22:07:09+08:00",
+      "source": "The JetBrains Blog",
+      "content": "Let’s talk about the elephant in every data scientist’s room (or in this case, the panda).\n\nYou’ve probably touched pandas before, even if nobody introduced you two properly. Ever opened a CSV file in Python and tried to make sense of it? Sorted a column, dropped some junk rows, and prayed a merge would work?\n\nThis isn’t a side skill – it’s the job. Every model, dashboard, and report starts with someone cleaning and shaping data first, and that’s pandas work, every time.\n\nThat was pandas, or something desperately trying to be. It’s the closest thing Python has to a universal translator for messy data, and it’s sitting underneath half the dashboards, reports, and ML pipelines you’ve ever heard of.\n\nSo we made a course for it: ***Mastering Python Libraries: pandas*****.**\n\n## **What you’re actually signing up for**\n\nThis is not a video where someone talks to you for six hours. The course is built directly from the official pandas docs and then wired into your IDE. This means you get real-time feedback, error highlighting, and hints while you’re writing actual code – not after you’ve already messed it up and closed the tab in panic.\n\nYou’ll come out the other side knowing your way around:\n\n* Series and DataFrames (the two things pandas is built on).\n* Cleaning up data that was clearly exported by someone who hates the world.\n* Filtering, sorting, and summarizing – the unglamorous 80% of real data work.\n* Actually exploring and manipulating datasets (not just staring at them).\n\nInstead of a certificate that basically says “I watched some slides”, you get two real projects in your portfolio: a recommendation model built on the TED Talks dataset, and an analysis of the compute costs behind training LLMs like ChatGPT. You can open these and talk through them in an interview without your voice cracking.\n\n## **Is this for you?**\n\nAre you circling data science, analytics, or just tired of manually eyeballing spreadsheets? This course will help you progress.\n\nAre you ready for it? If you know basic Python, variables, functions, loops, and the alphabet, then yes, you’re in! If not, take our free **[*Introduction to Python* course](https://jb.gg/academy/pandas/course)** first so you’re not thrown in the deep end. Previous NumPy experience helps but isn’t required.\n\n## **Two ways to take the course**\n\n**Go through Coursera** if you want the full package: video lessons, quizzes, and a completion certificate you can post on LinkedIn.\n\nDon’t take our word for it – **check out** **here**:\n\n[Get Started on Coursera](https://jb.gg/academy/coursera/pandas)\n\n[](https://blog.jetbrains.com/wp-content/uploads/2026/08/Coursera-video-for-the-blogpost-.mp4)\n\n**Alternatively, just grab the coding part** straight from our course catalog. It’s free and comes without any unnecessary fluff or certificate of completion. Just you, the IDE, and pandas.\n\n[Start Coding in PyCharm](https://jb.gg/academy/python/pandas)\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/img-from-the-course-2-1.png)\n\nThere’s no wrong choice here. One’s for people who want structure and a paper trail, while the other’s for when you just want to open an IDE and start typing. Choose your fighter. Either way, you’re not just watching – you’re coding in PyCharm, the same tool developers use worldwide.\n\n## **Oh, and there’s a prize involved!**\n\nFinish the course on Coursera, leave an honest review (seriously, tell us everything we should know), screenshot that and the course as “completed”, and drop it in our Discord. We’ll send a Tremendous gift card worth **USD 20** to the first 100 participants.\n\n[Join the Discord](https://jb.gg/academy/discord/challenge)\n\nThat’s it. Go wrestle some dataframes.\n\nIf you have any questions or would like to share your feedback, feel free to leave a comment below or contact us at education@jetbrains.com.\n\nHappy learning!\n\nThe JetBrains Academy team",
+      "tags": [
+        "pandas",
+        "Python课程",
+        "JetBrains"
+      ],
+      "score": 70,
+      "summary": "JetBrains 推出 pandas 学习课程，含 LLM 成本分析实战项目。",
+      "fetched_at": "2026-08-03T23:51:55.458256+08:00"
+    },
+    {
+      "title": "Inside our 353,000-person vibe coding course",
+      "link": "https://blog.google/innovation-and-ai/technology/developers-tools/ai-agents-intensive-recap-2026/",
+      "published": "2026-08-03T23:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Vibe_coding_course_hero.max-600x600.format-webp.webp)Kaggle’s AI Agents Intensive with Google brought learners together in a no-cost course to build and deploy the next frontier of AI.",
+      "tags": [
+        "AI Agents Intensive",
+        "Kaggle",
+        "课程"
+      ],
+      "score": 75,
+      "summary": "Google 与 Kaggle 的 AI Agents 课程吸引 35.3 万名学习者。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Vibe_coding_course_hero.max-600x600.format-webp.webp",
+      "fetched_at": "2026-08-03T23:51:55.458261+08:00"
+    },
+    {
+      "title": "实测千问办公：阿里这个 AI 专家，真的能帮你带货",
+      "link": "https://www.ifanr.com/1673793?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-03T22:16:52+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/images/ep/uploads/%E5%AE%9E%E6%B5%8B%E5%8D%83%E9%97%AE%E5%8A%9E%E5%85%AC%EF%BC%9A%E6%88%91%E8%AE%A9%E5%AE%83%E7%BB%99%E4%B8%80%E6%AC%BE%E4%B8%8D%E5%AD%98%E5%9C%A8%E7%9A%84%E5%8F%B0%E7%81%AF%EF%BC%8C%E5%8A%9E%E4%BA%86%E5%9C%BA%E5%8F%91%E5%B8%83%E4%BC%9A/94751f97-df31-4547-97f7-d5710813d378.png)\n\n今天，阿里正式推出企业级 Agent 产品「千问办公」（QwenWork），并开启公测。\n\n它由 QoderWork、MuleRun 和悟空三款产品整合而来，把本地电脑操作、云端长任务和企业协作收进同一个入口，直接在官网 qwenwork.cn 就可以下载尝鲜。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/aef9a057-89d5-4446-976f-3d0439ce8094.png)\n\n和千问办公一起上线的，还有阿里新一代旗舰模型 Qwen3.8-Max。这次实测，我们从头到尾用的都是这个模型。\n\n它的总参数量为 2.4 万亿，每次推理激活 950 亿参数，支持 100 万 Tokens 上下文和视觉理解，编程与专业办公是这次升级的重点。\n\n我把一些麻烦、琐碎，还得连续折腾好几步的活一股脑交给它，任务一路加码，甚至让它帮我开了场发布会，看看千问办公到底经不经得住这轮「拷打」。\n\n### 会读文件、会跑命令，也会偶尔闹乌龙\n\n千问办公的界面并不陌生。左边是任务记录，以及「专家套件」「技能」「连接器」「定时任务」和「IM 频道」，其中，「IM 频道」除了支持阿里自家的钉钉外，还支持接入飞书、微信等主流通讯 App；\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/7a82fa5d-4aba-4286-aef1-b3434d1a1b1d.png)\n\n中间留给对话和工作台；右侧会展开任务步骤与产物。第一次打开，多少能看到一点 Codex、Claude Cowork 这类 Agent 工具的影子。\n\n选好文件夹后，千问办公就能在里面读取资料、创建文件和执行命令。你给它一个目标，它会先拆步骤，再按需调用代码、浏览器和文档处理工具。任务跑起来以后，右侧清单会逐项打勾，生成的 HTML、图片和报告也会直接落进工作目录。\n\n刚好我这台 Mac 的储存空间快满了，在储存空间寸土寸金的当下，自然是能省一点是一点。所以第一个任务，我先让它帮我分析下，空间都被什么东西占了。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/fd437fc6-a987-405c-b49f-4199c41116da.png)\n\n感觉现在系统剩余的空间越来越少了，帮我分析一下空间占用分布情况，用直观、美观的 HTML 呈现给我。\n\n它从系统盘一路扫进用户目录和 `~/Library`，最后交回一份可视化 HTML。报告开头先给结论：1 TB 硬盘已经使用 762 GiB，只剩 133 GiB；用户目录占了 587 GiB，其中 Samsung Smart Switch 备份、照片图库和微信数据是三个大头。\n\n往下看，Containers、Caches 和 Application Support 又被继续拆开。哪些缓存可以直接清，哪些应用数据需要确认，哪些属于个人文件要自己取舍，它用三种标签分开标了出来。\n\n接下来，我又交给它两个小任务：一个看页面，一个看交互。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/d4912432-2c8a-403b-aab9-8939f058e325.png)\n\n做一个虚构电商平台的数据看板，包含销售额、订单量、访客数、客单价、近 30 日销售趋势、品类销售占比、用户来源分布和商品销售榜 TOP 5。\n\n我让它做了一个虚构的电商平台数据看板。它交付了一张带销售额、订单量、访客数、客单价、品类占比和渠道转化率的 HTML 页面，信息层级和图表选择都算规整，算是超越及格线的表现。\n\n看完枯燥的数据，不如让它搓个小游戏，放松一下。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/08176f8c-92f1-47dc-9d0d-f999241d7f60.gif)\n\n做一个飞行躲避小游戏。玩家操控一架飞机在屏幕中飞行，需要躲避迎面而来的障碍物。游戏要有开始界面、计分系统和结束画面。\n\n千问办公做出了开始界面、计分和结束画面。飞机能跟着鼠标移动，可以吃金币，擦着障碍物掠过还有额外加分。不过，贴图还是略显粗糙，经不起细看。\n\n### 从苹果财报，到一场不存在的发布会\n\n接下来，我把苹果上周刚刚披露的季报交给千问办公，让它帮忙拆解一下。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/54bf51f8-1f68-43f3-bd76-7767659d8cdf.png)\n\n把这份苹果季报拆解、分析，制作成一份可视化、直观、图文并茂的 HTML。\n\n它先提取并核对报表数据，再把营收、利润、产品和地区表现做成一组清楚的图表，页面顶部先给结论，图表下面补一句「怎么看」。原始数据表也被留在底部，阅读和回查都很方便。\n\n这里有一个小插曲：它在最后校验 HTML，需要执行一条带有 `rm -f` 的命令。系统弹出了红色的「高危操作」提示，把会永久删除哪个文件、`-f` 参数有什么效果、后续还会做什么列了出来，再让我选择允许或拒绝。\n\n这种解释在目前市面上的 Agent 应用上并不多见，但对于刚接触它们的小白来说，却十分有必要：即便不懂命令行，你也能看出它准备删掉哪个文件，以及操作能不能撤销。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/4178d0ac-988a-4ca9-851f-29988b32529a.png)\n\n不过，同样的解释到了前面的磁盘扫描里，就没那么管用了。它准备执行 `kill 45499`，提示会强制终止进程 45499，未保存的数据可能丢失。问题是，它没有告诉我这个进程属于哪个 App，也没有说明为什么非杀不可。因此，这个功能还是有些细节需要完善。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/e3a3c5a0-709d-4f45-8922-316a952ba3af.png)\n\n做完这些有现成资料可依的任务，我还想试试它的「想象力」和审美：\n\n> 只给一个模糊的产品点子，它能帮我开一场完整的发布会吗？\n\n于是我临时编了一款产品。LUMA 是一盏智能桌面灯，能读取日程，用灯光提示专注、倒计时和休息，没有屏幕、摄像头与麦克风。售价 699 元，主张是「把时间调成光」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/9d5ca12c-5bf6-4b0b-a5f9-c42ddf2be9ed.gif)\n\n请从零为虚构产品「LUMA」制作一套 10—12 页的中文新品发布会 PPT。受众为科技媒体、设计师和首批用户。\n\nLUMA 是一盏能读取日历安排的桌面灯。它没有屏幕、摄像头和麦克风，通过灯光变化提示专注时间、会议倒计时和休息间隔。用户的日程在本地处理。\n\n已知信息：\n\n* 色温范围：2700K—6500K；\n* 六区独立灯光；\n* 尺寸：210 × 65 × 32 mm；\n* 重量：480 g；\n* USB-C 供电；\n* 雾白、石墨灰、苔藓绿三种颜色；\n* 售价：699 元；\n* 目标用户：长期伏案、日程密集、又不想增加一块屏幕的人。\n\n请自行完成品牌主张、发布会叙事和视觉系统。内容需要覆盖产品亮相、交互方式、使用场景、硬件结构、隐私设计、颜色选择、价格和上市信息，但不要机械地按这份清单逐项排页。\n\n千问办公没有急着开做，而是先列出大纲，让我从内置模板里挑一种视觉风格。最后生成了 11 页 PPT，雾白、石墨灰和苔藓绿打底，再用一条暖色光谱模拟灯光。从产品卖点、使用场景到隐私设计、配色、规格和售价，该讲的基本都讲到了。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/834af085-b5eb-48e9-a410-4b20801cae6d.png)\n\n我比较意外的是，它没有把每一页都做成同一种模板。有些页面只放一句话，有些用来展示产品，有些专门交代参数，节奏看起来还挺舒服。虽然 LUMA 从产品到图片都是临时编出来的，这套 PPT 放在一起却不显得太拼凑，甚至有了一点自己的品牌气质。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/e5b9a77e-c67e-484a-b959-147ae093af32.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/674815d8-83ee-41da-81ee-0487beb9fd16.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/e87e4b10-1de4-46b1-ab54-5aa74d446097.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/70e3932b-83e3-4af4-81e5-567f447022df.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/5917a6f4-b94b-4ba2-9149-b6bc60716922.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/3de5360e-9ce5-4a6e-b399-454ce4ba6404.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/565da4c4-f946-4e89-b004-a9194f5d7f8a.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/99a650b9-05b9-43a6-a93c-479825716453.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/003ba891-7816-495a-b7b2-7ed2829e4873.png)\n\n做完以后，它还问我要不要检查页面渲染、前后表述和演讲备注。我把几项都勾上，它又逐页检查了一遍有没有文字溢出、图片异常，以及前后说法对不对。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/bc190a4f-9306-47ae-9bf1-64f5291ae5c2.png)\n\n### 一盏不存在的灯，被它做成了一个品牌\n\n这次，千问办公还有一个挺有意思的新功能——「专家套件」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/9d0a288d-b30a-41f0-9040-94d8decae8b0.png)\n\n它有点像给千问办公安装不同工种的 skill 和工具包。套件广场里已经有市场营销、产品设计、投研分析、合同管理等选项，每一套都组合了这个岗位常用的技能，有些还会接入外部数据。\n\n安装以后，在对话里直接调用就行，不用每次都写长篇大论的 prompt。\n\n我先装了市场营销套件。里面组合了 8 项技能和 1 个数据连接能力，覆盖营销文案、广告合规、竞品追踪、活动策划、社媒热点、SEO、效果分析和品牌调性审查。简单说，它已经把一套常见的营销工作流程装好了。\n\n先从最容易验收的文案开始。我让它为 LUMA 生成一套跨平台宣传文案。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/c8b322b6-6e12-4212-bcea-4ecc5a3461b0.png)\n\n千问办公分别给出小红书种草笔记、微信公众号长文和微博短帖，并配套标题备选、摘要、标签、CTA、A/B 方案和发布时间建议。\n\n小红书文案更口语，公众号负责讲完整故事，微博则把信息压进短句里；它甚至还单独检查了《广告法》里的极限词与绝对化表述，确实有点「专家」的意思了。\n\n文案感觉还行，我就继续加码，索性让它帮我做一整套宣传物料。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b179979c-28a7-47c7-8b45-7034c5bf546b.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/95d054db-5000-40b6-aa4d-f194b41f8a93.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/3bf9cdf9-e820-46a9-88dd-9cc48c734c9b.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/07124888-8ea1-4290-89e1-b8ed689d49e3.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/27524853-7970-48c6-a7aa-f5bf920393b1.png)\n\n帮我给这个产品做一些宣传物料，包括包装、开箱体验、其他周边、礼盒等。\n\n它先问了三个问题：要交概念方案还是可编辑文件，周边准备覆盖哪些品类，标准版和礼盒版如何区分。确认方向后，千问办公沿用 PPT 里的视觉系统，做出了雾白标准包装、石墨灰 First Light 礼盒、开箱内衬、光谱桌垫、色温杯垫、帆布袋、徽章和磁吸书签。\n\n整体的一致性和美观度都很不错，可以看出这次 Qwen 3.8 Max 的多模态能力还是比较强的。\n\n文案和图都准备好了，直接让它排成一组可以发布的小红书多图内容，自然也是不在话下。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/a806aa5f-e862-4b44-84d4-bf7f8f39e7ab.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/fa81b4d4-c867-405d-ba34-8b632e9fdb6f.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/256b60b5-f115-4778-9d48-b95921e058ce.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/1532991e-6e03-4084-bf78-2003738a0c6a.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/739836a9-051f-4242-a75a-e51dad3446d9.png)\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/be7bcd28-27d8-495d-bdd2-bef75898312b.png)\n\n左右滑动图片\n\n把这几张做成适合发小红书的排版图。\n\n它把横版效果图重新编成 6 张竖图，封面、页码、双语栏目、标题层级和统一页脚一应俱全，完成度已经达到可以直接发布的程度。\n\n做到这里，我临时编的 LUMA 已经有了 PPT、三套平台文案、包装、礼盒、周边和 6 张小红书长图，每一次的交付物都环环相扣，确实像是同一个团队做出来的东西。\n\n模型额度方面，千问办公新用户注册会送 2000 积分，每天登录再送 600 积分。上面这些任务全部跑完后，我的免费版还剩 1645.53 分。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/74736d72-bb84-4c77-b195-1c70ef88e0b7.png)\n\n至少在公测阶段，拿它做一些日常任务，都不需要担心积分不够。\n\n这轮体验下来，千问办公最让我意外的，不是某一张图或某一份报告，而是任务会顺着往下长。一个模糊的要求，可以变成看板、PPT 和宣传物料；前面做过的内容，后面还能继续拿来用。\n\n千问办公也不是孤立的一次产品整合。腾讯把 WorkBuddy 接进腾讯文档，字节将飞书并入豆包所在的业务体系，阿里则把 QoderWork、MuleRun 和悟空收拢起来，再准备接进钉钉。\n\n而据虎嗅昨日的报道，阿里内部把 AI 办公定位为面向企业组织的生产力平台，千问办公与钉钉由同一个事业部负责；短期内优先看的也不是用户数和月活，而是产品是否好用，以及能不能真正跑通企业场景。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/9ccfbc1c-bc2b-40c4-9ce1-01e4f5155c97.png)\n\nBAT（字节、阿里、腾讯）这三家大厂又在一个新战场拼起了刺刀。接下来比拼的，或许就不只是模型有多聪明，还要看谁能把文档、消息、知识库和各种工具接得更顺，让 Agent 真正进入用户每天的工作流程。\n\n回头看 LUMA 的文件夹，最开始只有几句关于虚构台灯的设定，最后却装进了一整套发布会 PPT、平台文案、包装方案和小红书长图。一个原本没想清楚的点子，就这样有了可以翻、可以看，也可以继续往下改的样子。\n\n所以下一次再冒出类似的念头，我大概还是会先给它建个文件夹。\n\n*\\*封面、部分插图由 AI 生成*\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "千问办公",
+        "Qwen3.8-Max",
+        "实测"
+      ],
+      "score": 85,
+      "summary": "爱范儿实测阿里千问办公与旗舰模型 Qwen3.8-Max。",
+      "fetched_at": "2026-08-03T23:51:55.458265+08:00"
+    },
+    {
+      "title": "小头爸爸挺帅的哈哈😂",
+      "link": "https://x.com/berryxia/status/2084286241911251280",
+      "published": "2026-08-03T22:32:18+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "小头爸爸挺帅的哈哈😂\n\n![岚叔](https://pbs.twimg.com/profile_images/1680410719941165058/vWaCNg37_normal.jpg)\n\n岚叔@LufzzLiz\n\n哈哈，给模型玩了个骚套路：先把梁圣的照片发给GPT让用文字描述出来。  \n然后把人物文字描述发给各个模型，看看谁画的像  \n模型画画灵感来源于：[@ann\\_nnng](https://x.com/ann_nnng) 非常有趣  \n我做了下改动，提示词见评论👇  \n可以发个codex让模型参考改画任意图形的，下一版试试让qwen来描述看看\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084280284858687488/vid/avc1/1080x1440/4HSHKqwlDHYLy25U.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LufzzLiz/status/2084282078636753234/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/LufzzLiz/status/2084282078636753234)\n\n💬1🔄0❤️1👀360📊1",
+      "tags": [
+        "GPT",
+        "图像生成",
+        "趣味实验"
+      ],
+      "score": 40,
+      "summary": "用户分享用 GPT 描述照片生成图像的趣味实验。",
+      "fetched_at": "2026-08-03T23:51:55.458269+08:00"
+    },
+    {
+      "title": "kimi 做PPT的审美还挺好的～",
+      "link": "https://x.com/berryxia/status/2084285788502827008",
+      "published": "2026-08-03T22:30:30+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "kimi 做PPT的审美还挺好的～\n\n![Kimi.ai](https://pbs.twimg.com/profile_images/1910294000927645696/QseOV0uF_normal.png)\n\nKimi.ai@Kimi\\_Moonshot\n\nBuild Slides with Kimi Work - Tutorial #1.  \n  \nKimi Slides handles the entire slide-building process:  \n- Clear structure and research, powered by Kimi K3  \n- Cohesive design, including polished charts and SmartArts  \n- Editable and ready to download  \n  \nLet us know what you'd like to see next in the comments!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084245813782585345/vid/avc1/1920x1080/7aonjSxFUGzF7XBa.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Kimi_Moonshot/status/2084245860339298423/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Kimi_Moonshot/status/2084245860339298423)\n\n💬0🔄0❤️2👀358📊1",
+      "tags": [
+        "Kimi",
+        "PPT",
+        "审美"
+      ],
+      "score": 40,
+      "summary": "用户称赞 Kimi 制作 PPT 的审美，转发官方教程。",
+      "fetched_at": "2026-08-03T23:51:55.458272+08:00"
+    },
+    {
+      "title": "你看看，我这句话的含金量还在上升😅",
+      "link": "https://x.com/dingyi/status/2084297375179497614",
+      "published": "2026-08-03T23:16:33+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "你看看，我这句话的含金量还在上升😅\n\n![Tweet Image](https://pbs.twimg.com/media/HOzpXHbWwAAP1fL.jpg)\n\n![Ding](https://pbs.twimg.com/profile_images/2000755831135191040/s6Pf_wjc_normal.jpg)\n\nDing@dingyi\n\n[@\\_FORAB](https://x.com/_FORAB) 谁到这岁数不想找一个 20 岁小姑娘呢。。。\n\n[🔗 View Quoted Tweet](https://x.com/dingyi/status/2083411742261174369)\n\n💬0🔄0❤️0👀239",
+      "tags": [
+        "个人言论"
+      ],
+      "score": 15,
+      "summary": "与 AI 无关的个人言论。",
+      "fetched_at": "2026-08-03T23:51:55.458276+08:00"
+    },
+    {
+      "title": "不客气，主要是这个产品做得好，在一堆 AI slop 中简直是一股清流！https://t.co/pXQCq2m87w",
+      "link": "https://x.com/dingyi/status/2084277504517562457",
+      "published": "2026-08-03T21:57:35+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "不客气，主要是这个产品做得好，在一堆 AI slop 中简直是一股清流！[riikee.com](https://riikee.com/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084277212560371714/vid/avc1/3078x1932/w7etvBTV-4IeISuu.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/dingyi/status/2084277504517562457/video/1)\n\n![fangming.li](https://pbs.twimg.com/profile_images/1378301299/uniqlo_normal.png)\n\nfangming.li@lushnis\n\n订阅了 [@dingyi](https://x.com/dingyi) 老板的 DEX 周刊这么多年，终于有作品（[@riikee\\_com](https://x.com/riikee_com)）被丁老板推荐了，感谢！  \n推荐大家订阅 DEX 周刊，中文圈顶级的产品/设计周刊，特别是近几年关于 AI 的优质内容非常靠谱。 [quaily.com/dingyi](https://quaily.com/dingyi)\n\n![Tweet Image](https://pbs.twimg.com/media/HOzSnrEasAAgbNk.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lushnis/status/2084273712971514187)\n\n💬4🔄0❤️25👀4217📊8",
+      "tags": [
+        "DEX周刊",
+        "riikee",
+        "推荐"
+      ],
+      "score": 45,
+      "summary": "丁老板推荐 DEX 周刊和 riikee.com，称其 AI 清流。",
+      "fetched_at": "2026-08-03T23:51:55.458280+08:00"
+    },
+    {
+      "title": "ElevenAgents is built to enterprise standards for security and safety, including configurable guardr...",
+      "link": "https://x.com/ElevenLabs/status/2084285152033669610",
+      "published": "2026-08-03T22:27:59+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "ElevenAgents is built to enterprise standards for security and safety, including configurable guardrails and regional data residency options.  \n  \nThe same foundation serves a wide range of customers, from startups to governments and Fortune 500 enterprises.  \n  \nLearn more: [elevenlabs.io/agents](https://elevenlabs.io/agents)\n\n💬0🔄0❤️1👀914",
+      "tags": [
+        "ElevenAgents",
+        "企业安全"
+      ],
+      "score": 75,
+      "summary": "ElevenLabs 宣传 ElevenAgents 的企业级安全与数据驻留选项。",
+      "fetched_at": "2026-08-03T23:51:55.458283+08:00"
+    },
+    {
+      "title": "With ElevenAgents, you can build agents that follow your existing workflows, simulate scenarios befo...",
+      "link": "https://x.com/ElevenLabs/status/2084285148963434931",
+      "published": "2026-08-03T22:27:58+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "With ElevenAgents, you can build agents that follow your existing workflows, simulate scenarios before you go live, and deploy across channels.  \n  \nThen, Spotlight monitors production conversations and gives proactive recommendations, so you can improve your agents and outcomes.\n\n💬1🔄1❤️2👀1006📊1",
+      "tags": [
+        "ElevenAgents",
+        "工作流",
+        "Spotlight"
+      ],
+      "score": 75,
+      "summary": "ElevenLabs 介绍 ElevenAgents 支持工作流模拟与生产监控。",
+      "fetched_at": "2026-08-03T23:51:55.458287+08:00"
+    },
+    {
+      "title": "More than 10 million conversations run on ElevenAgents every week.\n\nIn each one, a natural-sounding ...",
+      "link": "https://x.com/ElevenLabs/status/2084285146786615619",
+      "published": "2026-08-03T22:27:57+08:00",
+      "source": "ElevenLabs(@elevenlabsio)",
+      "content": "More than 10 million conversations run on ElevenAgents every week.  \n  \nIn each one, a natural-sounding voice or chat agent handles a real interaction like a refund request, appointment booking, benefits inquiry, or flight change.  \n  \nSee the platform that makes them possible.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084283229238931456/vid/avc1/1920x1080/7I0L96dhGP_aoj7G.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ElevenLabs/status/2084285146786615619/video/1)\n\n💬2🔄4❤️17👀3291📊4",
+      "tags": [
+        "ElevenAgents",
+        "千万对话",
+        "平台"
+      ],
+      "score": 75,
+      "summary": "ElevenLabs 称每周超 1000 万次对话运行在 ElevenAgents 上。",
+      "fetched_at": "2026-08-03T23:51:55.458291+08:00"
+    },
+    {
+      "title": "One engineer, one week, $10,000 in tokens.",
+      "link": "https://x.com/ericjing_ai/status/2084291848215142557",
+      "published": "2026-08-03T22:54:35+08:00",
+      "source": "Eric Jing(@ericjing_ai)",
+      "content": "One engineer, one week, $10,000 in tokens.\n\n![Genspark](https://pbs.twimg.com/profile_images/1782715833099382784/R6nadR8G_normal.jpg)\n\nGenspark@genspark\\_ai\n\nOpen-sourcing GenOffice, the world's first full-featured open-source AI Office for PC and Mac.   \n  \nGenOffice is free for everyone, ad-free. All the editing tools you'd expect, no strings attached.  \n  \nHow it started?  \n  \nOne engineer, one week, $10,000 in tokens. That's what it took to build the GenOffice Alpha.  \n  \nHelp shape the AI office experience  \n  \nWe invite you to build the rest of it with us. Join the GenOffice group chat on GenTeam and bring your requests straight to the agent. Not by writing code, but by telling it what you want. You say what you need, and every piece of your feedback becomes part of the product.  \n  \nWhat's in GenOffice?  \n  \nDocs, Sheets, Slides, and PDF, with all the editing tools you already know. And with Genspark Super Agent built in, powered by top-tier models, it digs into research, crunches your data, then writes the doc or builds the deck for you, using your Genspark credits.  \n  \nThis is an Alpha, and we mean it. Come tell us what's broken and what's missing. Everyone who jumps in with real feedback gets 1,000+ Genspark credits as a thank you.  \n  \nGitHub 👉[github.com/genspark-ai/ge…](https://github.com/genspark-ai/genoffice)e  \n  \nDownload it now �[genspark.ai/genoffice](https://www.genspark.ai/genoffice)Fn\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084221079082696704/vid/avc1/1920x1080/DosRGwtPfZUKXyxD.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/genspark_ai/status/2084221525327319363/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/genspark_ai/status/2084221525327319363)\n\n💬0🔄0❤️0👀199",
+      "tags": [
+        "GenOffice",
+        "开源",
+        "Genspark"
+      ],
+      "score": 84,
+      "summary": "Eric Jing 转发 Genspark 开源 AI 办公套件 GenOffice。",
+      "fetched_at": "2026-08-03T23:51:55.458295+08:00"
+    },
+    {
+      "title": "Open-sourcing GenOffice!! Free for everyone.\n\nA full-featured AI Office for PC and Mac. We invite yo...",
+      "link": "https://x.com/ericjing_ai/status/2084279942490345717",
+      "published": "2026-08-03T22:07:16+08:00",
+      "source": "Eric Jing(@ericjing_ai)",
+      "content": "Open-sourcing GenOffice!! Free for everyone.  \n  \nA full-featured AI Office for PC and Mac. We invite you to build the future of a native AI office experience together!\n\n![Genspark](https://pbs.twimg.com/profile_images/1782715833099382784/R6nadR8G_normal.jpg)\n\nGenspark@genspark\\_ai\n\nOpen-sourcing GenOffice, the world's first full-featured open-source AI Office for PC and Mac.   \n  \nGenOffice is free for everyone, ad-free. All the editing tools you'd expect, no strings attached.  \n  \nHow it started?  \n  \nOne engineer, one week, $10,000 in tokens. That's what it took to build the GenOffice Alpha.  \n  \nHelp shape the AI office experience  \n  \nWe invite you to build the rest of it with us. Join the GenOffice group chat on GenTeam and bring your requests straight to the agent. Not by writing code, but by telling it what you want. You say what you need, and every piece of your feedback becomes part of the product.  \n  \nWhat's in GenOffice?  \n  \nDocs, Sheets, Slides, and PDF, with all the editing tools you already know. And with Genspark Super Agent built in, powered by top-tier models, it digs into research, crunches your data, then writes the doc or builds the deck for you, using your Genspark credits.  \n  \nThis is an Alpha, and we mean it. Come tell us what's broken and what's missing. Everyone who jumps in with real feedback gets 1,000+ Genspark credits as a thank you.  \n  \nGitHub 👉[github.com/genspark-ai/ge…](https://github.com/genspark-ai/genoffice)e  \n  \nDownload it now �[genspark.ai/genoffice](https://www.genspark.ai/genoffice)Fn\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084221079082696704/vid/avc1/1920x1080/DosRGwtPfZUKXyxD.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/genspark_ai/status/2084221525327319363/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/genspark_ai/status/2084221525327319363)\n\n💬2🔄0❤️7👀836📊4",
+      "tags": [
+        "GenOffice",
+        "开源",
+        "AI办公"
+      ],
+      "score": 83,
+      "summary": "Genspark 宣布开源 AI 办公套件 GenOffice，免费可用。",
+      "fetched_at": "2026-08-03T23:51:55.458298+08:00"
+    },
+    {
+      "title": "海螺 H3 生视频的效果真不错\n在 YouMind 已经可用了",
+      "link": "https://x.com/lifesinger/status/2084295269601145115",
+      "published": "2026-08-03T23:08:11+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "海螺 H3 生视频的效果真不错  \n在 YouMind 已经可用了\n\n![YouMind](https://pbs.twimg.com/profile_images/2077212613617078272/rVuO-t2X_normal.png)\n\nYouMind@YouMind\\_AI\n\n#oneskillperday  \n  \nOne shot to generate this cool, stylish animation with just a single skill: script, storyboard, soundtrack, voiceover, and video, all in a whole package.   \n  \nPowered by the lastest video-generation model MiniMax H3 [@Hailuo\\_AI](https://x.com/Hailuo_AI) , less tokens, more creations.   \n  \nGet the complete workflow ⬇️\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084288502448185344/vid/avc1/1920x1080/15HLDowMRQ66z7X_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/YouMind_AI/status/2084289990272618717/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/YouMind_AI/status/2084289990272618717)\n\n💬0🔄0❤️1👀147",
+      "tags": [
+        "海螺H3",
+        "视频生成",
+        "YouMind"
+      ],
+      "score": 75,
+      "summary": "玉伯称赞海螺 H3 视频生成效果，已在 YouMind 可用。",
+      "fetched_at": "2026-08-03T23:51:55.458302+08:00"
+    },
+    {
+      "title": "保护注意力有两个秘诀：\n\n1、对好评给予点赞\n2、对差评直接忽略\n\n这样就能\n朋友越来越多\n敌人越来越少\n心情越来越好",
+      "link": "https://x.com/lifesinger/status/2084285087890456946",
+      "published": "2026-08-03T22:27:43+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "保护注意力有两个秘诀：  \n  \n1、对好评给予点赞  \n2、对差评直接忽略  \n  \n这样就能  \n朋友越来越多  \n敌人越来越少  \n心情越来越好\n\n💬11🔄1❤️23👀2226📊15",
+      "tags": [
+        "个人感悟"
+      ],
+      "score": 10,
+      "summary": "与 AI 无关的个人感悟。",
+      "fetched_at": "2026-08-03T23:51:55.458306+08:00"
+    },
+    {
+      "title": "Sudden silence on metrics that used to be shared regularly is a bad sign.  If this post below is cor...",
+      "link": "https://x.com/GaryMarcus/status/2084291184621707370",
+      "published": "2026-08-03T22:51:57+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Sudden silence on metrics that used to be shared regularly is a bad sign. If this post below is correct, it doesn’t look great for enthusiastic projections around Anthropic’s Q3.  \n  \n(Author below leaves out the death of tokenmaxxing, which is also a likely contributor, in addition Sol and opensource).\n\n![LinaHua](https://pbs.twimg.com/profile_images/2041437429400481793/mZeDw2ow_normal.jpg)\n\nLinaHua@Linahuaa\n\nAnthropic used to brag about their ARR growth every week but have been quite silent in the past months.  \nWhat happened?  \n5.6 Sol and opensource eating their lunch?  \nI think they had their time to shine with Opus 4.5/4.6 which was pioneering usable agentic coding.  \nNow this tier of intelligence has kinda been commoditized.  \nNone of their offered models are economically competitive.\n\n[🔗 View Quoted Tweet](https://x.com/Linahuaa/status/2084249642401944040)\n\n💬3🔄1❤️11👀1763📊3",
+      "tags": [
+        "Anthropic",
+        "ARR",
+        "评论"
+      ],
+      "score": 80,
+      "summary": "Gary Marcus 质疑 Anthropic 不再公布 ARR 数据，看衰 Q3。",
+      "fetched_at": "2026-08-03T23:51:55.458309+08:00"
+    },
+    {
+      "title": "Bets on whether Astra will be vulnerable to the same problems?\n\nI think the answer is “very likely y...",
+      "link": "https://x.com/GaryMarcus/status/2084290220057665707",
+      "published": "2026-08-03T22:48:07+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Bets on whether Astra will be vulnerable to the same problems?  \n  \nI think the answer is “very likely yes”\n\n![Rohan Paul](https://pbs.twimg.com/profile_images/1816185267037859840/Fd18CH0v_normal.jpg)\n\nRohan Paul@rohanpaul\\_ai\n\nLLMs can know a task is impossible and still optimize it anyway.  \n  \nAsk whether to walk or drive to a car wash 50 meters away, and some models focus on distance while missing that the car itself must reach the wash.  \n  \nThe failure here is not missing knowledge, but failing to use it when explicit details dominate the prompt.  \n  \nThe paper calls this salience bias: explicit numbers and procedures overpower unstated physical prerequisites.  \n  \nSaliTrap tests 1,145 such prompts across four trap types and 12 models.  \n  \nEven the best evaluated model avoided the trap in only 54.8% of queries, while eight of twelve stayed below 30%.  \n  \nMore distractors made this worse: trap avoidance fell as numerical density rose, while models increasingly began calculating before noticing the contradiction.  \n  \nAwareness was not enough either.  \n  \nAmong trap-aware responses, GLM-5.1 and Kimi-K2 still complied 86.2% and 81.8% of the time.  \n  \nThe strongest diagnosis comes from removing the bait: context-free probes recovered 86.9% to 91.8% of previously sycophantic cases across four representative models.  \n  \nSo many failures reflect knowledge that is present but suppressed by task framing.  \n  \nFor agent evaluation, premise checking should be tested as a behavioral control, not assumed from a model’s general reasoning score.  \n  \n– arxiv. org/abs/2607.28478  \n  \nTitle: \"Would You Walk to the Car Wash? Revealing the Salience Bias of LLMs in Commonsense Reasoning\"\n\n![Tweet Image](https://pbs.twimg.com/media/HOvlaaJaAAAuXt5.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rohanpaul_ai/status/2084011507306930300)\n\n💬5🔄1❤️7👀1950📊4",
+      "tags": [
+        "SaliTrap",
+        "ASTRA",
+        "偏见"
+      ],
+      "score": 78,
+      "summary": "Gary Marcus 评论 Astra 可能同样存在 LLM 显著性偏误问题。",
+      "fetched_at": "2026-08-03T23:51:55.458312+08:00"
+    },
+    {
+      "title": "大模型厂商在想，等 Deepseek V4 Pro 发了，会不会还有 Deepseek V4 Ultra？",
+      "link": "https://x.com/geekbb/status/2084291848479326282",
+      "published": "2026-08-03T22:54:35+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "大模型厂商在想，等 Deepseek V4 Pro 发了，会不会还有 Deepseek V4 Ultra？\n\n💬2🔄0❤️1👀1213📊2",
+      "tags": [
+        "Deepseek V4",
+        "吐槽"
+      ],
+      "score": 40,
+      "summary": "网友调侃 Deepseek V4 是否会出 Pro/Ultra 版本。",
+      "fetched_at": "2026-08-03T23:51:55.458316+08:00"
+    },
+    {
+      "title": "H3 is great at rendering text in video.",
+      "link": "https://x.com/Hailuo_AI/status/2084286357103608222",
+      "published": "2026-08-03T22:32:46+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "H3 is great at rendering text in video.\n\n![Timeless](https://pbs.twimg.com/profile_images/1681147413371957248/uW_wNk4R_normal.jpg)\n\nTimeless@Timeless\\_aiart\n\n\"SARU!\"  \n  \nHere's one last little fun experiment with [@Hailuo\\_AI](https://x.com/Hailuo_AI)'s MiniMax H3 (nope).   \n  \nThe way it handles texts and references is so so good!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084284392504205313/vid/avc1/2160x2880/LuAVxupdgYlvy1CN.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Timeless_aiart/status/2084284981984293221/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Timeless_aiart/status/2084284981984293221)\n\n💬3🔄0❤️14👀1010📊4",
+      "tags": [
+        "MiniMax H3",
+        "文字渲染",
+        "视频生成"
+      ],
+      "score": 75,
+      "summary": "MiniMax 官方展示 H3 模型在视频中渲染文字的能力。",
+      "fetched_at": "2026-08-03T23:51:55.458319+08:00"
+    },
+    {
+      "title": "H3 is now officially open-weight, committed to bringing powerful multimodal video generation to crea...",
+      "link": "https://x.com/Hailuo_AI/status/2084284120625225750",
+      "published": "2026-08-03T22:23:53+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "H3 is now officially open-weight, committed to bringing powerful multimodal video generation to creators and developers.\n\n![鈴木憂一 | Highdrama](https://pbs.twimg.com/profile_images/683792748130861056/249Z2gbe_normal.jpg)\n\n鈴木憂一 | Highdrama@yu\\_ichi\\_suzuki\n\nMiniMax H3のR2V（参照つき動画生成）をComfyUIローカルで動かして、Seedance 2.5と比較してみました（RTX 5090・int8量子化版）。  \nキャラの立ち絵と背景画像の2枚を参照に渡して、同じ場面をドローン風のオービットで。  \n1344×768・8秒で、ローカル側の生成時間は約15分でした。  \nMiniMax H3とSeedance 2.5ではプロンプトの文法が異なるようなので、同じプロンプトではなく似たようなプロンプトでの比較になります。  \n  \nローカルH3、全然いけますわ。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084225925034721280/vid/avc1/1280x1452/SIwCULLwoMZXIC8B.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yu_ichi_suzuki/status/2084227405062066662/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/yu_ichi_suzuki/status/2084227405062066662)\n\n💬3🔄1❤️18👀1062📊5",
+      "tags": [
+        "MiniMax H3",
+        "开源权重",
+        "视频生成"
+      ],
+      "score": 93,
+      "summary": "MiniMax 宣布 H3 模型正式开放权重，推动多模态视频生成。",
+      "fetched_at": "2026-08-03T23:51:55.458323+08:00"
+    },
+    {
+      "title": "Quality against parameter size on the four benchmarks. jina-reranker-v3.5 is on the Pareto front in ...",
+      "link": "https://x.com/JinaAI_/status/2084288561876967467",
+      "published": "2026-08-03T22:41:32+08:00",
+      "source": "Jina AI(@JinaAI_)",
+      "content": "Quality against parameter size on the four benchmarks. jina-reranker-v3.5 is on the Pareto front in all four: no model we evaluated is both smaller and better.\n\n![Tweet Image](https://pbs.twimg.com/media/HOzgS8kXkAAxnsV.jpg)![Tweet Image](https://pbs.twimg.com/media/HOzgS8jXwAIfUnV.jpg)![Tweet Image](https://pbs.twimg.com/media/HOzgS8iX0AA4WgM.jpg)![Tweet Image](https://pbs.twimg.com/media/HOzgS8xWEAAg5F0.jpg)\n\n💬1🔄1❤️3👀306📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-03T23:51:55.458327+08:00"
+    },
+    {
+      "title": "Learn more about the v3.5 reranker.\nBlog: https://t.co/WlrskkQLtZ \nArxiv: https://t.co/OswUmGRFHU\n...",
+      "link": "https://x.com/JinaAI_/status/2084288564553044351",
+      "published": "2026-08-03T22:41:32+08:00",
+      "source": "Jina AI(@JinaAI_)",
+      "content": "Learn more about the v3.5 reranker.  \nBlog: [jina.ai/news/jina-rera…](https://jina.ai/news/jina-reranker-v3-5-faster-listwise-reranking-hybrid-attention-self-distillation)   \nArxiv: [arxiv.org/abs/2607.18152](https://arxiv.org/abs/2607.18152)  \n🤗:[huggingface.co/jinaai/jina-re…](https://huggingface.co/jinaai/jina-reranker-v3.5)8\n\n💬0🔄0❤️2👀221",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-03T23:51:55.458331+08:00"
+    },
+    {
+      "title": "Pareto front or ngmi. Releasing jina-reranker-v3.5: our latest 0.6B listwise reranker that takes v3'...",
+      "link": "https://x.com/JinaAI_/status/2084288559435903485",
+      "published": "2026-08-03T22:41:31+08:00",
+      "source": "Jina AI(@JinaAI_)",
+      "content": "Pareto front or ngmi. Releasing jina-reranker-v3.5: our latest 0.6B listwise reranker that takes v3's last-but-not-late interaction, makes it faster, and makes it actually good at the data enterprises search. 63.20 nDCG[@10](https://x.com/10) on BEIR, beating Qwen3-Reranker-4B at ~7× fewer params.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HOzfvULWkAAhjDh.jpg)](https://video.twimg.com/tweet_video/HOzfvULWkAAhjDh.mp4)\n\n💬2🔄2❤️21👀1623📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-03T23:51:55.458334+08:00"
+    },
+    {
+      "title": "Truly wild that you can now generate this video locally 🤯\n\nMade by u/sixhaunt using MiniMax H3",
+      "link": "https://x.com/venturetwins/status/2084298391107055692",
+      "published": "2026-08-03T23:20:35+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Truly wild that you can now generate this video locally 🤯  \n  \nMade by u/sixhaunt using MiniMax H3\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084298366104866816/vid/avc1/640x368/W5r33GErYnBkQ4CD.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2084298391107055692/video/1)\n\n💬6🔄1❤️17👀1447📊8",
+      "tags": [
+        "MiniMax H3",
+        "本地生成",
+        "演示"
+      ],
+      "score": 75,
+      "summary": "Justine Moore 展示使用 MiniMax H3 本地生成视频。",
+      "fetched_at": "2026-08-03T23:51:55.458337+08:00"
+    },
+    {
+      "title": ".@carodivittorio joined @googledevs to share how you can\n✅ Build voice agents with Google ADK + Gemi...",
+      "link": "https://x.com/LangChain/status/2084297323421532349",
+      "published": "2026-08-03T23:16:20+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": ".[@carodivittorio](https://x.com/carodivittorio) joined [@googledevs](https://x.com/googledevs) to share how you can  \n✅ Build voice agents with Google ADK + Gemini Live  \n✅ Set up tracing in LangSmith  \n✅ Get full visibility into your agent  \n  \n⏯️Watch the demo: [youtube.com/watch?v=z6l5ny…](https://www.youtube.com/watch?v=z6l5nyE_6-I)\n\n![Google for Developers](https://pbs.twimg.com/profile_images/2042284161327648768/XHGnZShq_normal.jpg)\n\nGoogle for Developers@googledevs\n\nBuild voice agents with visibility into every interaction ✨  \n  \nLearn how [@carodivittorio](https://x.com/carodivittorio) from [@LangChain](https://x.com/LangChain) uses the Google ADK, the Gemini Live model, and LangSmith to trace voice agent behavior, inspect tool calls, review interruption events, analyze token costs, and more.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082907629110587392/vid/avc1/720x1280/8chPTuky9gieF-HP.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/googledevs/status/2082934257467449446/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/googledevs/status/2082934257467449446)\n\n💬0🔄1❤️7👀2123📊1",
+      "tags": [
+        "LangChain",
+        "语音代理",
+        "Gemini Live"
+      ],
+      "score": 75,
+      "summary": "LangChain 与 Google Devs 演示构建语音代理并追踪。",
+      "fetched_at": "2026-08-03T23:51:55.458340+08:00"
+    },
+    {
+      "title": "Wow @HyperFrames_",
+      "link": "https://x.com/lennysan/status/2084288808531689670",
+      "published": "2026-08-03T22:42:30+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Wow [@HyperFrames\\_](https://x.com/HyperFrames_)\n\n![Jake Moran](https://pbs.twimg.com/profile_images/2011509614819622919/gGLLYKan_normal.jpg)\n\nJake Moran@JakeFromHeyGen\n\nFable + HyperFrames cooked on this launch video for [@lennysan](https://x.com/lennysan)’s product pass  \n  \nI love the posthog animation\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084285049969778688/vid/avc1/1920x1080/WaDvpLFC2xqLg0I8.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/JakeFromHeyGen/status/2084285185533808850/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/JakeFromHeyGen/status/2084285185533808850)\n\n💬3🔄1❤️18👀3601📊4",
+      "tags": [
+        "HyperFrames",
+        "宣传视频"
+      ],
+      "score": 50,
+      "summary": "Lenny 称赞 HyperFrames 为其产品制作的宣传视频。",
+      "fetched_at": "2026-08-03T23:51:55.458344+08:00"
+    },
+    {
+      "title": "We’re ready to welcome our next cohort of Lovable Community Ambassadors!\n\nFour ways to lead. Applica...",
+      "link": "https://x.com/Lovable/status/2084290017040666820",
+      "published": "2026-08-03T22:47:18+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "We’re ready to welcome our next cohort of Lovable Community Ambassadors!  \n  \nFour ways to lead. Applications close August 14th: [community.lovable.app/ambassadors](https://community.lovable.app/ambassadors)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084289991761682432/vid/avc1/1280x720/uGerkKaGcr4wfAky.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/Lovable/status/2084290017040666820/video/1)\n\n💬3🔄3❤️14👀2221📊5",
+      "tags": [
+        "Lovable",
+        "社区大使"
+      ],
+      "score": 65,
+      "summary": "Lovable 招募新一期社区大使，申请截止 8 月 14 日。",
+      "fetched_at": "2026-08-03T23:51:55.458347+08:00"
+    },
+    {
+      "title": "If you send me an email that seems like it was written by AI, that will make me curious whether I'm ...",
+      "link": "https://x.com/paulg/status/2084282387857543419",
+      "published": "2026-08-03T22:17:00+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "If you send me an email that seems like it was written by AI, that will make me curious whether I'm right, and instead of reading it I'll paste it into Pangram to check. Which is probably not what you want to happen.\n\n💬84🔄11❤️389👀39092📊100",
+      "tags": [
+        "Paul Graham",
+        "AI写作",
+        "Pangram"
+      ],
+      "score": 82,
+      "summary": "Paul Graham 表示会检测疑似 AI 撰写的邮件并使用 Pangram 验证。",
+      "fetched_at": "2026-08-03T23:51:55.458351+08:00"
+    },
+    {
+      "title": "My 6 biggest takeaways from @karan4d, @NousResearch co-founder, on getting the most out of Hermes Ag...",
+      "link": "https://x.com/petergyang/status/2084289426012897433",
+      "published": "2026-08-03T22:44:58+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "My 6 biggest takeaways from [@karan4d](https://x.com/karan4d), [@NousResearch](https://x.com/NousResearch) co-founder, on getting the most out of Hermes Agent:  \n  \n1. The “personal” in personal agent is not the model  \n  \nIt’s the agent’s memory of your conversations and the skills you’ve built with it. Karan barely notices when he swaps models because his Hermes already has so much context about him.  \n  \n2. Try different Hermes personalities  \n  \nUse /personality to switch response styles. Try “teacher” when learning something new, “concise” when you want crisp answers, and even “kawaii” or “pirate” for fun.  \n  \n3. Use separate agents to do the work and evaluate it  \n  \nKaran calls “you’re absolutely right” reward hacking because the model is optimizing for your approval. Have one agent do the work and a fresh agent with no previous context evaluate it independently for errors, weak assumptions, and missing evidence.  \n  \n4. A self-improving agent needs to clean up after itself  \n  \nHermes Curator tracks skill usage, marks inactive skills as stale, and moves long-unused ones into a recoverable archive. This prevents agent-created skills from piling up forever.  \n  \n5. Intelligence should be a public good  \n  \nKaran believes people should be able to run Hermes locally or use it with whichever model works best. He worries about a future where only a handful of companies dominate AI and open source gets squeezed out.  \n  \n6. Go weird and make your childhood dreams come true  \n  \nKaran uses Hermes to mod Chao Garden, the virtual-pet mode inside Sonic Adventure 2. He asked it to bring a location from Sonic Adventure 1 into the sequel and add features that he’s always wanted since childhood.  \n  \n📌 Watch the full episode here:[youtu.be/UWjh5Z4s8jY](https://youtu.be/UWjh5Z4s8jY)r\n\n![Peter Yang](https://pbs.twimg.com/profile_images/1454103621516206083/_klMwpkk_normal.jpg)\n\nPeter Yang@petergyang\n\n“We believe in intelligence as a public good before everything else.”  \n  \nHere’s my new episode with [@karan4d](https://x.com/karan4d), who co-founded [@NousResearch](https://x.com/NousResearch) and helped build Hermes, the #1 personal agent and AI app on OpenRouter.  \n  \nKaran is the most down-to-earth AI founder I've interviewed. We had a great chat about:  \n  \n→ Why open-source AI must win  \n→ How Hermes improves itself without slop  \n→ How to mod your favorite games with AI  \n  \nSome quotes from Karan:  \n  \n“We need to keep giving this level of intelligence to everyone so that we're all on an even and equal playing field.”  \n  \n“Anytime [the model] says ‘you’re absolutely right,’ you’re being reward hacked. You are fuel for its reward function.”  \n  \n“Memory, skills, and the self-improvement loop are where context is stored. That’s where the actual personality you want lives. You can put that on any model.”  \n  \n📌 Watch now:[youtu.be/UWjh5Z4s8jY](https://youtu.be/UWjh5Z4s8jY)r  \n  \nThanks to our sponsors:  \n  \n[@RiversidedotFM](https://x.com/RiversidedotFM): All-in-one AI studio for podcasts and video[creators.riverside.com/PeterYang](https://creators.riverside.com/PeterYang)E  \n  \n[@linear](https://x.com/linear): The AI agent platform for modern teams[linear.app/behind-the-cra…](https://linear.app/behind-the-craft)s\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083917665450795008/vid/avc1/1280x720/JjQJ7uO5mG_kQWPH.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2083917722765947284/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/petergyang/status/2083917722765947284)\n\n💬0🔄0❤️4👀1299📊1",
+      "tags": [
+        "Hermes Agent",
+        "NousResearch",
+        "访谈"
+      ],
+      "score": 80,
+      "summary": "Peter Yang 总结 Nous Research 联创关于 Hermes Agent 的 6 条建议。",
+      "fetched_at": "2026-08-03T23:51:55.458354+08:00"
+    },
+    {
+      "title": "Ask anything, anonymously. Qwen3.8-Max has landed on Venice. Give it a try!",
+      "link": "https://x.com/Alibaba_Qwen/status/2084280439909589230",
+      "published": "2026-08-03T22:09:15+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "Ask anything, anonymously. Qwen3.8-Max has landed on Venice. Give it a try!\n\n![Venice](https://pbs.twimg.com/profile_images/2063006544615120896/yzx4UbK7_normal.png)\n\nVenice@AskVenice\n\nQwen 3.8 Max from [@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen) is now available on Venice, anonymously.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084217740596768768/vid/avc1/1080x1080/tze0EHjEaCK467-P.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/AskVenice/status/2084217793814122931/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/AskVenice/status/2084217793814122931)\n\n💬30🔄24❤️395👀25975📊54",
+      "tags": [
+        "Qwen3.8-Max",
+        "Venice",
+        "匿名使用"
+      ],
+      "score": 82,
+      "summary": "Qwen 官方宣布 Qwen3.8-Max 在 Venice 平台上线，提供匿名使用。",
+      "fetched_at": "2026-08-03T23:51:55.458358+08:00"
+    },
+    {
+      "title": "Got my baby cluster while we wait for delivery. Thank you everyone. Our order got delayed 2-3 weeks ...",
+      "link": "https://x.com/Suhail/status/2084284230398599290",
+      "published": "2026-08-03T22:24:19+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Got my baby cluster while we wait for delivery. Thank you everyone. Our order got delayed 2-3 weeks and I lost my current cluster anticipating it.\n\n💬0🔄0❤️2👀915",
+      "tags": [
+        "计算集群",
+        "个人动态"
+      ],
+      "score": 30,
+      "summary": "Suhail 分享其计算集群交付延迟的个人动态。",
+      "fetched_at": "2026-08-03T23:51:55.458362+08:00"
+    },
+    {
+      "title": "I am still a bit surprised diffusion didn’t end up being even an order of magnitude close in terms o...",
+      "link": "https://x.com/Suhail/status/2084283686359613793",
+      "published": "2026-08-03T22:22:09+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "I am still a bit surprised diffusion didn’t end up being even an order of magnitude close in terms of impact (yet) in AI compared to the simple causal transformer.\n\n💬7🔄0❤️14👀2986📊7",
+      "tags": [
+        "Diffusion",
+        "Transformer",
+        "影响"
+      ],
+      "score": 75,
+      "summary": "Suhail 评论扩散模型在 AI 领域影响力不及 Transformer。",
+      "fetched_at": "2026-08-03T23:51:55.458366+08:00"
+    },
+    {
+      "title": "text-to-CAD, 或者很多AI软件现在有个问题。就是有时候无法收敛到一个点，然后果断进行下一步。就是它缺少真正的停止机制。他做什么呢，根据当前上下文，继续生成一个看起来更合理的下一步。\n\n人类...",
+      "link": "https://x.com/feltanimalworld/status/2084286787250246138",
+      "published": "2026-08-03T22:34:28+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "text-to-CAD, 或者很多AI软件现在有个问题。就是有时候无法收敛到一个点，然后果断进行下一步。就是它缺少真正的停止机制。他做什么呢，根据当前上下文，继续生成一个看起来更合理的下一步。  \n  \n人类工程师有隐藏判断的，就是虽然这个不是最优，但是已经在我的接受范围内了，可以进行下一步了。   \n  \n我要是根我买的text-to-CAD 说，生成一个万能挂钩，能挂贴纸，厕所纸，还能当托盘，还能托住一个平板收纳，那没完没了了。有一次也是一个很简单的版，parametric, 我prompt了之后去做饭，回来之后，reason了一个多小时，把这个月的token就耗尽了。  \n  \n现在很多行业的落地应用都是这个问题。我要你选择一个“够了”，这里足够好，进行下一步，这是个很模糊的指标。这种决策标准....很难。  \n  \n但是实际上呢？我这个模糊的自然语言，生成一个能挂厕所纸贴纸能当任意盒子的托盘结构我实现了没？很容易的实现了。他足够好，足够便宜。人类工程师的判断。当前这个场景足够了。\n\n![Susan STEM](https://pbs.twimg.com/profile_images/1941884420048265216/Dbcchu0q_normal.jpg)\n\nSusan STEM@feltanimalworld\n\n一个挂钩的任意变体：尺寸合适变抽纸筒，又长又细用来挂我收藏的各种贴纸，加大加强筋厚度和宽度变托盘放跟随我多年的水彩盒。  \n  \n现在很多网上买来的配件他们都是用的托盘盒子，电阻电容，小型的螺丝螺母。用小隔间给你收纳好了的。最好别拆开，买一个就用卡尺把尺寸量好，做个托盘直接挂到homelab的墙上，一目了然。放到抽屉里面一不小心拿的时候盒子没盖好电容撒一地，有一次我就这样，只能吸尘器了...懒得再捡再分类了。  \n  \n下一步做啥呢？打算试试伸缩式/关节式结构，比如屏幕的支架，相机支架，各种伸缩关节。尝试一下TPU混打PETG，关节就需要软性结构。一样parametric. 等有时间了把这些都上传maker's world.\n\n![Tweet Image](https://pbs.twimg.com/media/HOzSjaFXsAAu0WA.jpg)![Tweet Image](https://pbs.twimg.com/media/HOzSjaOXcAAwumf.jpg)![Tweet Image](https://pbs.twimg.com/media/HOzSjaQXwAAOfGo.jpg)![Tweet Image](https://pbs.twimg.com/media/HOzStfwXMAASmPb.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/feltanimalworld/status/2084273923365962018)\n\n💬0🔄0❤️1👀379",
+      "tags": [
+        "text-to-CAD",
+        "停止机制",
+        "使用体验"
+      ],
+      "score": 70,
+      "summary": "Susan STEM 分享 text-to-CAD 缺少停止机制导致过度推理的问题。",
+      "fetched_at": "2026-08-03T23:51:55.458369+08:00"
+    },
+    {
+      "title": "我反而觉得软件时代刚刚才开始。以前受制于编码实在太耗人工，所以很多需求全部变成“最大公约数”了，一套流程覆盖尽可能多的人和尽可能多的场景。完全牺牲最宝贵的个性化。最有价值的能力——对具体的人、具体的组...",
+      "link": "https://x.com/feltanimalworld/status/2084276084577640648",
+      "published": "2026-08-03T21:51:57+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "我反而觉得软件时代刚刚才开始。以前受制于编码实在太耗人工，所以很多需求全部变成“最大公约数”了，一套流程覆盖尽可能多的人和尽可能多的场景。完全牺牲最宝贵的个性化。最有价值的能力——对具体的人、具体的组织和具体的现实流程进行精细适配。  \n  \n牺牲了服务的“本体论”啊....\n\n![Mr Panda](https://pbs.twimg.com/profile_images/2053332948989132800/q_Nnb7-2_normal.jpg)\n\nMr Panda@PandaTalk8\n\n软件产品没有什么好搞的了， 还是卖课去吧。\n\n[🔗 View Quoted Tweet](https://x.com/PandaTalk8/status/2084131597646020777)\n\n💬3🔄0❤️11👀928📊4",
+      "tags": [
+        "软件时代",
+        "个性化",
+        "观点"
+      ],
+      "score": 60,
+      "summary": "Susan STEM 认为 AI 让软件进入个性化精细适配时代。",
+      "fetched_at": "2026-08-03T23:51:55.458372+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/COEKpzUyyu",
+      "link": "https://x.com/TheRundownAI/status/2084285757687058774",
+      "published": "2026-08-03T22:30:23+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [robotnews.therundown.ai/p/attack-drone…](https://robotnews.therundown.ai/p/attack-drones-are-coming-to-schools)\n\n💬0🔄0❤️0👀878",
+      "tags": [
+        "机器人",
+        "无人机",
+        "链接"
+      ],
+      "score": 40,
+      "summary": "The Rundown AI 链接到武装无人机进校园的文章。",
+      "fetched_at": "2026-08-03T23:51:55.458375+08:00"
+    },
+    {
+      "title": "Top stories in robotics today:\n\n- Armed drones are coming to U.S. schools\n- Gemini now runs humanoid...",
+      "link": "https://x.com/TheRundownAI/status/2084285750963540400",
+      "published": "2026-08-03T22:30:21+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in robotics today:  \n  \n- Armed drones are coming to U.S. schools  \n- Gemini now runs humanoids, legs included  \n- This demon centaur robot wants to save you  \n- Zoox starts charging for robotaxi rides   \n- Quick hits on other robotics news\n\n![Tweet Image](https://pbs.twimg.com/media/HOze1u5XoAAkAsk.jpg)\n\n💬4🔄3❤️7👀2585📊5",
+      "tags": [
+        "机器人",
+        "Gemini",
+        "新闻汇总"
+      ],
+      "score": 70,
+      "summary": "机器人新闻汇总：Gemini 驱动人形机器人、Zoox 开始收费等。",
+      "fetched_at": "2026-08-03T23:51:55.458378+08:00"
+    },
+    {
+      "title": "Cloudflare 除了一个刚出了 computer 的库理念非常有趣：https://t.co/PmzOGxzUbu\n\n一个在 Durable Object 里的虚拟文件系统，基于 SQLite ...",
+      "link": "https://x.com/vikingmute/status/2084284567297683805",
+      "published": "2026-08-03T22:25:39+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "Cloudflare 除了一个刚出了 computer 的库理念非常有趣：[github.com/cloudflare/com…](https://github.com/cloudflare/computer)  \n  \n一个在 Durable Object 里的虚拟文件系统，基于 SQLite 做持久化，通过 workspace.runtime 提供不同类型的 runtime：  \nContainer，把 SQLite 状态通过 FUSE 挂载到真实的 Linux 沙箱容器  \nIsolate Shell：模拟出来的、轻量级的假 Shell，在 Dynamic Worker 里跑 just-bash  \nIsolate JavaScript：在隔离的 Dynamic Worker 里支持 JS runtime  \n  \n让每个 Agent 都能拥有自己的持久化工作空间，并且能在不同 runtime 动态切换，不同的任务可以用不同的，可以兼顾性能和速度，非常有趣，很有想象力。\n\n💬1🔄1❤️4👀621📊3",
+      "tags": [
+        "Cloudflare",
+        "computer",
+        "Agent工作空间"
+      ],
+      "score": 75,
+      "summary": "Viking 介绍 Cloudflare 开源 computer 库，为 Agent 提供持久化工作空间。",
+      "fetched_at": "2026-08-03T23:51:55.458381+08:00"
+    },
+    {
+      "title": "wgmi",
+      "link": "https://x.com/a16z/status/2084285628305617117",
+      "published": "2026-08-03T22:29:52+08:00",
+      "source": "a16z(@a16z)",
+      "content": "wgmi\n\n![Tweet Image](https://pbs.twimg.com/media/HOzeu9_bIAATziy.png)\n\n💬14🔄10❤️293👀18161📊36",
+      "tags": [
+        "a16z",
+        "动态"
+      ],
+      "score": 30,
+      "summary": "a16z 发布无实质内容推文“wgmi”。",
+      "fetched_at": "2026-08-03T23:51:55.458384+08:00"
+    },
+    {
+      "title": "Such a big fun using https://t.co/Xk4Y8Tj9LT on a huge screen.",
+      "link": "https://x.com/idoubicc/status/2084286454906421646",
+      "published": "2026-08-03T22:33:09+08:00",
+      "source": "idoubi(@idoubicc)",
+      "content": "Such a big fun using [temany.sh](http://temany.sh) on a huge screen.\n\n![Tweet Image](https://pbs.twimg.com/media/HOzfZT1agAAy293.jpg)\n\n💬0🔄0❤️0👀313",
+      "tags": [
+        "temany.sh",
+        "体验"
+      ],
+      "score": 20,
+      "summary": "个人分享使用 temany.sh 在大屏幕上的乐趣。",
+      "fetched_at": "2026-08-03T23:51:55.458387+08:00"
+    },
+    {
+      "title": "We cut vector search latency by 70x, from 8–14 seconds to ~110–120 ms. The biggest unlock? Moving ve...",
+      "link": "https://x.com/mem0ai/status/2084296405305512366",
+      "published": "2026-08-03T23:12:42+08:00",
+      "source": "mem0(@mem0ai)",
+      "content": "We cut vector search latency by 70x, from 8–14 seconds to ~110–120 ms. The biggest unlock? Moving vector search to [@turbopuffer](https://x.com/turbopuffer) and keeping Postgres focused on what it does best.  \n  \nIf you're building memory infra for AI agents, this one's for you: [mem0.ai/blog/how-we-cu…](https://mem0.ai/blog/how-we-cut-vector-search-latency-by-70x)\n\n💬1🔄4❤️6👀243📊3",
+      "tags": [
+        "Mem0",
+        "向量搜索",
+        "延迟降低70倍"
+      ],
+      "score": 85,
+      "summary": "Mem0 官方称向量搜索延迟降低 70 倍，迁移至 Turbopuffer。",
+      "fetched_at": "2026-08-03T23:51:55.458390+08:00"
+    },
+    {
+      "title": "原始文档：\n\nSeedance 2.5 Prompt Guide：https://t.co/mf0nF2ICrc\n\nSeedance 2.5 User Guide：https://t.co/2gi7h...",
+      "link": "https://x.com/xiaohu/status/2084279955878498654",
+      "published": "2026-08-03T22:07:20+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "原始文档：  \n  \nSeedance 2.5 Prompt Guide：[bytedance.larkoffice.com/docx/A88jd0B47…](https://bytedance.larkoffice.com/docx/A88jd0B47oAd8zxWp5ycZFMfnxh)  \n  \nSeedance 2.5 User Guide：[bytedance.larkoffice.com/wiki/NjnWwvf4B…](https://bytedance.larkoffice.com/wiki/NjnWwvf4BiFYFLk2RzrcEgaunGf)\n\n💬0🔄0❤️2👀1009📊1",
+      "tags": [
+        "Seedance 2.5",
+        "提示词指南",
+        "用户手册"
+      ],
+      "score": 70,
+      "summary": "小互分享字节 Seedance 2.5 官方提示词指南与用户手册链接。",
+      "fetched_at": "2026-08-03T23:51:55.458393+08:00"
+    },
+    {
+      "title": "字节跳动给发布了一份官方提示词指南：从一句话生成，到 50 份参考素材怎么调度、30 秒长片怎么分段、改片子怎么只动一处，每类任务都配了能直接抄用的模板。\n\n对用即梦或 API 做视频的人，这是第一份...",
+      "link": "https://x.com/xiaohu/status/2084279949528285478",
+      "published": "2026-08-03T22:07:18+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "字节跳动给发布了一份官方提示词指南：从一句话生成，到 50 份参考素材怎么调度、30 秒长片怎么分段、改片子怎么只动一处，每类任务都配了能直接抄用的模板。  \n  \n对用即梦或 API 做视频的人，这是第一份成体系的官方写法手册...  \n  \n[best.xiaohu.ai/article/seedan…](https://best.xiaohu.ai/article/seedance-25-prompt-guide/)\n\n💬1🔄1❤️1👀1153📊2",
+      "tags": [
+        "Seedance 2.5",
+        "提示词指南",
+        "字节跳动"
+      ],
+      "score": 70,
+      "summary": "小互推荐字节 Seedance 2.5 官方提示词指南，提供可复用模板。",
+      "fetched_at": "2026-08-03T23:51:55.458395+08:00"
+    },
+    {
+      "title": "Seedance 2.5 官方用户手册：手把手教你做电影级 AI 视频，公式和案例全能抄\n\n从上传素材的参数上限、界面上四个新入口，到七类场景各自的提示词公式，再到 16 个亮点功能的官方演示，手把手...",
+      "link": "https://x.com/xiaohu/status/2084279939390755210",
+      "published": "2026-08-03T22:07:16+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Seedance 2.5 官方用户手册：手把手教你做电影级 AI 视频，公式和案例全能抄  \n  \n从上传素材的参数上限、界面上四个新入口，到七类场景各自的提示词公式，再到 16 个亮点功能的官方演示，手把手带你从上手一路走到电影级成片。  \n  \n公式和案例提示词全部能直接抄，对用即梦做视频的人，这是一份能当工作台手册用的干货。  \n  \n[best.xiaohu.ai/article/dreami…](https://best.xiaohu.ai/article/dreamina-seedance-25-guide/)\n\n💬2🔄0❤️14👀2476📊9",
+      "tags": [
+        "Seedance 2.5",
+        "用户手册",
+        "即梦"
+      ],
+      "score": 70,
+      "summary": "小互推荐 Seedance 2.5 官方用户手册，涵盖七类场景提示词公式。",
+      "fetched_at": "2026-08-03T23:51:55.458398+08:00"
+    },
+    {
+      "title": "Java News Roundup: OpenJDK JEPs, Jakarta EE, GraalVM, TornadoVM, Micronaut, Quarkus, JobRunr, Maven",
+      "link": "https://www.infoq.com/news/2026/08/java-news-roundup-jul27-2026/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-03T22:30:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/java-news-roundup-jul27-2026/en/headerimage/java-news-roundup-image-1785767259108.jpg)\n\nThis week's Java roundup for July 27th, 2026, features news highlighting: OpenJDK JEPs targeted and proposed to target for JDK 28; the GA release of GPULlama3.java 1.0; point releases of Micronaut, Quarkus and JobRunr; a maintenance release of JDKUpdater; the sixth release candidate of Maven 4.0; and the first milestone release of Jakarta Agentic AI 1.0.\n\n*By Michael Redlich*",
+      "tags": [
+        "Java",
+        "Jakarta Agentic AI",
+        "新闻汇总"
+      ],
+      "score": 70,
+      "summary": "InfoQ 报道 Java 生态新闻，含 Jakarta Agentic AI 1.0 首个里程碑。",
+      "fetched_at": "2026-08-03T23:51:55.458401+08:00"
+    },
+    {
+      "title": "HubSpot Redesigns JITA Authorization with Rule Engine Architecture",
+      "link": "https://www.infoq.com/news/2026/08/hubspot-jita-rule-engine/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-03T21:59:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/hubspot-jita-rule-engine/en/headerimage/generatedHeaderImage-1785708273545.jpg)\n\nHubSpot has redesigned its Just-In-Time Access (JITA) authorization system using a rule engine architecture. The system evaluates access requests through independent rules organized as a directed acyclic graph, adding structured decision metadata, rule-level observability, and governance workflows to replace complex conditional authorization logic.\n\n*By Leela Kumili*",
+      "tags": [
+        "HubSpot",
+        "JITA",
+        "规则引擎"
+      ],
+      "score": 70,
+      "summary": "InfoQ 报道 HubSpot 用规则引擎重构 JITA 授权系统。",
+      "fetched_at": "2026-08-03T23:51:55.458404+08:00"
     }
   ]
 }
