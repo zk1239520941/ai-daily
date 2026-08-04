@@ -712,6 +712,519 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-05T02:00:46.522657+08:00"
+    },
+    {
+      "title": "Introducing Web Search on Amazon Bedrock for foundation model grounding",
+      "link": "https://aws.amazon.com/blogs/machine-learning/introducing-web-search-on-amazon-bedrock-for-foundation-model-grounding/",
+      "published": "2026-08-05T02:39:14+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "When a foundation model needs to answer a question about last week’s earnings call, yesterday’s regulatory change, or this morning’s weather forecast, it needs knowledge it was never trained on. Grounding the model in current web knowledge closes that gap – whether it’s powering chatbots, coding assistants, CLI tools, or enterprise applications, grounding helps answer questions beyond the model’s training and reduces hallucinations.  Traditionally, connecting a model to web knowledge required developers to identify, integrate, and maintain a third-party Web Search provider, a process that delays project timelines and introduces data residency risks and operational overhead.\n\nAt AWS New York Summit 2026, we announced the [general availability of Web Search on AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/). Today, we are extending it further with the general availability of Web Search on [Amazon Bedrock](https://aws.amazon.com/bedrock/). It is a server-side built-in tool that grounds model responses in current web knowledge. With Web Search, grounding becomes a native capability of Amazon Bedrock, with no third-party vendors to onboard, no external APIs to orchestrate, and no additional third party vendor security reviews to conduct.\n\nIn this post, we walk through what Web Search on Amazon Bedrock is, why it matters, how to enable it using the OpenAI Responses API, and how to get started with the tool.\n\n## What Web Search on Amazon Bedrock provides\n\nWeb Search is designed for Amazon Bedrock model inference, with the following differentiators:\n\n**Multi-source grounding approach:** Web Search is backed by a web index that Amazon operates, spanning billions of documents and refreshed continually. It combines this index with a built-in knowledge graph that anchors the entities in a domain along with the connections between them. When a question is factual in nature; say, who wrote a particular book or what year an event took place; Web Search uses the knowledge graph to answer with strong confidence, rather than leaving the model to infer the answer from extracted page text. That can help cut down on the small factual inaccuracies that tend to slip in whenever an agent assembles an answer from fragments on its own.\n\n**Context-efficient retrieval.** Rather than handing the model a raw page and hoping it finds the relevant part, Web Search performs semantic snippet extraction – pulling the passages from each web page that bear on the query and returning them in a form optimized for the model’s context window. The model sees the parts that matter, with fewer tokens spent on boilerplate. Retrieval is fast, so grounded responses can be delivered with minimal latency.\n\n**Single-parameter enablement.** Web Search becomes a single parameter in your existing OpenAI-compatible API call, removing the need for vendor onboarding, API keys, orchestration layers, and separate SDKs.\n\n**Helping with enterprise-grade compliance out of the box.** By default, Web Search on Bedrock offers zero data egress, so your data never leaves your AWS environment. As we introduce new capabilities, some future features may expose data only at your explicit request. For the latest information, please refer to the Amazon Bedrock documentation . Web Search operates entirely within Amazon Bedrock’s infrastructure, supporting customers’ compliance requirements.\n\n## How it works\n\n![Diagram of the Web Search request lifecycle: the model identifies a knowledge gap, Bedrock formulates a query, retrieves content from the Amazon web index and knowledge graph, and returns a grounded response with citations](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/17/ML-21265-1.png)\n\nWhen Web Search is enabled in an API call, Bedrock handles the entire search lifecycle server-side. First, the model identifies that a query requires up-to-date web knowledge. Bedrock then formulates a search query, retrieves relevant content from Amazon’s web index and knowledge graph, and injects results – including relevant snippets, source URLs and titles – into the model’s context window. The model reasons over the retrieved content and generates a grounded response with source citations. The API returns the final response with structured citation annotations, including URL and page title for each referenced source. There’s no client-side tool-use loop to build, no external API responses to parse, and no retries or rate limits to manage – a single API call returns a grounded response.\n\n## Getting started with the OpenAI Responses API\n\nThe Responses API supports built-in tools natively, so Web Search can be called without defining a function schema or building a client-side loop. Enablement takes three steps: configure AWS credentials, point the OpenAI client at the bedrock-mantle endpoint, and add the Web Search tool to the request. At launch, Web Search is available for OpenAI models served through Amazon Bedrock’s next-generation inference engine.\n\n**Step 1:** Configure authentication and permissions. Web Search uses your existing AWS credentials – there are no separate API keys to provision. The environment must have AWS credentials available through the standard credential chain (an IAM role, the AWS CLI profile, or environment variables), which are used to authenticate requests to the bedrock-mantle endpoint. The calling identity needs two sets of permissions:\n\n* Inference permissions on Amazon Bedrock, so the model call itself succeeds. Attach the AmazonBedrockMantleInferenceAccess managed policy, or grant the specific inference actions your call requires.\n* Web Search tool permissions, so the model can call the tool during the request. At minimum grant bedrock-websearch:InvokeSearch; add bedrock-websearch:InvokeFetch to let the model read a result’s full page content. Live-web retrieval additionally requires bedrock-websearch:ExternalWebAccess, which is the default request behavior — if your identity doesn’t have it, set external\\_web\\_access: false on the tool. If InvokeSearch is denied, Web Search is effectively disabled and the model answers from its training data instead.\n\nRequests to the endpoint are authenticated with an AWS-issued bearer token, which you can mint from your existing AWS credentials using the aws-bedrock-token-generator package. This bearer token isn’t a separate API key; it’s a short-lived (up to 12 hours) credential derived from your existing AWS IAM identity via SigV4, packaged in the format the OpenAI client expects for its api\\_key parameter. No additional key management is required.\n\nStart from a standard call. A normal Responses API call, without grounding, looks like this:\n\n```\nresponse = client.responses.create(\n    model=\"openai.gpt-5.4\",\n    input=\"What were the key announcements at AWS re:Invent 2025?\",\n)\n```\n\n**Step 2:** Enable Web Search. To ground that same call in web knowledge, add a single tools entry:\n\n```\ntools=[{\"type\": \"web_search\", \"external_web_access\": False}]\n```\n\nThe optional external\\_web\\_access field selects where Web Search retrieves from: Amazon’s pre-indexed web corpus, or live content fetched directly from the web. Today only indexed-web retrieval is served; live-web retrieval will be enabled in a future update, and the parameter is already in the API so your code won’t need to change. The default is true, which requires the `bedrock-websearch:ExternalWebAccess` permission. The examples below set false, which needs no additional permission.\n\n**Step 3:** Read the grounded response with citations. Putting it together, here’s the complete end-to-end example, including how to extract the source citations:\n\n```\nfrom openai import OpenAI\nfrom aws_bedrock_token_generator import provide_token\n\nREGION = \"us-east-1\"\n\nclient = OpenAI(\n    base_url=f\"https://bedrock-mantle.{REGION}.api.aws/openai/v1\",\n    api_key=provide_token(region=REGION),\n)\n\nresponse = client.responses.create(\n    model=\"openai.gpt-5.4\",\n    input=\"What were the key announcements at AWS re:Invent 2025?\",\n    tools=[{\"type\": \"web_search\", \"external_web_access\": False}],\n)\n\nsearches = [item for item in response.output if item.type == \"web_search_call\"]\nprint(f\"Retrieval steps: {len(searches)}\")\nfor call in searches:\n    if call.action.type == \"search\":\n        print(f\"  search: {call.action.queries}\")\n    elif call.action.type == \"open_page\":\n        print(f\"  open_page: {call.action.url}\")\n\nfor item in response.output:\n    if item.type == \"message\":\n        for content in item.content:\n            if content.type == \"output_text\":\n                print(content.text)\n                for citation in content.annotations or []:\n                    if citation.type == \"url_citation\":\n                        print(f\"  [{citation.title}] {citation.url}\")\n```\n\nThe above code produces the following output (abridged):\n\n```\nRetrieval steps: 2\n  search: ['AWS re:Invent 2025 key announcements official AWS blog keynote recap']\n  open_page: https://aws.amazon.com/blogs/aws/top-announcements-of-aws-reinvent-2025\nThe biggest AWS re:Invent 2025 announcements clustered around **AI agents, custom\nsilicon/infrastructure, and developer productivity**. ...\n  [Top announcements of AWS re:Invent 2025 | AWS News Blog] https://aws.amazon.com/...\n  [AWS re:Invent 2025: Amazon announces Nova 2, Trainium3, frontier agents] https://...\n```\n\nIn this sample, the request includes a Web Search entry in the tools array. Bedrock executes the search server-side and returns the grounded response in a single round-trip – there is no function schema to define and no client-side loop to manage.\n\nEach citation is a `url_citation` object in the message content’s annotations array. Its wire shape:\n\n```\n{\n    \"type\": \"url_citation\",\n    \"start_index\": 120,\n    \"end_index\": 303,\n    \"title\": \"Top announcements of AWS re:Invent 2025 | AWS News Blog\",\n    \"url\": \"https://aws.amazon.com/blogs/aws/top-announcements-of-aws-reinvent-2025\"\n  }\n```\n\n`start_index` and `end_index` are character offsets into output\\_text, letting you render inline footnotes or highlight the exact span each citation supports.\n\n### Auditing and observability\n\nWeb Search is integrated with AWS CloudTrail out of the box. Every call to `bedrock-websearch:InvokeSearch` and `bedrock-websearch:InvokeFetch` is recorded as a management event, capturing the calling identity, timestamp, action, source identity (including any forward-access-session originator), and the account and Region context of the request. Access-denied outcomes are always logged, and each `AccessDeniedException` event includes the specific condition key that caused the denial — which makes IAM misconfigurations easy to diagnose without turning on additional trails.\n\nBy design, CloudTrail does not record the query text, the URLs returned by search, or the raw page content retrieved by fetch. Query text is treated the same way as an inference prompt and is never exposed in trail events. Combined with in-Region processing and zero data egress, this gives security and compliance teams a full audit trail of who used the tool when, without exposing what end users searched for.\n\n## Conclusion\n\nWeb Search on Amazon Bedrock removes the undifferentiated heavy lifting of connecting foundation models to up-to-date web knowledge. It delivers context-efficient, multi-source grounded results with low-latency, and simple enablement through a single API parameter – so developers can add web grounding without managing vendors, orchestration, or compliance reviews.\n\nWeb Search on Bedrock is generally available in US, with in-region query handling in `us-east-1`, `us-east-2` and `us-west-2`. For pricing details, see the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/). To get started, see the [Web Search documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/web-search.html) for complete API references and examples.\n\n---\n\n## About the authors\n\n![Anuj Jauhari](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/17/ML-21265-2.png)\n\n### Anuj Jauhari\n\nAnuj is a Senior Product Marketing Manager, Technical at AWS, helping customers realize business outcomes with generative AI.\n\n![Vadim Omeltchenko](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/17/ML-21265-3.jpg)\n\n### Vadim Omeltchenko\n\nVadim is a Senior AI/ML Solutions Architect who is passionate about helping AWS customers innovate in the cloud. His prior IT experience was predominantly on the ground.\n\n![Priya Holikatti](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/17/ML-21265-4.jpg)\n\n### Priya Holikatti\n\nPriya is a Senior Technical Product Manager at Amazon AGI, building web search capabilities that connect AI agents and models to real-time, trustworthy web knowledge.\n\n![Rashim Gupta](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/17/ML-21265-5.jpg)\n\n### Rashim Gupta\n\nRashim Gupta is a Senior Manager of Technical Product Management for Amazon Bedrock at AWS, where he leads the team building the features customers use to develop and run production applications on Bedrock.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/03/omar-badge.jpg)\n\n### Omar Abdelwahab\n\nOmar is a Technical Product Marketing Manager at Amazon Web Services (AWS), Where he focuses on AI products including Agentic AI and Web Search. He holds a Ph.D. in Computer Science and enjoys working at the intersection of AI, technology, and go-to-market strategy to help customers build innovative applications.",
+      "tags": [
+        "Bedrock",
+        "Web Search",
+        "Grounding"
+      ],
+      "score": 85,
+      "summary": "AWS宣布Amazon Bedrock的Web Search功能全面可用，用于将基础模型响应接地到实时网络知识。",
+      "fetched_at": "2026-08-05T03:52:23.351679+08:00"
+    },
+    {
+      "title": "Unpacking ChatGPT Work: the Agent for a Billion Users",
+      "link": "https://www.latent.space/p/unpacking-chatgpt-work",
+      "published": "2026-08-05T02:20:14+08:00",
+      "source": "Latent Space",
+      "content": "*Editor’s note: I’m excited to welcome [Shlok](https://www.shloked.com/) to [our guest post roster](https://docs.google.com/forms/d/e/1FAIpQLSeHQAgupNkVRgjNfMJG9d7SFTWUytdS6SNCJVkd0SMNMXHHwA/viewform)! You may know Shlok from his excellent explorations (as an outsider — for an insider perspective see our [podcast with OpenAI’s Akshay Nathan](https://www.latent.space/p/chatgpt-work). Already one of our most popular episodes of the year!) of [leading AI Lab memory systems](https://www.shloked.com/writing?tag=Memory), which he gave an excellent [AIE talk on](https://www.youtube.com/@aiDotEngineer/). We’ve been covering OpenAI’s research and deployment of agents to all of humanity since [Plugins 2023](https://www.latent.space/p/chatgpt-plugins) and [Devday 2024](https://www.latent.space/p/devday-2024) and [Codex 2025](https://www.latent.space/p/codex), and now ChatGPT Work in 2026 seems the penultimate stage of the long journey. Let’s dive in!*\n\n---\n\nOn July 9th, OpenAI released [ChatGPT Work](https://openai.com/chatgpt-work/), their agent product for knowledge work. It was, by any measure, [a busy launch: three new models](https://www.latent.space/p/ainews-openai-launches-gpt-56-solterraluna) across [fourteen configurations](https://www.latent.space/p/ainews-not-much-happened-today-f5c), a consolidation of the ChatGPT and Codex desktop apps, and [cloud agents brought to the mainstream](https://www.youtube.com/watch?v=OqM67QG_Ikk) in their most accessible form yet.\n\nThree weeks in, Work (along with Codex) has reportedly [crossed 10 million users](https://x.com/thsottiaux/status/2079609157934886975).\n\n> *Editor’s note: ChatGPT estimated to cross [1B MAU in June](https://www.reuters.com/technology/chatgpt-app-hits-1-billion-monthly-active-users-record-time-data-shows-2026-06-02/) and [1B WAU this month](https://www.theinformation.com/articles/openais-chatgpt-nears-1-billion-weekly-active-users-seven-months-target?rc=luxwz4).*\n\n**Chat** and **Work** currently sit side by side as separate modes inside ChatGPT, but [Greg Brockman has confirmed that they will merge by the end of the year](https://youtu.be/b_44Ra8msls?si=eIE6JROwwtf_r5mP&t=749). Work, then, is not just a niche product for power users, but a preview of how ChatGPT’s billion weekly users will soon use the app. That’s why people [inside](https://x.com/sama/status/2081396796174282900) and [outside](https://x.com/swyx/status/2079717845618000204) OpenAI are so excited about it, and why it deserves a closer look.\n\n[![](https://substackcdn.com/image/fetch/$s_!4TJU!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb44deeea-5f05-4749-8cc0-31b093f0d3d5_2376x1390.png)](https://substackcdn.com/image/fetch/$s_!4TJU!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb44deeea-5f05-4749-8cc0-31b093f0d3d5_2376x1390.png)\n\nWork in its current form takes some decoding. It’s an amalgamation of ChatGPT (in chat form), Codex the app, Codex the harness, Codex the original cloud agent, ChatGPT agent, Atlas, OpenClaw, and more. The product lineup around it is confusing. And the web and mobile versions diverge from the desktop one (unless you run it in cloud mode?!).\n\nSo I spent the past few days trying to unpack it: what Work is, where it fits in OpenAI’s lineup, the many interesting choices in its design, the tensions underneath, and where I think it’s headed. Most of what follows comes from Codex and me poking around inside Work, and I’ve linked those conversations throughout so you can see where each claim comes from.\n\n## **What is Work?**\n\nAt its core:\n\n* **An agent for knowledge work.** You connect it to the places you already work—Slack, email, Drive, calendars, CRMs, project trackers, and hundreds of other plugins—and it gathers context across all of them to produce finished work.\n* **Runs on the Codex harness.** So it inherits the same models, sub-agents, browser use, and the ability to grind on a task for hours. Its UI is stripped of the evidence (git controls, diff-traces) that would give away you’re talking to a coding agent.\n* **Lives in a cloud computer.** Specifically, [a beefy, isolated microVM](https://chatgpt.com/share/6a716ee1-7078-83ee-8d62-39f63540e20c): Pro accounts get 8 CPUs, 20GB of RAM, and a 64GB disk; Plus gets 14GB of RAM. Alongside the VM, Work gets a [managed Chrome service](https://chatgpt.com/share/6a71742e-9eac-83ee-ae9e-93a35fabc67a) that the agent operates through tool calls.\n* **Produces artifacts.** Sheets, docs, and slides rendered in interactive viewers, plus [Sites](https://learn.chatgpt.com/docs/sites): hosted web apps and dashboards it can build, share via URL, and keep updated.\n\nEvery new conversation in Work is called a task. On web and mobile, Work runs in the cloud. You can kick off a task on web, track progress and give directions in the ChatGPT app on your phone, then view the result (maybe a report or a spreadsheet) back on your laptop.\n\nWork on the desktop app is slightly different and comes in two modes: cloud and local. In cloud mode, tasks run on the same cloud computer as web and mobile and sync across all three.\n\nIn local mode, the agent works directly on your machine, across your files and apps, with full computer use. These tasks don’t appear on web or mobile, and there’s no way yet to move a local task to the cloud. This makes local mode essentially Codex, minus the code-related UI traces that would scare off a non-developer.\n\n[![](https://substackcdn.com/image/fetch/$s_!eXIj!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe28e2757-70af-43c7-bee8-fe23961b0378_2048x1290.png)](https://substackcdn.com/image/fetch/$s_!eXIj!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe28e2757-70af-43c7-bee8-fe23961b0378_2048x1290.png)\n\n*On desktop, each new Work task can run locally on your computer or in the cloud.*\n\nBut then things get a little confusing. OpenAI did release a way to [hand off a Codex task to a remote environment](https://x.com/guinnesschen/status/2068062280345162047). Although this doesn’t work for me at the time of writing, I assume it eventually will, and that they will then bring the same functionality to Work.\n\n[![ChatGPT Image Aug 4, 2026, 10_55_25 AM](https://substackcdn.com/image/fetch/$s_!Lavj!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3f4e59a2-820f-4225-abfd-6720ef85df8e_1315x1196.png \"ChatGPT Image Aug 4, 2026, 10_55_25 AM\")](https://substackcdn.com/image/fetch/$s_!Lavj!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3f4e59a2-820f-4225-abfd-6720ef85df8e_1315x1196.png)\n\nFor the rest of this piece, Work = Work in cloud mode.\n\n## **Persistence & Memory**\n\nOne big reason OpenClaw felt different from a chatbot was that the agent had a computer of its own. You could run it on an always-on laptop or a VPS, let it create directories, install software, and maintain databases, and reuse all of this across conversations and subagents. Its state lived not just in chat history, Markdown files, or a dedicated memory system, but across the whole computer.\n\nWork’s [cloud computer is persistent too](https://chatgpt.com/share/6a716f37-bfa0-83ee-9548-d6e82ade9768). But rather than running in one VM that stays on forever, its workspace is synchronised to persistent storage and restored onto isolated microVMs as needed. So the underlying machine can change, but the working state carries over. Compared to OpenClaw, though, the agent has far less sovereignty over this computer.\n\nEvery Work task (thread) gets a [working directory under](https://chatgpt.com/share/6a716f39-1770-83ee-81fd-3d1870800ad1) /workspace/scratch, where the agent has the freedom of a normal computer: it can make folders, install dependencies, write scripts, keep databases, and search everything with ordinary Linux commands.\n\nWhen I [ask it to make a presentation for Acme](https://chatgpt.com/share/6a717ad1-c79c-83e8-9049-d2eda56fd812), it can create clients/acme, copy in the source material, perform some analysis through code, and create charts and slides, all as files in the directory. When I [follow up in the same thread](https://chatgpt.com/share/6a717ad1-c79c-83e8-9049-d2eda56fd812), it returns to that working state and can continue editing it.\n\nBut [when a task needs context from other threads](https://chatgpt.com/share/6a717bd4-78b4-83e8-97ff-cfa56be09af5), it does not treat their working directories as a shared workspace that it can navigate freely. It relies instead on the ChatGPT product layer.\n\n[![ChatGPT Work - persistence architecture](https://substackcdn.com/image/fetch/$s_!LxIw!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6e636c0-f3fc-4b89-84df-b4a02ac3f1a1_1920x1080.png \"ChatGPT Work - persistence architecture\")](https://substackcdn.com/image/fetch/$s_!LxIw!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6e636c0-f3fc-4b89-84df-b4a02ac3f1a1_1920x1080.png)\n\nBy default, each new thread receives a [compressed summary of recent tasks and files worked on](https://chatgpt.com/share/6a717bd4-78b4-83e8-97ff-cfa56be09af5) . A [summary might look like this](https://chatgpt.com/share/6a716f42-9a98-83e9-9261-e5432d7d768e):\n\n> 20260731T15:55 Prepare Acme pilot plan:||||  \n> Turn the attached notes into a one-page plan for the Acme pilot, with an objective, deadline, and next steps.  \n> <<File name=”acme\\_notes.txt”>>\n\n[Raw conversation transcripts are not stored on the computer for the agent to browse](https://chatgpt.com/share/6a717104-bff0-83e8-8888-245e50469c8d). When a task needs context from previous threads, the agent calls **[Personal Context](https://chatgpt.com/share/6a7172ed-36e0-83ee-8111-d485b09e2094)**, a dedicated tool that queries Chat and Work history through a separately managed service and returns the relevant excerpts.\n\nFiles follow the same pattern. ChatGPT’s **[Library](https://help.openai.com/en/articles/20001052-library)** is the central user-facing repository for all files and artifacts. [User uploads land there automatically](https://chatgpt.com/share/6a717113-6168-83e8-81b4-41fefb6639a0); agent-created files are saved when the user asks, or when the agent judges them worth retaining. The agent can also [create directories in the Library](https://chatgpt.com/share/6a719029-99b8-83e8-ab90-82c7c27223e5) to keep it organised. Like conversations, the Library doesn’t live on the computer, and can only be reached through dedicated tools.\n\nAn uploaded file thus exists in two places: a working copy inside the thread and a canonical item in the Library. Interestingly, [the two do not synchronise](https://chatgpt.com/share/6a71710a-9300-83ee-b5f4-b6eaf923f465). If Thread A uploads a file and Thread B later changes the Library version, Thread A continues to read its now-stale local copy when resumed.\n\nWhen instructed explicitly, an agent in one task can [navigate the scratch directories of other tasks](https://chatgpt.com/share/6a7173af-d178-83ee-8015-b50b5e4ea44e), find files, and modify them. But [it won’t do this on its own](https://chatgpt.com/share/6a7173cc-b1b4-83e8-8238-6008cd1a7224), and the directories have opaque names, no legible map to their conversations, and no stated retention contract.\n\nMemory is managed externally too. As I’ve [written before](https://www.shloked.com/writing/chatgpt-memory-bitter-lesson), ChatGPT’s core memory primitive is a running, synthesised profile of the user. The product maintains that asynchronously and [supplies it to Work when a task begins](https://chatgpt.com/share/6a71750d-2160-83ee-9697-d39e14bfdf50). The agent can reason from it, but can’t modify it or create OpenClaw-style Markdown files that other tasks load by default.\n\nChatGPT’s [Projects](https://learn.chatgpt.com/docs/projects.md) carry over into Work. Projects group related conversations, standing instructions, and Sources (user-uploaded files). A new task within a Project receives its instructions, summaries of relevant conversations, and [local copies of Sources in its directory](https://chatgpt.com/share/6a7173e0-bc9c-83e8-a3f8-39b76006deb5). But [the Project itself does not exist on the computer as a directory](https://chatgpt.com/share/6a7173f5-4bc8-83ee-b915-3c3544855c6e), as it does in Codex. It too is an abstraction the product maintains.\n\nIn short, the agent has broad freedom within a task, but continuity across tasks runs through an opinionated ChatGPT product layer rather than the computer itself. Why the split? My guess is several reasons:\n\n* Work builds on existing ChatGPT primitives (Conversations, Library, Personal Context, Memory). Ripping all of that out and rebuilding it inside the computer would mean refactoring a stack that already serves a billion users.\n* The separation is a guardrail. OpenClaw-style unrestricted access to a single environment holding every file, conversation, and memory is [unsafe for users](https://www.wired.com/story/openclaw-banned-by-tech-companies-as-security-concerns-mount/).\n* It lets OpenAI keep control of the product: what users see in the UI, how context is managed, and how sharing, cross-device sync, and file versioning work. All of that is harder to build if the agent could alter the environment at will.\n\nWhat Work lacks today is a meta-layer agent, one that operates a level above individual tasks and projects and coordinates between them. ([Some already use Codex this way](https://x.com/guinnesschen/status/2060464235868836235).) Perhaps that is coming, along with much else. Work is still young, and the architecture could look very different a few weeks from now.\n\n## **Hints of useful proactivity**\n\nToday’s AI products are still reactive. Before the model can help, you have to notice that something needs doing, gather the relevant context, and translate it all into a prompt. The agent can do a stellar job from there, but the initial act of agency is still yours. Proactivity, where agents figure out how to be useful on their own, is one of the holy grails of personal AI.\n\nWork offers an early glimpse of that. When you open a new Work conversation, alongside the composer, you get personalized tasks generated from your own context.\n\n[![ChatGPT Work - proactive actions](https://substackcdn.com/image/fetch/$s_!mflm!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcd541732-0888-47f4-a2ff-1d6c5c62f328_1280x720.png \"ChatGPT Work - proactive actions\")](https://substackcdn.com/image/fetch/$s_!mflm!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcd541732-0888-47f4-a2ff-1d6c5c62f328_1280x720.png)\n\nOne suggestion offered to prepare me for an upcoming call. When I selected it, Work injected a pre-authored prompt. It had reasoned asynchronously across my context: noticed the calendar event, inferred that preparation would help, pulled data from Calendar and Gmail, and framed a task around the interests and preferences in my memory. When I sent the prompt, it got to work, and the result was a great meeting brief — one I didn’t know I needed!\n\n[![ChatGPT Work - proactive conversation](https://substackcdn.com/image/fetch/$s_!XdMI!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe82c06f0-a79a-4cae-babf-b9bc62ad7b27_1280x720.png \"ChatGPT Work - proactive conversation\")](https://substackcdn.com/image/fetch/$s_!XdMI!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe82c06f0-a79a-4cae-babf-b9bc62ad7b27_1280x720.png)\n\nToday, Work takes a credible first step: it suggests tasks. But nothing happens until I execute them. For true proactivity, it would have to complete the tasks it predicts I’d want done, without me in the loop. That future doesn’t seem far off.\n\n## **Scheduled Tasks**\n\nAutomations let Work run tasks at a future time or on a recurring schedule, without the user manually prompting it. They are ChatGPT’s abstraction for reminders and cron jobs.\n\nOpenAI introduced them as [Scheduled Tasks](https://help.openai.com/en/articles/6825453-chatgpt-release-notes) in January 2025. Work builds on the same scheduler but makes it agentic: each run can use the agent’s context and tools to complete the task.\n\nThey come in two types.\n\nA **standalone scheduled task** begins each run from a saved prompt and opens a fresh task for the result. It suits self-contained work: a one-off reminder, a [daily briefing](https://x.com/sama/status/2083221585792762171), a weekly job search, a routine email scan.\n\nA **scheduled task inside an existing conversation**, triggered by a “heartbeat”, reawakens that task with its context intact. It suits use cases like monitoring a long-running operation, polling a connected service, or resuming a review loop at short intervals. At the time of writing, heartbeats work in the desktop app but [are not exposed in Work on the web](https://chatgpt.com/share/6a717408-4cdc-83e9-9671-00d5753fc330).\n\nEither automation can be set up as one-time or recurring. Its trigger can be an exact time, a loose window such as “in the morning”, or a condition the agent monitors.\n\nYou can manage automations in two places. Inside a conversation, you can ask Work to create one, inspect existing automations, change their instructions or cadence, or pause and resume them. The Scheduled page puts all of this in a UI: every task with its next run and recent results, plus controls to create, edit, pause, or delete them.\n\nThe Scheduled page adds another element of proactivity: ChatGPT suggests custom automations for you. Some, like a Daily Brief, are generic; others, like a weekly recap for the football club I support, are personalized from my memory.\n\n[![ChatGPT Work - scheduled tasks](https://substackcdn.com/image/fetch/$s_!O4l1!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ffd147762-71de-4507-ad7f-8dc95dad20ae_1641x1094.png \"ChatGPT Work - scheduled tasks\")](https://substackcdn.com/image/fetch/$s_!O4l1!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ffd147762-71de-4507-ad7f-8dc95dad20ae_1641x1094.png)\n\n## **Browser Use**\n\nFor years, ChatGPT had limited access to the web. It could search, retrieve pages, and use commands like curl to download files or call APIs. But it couldn’t click through an interface, stay logged into a service, or complete workflows like filling a form. ChatGPT first gained this ability with [Operator](https://openai.com/index/introducing-operator/) and [ChatGPT agent](https://openai.com/index/introducing-chatgpt-agent/). It then became a core part of Codex and now finds its most integrated expression in Work.\n\nUnlike Codex running locally, the Work browser doesn’t live on the same computer as the agent. Instead, the agent controls a [separately hosted Chrome service](https://chatgpt.com/share/6a71742e-9eac-83ee-ae9e-93a35fabc67a) through tool calls. It can [inspect the page, click, type, scroll, take screenshots, manage tabs and dialogs, and move files](https://chatgpt.com/share/6a71741c-28c4-83ee-bf89-1a8d399de104) between the browser and its computer.\n\nOn web and desktop, Work shows a replayable timeline of the browser’s past states, so you can retrace what the agent did. You can also take over the live browser to navigate or enter a password, then hand it back to the agent. You can’t do this on mobile yet.\n\n[![ChatGPT Work - browser timeline](https://substackcdn.com/image/fetch/$s_!uM7A!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5a6efa9e-3ffb-4530-ac24-c954e163800f_1036x768.jpeg \"ChatGPT Work - browser timeline\")](https://substackcdn.com/image/fetch/$s_!uM7A!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5a6efa9e-3ffb-4530-ac24-c954e163800f_1036x768.jpeg)\n\nThe browser service also keeps its own [persistent profile](https://chatgpt.com/share/6a717442-3f08-83e8-9659-c8b273078f42). New browser instances inherit preferences and logged-in sessions: I switched Wikipedia to dark mode and signed into Google in one task, and [a fresh task inherited both](https://chatgpt.com/share/6a717453-3f88-83ee-8661-02d7c75b4c13). The Work agent never sees this profile or its credentials. Instead, [a small permission ledger is synchronised into its computer alongside the workspace](https://chatgpt.com/share/6a71cf31-8fd0-83e8-9eae-e9a2edbf93a4), recording, globally and per conversation, which sites it may act on and whether it may move files to or from them.\n\nBut because the cloud browser runs in a datacenter, and not on your laptop, it faces constraints a local browser does not. [Amazon US rejected it as an unsupported “session or client”](https://chatgpt.com/share/6a71760c-aad8-83ee-b287-d8873ec0acb5), and Google Photos repeatedly timed out when I asked it to copy a shared album. Both tasks worked in local mode. Work can [attempt a CAPTCHA, but only with your permission](https://chatgpt.com/share/6a71741c-28c4-83ee-bf89-1a8d399de104), and it is instructed not to loop, rotate its fingerprint, or otherwise evade a site’s safeguards.\n\nStill, the cloud browser makes Work far more capable. It can finish whole classes of tasks that ChatGPT with web search alone never could.\n\n## **Plugins, skills, and tools**\n\nOpenAI has spent years searching for the right primitive to connect ChatGPT to outside apps and services: [Plugins (March 2023)](https://openai.com/index/chatgpt-plugins/), [GPTs and Actions (November 2023)](https://openai.com/index/introducing-gpts/), [connectors (June 2025)](https://help.openai.com/en/articles/6825453-chatgpt-release-notes), and [apps, the Apps SDK, and the App Directory (late 2025)](https://openai.com/index/introducing-apps-in-chatgpt/). In [March 2026](https://developers.openai.com/plugins/changelog), plugins returned to Codex as packages of apps and skills.\n\nWith the [July 9 launch](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt-and-codex), the App Directory became the Plugin Directory, existing apps were packaged into plugins, and the directory expanded across Work and Codex. For now, OpenAI seems to have settled on plugins as the way for Chat and Work to interact with the external world.\n\nA [plugin today](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt-and-codex) can contain:\n\n* **Apps**, which connect the agent to services such as Gmail, Slack, or Salesforce. Most use an MCP server to expose **tools**: discrete operations the agent can invoke, such as searching messages or sending an email.\n* **Skills**, which combine instructions with supporting material—references, templates, and sometimes scripts—to teach the agent a workflow.\n* **App templates**, which let an organisation configure the private or organisation-specific app a workflow depends on.\n\nPlugins come in three broad types:\n\n1. **Operational plugins** give the agent Codex-native enhancements. Computer Use lets it operate interfaces; Sites lets it deploy websites; Documents, Presentations, and Spreadsheets let it create interactive artifacts.\n2. **Role-specific plugins** equip the agent for a particular kind of work. The [Sales plugin](https://openai.com/index/codex-for-every-role-tool-workflow/), for example, teaches it to apply 20 skills (Analyze Account Signals, Build Business Case) across 29 apps, including Salesforce and Slack.\n3. **Service plugins** connect the agent to external products such as Gmail, Slack, Notion, Figma, Salesforce, and PitchBook.\n\nUsers can also [create personal plugins](https://developers.openai.com/plugins/quickstart) by connecting a custom MCP server and, if needed, adding skills or custom UI. Developers who want to distribute a plugin more widely can [submit it to OpenAI](https://developers.openai.com/plugins/deploy/submission); once approved, it is published to the Plugin Directory.\n\nThe Plugin Directory already holds more than 1,000 plugins covering most major apps and services, but discovery is a weak link. Work routes tasks to installed plugins seamlessly, yet never suggests a relevant plugin when one is missing. When I [asked it to search for flights](https://chatgpt.com/share/6a7175ed-5280-83ee-ab88-da177428b20d) and hotels, it ignored several available but uninstalled travel plugins in favour of web search, even though a plugin might have used fewer tokens, returned better results, and let me complete a booking directly. Even [naming Expedia outright didn’t prompt it to offer the plugin](https://chatgpt.com/share/6a7175ed-5280-83ee-ab88-da177428b20d).\n\nI can imagine the product challenges: how does ChatGPT know when to handle a task itself, when to recommend a plugin, and which path serves the user better? And if several can do the job, which should it suggest? Without a solid discovery layer, though, OpenAI is leaving value on the table—for users, for developers, and for itself in its [quest to become a platform](https://stratechery.com/2025/openais-windows-play/).\n\n## **What’s Next**\n\nWhen Work folds into Chat later this year, its design choices will become the default for a billion people. Before then, OpenAI has to resolve a few tensions that kept surfacing as I used it:\n\n1. Does the cloud computer become the user’s primary AI computer? And how can syncing between it and the local machine feel seamless?\n2. Do Work agents get more OpenClaw-like sovereignty over that computer? Does ChatGPT keep the opinionated role it plays in continuity, or is there a middle ground?\n3. How does Work come to feel as familiar to users as Chat? And in the meantime, how does OpenAI teach Chat users, from within the product and outside it, what Work is for and how to get the most out of it?\n\nNone of this should detract from the fact that Work is an impressive, ambitious, yet underrated launch. It consolidates years of scattered products and experiments into one increasingly cohesive whole. And it’s close to the ChatGPT OpenAI would build if it were starting from scratch with today’s agents.\n\nI’m excited to see where it heads next.\n\n*I spend most of my time thinking about personal AI: going down rabbit holes like this one, figuring out what the best products are getting right, and imagining what our AI sidekicks will look like a year and five years from now. If you made it this far, we probably think about the same things, and I’d love to hear from you. Find me on [X](https://x.com/shloked) or through [my website](https://shloked.com).*",
+      "tags": [
+        "ChatGPT Work",
+        "OpenAI",
+        "Agent"
+      ],
+      "score": 85,
+      "summary": "Latent Space深度解析OpenAI发布的ChatGPT Work，称其用户已超千万，并分析其产品架构与意义。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!Lavj!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3f4e59a2-820f-4225-abfd-6720ef85df8e_1315x1196.png",
+      "fetched_at": "2026-08-05T03:52:23.351694+08:00"
+    },
+    {
+      "title": "PipeNetwork/minimax-h3-mlx",
+      "link": "https://simonwillison.net/2026/Aug/4/minimax-h3-mlx/#atom-everything",
+      "published": "2026-08-05T03:10:09+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[PipeNetwork/minimax-h3-mlx](https://github.com/PipeNetwork/minimax-h3-mlx)**\n\nMiniMax released [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) two days ago - they describe it as a \"a general-purpose, omni-modal generative system\", which in practice means it accepts text, images, audio and video and can use them to generate up to 15 second video clips with audio included.\n\nThis Python package ports it to MLX for running on Apple Silicon.\n\nI got it running on my M5 Max MacBook Pro. I cloned the repo and ran the model like this:\n\n```\n# First download the models\nuvx --from huggingface_hub hf download MiniMaxAI/MiniMax-H3 \\\n  --include 'FL2VA/*' --exclude 'FL2VA/transformer/*'\nuvx --from huggingface_hub hf download pipenetwork/MiniMax-H3-MLX-8bit\n\n# Now run the prompt\nuv run --with mlx-vlm \\\n  --with-requirements requirements.txt python scripts/generate.py \\\n  \"a rainbow colored skunk leaps over a mossy log in a supermarket\" \\\n  -o skunk.mp4 \\\n  -c ~/.cache/huggingface/hub/models--MiniMaxAI--MiniMax-H3/snapshots/fa9c8ab1eaa21c8ae25e7e40b83b2e6002f340af/FL2VA \\\n  -t ~/.cache/huggingface/hub/models--pipenetwork--MiniMax-H3-MLX-8bit/snapshots/3ac52081470b0488921c3ec3ba84a39097bf2361\n```\n\nHere's the video I got for the prompt:\n\n> `a rainbow colored skunk leaps over a mossy log in a supermarket`\n\n[![\n\nYour browser does not support HTML5 video.\n](https://static.simonwillison.net/static/2026/skunk.jpg)](https://static.simonwillison.net/static/2026/skunk.web.mp4)\n\nIt downloaded ~115 GB of model files, and the video generation took just under 45 minutes.\n\nThe video is impressive, but the audio is weird speech-like garbage, because I didn't provide any prompt guidance as to what the audio should be. The [prompting guide](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md) (which I didn't read prior to this experiment) has a whole bunch of information on how to get this to work.\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [mlx](https://simonwillison.net/tags/mlx), [text-to-video](https://simonwillison.net/tags/text-to-video), [minimax](https://simonwillison.net/tags/minimax)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-05T03:52:23.351700+08:00"
+    },
+    {
+      "title": "How the GitHub legal team used Copilot CLI to streamline their workflows",
+      "link": "https://github.blog/ai-and-ml/github-copilot/how-the-github-legal-team-used-copilot-cli-to-streamline-their-workflows/",
+      "published": "2026-08-05T03:02:34+08:00",
+      "source": "The GitHub Blog",
+      "content": "Whether you are just starting out or are not in a technical role at all, you likely already have the skills you need to build your own tools. If you have ever thought “I’m not technical enough to build that,” this post is for you.\n\nLet me introduce the team. We are lawyers, program managers, and business professionals—not engineers. A large part of our work is often repetitive, like reviewing the same kinds of contracts over and over or answering the same legal questions, and our prior guidance is frequently recycled. These are problems AI could help solve, but we lacked confidence in how to build the right tools.\n\nThat is where [GitHub Copilot CLI](https://github.com/features/copilot/cli) came in. We asked for what we wanted in plain language, plugged into our repos, and saw real changes fast. “I could never code” turned into “I just built something,” and that habit spread on its own until every one of us was building something.\n\nWhat follows are two real accounts of people who did exactly that. Plus, watch the videos for two additional stories.\n\n## Why I built an internal drafting style guide\n\n*The following is a first-person account from Ngandu Kasuku, Principal Product Counsel.*\n\nI’m a product attorney, but commercial work remains a sizable part of my practice. Around March or April, I found myself buried in partnership deals involving data, infrastructure, and product integrations. No two deals looked quite alike, so each new matter felt like starting over.\n\nI started using Copilot CLI to manage the surge, which helped, but also had some problems. Then, after seeing what others had built with Copilot, I realized I wasn’t thinking big enough. Instead of using AI for one task at a time, I could build something around the way I work.\n\nSo, I created a contract drafting tool using Copilot CLI. I called it terms-ai, which I admit isn’t the most original name. I started by scaffolding the project and storing key documents in a repository. This gave me one place to organize and version the instructions, drafting resources, and workflows that guide the AI. That structure made the results more consistent and reduced the copying and pasting that had slowed me down when I was using a library of prompts.\n\nOne of the tool’s main features is an internal drafting style guide. Since my days as a commercial lawyer, I’ve favored plain language. I never understood why contracts needed words like “heretofore” and “therewith.” When I discovered that an entire legal drafting movement shared this view, I used its principles as the foundation for my style guide.\n\nI also built a library of agreements I had already completed. Now, when an existing partner sends over an addendum or a new agreement, the tool can draw on that earlier work. These agreements remain in an approved, access-controlled internal environment.\n\nThe tool and its general workflow are open source. The agreements and other sensitive information aren’t part of the open source repository. Since I began using terms-ai, I’ve cut my review and drafting time roughly in half. My provisions are more consistent across agreements, and the drafts reflect the plain style I prefer.\n\nThe tool still has a long way to go. But the biggest lesson wasn’t that AI could help me draft faster. It was that I could use AI to build a tool around my own judgment, experience, and way of working.\n\n## How I built legal workflows without writing traditional code\n\n*The following is a first-person account from Jesse Geraci, Online Safety Counsel.*\n\nI started with a narrow problem. We needed to analyze source code quickly and accurately to evaluate DMCA (Digital Millennium Copyright Act) notices. The original project began as a set of GitHub Copilot instructions for recurring tasks like DMCA triage, comparing code, license checks, and circumvention review. We wanted to turn the messy, one-off prompt work that everyone was doing independently into something repeatable that a legal team could trust to gather the right facts and analyze the data consistently.\n\nI was surprised at how far I could go without engineering support. The core “programming” was plain-language files consisting of workflow instruction sets, policy reference materials, and templates for writing reports. Instead of writing source code, I was able to use my language crafting skills as a lawyer to build structured legal judgment into the workflow itself.\n\nIt grew from there. We added different analysis modes for clients and lawyers (with faster outputs and escalation recommendations for clients, and deeper review and both-sides arguments for lawyers) and integrated external data sources. When I handed the workflow off to the team, they started using it right away and asked Copilot to do more.\n\nThat foundation has since evolved into a full desktop app for running predefined legal workflows in a clean interface. Building the desktop app required writing some code (a lot of code, actually), but the core instructions used to customize workflows are easily edited and customized in the app using plain language.\n\nThe app we created has now expanded well beyond only code analysis for DMCA notices. It includes instructions for many in-house workflows like contract review, NDA triage, risk assessment, compliance checks, and response drafting. Under the hood, it can route work through reusable skills and agents (intake, playbook alignment, risk scoring, evidence verification, escalation routing, report assembly), but the important part is not technical complexity—it’s that legal teams can still control behavior in readable Markdown.\n\nFor me, the key lesson was that I don’t need to wait for the perfect software vendor—or become a full-time developer myself—to build serious AI tooling. If you can clearly define your methodology, your standards, and your output format, GitHub Copilot makes it easy to operationalize that knowledge.\n\nMy legal Copilot is not a replacement for legal judgment, and it shouldn’t be treated that way. It’s a structured decision-support system designed to keep human review central while making legal analysis more consistent, more transparent, and more scalable.\n\n## Take this with you\n\nIf a team of lawyers and program managers can quickly build their way out of the hard days, so can you.\n\nMany jobs, even those not centered on traditional software development, have repetitive tasks that can be automated. Pick one thing that slows you down, open Copilot CLI, and ask it to help you build a fix.\n\nGet started with [GitHub Copilot CLI >](https://github.com/features/copilot/cli)\n\nThe post [How the GitHub legal team used Copilot CLI to streamline their workflows](https://github.blog/ai-and-ml/github-copilot/how-the-github-legal-team-used-copilot-cli-to-streamline-their-workflows/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "Copilot CLI",
+        "法律团队",
+        "合同工具"
+      ],
+      "score": 75,
+      "summary": "GitHub官方分享其法律团队用Copilot CLI构建合同起草工具，非技术员工也能创建AI工具。",
+      "fetched_at": "2026-08-05T03:52:23.351703+08:00"
+    },
+    {
+      "title": "I just watched a tourist pull out his phone to film a Waymo driving by.\n\nHe and his wife were comple...",
+      "link": "https://x.com/akothari/status/2084709421884788790",
+      "published": "2026-08-05T02:33:52+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "I just watched a tourist pull out his phone to film a Waymo driving by.  \n  \nHe and his wife were completely delighted. He turned to her, gave her a kiss, and they stood there smiling for what felt like a full minute before carrying on with their day.  \n  \nA small reminder of how technology can evoke wonder and delight.\n\n💬5🔄1❤️70👀4310📊14",
+      "tags": [
+        "Waymo",
+        "日常观察"
+      ],
+      "score": 30,
+      "summary": "Akshay Kothari分享游客拍摄Waymo自动驾驶汽车并表示欣喜的观察。",
+      "fetched_at": "2026-08-05T03:52:23.351706+08:00"
+    },
+    {
+      "title": "Learn how to make your own🐦: https://t.co/J9zYfT5V0N",
+      "link": "https://x.com/ChatGPT/status/2084708845767860570",
+      "published": "2026-08-05T02:31:35+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Learn how to make your own🐦:[github.com/openai/birding…](https://github.com/openai/birdingpal)N\n\n💬3🔄3❤️61👀5575📊11",
+      "tags": [
+        "OpenAI",
+        "birdingpal",
+        "GPT-Live"
+      ],
+      "score": 82,
+      "summary": "OpenAI官方账号推广birdingpal项目，教用户用GPT-Live和Codex构建观鸟助手。",
+      "fetched_at": "2026-08-05T03:52:23.351709+08:00"
+    },
+    {
+      "title": "Meet your new birdwatching buddy—built with GPT‑Live and Codex to help identify the birds around you...",
+      "link": "https://x.com/ChatGPT/status/2084708844413014384",
+      "published": "2026-08-05T02:31:35+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Meet your new birdwatching buddy—built with GPT‑Live and Codex to help identify the birds around you.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084705774685876224/vid/avc1/1920x1080/-l4ZwbzBORgtc5Ka.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ChatGPT/status/2084708844413014384/video/1)\n\n💬54🔄26❤️443👀22925📊100",
+      "tags": [
+        "GPT-Live",
+        "Codex",
+        "birdingpal"
+      ],
+      "score": 82,
+      "summary": "OpenAI展示基于GPT-Live和Codex的观鸟助手birdingpal，帮助识别鸟类。",
+      "fetched_at": "2026-08-05T03:52:23.351712+08:00"
+    },
+    {
+      "title": "@bfl_ai Prompt: \n\n1999 CNN broadcast that looks archival. Anchor:  “Today researchers demonstrated a...",
+      "link": "https://x.com/venturetwins/status/2084701446050816511",
+      "published": "2026-08-05T02:02:11+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "[@bfl\\_ai](https://x.com/bfl_ai) Prompt:   \n  \n1999 CNN broadcast that looks archival. Anchor: “Today researchers demonstrated an AI that can generate convincing video from text.” Other anchor laughs. “Who’s gonna believe that?”   \n  \nSingle continuous shot. Screen glitches out and then “FLUX 3” appears.\n\n💬2🔄0❤️11👀928📊4",
+      "tags": [
+        "FLUX 3",
+        "BFL",
+        "视频生成"
+      ],
+      "score": 70,
+      "summary": "KOL用FLUX 3生成1999年CNN风格视频，展示其文本生成视频的能力。",
+      "fetched_at": "2026-08-05T03:52:23.351715+08:00"
+    },
+    {
+      "title": "FLUX 3 from @bfl_ai is out 🥳\n\nThis is an insanely fun and creative model that can do a really impre...",
+      "link": "https://x.com/venturetwins/status/2084700080196682066",
+      "published": "2026-08-05T01:56:45+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "FLUX 3 from [@bfl\\_ai](https://x.com/bfl_ai) is out 🥳  \n  \nThis is an insanely fun and creative model that can do a really impressive range of things.   \n  \nAnd it's FAST. Highly recommend trying it out.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084699769268744192/vid/avc1/1088x800/y-01gME5ijMkLRrB.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2084700080196682066/video/1)\n\n![Black Forest Labs](https://pbs.twimg.com/profile_images/1954888731053142016/NDyG-4-j_normal.jpg)\n\nBlack Forest Labs@bfl\\_ai\n\nFLUX 3 Video is here.  \n  \nSerious, fun, creative, real, cinematic, whatever you need it to be.  \n  \nNative audio, Text to Video, Image to Video with multiple frames, video continuation, dialogue in multiple languages.  \n  \nComes with Draft mode so you can explore ideas fast at a fraction of the cost.  \n  \nUp to 20 seconds and 1080p native.  \n  \nAvailable in the API or in your favorite tool. 2K, 4K, and Open Weights coming soon.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084692981563711488/vid/avc1/1280x720/74jGee7o3w0Ad0B8.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/bfl_ai/status/2084693191484469305/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/bfl_ai/status/2084693191484469305)\n\n💬15🔄8❤️179👀11739📊28",
+      "tags": [
+        "FLUX 3",
+        "BFL",
+        "视频生成"
+      ],
+      "score": 89,
+      "summary": "KOL转述Black Forest Labs发布FLUX 3视频生成模型，支持原生音频、多帧图生视频、视频续写等。",
+      "fetched_at": "2026-08-05T03:52:23.351717+08:00"
+    },
+    {
+      "title": "Our latest guide, Customer Experience Agents in Production, looks at how @Lyft, @fastwebvodafone, an...",
+      "link": "https://x.com/LangChain/status/2084708445962318319",
+      "published": "2026-08-05T02:30:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Our latest guide, Customer Experience Agents in Production, looks at how [@Lyft](https://x.com/Lyft), [@fastwebvodafone](https://x.com/fastwebvodafone), and [@LATAMAirlines](https://x.com/LATAMAirlines) are building agents that resolve customer requests, assist frontline teams, and improve through production feedback.  \n  \nRead the guide: [langchain.com/resources/cust…](http://www.langchain.com/resources/customer-experience-cx-agents-in-production)\n\n💬3🔄0❤️10👀2100📊4",
+      "tags": [
+        "LangChain",
+        "CX Agents",
+        "生产指南"
+      ],
+      "score": 75,
+      "summary": "LangChain发布《Customer Experience Agents in Production》指南，展示Lyft等公司构建客服Agent的实践。",
+      "fetched_at": "2026-08-05T03:52:23.351720+08:00"
+    },
+    {
+      "title": "https://t.co/aBfiTJnQ9U",
+      "link": "https://x.com/NVIDIAAI/status/2084710554002989059",
+      "published": "2026-08-05T02:38:22+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "[x.com/CrowdStrike/st…](https://x.com/CrowdStrike/status/2084699479844774066)\n\n![CrowdStrike](https://pbs.twimg.com/profile_images/1451022302578049024/6L-zG5oq_normal.jpg)\n\nCrowdStrike@CrowdStrike\n\nCybersecurity is strongest when we work together.  \n  \nAs a founding member of the Open Secure AI Alliance, we're proud to help shape the proposed SAFE Working Group alongside [@Cisco](https://x.com/Cisco), [@huggingface](https://x.com/huggingface), [@NVIDIA](https://x.com/NVIDIA), [@RedHat](https://x.com/RedHat) and others.  \n  \nLearn more: [crwdstr.ke/6012BEh6Cm](https://crwdstr.ke/6012BEh6Cm)\n\n![Tweet Image](https://pbs.twimg.com/media/HO5XIK_WsAAxbWV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/CrowdStrike/status/2084699479844774066)\n\n💬0🔄0❤️0👀712",
+      "tags": [
+        "CrowdStrike",
+        "AI安全",
+        "SAFE"
+      ],
+      "score": 65,
+      "summary": "NVIDIA转发CrowdStrike推文，宣布其作为Open Secure AI Alliance创始成员推动SAFE工作组。",
+      "fetched_at": "2026-08-05T03:52:23.351723+08:00"
+    },
+    {
+      "title": "How a Chess Grandmaster Built an Autonomous Business | Nemotron Labs https://t.co/vdzoTvY54e",
+      "link": "https://x.com/NVIDIAAI/status/2084700936623272123",
+      "published": "2026-08-05T02:00:09+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "How a Chess Grandmaster Built an Autonomous Business | Nemotron Labs [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1wxWjjXqrewJQ)\n\n💬0🔄0❤️16👀2522📊2",
+      "tags": [
+        "Nemotron",
+        "直播",
+        "自主业务"
+      ],
+      "score": 60,
+      "summary": "NVIDIA AI推广Nemotron Labs直播，主题为棋王如何构建自主业务。",
+      "fetched_at": "2026-08-05T03:52:23.351726+08:00"
+    },
+    {
+      "title": "Install: curl -fsSL https://t.co/vROsUW01Hr | bash\n\nBlog: https://t.co/Mfj8ZYYGDO",
+      "link": "https://x.com/OpenRouter/status/2084708499519586532",
+      "published": "2026-08-05T02:30:12+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Install: curl -fsSL [openrouter.ai/labs/ori/insta…](https://openrouter.ai/labs/ori/install.sh) | bash  \n  \nBlog: [openrouter.ai/blog/announcem…](https://openrouter.ai/blog/announcements/ori-harness)\n\n💬0🔄0❤️2👀824📊1",
+      "tags": [
+        "OpenRouter",
+        "Ori Harness",
+        "安装"
+      ],
+      "score": 75,
+      "summary": "OpenRouter发布Ori Harness，提供一键安装命令，用于配置Agent工具连接OpenRouter。",
+      "fetched_at": "2026-08-05T03:52:23.351729+08:00"
+    },
+    {
+      "title": "Where a harness behaves differently depending on the model behind it, ori adjusts the settings so yo...",
+      "link": "https://x.com/OpenRouter/status/2084708486609600830",
+      "published": "2026-08-05T02:30:09+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Where a harness behaves differently depending on the model behind it, ori adjusts the settings so you don't have to.  \n  \nIn Claude Code, one setting alone nearly halves the system prompt and meaningfully reduces task length and cost, and it isn't set by default when using a gateway.\n\n![Tweet Image](https://pbs.twimg.com/media/HO5fUfvbQAA_fYj.jpg)\n\n💬1🔄0❤️3👀1003📊1",
+      "tags": [
+        "Ori Harness",
+        "Claude Code",
+        "优化"
+      ],
+      "score": 75,
+      "summary": "OpenRouter解释Ori Harness如何根据模型自动调整设置，如优化Claude Code的系统提示。",
+      "fetched_at": "2026-08-05T03:52:23.351732+08:00"
+    },
+    {
+      "title": "Introducing Ori Harness: the easiest way to use your favorite harness with OpenRouter.\n\nOri configur...",
+      "link": "https://x.com/OpenRouter/status/2084708457631060359",
+      "published": "2026-08-05T02:30:02+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Introducing Ori Harness: the easiest way to use your favorite harness with OpenRouter.  \n  \nOri configures Codex, Claude Code, OpenCode, and Hermes out of the box to work with OpenRouter, with settings optimized per harness, for any model.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084708450727309312/vid/avc1/720x736/wiZ8YL5P9GOUhVza.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenRouter/status/2084708457631060359/video/1)\n\n💬7🔄3❤️30👀2757📊11",
+      "tags": [
+        "Ori Harness",
+        "OpenRouter",
+        "Agent工具"
+      ],
+      "score": 75,
+      "summary": "OpenRouter正式发布Ori Harness，为Codex、Claude Code等配置优化以适配OpenRouter。",
+      "fetched_at": "2026-08-05T03:52:23.351735+08:00"
+    },
+    {
+      "title": "Text to video, image to video with multiple key frames, video continuation, and native audio with li...",
+      "link": "https://x.com/OpenRouter/status/2084699437646160042",
+      "published": "2026-08-05T01:54:12+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Text to video, image to video with multiple key frames, video continuation, and native audio with lipsync, effects, and ambience. Access all advanced capabilities of FLUX 3 through OpenRouter's Video API.  \n  \n[openrouter.ai/docs/guides/ov…](https://openrouter.ai/docs/guides/overview/multimodal/video-generation)\n\n💬0🔄0❤️9👀1184📊1",
+      "tags": [
+        "FLUX 3",
+        "OpenRouter",
+        "视频API"
+      ],
+      "score": 80,
+      "summary": "OpenRouter宣布FLUX 3的全部视频生成能力已通过其Video API提供。",
+      "fetched_at": "2026-08-05T03:52:23.351737+08:00"
+    },
+    {
+      "title": "FLUX 3 adds real-world grounding, diverse styles, multilingual dialogue, and agentic chaining. It ca...",
+      "link": "https://x.com/OpenRouter/status/2084699425851719754",
+      "published": "2026-08-05T01:54:09+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "FLUX 3 adds real-world grounding, diverse styles, multilingual dialogue, and agentic chaining. It can extend any video and carry momentum, framing, and scene logic forward.  \n  \n[openrouter.ai/black-forest-l…](https://openrouter.ai/black-forest-labs/flux-3-video)\n\n💬1🔄0❤️8👀1210📊2",
+      "tags": [
+        "FLUX 3",
+        "视频生成",
+        "多语言"
+      ],
+      "score": 80,
+      "summary": "OpenRouter介绍FLUX 3新增真实世界接地、多语言对话和Agentic链式生成等能力。",
+      "fetched_at": "2026-08-05T03:52:23.351740+08:00"
+    },
+    {
+      "title": "FLUX 3 Video from @bfl_ai is now available for everyone on OpenRouter.\n\nOne unified multimodal model...",
+      "link": "https://x.com/OpenRouter/status/2084699413898027064",
+      "published": "2026-08-05T01:54:06+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "FLUX 3 Video from [@bfl\\_ai](https://x.com/bfl_ai) is now available for everyone on OpenRouter.  \n  \nOne unified multimodal model family for video, audio, image, and action-prediction. Serious, fun, creative, real, cinematic, whatever you need it to be. Jointly trained in one unified architecture.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084699352946356224/vid/avc1/1280x720/5_Fu7ZxppDBgqHLs.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenRouter/status/2084699413898027064/video/1)\n\n💬9🔄6❤️30👀3054📊12",
+      "tags": [
+        "FLUX 3",
+        "OpenRouter",
+        "多模态"
+      ],
+      "score": 80,
+      "summary": "OpenRouter宣布FLUX 3 Video上架，作为统一多模态模型支持视频、音频、图像等。",
+      "fetched_at": "2026-08-05T03:52:23.351743+08:00"
+    },
+    {
+      "title": "Despite their size, those things were highly mobile.",
+      "link": "https://x.com/paulg/status/2084714779558723838",
+      "published": "2026-08-05T02:55:10+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Despite their size, those things were highly mobile.\n\n![Tweet Image](https://pbs.twimg.com/media/HO5lAgaakAAiM8-.png)\n\n💬0🔄0❤️30👀5195📊3",
+      "tags": [
+        "Paul Graham"
+      ],
+      "score": 30,
+      "summary": "Paul Graham发推感叹某些大型物体移动性，无具体上下文。",
+      "fetched_at": "2026-08-05T03:52:23.351746+08:00"
+    },
+    {
+      "title": "Jessica got her eyebrows tinted and 17 yo has started referring to her as Comrade Brezhnev. She is n...",
+      "link": "https://x.com/paulg/status/2084713560672960601",
+      "published": "2026-08-05T02:50:19+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Jessica got her eyebrows tinted and 17 yo has started referring to her as Comrade Brezhnev. She is not amused.\n\n![Tweet Image](https://pbs.twimg.com/media/HO5j3Ska8AAg_Zt.png)\n\n💬23🔄6❤️250👀18290📊38",
+      "tags": [
+        "Paul Graham",
+        "个人生活"
+      ],
+      "score": 20,
+      "summary": "Paul Graham分享妻子眉毛染色被称布列日涅夫委员的家庭趣事。",
+      "fetched_at": "2026-08-05T03:52:23.351748+08:00"
+    },
+    {
+      "title": "He started dictating to me before he could write, and we just kept going. We've been doing this for ...",
+      "link": "https://x.com/paulg/status/2084710938977108372",
+      "published": "2026-08-05T02:39:54+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "He started dictating to me before he could write, and we just kept going. We've been doing this for about 10 years now.\n\n💬3🔄0❤️46👀6388📊6",
+      "tags": [
+        "Paul Graham",
+        "家庭"
+      ],
+      "score": 20,
+      "summary": "Paul Graham分享与儿子十年口述故事的习惯。",
+      "fetched_at": "2026-08-05T03:52:23.351751+08:00"
+    },
+    {
+      "title": "The most alarming thing about this graph is not just the amount of change, but the smooth consistenc...",
+      "link": "https://x.com/paulg/status/2084708159793578461",
+      "published": "2026-08-05T02:28:51+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "The most alarming thing about this graph is not just the amount of change, but the smooth consistency of the curve. If this were a startup I'd be really confident about their future growth. Unfortunately it is instead the planet we live on.\n\n![Zeke Hausfather](https://pbs.twimg.com/profile_images/1943417488177303552/eoeit58Y_normal.jpg)\n\nZeke Hausfather@hausfath\n\nI'm not sure folks have realized just how crazy the second half of 2026 and 2027 will be for global temperatures – on the back of a record-smashing El Niño event. Here is my latest estimate of where both years will end up compared to global temperatures since 1850.\n\n![Tweet Image](https://pbs.twimg.com/media/HOvZWUjXgAAqzDw.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/hausfath/status/2083998233924079756)\n\n💬36🔄40❤️435👀43419📊59",
+      "tags": [
+        "Paul Graham",
+        "气候变化"
+      ],
+      "score": 50,
+      "summary": "Paul Graham评论全球气温持续上升曲线的可预测性，表达对气候变化的担忧。",
+      "fetched_at": "2026-08-05T03:52:23.351754+08:00"
+    },
+    {
+      "title": "14 yo has gotten so tall in the last year that he now towers over me when he paces around my desk di...",
+      "link": "https://x.com/paulg/status/2084706538565087713",
+      "published": "2026-08-05T02:22:25+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "14 yo has gotten so tall in the last year that he now towers over me when he paces around my desk dictating stories. He used to disappear behind my monitor on each lap. But he's still dictating stories!\n\n💬32🔄5❤️299👀23347📊45",
+      "tags": [
+        "Paul Graham",
+        "个人生活"
+      ],
+      "score": 20,
+      "summary": "Paul Graham分享14岁儿子身高超过自己的趣事。",
+      "fetched_at": "2026-08-05T03:52:23.351756+08:00"
+    },
+    {
+      "title": "Stanford Shopping Center would compress really well.",
+      "link": "https://x.com/paulg/status/2084699664004317396",
+      "published": "2026-08-05T01:55:06+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Stanford Shopping Center would compress really well.\n\n💬21🔄1❤️152👀24615📊27",
+      "tags": [
+        "Paul Graham"
+      ],
+      "score": 20,
+      "summary": "Paul Graham发推称斯坦福购物中心能很好压缩，无具体上下文。",
+      "fetched_at": "2026-08-05T03:52:23.351759+08:00"
+    },
+    {
+      "title": "My No AI Slop skill is now available as a @ChatGPT plugin!\n\nIt's the easiest way to remove 20+ AI sl...",
+      "link": "https://x.com/petergyang/status/2084705936317542640",
+      "published": "2026-08-05T02:20:01+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "My No AI Slop skill is now available as a [@ChatGPT](https://x.com/ChatGPT) plugin!  \n  \nIt's the easiest way to remove 20+ AI slop patterns from writing. To use it, simply install the plugin and then type \"@ No AI slop (text)\"  \n  \n📌 Install the plugin here:[chatgpt.com/plugins/plugin…](https://chatgpt.com/plugins/plugins_6a6694f6da748191ae9544fa5d1b4d7f)7  \n  \nTomorrow, I’m sharing another AI skill that I think you'll love.  \n  \nIt's called /human-review and I've been testing it for months.  \n  \n📌 Subscribe to my newsletter to be the first to try it[creatoreconomy.so](https://creatoreconomy.so/)oS\n\n![Tweet Image](https://pbs.twimg.com/media/HO5dAEGbgAANXQm.jpg)\n\n![Peter Yang](https://pbs.twimg.com/profile_images/1454103621516206083/_klMwpkk_normal.jpg)\n\nPeter Yang@petergyang\n\nI’m sick of reading AI slop, so today I’m open-sourcing my /no-ai-slop skill that removes 20+ slop patterns from any piece of writing.  \n  \n📌 Get the free skill here:[github.com/petergyang/no-…](https://github.com/petergyang/no-ai-slop)s  \n  \nIf you find it useful, please consider starring the repo so more people can find it.  \n  \nWhy I built the skill:  \n  \nI use AI to edit my writing because it helps me fix spelling, grammar, and clarity.  \n  \nBut even the best models keep producing the same slop that this skill removes:  \n  \n→ Binary contrasts: “It’s not X. It’s Y.”  \n→ Throat-clearing openers: “Here’s what nobody tells you.”  \n→ Fake-profound endings: “The future isn’t coming. It’s already here.”  \n  \nUse this skill responsibly.  \n  \nI always write a first draft manually before iterating with AI on edits and I make sure to do another manual pass at the end as well.  \n  \nThat’s in contrast to using AI to automate pumping out slop end-to-end.  \n  \n📌 Read my full post for more on how I try to use AI responsibly to edit without giving into the dark side[creatoreconomy.so/p/use-my-no-ai…](https://creatoreconomy.so/p/use-my-no-ai-slop-skill-to-remove-20-ai-slop-patterns)b0\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2079943800764702720/vid/avc1/1280x720/q79L31DtQfNG8-e7.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2079943830024188105/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/petergyang/status/2079943830024188105)\n\n💬7🔄2❤️30👀3195📊10",
+      "tags": [
+        "No AI Slop",
+        "ChatGPT插件",
+        "写作"
+      ],
+      "score": 65,
+      "summary": "Peter Yang将自己的No AI Slop技能发布为ChatGPT插件，用于去除20+种AI写作套话。",
+      "fetched_at": "2026-08-05T03:52:23.351762+08:00"
+    },
+    {
+      "title": "Art was a legend at Brex. Thrilled to have him at Cognition!",
+      "link": "https://x.com/ScottWu46/status/2084722867560931462",
+      "published": "2026-08-05T03:27:18+08:00",
+      "source": "Scott Wu(@ScottWu46)",
+      "content": "Art was a legend at Brex. Thrilled to have him at Cognition!\n\n![Art Levy](https://pbs.twimg.com/profile_images/2046291452599414784/LRWKvxpe_normal.jpg)\n\nArt Levy@artlevy\n\nI've spent the last decade getting deals done.  \n  \nI’m now going to do them at one of the most important AI companies in the game. I am joining [@cognition](https://x.com/cognition) as VP of Global Partnerships.  \n  \nEight years at Brex taught me how to sprint at what I do best. Grateful to the team that bet on me.  \n  \nCognition’s insane talent density and ambition made it the obvious next move. The dealmaking opportunity is real. Time to get back in the arena. 🚀\n\n[🔗 View Quoted Tweet](https://x.com/artlevy/status/2084677170786337031)\n\n💬0🔄1❤️3👀277📊1",
+      "tags": [
+        "Cognition",
+        "Art Levy",
+        "人事"
+      ],
+      "score": 65,
+      "summary": "Cognition CEO Scott Wu宣布Art Levy加入任VP Global Partnerships。",
+      "fetched_at": "2026-08-05T03:52:23.351764+08:00"
+    },
+    {
+      "title": "The audio is weird speech-like junk, but that's my fault for not following the prompting guide and t...",
+      "link": "https://x.com/simonw/status/2084719837948096911",
+      "published": "2026-08-05T03:15:16+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "The audio is weird speech-like junk, but that's my fault for not following the prompting guide and telling it what audio I wanted - here's that guide: [huggingface.co/MiniMaxAI/Mini…](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md)\n\n💬0🔄0❤️0👀734",
+      "tags": [
+        "MiniMax-H3",
+        "MLX",
+        "音频"
+      ],
+      "score": 80,
+      "summary": "Simon Willison指出MiniMax-H3生成音频为类似语音的垃圾，因未遵循提示指南。",
+      "fetched_at": "2026-08-05T03:52:23.351767+08:00"
+    },
+    {
+      "title": "Here are my notes on how I ran it: https://t.co/mqoD2jR36k - I used https://t.co/pHhoqOCbfA",
+      "link": "https://x.com/simonw/status/2084719663930564626",
+      "published": "2026-08-05T03:14:34+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "Here are my notes on how I ran it: [simonwillison.net/2026/Aug/4/min…](https://simonwillison.net/2026/Aug/4/minimax-h3-mlx/) - I used [github.com/PipeNetwork/mi…](https://github.com/PipeNetwork/minimax-h3-mlx)\n\n💬1🔄0❤️1👀850📊1",
+      "tags": [
+        "MiniMax-H3",
+        "MLX",
+        "运行笔记"
+      ],
+      "score": 80,
+      "summary": "Simon Willison分享在Apple Silicon上运行MiniMax-H3的笔记与MLX移植工具。",
+      "fetched_at": "2026-08-05T03:52:23.351770+08:00"
+    },
+    {
+      "title": "The MiniMax-H3 video generation model is a lot of fun - here's what I got on my M5 Pro Mac for the p...",
+      "link": "https://x.com/simonw/status/2084719238569435469",
+      "published": "2026-08-05T03:12:53+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "The MiniMax-H3 video generation model is a lot of fun - here's what I got on my M5 Pro Mac for the prompt \"a rainbow colored skunk leaps over a mossy log in a supermarket\" (~115GB model download, took around 45 minutes to generate)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084719115147919360/vid/avc1/1344x768/honmCYZIAK2oBYC_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/simonw/status/2084719238569435469/video/1)\n\n💬3🔄2❤️10👀1884📊4",
+      "tags": [
+        "MiniMax-H3",
+        "视频生成",
+        "M5 Pro"
+      ],
+      "score": 80,
+      "summary": "Simon Willison在M5 Pro Mac上运行MiniMax-H3生成彩虹臭鼬跳跃视频，耗时45分钟。",
+      "fetched_at": "2026-08-05T03:52:23.351773+08:00"
+    },
+    {
+      "title": "\"Last year, the world installed more new solar capacity than every other energy source combined, and...",
+      "link": "https://x.com/a16z/status/2084723554667630595",
+      "published": "2026-08-05T03:30:02+08:00",
+      "source": "a16z(@a16z)",
+      "content": "\"Last year, the world installed more new solar capacity than every other energy source combined, and very few people saw it coming. Every year for two decades, the International Energy Agency (IEA) projected that solar growth would level off, and every year the exponential has continued.\"  \n  \nBase Power & the Future of Electricity, by [@espricewright](https://x.com/espricewright) & [@mikemcg0](https://x.com/mikemcg0): [a16z.news/p/base-power-a…](https://www.a16z.news/p/base-power-and-the-future-of-electricity)\n\n![Tweet Image](https://pbs.twimg.com/media/HO5tBmRboAENRrW.jpg)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\n[x.com/i/article/2084…](http://x.com/i/article/2084424549031178241)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2084679526311968792)\n\n💬1🔄1❤️4👀2204📊1",
+      "tags": [
+        "太阳能",
+        "电力",
+        "a16z"
+      ],
+      "score": 70,
+      "summary": "a16z文章称去年全球新增太阳能装机量超其他能源之和，电力未来将影响AI等行业。",
+      "fetched_at": "2026-08-05T03:52:23.351775+08:00"
+    },
+    {
+      "title": "\"Last year, China generated more than twice as much electricity as the United States, and as energy ...",
+      "link": "https://x.com/a16z/status/2084716067675578398",
+      "published": "2026-08-05T03:00:17+08:00",
+      "source": "a16z(@a16z)",
+      "content": "\"Last year, China generated more than twice as much electricity as the United States, and as energy becomes the bottleneck on industries like AI and manufacturing, that gap is becoming a national security problem.\"  \n  \nBase Power & the Future of Electricity, by [@espricewright](https://x.com/espricewright) & [@mikemcg0](https://x.com/mikemcg0): [a16z.news/p/base-power-a…](https://www.a16z.news/p/base-power-and-the-future-of-electricity)\n\n![Tweet Image](https://pbs.twimg.com/media/HO5mNuka0AAeFHD.png)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\n[x.com/i/article/2084…](http://x.com/i/article/2084424549031178241)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2084679526311968792)\n\n💬7🔄4❤️33👀6396📊8",
+      "tags": [
+        "电力",
+        "中美",
+        "AI瓶颈"
+      ],
+      "score": 70,
+      "summary": "a16z文章称中国发电量是美国两倍，能源成为AI与制造业发展的瓶颈。",
+      "fetched_at": "2026-08-05T03:52:23.351778+08:00"
+    },
+    {
+      "title": "There are no low electricity, rich countries\n\nBase Power &amp; the Future of Electricity, by @espric...",
+      "link": "https://x.com/a16z/status/2084708454682476978",
+      "published": "2026-08-05T02:30:02+08:00",
+      "source": "a16z(@a16z)",
+      "content": "There are no low electricity, rich countries  \n  \nBase Power & the Future of Electricity, by [@espricewright](https://x.com/espricewright) & [@mikemcg0](https://x.com/mikemcg0): <https://t.co/WvVWX2b8VY>\n\n![Tweet Image](https://pbs.twimg.com/media/HO5fSo0bMAAu_KX.jpg)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\n[x.com/i/article/2084…](http://x.com/i/article/2084424549031178241)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2084679526311968792)\n\n💬2🔄7❤️54👀9754📊8",
+      "tags": [
+        "电力",
+        "经济发展",
+        "a16z"
+      ],
+      "score": 70,
+      "summary": "a16z文章指出高用电量是富裕国家的普遍特征，电力与经济发展正相关。",
+      "fetched_at": "2026-08-05T03:52:23.351781+08:00"
+    },
+    {
+      "title": "We're thrilled to co-lead Volta's Series A.\n\nCompute isn't distributed evenly. Most startups don't h...",
+      "link": "https://x.com/a16z/status/2084700958429507945",
+      "published": "2026-08-05T02:00:15+08:00",
+      "source": "a16z(@a16z)",
+      "content": "We're thrilled to co-lead Volta's Series A.  \n  \nCompute isn't distributed evenly. Most startups don't have financeable balance sheets: they're funded 18 months at a time. So they have to pay more money for less flexible compute access, and have to wait longer to get it.  \n  \nVolta is building the neocloud for Little Tech. Instead of asking each customer to arrive with a bespoke investment-grade backstop, Volta assembles the credit support, project equity, and debt behind each deployment.  \n  \nAlready, Volta has signed a $10B strategic partnership for a 133 MW deployment in Norway and a $5B infrastructure program with Azora.  \n  \nWe're excited to partner with Ricard Boada, Sofia Gumuzio, and the Volta team as they expand access to AI infrastructure and ensure startups can compete alongside the industry's largest players.  \n  \nBy [@RaghuRaghuram](https://x.com/RaghuRaghuram) and [@shangdaxu](https://x.com/shangdaxu)\n\n![Tweet Image](https://pbs.twimg.com/media/HO5YeR0akAArf4T.jpg)\n\n💬6🔄5❤️33👀8223📊9",
+      "tags": [
+        "Volta",
+        "A轮融资",
+        "AI算力"
+      ],
+      "score": 75,
+      "summary": "a16z宣布领投Volta Series A，支持其构建面向初创公司的AI neocloud，已签约133MW挪威部署。",
+      "fetched_at": "2026-08-05T03:52:23.351783+08:00"
+    },
+    {
+      "title": "Big changes continue to happen in how we work with agents.\n\nSo lots of opportunities around.\n\nVibe d...",
+      "link": "https://x.com/omarsar0/status/2084709773212070056",
+      "published": "2026-08-05T02:35:16+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Big changes continue to happen in how we work with agents.  \n  \nSo lots of opportunities around.  \n  \nVibe deploying is getting paid to put AI employees to work inside real businesses.  \n  \nViktor pays a 20% revenue share for 12 months, cash activation bonuses of $500 to $2,000 per client, and takes zero cut of implementation fees. Current partners charge $3,000 to $10,000 per implementation.  \n  \nFree to join at [viktor.com/experts](http://viktor.com/experts)[@viktor\\_com](https://x.com/viktor_com)#vibedeploying\n\n![Fryd Wiatrowski](https://pbs.twimg.com/profile_images/2057058149174005760/dBdVix9h_normal.jpg)\n\nFryd Wiatrowski@frydwia\n\nIntroducing Vibe Deploying.  \n  \nVibe Deploying is taking us to $29M annualized.  \n  \nIt’s a modern growth strategy.  \n  \nTop deployers make more than $100k/month.  \n  \nFor us, it’s our cheapest acquisition channel. For them, it’s the new side hustle that can pay more than most jobs ever will.  \n  \nIt only works for high-LTV products like [@viktor\\_com](https://x.com/viktor_com). Otherwise, it’s not attractive enough for deployers because you simply can’t pay them a lot.  \n  \nAs a growth strategy, it’s particularly useful for horizontal AI agents, where activation is hard. Deployers handle discovery and onboarding, so you don’t have to rely on customers figuring out their own use cases.  \n  \nEnjoy.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2084666984084443136/vid/avc1/3840x2160/gIOBqtQpcXCyrN4V.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/frydwia/status/2084671965881675867/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/frydwia/status/2084671965881675867)\n\n💬2🔄0❤️6👀2365📊3",
+      "tags": [
+        "Vibe部署",
+        "Viktor",
+        "AI Agent"
+      ],
+      "score": 40,
+      "summary": "KOL推广Viktor的Vibe Deploying计划，通过部署AI agent获取20%收入分成和激活奖金。",
+      "fetched_at": "2026-08-05T03:52:23.351786+08:00"
+    },
+    {
+      "title": "话说微信的 Agent 如何了？未来是 WorkBuddy 更有前途还是微信 Agent 更有前途？",
+      "link": "https://x.com/dotey/status/2084711785773281604",
+      "published": "2026-08-05T02:43:16+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "话说微信的 Agent 如何了？未来是 WorkBuddy 更有前途还是微信 Agent 更有前途？\n\n![宝玉](https://pbs.twimg.com/profile_images/561086911561736192/6_g58vEs_normal.jpeg)\n\n宝玉@dotey\n\n微信格局还是不够，总是想着大家都去他们家一亩三分地耕耘，还幻想着未来微信会继续是超级入口，人人都在用微信，所以只需要让 AI 去操作小程序。  \n  \n但现实是，未来微信的入口属性会越来越少，以后的年轻人，不会再去打开微信，只会问自己的 Agent：去帮我总结一下我昨天的群聊，去给我妈发条消息说晚上不回家吃饭了。  \n  \n而这个承担超级入口职责的 Agent，大概率不是微信 AI。\n\n[🔗 View Quoted Tweet](https://x.com/dotey/status/2064028538823405848)\n\n💬9🔄0❤️6👀2366📊7",
+      "tags": [
+        "微信Agent",
+        "WorkBuddy",
+        "超级入口"
+      ],
+      "score": 65,
+      "summary": "宝玉讨论微信Agent与WorkBuddy的前景，认为未来超级入口Agent大概率不是微信AI。",
+      "fetched_at": "2026-08-05T03:52:23.351789+08:00"
     }
   ]
 }
