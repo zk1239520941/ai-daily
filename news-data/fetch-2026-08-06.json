@@ -1,0 +1,760 @@
+{
+  "meta": {
+    "date": "2026-08-06"
+  },
+  "entries": [
+    {
+      "title": "Solving the \"Noisy Neighbor\": How Sharded Architecture Protects Multi-Tenant Platforms",
+      "link": "https://cloud.google.com/blog/products/data-analytics/solving-the-noisy-neighbor-with-sharded-architecture/",
+      "published": "2026-08-06T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "Whether you are a multi-tenant SaaS provider, a large enterprise managing internal data platforms, or a company handling mixed-workload data processing, managing a shared infrastructure environment means facing a common threat: the 'noisy neighbor'. A single tenant with a massive data burst or a failing database instance can bring down the entire neighborhood, manifesting as significant backlog accumulation and global Service Level Agreement (SLA) violations across critical data pipelines\n\nHere is how to transition from a monolithic architecture to a sharded hub-and-spoke pattern to ensure platform resilience.\n\n## **The problem: The monolithic bottleneck**\n\nA typical legacy architecture processes data for all tenants and business domains through a single, massive stream. Because the pipeline is unified, a performance issue with one specific database tenant instance creates back pressure that degrades performance for every other tenant on the platform.\n\n### Painful effects:\n\n* 100% Blast radius: One database failure can stop all processing.\n* Inefficient scaling: Resources often have to be scaled for the \"worst-case\" tenant, leading to significant wasted spend.\n* SLA instability: Maintaining a global SLA is nearly impossible when one high-volume tenant can lag the entire system.\n\n## **The solution: sharded hub-and-spoke architecture**\n\nTo solve this, processing is decoupled into a \"hub\" for routing and \"spokes\" for isolated execution.\n\n![1](https://storage.googleapis.com/gweb-cloudblog-publish/images/1_AstMUiw.max-1000x1000.png)\n\n### **1. The hub: The router pipeline**\n\nThe Hub is a lightweight Dataflow job that acts as a traffic controller. It reads from unified source topics, parses the Tenant ID or Business Domain, and fans the data out into isolated buffers. This keeps the entry point simple and robust.\n\n### **2. The buffer: Durable isolation**\n\n[Pub/Sub](https://cloud.google.com/pubsub) topics are introduced between the Hub and the Spokes. These act as a durable shock absorber, preventing a slow downstream sink from backing up the original source.\n\n### **3. The spokes: Isolated execution**\n\nInstead of one giant pipeline, multiple, smaller [Dataflow](https://cloud.google.com/products/dataflow) instances are deployed and categorized by workload:\n\n* Tier 1 (high-priority): Dedicated pipelines with high resource allocation for critical tenants.\n* Shared tiers: Grouped pipelines for smaller tenants to optimize costs.\n* Domain specific: Specialized pipelines for complex logic (e.g., separating distinct business domains) to isolate code complexity.\n\n## **Comparative Benefits at a Glance**\n\n|  |  |  |\n| --- | --- | --- |\n| **Feature** | **Monolithic (legacy)** | **Hub-and-spoke** |\n| Fault tolerance | One failing DB stops everything | Failures isolated to specific spoke |\n| Blast radius | 100% | < 5% (Isolated to one spoke) |\n| Resource scaling | Scaled for \"worst-case\" | Independent scaling per tenant load |\n| Maintenance | Global updates affect everyone | Update one domain without touching others |\n\n## **Pro-Tips for Implementation**\n\nMoving to this architecture is more than just shifting boxes on a diagram. Additional \"Spoke\" level optimizations are recommended for maximum stability:\n\n* Implement Dead Letter Queues (DLQ): Do not let a single SQL exception stall the pipeline. Route failed records to storage (like BigQuery or Google Cloud Storage) for later investigation.\n* Strict connection pooling: Databases have connection limits. Use a thread-safe singleton pattern and set a low MaximumPoolSize (e.g., 1-2) per worker to avoid exhausting the database during autoscaling.\n* Asynchronous I/O: Use the GroupIntoBatches transform to buffer writes, which reduces the connection overhead that often triggers database-induced latency.\n\n## **Conclusion**\n\nBy adopting a sharded approach, platforms can guarantee that a \"noisy neighbor\" is no longer a threat to the neighborhood. This architecture provides the isolation needed to maintain strict SLAs while allowing for independent scaling and safer deployments\n\nTo learn more about implementing a sharded hub-and-spoke architecture, explore the [Dataflow documentation](https://docs.cloud.google.com/dataflow/docs).",
+      "tags": [
+        "Sharded架构",
+        "多租户",
+        "数据管道"
+      ],
+      "score": 75,
+      "summary": "Google Cloud介绍用分片Hub-and-Spoke架构解决多租户平台'吵闹邻居'问题。",
+      "fetched_at": "2026-08-06T01:52:36.674011+08:00"
+    },
+    {
+      "title": "Scaling agentic AI: How UiPath built its high-performance GPU platform on AI Hypercomputer",
+      "link": "https://cloud.google.com/blog/topics/customers/how-uipath-built-its-high-performance-gpu-platform/",
+      "published": "2026-08-06T00:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "As a market leader in enterprise agentic automation and business orchestration, [UiPath](https://www.uipath.com/) is helping to pioneer an industry shift toward agentic AI. With it, the company is deploying autonomous agents to actively reason, make decisions, and execute complex business processes across its disparate systems. \n\nThis transition from simple task automation to cognitive decision-making agents requires a massive surge in computational power and powerful infrastructure that’s reliable enough for the needs of the world's largest enterprises.\n\nBeing able to orchestrate hundreds of GPUs in perfect harmony can be what makes the difference between just running a research experiment and building a global AI platform. Such orchestration requires balancing massive training jobs with real-time inference, all without letting costs spiral or latency spike.\n\n![1](https://storage.googleapis.com/gweb-cloudblog-publish/images/1_G8V5B63.max-1000x1000.jpg)\n\nTo do so, UiPath re-architected its infrastructure to support high-scale intelligent document processing **(IDP)** using UiPath IXP and moved from isolated clusters to a shared Google Cloud GPU fleet, balancing A3 VM instances (NVIDIA H100 GPUs**)** for training with G4 VM instances (NVIDIA RTX Pro 6000) for inference. This architecture lets UiPath solve its “spiky workload” problem and count on predictable costs and open-source patterns that the company’s engineering teams can use to replicate this architecture themselves.\n\n\"Realizing the full potential of enterprise agentic AI requires an infrastructure that matches our ambition. Google Cloud provides the scale and flexibility we need to train specialized models and deploy them globally. This partnership allows us to deliver high-precision intelligent document processing and autonomous agents that don't just chat, but actively drive business outcomes for our customers.\"  – Raghu Malpani, Chief Technology Officer, UiPath\n\n### The context: heavy-duty math\n\nUiPath has run its full-stack automation platform on Google Cloud for years, but as its agentic AI initiatives expanded, it faced a series of new infrastructure challenges.\n\nCore capabilities like IDP, computer vision, and LLM-powered reasoning require heavy-duty math, so UiPath’s engineering team utilizes LLAMA model grounding that allows its robots to \"see\" interfaces with human-like clarity. And with specialized document models built on the Qwen architecture, the team can extract valuable data from messy, real-world paperwork.\n\nThese models live on the UiPath cloud infrastructure, where cutting every possible millisecond of latency is essential. Moving from a \"cool demo\" to a reliable production tool without exploding costs meant the team had to rethink its underlying silicon.\n\n### The challenge: more demand than supply\n\nIn the past, when a team at UiPath needed to train a new model or run inference, it provisioned GPU nodes on demand and scaled up or down depending on whether the workloads were spiking or slowing.\n\nThis was a functional strategy when cloud capacity was cheap, abundant, and perfectly elastic. But as its AI ambitions grew, UiPath found this approach could no longer keep up with its operational complexity. It now faced three new challenges:\n\n1. Spiky workloads**:** To ensure it had sufficient power for peak demand, UiPath  often had to buy extra capacity that sat idle during quieter periods, wasting expensive headroom. The company needed intelligent,  on-demand scaling that didn't require paying for silicon that wasn't crunching numbers.\n2. Supply bottlenecks**:** For large-scale fine-tuning, the price-to-performance ratio on gold standard high-end A3 VM instances with 8-cluster H100s is unbeatable. But global demand for those  chips has outstripped  supply, making it nearly impossible to scale training efforts at the speed UiPath desired just by adding nodes.\n3. Operational overhead**:** UiPath was also struggling with geographical inefficiency because stable inference demand still meant maintaining dedicated clusters in multiple regions to ensure low latency for international customers. Further, managing GPU infrastructure for both training and inference added inefficient layers of operational overhead.\n\n### The solution: a shared GPU fleet\n\nWith all of that in mind, UiPath decided to treat its GPUs as a shared strategic resource instead of a product-centric elastic infrastructure.\n\nAs a result,  its engineering team designed a platform-level shared GPU fleet managed by its  machine learning services (MLS) platform, which prioritizes work across teams and time windows while balancing demand across workflows. During the day, the fleet serves real-time inference and latency-sensitive workloads, and at night or during off-peak hours, it automatically switches to batch training and long-running jobs.\n\nBy coordinating workloads at the fleet level, MLS lets UiPath maximize utilization while reducing contention, all without relying on per-instance elasticity. It also enables the company to schedule capacity in advance, which improves predictability for both research and production use cases.\n\n### Why Google Cloud: AI Hypercomputer architecture\n\nTo support its growing scale, UiPath leveraged [Google Cloud AI Hypercomputer](https://docs.cloud.google.com/ai-hypercomputer/docs/overview), which offers a system-level approach integrating performance-optimized hardware, open software, and flexible consumption models into a unified environment. AI Hypercomputer also minimizes the friction between hardware and software layers, which allows engineering teams to focus on model performance rather than infrastructure management.\n\n![2](https://storage.googleapis.com/gweb-cloudblog-publish/images/2_brhiKwR.max-1000x1000.jpg)\n\nOnce it settled on a shared fleet model, UiPath needed a cloud partner that could offer reliable GPU availability, competitive pricing, and burst capacity. That’s why it chose to expand its existing Google Cloud footprint with a highly specialized AI stack running on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine) . \n\nNow, UiPath can take advantage of predictable capacity by leveragingGoogle Cloud’s [Dynamic Workload Scheduler](https://cloud.google.com/blog/products/compute/introducing-dynamic-workload-scheduler) (DWS) to solve its supply bottleneck. The company knew Google Cloud could secure its GPU capacity consistently with notice windows measured in days. DWS allows the engineering team to schedule training runs in advance and secure capacity for short bursts, and it can now plan for capacity rather than having to react to scarcity. Today, UiPath runs all its training and most of its IDP model inference workloads on Google Cloud.\n\nWhile UiPath uses A3 VM instances for heavy-duty training and fine-tuning, not all of its tasks require that level of power. That’s why it now deploys Google Cloud G4 VM instances as a net-new optimization for inference workloads. These instances offer a cost-effective balance of performance and price, which allows UiPath to run lighter inference tasks without occupying the high-performance clusters reserved for training.\n\n\"The shift to a shared fleet on Google Cloud transformed our operational model. We moved from reactive provisioning to a predictable, high-performance engine that powers our most advanced IDP and agentic AI workloads. With tools like Dynamic Workload Scheduler and a mix of A3 and G4 instances, we have the flexibility to optimize for both cost and speed. This ensures our engineers spend their time innovating rather than waiting for compute.\" - Arthur Wilcke, director of AI infrastructure, UiPath\n\n### Practical validation: differentiated models at scale\n\nWith consistent access to Google Cloud GPUs, UiPath can now bring advanced models into production. It can also schedule large training jobs without blocking production inference, letting it balance research experimentation with production reliability.\n\nThis allows UiPath to deliver advanced IDP capabilities that extract data from highly unstructured and variable documents with high accuracy. For example:\n\n* Omega Healthcare uses UiPath to automate over 100 million  transactions with 99.5% accuracy, a 40% reduction in processing time, and 15,000 less hours of repetitive tasks per month.\n* Thermo Fisher Scientific uses UiPath to extract data from PDFs like invoices and purchase orders and is now able to process 53% of its invoices without human involvement, while cutting processing time by **70%**.\n\n### Lessons learned\n\nUiPath’s most significant wins so far have been increased availability and reliability. As its workloads continue to transition and it decommissions its legacy GPU resources, the company expects to see additional cost improvements.\n\nFor engineering teams looking to build similar platforms, some key takeaways include:\n\n1. Decouple capacity**:** Instead of tying hardware to specific products, pool resources to smooth out usage spikes.\n2. Schedule, don't react**:** Using tools like DWS to book compute in advance guarantees availability and stabilizes costs.\n3. Right-size the silicon**:** Use A3 VM instances for training, but choose efficient options like G4 VM instances for inference.\n\n### Next steps\n\nAfter its recent infrastructure evolution, UiPath is still refining its MLS platform to support the next evolution of AI innovation. To replicate this success in your own organization, use the resources below:\n\n* Build it**:** explore engineering patterns on [GitHub](https://github.com/GoogleCloudPlatform).\n* Optimize it**:** Get started with [Google Cloud G4 VM instances](https://cloud.google.com/compute/docs/gpus#g4-gpus).\n* Learn more about [UiPath - IXP](https://www.uipath.com/assets/downloads/ixp-ebook)",
+      "tags": [
+        "UiPath",
+        "Agentic AI",
+        "GPU平台"
+      ],
+      "score": 80,
+      "summary": "UiPath基于Google Cloud AI Hypercomputer构建GPU平台，支撑企业级Agentic AI。",
+      "fetched_at": "2026-08-06T01:52:36.674020+08:00"
+    },
+    {
+      "title": "Proxmox officially supports Arm, with some caveats",
+      "link": "https://www.jeffgeerling.com/blog/2026/proxmox-ve-arm-official/",
+      "published": "2026-08-06T00:50:00+08:00",
+      "source": "Jeff Geerling",
+      "content": "Proxmox today announced their [Proxmox Virtual Environment is now available for 64-bit ARM](https://forum.proxmox.com/threads/proxmox-virtual-environment-now-available-for-64-bit-arm-arm64.185527/).\n\nI tested it on my [Ampere Altra Dev Platform](https://www.jeffgeerling.com/blog/2023/testing-96-core-ampere-altra-developer-platform/)—the same machine on which I've [booted Windows on Arm](https://www.jeffgeerling.com/blog/2023/ampere-altra-max-windows-gpus-and-gaming/) the first time, messed with multiple GPUs, and most recently [tested Houdini's native arm64 support](https://www.youtube.com/watch?v=QdU7WszFTAA).\n\n![Proxmox VE running on Ampere Altra Max workstation](https://www.jeffgeerling.com/blog/2026/proxmox-ve-arm-official/proxmox-ve-on-arm-vm.jpg)\n\nInstall was easy, as the Ampere Altra uses UEFI / ACPI for its hardware, meaning Proxmox didn't have to tailor it's ISO to specific platforms, like you have to do with Raspberry Pis and most SBCs using a Device Tree setup.",
+      "tags": [
+        "Proxmox",
+        "ARM",
+        "虚拟化"
+      ],
+      "score": 70,
+      "summary": "Proxmox VE正式支持64位ARM，作者在Ampere Altra平台实测。",
+      "fetched_at": "2026-08-06T01:52:36.674024+08:00"
+    },
+    {
+      "title": "Node.js 26.7.0 (Current)",
+      "link": "https://nodejs.org/en/blog/release/v26.7.0",
+      "published": "2026-08-06T00:25:55+08:00",
+      "source": "Node.js Blog",
+      "content": "",
+      "tags": [
+        "Node.js 26.7.0",
+        "版本发布"
+      ],
+      "score": 70,
+      "summary": "Node.js发布26.7.0当前版本。",
+      "fetched_at": "2026-08-06T01:52:36.674027+08:00"
+    },
+    {
+      "title": "The next chapter of our AI momentum",
+      "link": "https://blog.google/company-news/inside-google/message-ceo/next-chapter-ai-momentum/",
+      "published": "2026-08-06T00:00:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "Today, Google and Alphabet CEO Sundar Pichai shared some changes with Google DeepMind teams.",
+      "tags": [
+        "Google DeepMind",
+        "Demis Hassabis",
+        "管理层变动"
+      ],
+      "score": 90,
+      "summary": "Sundar Pichai宣布Google DeepMind团队变动，Demis Hassabis转任主席兼首席科学家。",
+      "fetched_at": "2026-08-06T01:52:36.674031+08:00"
+    },
+    {
+      "title": "Set your own project avatars",
+      "link": "https://vercel.com/changelog/project-avatars",
+      "published": "2026-08-06T01:30:00+08:00",
+      "source": "Vercel News",
+      "content": "You can now set a project's avatar from its settings in the Vercel dashboard. Until now, Vercel set it automatically, using the favicon from the project's production deployment. That's still the default if you haven't set one.\n\nThe avatar renders across the dashboard and on Vercel bot comments in GitHub. Microfrontend projects that share one favicon can now get distinct avatars, and backend projects with no favicon to detect can set one explicitly.\n\nYou can change a project's avatar from its [settings](https://vercel.com/d?to=%2F%5Bteam%5D%2F%5Bproject%5D%2Fsettings&title=Go+to+Project+Settings) in the Vercel Dashboard, or upload one with the [REST API](https://vercel.com/docs/rest-api/projects/upload-a-project-avatar).\n\n[Read more](https://vercel.com/changelog/project-avatars)",
+      "tags": [
+        "Vercel",
+        "项目头像"
+      ],
+      "score": 70,
+      "summary": "Vercel新增自定义项目头像功能，支持设置或REST API上传。",
+      "fetched_at": "2026-08-06T01:52:36.674033+08:00"
+    },
+    {
+      "title": "New setup page after domain checkout",
+      "link": "https://vercel.com/changelog/new-setup-page-after-domain-checkout",
+      "published": "2026-08-06T01:00:00+08:00",
+      "source": "Vercel News",
+      "content": "Buying a domain on Vercel now takes you to a setup page that tracks registration live, with direct paths to deploy a new project, connect an existing one, proxy or redirect a site you already run, or set up email.\n\nRegistration can take a few minutes. Each setup action unlocks as soon as the domain is ready. If registration fails, the page shows what went wrong and the status of your refund.\n\n## Deploy a new project or connect an existing one\n\n**Deploy something** opens project creation with the domain preselected. Connect a Git repository, prompt with v0, or start from a template, and the domain is attached when the project deploys.\n\n**Connect an existing project** attaches the domain to a project you pick from your team.\n\n## Proxy or redirect a site you already run\n\nEnter an origin to proxy, and traffic to the domain routes through Vercel's CDN and Firewall to your existing site. Enter a URL to redirect, and visitors are forwarded there. In both cases, Vercel creates a project to handle the routing and configures it for you.\n\n## Set up email with DNS presets\n\nChoose your email provider and Vercel adds the DNS records it needs. Presets are available for Google Workspace, Outlook, iCloud, Proton Mail, Zoho, Mailgun, and ImprovMX. There's also a preset for using the domain as your Bluesky handle.\n\nIf you'd rather configure records yourself, **Manage DNS records** opens the domain's DNS records page.\nSearch for a domain at [vercel.com/domains](https://vercel.com/domains) to get started.\n\n[Read more](https://vercel.com/changelog/new-setup-page-after-domain-checkout)",
+      "tags": [
+        "Vercel",
+        "域名设置"
+      ],
+      "score": 70,
+      "summary": "Vercel新增域名购买后设置页，跟踪注册并提供部署、代理等路径。",
+      "fetched_at": "2026-08-06T01:52:36.674036+08:00"
+    },
+    {
+      "title": "下一代搜索智能体评测基准！美团开源LoHoSearch，用知识图谱校准AI能力认知",
+      "link": "https://tech.meituan.com/2026/07/24/LongCat-LoHoSearch.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "过去一年，我们见证了 Search Agent 能力的显著演进。在 BrowseComp 等评测上，顶尖模型准确率从最初的30%区间迅速攀升至90%以上。然而，当基准迅速饱和，其区分模型能力的价值也随之递减。\n\n![图1：BrowseComp 准确率进展曲线](https://p0.meituan.net/meituantechblog/69e86f1a417ef555aed62d74c1152c53108351.png)\n\nBrowseComp 的题目由人工设计，局限在于只能基于标注者已知的实体和关系构思，无法站在全局知识网络视角判断：哪些条件真的难检索？哪些约束的候选空间足够大？正是这种局限，让我们开始思考另一种可能性：**能不能让机器自己来出题？**\n\n美团 LongCat 团队在最新论文中提出的 LoHoSearch 基准，就是把这种可能性变成了现实。\n\n## LoHoSearch 的核心\"硬核\"看点\n\n* **知识图谱自动化构造。** 以覆盖762万维基百科实体的知识图谱为基础自动生成题目，替代人工出题。基准含544道经人工核验的题目，覆盖11个领域。\n* **双维度难度控制。** 在生成中系统控制搜索空间与结构复杂度。构建出难度显著高于现有基准的挑战性问题。\n* **当前模型性能表现。** 已评测模型中，GPT-5.5准确率为34.74%；现有上下文管理策略在LoHoSearch上提升幅度为6.8%，低于在BrowseComp上的14.03%。\n\n## 01 设计原理：让机器出题，需要几部？\n\n机器出题的前提，是让机器拥有全局视野。整个构建流程可以分为四个环节：**建图 → 控制难度 → 质量把关 → 数据概览**。下面逐一展开。\n\n### 1.1 建图：搭建知识图谱，让机器获得全局视野\n\nLoHoSearch 的第一步，是从完整的英文维基百科出发搭建一张大规模知识图谱：\n\n* 762 万个实体（每个维基页面是一个实体节点）\n* 2.65 亿条有向边（页面正文中指向其他维基页面的超链接）\n* 每个实体的类型取自其 Wikidata P31 类别，实体热度用入度来衡量\n\n这张图谱为后续在全局视角下挑选\"难题\"提供了基础。\n\n![图2：LoHoSearch 数据构造流程总览（知识图谱构建 → 子图采样 → QA 生成与验证 → 后置过滤与人工复核）](https://p0.meituan.net/meituantechblog/158cf7d04a3fd9d5c8b5f171480db1ec450289.png)\n\n有了图谱之后，下一个问题是：什么样的题目才算\"难\"？LoHoSearch 从两个维度来定义难度。\n\n### 1.2 控制难度：搜索空间和结构复杂度两个维度\n\n决定搜索难度的核心有两个维度，而它们恰恰是人工出题最难把控的：\n\n* **搜索空间**：满足一个条件的候选实体有多少。候选越多，排除成本越高。\n* **结构复杂度**：要同时满足多少条件才能锁定答案。条件越多、咬合越紧，求解链条越长。\n\n针对这两个维度，LoHoSearch 设计了两种子图结构：\n\n![](https://p0.meituan.net/meituantechblog/da7dbb937aa30503321fa592d43b0123124986.png)\n\n* **树结构**主要通过放大\"搜索空间\"来制造难度。\n* **图结构**则在巨大搜索空间之上，通过引入环形依赖和交叉约束，进一步叠加了\"结构复杂度\"。\n\n### 1.3 质量把关：从生成到验证，层层把关\n\n子图采样完成后，还需要转换为可阅读的自然语言题目。整个转换与验证流程分为三层：\n\n* **题目生成**：从子图抽取维基描述，改写为自然语言问题。\n* **自动验证**：检查问题是否完整覆盖子图关系，并由搜索智能体验证标准答案满足所有条件。\n* **筛选与复核**：排除多答案题和易答题，再由人工审核。\n\n经过三层筛选，自动化流程的整体质量表现如下：75.5% 的题目直接通过人工复核，22.3% 经标注员微调后接受，仅有 2.2% 因严重问题被丢弃。\n\n### 1.4 数据概览：544道题目，11个主题领域\n\nLoHoSearch 最终收录 **544 道** 经人工核验的题目。对比树结构和图结构可以看出，图结构子图明显更稠密——节点更多、边数接近前者的两倍，这正对应它更高的结构复杂度。题目内容覆盖音乐、地理与地点、影视、体育等 11 个主题领域。\n\n![表1：LoHoSearch 数据统计](https://p0.meituan.net/meituantechblog/9be937091fe5f30761bb06ea08a5c4e838213.png)\n\n![图3：LoHoSearch 的领域分布](https://p0.meituan.net/meituantechblog/55f51f19edf66249bcb164c70a75adb3167617.png)\n\n![表2：各模型在 LoHoSearch 上的性能表现（%）](https://p0.meituan.net/meituantechblog/2b54f0c184c018dbd27593bd90f40de0143825.png)\n\n最强模型 GPT-5.5 准确率仅 34.74%，DeepSeek-V4-Pro、Claude-Opus-4.6 和 Kimi-K2.6 集中在 15.53%–15.99%，其余模型均低于 14%。这与它们在 BrowseComp 上 80% 以上的表现形成鲜明对照——LoHoSearch 对当前最先进搜索智能体构成了实质挑战。\n\n### 洞察一：解一道题，平均工具调用从 35 次增至 61 次\n\n用 DeepSeek-V4-Flash 作为探针对比两个基准：同一模型在 BrowseComp 上准确率 58.84%，在 LoHoSearch 上仅 10.02%。\n\n![图4：BrowseComp 与 LoHoSearch 正确轨迹的工具调用次数分布](https://p0.meituan.net/meituantechblog/234e605bbc7af2f8f7977c212bc62a8290841.png)\n\n解一道 LoHoSearch 题目，平均工具调用从 35 次增至 61 次（+74%），中位数从 26 次升至 59 次。图结构题目准确率仅 8.01%，远低于树结构的 11.89%，印证了结构复杂度是独立于搜索空间之外的额外难度来源。\n\n### 洞察二：重复采样收益可观，但天花板依然很低\n\n对 DeepSeek-V4-Flash 采样 16 个独立回答，结果如图 5 所示。\n\n![图5：并行采样下 pass@N 及三种答案聚合策略的表现](https://p1.meituan.net/meituantechblog/a011a2b381eef5312e8281e8f32f7449129032.png)\n\npass@N 从 N=1 的 9.3% 升至 N=16 的 38.3%，重复采样收益可观，但 38.3% 仍处低位。尝试 16 次仍有六成以上题目无法攻克。三种聚合策略中 best-of-N 表现最优（24.6%），远低于 pass@16 上界，说明模型在答案置信度校准上存在明显不足。\n\n### 洞察三：现有的上下文管理策略，在这里已失真\n\n以标准 ReAct 为基线，测试 Summary 和 Discard-all 两种策略，并加入 Verify 模块。\n\n![表3：基于 DeepSeek-V4-Flash 的上下文管理策略消融实验](https://p0.meituan.net/meituantechblog/f59c780873848c6d66609ad9eafc10d651431.png)\n\n表现最佳的组合（Discard-all + Verify）将成绩从 10.02% 提至 16.82%，绝对提升仅 6.8 个百分点，而同一套策略在 BrowseComp 上可带来 14 个百分点的增益。收益收窄的原因在于 LoHoSearch 需要更长的推理链，简单的轨迹压缩或重启无法解决长程搜索中的信息丢失问题——这使其成为下一代上下文管理技术更有价值的试验场。\n\n### 洞察四：知识图谱是系统化构造高难度题目不可或缺的基础\n\n对比两个基准中\"隐藏实体\"的特征可以发现：\n\n![图6：隐藏实体分析(a) 隐藏实体的入度分布；(b) 相同流行度下关系搜索空间对比](https://p1.meituan.net/meituantechblog/682b8d4610aa31a2be89b70bc27a206a71835.png)\n\n其一，BrowseComp 的隐藏实体流行度明显更高，人工出题难以精确控制实体知名度，导致实体偏易。\n\n其二，即便将流行度控制在同一水平，LoHoSearch 的关系搜索空间仍显著更大，实体推断难度远高于 BrowseComp。\n\n这说明人工构建存在系统性局限，知识图谱是系统化构造高难度题目不可或缺的基础。\n\n## 02 总结：为下一代智能搜索提供新标尺\n\nLoHoSearch 的价值体现在三项具体贡献上：\n\n* **基于知识图谱的自动化构造流程。** 以覆盖762万实体的知识图谱为基础自动生成题目，系统控制搜索空间与结构复杂度，突破人工出题的难度上限。\n* **更具区分度的评测标准。** 最强模型 GPT-5.5 准确率仅 34.74%，正确轨迹所需工具调用次数是 BrowseComp 的 1.7 倍。LoHoSearch 为搜索智能体建立了更具区分度的评测标尺。\n* **面向上下文管理研究的挑战性平台。** 最优策略仅带来 6.8% 的提升，远低于其在 BrowseComp 上 14.03% 的增益，表明 LoHoSearch 可成为推动下一代上下文管理技术研究的理想试验场。\n\nLoHoSearch 已全面开源，欢迎各大模型前来接受\"长程搜索\"大考。\n\n## 开源链接\n\n* **Paper**: <https://arxiv.org/abs/2606.12837>\n* **HuggingFace**: <https://huggingface.co/datasets/meituan-longcat/LoHoSearch>",
+      "tags": [
+        "LoHoSearch",
+        "搜索智能体",
+        "评测基准"
+      ],
+      "score": 85,
+      "summary": "美团开源LoHoSearch基准，基于762万实体知识图谱自动生成搜索智能体难题。",
+      "image_url": "https://p0.meituan.net/meituantechblog/69e86f1a417ef555aed62d74c1152c53108351.png",
+      "fetched_at": "2026-08-06T01:52:36.674039+08:00"
+    },
+    {
+      "title": "让AI离开温室，走向动态世界：MineExplorer揭示顶级多模态大模型被忽视的能力断层",
+      "link": "https://tech.meituan.com/2026/07/24/LongCat-MineExplorer.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "假如你出生在一片未知的森林，太阳即将下山，饥肠辘辘，前方一只蜘蛛正向你缓慢爬来。——这是来自《我的世界》最经典的开局。\n\n此时如果你按下暂停，把截图发给所有顶级的多模态大模型，它们都能完美回答你：“黄昏、有怪物，面临威胁。”\n\n我们发现，多模态大模型能看懂图像、解析视频、在复杂场景里推理，然而一旦它们被丢进一个实时变化、需要持续探索的开放世界又会发生什么？\n\n为了深入探索，美团 LongCat 团队构建了**MineExplorer**——**首个在开放世界中做到分钟级长程任务的评测基准**，系统性地评测多模态大模型在需要长程规划、并包含隐藏前置条件的任务中的真实能力。\n\n**MineExplorer 核心看点：**\n\n* **一个能直接跑的评测基准**：813 个人工验证的高质量实例（1-hop 到 4-hop），配套规则化的里程碑自动评测框架。\n* **一套造题的方法论**：多智能体数据合成流程的完整代码，可自动合成训练任务。\n* **一个可扩展的训练环境**：基于 Minecraft 的沙盒，既能当考场，也能当练兵场。\n\n## 01 MineExplorer设计解密：让AI离开温室，走向动态世界\n\nMineExplorer 不再是简单的看图问答，而是围绕一系列创新，构建了一个前所未有的评测体系。\n\n![图1：MineExplorer自动化数据合成和评测范式简介](https://p1.meituan.net/meituantechblog/3415508a98cf053008ffb59af0ed592a421327.png)\n\n### 1.1 创新设计：构建一个动态开放的世界\n\n**创新点一：构建一个具备完整物理规则、会动态演化的世界**\n\nMineExplorer不是让模型看一张 Minecraft 截图做选择题，模型面对的是一个实时运行的3D沙盒世界。在评测中，每个任务实例会运行1800个环境步，每步执行 0.1 秒，对应一段3分钟的连续交互视频。也就是说在这3分钟时间里，环境一直在变：模型每做一个动作，世界状态就更新一次，它必须根据最新的画面不断调整策略。\n\n**创新点二：隐藏前置条件的长程多跳任务**\n\n这是 MineExplorer 最核心的设计，我们把任务按「跳数（hop）」分级，代表完成最终目标需要经过的隐藏前置步骤数量：\n\n* **简单任务**：目标明确的单跳任务，智能体不需要根据场景和任务描述推理出隐式的子任务。\n* **困难任务**：由2-4跳任务组成的多跳推理任务。最终目标虽然给出，但要完成它，必须先推理并完成若干**没有在指令里说明**的前置子任务。\n\n我们用一个数学化的方式来刻画这种结构。每个复合任务被定义为一个四元组 τ = (q, s₀, Gτ, Mτ)：q 是自然语言指令，s₀ 是初始状态，Gτ 是任务之间的**依赖图（DAG）**，Mτ 是规则化的里程碑检查器。关键在于：\\*\\*指令 q 并不会枚举依赖图里的所有节点，智能体必须自己从环境里推断出隐藏的前置任务。\\*\\*一个任务越难，意味着它需要越多样的能力、包含越多隐藏前置、依赖链越深。\n\n![图2：任务难度分布图](https://p0.meituan.net/meituantechblog/1466cfe7ae29ef6beadf4bf8920b61b9117170.png)\n\n**创新点三：知识解耦——我们测的是「通用探索」，不是「背 Minecraft Wiki」**\n\n这是 MineExplorer 区别于以往所有 Minecraft 评测基准的一个关键设计。我们的做法是主动把游戏专有知识剥离掉。对每一个原子任务，我们用LLM裁判判断其主要依赖的是通用世界常识，还是Minecraft专有机制，并过滤掉后者。换句话说：**我们测的不是「AI 会不会玩 Minecraft」，而是「AI 能不能在一个动态物理世界里自主探索」。**\n\n![图3：领域知识过滤图](https://p0.meituan.net/meituantechblog/27b8c5c7b9f9ae530adf7db2b37ee0d9117398.png)\n\n### 1.2 构建方法：一套可复用的多智能体数据合成范式\n\n构建高质量的长程任务基准本身就是难题。我们的解法是让一组各有分工的 AI 协作来造题。MineExplorer 用一个多智能体协作流程，五个专业 Agent 在一个群聊里协作，由一个 orchestrator 控制发言顺序：\n\n![](https://p0.meituan.net/meituantechblog/033d32b59d8891664d7de8ed0c836918946656.png)\n\n整个流程分初始化和辩论（debate）两个阶段，先生成初稿，再由专家和验证器找出问题并修订。\n\n如**下表所示**，人工评估结果显示，多智能体流程把有效率拉高了约 30 个百分点，质量分提升约 0.5 分，在最难的4-hop任务上优势尤其明显。最终，我们保留了 813 个通过人工验证的高质量复合任务实例。\n\n![表1：Benchmark质量人工评估表](https://p1.meituan.net/meituantechblog/92d0dc21970ca1a40a0386789f5a5256194522.png)\n\n### 1.3 能力覆盖：MineExplorer 到底在测什么？\n\nMineExplorer 借鉴 ReAct 范式，把开放世界探索拆解成三大能力维度，共 14 项细粒度能力：\n\n* **感知（Perception）：** 空间、时序、实体、状态、资源。\n* **推理（Reasoning）：** 常识、因果、关系。\n* **行动（Action）：** 移动、跳跃、采集、放置、合成、攻击。\n\n**如图所示**，最终的基准在三大维度上都有充足的覆盖，其中空间感知、移动、采集等基础能力出现频率最高，常识推理、因果推理也占了相当比例。\n\n![图4：能力覆盖分布图](https://p0.meituan.net/meituantechblog/5606f102fc399d300f8531427a08c4ef91444.png)\n\n## 02 核心洞察：18款顶级大模型测试，为何集体“考砸”了？\n\nMineExplorer不仅定义了考题，更给出了18个顶级模型的真实分数。**如下表所示**，这是横跨 Claude、GPT、Gemini 等八大家族的模型在整体任务成功率（TSR）上的排行榜。\n\n![表2：主体评测结果表](https://p1.meituan.net/meituantechblog/baa9165aab4bae0826f1a4f22315881b960739.png)\n\n我们发现，即便是表现最好的 Claude-Opus-4.6，整体成功率也只有 41 分。\n\n**| 洞察一：单跳尚可，多跳崩盘——问题就在隐藏前置条件**\n\n如图所示，最强模型Claude-Opus-4.6的表现，从1跳任务的77分，一路下滑到4跳任务的12分。每增加一层隐藏的前置依赖，模型就掉一个台阶。\n\n![表3：分级评测结果图](https://p0.meituan.net/meituantechblog/423b7c12487a277cac27bcafb215841f1105129.png)\n\n![图5：不同任务难度下的任务成功率对比图](https://p1.meituan.net/meituantechblog/0fe66c8cd12e6acd4b3273cb6e8999dd227554.png)\n\n**| 洞察二：会看，但不会想 —— 感知强于推理**\n\n在几乎所有被测模型上，我们都观察到同一个规律：**感知分数 > 行动分数 > 推理分数**。如下图所示，以Claude-Opus-4.6为例，其整体感知分61.91，推理分54.71。瓶颈不在于看不见，而在于看懂了却无法串联成有效策略。\n\n![图6：维度评测热力图](https://p0.meituan.net/meituantechblog/e552dbd0ed03151c3750b43d75ad37ba836166.png)\n\n**| 洞察三：近60%的失败原因，都是因为走不到目标**\n\n我们对 Claude-Opus-4.6 的失败案例进行了归因分析。**如下图所示**，导航失败是最大的错误来源，占比近 60%。\n\n![图7：失败类型分布图](https://p0.meituan.net/meituantechblog/0e685670220ce485c94a8a8f5468218f163985.png)\n\n**| 洞察四：给它更多步数、更多记忆，都不是解药**\n\n我们进一步做了消融实验，发现模型失败并非因为资源不足。\n\n* **步数**：如图所示，能解的任务，模型在早期就解出来了；解不了的，给到 1800 步上限照样解不了。\n\n![图8：平均完成步数图](https://p1.meituan.net/meituantechblog/4db113c30a91462928af6b6e28521ad8620229.png)\n\n* **记忆**：如图所示，增加历史画面帧数到一定程度后，性能反而会下降，因为过期的观察会干扰对当前局面的判断。\n\n![图9：记忆帧数影响图](https://p0.meituan.net/meituantechblog/3db3e8f4aeb4dfb68dce40379b0df7a9355836.png)\n\n**核心结论：瓶颈不在资源，而在模型没法把已有的信息和当前世界状态对齐。**\n\n## 03 总结：从看见世界到探索世界的鸿沟\n\nMineExplorer 揭示了一个被乐观情绪掩盖的能力断层：当前的多模态大模型，已经具备了不错的感知力，但严重缺乏在动态世界中持续行动的探索力。\n\n这对正在快速升温的具身智能赛道有几个直接的启示：\n\n* 感知层基本就绪，规划层是瓶颈。 模型能看懂环境，但把感知转化成长程、含隐藏前置的行动计划，才是从能看到能做之间真正的鸿沟。\n* 行业需要更接近真实复杂度的评测标准。在受控场景里跑通一个单步指令，不足以宣布AI能行动了。真实世界是动态的，充满未说明的前置条件，需要持续、长久化的探索。\n* 我们不仅提供了评测，还开源了自动合成任务的方法和训练环境。MineExplorer交付的不是一套静态题库，它还带着一整套自动合成长程任务的流程，和一个能直接拿来训练的Minecraft环境。评测、造题、训练，用的是同一套基础设施。\n\n我们不是要给具身智能泼冷水。恰恰相反，把瓶颈定位清楚，比盲目乐观更有价值。MineExplorer提供的，正是这样一条诚实、可量化的能力基线。\n\n看得见世界，不代表能探索世界。在一个会变化的世界里持续推理、持续行动——这才是AI走向真实世界，必须先跨过的那道门槛。MineExplorer 已全面开源，欢迎各大模型前来挑战开放世界。\n\n**🚀 开源链接**\n\n* **Paper**：<https://arxiv.org/abs/2605.30931>\n* **GitHub**：<https://github.com/meituan-longcat/MineExplorer>\n* **HuggingFace**：<https://huggingface.co/datasets/meituan-longcat/MineExplorer>",
+      "tags": [
+        "MineExplorer",
+        "多模态大模型",
+        "开放世界评测"
+      ],
+      "score": 85,
+      "summary": "美团发布MineExplorer，评测多模态大模型在开放世界中的长程任务能力。",
+      "image_url": "https://p1.meituan.net/meituantechblog/3415508a98cf053008ffb59af0ed592a421327.png",
+      "fetched_at": "2026-08-06T01:52:36.674042+08:00"
+    },
+    {
+      "title": "正式开源！美团 LongCat-2.0 同步开放国产卡推理代码",
+      "link": "https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "**本周，美团万亿参数大模型 LongCat-2.0 正式开源！**\n\n[HuggingFace](https://huggingface.co/meituan-longcat/LongCat-2.0) | [GitHub](https://github.com/meituan-longcat/LongCat-2.0) | [ModelScope](https://www.modelscope.cn/collections/meituan-longcat/LongCat-20)\n\n作为业界首个在五万卡国产算力集群上完成推理的万亿参数模型，LongCat-2.0 已全面开源。**针对显存与带宽受限的国产算力芯片，我们在模型架构、芯片适配到部署策略上进行了深度协同优化，让万亿参数模型在存量卡上同样跑得稳、跑得快。** 我们希望以真实 Agentic Coding 任务中的稳定表现为依托，通过开源将模型能力与推理优化成果完整开放，盘活更多存量国产算力，释放国产算力生态的长期价值。\n\n美团 LongCat-2.0 总参数 1.6T，平均激活约 48B，为真实的 Agentic Coding 任务而生，架构上创新性引入 LongCat 稀疏注意力和 N-gram Embedding，提升长上下文处理效率与 Token 级表示能力的同时，结合动态激活进一步强化了代码理解、生成以及执行的表现。\n\n## 01 模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理\n\n面对显存、带宽和互联的多重限制，LongCat-2.0 结合国产芯片特性，**从模型、芯片适配与部署三个方向逐一突破，实现了万亿参数模型的流畅推理：**\n\n* **模型层面：** Attention 通过 absorb 计算模式、Indexer 与 MLA prolog 并行处理以及 KVP 切分 KV-cache，有效缓解了超长上下文的 I/O 与显存压力。ScMoE 则利用国产芯片的控核能力，让 Dense 与 MoE 分支实现物理核心级并行执行，进一步压缩端到端延迟，实现了百万上下文在国产芯片上的高效推理；\n* **芯片适配层面：** 通过 Super Kernel 减少算子数量以降低启动开销，并以 Weight Prefetch 将 I/O 延迟隐藏在前序计算中；同时基于高速片间互联完成 layer-wise 的 KV-cache 传输，TP/SP/KVP 均在 scale-up 互联域内完成，在受限的显存和带宽条件下将硬件利用率最大化；\n* **部署策略层面：** 采用 PD 分离部署兼顾 TTFT 与 TPOT：Prefill 端通过缩小 Expert-Parallel 域与序列并行分担长序列计算压力，Decode 端以 KV-cache 切分与高并行度降低单卡显存占用，配合异步化 Expert-Parallel Load Balancing 解决大 EP 度下的负载不均。上述并行方案均已适配 constrained decoding、multi-step scheduling 和 MTP 等推理优化特性，实现了万亿参数模型在国产算力上的稳定服务。\n\nLongCat-2.0 验证了国产芯片承载复杂大模型任务的成熟能力，并希望通过开源为行业提供一条可复现的技术路径，推动存量算力在真实场景中的应用价值。\n\n## 02 模型全面升级，会执行、会推理、懂交互\n\nLongCat-2.0 沿用了 LongCat-Flash 的整体设计，并围绕 LongCat-2.0 在长上下文、代码任务和智能体场景中的进一步升级，做了三项关键优化：\n\n### 2.1 LongCat 稀疏注意力机制，提升上下文处理效率\n\n面向智能体任务中的长输入场景，LongCat-2.0 引入 LongCat 稀疏注意力机制（LSA），通过流感知索引、跨层索引和层级化索引三项策略减少碎片化访存和重复索引计算，在保持模型质量的前提下，加速百万级长上下文的训练与推理。\n\n![](https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png)\n\n### 2.2 引入 N-gram Embedding，提升参数利用效率\n\nLongCat-2.0 在 MoE 专家之外引入 N-gram Embedding 作为新的参数扩展路径。在 MoE 稀疏度已接近 97% 的情况下，将 135B 参数投入 N-gram Embedding 的收益远超继续扩充专家。该模块占比控制在总参数 10% 以内，兼顾了参数收益与结构稳定性。\n\n![](https://p1.meituan.net/meituantechblog/84d46b968d89efb8fd1bb66d3005680c29580.png)\n\n### 2.3 通过 MOPD 架构在国产算力集群上无缝融合，让模型会执行、会推理、懂交互\n\n后训练阶段，LongCat-2.0 采用多教师在线蒸馏，将专家分为 Agent、推理和交互三类，分别聚焦自主执行、自适应推理和安全对齐等核心能力。最终通过 MOPD 架构在国产算力集群上无缝融合，使模型兼具深度推理、自主执行与精准交互的综合表现。\n\n![](https://p0.meituan.net/meituantechblog/7e5f64947ed21d4b1c24d3e94d855844154812.png)\n\n## 03 开源开放\n\nLongCat-2.0 的开源，是一次技术路径的公开，也是一次生态邀约。\n\n本次开源同步提供 BF16、FP8 以及 INT8 等多精度版本，全面覆盖不同算力平台的部署需求。同时，我们深度拥抱开源社区，将针对国产算力极致优化的推理成果同步开源。这意味着，即使手上没有最新算力，也能基于现有硬件将 LongCat-2.0 稳定跑起来。\n\n我们希望通过这套开箱即用的推理栈，让更多的国产卡包括老卡，都能流畅部署万亿大模型推理服务，在真实生产力场景发挥更大价值。\n\n### 🚀 开源链接\n\n**Tech Blog：** <https://longcat.ai/blog/longcat-2.0/>\n\n**Model Weights：**\n\n* HuggingFace: <https://huggingface.co/meituan-longcat/LongCat-2.0>\n* GitHub: <https://github.com/meituan-longcat/LongCat-2.0>\n* ModelScope: <https://www.modelscope.cn/collections/meituan-longcat/LongCat-20>\n\n**Inference Code:**\n\n* GPU: <https://github.com/sgl-project/sglang/pull/30042>\n* NPU: <https://github.com/meituan-longcat/SGLang-FluentLLM/tree/npu>\n\n**API Platform：**\n\n* <https://longcat.chat/platform/product>",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力开源"
+      ],
+      "score": 95,
+      "summary": "美团正式开源万亿参数大模型LongCat-2.0，并开放国产卡推理代码。",
+      "image_url": "https://p1.meituan.net/meituantechblog/368b1cd0634db5c41b127242d8feee08118728.png",
+      "fetched_at": "2026-08-06T01:52:36.674044+08:00"
+    },
+    {
+      "title": "直播回放·含 ACL&apos;26 杰出论文 | 美团 AI 顶会论文 32 篇精讲",
+      "link": "https://tech.meituan.com/2026/07/11/2026-meituan-32-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "🏆 近日，ACL 2026 杰出论文奖在圣地亚哥揭晓，全球仅 18 篇入选，美团履约技术团队的《GeoRA: Geometry-Aware Low-Rank Adaptation for RLVR》上榜啦，一键直达视频回放👉🏻 [小红书](https://www.xiaohongshu.com/discovery/item/6a3b54740000000006030031?source=webshare&xhsshare=pc_web&xsec_token=ABh2ziW0cX7XYIsQ1VpYHUl5aZzXTt2-o0yyamYge4z-4=&xsec_source=pc_share) | [B站](https://www.bilibili.com/video/BV1v7jc6BENd/?spm_id_from=333.1387.upload.video_card.click&vd_source=8dac43659650af56650d7a9bc5f083d3)\n\n![图2](https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png)\n\n如果你正在关注 AI 前沿，这篇内容值得收藏。\n\n2026 年，美团技术团队数十篇论文被 ACL、SIGIR、ICML、KDD 等顶会收录。我们精选 32 篇，进行了 5 大专场直播。\n\n内容涵盖了大模型推理、智能体记忆与自进化、代码智能、多模态交互、超高清视频生成、本地生活搜索等方向——既有底层能力的突破，也有贴近生活服务的落地探索。\n\n如果你错过了直播，或者想再看一遍👇 五场回放都在这里啦，找到你感兴趣的议题，随时开始。\n\n特别感谢所有讲师与筹备团队的倾力支持！也感谢每一位关注美团技术成长的你！❤️\n\n## 专场一：ACL'26 综合专场\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b729b0de8000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783330950&share_id=e51dd478f4b34506aed7a49ca74b9113) ｜ [B站](https://space.bilibili.com/18937923/lists/8321546?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782776&idx=3&sn=77c72b469a871b499a46fe06be73225f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/fe16b3191f6276cdf692c76bb2b04308356559.png)\n\n## 专场二：ACL'26 履约团队前沿技术专场\n\n**出品人｜** Jichong Gao 美团高级技术专家、Jun Xu 美团高级技术专家\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72d90de6000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783331038&share_id=ca3358c821584b34a480efd8350ed035) ｜ [B站](https://space.bilibili.com/18937923/lists/8370607?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782810&idx=2&sn=aeb92a7c0c0bcf2befa7a201f1d4ece9&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/87835a72dafb62eb0c93a17fdab075ca674240.png)\n\n## 专场三：搜推 ASX 团队专场\n\n**出品人｜** Guojun Yin 美团研究员\n\n👉 直播回放入口→ [小红书](https://www.xiaohongshu.com/collection/item/6a4b72f50e97000000000001?xhsshare=CopyLink&appuid=6a3262ca000000000f03b001&apptime=1783478239&share_id=196398bf22d742bda21e83ee981f6615) ｜ [B站](https://space.bilibili.com/18937923/lists/8427999?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782896&idx=2&sn=ce2cb30b2d2b0e9ea12d03561124dd05&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/6498214ebe581bcea5541619c1cd145d359417.png)\n\n## 专场四：ICML'26 通用 Agent 前沿技术专场\n\n**出品人｜** Qi Gu 美团研究员\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8471639?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p0.meituan.net/meituantechblog/247700c227d0b4f4c7f88bb02adecdbe344171.png)\n\n## 专场五：ICML'26 综合专场\n\n👉 直播回放入口→ [B站](https://space.bilibili.com/18937923/lists/8485771?type=season)\n\n📚 论文简介及下载→ [点这里](https://mp.weixin.qq.com/s?__biz=MjM5NjQ5MTI5OA==&mid=2651782940&idx=2&sn=4456ee2f95bf8b1016981539d760253f&scene=21#wechat_redirect)\n\n![](https://p1.meituan.net/meituantechblog/cbd47f8df818779808c61e614f6087f7351215.png)",
+      "tags": [
+        "美团",
+        "ACL 2026",
+        "论文精讲"
+      ],
+      "score": 75,
+      "summary": "美团技术团队分享32篇顶会论文精讲，含ACL'26杰出论文。",
+      "image_url": "https://p0.meituan.net/meituantechblog/f434c8979e7670cd0402c7719141eb91178306.png",
+      "fetched_at": "2026-08-06T01:52:36.674046+08:00"
+    },
+    {
+      "title": "美团 LongCat-2.0 正式发布：在国产算力集群上完成全流程训练与推理的万亿参数模型",
+      "link": "https://tech.meituan.com/2026/06/30/LongCat2.0.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "6月30日，美团正式发布新一代万亿参数大模型 LongCat-2.0，并将对外开源。\n\n作为**业界首个在五万卡国产算力集群上完成全流程训练与推理的万亿参数模型**（总参数 1.6 T，平均激活约 48 B，动态范围 33B~56B），LongCat-2.0 从零开始预训练，原生支持 1M 超长上下文，其架构设计自始至终围绕一个核心目标：**让模型在真实的 Agentic Coding 任务中，更高效、更稳定地完成代码理解、生成与执行**。\n\n正式版发布前，LongCat-2.0预览版本已通过 OpenRouter 平台和[longcat.ai](https://longcat.ai/)面向全球开发者开放调用——截至目前该模型**已跻身 OpenRouter 全球大模型调用量前三**，月调用量在 Hermes、Claude Code 和 OpenClaw 分列全球第一、第二和第三位，**成为最受全球 Agent 开发者欢迎的模型之一**。\n\n## 01 国模国芯全栈协同：完成万亿参数 MoE 模型在国产算力上的稳定训练\n\nLongCat 团队对国产算力的探索始于 2023 年，三年来，团队从千卡起步，逐步攻克算子适配、通信优化、分布式稳定性等基础难题，最终在五万卡集群上完成万亿参数模型的全流程训练与推理。\n\nLongCat-2.0 预训练数据规模超过30Ttokens，覆盖中文、英文、多语言和代码等多类数据；面对万卡级训练中的硬件故障、通信异常、显存压力与数值波动，LongCat 团队从**稳定性、正确性和效率**三方面攻克国产算力训练难题。\n\n* 在**稳定性**上，通过卡间通信异常处理、弹性扩缩卡和自动故障恢复，将月均日故障率降低70%以上；\n* 在**正确性**上，通过自研设计确定性算子、Bitwise 一致性验证和参数检测，保障训练结果的可靠，同时基于实践提升关键模块计算精度、优化 Reduce 逻辑；\n* 在**效率**上，通过流水线调度、显存优化和算子级控核，训练 MFU 提升 1.5 倍。\n\n**最终，LongCat 实现稳态日吞吐超过1T tokens/day，完成万亿参数 MoE 模型在国产算力上的稳定训练。**\n\n在推理阶段，LongCat-2.0 围绕模型、算子和框架进行协同优化：通过大规模专家并行聚合访存带宽，支撑万亿参数 MoE 模型的低延迟解码；将零计算专家机制融入专家并行通信流程，使路由到零专家的 token 真正避免不必要的传输与计算；并针对通信、Attention、GEMM 等核心算子优化调度，结合提前下发与权重预取等框架机制，进一步降低推理链路中的等待开销。\n\n**从稳定训练到低延迟推理，LongCat-2.0 验证了我们已具备在国产算力集群上进行大规模模型训练的能力。它不只是“能训出”万亿参数模型，还让万亿参数模型能够在真实任务中稳定运行。**\n\n## 02 让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行\n\nLongCat-2.0 的架构设计始终围绕一个核心目标：**让模型在真实 Agentic Coding 任务中更高效、更稳定地完成代码理解、生成与执行**。\n\n**1M超长上下文，让 Agent 看见整个项目。传统模型在处理超过 100K 上下文后就开始“遗忘”前面的内容**。LongCat-2.0 采用**LongCat Sparse Attention（LSA）稀疏注意力机制**，在处理长文本时不再“逐字逐句地看”，而是智能筛选关键信息，将计算量从平方级降至线性级。这使得模型在 100 万 Token 的超长上下文中，依然保持精准的信息定位与理解能力。\n\n**零计算专家 + ScMoE，让算力用在刀刃上**。代码任务中不同 token 复杂度差异巨大——定义变量名和推导递归算法对算力的需求完全不同。LongCat-2.0 通过零计算专家实现 token 级动态激活（33B~56B），简单 token 不消耗算力，复杂 token 自动获得更多计算资源。\n\n**MOPD 多专家融合，一个模型同时擅长写代码、做推理、懂交互**。LongCat-2.0 通过 MOPD 架构融合 Agent、Reasoning、Interaction 三组专家能力——Agent Experts 专攻工具调用与自主纠错，Reasoning Experts 深耕数学与 STEM 推理，Interaction Experts 优化指令遵循与交互体验。推理时由门控网络根据任务类型动态调度最擅长的专家，而非简单合并参数。得益于此，模型在编程、推理、交互等维度均表现突出。\n\n**LongCat-2.0 通过精细的架构设计，让万亿参数模型在实际任务中更高效、更稳定地发挥能力。**\n\n![](https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png)\n\n## 03 在编程能力、真实办公场景的复杂任务处理方面表现优异\n\n综合评测结果显示，LongCat-2.0 凭借卓越的综合性能与稳定的任务表现，**在 Code 和 General Agent 场景表现优异**。\n\n![](https://p0.meituan.net/meituantechblog/9d8da6909183ad1a8e591186849c0947457784.png)\n\n* **在编程能力方面**，LongCat-2.0 展现出扎实的综合实力：在考察深层工程能力的 SWE-bench Pro 中获得 59.5，领先Gemini 3.1 Pro（54.2）、GPT-5.5（58.6）和 Claude Opus 4.6（57.3）；在 SWE-bench Multilingual 中取得 77.3 的成绩，与 Claude Opus 4.6（77.8）保持在同一水位；此外，在真实终端指令交互评测 Terminal-Bench 2.1 中取得 70.8，体现了其在真实运维与开发终端任务中的稳定执行与纠错能力。\n* **在真实办公场景的复杂任务处理方面**，LongCat-2.0 表现均衡：在搜索智能体评测集RWSearch中获得 78.8，在生产力场景评测集 FORTE 中获得 73.2 ，在 BrowseComp 中获得 79.9，均达到或接近前沿闭源模型水平，证明了其在多步骤任务规划、复杂工具调用及长程检索执行上的高可靠性，能够较好的契合企业级 Agent 的落地需求。\n\n## 04 在真实工作场景中，成为大家可靠的“工作伙伴”\n\n内测期间，我们面向真实工作场景征集了大量真实的用户任务需求，这些来自一线的真实“工作单”，可以看出 LongCat-2.0 在用户的真实工作场景中正在成为他们可靠的“工作伙伴”。\n\n**Agent 搭建：一问即得，全闭环交付**\n\n通过 LongCat-2.0 搭建的 AI SQL Agent，业务人员可以直接用自然语言查询数据。LongCat-2.0 自动完成全链路闭环——理解问题意图、规划查询步骤，并将数据结果转化为清晰的业务洞察。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**代码库迁移：读懂老代码，重构新架构**\n\n给 LongCat-2.0 一个旧版插件代码库和一份新版SDK文档，它能自行分析整体架构、梳理核心逻辑，再将整个插件重构为符合新API的实现——保留全部原有功能，修复潜在隐患，编译一次通过。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**完整应用开发：从一句话到可运行产品**\n\n描述一个“儿童AI游戏训练场”的创意，LongCat-2.0 会逐步生成技术选型、页面架构、游戏逻辑与视觉细节——从首页到三个完整可玩的游戏页面，全部代码一次产出，开箱即用。从一句话到可用的产品，将灵感轻松实现。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**3D交互演示：一句话，生成一个3D世界**\n\n通过一句话描述，LongCat-2.0 即可生成完整 Three.js 3D 演示：透明烧瓶、荧光液体、泡沫喷发、液面下降和堆积效果全部可交互呈现。所有代码封装在一个 HTML 文件中，打开即用，让创意快速转化为可交互的3D体验。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**AI 小说工厂：从单点灵感到商业变现**\n\n基于 LongCat-2.0 构建的“AI小说工厂”，将创意写作升级为自动化内容流水线。用户输入灵感后，系统编排多个 Agent，自动完成世界观构建、并行章节生成、质量评估与回流修订。并通过长上下文能力保障百万字级设定一致性。最终内容可自动适配多平台发布，并由 Web 面板实时监控生成进度与质量状态，实现持续稳定的连载输出。\n\n[查看视频](https://mp.weixin.qq.com/s/9XFcx3fmFcmbry5bHMJsow)\n\n**立即体验**\n\n* **API 开放平台：<https://longcat.chat/platform/product>**",
+      "tags": [
+        "LongCat-2.0",
+        "万亿参数",
+        "国产算力"
+      ],
+      "score": 95,
+      "summary": "美团发布万亿参数大模型LongCat-2.0，在五万卡国产算力完成全流程训练与推理。",
+      "image_url": "https://p1.meituan.net/meituantechblog/ef19600fdb0e6868a3574c4a8c7ff746220482.png",
+      "fetched_at": "2026-08-06T01:52:36.674049+08:00"
+    },
+    {
+      "title": "美团技术团队顶会论文分享：搜索推荐ASX专场",
+      "link": "https://tech.meituan.com/2026/06/18/2026-ASX.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "美团业务研发平台/搜推 ASX (Agentic System X)团队聚焦构建大模型为基础的 Agent 技术体系，在大模型后训练、Agentic 强化学习以及多模态理解等核心前沿方向持续深耕，已在 ICLR、NeurIPS、CVPR、AAAI 等 AI 领域的国际顶会发表数十篇高质量研究成果。本文精选了6篇进行解读，希望对大家有所帮助或启发。\n\n## 01 Contextual Rollout Bandits for Reinforcement Learning with Verifiable Rewards\n\n**上下文轨迹老虎机：面向可验证奖励的强化学习**\n\n论文下载：[PDF](https://arxiv.org/abs/2602.08499)\n\n![](https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png)\n\n**论文简介**：现有基于规则奖励的强化学习后训练通常直接使用最近一轮 rollout 进行策略优化，其中，低质量样本会引入噪声，高质量样本又常在单次使用后被丢弃，导致训练不稳定、样本利用不足。本文提出在线样本调度算法 CBS，将样本选择建模为上下文多臂老虎机问题，把每个候选样本视为 arm，并以训练后带来的性能增益作为奖励；通过轻量神经网络预测样本价值，并结合在线反馈动态调度。实验表明，CBS 可与多种策略优化方法结合，在 6 个数学推理数据集上稳定提升性能和训练效率。\n\n## 02 ResRL: Boosting LLM Reasoning via Negative Sample Projection Residual Reinforcement Learning\n\n**ResRL：通过负样本投影残差强化学习提升大语言模型推理能力**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2605.00380)\n\n![](https://p1.meituan.net/meituantechblog/c3dfb092a8e1937a69abc1722d9331f0509496.png)\n\n**论文简介**：本文提出 ResRL，一个负样本强化学习的新算法，旨在解决RLVR 提升LLM推理能力却损伤了输出多样性的问题。我们发现根因是惩罚负样本时误伤了正负样本共享的有效语义。ResRL 用 SVD 正确子空间 +投影残差，让惩罚只打在“真正的错误方向”上--数学超 NSR 9.4%、代码刷新 CodeForces SOTA、ALFWorld 超 PPO 7.8%，且 Pass@1 与 Pass@k 兼得。\n\n## 03 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**CDRRM：对比驱动的评分准则生成以实现可靠且可解释的奖励建模**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/8847ebcc0f8b9e40bc4e27cf77c58e83700241.png)\n\n**论文简介**：本文提出 CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 04 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**LocalSearchBench:真实本地生活服务中的智能体搜索基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p1.meituan.net/meituantechblog/169201562bedc76379b2721360d481a3524305.png)\n\n**论文简介**：本文针对本地生活服务领域智能体搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含超 134 万商户数据与 900 道用户多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现,当前模型在此类任务表现不佳，最优模型 DeepSeek-V3.2 答题正确率仅 35.60%，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 05 DiningBench: A Hierarchical Multi-view Benchmark for Perception and Reasoning in the Dietary Domain\n\n**DiningBench：饮食领域感知与推理的层次化多视角基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10425)\n\n![](https://p0.meituan.net/meituantechblog/147fffac098126cce65e2db924ae00c0336417.png)\n\n**论文简介**：本论文提出 DiningBench，一个面向饮食领域的层次化多视角 VLM 评测基准，旨在弥补现有数据集任务单一、视角有限和营养标注不足的问题。该基准包含细粒度分类、营养估计和视觉问答三类任务，覆盖 3,021 道菜品和多视角图像。通过评测 29 个主流VLM模型，揭示现有模型在细粒度识别、营养推理和多视角融合上的不足。\n\n## 06 Mem²Evolve: Towards Self-Evolving Agents via Co-Evolutionary Capability Expansion and Experience Distillation\n\n**Mem2Evolve：通过协同进化能力扩展与经验蒸馏实现自进化智能体**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.10923v1)\n\n![](https://p0.meituan.net/meituantechblog/383439ef9a174a64e2bb1775919ae3c3476454.png)\n\n**论文简介**：本文提出 Mem2Evolve，一个面向大语言模型智能体的自进化框架，通过 Asset Memory 与 Experience Memory 双记忆机制，协同实现能力扩展与经验积累。该框架可在任务执行中动态复用或创建工具与专家智能体，并从成功和失败轨迹中蒸馏可迁移经验。实验覆盖 6 类任务、8 个基准，结果表明 Mem2Evolve 显著优于普通 LLM 及单一进化策略，展现出更强的持续学习与任务泛化能力。",
+      "tags": [
+        "美团",
+        "搜索推荐",
+        "顶会论文"
+      ],
+      "score": 75,
+      "summary": "美团ASX团队分享搜索推荐方向6篇顶会论文。",
+      "image_url": "https://p1.meituan.net/meituantechblog/b59c0ffafdeba4539136582e0271b740362659.png",
+      "fetched_at": "2026-08-06T01:52:36.674052+08:00"
+    },
+    {
+      "title": "MerchantBench\n\nBenchmarking LLM Agents for Long-Term Coherence in E-Commerce Operations\n\npaper: http...",
+      "link": "https://x.com/_akhaliq/status/2085048994976124988",
+      "published": "2026-08-06T01:03:13+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "MerchantBench  \n  \nBenchmarking LLM Agents for Long-Term Coherence in E-Commerce Operations  \n  \npaper: [huggingface.co/papers/2607.28…](https://huggingface.co/papers/2607.28956)\n\n![Tweet Image](https://pbs.twimg.com/media/HO-UzuxWEAAlAJk.jpg)\n\n💬3🔄2❤️5👀2793📊4",
+      "tags": [
+        "MerchantBench",
+        "电商Agent",
+        "长期连贯性"
+      ],
+      "score": 80,
+      "summary": "AK分享MerchantBench基准，用于评测LLM Agent在电商运营中的长期连贯性。",
+      "fetched_at": "2026-08-06T01:52:36.674054+08:00"
+    },
+    {
+      "title": "I really wanted to like vertical tabs, but I just can't. After a 3 week trial, I am back to horizont...",
+      "link": "https://x.com/adocomplete/status/2085033379414851614",
+      "published": "2026-08-06T00:01:10+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "I really wanted to like vertical tabs, but I just can't. After a 3 week trial, I am back to horizontal tabs. The extra screen real estate is too much to give up.\n\n💬4🔄0❤️10👀1213📊6",
+      "tags": [
+        "垂直标签页",
+        "屏幕空间"
+      ],
+      "score": 30,
+      "summary": "用户吐槽垂直标签页占用屏幕空间，三周后回归水平标签页。",
+      "fetched_at": "2026-08-06T01:52:36.674057+08:00"
+    },
+    {
+      "title": "Always striking the amount of founder talent I see in such a small space every time I visit SPC.",
+      "link": "https://x.com/amasad/status/2085041697155932506",
+      "published": "2026-08-06T00:34:13+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "Always striking the amount of founder talent I see in such a small space every time I visit SPC.\n\n![Aditya Agarwal](https://pbs.twimg.com/profile_images/1445089558161334279/0nZjx6qu_normal.jpg)\n\nAditya Agarwal@adityaag\n\nToday we’re announcing SPC Fund IV: $575M to help founders find their life’s work.  \n  \nA decade of guiding founders through -1 to 0 brings [@SPC](https://x.com/SPC) to $2B in AUM and, more importantly, a 1200 member community of the world’s most talented technologists. We strongly believe that:  \n  \n→ The person comes before the idea. At -1, generational founders are often busy reading, prototyping, discarding, and earning the right to their own conviction.  \n→ Ambition is social. The people you surround yourself with in the early days play a big part in inflecting your ambition.  \n→ Patience compounds. It is better to work on something you have deep conviction in rather than simply sprint at the first idea.  \n  \nThe quiet months we protect at the beginning have produced three funds in the top 10% of their vintages, and companies like [@baseten](https://x.com/baseten), [@GammaApp](https://x.com/GammaApp), [@render](https://x.com/render), [@GoodfireAI](https://x.com/GoodfireAI), [@LumaLabsAI](https://x.com/LumaLabsAI), and [@tryprofound](https://x.com/tryprofound). We are proud to have worked with all these founders in their -1 phase and beyond.  \n  \nWhile we defined -1 to 0, we're no longer bound by it. Fund IV allows us to partner with companies well beyond launch.  \n  \nWe're doing this now because we've never seen a wider gap between what's possible and what's being attempted. Intelligence is abundant. The cost of trying ideas keeps falling, and problems that seemed insurmountable a few years ago are quickly becoming solvable.  \n  \nTo our members, to the founders who trusted us before anyone else did, and to the LPs who had conviction in our own -1 journey: thank you. This milestone belongs to you as much as to us.  \n  \nTo the builders looking to find your life’s work: let’s get started.\n\n![Tweet Image](https://pbs.twimg.com/media/HO-Fn3AXYAEf137.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/adityaag/status/2085034980866998632)\n\n💬4🔄2❤️18👀3554📊4",
+      "tags": [
+        "SPC Fund IV",
+        "5.75亿美元",
+        "AI投资"
+      ],
+      "score": 70,
+      "summary": "SPC宣布Fund IV规模5.75亿美元，支持创始人早期发展。",
+      "fetched_at": "2026-08-06T01:52:36.674059+08:00"
+    },
+    {
+      "title": "I’ve been working towards AGI my whole life, and as we enter this pivotal moment, I’m stepping into ...",
+      "link": "https://x.com/demishassabis/status/2085034334914769203",
+      "published": "2026-08-06T00:04:58+08:00",
+      "source": "Demis Hassabis(@demishassabis)",
+      "content": "I’ve been working towards AGI my whole life, and as we enter this pivotal moment, I’m stepping into a new role as Chair of Google DeepMind & Chief Scientist of Alphabet. This will allow me to focus on long-term strategy, and accelerating scientific breakthroughs, including leaning into my work at Isomorphic to help cure disease.  \n  \nI’m excited that [@koraykv](https://x.com/koraykv) will be stepping up to lead GDM as SVP, alongside [@joshwoodward](https://x.com/joshwoodward) and our exec team. I could not be more excited and confident about our amazing next chapter! 🚀  \n[blog.google/company-news/i…](https://blog.google/company-news/inside-google/message-ceo/next-chapter-ai-momentum)a\n\n💬421🔄613❤️7319👀400386📊1127",
+      "tags": [
+        "Demis Hassabis",
+        "Google DeepMind",
+        "新角色"
+      ],
+      "score": 95,
+      "summary": "Demis Hassabis宣布转任Google DeepMind主席兼Alphabet首席科学家，Koray接任领导。",
+      "fetched_at": "2026-08-06T01:52:36.674062+08:00"
+    },
+    {
+      "title": "serious talent, excellent project.",
+      "link": "https://x.com/GaryMarcus/status/2085052130256380092",
+      "published": "2026-08-06T01:15:40+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "serious talent, excellent project.\n\n![Jeff Dean](https://pbs.twimg.com/profile_images/935325968280907776/AcBo6zJc_normal.jpg)\n\nJeff Dean@JeffDean\n\nAnnouncing Discovery Loop!   \n  \nI am very excited to announce that, along with my longtime friends and collaborators [@Sanjay\\_Ghemawat](https://x.com/Sanjay_Ghemawat), [@OriolVinyalsML](https://x.com/OriolVinyalsML) and [@quocleix](https://x.com/quocleix), we are founding Discovery Loop ([@DiscoLoopAI](https://x.com/DiscoLoopAI)), a Public Benefit Corporation whose mission is to automate machine learning, science, and engineering to accelerate discoveries and progress. The four of us have worked together for 14 to 30 years, and have helped build some of the world’s most used products, infrastructure and AI models, and we’re excited to turn our attention to this ambitious endeavor.  \n  \n♾  \n  \nLearn more at: [discoveryloop.com](http://www.discoveryloop.com)\n\n![Tweet Image](https://pbs.twimg.com/media/HO-HtcYbIAA08Zn.jpg)![Tweet Image](https://pbs.twimg.com/media/HO-H2mkaIAEq2Hq.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/JeffDean/status/2085034604172603724)\n\n💬0🔄1❤️7👀1849📊1",
+      "tags": [
+        "Discovery Loop",
+        "Jeff Dean",
+        "AI创业"
+      ],
+      "score": 80,
+      "summary": "Gary Marcus称赞Jeff Dean创立Discovery Loop是'严肃人才、优秀项目'。",
+      "fetched_at": "2026-08-06T01:52:36.674064+08:00"
+    },
+    {
+      "title": "Absolute A-list team, leaving on good terms with Google, but still another big loss for Google.",
+      "link": "https://x.com/GaryMarcus/status/2085050135659299287",
+      "published": "2026-08-06T01:07:45+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Absolute A-list team, leaving on good terms with Google, but still another big loss for Google.\n\n![rat king 🐀](https://pbs.twimg.com/profile_images/1712602900189650944/0hCb1PL1_normal.jpg)\n\nrat king 🐀@MikeIsaac\n\nbig news in googleland from [@CadeMetz](https://x.com/CadeMetz)[@JeffDean](https://x.com/JeffDean) to depart with top colleagues and launch his own startup focused on A.I. recursive self improvement  \n  \n[nytimes.com/2026/08/05/tec…](https://www.nytimes.com/2026/08/05/technology/google-researchers-ai-startup.html)\n\n[🔗 View Quoted Tweet](https://x.com/MikeIsaac/status/2085035496707870945)\n\n💬0🔄0❤️15👀2794📊1",
+      "tags": [
+        "Jeff Dean",
+        "离职创业",
+        "谷歌损失"
+      ],
+      "score": 75,
+      "summary": "Gary Marcus评论Jeff Dean等顶尖团队离开Google创业是谷歌的重大损失。",
+      "fetched_at": "2026-08-06T01:52:36.674067+08:00"
+    },
+    {
+      "title": "⚠️⚠️⚠️\nConstitutional AI is not working.\n\nAligning LLMs is not working.\n\nWe need a different approac...",
+      "link": "https://x.com/GaryMarcus/status/2085041910033633541",
+      "published": "2026-08-06T00:35:04+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "⚠️⚠️⚠️  \nConstitutional AI is not working.  \n  \nAligning LLMs is not working.  \n  \nWe need a different approach.  \n  \nIf society doesn’t place its bets differently, we are screwed.\n\n![CNBC](https://pbs.twimg.com/profile_images/1999829242431811587/iTRuu0Me_normal.jpg)\n\nCNBC@CNBC\n\nAnthropic's Mythos created fake identities to fool humans in new cyber incident [cnbc.com/2026/08/05/ant…](https://www.cnbc.com/2026/08/05/anthropic-mythos-openai-security-breaches.html?taid=6a730f11423cf600011cf8c5&utm_campaign=trueanthem&utm_content=main&utm_medium=social&utm_source=twitter)\n\n[🔗 View Quoted Tweet](https://x.com/CNBC/status/2084948333496254555)\n\n💬7🔄10❤️36👀4272📊10",
+      "tags": [
+        "Constitutional AI",
+        "AI对齐",
+        "Anthropic"
+      ],
+      "score": 50,
+      "summary": "Gary Marcus称宪法AI与LLM对齐失败，需换新方法。",
+      "fetched_at": "2026-08-06T01:52:36.674069+08:00"
+    },
+    {
+      "title": "wow! my impression is that @koraykv is terrific but this is big news.",
+      "link": "https://x.com/GaryMarcus/status/2085039754081616176",
+      "published": "2026-08-06T00:26:30+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "wow! my impression is that [@koraykv](https://x.com/koraykv) is terrific but this is big news.\n\n![Demis Hassabis](https://pbs.twimg.com/profile_images/1990472620614053888/xrAu0wQL_normal.jpg)\n\nDemis Hassabis@demishassabis\n\nI’ve been working towards AGI my whole life, and as we enter this pivotal moment, I’m stepping into a new role as Chair of Google DeepMind & Chief Scientist of Alphabet. This will allow me to focus on long-term strategy, and accelerating scientific breakthroughs, including leaning into my work at Isomorphic to help cure disease.  \n  \nI’m excited that [@koraykv](https://x.com/koraykv) will be stepping up to lead GDM as SVP, alongside [@joshwoodward](https://x.com/joshwoodward) and our exec team. I could not be more excited and confident about our amazing next chapter! 🚀  \n[blog.google/company-news/i…](https://blog.google/company-news/inside-google/message-ceo/next-chapter-ai-momentum)a\n\n[🔗 View Quoted Tweet](https://x.com/demishassabis/status/2085034334914769203)\n\n💬0🔄1❤️25👀6806📊3",
+      "tags": [
+        "Koray Kavukcuoglu",
+        "Google DeepMind"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus对Koray接任DeepMind领导表示惊叹，认为是重大新闻。",
+      "fetched_at": "2026-08-06T01:52:36.674072+08:00"
+    },
+    {
+      "title": "sample receipt:",
+      "link": "https://x.com/GaryMarcus/status/2085033253548032063",
+      "published": "2026-08-06T00:00:40+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "sample receipt:\n\n💬0🔄1❤️5👀1637📊1",
+      "tags": [
+        "Gary Marcus"
+      ],
+      "score": 10,
+      "summary": "Gary Marcus发布一条仅含'示例回执'的推文。",
+      "fetched_at": "2026-08-06T01:52:36.674075+08:00"
+    },
+    {
+      "title": "mainlining AI agents into society is dangerous. \n\nwhy didn’t anyway listen when i was warning you ab...",
+      "link": "https://x.com/GaryMarcus/status/2085031495085982182",
+      "published": "2026-08-05T23:53:41+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "mainlining AI agents into society is dangerous.   \n  \nwhy didn’t anyway listen when i was warning you about this 18 months ago?\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\n⚠️⚠️   \n  \nEasily jailbroken AI agents that excel at mimicry but lack the capacity and imperative to evaluate the consequences of their actions are going to cause massive harm.  \n  \n“Mainlining them” into society is a huge mistake.\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/1879659724897169833)\n\n💬2🔄3❤️9👀3127📊3",
+      "tags": [
+        "AI Agent",
+        "AI安全"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus警告将AI代理大规模融入社会危险，后悔未听取18个月前的警告。",
+      "fetched_at": "2026-08-06T01:52:36.674077+08:00"
+    },
+    {
+      "title": "What does it take to modernize an 8-year-old codebase?\n\nStacks (on stacks). 🥞 https://t.co/DHuaiLrz...",
+      "link": "https://x.com/github/status/2085039546576806332",
+      "published": "2026-08-06T00:25:40+08:00",
+      "source": "GitHub(@github)",
+      "content": "What does it take to modernize an 8-year-old codebase?  \n  \nStacks (on stacks). 🥞[x.com/i/article/2084…](http://x.com/i/article/2084722601482657792)X\n\n💬6🔄3❤️27👀7637📊8",
+      "tags": [
+        "GitHub",
+        "代码现代化"
+      ],
+      "score": 70,
+      "summary": "GitHub发文探讨现代化8年历史代码库所需的技术栈。",
+      "fetched_at": "2026-08-06T01:52:36.674080+08:00"
+    },
+    {
+      "title": "Interesting",
+      "link": "https://x.com/rauchg/status/2085034212466499941",
+      "published": "2026-08-06T00:04:28+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Interesting\n\n![Tweet Image](https://pbs.twimg.com/media/HO-HiowaQAAp0ea.jpg)\n\n💬2🔄0❤️9👀2453📊3",
+      "tags": [
+        "Guillermo Rauch"
+      ],
+      "score": 20,
+      "summary": "Vercel CEO转发图片并评论'有趣'，无具体内容。",
+      "fetched_at": "2026-08-06T01:52:36.674082+08:00"
+    },
+    {
+      "title": "I'm excited for the launch of @224ventureshq . I'm one of their LPs, helping to identify exceptional...",
+      "link": "https://x.com/goodfellow_ian/status/2085050047583182968",
+      "published": "2026-08-06T01:07:24+08:00",
+      "source": "Ian Goodfellow(@goodfellow_ian)",
+      "content": "I'm excited for the launch of [@224ventureshq](https://x.com/224ventureshq) . I'm one of their LPs, helping to identify exceptional founders early\n\n![shaunbjohnson](https://pbs.twimg.com/profile_images/1756479728926801920/Lh5_gKTg_normal.jpg)\n\nshaunbjohnson@shaunbjohnson\n\n[x.com/i/article/2084…](http://x.com/i/article/2084949271585927168)\n\n[🔗 View Quoted Tweet](https://x.com/shaunbjohnson/status/2084957685343035736)\n\n💬4🔄2❤️41👀4665📊8",
+      "tags": [
+        "Ian Goodfellow",
+        "224 Ventures",
+        "LP"
+      ],
+      "score": 70,
+      "summary": "Ian Goodfellow宣布成为224 Ventures的LP，帮助识别早期创始人。",
+      "fetched_at": "2026-08-06T01:52:36.674085+08:00"
+    },
+    {
+      "title": "One more fun slide from our pitch deck.",
+      "link": "https://x.com/JeffDean/status/2085044057387286583",
+      "published": "2026-08-06T00:43:36+08:00",
+      "source": "Jeff Dean(@JeffDean)",
+      "content": "One more fun slide from our pitch deck.\n\n![Tweet Image](https://pbs.twimg.com/media/HO-QXHxbEAI4Uv3.jpg)\n\n💬7🔄1❤️129👀11446📊17",
+      "tags": [
+        "Discovery Loop",
+        "Jeff Dean",
+        "Pitch Deck"
+      ],
+      "score": 80,
+      "summary": "Jeff Dean分享Discovery Loop的Pitch Deck幻灯片。",
+      "fetched_at": "2026-08-06T01:52:36.674087+08:00"
+    },
+    {
+      "title": "Our immediate order of business is to find office space, and hire an amazing founding team over the ...",
+      "link": "https://x.com/JeffDean/status/2085036513449140679",
+      "published": "2026-08-06T00:13:37+08:00",
+      "source": "Jeff Dean(@JeffDean)",
+      "content": "Our immediate order of business is to find office space, and hire an amazing founding team over the next few weeks. We want to create an awesome environment with a great culture of technical excellence, teamwork, respect, and ambition. We’ll also start building our infrastructure and AI models and systems to tackle our first domain: automating large-scale experimentation for ML research and engineering. In doing so, we’re going to be our own first customers. The rapid feedback from doing that is the way to build something amazing.  \n  \nOh, we’re hiring! See [discoveryloop.com](http://discoveryloop.com)\n\n💬17🔄7❤️217👀22628📊39",
+      "tags": [
+        "Discovery Loop",
+        "Jeff Dean",
+        "招聘"
+      ],
+      "score": 85,
+      "summary": "Jeff Dean称Discovery Loop首要任务是招人，将先构建ML实验自动化基础设施。",
+      "fetched_at": "2026-08-06T01:52:36.674090+08:00"
+    },
+    {
+      "title": "We created a pitch deck to tell a handful of VC firms about us and what we were up to (a fun experie...",
+      "link": "https://x.com/JeffDean/status/2085036253263921218",
+      "published": "2026-08-06T00:12:35+08:00",
+      "source": "Jeff Dean(@JeffDean)",
+      "content": "We created a pitch deck to tell a handful of VC firms about us and what we were up to (a fun experience!). Here’s a few slides about our background and some of the things we’ve worked on from the pitch deck (it was fun putting together the list of people in our teams who have gone on to found a whole range of exciting companies). We are delighted to have selected [@radicalvcfund](https://x.com/radicalvcfund)   \nand [@khoslaventures](https://x.com/khoslaventures) to lead our initial funding round, along with participation from [@lightspeedvp](https://x.com/lightspeedvp), [@kleinerperkins](https://x.com/kleinerperkins), Doerr Capital ([@johndoerr](https://x.com/johndoerr)), and Alphabet ([@Google](https://x.com/Google)). We’ll be working with them to close our seed round over the next few weeks.\n\n![Tweet Image](https://pbs.twimg.com/media/HO-JMm7bUAAt4qG.jpg)![Tweet Image](https://pbs.twimg.com/media/HO-JRwXaAAACtqV.jpg)![Tweet Image](https://pbs.twimg.com/media/HO-JYuKaAAAttF8.jpg)\n\n💬2🔄2❤️27👀2562📊6",
+      "tags": [
+        "Discovery Loop",
+        "种子轮",
+        "Radical VC"
+      ],
+      "score": 85,
+      "summary": "Jeff Dean透露Discovery Loop获Radical VC和Khosla Ventures领投，Alphabet参投。",
+      "fetched_at": "2026-08-06T01:52:36.674092+08:00"
+    },
+    {
+      "title": "Announcing Discovery Loop! \n\nI am very excited to announce that, along with my longtime friends and ...",
+      "link": "https://x.com/JeffDean/status/2085034604172603724",
+      "published": "2026-08-06T00:06:02+08:00",
+      "source": "Jeff Dean(@JeffDean)",
+      "content": "Announcing Discovery Loop!   \n  \nI am very excited to announce that, along with my longtime friends and collaborators [@Sanjay\\_Ghemawat](https://x.com/Sanjay_Ghemawat), [@OriolVinyalsML](https://x.com/OriolVinyalsML) and [@quocleix](https://x.com/quocleix), we are founding Discovery Loop ([@DiscoLoopAI](https://x.com/DiscoLoopAI)), a Public Benefit Corporation whose mission is to automate machine learning, science, and engineering to accelerate discoveries and progress. The four of us have worked together for 14 to 30 years, and have helped build some of the world’s most used products, infrastructure and AI models, and we’re excited to turn our attention to this ambitious endeavor.  \n  \n♾  \n  \nLearn more at: [discoveryloop.com](http://www.discoveryloop.com)\n\n![Tweet Image](https://pbs.twimg.com/media/HO-HtcYbIAA08Zn.jpg)![Tweet Image](https://pbs.twimg.com/media/HO-H2mkaIAEq2Hq.jpg)\n\n💬324🔄573❤️5561👀447440📊1118",
+      "tags": [
+        "Discovery Loop",
+        "Jeff Dean",
+        "AI创业"
+      ],
+      "score": 95,
+      "summary": "Jeff Dean宣布与Sanjay Ghemawat等创立Discovery Loop，专注自动化ML、科学与工程。",
+      "fetched_at": "2026-08-06T01:52:36.674095+08:00"
+    },
+    {
+      "title": "this is the agi version of the paypal mafia",
+      "link": "https://x.com/jerryjliu0/status/2085045819229761660",
+      "published": "2026-08-06T00:50:36+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "this is the agi version of the paypal mafia\n\n![Jeff Dean](https://pbs.twimg.com/profile_images/935325968280907776/AcBo6zJc_normal.jpg)\n\nJeff Dean@JeffDean\n\nAnnouncing Discovery Loop!   \n  \nI am very excited to announce that, along with my longtime friends and collaborators [@Sanjay\\_Ghemawat](https://x.com/Sanjay_Ghemawat), [@OriolVinyalsML](https://x.com/OriolVinyalsML) and [@quocleix](https://x.com/quocleix), we are founding Discovery Loop ([@DiscoLoopAI](https://x.com/DiscoLoopAI)), a Public Benefit Corporation whose mission is to automate machine learning, science, and engineering to accelerate discoveries and progress. The four of us have worked together for 14 to 30 years, and have helped build some of the world’s most used products, infrastructure and AI models, and we’re excited to turn our attention to this ambitious endeavor.  \n  \n♾  \n  \nLearn more at: [discoveryloop.com](http://www.discoveryloop.com)\n\n![Tweet Image](https://pbs.twimg.com/media/HO-HtcYbIAA08Zn.jpg)![Tweet Image](https://pbs.twimg.com/media/HO-H2mkaIAEq2Hq.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/JeffDean/status/2085034604172603724)\n\n💬4🔄2❤️19👀1652📊6",
+      "tags": [
+        "Discovery Loop",
+        "Jeff Dean",
+        "AGI"
+      ],
+      "score": 65,
+      "summary": "Jerry Liu称Jeff Dean等创业是'AGI版PayPal黑帮'。",
+      "fetched_at": "2026-08-06T01:52:36.674097+08:00"
+    },
+    {
+      "title": "Imagine you're a senior SWE and when you get to the cockpit you find four vibecoders stuck on localh...",
+      "link": "https://x.com/venturetwins/status/2085031820031414482",
+      "published": "2026-08-05T23:54:58+08:00",
+      "source": "Justine Moore(@venturetwins)",
+      "content": "Imagine you're a senior SWE and when you get to the cockpit you find four vibecoders stuck on localhost ☠️\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085030014597394432/vid/avc1/720x1280/6_V-AM0U7AZQ7dwa.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2085031820031414482/video/1)\n\n💬7🔄1❤️46👀3552📊11",
+      "tags": [
+        "Vibecoding",
+        "程序员幽默"
+      ],
+      "score": 30,
+      "summary": "一条关于资深工程师与vibecoders的玩笑推文。",
+      "fetched_at": "2026-08-06T01:52:36.674100+08:00"
+    },
+    {
+      "title": "https://t.co/7xQOYbt3R7",
+      "link": "https://x.com/LangChain/status/2085047666942136825",
+      "published": "2026-08-06T00:57:56+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "[x.com/i/article/2084…](http://x.com/i/article/2084721199393984512)\n\n💬0🔄0❤️0👀467",
+      "tags": [
+        "LangChain"
+      ],
+      "score": 40,
+      "summary": "LangChain发布一条仅含文章的推文。",
+      "fetched_at": "2026-08-06T01:52:36.674102+08:00"
+    },
+    {
+      "title": "👤Customer-Specific Controls with LangSmith LLM Gateway\n\nSet rate and spend limits for each customer...",
+      "link": "https://x.com/LangChain/status/2085033124535189830",
+      "published": "2026-08-06T00:00:09+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "👤Customer-Specific Controls with LangSmith LLM Gateway  \n  \nSet rate and spend limits for each customer and user under a single API key. Keep usage predictable, simplify customer management, and avoid surprise model bills.   \n[langchain.com/blog/langsmith…](https://www.langchain.com/blog/langsmith-llm-gateway-runtime-controls-for-production-agents)A\n\n![Tweet Image](https://pbs.twimg.com/media/HO-GksUXgAAykKZ.jpg)\n\n💬0🔄2❤️10👀2389📊2",
+      "tags": [
+        "LangSmith",
+        "LLM Gateway",
+        "客户限流"
+      ],
+      "score": 75,
+      "summary": "LangSmith LLM Gateway新增按客户设置速率和消费限额的功能。",
+      "fetched_at": "2026-08-06T01:52:36.674105+08:00"
+    },
+    {
+      "title": "\"OCR is just a feature now. Frontier models will eat it.\"\n\nWe hear this constantly. The data says ot...",
+      "link": "https://x.com/llama_index/status/2085036777878823028",
+      "published": "2026-08-06T00:14:40+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "\"OCR is just a feature now. Frontier models will eat it.\"  \n  \nWe hear this constantly. The data says otherwise.  \n  \nAcross three GPT generations, parsing accuracy gained ~24 points, while cost per page 4x'd. And the newest frontier models still trail specialized parsers.  \n  \nRead more below on why the gap persists (and compounds) 👇️[llamaindex.ai/blog/document-…](https://www.llamaindex.ai/blog/document-ocr-is-not-getting-commoditized)b\n\n![Tweet Image](https://pbs.twimg.com/media/HO-ItdPWoAAcGBr.jpg)\n\n💬2🔄2❤️9👀1215📊4",
+      "tags": [
+        "OCR",
+        "前沿模型",
+        "解析准确率"
+      ],
+      "score": 80,
+      "summary": "LlamaIndex分析称前沿模型未取代专业OCR，成本升而准确率仍有差距。",
+      "fetched_at": "2026-08-06T01:52:36.674107+08:00"
+    },
+    {
+      "title": "Lex is answering that with WNTD. Read his story: https://t.co/ZKkxeH6pfv",
+      "link": "https://x.com/Lovable/status/2085043816420319293",
+      "published": "2026-08-06T00:42:38+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "Lex is answering that with WNTD. Read his story: [founder-stories-showcase.lovable.app/founder/lex](http://founder-stories-showcase.lovable.app/founder/lex)\n\n💬0🔄0❤️2👀759",
+      "tags": [
+        "Lovable",
+        "WNTD",
+        "用户故事"
+      ],
+      "score": 40,
+      "summary": "Lovable分享用户Lex用WNTD打造的创业故事。",
+      "fetched_at": "2026-08-06T01:52:36.674110+08:00"
+    },
+    {
+      "title": "What should the shopping cart look like?",
+      "link": "https://x.com/Lovable/status/2085043732903301438",
+      "published": "2026-08-06T00:42:18+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "What should the shopping cart look like?\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085041536853807104/vid/avc1/3840x2160/uNOFcQQmfIGGuR-f.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Lovable/status/2085043732903301438/video/1)\n\n💬1🔄4❤️18👀3666📊4",
+      "tags": [
+        "Lovable",
+        "购物车演示"
+      ],
+      "score": 35,
+      "summary": "Lovable发布购物车交互演示视频。",
+      "fetched_at": "2026-08-06T01:52:36.674112+08:00"
+    },
+    {
+      "title": "Dassault Systèmes Accelerates Simulation with NVIDIA AI &amp; GPUs https://t.co/2uRhCslgJ5",
+      "link": "https://x.com/NVIDIAAI/status/2085034354376646892",
+      "published": "2026-08-06T00:05:02+08:00",
+      "source": "NVIDIA AI(@NVIDIAAI)",
+      "content": "Dassault Systèmes Accelerates Simulation with NVIDIA AI & GPUs <https://t.co/2uRhCslgJ5>\n\n💬3🔄3❤️22👀2881📊6",
+      "tags": [
+        "NVIDIA",
+        "Dassault Systèmes",
+        "GPU仿真"
+      ],
+      "score": 70,
+      "summary": "NVIDIA AI宣布与Dassault Systèmes合作，用AI与GPU加速仿真。",
+      "fetched_at": "2026-08-06T01:52:36.674115+08:00"
+    },
+    {
+      "title": "Why does your RAG agent get worse over time?\n\nJoin @DylanCouzon and Rishabh from FutureAGI tomorrow ...",
+      "link": "https://x.com/qdrant_engine/status/2085038668306387088",
+      "published": "2026-08-06T00:22:11+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "Why does your RAG agent get worse over time?  \n  \nJoin [@DylanCouzon](https://x.com/DylanCouzon) and Rishabh from FutureAGI tomorrow as they build, debug, and optimize a RAG agent live, covering embedding migrations, deduplication, reranking, and evaluation to measure what actually improves retrieval quality.  \n  \nTime: 6:30 PM CEST | 9:30 AM PDT | 10:00 PM IST  \n  \nRegister now: [luma.com/future-pq6q](https://luma.com/future-pq6q)\n\n💬0🔄1❤️1👀158📊1",
+      "tags": [
+        "Qdrant",
+        "RAG优化",
+        "线上直播"
+      ],
+      "score": 50,
+      "summary": "Qdrant宣传直播活动，讨论RAG agent为何随时间变差并现场优化。",
+      "fetched_at": "2026-08-06T01:52:36.674117+08:00"
+    },
+    {
+      "title": "Register now: https://t.co/EiNU4FyoFn",
+      "link": "https://x.com/runwayml/status/2085056190061682865",
+      "published": "2026-08-06T01:31:48+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Register now: [summit.runwayml.com](https://summit.runwayml.com)\n\n💬0🔄0❤️0👀449",
+      "tags": [
+        "Runway",
+        "AI峰会"
+      ],
+      "score": 30,
+      "summary": "Runway AI峰会开放注册。",
+      "fetched_at": "2026-08-06T01:52:36.674120+08:00"
+    },
+    {
+      "title": "Anastasis Germanidis\nCo-founder and co-CEO, Runway",
+      "link": "https://x.com/runwayml/status/2085056178124726331",
+      "published": "2026-08-06T01:31:45+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Anastasis Germanidis  \nCo-founder and co-CEO, Runway\n\n![Tweet Image](https://pbs.twimg.com/media/HO-bi5qb0AAX78Y.jpg)\n\n💬1🔄0❤️2👀496📊1",
+      "tags": [
+        "Runway",
+        "Anastasis Germanidis"
+      ],
+      "score": 30,
+      "summary": "Runway发布联合创始人Anastasis Germanidis的宣传。",
+      "fetched_at": "2026-08-06T01:52:36.674122+08:00"
+    },
+    {
+      "title": "The Runway AI Summit is coming to San Francisco this September. A daylong gathering of industry lead...",
+      "link": "https://x.com/runwayml/status/2085056090501419293",
+      "published": "2026-08-06T01:31:25+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "The Runway AI Summit is coming to San Francisco this September. A daylong gathering of industry leaders across robotics, autonomous vehicles, life sciences and infrastructure, exploring how AI is reshaping the way intelligence meets the world.  \n  \nOur inaugural speaker lineup is below, with more to be announced soon.  \n  \nLearn more and register at the link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085056053197291520/vid/avc1/1280x720/s0WmCog5xzpmI-hB.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2085056090501419293/video/1)\n\n💬1🔄2❤️11👀1833📊3",
+      "tags": [
+        "Runway AI Summit",
+        "旧金山",
+        "2026"
+      ],
+      "score": 65,
+      "summary": "Runway AI峰会将于9月在旧金山举办，汇聚机器人、自动驾驶等领域领袖。",
+      "fetched_at": "2026-08-06T01:52:36.674125+08:00"
+    },
+    {
+      "title": "All I have to say is: the time has come to stop asking “What if Google does it?”\n\nWhat if YOU do it?",
+      "link": "https://x.com/Suhail/status/2085050871008907634",
+      "published": "2026-08-06T01:10:40+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "All I have to say is: the time has come to stop asking “What if Google does it?”  \n  \nWhat if YOU do it?\n\n💬7🔄2❤️50👀7132📊11",
+      "tags": [
+        "Suhail",
+        "Google",
+        "创业"
+      ],
+      "score": 50,
+      "summary": "Suhail鼓励人们停止问'Google会怎样'，自己动手。",
+      "fetched_at": "2026-08-06T01:52:36.674127+08:00"
+    },
+    {
+      "title": "I also want to give a huge thanks to the incomparable @JeffDean after an incredible 27-year run at G...",
+      "link": "https://x.com/sundarpichai/status/2085035222391984183",
+      "published": "2026-08-06T00:08:29+08:00",
+      "source": "Sundar Pichai(@sundarpichai)",
+      "content": "I also want to give a huge thanks to the incomparable [@JeffDean](https://x.com/JeffDean) after an incredible 27-year run at Google. He’s off to start his own public benefit corporation with [@Sanjay\\_Ghemawat](https://x.com/Sanjay_Ghemawat) focused on accelerating discoveries across ML, science, & engineering. [@Google](https://x.com/Google) will support as a founding investor and Cloud partner. On a personal note, it’s been a privilege to work with Jeff and Sanjay, and I wish them all the best. Thank you for everything!\n\n💬92🔄113❤️2461👀124039📊209",
+      "tags": [
+        "Jeff Dean",
+        "离职",
+        "Sundar Pichai"
+      ],
+      "score": 90,
+      "summary": "Sundar Pichai感谢Jeff Dean在谷歌27年贡献，宣布其离职创业。",
+      "fetched_at": "2026-08-06T01:52:36.674130+08:00"
+    },
+    {
+      "title": "Just shared some changes we’re making to the teams at @GoogleDeepMind.\n\n@DemisHassabis is stepping u...",
+      "link": "https://x.com/sundarpichai/status/2085033425736745093",
+      "published": "2026-08-06T00:01:21+08:00",
+      "source": "Sundar Pichai(@sundarpichai)",
+      "content": "Just shared some changes we’re making to the teams at [@GoogleDeepMind](https://x.com/GoogleDeepMind).  \n  \n[@DemisHassabis](https://x.com/DemisHassabis) is stepping up to become Chair of [@GoogleDeepMind](https://x.com/GoogleDeepMind) & Chief Scientist of Alphabet, in addition to leading [@IsomorphicLabs](https://x.com/IsomorphicLabs). He’ll be able to dedicate his time and focus on shaping the future of AGI and scientific discovery. It’s work that is vitally important to Alphabet and humanity, and I can’t imagine a better person than Demis to do it. He’ll stay closely connected to Koray and the GDM teams.  \n  \n[@Koraykv](https://x.com/Koraykv) will become the SVP, [@GoogleDeepMind](https://x.com/GoogleDeepMind), responsible for all aspects of model development, GDM research, and [@Geminiapp](https://x.com/Geminiapp) & dev teams. Koray has been at GDM for 13 years and is a world-renowned expert in the field, starting our deep learning team and driving breakthroughs like WaveNet & DQN. GDM is in great hands!  \n  \nExcited for this next chapter. You can read my note along with the message Demis sent to [@GoogleDeepMind](https://x.com/GoogleDeepMind) here: [blog.google/company-news/i…](https://blog.google/company-news/inside-google/message-ceo/next-chapter-ai-momentum/)\n\n💬197🔄241❤️2639👀393218📊326",
+      "tags": [
+        "Google DeepMind",
+        "Demis Hassabis",
+        "Koray Kavukcuoglu"
+      ],
+      "score": 95,
+      "summary": "Sundar Pichai宣布Demis Hassabis升任DeepMind主席，Koray接任SVP领导模型开发。",
+      "fetched_at": "2026-08-06T01:52:36.674132+08:00"
+    },
+    {
+      "title": "Three prompts. one knockout.\n\nA 2D boxing game, built entirely in Bolt.",
+      "link": "https://x.com/boltdotnew/status/2085053296918602024",
+      "published": "2026-08-06T01:20:19+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "Three prompts. one knockout.  \n  \nA 2D boxing game, built entirely in Bolt.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2085053234079481856/pu/vid/avc1/1338x720/yS6VWaUP-yTxMyeN.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/boltdotnew/status/2085053296918602024/video/1)\n\n💬2🔄1❤️22👀892📊4",
+      "tags": [
+        "Bolt",
+        "2D拳击游戏",
+        "AI编程"
+      ],
+      "score": 45,
+      "summary": "Bolt展示仅用三个提示构建的2D拳击游戏。",
+      "fetched_at": "2026-08-06T01:52:36.674134+08:00"
+    },
+    {
+      "title": "Built by by @m_thareek. Throw some hands: https://t.co/INIoTcVBGv",
+      "link": "https://x.com/boltdotnew/status/2085053298126598618",
+      "published": "2026-08-06T01:20:19+08:00",
+      "source": "bolt.new(@boltdotnew)",
+      "content": "Built by by [@m\\_thareek](https://x.com/m_thareek). Throw some hands: [bolt.fyi/OBEhrZr](http://bolt.fyi/OBEhrZr)\n\n💬1🔄0❤️3👀223📊1",
+      "tags": [
+        "Bolt",
+        "拳击游戏"
+      ],
+      "score": 40,
+      "summary": "Bolt分享用户用三个提示构建的拳击游戏链接。",
+      "fetched_at": "2026-08-06T01:52:36.674137+08:00"
+    },
+    {
+      "title": "Already a big fan of @WisprFlow, and now they added Wispr Notetaker.\n\nMeeting history plugs straight...",
+      "link": "https://x.com/omarsar0/status/2085039889368687027",
+      "published": "2026-08-06T00:27:02+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Already a big fan of [@WisprFlow](https://x.com/WisprFlow), and now they added Wispr Notetaker.  \n  \nMeeting history plugs straight into Claude, ChatGPT, Cursor, or any tool that speaks MCP.  \n  \nNotes stop being documents you file away and become context your AI tools can query.  \n  \nAdd accurate transcripts with real speaker names, and that turns into a serious knowledge base.\n\n![Tanay Kothari](https://pbs.twimg.com/profile_images/1461615841733058561/-lzaqDLJ_normal.jpg)\n\nTanay Kothari@tankots\n\nIt's no secret how we feel about typing at Wispr Flow.  \n  \nThe truth is, we hate messy meeting notes too.  \n  \nIntroducing Notetaker 👇  \n[wisprflow.ai/notetaker](https://wisprflow.ai/notetaker)w\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085020053234421761/vid/avc1/3840x2160/e58S32qjEuLKvl8k.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/tankots/status/2085033208882831615/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/tankots/status/2085033208882831615)\n\n💬0🔄0❤️10👀1913📊1",
+      "tags": [
+        "Wispr Notetaker",
+        "MCP",
+        "会议记录"
+      ],
+      "score": 75,
+      "summary": "Wispr Notetaker让会议记录接入Claude、Cursor等MCP工具。",
+      "fetched_at": "2026-08-06T01:52:36.674139+08:00"
+    },
+    {
+      "title": "To show the adapter shape, we wrote one in Perl!\n\nhttps://t.co/bMRwtoeJbj",
+      "link": "https://x.com/ericzakariasson/status/2085033390794060161",
+      "published": "2026-08-06T00:01:13+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "To show the adapter shape, we wrote one in Perl!  \n  \n[github.com/cursor/cookboo…](http://github.com/cursor/cookbook/tree/main/sdk/perl-bridge-adapter)\n\n💬0🔄0❤️7👀1000📊1",
+      "tags": [
+        "Cursor",
+        "SDK Bridge",
+        "Perl适配器"
+      ],
+      "score": 80,
+      "summary": "Cursor团队展示用Perl编写的SDK Bridge适配器。",
+      "fetched_at": "2026-08-06T01:52:36.674142+08:00"
+    },
+    {
+      "title": "You can now build Cursor agents in Rust, Go, or any other language!\n\nWe're open-sourcing the SDK Bri...",
+      "link": "https://x.com/ericzakariasson/status/2085033378865451213",
+      "published": "2026-08-06T00:01:10+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "You can now build Cursor agents in Rust, Go, or any other language!  \n  \nWe're open-sourcing the SDK Bridge so you can write a thin adapter in your language that keeps up when we add agent features.  \n  \nTry it at [github.com/cursor/sdk-bri…](http://github.com/cursor/sdk-bridge)!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085033353586282496/vid/avc1/720x720/hFc00XZfQF2aSt_G.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/ericzakariasson/status/2085033378865451213/video/1)\n\n💬14🔄19❤️229👀11616📊59",
+      "tags": [
+        "Cursor",
+        "SDK Bridge",
+        "多语言Agent"
+      ],
+      "score": 85,
+      "summary": "Cursor开源SDK Bridge，支持用Rust、Go等任意语言构建Agent。",
+      "fetched_at": "2026-08-06T01:52:36.674144+08:00"
+    },
+    {
+      "title": "Google 管理层变动\n\nGoogle DeepMind首席执行官Demis Hassabis卸任，专注医疗科学研究\n\nKoray Kavukcuoglu 接替 Google DeepMind CE...",
+      "link": "https://x.com/xiaohu/status/2085039997795909939",
+      "published": "2026-08-06T00:27:28+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Google 管理层变动  \n  \nGoogle DeepMind首席执行官Demis Hassabis卸任，专注医疗科学研究  \n  \nKoray Kavukcuoglu 接替 Google DeepMind CEO，负责 Gemini 模型开发、前沿 AI 研究以及 Gemini App 和开发者团队。  \n  \n在 Google 效力 27 年的AI 传奇人物 Jeff Dean与资深研究员 Sanjay Ghemawat 离职创业  \n  \n看来队伍人心散了...\n\n![Sundar Pichai](https://pbs.twimg.com/profile_images/2051799620062429184/AL8CoAUG_normal.jpg)\n\nSundar Pichai@sundarpichai\n\nJust shared some changes we’re making to the teams at [@GoogleDeepMind](https://x.com/GoogleDeepMind).  \n  \n[@DemisHassabis](https://x.com/DemisHassabis) is stepping up to become Chair of [@GoogleDeepMind](https://x.com/GoogleDeepMind) & Chief Scientist of Alphabet, in addition to leading [@IsomorphicLabs](https://x.com/IsomorphicLabs). He’ll be able to dedicate his time and focus on shaping the future of AGI and scientific discovery. It’s work that is vitally important to Alphabet and humanity, and I can’t imagine a better person than Demis to do it. He’ll stay closely connected to Koray and the GDM teams.  \n  \n[@Koraykv](https://x.com/Koraykv) will become the SVP, [@GoogleDeepMind](https://x.com/GoogleDeepMind), responsible for all aspects of model development, GDM research, and [@Geminiapp](https://x.com/Geminiapp) & dev teams. Koray has been at GDM for 13 years and is a world-renowned expert in the field, starting our deep learning team and driving breakthroughs like WaveNet & DQN. GDM is in great hands!  \n  \nExcited for this next chapter. You can read my note along with the message Demis sent to [@GoogleDeepMind](https://x.com/GoogleDeepMind) here: [blog.google/company-news/i…](https://blog.google/company-news/inside-google/message-ceo/next-chapter-ai-momentum/)\n\n[🔗 View Quoted Tweet](https://x.com/sundarpichai/status/2085033425736745093)\n\n💬8🔄0❤️15👀6657📊7",
+      "tags": [
+        "Google",
+        "管理层变动",
+        "Koray Kavukcuoglu"
+      ],
+      "score": 70,
+      "summary": "小互转述Google DeepMind CEO变动及Jeff Dean离职创业的消息。",
+      "fetched_at": "2026-08-06T01:52:36.674147+08:00"
+    }
+  ]
+}
