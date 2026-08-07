@@ -944,6 +944,367 @@
       "score": 78,
       "summary": "TruffleSec CEO透露Hugging Face训练数据暴露25万活动密钥，存在供应链风险。",
       "fetched_at": "2026-08-08T03:10:31.931917+08:00"
+    },
+    {
+      "title": "Moonlight & Mayhem (Raccoon Heist by Codex + GPT-5.6 Sol Ultra)",
+      "link": "https://simonwillison.net/2026/Aug/7/moonlight-mayhem/#atom-everything",
+      "published": "2026-08-08T03:18:09+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Moonlight & Mayhem (Raccoon Heist by Codex + GPT-5.6 Sol Ultra)](https://simonw.github.io/raccoon-heist-codex/)**\n\nOn Wednesday I wrote about [One-shotting a Raccoon Heist game using Claude Fable 5](https://simonwillison.net/2026/Aug/5/raccoon-heist/), where I had Claude Fable 5 build a full working game from a premise I generated with GPT-3 and DALL-E [four years ago](https://twitter.com/simonw/status/1555626060384911360).\n\nI decided to pose the [exact same prompt](https://simonwillison.net/2026/Aug/5/raccoon-heist/#the-fable-5-prompt) to Codex Desktop running GPT-5.6 Sol Ultra - the mode where Sol makes *aggressive* use of sub-agents - to see how it would do.\n\nIt produced a much better game! Here's [Moonlight & Mayhem](https://simonw.github.io/raccoon-heist-codex/) - [GitHub repository here](https://github.com/simonw/raccoon-heist-codex/), including the [textures and prompts](https://github.com/simonw/raccoon-heist-codex/tree/main/output/imagegen) it generated using `gpt-image-2`.\n\n[![\n\nYour browser does not support HTML5 video.\n](https://static.simonwillison.net/static/2026/raccoon-heist-codex-poster.jpg)](https://static.simonwillison.net/static/2026/raccoon-heist-codex-720p.mp4)\n\nThe original GPT-3 generated game description included:\n\n> In “Raccoon Heist”, you and your team of thieving raccoons are tasked with pulling off a series of daring heists. From robbing banks to stealing priceless art, no job is too big or too small for your furry crew.\n\nFable's version had you as a single raccoon running around a back yard collecting coins and fish. GPT-5.6 Sol has you in a museum, rescuing your two other raccoon crewmates in order to stack on top of each other and bust the golden sardine out of its case.\n\nMuch more heisty!\n\nThere was one catch though: the version produced from the one-shot prompt had a bug where each raccoon had an eyeball that was enlarged to the size of a giant sphere floating over their head!\n\n![The main player character racoon is visible with an enormous polygon-based black sphere four times the size of its body overlapping its head, with a white pupil on it.](https://static.simonwillison.net/static/2026/raccoon-heist-codex-bug.jpg)\n\nYou can [play that version here](https://static.simonwillison.net/static/2026/raccoon-heist-eyeball-edition/).\n\nDespite reviewing screenshots during development Codex failed to spot and correct this bug.\n\nI fixed it by prompting:\n\n> `Why do the raccoons have huge black spheres on them?`\n\nAnd then:\n\n> `Fix it`\n\nWhich resulted in [this fix](https://github.com/simonw/raccoon-heist-codex/commit/4e9a390dfbe80533324ee61a37aa661813c08446).\n\nI shared [the full Codex transcript](https://github.com/simonw/raccoon-heist-codex/blob/main/transcript.md) in the repository - I wish Claude Code had the same \"copy as Markdown\" feature.\n\nCodex spent 52 minutes on the project. Here's the [AgentsView](https://www.agentsview.io) cost estimate for that session if I had been paying full API prices as opposed to using my monthly Codex subscription:\n\n![Total Cost: $23.28. Input Tokens: 700.7K, plus 32.5M cached tokens. Output Tokens: 148K](https://static.simonwillison.net/static/2026/raccoon-heist-codex-cost.webp)\n\nTags: [game-design](https://simonwillison.net/tags/game-design), [ai](https://simonwillison.net/tags/ai), [openai](https://simonwillison.net/tags/openai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [coding-agents](https://simonwillison.net/tags/coding-agents), [codex](https://simonwillison.net/tags/codex), [gpt](https://simonwillison.net/tags/gpt)",
+      "tags": [
+        "GPT-5.6",
+        "Codex",
+        "RaccoonHeist"
+      ],
+      "score": 84,
+      "summary": "Codex+GPT-5.6Sol生成游戏，胜于ClaudeFable。",
+      "fetched_at": "2026-08-08T04:53:36.224497+08:00"
+    },
+    {
+      "title": "Even the biggest and best companies in the world have problems retaining top quality talent",
+      "link": "https://x.com/aaditsh/status/2085807704975569010",
+      "published": "2026-08-08T03:18:03+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "Even the biggest and best companies in the world have problems retaining top quality talent\n\n![Jeff Dean](https://pbs.twimg.com/profile_images/935325968280907776/AcBo6zJc_normal.jpg)\n\nJeff Dean@JeffDean\n\nTomorrow will be my last day at Google after 27 years, and watching it grow from 25 people to 190,000+ has been an amazing journey. Below is a note I shared with many people internally at Google today. An excerpt is:  \n  \nIt has been an absolute pleasure to work with you and to help build some of the most widely used and impactful products of all time. As a kid, I dreamed of helping build software that would be used by many people, and Google now has thirteen products used by more than a billion people (amazing!). Our work has had a tremendous impact in the world, and I have been lucky enough to collaborate and form friendships with many colleagues that I deeply admire, respect, and enjoy. It still brings me joy every time I see people out in the world using our products to find information, handle email, translate documents, watch videos, learn new things, navigate and understand the physical world, browse the web, use their phone, run large-scale computations on our infrastructure, ride in an autonomous vehicle, or perform complex tasks with the help of our AI systems. I hope you all share this sense of joy, because it is a shared accomplishment! Thank you to all of my colleagues at Google over many years!   \n  \nNow I'm excited to go start [@DiscoLoopAI](https://x.com/DiscoLoopAI) with my longtime friends and colleagues [@Sanjay\\_Ghemawat](https://x.com/Sanjay_Ghemawat), [@OriolVinyalsML](https://x.com/OriolVinyalsML), and [@quocleix](https://x.com/quocleix).  \n  \n(Updated post: slightly redacted to not have some personal info)\n\n![Tweet Image](https://pbs.twimg.com/media/HO-0OdMbIAAREbf.png)![Tweet Image](https://pbs.twimg.com/media/HO-0QteawAAkXWO.png)\n\n[🔗 View Quoted Tweet](https://x.com/JeffDean/status/2085083442669318443)\n\n💬3🔄0❤️5👀3320📊3",
+      "tags": [
+        "JeffDean",
+        "谷歌离职",
+        "DiscoLoopAI"
+      ],
+      "score": 86,
+      "summary": "Jeff Dean将离开谷歌，与同事共创办DiscoLoopAI。",
+      "fetched_at": "2026-08-08T04:53:36.224511+08:00"
+    },
+    {
+      "title": "The team and I use Auto mode exclusively, and have been for many months. I couldn't imagine going ba...",
+      "link": "https://x.com/bcherny/status/2085807103382519872",
+      "published": "2026-08-08T03:15:40+08:00",
+      "source": "Boris Cherny(@bcherny)",
+      "content": "The team and I use Auto mode exclusively, and have been for many months. I couldn't imagine going back to permission prompts! Really excited to get this out to everyone.\n\n![ClaudeDevs](https://pbs.twimg.com/profile_images/2044472418815893504/xf14RxM8_normal.png)\n\nClaudeDevs@ClaudeDevs\n\nStarting August 14, auto mode will be the default permission mode in Claude Code for Pro, Max, and Team users.  \n  \nAuto mode reviews shell commands and actions with a separate classifier. In testing, it caught 89% of dangerous commands. Manual approval caught 14%.\n\n[🔗 View Quoted Tweet](https://x.com/ClaudeDevs/status/2085794862608318627)\n\n💬41🔄8❤️249👀23593📊48",
+      "tags": [
+        "ClaudeCode",
+        "Auto模式",
+        "权限默认"
+      ],
+      "score": 75,
+      "summary": "ClaudeCode自8月14日默认Auto模式，捕获89%危险命令。",
+      "fetched_at": "2026-08-08T04:53:36.224515+08:00"
+    },
+    {
+      "title": "GPT-5.6 Sol for cybersafety:",
+      "link": "https://x.com/gdb/status/2085819760953192790",
+      "published": "2026-08-08T04:05:58+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "GPT-5.6 Sol for cybersafety:\n\n![Grigori Karapetyan](https://pbs.twimg.com/profile_images/2056626359968112640/uqSstKHg_normal.jpg)\n\nGrigori Karapetyan@GregKara6\n\n[@cryps1s](https://x.com/cryps1s) Thank you for the reach-out. I have 0 issues with openai models, codex (gpt 5.6 sol) is my goat!  \n  \nGpt 5.6 sol allowed us to investigate and respond in a very speedy manner. Thank you! Keep up the great work!\n\n[🔗 View Quoted Tweet](https://x.com/GregKara6/status/2085748755064647698)\n\n💬9🔄5❤️101👀9464📊12",
+      "tags": [
+        "GPT-5.6Sol",
+        "网络安全"
+      ],
+      "score": 62,
+      "summary": "用户称赞GPT-5.6Sol对于网络安全响应迅速。",
+      "fetched_at": "2026-08-08T04:53:36.224517+08:00"
+    },
+    {
+      "title": "Evaluations of our next major model, Astra, indicate significant capability advancements in agentic ...",
+      "link": "https://x.com/gdb/status/2085805983440499060",
+      "published": "2026-08-08T03:11:13+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "Evaluations of our next major model, Astra, indicate significant capability advancements in agentic coding and cybersecurity.  \n  \nTeam is doing the safety and security work to make Astra broadly available, and get its advanced cyber capabilities into the hands of defenders:\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nAfter evaluating one of our upcoming models, Astra, we're treating it as our first \"critical\" model for cybersecurity under our Preparedness Framework.  \n  \nThis is a scenario we've planned for, and we're putting additional controls in place to ensure Astra's further development happens safely and securely.   \n  \nWe're working hard to make Astra broadly available, and get its advanced cyber capabilities into the hands of defenders.  \n  \n[openai.com/index/respondi…](https://openai.com/index/responding-next-frontier-critical-cyber-capabilities/)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2085801349866729975)\n\n💬100🔄28❤️923👀59217📊121",
+      "tags": [
+        "Astra",
+        "OpenAI",
+        "关键模型"
+      ],
+      "score": 85,
+      "summary": "OpenAI高管透露新模型Astra被列为网络安全关键模型。",
+      "fetched_at": "2026-08-08T04:53:36.224519+08:00"
+    },
+    {
+      "title": "at a really high level, managed agents bundle the harness and infra\n\nwhich makes it much easier to j...",
+      "link": "https://x.com/hwchase17/status/2085803148657279479",
+      "published": "2026-08-08T02:59:57+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "at a really high level, managed agents bundle the harness and infra  \n  \nwhich makes it much easier to just provide your business context and get an agent!\n\n![Tweet Image](https://pbs.twimg.com/media/HPJC5xuaAAA9MH8.jpg)\n\n![Harrison Chase](https://pbs.twimg.com/profile_images/1569345624935485442/R67C4wCQ_normal.jpg)\n\nHarrison Chase@hwchase17\n\n[x.com/i/article/2085…](http://x.com/i/article/2085779026745163776)\n\n[🔗 View Quoted Tweet](https://x.com/hwchase17/status/2085780032031760694)\n\n💬5🔄3❤️29👀2455📊8",
+      "tags": [
+        "托管代理",
+        "LangChain"
+      ],
+      "score": 68,
+      "summary": "LangChain创始人解释托管代理概念。",
+      "fetched_at": "2026-08-08T04:53:36.224522+08:00"
+    },
+    {
+      "title": "Round 3:",
+      "link": "https://x.com/HeyGen/status/2085818619301068805",
+      "published": "2026-08-08T04:01:26+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "Round 3:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085818413784408064/vid/avc1/3840x2160/jsLNMXP2NNZrp_Ta.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/HeyGen/status/2085818619301068805/video/1)\n\n💬0🔄0❤️3👀216📊1",
+      "tags": [
+        "HeyGen",
+        "Avatar"
+      ],
+      "score": 60,
+      "summary": "HeyGen发布第三轮真假人对比视频。",
+      "fetched_at": "2026-08-08T04:53:36.224524+08:00"
+    },
+    {
+      "title": "Round 2:",
+      "link": "https://x.com/HeyGen/status/2085818617812095122",
+      "published": "2026-08-08T04:01:25+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "Round 2:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085818356469288960/vid/avc1/3840x2160/UtBGnrVcwQ-w7Ynb.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/HeyGen/status/2085818617812095122/video/1)\n\n💬1🔄0❤️2👀269📊1",
+      "tags": [
+        "HeyGen",
+        "Avatar"
+      ],
+      "score": 60,
+      "summary": "HeyGen发布第二轮真假人对比视频。",
+      "fetched_at": "2026-08-08T04:53:36.224526+08:00"
+    },
+    {
+      "title": "Real or Avatar?\n\nWe put real people next to their avatars for 3 rounds to see if you can actually te...",
+      "link": "https://x.com/HeyGen/status/2085817823666884995",
+      "published": "2026-08-08T03:58:16+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "Real or Avatar?  \n  \nWe put real people next to their avatars for 3 rounds to see if you can actually tell who's who. Round 1 is right here, rounds 2 and 3 are in the thread below.  \n  \nMake your call before the reveal at the end of each video, then tell us how many you got right.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085604315570520064/vid/avc1/3840x2160/56bK6ZZIvUCZY9vU.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/HeyGen/status/2085817823666884995/video/1)\n\n💬6🔄2❤️9👀1282📊7",
+      "tags": [
+        "HeyGen",
+        "真假人"
+      ],
+      "score": 72,
+      "summary": "HeyGen发起真人vs虚拟人挑战，展示高仿真Avatar。",
+      "fetched_at": "2026-08-08T04:53:36.224528+08:00"
+    },
+    {
+      "title": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.\n\nEach one come...",
+      "link": "https://x.com/thejustinwelsh/status/2085825943281565814",
+      "published": "2026-08-08T04:30:32+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Get my free 30-page guide on the 7 capacities that built my $15M one-person business.  \n  \nEach one comes with one specific exercise and a clear output, so you can execute today.  \n  \nFree here: [justinwelsh.me/guides/fifteen…](https://justinwelsh.me/guides/fifteen-million-solo)\n\n💬0🔄0❤️1👀272",
+      "tags": [
+        "JustinWelsh",
+        "免费指南"
+      ],
+      "score": 20,
+      "summary": "JustinWelsh推广免费商业指南。",
+      "fetched_at": "2026-08-08T04:53:36.224530+08:00"
+    },
+    {
+      "title": "Austin Berke, Lead AI Product Engineer at @Harmonic recently shared how they rebuilt Scout on Deep A...",
+      "link": "https://x.com/LangChain/status/2085803161990651964",
+      "published": "2026-08-08T03:00:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Austin Berke, Lead AI Product Engineer at [@Harmonic](https://x.com/Harmonic) recently shared how they rebuilt Scout on Deep Agents, quadrupling retention along the way.  \n  \nWatch the full fireside chat at [youtu.be/pGdZBK\\_\\_\\_jM](https://youtu.be/pGdZBK___jM)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2082894519498887168/vid/avc1/1920x1080/MHrGCbGLZzsJGYlv.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/LangChain/status/2085803161990651964/video/1)\n\n💬0🔄1❤️6👀2043📊1",
+      "tags": [
+        "DeepAgents",
+        "Scout",
+        "留存4倍"
+      ],
+      "score": 72,
+      "summary": "Harmonic用DeepAgents重建Scout，留存率提高四倍。",
+      "fetched_at": "2026-08-08T04:53:36.224532+08:00"
+    },
+    {
+      "title": "Congrats @EngramLab &amp; @harvey!\nFull Episode: https://t.co/hGVabn38zM",
+      "link": "https://x.com/latentspacepod/status/2085819689050198249",
+      "published": "2026-08-08T04:05:41+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "Congrats [@EngramLab](https://x.com/EngramLab) & [@harvey](https://x.com/harvey)!  \nFull Episode: <https://t.co/hGVabn38zM>\n\n💬0🔄0❤️0👀140",
+      "tags": [
+        "EngramLab",
+        "Harvey"
+      ],
+      "score": 40,
+      "summary": "Latent.Space祝贺EngramLab和Harvey。",
+      "fetched_at": "2026-08-08T04:53:36.224534+08:00"
+    },
+    {
+      "title": "The types of hard problems @EngramLab works on ft. co-founder @dan_biderman:\n\n\"Clients do financing,...",
+      "link": "https://x.com/latentspacepod/status/2085819686521065795",
+      "published": "2026-08-08T04:05:40+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "The types of hard problems [@EngramLab](https://x.com/EngramLab) works on ft. co-founder [@dan\\_biderman](https://x.com/dan_biderman):  \n  \n\"Clients do financing, mergers, acquisitions and things like take loans and do deals. And there's many queries that agents might run into which are these kinds of ambient, hard questions that are not easily searchable with RAG.  \n  \nFor example, if you want to ask, which M&A deals haven't we completed this year? To actually solve this problem, you have to go client matter by client matter [and] read all the files. You can't read in any place that it was not completed.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085818192925200384/vid/avc1/1920x1080/2Ov2SEKtC50MQdem.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/latentspacepod/status/2085819686521065795/video/1)\n\n![Harvey](https://pbs.twimg.com/profile_images/1975966300171362304/-oiUwcpg_normal.jpg)\n\nHarvey@harvey\n\nWe're open sourcing a 100M+ token synthetic law firm we built with [@EngramLab](https://x.com/EngramLab).  \n  \nThe firm contains work product from 250+ synthetic matters across 46 clients, spanning ~10k files.  \n  \nWe built this environment to evaluate an agents' ability to search and understand a firm's past practice to inform present work - the same knowledge that a tenured associate or partner would have.  \n  \nIt's our first step towards building agents that deeply understand a firm's work and processes. More to come soon  \n  \nDeep dive by [@ItsJulioPereyra](https://x.com/ItsJulioPereyra) and [@nikogrupen](https://x.com/nikogrupen):\n\n[🔗 View Quoted Tweet](https://x.com/harvey/status/2085778520220049891)\n\n💬1🔄0❤️1👀305📊1",
+      "tags": [
+        "Harvey",
+        "合成律所",
+        "开源"
+      ],
+      "score": 78,
+      "summary": "Harvey和EngramLab开源100M+token合成律师事务所。",
+      "fetched_at": "2026-08-08T04:53:36.224537+08:00"
+    },
+    {
+      "title": "The hierarchy of desire:\n- The fame\n- The money\n- The team\n- The product\n- The work itself",
+      "link": "https://x.com/naval/status/2085821218784264586",
+      "published": "2026-08-08T04:11:45+08:00",
+      "source": "Naval(@naval)",
+      "content": "The hierarchy of desire:  \n- The fame  \n- The money  \n- The team  \n- The product  \n- The work itself\n\n💬3🔄6❤️33👀8884📊7",
+      "tags": [
+        "Naval",
+        "欲望层级"
+      ],
+      "score": 15,
+      "summary": "Naval分享欲望层级感悟。",
+      "fetched_at": "2026-08-08T04:53:36.224539+08:00"
+    },
+    {
+      "title": "After evaluating one of our upcoming models, Astra, we're treating it as our first \"critical\" model ...",
+      "link": "https://x.com/OpenAI/status/2085801349866729975",
+      "published": "2026-08-08T02:52:48+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "After evaluating one of our upcoming models, Astra, we're treating it as our first \"critical\" model for cybersecurity under our Preparedness Framework.  \n  \nThis is a scenario we've planned for, and we're putting additional controls in place to ensure Astra's further development happens safely and securely.   \n  \nWe're working hard to make Astra broadly available, and get its advanced cyber capabilities into the hands of defenders.  \n  \n[openai.com/index/respondi…](https://openai.com/index/responding-next-frontier-critical-cyber-capabilities/)\n\n💬413🔄293❤️3959👀332503📊751",
+      "tags": [
+        "Astra",
+        "OpenAI",
+        "关键模型"
+      ],
+      "score": 95,
+      "summary": "OpenAI官方宣布新模型Astra为网络安全关键等级。",
+      "fetched_at": "2026-08-08T04:53:36.224541+08:00"
+    },
+    {
+      "title": "I built Moonlight &amp; Mayhem with my Codex monthly subscription, but if I had been paying API pric...",
+      "link": "https://x.com/simonw/status/2085814552135172553",
+      "published": "2026-08-08T03:45:16+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I built Moonlight & Mayhem with my Codex monthly subscription, but if I had been paying API prices it would have cost $23.28 (according to AgentsView)\n\n![Tweet Image](https://pbs.twimg.com/media/HPJNN-WakAAPuy-.jpg)\n\n💬1🔄0❤️2👀789📊1",
+      "tags": [
+        "Codex",
+        "API成本"
+      ],
+      "score": 65,
+      "summary": "Codex按API计价构建游戏成本23.28美元。",
+      "fetched_at": "2026-08-08T04:53:36.224543+08:00"
+    },
+    {
+      "title": "And here's an even better version, built by GPT-5.6 Sol Ultra running in Code Desktop https://t.co/5...",
+      "link": "https://x.com/simonw/status/2085810289099133180",
+      "published": "2026-08-08T03:28:20+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "And here's an even better version, built by GPT-5.6 Sol Ultra running in Code Desktop [x.com/simonw/status/…](https://x.com/simonw/status/2085808307865014295)\n\n![Simon Willison](https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_normal.jpeg)\n\nSimon Willison@simonw\n\nI had Codex Desktop and GPT-5.6 Sol Ultra take a go at building my Raccoon Heist game and it did an even better job than Claude Fable 5 did! Here's \"Moonlight & Mayhem\", now with a team of raccoons raiding a museum for the Golden Sardine\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085808089169801216/vid/avc1/1280x720/Pi2tOR8ieabed5NI.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/simonw/status/2085808307865014295/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/simonw/status/2085808307865014295)\n\n💬0🔄0❤️4👀1391",
+      "tags": [
+        "GPT-5.6Sol",
+        "Codex"
+      ],
+      "score": 70,
+      "summary": "GPT-5.6Sol Ultra构建RaccoonHeist改进版。",
+      "fetched_at": "2026-08-08T04:53:36.224545+08:00"
+    },
+    {
+      "title": "More details on my blog: https://t.co/U0hxwRyPta\n\nThere was one bug I had to fix before shipping tho...",
+      "link": "https://x.com/simonw/status/2085809124667982322",
+      "published": "2026-08-08T03:23:42+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "More details on my blog: [simonwillison.net/2026/Aug/7/moo…](https://simonwillison.net/2026/Aug/7/moonlight-mayhem/)  \n  \nThere was one bug I had to fix before shipping though (unlike Fable which did it all from a single prompt) - Codex initially gave the raccoons eyeballs four times the size of their bodies!\n\n![Tweet Image](https://pbs.twimg.com/media/HPJIT72aQAAntAA.jpg)\n\n💬1🔄0❤️8👀1630📊2",
+      "tags": [
+        "RaccoonHeist",
+        "Bug修复"
+      ],
+      "score": 60,
+      "summary": "博客补充RaccoonHeist细节并修复视觉Bug。",
+      "fetched_at": "2026-08-08T04:53:36.224547+08:00"
+    },
+    {
+      "title": "You can play it here: https://t.co/yLbhESgqR7 For comparison, here's Fable 5 + Claude Code's game, b...",
+      "link": "https://x.com/simonw/status/2085808983017963842",
+      "published": "2026-08-08T03:23:08+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "You can play it here: [simonw.github.io/raccoon-heist-…](https://simonw.github.io/raccoon-heist-codex/) For comparison, here's Fable 5 + Claude Code's game, built from the exact same prompt [x.com/simonw/status/…](https://x.com/simonw/status/2085089518223602058)\n\n![Simon Willison](https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_normal.jpeg)\n\nSimon Willison@simonw\n\nFour years ago today I tweeted about having GPT-3 and DALL-E come up with descriptions and concept art for imaginary computer games  \n  \nThis morning I had Fable build the actual game, using the images from that four year old tweet as the spec\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085089411138830336/vid/avc1/1280x720/dJ-KKpgMg2MEeld5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/simonw/status/2085089518223602058/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/simonw/status/2085089518223602058)\n\n💬1🔄0❤️6👀1905📊1",
+      "tags": [
+        "RaccoonHeist",
+        "试玩"
+      ],
+      "score": 65,
+      "summary": "分享Codex版RaccoonHeist试玩链接，对比Fable版。",
+      "fetched_at": "2026-08-08T04:53:36.224549+08:00"
+    },
+    {
+      "title": "I had Codex Desktop and GPT-5.6 Sol Ultra take a go at building my Raccoon Heist game and it did an ...",
+      "link": "https://x.com/simonw/status/2085808307865014295",
+      "published": "2026-08-08T03:20:27+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I had Codex Desktop and GPT-5.6 Sol Ultra take a go at building my Raccoon Heist game and it did an even better job than Claude Fable 5 did! Here's \"Moonlight & Mayhem\", now with a team of raccoons raiding a museum for the Golden Sardine\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085808089169801216/vid/avc1/1280x720/Pi2tOR8ieabed5NI.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/simonw/status/2085808307865014295/video/1)\n\n💬8🔄2❤️45👀6036📊13",
+      "tags": [
+        "GPT-5.6Sol",
+        "Codex",
+        "游戏生成"
+      ],
+      "score": 72,
+      "summary": "用Codex和GPT-5.6Sol生成RaccoonHeist，评价优于Fable。",
+      "fetched_at": "2026-08-08T04:53:36.224551+08:00"
+    },
+    {
+      "title": ".@ExaAILabs CEO Will Bryk says we can reach the moon, but still struggle to find good information:\n\n...",
+      "link": "https://x.com/a16z/status/2085825886633570800",
+      "published": "2026-08-08T04:30:18+08:00",
+      "source": "a16z(@a16z)",
+      "content": ".[@ExaAILabs](https://x.com/ExaAILabs) CEO Will Bryk says we can reach the moon, but still struggle to find good information:  \n  \n\"In high school, I was like, 'I'm gonna start a new type of news organization,' because I have had this frustration... We can get to the moon and split the atom, and yet if I wanna understand what's going on at the border right now, it's really hard to. That to me is just an error in humanity.\"  \n  \n\"Why is everything politicized? I always thought this was ridiculous, and I don't accept it. I think that's just an error in our coordination structure. Something's wrong here.\"  \n  \n\"I think a lot comes back to our information tools. If there was some really well-funded news organization that didn't have bad incentives and was fully devoted to the truth, I think that would have a huge impact in the world.\"  \n  \n\"Me and my co-founder built a search engine in college together, way before Exa, because we were frustrated that it's so hard to find high-quality information.\"  \n  \n[@WilliamBryk](https://x.com/WilliamBryk) on [@KnuckleUpHQ](https://x.com/KnuckleUpHQ)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085825811131838465/vid/avc1/1280x720/dAXKlVQ6OwywovwL.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2085825886633570800/video/1)\n\n💬2🔄1❤️9👀4468📊2",
+      "tags": [
+        "Exa",
+        "信息检索"
+      ],
+      "score": 68,
+      "summary": "Exa CEO在a16z访谈中批评信息工具，倡导高质量新闻。",
+      "fetched_at": "2026-08-08T04:53:36.224553+08:00"
+    },
+    {
+      "title": "AI is eating the billable hour\n\nCharts of the Week: https://t.co/TprfteuoSk",
+      "link": "https://x.com/a16z/status/2085810719875060097",
+      "published": "2026-08-08T03:30:02+08:00",
+      "source": "a16z(@a16z)",
+      "content": "AI is eating the billable hour  \n  \nCharts of the Week: [a16z.news/p/charts-of-th…](https://www.a16z.news/p/charts-of-the-week-bookslop)\n\n![Tweet Image](https://pbs.twimg.com/media/HPJJy7GbcAAuN3d.jpg)\n\n💬5🔄1❤️35👀6756📊8",
+      "tags": [
+        "AI",
+        "计费小时",
+        "法律"
+      ],
+      "score": 76,
+      "summary": "a16z图表：AI正侵蚀法律等行业按小时计费模式。",
+      "fetched_at": "2026-08-08T04:53:36.224556+08:00"
+    },
+    {
+      "title": "Model page: https://t.co/Z4u6ruZJhg",
+      "link": "https://x.com/ollama/status/2085817027663741349",
+      "published": "2026-08-08T03:55:06+08:00",
+      "source": "ollama(@ollama)",
+      "content": "Model page: [ollama.com/library/deepse…](https://ollama.com/library/deepseek-v4-flash)\n\n💬0🔄1❤️6👀1123📊1",
+      "tags": [
+        "DeepSeek-V4",
+        "模型页面"
+      ],
+      "score": 55,
+      "summary": "Ollama发布DeepSeek-V4-Flash模型页面。",
+      "fetched_at": "2026-08-08T04:53:36.224558+08:00"
+    },
+    {
+      "title": "DeepSeek-V4-Flash-0731 is now fully rolled out as the new default for deepseek-v4-flash on Ollama's ...",
+      "link": "https://x.com/ollama/status/2085816970893738381",
+      "published": "2026-08-08T03:54:53+08:00",
+      "source": "ollama(@ollama)",
+      "content": "DeepSeek-V4-Flash-0731 is now fully rolled out as the new default for deepseek-v4-flash on Ollama's cloud.  \n  \nThis model combines speed, efficiency, and frontier-level performance.  \n  \nFast: 120+ output tps on Ollama's cloud  \nPrivate: zero data retention hosting in US & Europe  \nEfficient: generous usage on Ollama's Pro and Max plans for multiple long-running, uninterrupted sessions with your favorite coding harnesses.\n\n💬4🔄8❤️115👀4269📊16",
+      "tags": [
+        "V4Flash",
+        "Ollama",
+        "默认模型"
+      ],
+      "score": 82,
+      "summary": "Ollama云默认上线V4-Flash-0731，输出120+tps。",
+      "fetched_at": "2026-08-08T04:53:36.224560+08:00"
+    },
+    {
+      "title": "Use /connect-grok to use an X Premium or SuperGrok subscription with Warp",
+      "link": "https://x.com/SpaceXAI/status/2085814657223209290",
+      "published": "2026-08-08T03:45:41+08:00",
+      "source": "xAI(@xai)",
+      "content": "Use /connect-grok to use an X Premium or SuperGrok subscription with Warp\n\n![Warp](https://pbs.twimg.com/profile_images/2069148113299021825/oNGzRbtf_normal.jpg)\n\nWarp@warpdotdev\n\nRun /connect-grok in the Warp Agent CLI to use your X Premium subscription with Warp!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085813525662900224/vid/avc1/1120x716/MZJmQGvS1JzCM6pS.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/warpdotdev/status/2085814312870776969/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/warpdotdev/status/2085814312870776969)\n\n💬29🔄26❤️336👀44037📊45",
+      "tags": [
+        "Grok",
+        "Warp",
+        "集成"
+      ],
+      "score": 72,
+      "summary": "xAI宣布Warp支持连接Grok，X Premium订阅可用。",
+      "fetched_at": "2026-08-08T04:53:36.224562+08:00"
     }
   ]
 }
