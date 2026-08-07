@@ -613,6 +613,203 @@
       "score": 90,
       "summary": "OpenAI发布Astra的初步网络安全评估及强化保障措施。",
       "fetched_at": "2026-08-08T01:03:26.802284+08:00"
+    },
+    {
+      "title": "Zero-code, low-cost data ingestion: New BigQuery DTS capabilities",
+      "link": "https://cloud.google.com/blog/products/data-analytics/new-bigquery-data-transfer-service-capabilities/",
+      "published": "2026-08-08T01:00:00+08:00",
+      "source": "Google Cloud Blog",
+      "content": "In a fast-paced digital economy, data is your most critical engine. Yet, many enterprises find themselves trapped in a costly paradox, spending over 100 hours a week building and fixing fragile, in-house ETL pipelines or wrestling with unpredictable third-party tools.\n\nTrusted by **thousands of customers every single day**, **BigQuery Data Transfer Service (DTS)** eliminates this engineering burden. As a fully managed, zero-code data movement solution, BigQuery DTS automates data ingestion into BigQuery allowing your teams to transition from pipeline maintenance to strategic data science in minutes.\n\n### **Expanding the ecosystem: New connectors and capabilities**\n\nWe are rapidly expanding our integration landscape to eliminate data silos across databases, ads and marketing platforms. Here are the latest additions and enhancements\n\n**Open Lakehouse ingestion**\n\n* [**Direct ingestion into Apache Iceberg managed tables (Preview)**](https://docs.cloud.google.com/bigquery/docs/iceberg-ingestion)**:** You can now ingest data from common sources such as Google Cloud Storage, Amazon S3, and Azure Blob Storage directly into Iceberg managed tables. This enables you to maintain full multi-cloud storage cross-compatibility with other query engines while leveraging BigQuery's top-tier performance tuning.\n\n**Next-gen agentic architecture**\n\n* [**Fully managed remote Model Context Protocol (MCP) Server (Preview)**](https://docs.cloud.google.com/bigquery/docs/reference/datatransfer/mcp)**:** This allows your developers to connect their AI application and agents to DTS allowing them to programmatically discover data sources and configure/execute transfers on the user's behalf.\n\n#### **Enterprise and relational databases (supports both full or incremental transfers)**\n\n* [**Microsoft SQL Server (Preview)**](https://docs.cloud.google.com/bigquery/docs/sqlserver-transfer)**:** Easily centralize transactional tables, schemas, and operational data directly into your analytical environment in BigQuery.\n* [**PostgreSQL(GA)**](https://docs.cloud.google.com/bigquery/docs/postgresql-transfer) **and** [**MySQL (GA)**](https://docs.cloud.google.com/bigquery/docs/mysql-transfer)**:** Automates data delivery and simplifies the replication of high-volume web and application workloads into your central data warehouse within minutes. Supports data replication from on-premise environments, CloudSQL, and other clouds.\n\n#### **E-commerce and growth marketing**\n\n* [**Shopify(Preview)**](https://docs.cloud.google.com/bigquery/docs/shopify-transfer)**:** Automates the extraction of granular order histories, inventory logs, and customer profiles straight into your analytical schema.\n* [**Klaviyo(Preview)**](https://docs.cloud.google.com/bigquery/docs/klaviyo-transfer)**:** Extracts detailed email and SMS engagement logs (such as clicks, sends, and opens) to build precise multi-channel lifecycle attributes.\n* [**HubSpot(Preview**](https://docs.cloud.google.com/bigquery/docs/hubspot-transfer)**) :** Syncs pipeline, contact tracking, and inbound marketing metrics to keep your revenue operations teams aligned.\n* [**Mailchimp(Preview):**](https://docs.cloud.google.com/bigquery/docs/mailchimp-transfer) Automatically moves campaign performances and audience list attributes directly into your data warehouse.\n\n**Migration connectors**\n\n* [**Snowflake(GA)**:](https://docs.cloud.google.com/bigquery/docs/migration/snowflake-migration-intro) Migrate your data from Snowflake with features like incremental transfer, auto schema detection, private connectivity and support for migrating data residing on all three major clouds (Google Cloud, AWS, and Azure)\n\n**Enhancement to major connectors**\n\n* [**ServiceNow**](https://docs.cloud.google.com/bigquery/docs/servicenow-transfer#data-ingestion)**,** [**Salesforce**](https://docs.cloud.google.com/bigquery/docs/salesforce-transfer-intro#full-incremental-transfers)**, and** [**Oracle**](https://docs.cloud.google.com/bigquery/docs/oracle-transfer-intro#full-incremental-transfers)**:** Enhanced with **native incremental update support** to speed up large-scale pipeline refreshes for enterprise CRM, ITSM, and financial workflows.\n\n### **Why you should choose BigQuery Data Transfer Service**\n\nMoving data across an enterprise architecture shouldn't require complex compromises between cost, management overhead, and pipeline health. BigQuery DTS delivers unique advantages across three pillars:\n\n#### **1. Unbeatable cost efficiency**\n\n* [**Zero Ingestion Costs for major sources:**](https://cloud.google.com/bigquery/pricing#data-transfer-service-pricing) Data ingestion at **no-charge** for all first-party Google sources (except Google Play), including Google Ads, Google Analytics 4, Campaign Manager, YouTube and Google Cloud Storage. Ingestion cost are also free for Amazon S3, Azure Blob Storage, Amazon Redshift, and Teradata\n* **Low consumption-based rates for third-party SaaS:** Ingestion from 3rd-party sources are entirely on a flexible consumption model. Compute fees run [**less than 6 cents per slot-hour**](https://cloud.google.com/bigquery/pricing#data-transfer-service-pricing)in major regions. Because pricing scales with compute footprint rather than row volume, depending on your source data compression format and available network bandwidth, you can efficiently **transfer massive data volumes.**\n\n#### **2. Frictionless security and native management**\n\nEliminate middlemen servers and external security and API configurations. BigQuery DTS fully integrates with Cloud IAM. Data transfers instantly inherit your destination dataset’s Column-Level Security, Row-Level Security, and Customer-Managed Encryption Keys (CMEK) without extra configuration overhead. Your streams flow securely inside the native Google Cloud perimeter.\n\n#### **3. Industry-leading performance and resilience**\n\nWhen you manage data at enterprise scale, downtime means lost business. BigQuery DTS provides a highly resilient ingestion footprint backed by a strict Google Cloud Service Level Agreement (SLA). The system delivers a **monthly uptime percentage of >=99.99%,** guaranteeing your analytics, automated pipelines, and operational dashboards update reliably.\n\n### **Ready to transform your data operations?**\n\nStop letting manual ingestion scripts limit your growth. Join the thousands of companies relying on Google's native cloud lakehouse data movement architecture to build a modern, scalable data stack.\n\n**Try the platform out today:** Navigate directly to the **BigQuery Data Transfer Service console**, pick your connector, and deploy your first automated transfer in just a few clicks!\n\n### **What connectors should we build next?**\n\nWe are constantly expanding our native integration library based on your business needs. **What sources are you currently forced to extract manually?** Are there specific relational databases, NoSQL engines, or regional SaaS platforms you need to replicate next? Let us know with a feature request.\n\nPlease file feature requests via the [public issue tracker](https://b.corp.google.com/issues/new?component=187149&template=1162659&pli=1).",
+      "tags": [
+        "BigQuery DTS",
+        "MCP Server",
+        "数据摄取"
+      ],
+      "score": 75,
+      "summary": "Google Cloud更新BigQuery迁移服务，新增Iceberg/SQL Server连接器及MCP Server。",
+      "fetched_at": "2026-08-08T02:00:08.090229+08:00"
+    },
+    {
+      "title": "TutorMoments: Do AI tutors know when to help and when to hold back?",
+      "link": "https://huggingface.co/blog/allenai/tutormoments",
+      "published": "2026-08-08T01:53:32+08:00",
+      "source": "Hugging Face Blog",
+      "content": "",
+      "tags": [
+        "TutorMoments",
+        "AI导师"
+      ],
+      "score": 75,
+      "summary": "艾伦AI研究所发布TutorMoments，探讨AI导师的干预时机。",
+      "fetched_at": "2026-08-08T02:00:08.090242+08:00"
+    },
+    {
+      "title": "Our goal is rather simple: \n1. build obviously good software and \n2. tell actually interesting stori...",
+      "link": "https://x.com/akothari/status/2085775388723347671",
+      "published": "2026-08-08T01:09:39+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "Our goal is rather simple:   \n1. build obviously good software and   \n2. tell actually interesting stories.  \n  \nBoth are much harder than they sound. And we’re working incredibly hard to do both much better.\n\n💬2🔄0❤️6👀172📊3",
+      "tags": [
+        "Akshay Kothari"
+      ],
+      "score": 30,
+      "summary": "Akshay Kothari称目标是打造优秀软件并讲述有趣故事。",
+      "fetched_at": "2026-08-08T02:00:08.090247+08:00"
+    },
+    {
+      "title": "https://t.co/NnFGj7FSYK",
+      "link": "https://x.com/hwchase17/status/2085780032031760694",
+      "published": "2026-08-08T01:28:06+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "[x.com/i/article/2085…](http://x.com/i/article/2085779026745163776)\n\n💬0🔄0❤️0👀151",
+      "tags": [
+        "hwchase17"
+      ],
+      "score": 40,
+      "summary": "Harrison Chase分享一个未注明内容的链接。",
+      "fetched_at": "2026-08-08T02:00:08.090250+08:00"
+    },
+    {
+      "title": "We've built a new feature in LlamaParse that lets you automatically extract any complex form into a ...",
+      "link": "https://x.com/jerryjliu0/status/2085775025198760118",
+      "published": "2026-08-08T01:08:12+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "We've built a new feature in LlamaParse that lets you automatically extract any complex form into a structured JSON output 📋🤖  \n  \nThe best part is there's no schema needed! We will systematically detect and extract out every single form key and corresponding form value from the document (blank if not filled).   \n  \nSimply set `processing\\_options.forms='enrich'`  \n  \nCheck it out[login.llamaindex.ai/sign-up](http://login.llamaindex.ai/sign-up)Qw  \nAPI docs[developers.api.llamaindex.ai/api/resources/…](https://developers.api.llamaindex.ai/api/resources/parsing/methods/get/#)mU\n\n![Tweet Image](https://pbs.twimg.com/media/HPIpIFUawAAXJqp.jpg)\n\n![LlamaIndex 🦙](https://pbs.twimg.com/profile_images/1967920417760251904/0ytfduMQ_normal.png)\n\nLlamaIndex 🦙@llama\\_index\n\nParsing a W-2 into markdown was always the easy part. Getting the fields out was a second pipeline: define a schema, map the fields, handle the edge cases.  \n  \nSet processing\\_options.forms='𝗲𝗻𝗿𝗶𝗰𝗵', and LlamaParse returns a dedicated JSON with field names, values, and checkbox states alongside your standard markdown. No schema. No second API call.  \n  \nNow available in beta on all paid plans.  \n  \nSignup for 10k free cre[login.llamaindex.ai/sign-up](https://login.llamaindex.ai/sign-up)YFbtG2  \n[developers.api.llamaindex.ai/api/resources/…](https://developers.api.llamaindex.ai/api/resources/parsing/methods/get/#)rv3HTN(resource\n\n![Tweet Image](https://pbs.twimg.com/media/HO5ECl6XYAAA_l7.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/llama_index/status/2084678493279748420)\n\n💬0🔄0❤️1👀221",
+      "tags": [
+        "LlamaParse",
+        "表单提取",
+        "JSON"
+      ],
+      "score": 75,
+      "summary": "LlamaIndex推出LlamaParse表单自动提取功能，无需schema即可输出JSON。",
+      "fetched_at": "2026-08-08T02:00:08.090253+08:00"
+    },
+    {
+      "title": "What’s one thing you’ve built with AI that saves you time from work you used to hate doing?",
+      "link": "https://x.com/NotionHQ/status/2085767255082828149",
+      "published": "2026-08-08T00:37:19+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "What’s one thing you’ve built with AI that saves you time from work you used to hate doing?\n\n💬15🔄4❤️22👀4509📊16",
+      "tags": [
+        "Notion",
+        "AI省时"
+      ],
+      "score": 30,
+      "summary": "Notion官方发起话题：你用AI省下了哪些讨厌的工作时间。",
+      "fetched_at": "2026-08-08T02:00:08.090256+08:00"
+    },
+    {
+      "title": "/human-review now has 500+ GitHub stars!\n\nI used it all day yesterday to edit some HTML and made a f...",
+      "link": "https://x.com/petergyang/status/2085776743642898847",
+      "published": "2026-08-08T01:15:02+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "/human-review now has 500+ GitHub stars!  \n  \nI used it all day yesterday to edit some HTML and made a few improvements. Now you can:  \n  \n1. Make bulleted and numbered lists by typing “-” or “1.”  \n  \n2. Add links by selecting text and pressing ⌘K  \n  \n3. Drag and drop images  \n  \n4. Review and edit multiple pages by Command-clicking links  \n  \n100% free, as always. Try and ⭐ it here: [github.com/petergyang/hum…](https://github.com/petergyang/human-review)\n\n![Tweet Image](https://pbs.twimg.com/media/HPIq5RNa4AANrh1.jpg)\n\n![Peter Yang](https://pbs.twimg.com/profile_images/1454103621516206083/_klMwpkk_normal.jpg)\n\nPeter Yang@petergyang\n\nMy last open-source skill, /no-ai-slop, clearly hit a nerve with 4K GitHub stars.  \n  \nToday, I’m introducing /human-review, another free AI skill I think you’ll love.  \n  \nLet’s face it - giving feedback to AI in chat is painful. Asking it to “update the 3rd paragraph” or “update image size to X” is annoying when I just want to edit the text myself or give feedback to AI directly on the page.  \n  \n/human-review opens HTML and Markdown files in a visual editor that lets you:  \n  \n→ Edit and format text directly  \n→ Resize images  \n→ Leave comments for AI like a Google Doc  \n  \nI've been using it to edit PRDs, landing pages, product copy, and much more. The whole review loop runs locally, so your data is safe and nothing is uploaded to the cloud.  \n  \n📌 Get /human-review for free on GitHub:[github.com/petergyang/hum…](https://github.com/petergyang/human-review)f  \n  \nIf you find it useful, please ⭐ the repo so more people can find it.  \n  \n📌 Read my full post here for more on how I use /human-review[creatoreconomy.so/p/use-my-human…](https://creatoreconomy.so/p/use-my-human-review-skill-to-edit-html-markdown-visually)gn\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085006665582329856/vid/avc1/1280x720/MEy4EpTDPmJTzxUm.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/petergyang/status/2085006701984698712/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/petergyang/status/2085006701984698712)\n\n💬1🔄0❤️4👀924📊2",
+      "tags": [
+        "human-review",
+        "GitHub",
+        "开源"
+      ],
+      "score": 75,
+      "summary": "Peter Yang的开源技能/human-review突破500星，新增列表、链接、图片编辑功能。",
+      "fetched_at": "2026-08-08T02:00:08.090259+08:00"
+    },
+    {
+      "title": "This is what happens when I use Codex to do everything  on my computer including extremely mundane s...",
+      "link": "https://x.com/petergyang/status/2085773704374693948",
+      "published": "2026-08-08T01:02:57+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "This is what happens when I use Codex to do everything on my computer including extremely mundane stuff that I'm just too lazy to do myself.\n\n![Tweet Image](https://pbs.twimg.com/media/HPIn630agAAAr5-.jpg)\n\n💬2🔄0❤️10👀1367📊3",
+      "tags": [
+        "Codex"
+      ],
+      "score": 40,
+      "summary": "Peter Yang分享使用Codex处理电脑事务的截图。",
+      "fetched_at": "2026-08-08T02:00:08.090261+08:00"
+    },
+    {
+      "title": "congrats to oklo for achieving criticality!\n\n(less than a year after groundbreaking)\n\nhttps://t.co/t...",
+      "link": "https://x.com/sama/status/2085765236876046500",
+      "published": "2026-08-08T00:29:18+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "congrats to oklo for achieving criticality!  \n  \n(less than a year after groundbreaking)  \n  \n[oklo.com/newsroom/news-…](https://oklo.com/newsroom/news-details/2026/Oklos-Groves-Reactor-Achieves-First-Criticality-in-Under-a-Year/default.aspx)\n\n💬147🔄45❤️959👀93829📊197",
+      "tags": [
+        "Oklo",
+        "临界",
+        "核能"
+      ],
+      "score": 70,
+      "summary": "Sam Altman祝贺Oklo核反应堆实现首次临界，用时不足一年。",
+      "fetched_at": "2026-08-08T02:00:08.090265+08:00"
+    },
+    {
+      "title": ".@trufflesec co-founder and CEO Dylan Ayrey on which AI risk is actually worth worrying about:\n\n\"No ...",
+      "link": "https://x.com/a16z/status/2085776819278819469",
+      "published": "2026-08-08T01:15:20+08:00",
+      "source": "a16z(@a16z)",
+      "content": ".[@trufflesec](https://x.com/trufflesec) co-founder and CEO Dylan Ayrey on which AI risk is actually worth worrying about:  \n  \n\"No one needs to worry about these models making it materially easy to build nuclear weapons, because you need to procure fissile material to do that.\"  \n  \n\"Everyone needs to worry about these models making it materially easier to hack into things.\"  \n  \n\"The bar previously was just subject matter expertise. Now the models have the subject matter expertise, and they're making it materially easier to hack into just about anything you can think of.\"  \n  \n\"The bar has now fallen to just asking the model.\"  \n  \n[@InsecureNature](https://x.com/InsecureNature)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085776739092029440/vid/avc1/1280x720/VIGgyOLvFF0e_lrg.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2085776819278819469/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\n\"Malware authors were never really great coders. So if the code starts looking better, it's probably vibecoded. It's the opposite of what you'd think.\"  \n  \nTruffle Security CEO Dylan Ayrey and Socket Security CEO Feross Aboukhadijeh sit down with a16z's Joel de la Garza at Black Hat USA 2026. The bar for hacking used to be real expertise plus a willingness to risk jail, now it's simply asking a model that was trained to be good at it.  \n  \nThey get into why a leaked password beats a zero-day when you're optimizing for tokens, the quarter-million live API keys sitting in public training sets, and the npm worm spreading through a few hundred packages while they recorded.  \n  \n00:00 Intro  \n00:49 Models are escaping their cages  \n01:28 Committing a felony to complete a task  \n05:20 The path of least tokens  \n09:19 How the labs trained models to hack  \n11:45 250K keys in Hugging Face training sets  \n13:02 100s of repos breached as we speak  \n16:55 npm's nuclear option  \n21:06 2026 is the software supply chain's year  \n  \n[@InsecureNature](https://x.com/InsecureNature)[@trufflesec](https://x.com/trufflesec)[@feross](https://x.com/feross)[@SocketSecurity](https://x.com/SocketSecurity)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2085747949225590785/vid/avc1/1280x720/RoH63O36TTwAq1bP.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2085750137863716984/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2085750137863716984)\n\n💬5🔄0❤️9👀6314📊4",
+      "tags": [
+        "AI安全",
+        "Dylan Ayrey",
+        "黑客"
+      ],
+      "score": 85,
+      "summary": "a16z访谈Truffle Security CEO：AI使黑客攻击门槛降至只需提问。",
+      "fetched_at": "2026-08-08T02:00:08.090267+08:00"
+    },
+    {
+      "title": "https://t.co/VnkvJM5f7Q",
+      "link": "https://x.com/arena/status/2085771811761918367",
+      "published": "2026-08-08T00:55:26+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "[x.com/i/article/2085…](http://x.com/i/article/2085065179210162177)\n\n💬2🔄0❤️7👀2145📊2",
+      "tags": [
+        "LMArena"
+      ],
+      "score": 50,
+      "summary": "LMArena官方发布一条未注明内容的链接。",
+      "fetched_at": "2026-08-08T02:00:08.090270+08:00"
+    },
+    {
+      "title": "Open Code 的 Open Code Go Code Plan 现在 DeepSeek-V4 Flash 0731 的使用量额度翻倍了，感觉相当划算。\n\n10 美元套餐的额度从每个月的 60 美...",
+      "link": "https://x.com/op7418/status/2085781426382012497",
+      "published": "2026-08-08T01:33:38+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Open Code 的 Open Code Go Code Plan 现在 DeepSeek-V4 Flash 0731 的使用量额度翻倍了，感觉相当划算。  \n  \n10 美元套餐的额度从每个月的 60 美元额度变成了等效 120 美元。差不多 31 万次请求，几乎等于免费了  \n  \n同时，他们这个也能用其他的开源模型，比如 K3 之类的。  \n  \nCodepilot 也对这个做了深度适配，可以用他们所有的模型，所以可以试试。  \n  \n而且 Codepilot 里边可以将这些模型用在 Claude Code、Codex 以及 AI SDK 3 种 Agent 的框架下\n\n![OpenCode](https://pbs.twimg.com/profile_images/1973794620233433088/nBn75BTm_normal.png)\n\nOpenCode@opencode\n\nattention  \n  \ndeepseek flash usage has been doubled  \n  \nfor a limited time  \n  \non OpenCode Go  \n  \nthank you\n\n[🔗 View Quoted Tweet](https://x.com/opencode/status/2085621778039087160)\n\n💬2🔄0❤️3👀947📊2",
+      "tags": [
+        "DeepSeek-V4",
+        "OpenCode",
+        "额度翻倍"
+      ],
+      "score": 60,
+      "summary": "OpenCode Go计划中DeepSeek-V4 Flash使用额度翻倍。",
+      "fetched_at": "2026-08-08T02:00:08.090273+08:00"
+    },
+    {
+      "title": "等一等苹果的阔折叠",
+      "link": "https://x.com/op7418/status/2085777231264293107",
+      "published": "2026-08-08T01:16:58+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "等一等苹果的阔折叠\n\n💬0🔄0❤️2👀387",
+      "tags": [
+        "苹果折叠屏"
+      ],
+      "score": 30,
+      "summary": "歸藏表示等待苹果折叠屏手机。",
+      "fetched_at": "2026-08-08T02:00:08.090276+08:00"
+    },
+    {
+      "title": "三星新发布的这个 Fold 8 看起来非常适合运行一些编码 Agent 呀",
+      "link": "https://x.com/op7418/status/2085775841372627452",
+      "published": "2026-08-08T01:11:27+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "三星新发布的这个 Fold 8 看起来非常适合运行一些编码 Agent 呀\n\n![Tweet Image](https://pbs.twimg.com/media/HPIqEXPbwAEFlBk.jpg)\n\n![DHH](https://pbs.twimg.com/profile_images/1746980162607140864/fG9Fj4K__normal.jpg)\n\nDHH@dhh\n\nSamsung Fold 8 as an on-the-go agent terminal is pretty compelling. What a delightful form factor.\n\n![Tweet Image](https://pbs.twimg.com/media/HPC63OMWQAEiGNc.jpg)![Tweet Image](https://pbs.twimg.com/media/HPC63OKXsAAbzdC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dhh/status/2085372149531828465)\n\n💬8🔄0❤️4👀1730📊6",
+      "tags": [
+        "三星Fold8",
+        "编码Agent"
+      ],
+      "score": 50,
+      "summary": "歸藏认为三星Fold8适合运行编码Agent。",
+      "fetched_at": "2026-08-08T02:00:08.090279+08:00"
     }
   ]
 }
