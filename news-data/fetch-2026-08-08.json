@@ -2712,6 +2712,217 @@
       "score": 20,
       "summary": "Justin Welsh分享生活感悟：最好的生活像周六一样。",
       "fetched_at": "2026-08-08T21:06:05.492861+08:00"
+    },
+    {
+      "title": "Now we have a timeline of the OpenAI accidental attack against Hugging Face",
+      "link": "https://simonwillison.net/2026/Aug/8/now-we-have-a-timeline-of-the-openai-accidental-attack-against-h/#atom-everything",
+      "published": "2026-08-08T22:06:41+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "[My comment](https://news.ycombinator.com/item?id=49220609#49221745) on [Now we have a timeline of the OpenAI accidental attack against Hugging Face](https://news.ycombinator.com/item?id=49220609) — Hacker News.\n\nI think one of the most interesting details here might be tucked away in that first bulletin point:\n\n> May 7: OpenAI starts a new training run for an experimental, unreleased model. *(Do they mean an evaluation run? They say training run in the video, and later mention a “reward signal to judge how well they’re doing”, so I guess this really was about training a model, not evaluating one that was already trained.)*\n\nThe more I think about this the more I suspect that the fact this happened while *training* a new model is key to understanding what went wrong.\n\nIn RLVR - Reinforcement Learning with Verifiable Rewards - you set the model a goal and have it take *any steps necessary* to achieve that goal.\n\nClearly one aspect of OpenAI's training here is to RLVR their models for cybersecurity tasks. Just like pre-training benefits from dumping in vast sources of knowledge, the more tasks you can feed into RLVR the more of a general purpose capable model you get at the end.\n\nThis also helps explain why the models had nothing to cause them to hold back. Those safety behaviors are added much later in the process.\n\nAND it explains (but does not excuse) why monitoring was so lax. If you're training a new model like this you presumably set it thousands of tasks like this in parallel. I can see how you might miss that a tiny subset of your training agents have started leaving each other messages in filenames on your packaging server.\n\nSomeone once told me that you can't just leave the racist materials out of your training data if you want a non-racist model: it has to have seen examples of racism in order to later be taught that racism is bad.\n\nI can see echoes of that here. If your model doesn't know how to aggressively hack things how do you later teach it not to?\n\n(I have little knowledge of how RLVR works in practice so I'm looking forward to hearing from people who can help me understand if I'm on the right track here.)\n\nTags: [ai](https://simonwillison.net/tags/ai), [openai](https://simonwillison.net/tags/openai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [ai-security-research](https://simonwillison.net/tags/ai-security-research), [openai-hugging-face-incident](https://simonwillison.net/tags/openai-hugging-face-incident)",
+      "tags": [
+        "OpenAI",
+        "Hugging Face",
+        "RLVR"
+      ],
+      "score": 85,
+      "summary": "Simon Willison分析OpenAI意外攻击Hugging Face事件，认为与RLVR训练相关。",
+      "fetched_at": "2026-08-08T22:40:55.677603+08:00"
+    },
+    {
+      "title": "YC总裁：掌控你的智慧丨Y Combinator",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247488591&idx=1&sn=e83ea488c099a2f9e54c0c61ad735358",
+      "published": "2026-08-08T21:28:00+08:00",
+      "source": "晚点再听LaterCast",
+      "content": "原创 Capihom 2026-08-08 21:28 北京\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=844320cd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FUNwPtic6UWKaGoA7mVqOibkupK06HtRhZOeHm226TDC1awKzmunfLJvsyxlmN5jribMbpG4HtzInfpVaibiaYg0HklibjicRNPAuopuA9AK3fy9nicw%2F0%3Fwx_fmt%3Djpeg)\n\n如果你现在没空可以收藏进 晚点再听LaterCast，在通勤、走路或做家务时一篇篇轻松听完“智能应该由你拥有，不能只靠租来使用。\n\n每天挑选一期硅谷AI科技值得关注的播客，让你与前沿同频。如果你现在没空可以收藏进 晚点再听LaterCast，在通勤、走路或做家务时一篇篇轻松听完\n\n“智能应该由你拥有，不能只靠租来使用。”\n\n“一个是你消费的产品，另一个是你亲手积累的资产。”\n\n“个人 AGI，是你在 Agent 时代继续掌握自己能力的方式。”\n\n下一代创业公司将由比以往任何时候都更小的团队打造。\n\n在2026年创业学校（Startup School 2026）上，YC总裁兼首席执行官Garry Tan解释了我们为何正在进入个人通用人工智能（AGI）时代：人工智能代理运行在您自己的基础设施上，随着时间的推移不断积累您的知识，并显著提升您的构建能力。\n\n他分享了他每天使用的工具和工作流程，阐述了为什么每位创始人都应该拥有自己的智能而不是租用它，以及自主构建的意义所在。\n\n## AGI 可能已经在你的电脑里\n\n很多人还在等一个明确时刻：某家公司宣布越过门槛，AGI 从此到来。Garry 看到的画面朴素得多，它可能只是一扇终端窗口、一组 Markdown 文件，或者一个在人睡觉时继续运行的任务。智能已经散进每天使用的基础设施，无须等待一场发布会为它命名。\n\n“AGI 不会以一场大事件的形式到来。它正在扩散：你的 Agent 带着你的上下文，替你完成你的工作。”\n\n他所说的个人 AGI 也不是每月付 20 美元的聊天机器人。订阅产品关闭页面就会重置，服务商更换方向时，用户只能跟着变。**个人 AGI 运行在你控制的基础设施上，读取你拥有的记忆，执行你写下的流程，并在每次使用后留下积累。**模型可以租，自己的上下文和方法最好留在手里。\n\n斯宾诺莎把驱动生命继续行动、扩大行动能力的冲动叫作 conatus。Garry 借用了这个词来描述 Agent 带来的感受：当一项原本需要一周的工作在一个下午完成，那种感受远超过省事，自己能影响世界的范围突然变大了。工具的意义也落在这里，它让一个人的想法更快进入现实。\n\n## 真正拉开差距的是上下文\n\n2013 年，Garry 白天担任 YC 合伙人，晚上开发内部社区 Bookface，一天大约能写 14 行有用代码。今年，他管理 YC、照常接孩子放学，代码产出却达到当年的约 400 倍。他主动给这个数字打折：扣掉脚手架和冗余代码，再假设自己高估了结果，保守下限仍有 8 倍。\n\n“有人能做到 2 倍，有人能做到 100 倍。他们用的是同样的云、同样的模型和 API。杠杆藏在你给了什么上下文，它是否相关，又是否出现在正确步骤里。”\n\nYC 2025 年冬季批次中，约四分之一的公司有 95% 的代码由 AI 生成。这批公司后来把 Agent 用到设计、产品和增长上，并且正在成为 YC 增长快、盈利表现好的批次之一。Garry 很谨慎，他没有把两件事直接写成因果。**他确认的是：跑得最快的创始人已经把 AI 当成一支劳动力，早就超出了自动补全的范围。**\n\n这也解释了为什么换一个更强模型，结果未必立刻变好。Garry 给出的公式很简单：持续变便宜的前沿模型，加上只有你拥有的上下文，再用一套工具把两者接起来。模型质量会逐渐商品化，长期差异来自那些外人拿不到的项目背景、关系历史和判断依据。\n\n## 你的生活是一座图书馆\n\n人的工作记忆一次大约能容纳七件事，所以清单、档案柜、组织架构和站会都在帮大脑补这个缺口。今天的 Agent 可以同时处理约一百万 token，差不多是 1000 页文本。可一个人的经历远不止三本书：历年的邮件、会议、决策，以及每次判断背后的原因，合在一起更像一整座图书馆。\n\n“决定你的 Agent 是天才还是金鱼的问题只有一个：谁来决定此刻桌面上应该摊开哪三本书？”\n\nGarry 把这个组合称为 G Brain：图书馆加图书管理员。库里约有 22 万个 Markdown 页面，涵盖他 25 年的日记、邮件、照片、草稿和做错过的事。Agent 负责整理和检索，人负责维护事实来源、处理矛盾、删掉过期信息。**只把资料扔进去，会得到一个搜索很快的垃圾场；能复利的记忆需要出处、冲突检查和持续清理。**\n\n22 万页听起来像先建仓库再找东西存，实际顺序恰好相反。Garry 的系统起初只是几份文件，写着他正在合作的公司和常联系的人。每做完一件事，Agent 多整理一点，文件夹才慢慢长大。**先建一层能用的书架，远比设计一座空图书馆有效。**\n\n## 先让 Agent 读懂你的工作现场\n\nGarry 用一个普通工作日解释这套系统：夜里，Agent 会处理收件箱，识别哪些邮件来自遇到困难的创始人，哪些只是推销。早晨，他收到带背景的简报；每次开会前，系统准备好上次谈了什么、后来发生了什么、这次值得追问什么。凌晨想到的研究题目，往往在他起床前已经完成初稿。\n\n“我的 Agent 做任何事时，都带着我已经知道的一切。这里就是助手和同事的分界线。”\n\n当一位创始人发来求助邮件，Agent 会拉出双方过去的沟通，并找到三家遇到过相似问题的被投公司，附上当时真正有效的做法。这些价值来自 Garry 自己的经历，公共模型里没有。**想让 Agent 理解工作，第一步往往是把散落在邮件和脑海里的背景变成它能读取的记录。**\n\n## Skill 文件就是写给新同事的说明\n\nG Brain 上面运行着 Garry 的 G Stack。他说，这套系统的大部分并不神秘，主体是一组 Skill 文件，再加上 Agent 可以操作的浏览器和工具。一个会议 Skill 会写清楚：录音到达后做说话人标注，提取谁承诺了什么以及截止时间，把人名链接到知识库；若新信息和旧记录冲突，只标记，先别覆盖。\n\n“聪明的实习生照着就能完成的工作，Agent 也能执行。这就是检验 Skill 文件是否写清楚的方法。”\n\nGarry 因此说“Markdown 就是代码”。自然语言负责模糊判断，精确计算仍交给数据库和脚本。给五个人排座位，模型能直接处理；为会场 6000 人生成定制日程，就要让它调用代码记录约束。他这次讲斯宾诺莎的开场也来自一个研究 Skill。Agent 用一晚读完三本传记、约 1500 页内容，整理传记作者的分歧和原文出处，又选出十个最适合讲述的片段，Garry 再编辑成台上的故事。\n\n这两类工作的边界很清楚：品味、判断和理解模糊需求，适合让模型在概率空间里处理；算术、SQL 查询、人数约束这类任务，需要可重复验证的程序。Agent 失败时，问题常常出在分工，本该交给代码的部分仍被当作聊天来做。\n\n## 一个人也能先把公司跑起来\n\n在 Garry 的比喻里，一个 Skill 文件像一位员工，路由规则像组织架构。创始人还没有联合创始人、Logo 和融资材料时，已经可以管理一组由 Markdown 驱动的 Agent。**过去“做那些无法规模化的事”需要创始人亲自投入时间；现在，Agent 能把这些手工活批量执行。**\n\n“在你注册公司、找到联合创始人、做好 Logo 和融资材料之前，你已经可以运行一个组织：你，加上你的 Agent。”\n\n两家 YC 公司的数字可以说明变化。Emergent 从公开上线到九位数收入用了八个月；年化收入达到 1500 万美元时，团队只有 15 人。Retell AI 在约 40 人规模时做到了 6000 万美元年化收入。Garry 的判断是，新公司可以先为“一个人的需求”写软件，周末就做出工具。若别人开始追着借用，那件自用工具可能就是公司起点。\n\n创始人验证想法的成本也随之变化。过去，为一个人的特殊流程做软件很难回本，团队会先寻找足够大的市场。现在，试做一个周末就能完成，自用价值本身已经足够支撑第一次迭代。用户是否主动来借，成了比市场报告更早、更直接的需求信号。\n\n## 从一个文件夹开始，给它 90 天\n\nGarry 给出的起步方法很具体，今晚就能开始：先选一个能在自己电脑上运行 Agent 的工具。周末建一个 Markdown 文件夹，为手头项目和经常合作的人各写一页，记录正在一起做什么、对方在意什么、你答应了什么。随后挑一件每周都做又很厌烦的工作，把做法像教新同事那样写成 Skill，再设成每天或每周自动运行。\n\n“每次任务结束，都让 Agent 把刚才的做法整理成可复用的 Skill。把学到的东西留下来的人，每天都会变聪明。”\n\n第一周通常像玩具：知识库太薄，Skill 也笨，修正时间可能比节省的还多。第四周，系统开始带着你的背景回答问题，定时任务产出的东西终于值得读。到第十二周，常做的工作有十几个 Skill 接手，知识库能在问题说完前找到线索。**多数人会在第二周放弃，所以 90 天的门槛主要考验持续记录，不考验一次写出多漂亮的系统。**\n\nGarry 特别反对一次性任务，因为 Agent 刚完成工作时，流程、例外和修正还留在上下文里，此时就该整理成可复用文件，让下次调用从上一次的经验起步。重复两次仍要重新口述，说明经验没有被保存；每天清空上下文，再强的模型也只能每天从零开始。\n\n## 能力写进文件后，它到底归谁\n\n演讲后半段，Garry 讲了一个虚构的客服工程师 Maya。两年里，她教会 Agent 40 项工作：凌晨两点如何处理 P0、怎样安抚准备流失的客户、怎样写出真能减少事故的复盘。如果文件在 Maya 自己的仓库，她换工作时能带走两年积累；如果文件留在公司系统，她离开后，公司仍可让她的判断一直运行，她的名字甚至不会出现在提交记录里。\n\n“把自己的 Skill 留在手里。否则，你的工作最后会变成一份继续运转、却不再需要你的 Skill 文件。”\n\n个人知识库还绕不开隐私，因为里面可能装着邮件、会议甚至孩子的日程。Garry 的选择是把系统放在自己的基础设施、仓库和密钥下。他承认这仍有风险，但指出默认状态同样谈不上安全：个人资料早已散在十个云服务里，平台可以搜索，用户自己却很难统一调用。**个人 AGI 的所有权包含两件事：你能带走自己的经验，也要为保管这些经验负责。**\n\n演讲中最具体的例子来自 Garry 的一位朋友。他的儿子患有罕见癫痫，这位父亲为一个孩子建立了约 8 万个 Markdown 页面，收录每次专科就诊、论文、发作记录和药物相互作用。新医生提出方案时，他几分钟内就能确认是否试过。这里没有通用榜单，也没有面向大众的产品，只有一台电脑和一个家庭多年留下的材料。个人 AGI 的“个人”，在这个例子里不是营销标签。\n\n## 写在最后\n\nGarry 的 22 万页知识库很容易让人望而却步，但它最初只是一个文件夹。今晚真正能做的事很小：选一项反复出现的工作，把背景和做法写下来，让 Agent 跑一次，再把修正补回文件。模型还会更新，自己的记录和方法则会随着使用变厚。先搭一层书架，再决定这座图书馆最终放什么。\n\n内容来源：“Garry Tan: Own Your Intelligence”丨Y Combinator（演讲者：Garry Tan）\n\n原视频：<https://www.youtube.com/watch?v=eRrc1pUY5oU&t=11s>\n\n相关文章\n\n* [《Claude Code 实战：如何用一个工具支撑整个小团队丨Aakash Gupta》](https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247485646&idx=1&sn=cf7fce1f981449dd556c30bbc55eb0da&chksm=f51d3031c26ab927b4982ba4b3c497f5050d2cce583adf3377e6c327bf98e1a805da45cfe785&scene=21#wechat_redirect)\n* [《Brex CEO：当CEO先被AI改变，公司才会变丨YC》](https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247488031&idx=1&sn=0e74070e6ad2a3091eecc1a832acb286&chksm=f51d2ae0c26aa3f6b236af0048fd3b3f55c1d381ba2d1cfd4b68174c5386acfa3b23d98fcdca&scene=21#wechat_redirect)\n* [《Box创始人Aaron：为什么AI时代属于创业公司丨Y Combinator》](https://mp.weixin.qq.com/s?__biz=MzcxMDA5NTI0OA==&mid=2247484574&idx=1&sn=25c0ce12125af44c10504825e531fcac&chksm=f51d3c61c26ab577900ebc05961f7450706d9818f5a769c0fa270ed8bd76922ac438adafa686&scene=21#wechat_redirect)\n\n如果你现在没空，可以收藏进晚点再听，通勤、走路或做家务时一次性听完⇣\n\n⇣ 关注我，每天为你更新硅谷最新的 AI 创业／科技播客总结，让你与前沿保持同频 ⇣\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=957f24c5&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzcxMDA5NTI0OA%3D%3D%26mid%3D2247488591%26idx%3D1%26sn%3De83ea488c099a2f9e54c0c61ad735358)",
+      "tags": [
+        "YC",
+        "Garry Tan",
+        "个人AGI"
+      ],
+      "score": 75,
+      "summary": "YC总裁Garry Tan在Startup School 2026分享个人AGI理念，强调上下文积累的重要性。",
+      "fetched_at": "2026-08-08T22:40:55.677617+08:00"
+    },
+    {
+      "title": "从蒸馏到合成数据到 RSI，模型竞争的下一个焦点是什么？｜对谈 Evolvent AI 联创孟繁青",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a75424b000a55a9bb042560",
+      "published": "2026-08-08T21:30:00+08:00",
+      "source": "42章经",
+      "content": "**活动预告🥳：8 月 22 日，我们会请到繁青做一场线上活动，还会有数十位 model researchers 参与，大家记得翻到 shownotes 末尾查看报名信息！**\n\n近几个月，我们找了很多做模型、算法的人交流，聊下来的感受之一是：数据的重要性再次凸显出来。\n\n市场也有很明确的对应反馈，比如一批合成数据公司在很短时间内做出了可观的收入；无论是模型厂还是互联网大厂，都在数据上更为投入。\n\n这期节目，我们请来了较早抓住这波合成数据机会的 Evolvent AI 联合创始人孟繁青。繁青是 01 年出生的 NUS PhD，曾在 Kimi 做过一年多的 Agent 和 RL Infra。\n\n节目里，我们从他在模型厂做 Post-training 与出来创业的不同感受聊起，也相继把有关后训练、数据、RSI/Self-Evolving/AI for AI、国内模型竞争格局，甚至蒸馏这个相对敏感的话题，都比较完整地梳理了一遍，聊出的一个最大非共识，是繁青对国内外模型差异的判断：\n\n原本我们以为，国内更有优势的会是偏工程的 Post-training；但在他看来，国内模型真正有特色的地方，反而是 Pre-training 阶段被资源限制倒逼出来的架构创新。\n\n基于这个认知，我们也得出了一个让人乐观的结论：\n\n很多人会说国模很依赖蒸馏，但繁青认为，蒸馏只是一个加速手段，并不是国内模型变强的决定性因素。就算有一天海外把所有蒸馏通道都封掉，国模依然可以靠预训练的创新能力，构建起自己的竞争力。\n\n最后，Evolvent AI 最近发布了新的研究成果 [RSIBench-Data](https://github.com/evolvent-ai/RSIBench-Data)。如果有朋友想在数据、RSI 方面进行交流，也欢迎联系繁青。\n\n**【人类博物馆】**\n\n**导游：**曲凯，42章经创始人\n\n**51 号珍藏：**孟繁青，Evolvent AI 联合创始人；前 Kimi RL 实习生，foucs 在 RL Infra，参与 Kimi K2.5、Kimi Linear 等重要模型发版\n\n**【时光机】**\n\n**Part 1 后训练与模型竞争**\n\n* 01:15 在 Kimi 和出来创业的感受有什么不同？\n* 02:36 为什么 Post-training 背景的人更容易出来创业？有哪些可能性？\n* 04:37 今天的 Bench 和 Eval，与过去相比有什么变化？\n* 07:12 Post-training = 做数据、训模型的门槛在变低？\n* 10:35 同样是做数据，拉开质量差距的是什么？\n* 12:48 国内模型 vs 海外模型，优势其实在 Pre-training？\n* 17:09 国模的竞争格局会怎样发展？最后大家要拼的是什么？\n\n**Part 2 RSI**\n\n* 21:50 RSI、Self-Evolving、AI for AI、Auto-Research……该怎么理解这些词？\n* 24:35 如果 RSI 真的能转起来，模型是不是真的就要吃掉一切了？\n* 29:09 假设模型真能自我迭代，创业公司为什么不直接做一个更好的基模？\n* 30:39 要做好 RSI，本质上要解决什么问题？\n* 33:48 RSI 继续发展下去，会引发怎样的变化？\n\n**Part 3 数据**\n\n* 35:29 模型对数据的需求经历了哪几波变化？\n* 39:07 模型厂自己也能造数据，为什么还要外采？\n* 40:36 数据的下一波机会可能是什么？\n* 43:00 现在是「算法就是数据，数据就是 Infra，Infra 就是算法」？\n* 46:11 怎么理解合成数据和蒸馏之间的关系？蒸馏技法的区别在哪？\n\n**Part 4 展望**\n\n* 48:18 模型现有的技术路线还有多大空间？\n* 49:33 为什么最近 AI4S 火了起来？\n* 51:39 相比于大厂，长期更看好初创模型公司？\n* 53:58 蒸馏对国内模型追赶的意义到底有多大？\n* 56:18 从合成数据到 RSIBench-Data，Evolvent AI 最终想做成什么？\n\n**【活动预告🥳】**\n\n**8 月 22 日，我们会请到我们会请到繁青做一场线上活动，还会有数十位 model researchers 参与，感兴趣的朋友欢迎点击**[**链接**](https://my.feishu.cn/share/base/form/shrcnzHY8DnTCIXQfbTSomp8k7c)**或扫描下面的二维码，一起来认识&交流！**\n\n![](https://image.xyzcdn.net/FqwNzm3k3mqgNHYqfe38zi-bxQqV.png)\n\n【**The gang that made this happen】**\n\n* 制作人：陈皮\n* 剪辑：陈皮\n* 片头：Mondo Bongo - Joe Strummer & The Mescaleros\n* 片尾：GeGeGe - 光のサイン",
+      "tags": [
+        "合成数据",
+        "RSI",
+        "RSIBench-Data"
+      ],
+      "score": 75,
+      "summary": "42章经播客专访Evolvent AI联创，探讨蒸馏、合成数据与RSI在模型竞争中的作用。",
+      "fetched_at": "2026-08-08T22:40:55.677622+08:00"
+    },
+    {
+      "title": "感谢 WorkBuddy\n\n自从用上\n我活成了一个精打细算的 AI 用户\n\nhy3 免费？使劲薅\nV4 Flash 性价比高？往死里用\n每天 5000 万 token 起步\n这两模型能力边界是什么？是...",
+      "link": "https://x.com/PMbackttfuture/status/2086080621462372605",
+      "published": "2026-08-08T21:22:32+08:00",
+      "source": "AI产品黄叔(@PMbackttfuture)",
+      "content": "感谢 WorkBuddy  \n  \n自从用上  \n我活成了一个精打细算的 AI 用户  \n  \nhy3 免费？使劲薅  \nV4 Flash 性价比高？往死里用  \n每天 5000 万 token 起步  \n这两模型能力边界是什么？是用出来的  \n  \n再看 GLM 5.2 的 Pro 套餐  \nK3 的 199 会员  \n曾经吃灰的订阅  \n这一刻全部灵魂附体  \n  \n——原来我不是乱花钱，是提前投资\n\n💬0🔄0❤️1👀243",
+      "tags": [
+        "WorkBuddy",
+        "V4 Flash"
+      ],
+      "score": 30,
+      "summary": "AI产品黄叔分享WorkBuddy使用体验，称其可免费使用多个模型并消耗大量token。",
+      "fetched_at": "2026-08-08T22:40:55.677625+08:00"
+    },
+    {
+      "title": "Digital gray goo.",
+      "link": "https://x.com/amasad/status/2086089059311722590",
+      "published": "2026-08-08T21:56:04+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "Digital gray goo.\n\n![Dean W. Ball](https://pbs.twimg.com/profile_images/1997065021491130368/X76ALSbp_normal.jpg)\n\nDean W. Ball@deanwball\n\nIt is true that the hugging face incident is an example of a malicious, emergent digital ecology of machine intelligence. But the more important point is that digital ecologies of machine intelligence can be grown! Yes, we accidentally made a weed. And yes, nasty actors will make invasive species. But we can also grow—not make, but grow—emergent ecologies of machine ecologies that are pro-social. Beautiful gardens and majestic forests, grown but not designed. The human past is the sculptor, but the human future is the gardener, the arborist.\n\n[🔗 View Quoted Tweet](https://x.com/deanwball/status/2085937149992448311)\n\n💬7🔄0❤️10👀4475📊6",
+      "tags": [
+        "AI生态",
+        "Hugging Face事件"
+      ],
+      "score": 60,
+      "summary": "Amjad Masad转发Dean Ball评论，将Hugging Face事件视为恶意涌现的机器智能生态。",
+      "fetched_at": "2026-08-08T22:40:55.677628+08:00"
+    },
+    {
+      "title": "done 整整齐齐！",
+      "link": "https://x.com/berryxia/status/2086085073485619614",
+      "published": "2026-08-08T21:40:13+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "done 整整齐齐！\n\n![Tweet Image](https://pbs.twimg.com/media/HPNDTlEbQAAVyT1.jpg)\n\n💬0🔄0❤️0👀33",
+      "tags": [
+        "整整齐齐"
+      ],
+      "score": 10,
+      "summary": "Berryxia.AI发布推文，仅含图片和“整整齐齐”文字，无实质内容。",
+      "fetched_at": "2026-08-08T22:40:55.677631+08:00"
+    },
+    {
+      "title": "目前看了一下，用户还需要登录千问的账号才行。\n所以，还不完全是跑本地模型么？\n\nPS：目前大陆国行的iPhone 还是不支持AI",
+      "link": "https://x.com/berryxia/status/2086084349271900610",
+      "published": "2026-08-08T21:37:21+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "目前看了一下，用户还需要登录千问的账号才行。  \n所以，还不完全是跑本地模型么？  \n  \nPS：目前大陆国行的iPhone 还是不支持AI\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n卧槽~千呼万唤始出来？  \n终于定了！国行 Apple AI手册出来了，并且是千问。  \n  \nApple 官方文档已上线——《在 Mac 上配合 Apple 智能使用千问》。  \n  \n将率先在 macOS 26.6 +系统使用，不过我还没有更新不知道是不是已经有了~~  \n  \n地址见评论区👇🏻\n\n![Tweet Image](https://pbs.twimg.com/media/HPM7K2hasAAja5j.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2086078429099864472)\n\n💬1🔄0❤️1👀138📊1",
+      "tags": [
+        "Apple智能",
+        "千问",
+        "国行iPhone"
+      ],
+      "score": 65,
+      "summary": "Berryxia.AI补充评论，称使用Apple智能需登录千问账号，国行iPhone暂不支持AI。",
+      "fetched_at": "2026-08-08T22:40:55.677634+08:00"
+    },
+    {
+      "title": "这货不是花拳绣腿啊，我使用DeepSeek V4-flash 一会看看花了多少钱😄 \n自己在Z-lib找书，然后自己下载给我。",
+      "link": "https://x.com/berryxia/status/2086081049705254996",
+      "published": "2026-08-08T21:24:14+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这货不是花拳绣腿啊，我使用DeepSeek V4-flash 一会看看花了多少钱😄   \n自己在Z-lib找书，然后自己下载给我。\n\n![Tweet Image](https://pbs.twimg.com/media/HPM_aARbcAAM9DN.jpg)![Tweet Image](https://pbs.twimg.com/media/HPM_o4wakAAXQPl.jpg)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n卧槽~这货成精了！  \n  \nBloome 居然是支持Computer Use的，我不会是最后一个知道的吧！  \n  \n我让找一本书，自己开始给我搞起浏览器，自己开始下载操作了。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HPM9fWmaoAA6GNV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2086078915085500423)\n\n💬0🔄0❤️0👀307",
+      "tags": [
+        "DeepSeek V4-flash"
+      ],
+      "score": 50,
+      "summary": "Berryxia.AI分享DeepSeek V4-flash使用体验，称其能自主操作浏览器找书并下载。",
+      "fetched_at": "2026-08-08T22:40:55.677638+08:00"
+    },
+    {
+      "title": "真的是嘎嘎爽！！还是双操作，你正常操作电脑不受影响😄",
+      "link": "https://x.com/berryxia/status/2086079315876462680",
+      "published": "2026-08-08T21:17:21+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "真的是嘎嘎爽！！还是双操作，你正常操作电脑不受影响😄\n\n![Tweet Image](https://pbs.twimg.com/media/HPM-AZTagAAvtbW.jpg)\n\n💬1🔄0❤️0👀160📊1",
+      "tags": [
+        "双操作"
+      ],
+      "score": 10,
+      "summary": "Berryxia.AI发布推文，称赞某功能支持双操作，不影响正常使用，无实质信息。",
+      "fetched_at": "2026-08-08T22:40:55.677641+08:00"
+    },
+    {
+      "title": "卧槽~这货成精了！\n\nBloome 居然是支持Computer Use的，我不会是最后一个知道的吧！\n\n我让找一本书，自己开始给我搞起浏览器，自己开始下载操作了。。。",
+      "link": "https://x.com/berryxia/status/2086078915085500423",
+      "published": "2026-08-08T21:15:45+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "卧槽~这货成精了！  \n  \nBloome 居然是支持Computer Use的，我不会是最后一个知道的吧！  \n  \n我让找一本书，自己开始给我搞起浏览器，自己开始下载操作了。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HPM9fWmaoAA6GNV.jpg)\n\n💬2🔄0❤️2👀648📊3",
+      "tags": [
+        "Bloome",
+        "Computer Use"
+      ],
+      "score": 60,
+      "summary": "Berryxia.AI发现Bloome支持Computer Use，可自主操作浏览器完成任务。",
+      "fetched_at": "2026-08-08T22:40:55.677644+08:00"
+    },
+    {
+      "title": "https://t.co/DaiD99QwnJ",
+      "link": "https://x.com/berryxia/status/2086078432442741120",
+      "published": "2026-08-08T21:13:50+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "[support.apple.com/zh-cn/guide/ma…](https://support.apple.com/zh-cn/guide/mac-help/mchl46b3ab20/mac)\n\n💬0🔄0❤️0👀164",
+      "tags": [
+        "Apple支持文档"
+      ],
+      "score": 10,
+      "summary": "Berryxia.AI发布Apple支持文档链接，无额外说明。",
+      "fetched_at": "2026-08-08T22:40:55.677646+08:00"
+    },
+    {
+      "title": "卧槽~千呼万唤始出来？\n终于定了！国行 Apple AI手册出来了，并且是千问。\n\nApple 官方文档已上线——《在 Mac 上配合 Apple 智能使用千问》。\n\n将率先在 macOS 26.6 ...",
+      "link": "https://x.com/berryxia/status/2086078429099864472",
+      "published": "2026-08-08T21:13:49+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "卧槽~千呼万唤始出来？  \n终于定了！国行 Apple AI手册出来了，并且是千问。  \n  \nApple 官方文档已上线——《在 Mac 上配合 Apple 智能使用千问》。  \n  \n将率先在 macOS 26.6 +系统使用，不过我还没有更新不知道是不是已经有了~~  \n  \n地址见评论区👇🏻\n\n![Tweet Image](https://pbs.twimg.com/media/HPM7K2hasAAja5j.jpg)\n\n💬4🔄0❤️0👀452📊5",
+      "tags": [
+        "Apple智能",
+        "千问",
+        "国行"
+      ],
+      "score": 85,
+      "summary": "Berryxia.AI发现Apple官方文档上线，国行Mac将支持千问作为Apple智能模型。",
+      "fetched_at": "2026-08-08T22:40:55.677649+08:00"
+    },
+    {
+      "title": "Criticism is welcomed and encouraged at Bridgewater, but there is never a good reason to bad-mouth p...",
+      "link": "https://x.com/RayDalio/status/2086090051063021784",
+      "published": "2026-08-08T22:00:00+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "Criticism is welcomed and encouraged at Bridgewater, but there is never a good reason to bad-mouth people behind their backs. It is counterproductive and shows a serious lack of integrity, it doesn't yield any beneficial change, and it subverts both the person being badmouthed and the environment as a whole. Next to being dishonest, it is the worst thing you can do in our community. #principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HPJ4j0hXcAEIe6N.png)\n\n💬15🔄14❤️109👀16935📊24",
+      "tags": [
+        "Bridgewater",
+        "原则"
+      ],
+      "score": 10,
+      "summary": "Ray Dalio分享Bridgewater原则，鼓励当面批评，反对背后诋毁。",
+      "fetched_at": "2026-08-08T22:40:55.677652+08:00"
+    },
+    {
+      "title": "Herdr 的 agent-automation 是最舒服的，用了挺久了，今天 claude 出来的功能都在大书特书， herdr 已经支持最完全的 agent automation，而且支持大部分的...",
+      "link": "https://x.com/vikingmute/status/2086081964814266383",
+      "published": "2026-08-08T21:27:52+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "Herdr 的 agent-automation 是最舒服的，用了挺久了，今天 claude 出来的功能都在大书特书， herdr 已经支持最完全的 agent automation，而且支持大部分的工具  \n  \n [herdr.dev/docs/agent-aut…](https://herdr.dev/docs/agent-automation/)  \n  \n我常用的是：让一个 Agent 给其他 Agent 分配任务，等待结果，搜集结果，来回交互。  \n  \n最近还在研究的是一个很好的方向是脚本化，可以完全写脚本控制整个流程，对于一些重复性很高的任务就不用再跑相同的流程了，以后直接跑脚本，不用每次手动操作一遍。\n\n💬1🔄4❤️23👀2146📊10",
+      "tags": [
+        "Herdr",
+        "Agent自动化"
+      ],
+      "score": 65,
+      "summary": "Viking分享Herdr的Agent自动化功能，称其支持任务分配和脚本化，优于Claude。",
+      "fetched_at": "2026-08-08T22:40:55.677655+08:00"
+    },
+    {
+      "title": "今天在线下花了5小时分别和两位朋友聊天，收获很多\n再次让我确认线下的深度交流就是这个时代最稀缺的最有价值的东西\nAI 模型看似什么都懂，却永远无法和我们进行真正的思想碰撞\nAI 永远不可能吞噬一切\n\n...",
+      "link": "https://x.com/oran_ge/status/2086090566207701418",
+      "published": "2026-08-08T22:02:03+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "今天在线下花了5小时分别和两位朋友聊天，收获很多  \n再次让我确认线下的深度交流就是这个时代最稀缺的最有价值的东西  \nAI 模型看似什么都懂，却永远无法和我们进行真正的思想碰撞  \nAI 永远不可能吞噬一切  \n  \n未来我们应该多组织这样的线下聊天  \n这毫无疑问是珍贵的快乐体验\n\n💬0🔄0❤️0👀101",
+      "tags": [
+        "线下交流",
+        "AI局限"
+      ],
+      "score": 40,
+      "summary": "orange.ai分享线下交流感悟，认为AI无法替代真正的思想碰撞。",
+      "fetched_at": "2026-08-08T22:40:55.677658+08:00"
     }
   ]
 }
