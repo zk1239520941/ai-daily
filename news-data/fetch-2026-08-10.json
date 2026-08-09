@@ -476,6 +476,81 @@
       "score": 20,
       "summary": "作者吐槽高端护肤品是智商税，揭露洗面奶含微塑料。",
       "fetched_at": "2026-08-10T06:40:44.878237+08:00"
+    },
+    {
+      "title": "Quoting Claude Opus 5 system prompt",
+      "link": "https://simonwillison.net/2026/Aug/9/claude-opus-5-system-prompt/#atom-everything",
+      "published": "2026-08-10T07:31:39+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "> Claude Fable 5 and Claude Mythos 5 were first released on June 9, 2026. On June 12, 2026, Anthropic suspended access to both models to comply with U.S. Department of Commerce export controls; the Department lifted those controls on June 30, 2026, and Anthropic restored access on July 1, 2026 (Anthropic's statement: <https://www.anthropic.com/news/fable-mythos-access>). These events are after Claude's training-data cutoff, so Claude knows about them only from this notice. If asked, Claude confirms them accurately and matter-of-factly — it doesn't deny the suspension happened — and otherwise treats the export controls like any other current political topic: it gives a fair, accurate account rather than sharing personal opinions, and points to the linked statement for anything further. Things may have developed since this notice, so Claude checks for newer information when it can search, and otherwise suggests checking Anthropic's site.\n\n— [Claude Opus 5 system prompt](https://platform.claude.com/docs/en/release-notes/system-prompts#claude-opus-5), ensuring Claude doesn't provide incorrect answers about the [export controls situation](https://simonwillison.net/2026/Jun/13/us-government-directive-to-suspend-access/)\n\nTags: [system-prompts](https://simonwillison.net/tags/system-prompts), [anthropic](https://simonwillison.net/tags/anthropic), [claude](https://simonwillison.net/tags/claude), [generative-ai](https://simonwillison.net/tags/generative-ai), [ai](https://simonwillison.net/tags/ai), [llms](https://simonwillison.net/tags/llms), [claude-mythos-fable](https://simonwillison.net/tags/claude-mythos-fable)",
+      "tags": [
+        "Claude Opus5",
+        "系统提示",
+        "出口管制"
+      ],
+      "score": 85,
+      "summary": "Claude Opus 5系统提示揭示Fable/Mythos曾因出口管制暂停。",
+      "fetched_at": "2026-08-10T07:40:23.036007+08:00"
+    },
+    {
+      "title": "GitHub Models is now retired",
+      "link": "https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/#atom-everything",
+      "published": "2026-08-10T06:48:05+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[GitHub Models is now retired](https://github.blog/changelog/2026-07-30-github-models-is-now-retired/)**\n\nI missed this news until today, when the GitHub Actions run for my [simonw/research](https://github.com/simonw/research) repository failed with this error message:\n> GitHub Models is temporarily unavailable as part of a scheduled retirement brownout.\n\nThat message is already stale, because the retirement has been completed.\n\nGitHub Models was an odd-shaped duck. GitHub provided a model playground tool and a unified API across a bunch of different LLM providers, with the biggest benefit being that code running in GitHub Actions could use the GitHub API key already present in that environment to execute prompts.\n\nThis made it easy to build things that fit GitHub Next's [Continuous AI](https://githubnext.com/projects/continuous-ai/) concept.\n\nGitHub didn't share the reason behind the shutdown, but my bet is that it fits the pattern where coding agent patterns made it prohibitively expensive to offer free or subsidized tokens.\n\nMy workflow uses an LLM call to create folder summaries for [the README](https://github.com/simonw/research/blob/main/README.md), using [this code here](https://github.com/simonw/research/blob/43fa54a74ca2350bb28c2c32fbb16d42c78c442f/README.md?plain=1#L104-L113). I swapped GitHub Models out for an OpenAI API key with a monthly spending limit, and I'm now generating my summaries using GPT-5.6 Luna.\n\nTags: [github](https://simonwillison.net/tags/github), [ai](https://simonwillison.net/tags/ai), [github-actions](https://simonwillison.net/tags/github-actions), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [llm-pricing](https://simonwillison.net/tags/llm-pricing)",
+      "tags": [
+        "GitHubModels",
+        "退役",
+        "GitHubActions"
+      ],
+      "score": 75,
+      "summary": "GitHub Models已退役，开发者改用OpenAI API替代。",
+      "fetched_at": "2026-08-10T07:40:23.036021+08:00"
+    },
+    {
+      "title": "SQLite compressed text-history prototypes",
+      "link": "https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/#atom-everything",
+      "published": "2026-08-10T06:05:00+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**Research:** [SQLite compressed text-history prototypes](https://github.com/simonw/research/tree/main/sqlite-text-history-prototype#readme)\n\nI'm perennially interested in options for storing revision histories in relational databases. While out on a dog walk I had a new idea: how about taking the full text of every prior version in a big JSON array of strings and then applying zlib or zstd compression to the whole thing? Surely that would compress really well due to all of the repeated strings.\n\nThe new [GPT‑Live voice mode](https://openai.com/index/introducing-gpt-live/) in the ChatGPT iPhone app has got really good, so I discussed the prototype with that. You still can't share URLs to voice conversations, but here's what I said copied from the transcript as a proper stream of consciousness:\n\n> I have an interesting idea for a scheme for saving all previous versions of a piece of text that's constantly edited in a SQLite database um column in as efficient a way as possible. Okay, so I built these kinds of systems in the past, and it's always difficult to come up with a efficient way to do this. Like the easiest way is you have a row for every previous copy of the previous previous value of the string. But if it's a long document Like20 kilobytes of data, that means that every single edit adds another 20 kilobytes of data to the database, right. So, what I've now thinking, is um compression would work really well, right? If you Bundle all of those different um Every every version of this document all the way back to the start if you were to apply a good compression algorithm to them that should basically wipe out huge amounts of the redund- the um redundant text, right Um, so what I'd thinking is how about really, really simple mechanism There is a history column on the single on this uh uh table and it's a blob, it's a BLOB so it stores binary data and then you just stick in there a Zlib or maybe even ZSTD um compressed JSON text array of all of the previous documents, and so you probably have two columns, right? You'd have a column that's this magic JSON array of text You have a second column which is a JSON array of timestamps and that doesn't need to be compressed at all, right? A timestamp can just be a uh- it's an array of integers, right? Unix integers But that's the whole scheme.\n\nThen I stopped voice mode and typed the following text prompt to GPT-5.6 Sol Pro:\n\n> `Use Python and Build experimental prototypes around this idea`\n\nIt churned away for 38 minutes and delivered [this answer](https://gist.github.com/simonw/4e255c53aebdb610553d02cdce17ac30) plus the files you see in [this folder](https://github.com/simonw/research/tree/main/sqlite-text-history-prototype).\n\nThe approach works really well! 1,000 simulated revisions to a document resulted in 20.4 MB of raw revision text that compressed to 80.3 KB as Zstandard-compressed JSON array.\n\nTo avoid the overhead of decompressing and recompressing the entire array on every edit Sol suggested breaking the history up into multiple rows, with each one containing a maximum of either 128 revisions or 3MB of uncompressed JSON.\n\nTags: [compression](https://simonwillison.net/tags/compression), [sqlite](https://simonwillison.net/tags/sqlite), [speech-to-text](https://simonwillison.net/tags/speech-to-text)",
+      "tags": [
+        "SQLite",
+        "压缩",
+        "文本历史"
+      ],
+      "score": 70,
+      "summary": "Simon Willison探索压缩SQLite中的文本修订历史。",
+      "fetched_at": "2026-08-10T07:40:23.036026+08:00"
+    },
+    {
+      "title": "not wrong!",
+      "link": "https://x.com/GaryMarcus/status/2086588932284899574",
+      "published": "2026-08-10T07:02:23+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "not wrong!\n\n![Luca Ambrogioni](https://pbs.twimg.com/profile_images/2081399234893344768/7k-mh_K3_normal.jpg)\n\nLuca Ambrogioni@LucaAmb\n\nMaybe I am completely wrong, but I have the feeling that LLMs have some fundamental limitations that have been masked by progresses coming from reasoning and agentic pipelines\n\n[🔗 View Quoted Tweet](https://x.com/LucaAmb/status/2086461477704106217)\n\n💬5🔄2❤️13👀2424📊5",
+      "tags": [
+        "Gary Marcus",
+        "LLM局限",
+        "推理"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus转发Luca观点，认为LLM根本局限被推理流程掩盖。",
+      "fetched_at": "2026-08-10T07:40:23.036029+08:00"
+    },
+    {
+      "title": "深刻体会，深刻体会，在下一个阶段的开发之中会更谨慎的对待数据结构关系这件事情。\n\n现实的本体更接近图（Graph），但数据系统为了可计算、可维护、可验证，往往必须把图在某个视角下投影成树（Tree）。...",
+      "link": "https://x.com/feltanimalworld/status/2086579153667535235",
+      "published": "2026-08-10T06:23:31+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "深刻体会，深刻体会，在下一个阶段的开发之中会更谨慎的对待数据结构关系这件事情。  \n  \n现实的本体更接近图（Graph），但数据系统为了可计算、可维护、可验证，往往必须把图在某个视角下投影成树（Tree）。  \n  \n现实谁和谁都能发生关系（不是那个意思），但如果忠实地把这些关系全部映射进数据系统，很小范围内复杂度就爆炸了O(n^2). 这个真的只能体会否则就是个教科书题。  \n  \n树是一个非常非常经典和成功的发明，计算机科学大量最成功的抽象，本质上都不断回到 Tree。   \n  \n这几年突然非常昏头的事情在于很多人认为上下文能碰瓷“真相”。“上下文”和“真相”根本不在同一个 epistemic level（认识论层级）上。  \n  \n上下文不能碰瓷的东西太多了：不能碰瓷状态机，不能碰瓷数据库约束，不能碰瓷事务，不能碰瓷权限，不能碰瓷账本，也不能碰瓷对象身份。  \n  \n数据还是需要通过更严格的组织、约束和收敛，才能从“信息”变成“系统状态”。一堆文本、邮件、图片、embedding，哪怕全部塞进一个超长上下文里，本质上仍然只是 evidence 和 observations。系统真正需要的是把这些输入经过分类、归属、类型化、校验和状态转换，最后收敛为一个确定的数据结构。  \n  \n所以数据结构本身绝对不是 AI 时代会消失的东西，反而会变得更加重要。\n\n![IndenScale](https://pbs.twimg.com/profile_images/1926187983050244096/Z8p0KXq3_normal.png)\n\nIndenScale@david0520782123\n\n世界的本质是图，但是人类通常用树思考  \n  \n世界本身更接近一张图。  \n  \n任何事物都不是孤立存在的。一个公司的价值来自供应链、竞争关系、政策环境、用户需求和资本市场的共同作用；一个人的行为受到家庭、教育、社会关系、经济条件和心理状态的共同影响；一个科学理论也总是处在一张由概念、实验、论文和历史演进组成的关系网络中。  \n  \n真实世界充满连接。  \n  \n从这个意义上说，图结构更接近世界的本来面貌：节点代表事物，边代表关系，世界不是一棵树，而是一张不断变化的网络。  \n  \n但人类通常不用图思考。  \n  \n人类更习惯用树。  \n  \n因为树是一种高度压缩的信息结构。面对复杂世界，人类首先需要解决的问题不是「还原全部关系」，而是「建立一个可以操作的模型」。  \n  \n树提供了这种能力：  \n  \n这个东西属于什么类别？  \n它和什么概念处于上下级关系？  \n我应该从哪里开始理解？  \n  \n分类、归属、层级，是人类认知的基础。  \n  \n我们认识一棵树，不需要记住每片叶子和所有其他叶子的关系；我们认识一个领域，也不需要同时掌握所有概念之间的连接。我们通过层级结构压缩复杂性。  \n  \n因此，树不是世界真实的形态，而是人类为了理解世界而创造的认知接口。  \n  \n图和树分别对应两种不同的认知任务。  \n  \n树负责稳定。  \n  \n它回答：  \n  \n这个东西是什么？  \n  \n它帮助我们建立秩序、分类和预测。  \n  \n图负责变化。  \n  \n它回答：  \n  \n为什么会这样？  \n  \n它帮助我们发现关联、寻找原因和处理异常。  \n  \n日常状态下，人类依靠树运行。  \n  \n当某个地方出现异常，图才被展开。  \n  \n比如，一个公司的组织结构通常是一棵树：  \n  \n公司 → 部门 → 团队 → 成员。  \n  \n但当业务出现问题时，我们开始寻找跨部门关系：  \n  \n销售下降是否因为产品问题？  \n产品问题是否来自技术限制？  \n技术限制是否来自供应链变化？  \n  \n这时候，我们从树进入图。  \n这也是为什么优秀系统往往不是纯粹的树，也不是纯粹的图。  \n纯树的问题是：它无法表达真实世界中的复杂关系。  \n  \n纯图的问题是：它把所有关系暴露出来，让人失去认知抓手。  \n  \n更合理的方式是：  \n  \n以树作为主要导航结构，以图作为隐藏的关系网络。  \n  \n树负责让人理解世界。  \n  \n图负责帮助人解释世界。  \n  \n树是地图。  \n  \n图是地形。  \n  \n这也解释了为什么很多知识管理工具会遇到困难。  \n  \n它们试图让人直接操作图：  \n  \n创建节点，建立链接，维护关系。  \n  \n但大多数人的认知过程并不是这样工作的。  \n  \n人并不希望每天面对一个不断扩张的知识网络。  \n  \n人需要的是一个稳定的结构，在结构被打破时，系统能够提示：  \n  \n这里存在异常。  \n  \n这里存在冲突。  \n  \n这里存在新的关联。  \n  \n真正优秀的知识系统，不应该要求人类成为图数据库管理员。  \n  \n它应该允许人继续用树思考，同时在后台维护世界的图。  \n  \n世界是图。  \n  \n人类选择树。  \n  \n不是因为树更真实，而是因为树更适合有限的认知能力。  \n  \n未来智能系统的方向，也许不是让人类学会像机器一样操作图，而是让机器理解图，让人继续通过树与世界交互。\n\n[🔗 View Quoted Tweet](https://x.com/david0520782123/status/2086374456612749324)\n\n💬4🔄0❤️11👀603📊6",
+      "tags": [
+        "数据结构",
+        "上下文",
+        "图与树"
+      ],
+      "score": 65,
+      "summary": "内容讨论图与树数据结构，提出上下文不能取代真相与系统状态。",
+      "fetched_at": "2026-08-10T07:40:23.036032+08:00"
     }
   ]
 }
