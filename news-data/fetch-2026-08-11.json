@@ -735,6 +735,412 @@
       "score": 70,
       "summary": "OpenAI CFO分享建设AI原生财务部门的五个经验教训。",
       "fetched_at": "2026-08-11T01:04:13.252774+08:00"
+    },
+    {
+      "title": "Innocent until combined: Blocking the lethal trifecta with Omnigent Contextual Policies",
+      "link": "https://www.databricks.com/blog/innocent-until-combined-blocking-lethal-trifecta-omnigent-contextual-policies",
+      "published": "2026-08-11T02:30:00+08:00",
+      "source": "Databricks",
+      "content": "In earlier posts, we introduced contextual policies in Omnigent, showed them blocking...",
+      "tags": [
+        "Omnigent",
+        "Contextual Policies",
+        "安全"
+      ],
+      "score": 79,
+      "summary": "Databricks发布Omnigent上下文策略，用于阻断危险组合攻击。",
+      "fetched_at": "2026-08-11T03:08:09.899640+08:00"
+    },
+    {
+      "title": "Everything we launched during Agents Week",
+      "link": "https://blog.cloudflare.com/agents-week-review-august-2026/",
+      "published": "2026-08-11T02:34:10+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "At the beginning of Agents Week, Rita [shared](https://blog.cloudflare.com/agents-week-welcome/) that agents represent the next evolution of computing: not only as a new application of AI but also as a new class of software that’s shaping how people interact with technology, and how software interacts with the Internet. Over the [last year](https://www.cloudflare.com/innovation-week/ai-week-2025/updates/) or so, we set out to explore what this shift means for developers and customers building AI-native apps and the infrastructure needed to support them. As agents become more capable and autonomous, the challenges extend beyond the models themselves — to identity, communication, orchestration, memory, observability, and security.\n\nOver the past week we’ve shared how we’re bringing those pieces together across the Cloudflare platform to serve an Agentic Internet. Each day we presented new tools, products, and ideas toward building for an Internet where humans and agents [cooperate instead of collide](https://blog.cloudflare.com/the-agentic-internet/).\n\n### Monday, August 3\n\nMonday focused on the foundations for building and running intelligent, autonomous apps — the runtime and infrastructure agents rely on.\n\n### Tuesday, August 4\n\nTuesday introduced the Agent Development Lifecycle (ADLC) and the primitives that take agentic software from prototype to production.\n\n### Wednesday, August 5\n\nWednesday extended Zero Trust from users and devices to agents themselves — and we shared how we’re running it internally at Cloudflare.\n\n### Thursday, August 6\n\nThursday defined the Agentic Internet, and how website owners, publishers, and agents can all contribute to an Internet that works for people and agents alike.\n\n### Friday, August 7\n\nFriday put a lens on what’s actually happening: what agents are really doing on the web, where AI is running in your apps, who’s contributing to the ecosystems, and new tools for analyzing Internet data.\n\n### Agents Week is done, but we aren’t\n\nFive days on, the answer to Rita’s question of “[What does your agent need from an Agent Cloud?](https://blog.cloudflare.com/agents-week-welcome/)” is starting to take shape. It needs an execution layer and primitives to run on, a development lifecycle that increasingly writes itself, secure access for the people and agents doing the work, an Agentic Internet, and the humans and communities keeping all of it grounded. There's plenty still to come, but the shape of what’s next is becoming clearer: an Internet that natively supports the humans it was built for and the agents now acting on their behalf.\n\nOur work doesn’t stop here. Keep an eye on our [changelog](https://developers.cloudflare.com/changelog/) for the latest updates. And if you’re building any part of this with us, we’d love to hear from you! Come find us on [X](https://x.com/cloudflaredev) or [Discord](https://discord.com/invite/cloudflaredev).",
+      "tags": [
+        "Cloudflare",
+        "Agents Week",
+        "Agentic Internet"
+      ],
+      "score": 79,
+      "summary": "Cloudflare总结Agents Week，发布多项面向Agentic Internet的新工具和产品。",
+      "image_url": "https://blog.cloudflare.com/_emdash/api/media/file/01KZEF2H4G3BD74C5TP4BWMS76.png",
+      "fetched_at": "2026-08-11T03:08:09.899654+08:00"
+    },
+    {
+      "title": "Vercel Sandbox now runs on Vercel Managed Images",
+      "link": "https://vercel.com/changelog/vercel-sandbox-managed-images",
+      "published": "2026-08-11T02:00:00+08:00",
+      "source": "Vercel News",
+      "content": "Today we are introducing Vercel Managed Images (VMI), a set of versioned, open-source base images you can use as-is or extend. The source for every image lives in the public [vercel/sandbox](https://github.com/vercel/sandbox) repository.\n\nManaged images replace Sandbox runtimes, which are now deprecated. Starting with version 3 of the Sandbox SDK, new sandboxes default to `vercel/sandbox/universal:latest`. It ships with Node.js, Python, common coding agents and standard utilities, so most users never build a custom image or install packages at boot.\n\nThe universal image switches our default operating system from Amazon Linux to Ubuntu, a lighter and more widely used system across the industry.\n\n### Secure by default\n\nEvery managed image gets a nightly release. Rolling tags such as `latest` and the major-version tags pick up operating system and dependency updates automatically, including security patches and new releases of Node.js, Python, and the preinstalled coding agents.\n\nWithin each release, dependencies are pinned to specific versions wherever possible, so a given image version stays consistent.\n\nIf you need a fully immutable, reproducible environment, pin to an image digest (SHA). Digest-pinned images opt out of automatic updates.\n\n### Choose a managed image from the catalog\n\nEach managed image targets a different starting point:\n\n* `vercel/sandbox/universal:latest` is the new default, a rolling release on Ubuntu 26.04 with Node.js 24, Python 3.14 with `uv`, the `opencode`, `claude-code`, `codex`, and `pi` coding agents, and utilities including `git`, `vim`, `nano`, `tmux`, `ripgrep`, `jq`, and `fzf`.\n* `vercel/sandbox/node:22`, `node:24`, and `node:26` provide Node.js versions on Ubuntu 26.04.\n* `vercel/sandbox/python:3.14` provides Python on Ubuntu 26.04.\n* `vercel/sandbox/ubuntu:latest` provides base Ubuntu 26.04 with no extra tooling.\n* `vercel/sandbox/arch:latest` provides Arch Linux, regularly updated, with no Node.js or Python preinstalled. Its large package repository makes it useful for agents that install tools on the fly.\n\n### Reference an image and migrate from runtimes\n\nSandboxes can use an image from any repository in your project, a repository which has been [shared with your team](https://vercel.com/changelog/share-vercel-container-registry-repositories-across-teams) or [any public repository](https://vercel.com/changelog/vercel-container-registry-repositories-can-now-be-made-public).\n\nImages are addressed by their full path, `team-slug/project/repo:tag`, for example `vercel/sandbox/universal:latest`. The SDK types the `image` property so built-in images autocomplete while any string is still accepted. The previous `runtime` property is deprecated, not removed, so existing code keeps working.\n\nAmazon Linux runtimes are not part of the managed image catalog, so teams that need AL2023 can stay on `runtime`. Managed images run as the default `ubuntu` or `arch` user with passwordless sudo, rather than the `vercel-sandbox` user.\n\nOpen an issue or a pull request to improve them, and read the [Vercel Sandbox images documentation](https://vercel.com/docs/vercel-sandbox/concepts/images) to get started.\n\n[Read more](https://vercel.com/changelog/vercel-sandbox-managed-images)",
+      "tags": [
+        "Vercel Managed Images",
+        "Sandbox",
+        "Ubuntu"
+      ],
+      "score": 74,
+      "summary": "Vercel推出托管基础镜像VMI，替代Sandbox运行时，默认Ubuntu系统。",
+      "fetched_at": "2026-08-11T03:08:09.899658+08:00"
+    },
+    {
+      "title": "Tip: Periodically run /doctor in Claude Code or ask Codex to audit for unused skills, MCPs, context ...",
+      "link": "https://x.com/addyosmani/status/2086871426653356066",
+      "published": "2026-08-11T01:44:54+08:00",
+      "source": "Addy Osmani(@addyosmani)",
+      "content": "Tip: Periodically run /doctor in Claude Code or ask Codex to audit for unused skills, MCPs, context use.   \n  \nYou've probably installed a few things that you forgot about or no longer need and it'll reduce token bloat.\n\n![swyx](https://pbs.twimg.com/profile_images/2073162797354217472/hNny55eF_normal.jpg)\n\nswyx@swyx\n\noccasional reminder to DELETE your skills.  \n  \n[forge.smol.ai/blog/dangerous…](https://forge.smol.ai/blog/dangerous-release-code-was-a-skill)  \n  \nwhen you are bombarded constantly by \"this skill changed my life!! you have to try!!\" on the timeline, you will pile up stuff that at best just eats context, and at worst interacts with other skills nastily in unforeseen ways if you dont stare at your traces.\n\n[🔗 View Quoted Tweet](https://x.com/swyx/status/2086505938144616810)\n\n💬5🔄0❤️20👀2781📊6",
+      "tags": [
+        "Claude Code",
+        "/doctor",
+        "上下文优化"
+      ],
+      "score": 60,
+      "summary": "Addy Osmani分享Claude Code中运行/doctor清理无用技能和MCP以降低token消耗。",
+      "fetched_at": "2026-08-11T03:08:09.899660+08:00"
+    },
+    {
+      "title": "You know how refreshing the page kills your AI chat mid-response? @triggerdotdev's new chat agent fi...",
+      "link": "https://x.com/addyosmani/status/2086864473139085431",
+      "published": "2026-08-11T01:17:17+08:00",
+      "source": "Addy Osmani(@addyosmani)",
+      "content": "You know how refreshing the page kills your AI chat mid-response? [@triggerdotdev](https://x.com/triggerdotdev)'s new chat agent fixes that so it survives crashes, redeploys and can pause to ask permission before a tool does something scary. Worth checking out: [fandf.co/4wb86bf](https://fandf.co/4wb86bf)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086862244256604160/vid/avc1/1920x1080/x6gYDojEsNKTaTt5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/addyosmani/status/2086864473139085431/video/1)\n\n💬2🔄5❤️39👀46570📊8",
+      "tags": [
+        "Trigger.dev",
+        "Chat Agent",
+        "持久化"
+      ],
+      "score": 68,
+      "summary": "Trigger.dev新聊天代理可在刷新页面后保留对话，并在危险操作前暂停请求许可。",
+      "fetched_at": "2026-08-11T03:08:09.899662+08:00"
+    },
+    {
+      "title": "We asked an unreleased research version of Claude to take a stab at the Riemann hypothesis.\n\nIt didn...",
+      "link": "https://x.com/AnthropicAI/status/2086867246073401655",
+      "published": "2026-08-11T01:28:18+08:00",
+      "source": "Anthropic(@AnthropicAI)",
+      "content": "We asked an unreleased research version of Claude to take a stab at the Riemann hypothesis.  \n  \nIt didn’t solve it, but it did make strides on a related problem: it increased the lower bound for the fraction of zeros of the Riemann zeta function that satisfy the hypothesis from 41.6% to 67.2%.  \n  \n[anthropic.com/research/riema…](https://www.anthropic.com/research/riemann-zeta)\n\n💬313🔄406❤️4239👀588477📊813",
+      "tags": [
+        "Claude",
+        "Riemann假设",
+        "未发布研究版"
+      ],
+      "score": 95,
+      "summary": "Anthropic官方称未发布研究版Claude将黎曼zeta函数零点下界从41.6%提升至67.2%。",
+      "fetched_at": "2026-08-11T03:08:09.899665+08:00"
+    },
+    {
+      "title": "Hermes 🤝 Browser Use",
+      "link": "https://x.com/browser_use/status/2086882292761571758",
+      "published": "2026-08-11T02:28:05+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Hermes 🤝 Browser Use\n\n![Nous Research](https://pbs.twimg.com/profile_images/1816254738234761216/TX7TW-Mp_normal.jpg)\n\nNous Research@NousResearch\n\nHermes has twelve browser tools. Browser Use mode replaces them with a single one, driven by [@browser\\_use](https://x.com/browser_use)'s CLI 3.0.  \n  \nInstead of a dozen schemas in every request and a tool call per click, the agent writes a script. In our tests that cut token use 48-66% with no accuracy drop.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086879775277125633/vid/avc1/2880x2880/_jV41GcrRTUq9DLW.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/NousResearch/status/2086881660658663469/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/NousResearch/status/2086881660658663469)\n\n💬0🔄0❤️1👀284",
+      "tags": [
+        "Nous Research",
+        "Hermes",
+        "Browser Use",
+        "Token减少48-66%"
+      ],
+      "score": 82,
+      "summary": "Hermes集成Browser Use CLI 3.0，单一浏览器工具替代十二个工具，token使用减少48-66%。",
+      "fetched_at": "2026-08-11T03:08:09.899667+08:00"
+    },
+    {
+      "title": "When @QualiaQuanta took a shot at the Riemann, half in jest, people called her a crackpot.\n\nWhen Ant...",
+      "link": "https://x.com/GaryMarcus/status/2086881797129073075",
+      "published": "2026-08-11T02:26:07+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "When [@QualiaQuanta](https://x.com/QualiaQuanta) took a shot at the Riemann, half in jest, people called her a crackpot.  \n  \nWhen Anthropic uses Claude to do the same thing, it gets a hundred thousand views in 30 minutes.  \n  \nIt might well be that the latter is more progress, but I do also smell a double standard.\n\n![Anthropic](https://pbs.twimg.com/profile_images/1798110641414443008/XP8gyBaY_normal.jpg)\n\nAnthropic@AnthropicAI\n\nWe asked an unreleased research version of Claude to take a stab at the Riemann hypothesis.  \n  \nIt didn’t solve it, but it did make strides on a related problem: it increased the lower bound for the fraction of zeros of the Riemann zeta function that satisfy the hypothesis from 41.6% to 67.2%.  \n  \n[anthropic.com/research/riema…](https://www.anthropic.com/research/riemann-zeta)\n\n[🔗 View Quoted Tweet](https://x.com/AnthropicAI/status/2086867246073401655)\n\n💬4🔄1❤️8👀2137📊4",
+      "tags": [
+        "Gary Marcus",
+        "双标",
+        "Claude"
+      ],
+      "score": 55,
+      "summary": "Gary Marcus批评媒体对个人研究者与Anthropic研究黎曼猜想的双重标准。",
+      "fetched_at": "2026-08-11T03:08:09.899668+08:00"
+    },
+    {
+      "title": "Junior developers: What’s the job hunt been like for you? \n\nAI is changing what employers look for. ...",
+      "link": "https://x.com/github/status/2086869032024805840",
+      "published": "2026-08-11T01:35:24+08:00",
+      "source": "GitHub(@github)",
+      "content": "Junior developers: What’s the job hunt been like for you?   \n  \nAI is changing what employers look for. Here are three ways to stay ahead. 👇[x.com/i/article/2084…](http://x.com/i/article/2084786276163862528)H\n\n💬7🔄2❤️36👀9158📊10",
+      "tags": [
+        "GitHub",
+        "初级开发者",
+        "AI招聘"
+      ],
+      "score": 62,
+      "summary": "GitHub发文讨论AI改变雇主对初级开发者的要求，并提出三条建议。",
+      "fetched_at": "2026-08-11T03:08:09.899670+08:00"
+    },
+    {
+      "title": "How we're responsibly building AI infrastructure in Texas: https://t.co/leyVALtmJB",
+      "link": "https://x.com/gdb/status/2086868041451901009",
+      "published": "2026-08-11T01:31:27+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "How we're responsibly building AI infrastructure in Texas: [openai.com/index/responsi…](https://openai.com/index/responsible-ai-infrastructure-texas/)\n\n💬33🔄22❤️287👀25925📊54",
+      "tags": [
+        "Greg Brockman",
+        "OpenAI",
+        "德克萨斯",
+        "AI基础设施"
+      ],
+      "score": 88,
+      "summary": "OpenAI总裁Greg Brockman发布在德克萨斯州负责任建设AI基础设施的说明。",
+      "fetched_at": "2026-08-11T03:08:09.899672+08:00"
+    },
+    {
+      "title": "We're releasing a new model (GPT-5.6-Cyber), and expanding Daybreak to help put frontier intelligenc...",
+      "link": "https://x.com/gdb/status/2086866967479341305",
+      "published": "2026-08-11T01:27:11+08:00",
+      "source": "Greg Brockman(@gdb)",
+      "content": "We're releasing a new model (GPT-5.6-Cyber), and expanding Daybreak to help put frontier intelligence in defenders hands:\n\n![Tweet Image](https://pbs.twimg.com/media/HPYJzOUasAEpRLp.jpg)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nWe’re expanding our cybersecurity initiative Daybreak and introducing GPT-5.6-Cyber, a new model for advanced, authorized cybersecurity work.  \n  \nAs the threat landscape evolves, we’re putting frontier intelligence in the hands of trusted defenders before attackers can deploy offensive AI at scale.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086860232311861248/vid/avc1/1920x1080/PqYKhhsjJNdPmgp5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OpenAI/status/2086864365379010729/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2086864365379010729)\n\n💬90🔄71❤️1675👀119126📊182",
+      "tags": [
+        "GPT-5.6-Cyber",
+        "Daybreak",
+        "OpenAI"
+      ],
+      "score": 85,
+      "summary": "OpenAI发布网络安全模型GPT-5.6-Cyber，并扩展Daybreak计划。",
+      "fetched_at": "2026-08-11T03:08:09.899674+08:00"
+    },
+    {
+      "title": "My biggest takeaways from @wardadamp (Head of Talent at Cursor):\n\n1. The forward deployed engineer i...",
+      "link": "https://x.com/lennysan/status/2086874029026414718",
+      "published": "2026-08-11T01:55:15+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "My biggest takeaways from [@wardadamp](https://x.com/wardadamp) (Head of Talent at Cursor):  \n  \n1. The forward deployed engineer is the hottest role in tech right now. These are deeply technical people who can partner with sales, be confident in a room with executives, translate complex products into business outcomes, and help customers shift from “token maxing” to optimizing AI bills. Adam likens this to the mobile-engineer hiring boom—except that one played out over two years, and “now we’re in days or weeks.”  \n  \n2. The traditional recruiting funnel, what Adam calls the “funnel of doom,” is designed to build mediocre teams. The standard hiring funnel (reach out to 100, 20 reply, weed out at each stage, hire who remains) rests on a broken premise: the 100 people who reply in the first place aren’t the top 20%. They’re whoever you caught on a bad day. By the time a candidate gets to the bottom of the funnel, you’re selecting from an already-suboptimal pool. Even with an rigorous interview process, this leads to average teams.  \n  \n3. The alternative is treating every hire like an executive search: rigorous scoping (what does “great” mean for this specific role?), deliberate candidate mapping (who are the 50 best people in the world for this role?), and relentless pursuit (go after these 50 people and don’t stop). The shift is starting with a “pillar of excellence” rather than a wide funnel.  \n  \n4. The new danger zone is after the offer is signed. Candidates reneging on accepted offers is a rising trend, and senior hires often sit for weeks between signing and starting. So Cursor treats the post-accept period as its own campaign, with dinners alongside other incoming hires, a laptop shipped before day one, and a community forming before anyone officially starts. It makes sure people actually show up, and it gives them a head start on ramping up.  \n  \n5. Work trials are the highest predictor of success. Research has consistently shown this to be true, yet the default on-site is still a series of one-on-one conversations across a table. Cursor runs long on-site experiences where candidates work side by side with the team on a real (or realistic) project. That format generates technical signal, core-values signal, and collaboration signal simultaneously—and it gives the candidate data to self-select. When Cursor ran an experiment removing the work trial, hiring confidence dropped significantly. They brought it back.  \n  \n6. Asking your network “Who’s the best engineer you know?” is a trap. Instead, ask hyper-specific questions tied to your scoping details instead—“Of all the product engineers you’ve worked with, who’s most collaborative with designers?” or “Who can translate a framework into a product better than anyone you’ve seen?”—because specific prompts make names easy to conjure. When multiple trusted people independently mention the same person (“Lenny mentioned them, but so did Sally”), you’ve triangulated a target for your top-50 list.  \n  \n7. Scoping the role is the most under-invested step in most hiring processes. “I’ll know great when I see it” is a trap. Without spending time up front to define and stack-rank the skills, experiences, and attributes that you need in this specific role at this specific company, you have no sourcing strategy, no pitch, and no way to design a real assessment. Everything downstream flows from this. And resist the logo shortcut: a strong team at a company at the right time is only “possibly” shorthand for great, and copying someone else’s definition means piggybacking on a hiring process you already believe is broken.  \n  \n8. When a top candidate says “bad timing,” shrink the ask: “I’m not asking you to interview—I’m asking for our next conversation.” Adam plants seeds—a coffee, an office visit, an intro to a teammate fascinated by their work—that bear fruit over weeks, months, and sometimes years, because going silent until “late fall” means, at best, you get them if no one else has grabbed them first. Almost as much effort goes into finding a warm intro as into the message itself, since once someone ignores your first note, ignoring the second and third gets much easier. Cursor also plays “home games,” centering touchpoints on shared meals—“a disarming act and a joining act”—and office visits designed to trigger the campus-tour gut feeling of “this feels like home.”  \n  \n9. Closing is a team sport, and it starts at the first conversation. When Cursor has a high-caliber candidate in process, there are daily standups focused on that specific person: What did we learn about their motivations? What objections came up? Who on the team can speak to those concerns? Every candidate gets a dedicated Slack channel. The “close” shouldn’t feel like a separate sales push but, rather, the natural conclusion of a process that has been consistently demonstrating the same answer.  \n  \n10. Caring is free, and it’s the biggest unfair advantage in recruiting. In candidate-satisfaction scores across the history of the field, Adam says the number one driver is feeling that the company genuinely wanted you, so Cursor curates every touchpoint: who greets a candidate, who sits beside them at lunch, which interviewer shares their niche interest—handpicked rather than left to calendar availability. The reframe that makes it sustainable: you’re hiring one person for this role, not 10. “Don’t get caught up in the 10; focus on the one.”\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nCursor has spent its entire existence competing with every major AI lab and incumbent in the toughest market in tech—and has continued to win. So much so that [@elonmusk](https://x.com/elonmusk) bought them for $60 billion to help SpaceX win the AI race.  \n  \nThey've done this by building one of the most talent-dense teams in history.  \n  \nAdam Ward ([@wardadamp](https://x.com/wardadamp)) is Head of Talent at [@Cursor\\_AI](https://x.com/Cursor_AI)—who acquired his legendary recruiting firm after he spent 20+ years building the most elite teams in tech—and in our conversation he shares the entire playbook for building high talent-density teams.  \n  \nWe discuss:  \n🔸 Why the traditional recruiting funnel—the \"funnel of doom\"—guarantees mediocre hiring  \n🔸 Adam's three-step playbook for hiring the top 1%  \n🔸 The rise of the forward-deployed engineer  \n🔸 Today's \"tale of two cities\" talent market  \n🔸 The biggest mistake founders make with their first recruiting hire  \n🔸 The worst question you can ask when sourcing talent (you've definitely asked it)  \n  \nWatch the full episode right here 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086861659898011648/vid/avc1/1920x1080/Rw9zBr3rWADt0KLX.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2086864753016885249/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2086864753016885249)\n\n💬5🔄1❤️12👀3984📊7",
+      "tags": [
+        "Lenny Rachitsky",
+        "Cursor招聘",
+        "前部署工程师"
+      ],
+      "score": 72,
+      "summary": "Lenny分享与Cursor人才主管对话，称前部署工程师是当下最热门岗位。",
+      "fetched_at": "2026-08-11T03:08:09.899676+08:00"
+    },
+    {
+      "title": "Also available on:\n• YouTube: https://t.co/jHkpTIgTXk\n• Spotify: https://t.co/FNZiDO427c\n• Apple: ht...",
+      "link": "https://x.com/lennysan/status/2086864758205186397",
+      "published": "2026-08-11T01:18:25+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Also available on:  \n• YouTube: [youtube.com/watch?v=zegYJ6…](https://www.youtube.com/watch?v=zegYJ6dhIg4)  \n• Spotify: [open.spotify.com/episode/4nO6qO…](https://open.spotify.com/episode/4nO6qO265dbQoLJSfrVBci)  \n• Apple: [podcasts.apple.com/us/podcast/the…](https://podcasts.apple.com/us/podcast/the-playbook-for-building-high-talent-density-teams/id1627920305?i=1000781240135)  \n  \nThank you to our wonderful sponsors [@WorkOS](https://x.com/WorkOS) and [@Mercury](https://x.com/Mercury) for supporting the podcast:  \n🏆 [@WorkOS](https://x.com/WorkOS) — Make your app Enterprise Ready, with SSO, SCIM, RBAC, and more:[workos.com/lenny](https://workos.com/lenny)H  \n🏆 [@Mercury](https://x.com/Mercury) — Radically different banking, now with Command[mercury.com](https://mercury.com)wR\n\n![Tweet Image](https://pbs.twimg.com/media/HPX754macAAKrRd.jpg)\n\n💬1🔄1❤️0👀1803📊2",
+      "tags": [
+        "Lenny Rachitsky",
+        "播客"
+      ],
+      "score": 50,
+      "summary": "Lenny播客节目在YouTube、Spotify等平台上线，并感谢赞助商。",
+      "fetched_at": "2026-08-11T03:08:09.899678+08:00"
+    },
+    {
+      "title": "Cursor has spent its entire existence competing with every major AI lab and incumbent in the toughes...",
+      "link": "https://x.com/lennysan/status/2086864753016885249",
+      "published": "2026-08-11T01:18:23+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Cursor has spent its entire existence competing with every major AI lab and incumbent in the toughest market in tech—and has continued to win. So much so that [@elonmusk](https://x.com/elonmusk) bought them for $60 billion to help SpaceX win the AI race.  \n  \nThey've done this by building one of the most talent-dense teams in history.  \n  \nAdam Ward ([@wardadamp](https://x.com/wardadamp)) is Head of Talent at [@Cursor\\_AI](https://x.com/Cursor_AI)—who acquired his legendary recruiting firm after he spent 20+ years building the most elite teams in tech—and in our conversation he shares the entire playbook for building high talent-density teams.  \n  \nWe discuss:  \n🔸 Why the traditional recruiting funnel—the \"funnel of doom\"—guarantees mediocre hiring  \n🔸 Adam's three-step playbook for hiring the top 1%  \n🔸 The rise of the forward-deployed engineer  \n🔸 Today's \"tale of two cities\" talent market  \n🔸 The biggest mistake founders make with their first recruiting hire  \n🔸 The worst question you can ask when sourcing talent (you've definitely asked it)  \n  \nWatch the full episode right here 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086861659898011648/vid/avc1/1920x1080/Rw9zBr3rWADt0KLX.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2086864753016885249/video/1)\n\n💬8🔄5❤️52👀11053📊21",
+      "tags": [
+        "Cursor",
+        "Lenny Rachitsky",
+        "人才密度"
+      ],
+      "score": 70,
+      "summary": "Lenny发布与Cursor人才主管的播客，讨论高人才密度团队建设。",
+      "fetched_at": "2026-08-11T03:08:09.899680+08:00"
+    },
+    {
+      "title": "SF builders, it's time to ditch your agents and head out on a 🏃 \n\nJoin us for a run tomorrow with t...",
+      "link": "https://x.com/llama_index/status/2086885401927569830",
+      "published": "2026-08-11T02:40:26+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "SF builders, it's time to ditch your agents and head out on a 🏃   \n  \nJoin us for a run tomorrow with the Lore community at 6pm at Sue Bierman Park (across from the Ferry Building) for a casual 5k down the Embarcadero. All paces welcome, founders and startup teams especially👇[luma.com/4iiiprxj?utm\\_m…](https://luma.com/4iiiprxj?utm_medium=socials&utm_source=llamaindex)6g\n\n💬0🔄1❤️1👀357📊1",
+      "tags": [
+        "LlamaIndex",
+        "跑步活动"
+      ],
+      "score": 20,
+      "summary": "LlamaIndex组织旧金山5公里跑步活动，邀请开发者参加。",
+      "fetched_at": "2026-08-11T03:08:09.899681+08:00"
+    },
+    {
+      "title": "We've used GPT-5.6-Cyber extensively in real-world vulnerability research, including work that uncov...",
+      "link": "https://x.com/OpenAI/status/2086864372500942906",
+      "published": "2026-08-11T01:16:53+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We've used GPT-5.6-Cyber extensively in real-world vulnerability research, including work that uncovered previously unknown vulnerabilities in popular open-source software like Chrome’s v8 engine.\n\n![Tweet Image](https://pbs.twimg.com/media/HPYIAmZWEAAeRlP.jpg)\n\n💬9🔄7❤️263👀37949📊31",
+      "tags": [
+        "GPT-5.6-Cyber",
+        "漏洞研究",
+        "v8"
+      ],
+      "score": 80,
+      "summary": "OpenAI称GPT-5.6-Cyber在实战中发现Chrome v8引擎等未公开漏洞。",
+      "fetched_at": "2026-08-11T03:08:09.899683+08:00"
+    },
+    {
+      "title": "Advanced capabilities require strong safeguards. That’s why access is limited to approved defenders,...",
+      "link": "https://x.com/OpenAI/status/2086864374837150108",
+      "published": "2026-08-11T01:16:53+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "Advanced capabilities require strong safeguards. That’s why access is limited to approved defenders, with additional controls and monitoring for higher-risk cybersecurity work.  \n  \n[openai.com/index/expandin…](https://openai.com/index/expanding-daybreak-as-the-cyber-defense-window-narrows)\n\n💬10🔄6❤️209👀35055📊28",
+      "tags": [
+        "GPT-5.6-Cyber",
+        "安全限制",
+        "Daybreak"
+      ],
+      "score": 80,
+      "summary": "OpenAI说明GPT-5.6-Cyber仅限授权防御者使用，并有额外监控。",
+      "fetched_at": "2026-08-11T03:08:09.899685+08:00"
+    },
+    {
+      "title": "We’re expanding our cybersecurity initiative Daybreak and introducing GPT-5.6-Cyber, a new model for...",
+      "link": "https://x.com/OpenAI/status/2086864365379010729",
+      "published": "2026-08-11T01:16:51+08:00",
+      "source": "OpenAI(@OpenAI)",
+      "content": "We’re expanding our cybersecurity initiative Daybreak and introducing GPT-5.6-Cyber, a new model for advanced, authorized cybersecurity work.  \n  \nAs the threat landscape evolves, we’re putting frontier intelligence in the hands of trusted defenders before attackers can deploy offensive AI at scale.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086860232311861248/vid/avc1/1920x1080/PqYKhhsjJNdPmgp5.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OpenAI/status/2086864365379010729/video/1)\n\n💬252🔄284❤️3861👀476629📊632",
+      "tags": [
+        "GPT-5.6-Cyber",
+        "Daybreak",
+        "网络安全"
+      ],
+      "score": 90,
+      "summary": "OpenAI扩展网络安全计划Daybreak，推出GPT-5.6-Cyber模型用于高级防御。",
+      "fetched_at": "2026-08-11T03:08:09.899687+08:00"
+    },
+    {
+      "title": "Here's a short-form video breakdown I did on this for more details\n\nAnd the company is @tornyolsyste...",
+      "link": "https://x.com/rowancheung/status/2086870193465397452",
+      "published": "2026-08-11T01:40:00+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "Here's a short-form video breakdown I did on this for more details  \n  \nAnd the company is [@tornyolsystems](https://x.com/tornyolsystems) for those that want to follow their progress\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086870161391493120/vid/avc1/720x1280/lvVju_7jZy2w34ar.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/rowancheung/status/2086870193465397452/video/1)\n\n💬2🔄0❤️3👀2580📊2",
+      "tags": [
+        "Tornyol Systems",
+        "灭蚊无人机",
+        "Rowan Cheung"
+      ],
+      "score": 60,
+      "summary": "Rowan Cheung补充介绍Tornyol Systems灭蚊无人机公司的背景视频。",
+      "fetched_at": "2026-08-11T03:08:09.899689+08:00"
+    },
+    {
+      "title": "A missile engineer got tired of mosquitoes... so he built an autonomous drone that hunts them\n\nMalar...",
+      "link": "https://x.com/rowancheung/status/2086870148091449590",
+      "published": "2026-08-11T01:39:50+08:00",
+      "source": "Rowan Cheung(@rowancheung)",
+      "content": "A missile engineer got tired of mosquitoes... so he built an autonomous drone that hunts them  \n  \nMalaria kills over 600,000 people every year, most of them children under 5, so this could save millions of lives  \n  \nHere's how it works:  \n  \n> Each drone weighs 40 grams (lighter than a golf ball)  \n  \n> It fires ultrasonic pulses and listens through an array of tiny microphones, reading the Doppler signature of an insect's wings  \n  \n> That signal lets it tell a mosquito apart from a bee, then chase the target down and intercept it mid-air with propellers  \n  \nThe company is backed by YC, and the founder previously engineered guidance and navigation systems for missiles. It's a legitimate project.  \n  \nThey believe 10 drones could clear an entire square kilometre, cutting the cost of mosquito control by 100x  \n  \nSo far though, the only public demo (below) was killing a moth in an enclosed room. Whether it works on a mosquito in the wild is the real test ahead\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086870128877252608/vid/avc1/1280x720/hlV6Kmo5Am9Ilcxg.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/rowancheung/status/2086870148091449590/video/1)\n\n![Tweet Image](https://pbs.twimg.com/media/HPYNVz3a0AAQDuk.jpg)\n\n💬11🔄3❤️46👀8311📊17",
+      "tags": [
+        "灭蚊无人机",
+        "Tornyol Systems",
+        "40克"
+      ],
+      "score": 75,
+      "summary": "Rowan Cheung介绍前导弹工程师创办的Tornyol Systems，用无人机追踪灭杀蚊子。",
+      "fetched_at": "2026-08-11T03:08:09.899690+08:00"
+    },
+    {
+      "title": "please consider using our models to help defend your systems",
+      "link": "https://x.com/sama/status/2086881528282587524",
+      "published": "2026-08-11T02:25:03+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "please consider using our models to help defend your systems\n\n![Eric Wallace](https://pbs.twimg.com/profile_images/1705599599761887232/YN3sqrvw_normal.jpg)\n\nEric Wallace@Eric\\_Wallace\\_\n\nToday we are releasing GPT-5.6-Cyber.   \n  \nThe model is our first large-scale attempt at directly improving capabilities for advanced cybersecurity tasks such as exploit development.  \n  \nWe are finding it to be really quite strong for accelerating defensive work. We are using it across our stack for red-teaming, and our security researchers have used it to find and patch a huge host of 0-day vulnerabilities in open-source software.  \n  \n[openai.com/index/expandin…](https://openai.com/index/expanding-daybreak-as-the-cyber-defense-window-narrows/)\n\n[🔗 View Quoted Tweet](https://x.com/Eric_Wallace_/status/2086866306167656901)\n\n💬129🔄27❤️815👀57183📊130",
+      "tags": [
+        "Sam Altman",
+        "GPT-5.6-Cyber",
+        "防御"
+      ],
+      "score": 84,
+      "summary": "Sam Altman引用Eric Wallace推文，呼吁使用OpenAI模型防御系统安全。",
+      "fetched_at": "2026-08-11T03:08:09.899692+08:00"
+    },
+    {
+      "title": "I require more minerals and vespene gas.",
+      "link": "https://x.com/Suhail/status/2086872831699345538",
+      "published": "2026-08-11T01:50:29+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "I require more minerals and vespene gas.\n\n💬4🔄0❤️15👀2303📊5",
+      "tags": [
+        "Suhail",
+        "星际争霸"
+      ],
+      "score": 10,
+      "summary": "Suhail发推引用星际争霸台词，无实际内容。",
+      "fetched_at": "2026-08-11T03:08:09.899694+08:00"
+    },
+    {
+      "title": "AI原生个人效率工具\n\n我打个比方：精英姐A和博士男B\n\n精英姐A：拿过某种项目管理的证书，名字我忘了。非常熟悉项目管理，长期重度实用Trello。类似Trello这种软件，其实对使用人的要求特别高。...",
+      "link": "https://x.com/feltanimalworld/status/2086866089674170727",
+      "published": "2026-08-11T01:23:42+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "AI原生个人效率工具  \n  \n我打个比方：精英姐A和博士男B  \n  \n精英姐A：拿过某种项目管理的证书，名字我忘了。非常熟悉项目管理，长期重度实用Trello。类似Trello这种软件，其实对使用人的要求特别高。她不仅工作用，日常生活安排也用。比如她女儿好像是练体操的，总之就是某种专业奥林匹克项目。在美国家里有孩子卷这种项目从金钱和时间投入来说基本就是一种Project Management.   \n  \n博士男B：生物博士男B长期使用Obsidian，把Obsidian 词条积累到几万条。而且还非常善用Backlink，他的OB基本就是个小宇宙啊。都跟他的研究领域高度相关，这个维护和录入成本也是不低的。个人维护一个，都是超级工程了。他自己的大量信息也在Vault里面。  \n  \n我们大部分人的效率工具应用其实就在这俩之间。不管用什么工具，本质差不多，程度不同。  \n  \nOk，这俩，AI来了。Trello 是肯定作为provider加入AI是没问题的。博士男自己去RAG自己的Vault也很容易。我个人用的是Notion。  \n  \n但是，大概率是我们谁都没有真正让这个AI产生作用。为什么?  \n  \n精英姐 A 和博士男 B，其实已经把传统个人效率软件做到极限了。但恰恰因为他们做得这么好，反而更容易看清 AI 加进去之后为什么没有发生质变。  \n  \n比如精英姐A接到女儿的教练发来个邮件，说某个集训要改一系列的时间。一个很简单的邮件，她打开这个邮件之后至少要花半个小时，把Trello下面所有相关卡片的状态更新。半个小时啊，时间很宝贵的。所以昂贵的到底是什么，信息吗？No, 是状态同步synchronization. 她用自己的大脑维持了软件世界和现实世界之间的对应关系。  \n  \n博士男拥有一座极其优秀的 knowledge corpus。RAG 之后，他可以问某蛋白通路有什么内容，很快会出现相关词条。但是，1）我们不知道从RAG出来的内容是否真的现在会比他直接在窗口问AI强，如果这个内容不是和他个人高度相关。2）就算他问的是个人高度相关的，RAG 提高的是 retrieval，不是 truth。这个就是很多企业现在让我们看上去很晕乎的地方。就那一大堆乱七八糟各种员工写的文档，你RAG了又怎么样。这个维护的是你的状态吗？还是各种员工连版本都不清晰写的不可被verify的文字。知识库很有可能变冲突库，各种出来的信息不仅没用还有可能完全矛盾。  \n  \n当然，很多人发现有些高度维护的文字库RAG做出来还是很有用的，比如法院，律所，教师工会，甚至医生（医生字虽然写的跟天书似的，但是高度电算化，而且她们对处方等医疗信息传输有专业的代码和标准）。  \n  \n传统 productivity software 有一个隐含前提：  \n  \nHuman must continuously encode reality into software. 人需要持续的，高精确度的将现实压缩进软件里。  \n  \n这其实是一种非常昂贵的 API。  \n  \n人类就是 API。  \n  \n所以我认为AI效率软件的核心现在在这里，就是 “状态维护”。\n\n![Susan STEM](https://pbs.twimg.com/profile_images/1941884420048265216/Dbcchu0q_normal.jpg)\n\nSusan STEM@feltanimalworld\n\n程序员之历朝历代都在卷效率工具  \n  \n玄关处做了一个架子，长得是奇葩了一点。但是如果一个又长又窄的地方做能承重的架子，这个架子做成任何能从宜家买回来的样子都要倒，复合板要变型。只能做个底盘给它，因为我已经做过很多次了。  \n  \n这是我专门为创造这个AI原生效率软件做的第一个沙盒设施。以后会安摄像头。盒子代表状态，目前只想做这个盒子满没满，或者是否有新增物品这种状态。要加贴纸机，扫描的设备，主要跟进我两个主流的信息线，一个是物品，大量的快递和邮寄零件都是在这里收的。还有纸介质的文档，很多账单和通知书也会在收到邮件以后扫描。很多真正邮寄到地址的通知单账单税单，都是权重极高的个人信息。这是进入我系统的intake layer, 从这里之后信息会对象化进入系统。  \n  \n历朝历代程序员其实都会去卷效率工具。我们这代熟悉的就是Notion，Project Management，Onenote，再往前就是Wiki, Calendar。 本质上来说，难道IDE就不是效率工具了？  \n  \n程序员最初是在：  \n  \n自动化计算。  \n  \n后来发现写程序本身很麻烦，于是开始：  \n  \n自动化编程。  \n  \n再后来发现工作本身的信息管理很麻烦，于是：  \n  \n自动化知识工作。  \n  \n最后会自然碰到：  \n  \n自动化“我如何管理自己的现实”。  \n  \n每一步都尝试着偷懒，最后把自己给干没了。  \n  \n程序员作为资深懒人，都在想什么呢？想的是我如何偷懒到极致，连“想”这件事情都省了。你要问我现在效率工具，我有什么核心哲学，那就是：  \n  \n1. 解放认知余量：大脑不是数据库，也不是轮询器。脑子用来判断、创造、理解、取舍，而不是这个账单交了吗？  \n那封邮件回复了吗？洗衣液还有没有？孩子的表什么时候交？这些事情共同的特点不是“难”，而是需要持续占据一点点注意力。真正消耗人的往往不是一次复杂推理，而是几十、几百个尚未闭环的小状态。烦死了。要把这对open loops交给机器管理。  \n  \n2.创造“属于这个人的核心”，而不是建立一个泛知识库。我要个江湖百晓生来干嘛？现在个人知识库和个人state kernel完全是两回事。很多人是知识仓鼠，我也是。Notion从N年前就开始用了。我是冲着UI 去的，比微软审美高一万个等级。但是，有很多人大量的obsidian笔记去向量化RAG做知识库。一直在用么？有用吗?   \n  \n盲猜有用的不多。跟我一样，Notion AI 一次都没用过。  \n  \nPersonal AI现在被做成一个泛知识库了，你不需要一个泛知识库。你要问什么，直接问AI窗口就好。  \n  \n你需要一个非常提纯的，信息精良保存到核心的，没有一句废话的，高度符合信息论原理的个人Kernel。（香农信息论里的信息是不考虑这个message的内容是什么的，这点最近让我想了很久）。  \n  \nSusan 的现实世界现在是什么样子。  \n  \n这个完全不是我现在的Notion内容。\n\n![Tweet Image](https://pbs.twimg.com/media/HPUrXatWkAAlZoq.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/feltanimalworld/status/2086626136151220635)\n\n💬2🔄0❤️1👀801📊2",
+      "tags": [
+        "AI原生效率工具",
+        "状态维护",
+        "RAG"
+      ],
+      "score": 65,
+      "summary": "Susan STEM长文分析传统效率工具与AI结合的核心在于状态维护，RAG不解决真理问题。",
+      "fetched_at": "2026-08-11T03:08:09.899696+08:00"
+    },
+    {
+      "title": "Thomas Edison's dynamo electrical generators could've powered Ford's factory 40 years before Ford bu...",
+      "link": "https://x.com/a16z/status/2086872796299501748",
+      "published": "2026-08-11T01:50:21+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Thomas Edison's dynamo electrical generators could've powered Ford's factory 40 years before Ford built it.  \n  \nKavak CPO & AI Officer Alejandro Maza says AI adoption today is stuck in the same gap:  \n  \n\"The way people adopted electricity was, 'I'm gonna leave my factory, four floors, shafts and belts, and just change my coal engine for an electric engine.' This will bring you benefits, yes, but like 6% more efficiency.\"  \n  \n\"What needed to be done was destroy that factory... redesign your whole factory around dynamos and electricity. And then you get the improvement in productivity that powered the US during the 20th century.\"  \n  \n\"The same is happening again today. People want to adopt AI, but they're not willing to redesign the whole company.\"  \n  \n[@alehandromz](https://x.com/alehandromz)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086872746601201664/vid/avc1/1280x720/tGGzYoWzWhdJFICv.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2086872796299501748/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nAI agents at Kavak sell the cars, underwrite the loans, coach the mechanics, and in one Mexican city, run the entire operation.  \n  \nThe Latin American used-car marketplace bet on agents three years ago. Today ~95% of interactions and transactions run end-to-end on AI: NPS tripled, sales conversion doubled, warranties down 26%, car loans approved in less than three minutes.  \n  \nCPO & AI Officer Alejandro Maza joins a16z's Angela Strange and Gabriel Vasquez on how they pulled it off, why adoption without redesign fails, and why they deleted two years of working architecture to start over.  \n  \n00:00 Intro  \n01:03 ML before transformers  \n02:23 Kavak's agent-per-customer architecture  \n04:59 Three bets: redesign the company, build superhuman agents, change the metrics  \n10:49 Agents with 2.1x conversion  \n14:23 Car loans approved in minutes  \n16:13 1.5x profits in a real city in six weeks  \n20:13 \"Jedi Academy\": training mechanics to ship agents  \n28:44 Destroying two years of work  \n32:52 Ford's factory: why adoption isn't enough  \n34:45 Advice for founders  \n  \n[@alehandromz](https://x.com/alehandromz)[@astrange](https://x.com/astrange)[@GEVS94](https://x.com/GEVS94)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086844879347634176/vid/avc1/1280x720/hjzUzIYBRVNqtrSs.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2086845184785203468/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2086845184785203468)\n\n💬1🔄3❤️27👀8956📊4",
+      "tags": [
+        "a16z",
+        "Kavak",
+        "AI代理",
+        "彻底重构"
+      ],
+      "score": 75,
+      "summary": "a16z分享Kavak CPO观点：AI采用需彻底重构公司运营，而非简单替换。",
+      "fetched_at": "2026-08-11T03:08:09.899698+08:00"
+    },
+    {
+      "title": "This is huge!\n\nInteresting new scaling laws discovered.\n\nDyna-2 is a world-action model trained on o...",
+      "link": "https://x.com/omarsar0/status/2086881901000720618",
+      "published": "2026-08-11T02:26:32+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "This is huge!  \n  \nInteresting new scaling laws discovered.  \n  \nDyna-2 is a world-action model trained on over 1M hours of egocentric human video.  \n  \nIt jointly predicts future video and future actions, so it reasons about outcomes before acting.\n\n![Dyna Robotics](https://pbs.twimg.com/profile_images/1904643143288680448/khU9iGs7_normal.jpg)\n\nDyna Robotics@DynaRobotics\n\nToday we are introducing Dyna-2, a world-action model pre-trained on one million hours of human video. At this scale, for the first time, we discovered several new scaling laws:  \n  \n• world-action models exhibit scaling law on human data across four orders of magnitude, from 1000 to 1,000,000 hours,  \n• this human data scaling law implied a scaling law on never seen robot data,  \n• both data and objective matter; world modeling and scaling on video data are essential for cross-embodiment scaling transfer to emerge  \n  \n🧵\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086855652966817792/vid/avc1/1920x1080/IL7NjSNlnnLsmyK4.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/DynaRobotics/status/2086856327150858298/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/DynaRobotics/status/2086856327150858298)\n\n💬3🔄3❤️7👀2385📊4",
+      "tags": [
+        "Dyna-2",
+        "世界动作模型",
+        "缩放定律"
+      ],
+      "score": 82,
+      "summary": "elvis转述Dyna-2发布：基于100万小时人类视频训练的世界动作模型，发现新缩放定律。",
+      "fetched_at": "2026-08-11T03:08:09.899700+08:00"
+    },
+    {
+      "title": "I stopped pinging people on Slack for everything.\n\nIt’s the biggest change in how I work today.\n\nIf ...",
+      "link": "https://x.com/omarsar0/status/2086867246396199091",
+      "published": "2026-08-11T01:28:18+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "I stopped pinging people on Slack for everything.  \n  \nIt’s the biggest change in how I work today.  \n  \nIf I need an answer or a quick task done, I tag an agent instead.  \n  \nLindy Teammate gets it done for me. It pulls answers from meetings, docs, and connected tools, and links each to its source.  \n  \nCongrats [@getlindy](https://x.com/getlindy)[@Altimor](https://x.com/Altimor)\n\n![Tweet Image](https://pbs.twimg.com/media/HPYKhnSXkAAi0jO.jpg)\n\n![Flo Crivello](https://pbs.twimg.com/profile_images/1014358626973069313/kuasBCIY_normal.jpg)\n\nFlo Crivello@Altimor\n\nToday, we kill the AI agent and introduce the AI employee: Lindy Teammate.  \n  \nIt’s just like working with a real employee.  \n  \nEveryone on your team can simply hit it up on Slack and get 10x more done.  \n  \nLindy also keeps learning, and becomes the self-updating brain of the whole business.  \n  \nLive now: [lindy.ai](https://lindy.ai)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086858922296819712/vid/avc1/3840x2160/ZlrOjBxzGGiGPs0E.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Altimor/status/2086861887611019623/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Altimor/status/2086861887611019623)\n\n💬3🔄0❤️8👀4149📊3",
+      "tags": [
+        "Lindy Teammate",
+        "AI员工",
+        "Slack"
+      ],
+      "score": 70,
+      "summary": "elvis推荐Lindy Teammate，可在Slack中@AI员工完成任务并引用来源。",
+      "fetched_at": "2026-08-11T03:08:09.899701+08:00"
+    },
+    {
+      "title": "an unreleased research version = Nothing",
+      "link": "https://x.com/dongxi_nlp/status/2086881714710679851",
+      "published": "2026-08-11T02:25:47+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "an unreleased research version = Nothing\n\n![Anthropic](https://pbs.twimg.com/profile_images/1798110641414443008/XP8gyBaY_normal.jpg)\n\nAnthropic@AnthropicAI\n\nWe asked an unreleased research version of Claude to take a stab at the Riemann hypothesis.  \n  \nIt didn’t solve it, but it did make strides on a related problem: it increased the lower bound for the fraction of zeros of the Riemann zeta function that satisfy the hypothesis from 41.6% to 67.2%.  \n  \n[anthropic.com/research/riema…](https://www.anthropic.com/research/riemann-zeta)\n\n[🔗 View Quoted Tweet](https://x.com/AnthropicAI/status/2086867246073401655)\n\n💬1🔄0❤️0👀83📊1",
+      "tags": [
+        "马东锡NLP",
+        "Claude",
+        "质疑"
+      ],
+      "score": 30,
+      "summary": "马东锡NLP仅回复了一句嘲讽，无实质内容。",
+      "fetched_at": "2026-08-11T03:08:09.899703+08:00"
     }
   ]
 }
