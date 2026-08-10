@@ -1141,6 +1141,212 @@
       "score": 30,
       "summary": "马东锡NLP仅回复了一句嘲讽，无实质内容。",
       "fetched_at": "2026-08-11T03:08:09.899703+08:00"
+    },
+    {
+      "title": "Using the GitHub Copilot SDK for Java",
+      "link": "https://github.blog/engineering/using-the-github-copilot-sdk-for-java/",
+      "published": "2026-08-11T03:30:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "Java developers no longer have to rely on Java framework-specific approaches to drive AI from their enterprise apps.\n\nWhile it is true that Langchain4j empowered developers by disintermediating specific AI vendors, you still had a dependency on Langchain4j. And with Spring AI, well, of course you had a dependency on design choices made by Spring, if not on Spring itself.\n\nNow, GitHub Copilot SDK for Java is the first truly framework agnostic way to drive AI from Java. And with its BYOK support, GitHub Copilot SDK for Java is also AI vendor neutral.\n\n|  |\n| --- |\n| 💡 Even though it’s called GitHub Copilot SDK, you can use it with any direct model provider, such as OpenAI, Azure, Anthropic, or OpenAI-compatible endpoints, by passing a `provider`/`ProviderConfig` with your own `baseUrl` + `apiKey` (or bearer token). No Copilot subscription required. |\n\nThe GitHub Copilot SDK for Java is a client library that empowers your server-side Java code to create Copilot agent sessions, register tools, send prompts, and receive structured responses—all programmatically. It works in server environments, including Jakarta EE and Spring. If you’ve been building enterprise Java for any length of time, this SDK will feel like home: `CompletableFuture`, annotations, lambdas, virtual threads, it’s all here.\n\nThis post shows you how to use the SDK, walks through a complete Jakarta EE 11 sample application, and leaves you with concrete next steps to try it yourself. I chose Jakarta EE 11 for my demo because I was the lead release coordinator for that release. I believe in open standards as the best way to empower developers. For more on Jakarta EE 11 see [this InfoQ article](https://www.infoq.com/news/2025/07/jakarta-ee-11-updates/).\n\nThis sample app is an agent harness using Jakarta EE 11. But, of course, developers can build their own agent harness using the well-known Java frameworks and libraries of their choice.\n\n[Clone the sample app and try it yourself >](https://github.com/microsoft/Build26-BRK206-your-agent-anywhere-multiclient-multidevice-with-github-copilot-sdk)\n\n## Where to get it\n\nThe SDK is available as a Maven dependency:\n\n```\n<dependency>\n    <groupId>com.github</groupId>\n    <artifactId>copilot-sdk-java</artifactId>\n    <version>1.0.7-preview.1</version>\n</dependency>\n```\n\n**Prerequisites:**\n\n* JDK 17 or 25 (25 recommended — unlocks virtual threads and other modern features)\n* Maven 3.9+\n* A GitHub account with an active Copilot subscription\n* The Copilot CLI installed locally at version 1.0.71 or later.\n\n## Walk through the sample app\n\nThe best way to see the SDK in action is to run [this sample application](https://github.com/microsoft/Build26-BRK206-your-agent-anywhere-multiclient-multidevice-with-github-copilot-sdk).\n\n### Get the code\n\n```\ngit clone https://github.com/microsoft/Build26-BRK206-your-agent-anywhere-multiclient-multidevice-with-github-copilot-sdk.git\ncd Build26-BRK206-your-agent-anywhere-multiclient-multidevice-with-github-copilot-sdk/src/java-agent-orchestrator\nmvn clean package liberty:run\n# Open http://localhost:9080/index.xhtml\n```\n\nThe Java demo is built on:\n\n| Concern | Technology |\n| --- | --- |\n| Runtime | Open Liberty 26.0.0.5 |\n| Platform | Jakarta EE 11 (Faces 4.1, CDI 4.1, WebSocket 2.2, Data 1.0, Persistence 3.2) |\n| UI | PrimeFaces 15.0.16 |\n| AI orchestration | Copilot SDK for Java 1.0.7-preview.1 |\n| Database | H2 in-memory (10 seed property listings) |\n\n### What the app does\n\nThe application is a real-estate lead-management agent pipeline. A customer submits an enquiry (“I’m looking for a 3-bedroom house in London under £800,000”), and the system spins up an isolated Copilot Agent on a virtual thread to process it through a pipeline:\n\n![Application flow diagram showing the pipeline stages: Customer Enquiry flows to QUEUED, then VALIDATING, which branches to either SEARCHING (if genuine) or REJECTED (if spam/off-topic). SEARCHING leads to WRITING_REPORT (if matches found) or NO MATCHES. WRITING_REPORT completes at DONE.](https://github.blog/wp-content/uploads/2026/08/figure-01-app-flow-diagram.png?resize=1024%2C173)\n\nThe architecture uses Jakarta WebSocket to push real-time status updates from the server to the browser, so you can watch agents progress through phases as the model calls tools:\n\n![Application architecture diagram showing Browser with Pipeline Dashboard connecting to Open Liberty server containing AppState, CopilotClient in EMPTY mode, virtual thread agents, and WebSocket push for real-time UI updates.](https://github.blog/wp-content/uploads/2026/08/figure-02-app-architecture-diagram.png?resize=1024%2C628)\n\nSubmit multiple inquiries simultaneously to see concurrent virtual-thread agents in action. Each one processes independently with its own Copilot session.\n\n![Screenshot of the sample application showing the pipeline dashboard with multiple enquiries being processed concurrently.](https://github.blog/wp-content/uploads/2026/08/figure-03-sample-app-01.png?resize=1024%2C940)\n![Screenshot of the sample application showing detailed agent event log and property search results.](https://github.blog/wp-content/uploads/2026/08/figure-04-sample-app-02.png?resize=778%2C1024)\n\n### SDK features in action\n\nLet’s walk through the key SDK features as they appear in the sample code.\n\n#### Defining tools with `@CopilotTool`\n\nThis is the headline API. If you’ve ever written a `@GET` endpoint in JAX-RS or an `@MessageDriven` bean, this will feel instantly familiar:\n\n```\n@CopilotTool(value = \"Sets the current phase of the agent. Use this to report progress.\",\n             name = \"set_current_phase\")\npublic String setCurrentPhase(\n        @CopilotToolParam(\"The phase to transition to (VALIDATING, SEARCHING, \"\n                + \"WRITING_REPORT, REJECTED_GARBAGE, REJECTED_NO_MATCHES, or DONE)\")\n        String phaseName) {\n    phase = Phase.valueOf(phaseName.trim().toUpperCase(Locale.ROOT));\n    notifyUi();\n    return \"Phase set to \" + phase.getLabel();\n}\n```\n\nThe `@CopilotTool` annotation declares the method as a tool the model can call. The `@CopilotToolParam` annotation describes each parameter so the model knows what to pass. The SDK handles all the JSON Schema generation, argument parsing, and dispatch. You just write a normal Java method.\n\n**Two build prerequisites for `@CopilotTool`.** The annotation-based tool API is currently an experimental feature of the SDK, so you need to configure two things in your Maven build:\n\n1. **Enable experimental APIs**: pass `-Acopilot.experimental.allowed=true` to the compiler. Without this flag, the annotation processor will refuse to generate the tool metadata. For more details on the experimental APIs see [Copilot SDK documentation](https://github.com/github/copilot-sdk/tree/main/java#using-experimental-apis).\n2. **Register the annotation processor**: add the SDK as an `annotationProcessorPath` so the compiler can find the `@CopilotTool` processor and generate the `$$CopilotToolMeta` classes at compile time.\n\nBoth are configured in the `maven-compiler-plugin`:\n\n```\n<plugin>\n    <groupId>org.apache.maven.plugins</groupId>\n    <artifactId>maven-compiler-plugin</artifactId>\n    <version>3.15.0</version>\n    <configuration>\n        <compilerArgs>\n            <arg>-Acopilot.experimental.allowed=true</arg>\n        </compilerArgs>\n        <annotationProcessorPaths>\n            <path>\n                <groupId>com.github</groupId>\n                <artifactId>copilot-sdk-java</artifactId>\n                <version>1.0.7-preview.1</version>\n            </path>\n        </annotationProcessorPaths>\n    </configuration>\n</plugin>\n```\n\nTo register all annotated tools from an object:\n\n```\nList<ToolDefinition> annotatedTools = ToolDefinition.fromObject(this);\n```\n\n#### Inline lambda tools with `ToolDefinition.from(...)`\n\nWhen you want a tool defined at the call site without a dedicated method, use the lambda style:\n\n```\nToolDefinition reportIntentTool = ToolDefinition\n        .from(\"report_intent\",\n              \"Reports the current intent of the agent\",\n              Param.of(String.class, \"intent\", \"Intent in max 4 words\"),\n              (String intent) -> {\n                  currentIntent = intent;\n                  addEvent(Instant.now(), \"intent\", \"Intent updated\", intent);\n                  notifyUi();\n                  return \"ok\";\n              })\n        .overridesBuiltInTool(true);\n```\n\nNotice `.overridesBuiltInTool(true)`. This tells the SDK that our `report_intent` tool deliberately replaces a built-in tool of the same name. This is useful when you need custom behaviour for a tool the model already knows about.\n\n#### Cross-class tool scanning\n\nTools don’t have to live in the same class as your agent logic. Here’s `searchProperties` defined in a separate CDI bean:\n\n```\n@ApplicationScoped\npublic class PropertyDatabase {\n\n    @CopilotTool(value = \"Searches the real estate listings database. \"\n                       + \"Returns up to 10 matching properties.\",\n                 name = \"search_properties\")\n    public List<Property> searchProperties(\n            @CopilotToolParam(\"Property type substring (e.g. 'flat', 'house')\") String type,\n            @CopilotToolParam(\"City substring (e.g. 'London', 'Bristol')\") String city,\n            @CopilotToolParam(\"Minimum number of bedrooms (0 for no minimum)\") int minBedrooms,\n            @CopilotToolParam(\"Maximum price in GBP (0 for no maximum)\") double maxPriceGbp) {\n        // ... filter and return matching properties ...\n    }\n}\n```\n\nYou would normally register these with `ToolDefinition.fromObject(propertyDatabase)`. In the sample app, we use a lambda wrapper instead, because CDI client proxies can obscure the annotation metadata.\n\n#### Customizing the system message\n\nThe SDK gives you fine-grained control over the system message. Use `SystemMessageMode.CUSTOMIZE` to replace specific sections while preserving the rest:\n\n```\nSystemMessageConfig systemMessage = new SystemMessageConfig()\n        .setMode(SystemMessageMode.CUSTOMIZE)\n        .setSections(Map.of(SystemMessageSections.IDENTITY,\n            new SectionOverride()\n                .setAction(SectionOverrideAction.REPLACE)\n                .setContent(\"\"\"\n                    You are part of a real estate recommendation system.\n                    You will receive enquiries from customers, and you must\n                    carry out the following workflow...\n                    \"\"\")));\n```\n\nThe text block (`\"\"\"...\"\"\"`) makes multi-line prompts readable without string concatenation. The `IDENTITY` section override replaces only the model’s self-description while leaving safety guardrails intact. If you prefer a simpler approach, `SystemMessageMode.APPEND` adds your content after the default system message without replacing anything.\n\n#### The agentic loop: `sendAndWait(...)`\n\nOne line kicks off the full agentic loop:\n\n```\nsession = client.createSession(sessionConfig).get();\n// ...\nAssistantMessageEvent result = session.sendAndWait(escapedEnquiry).get();\n```\n\nBehind `.get()`, the model reasons, calls your tools (potentially multiple times), and returns its final response. On a virtual thread, `.get()` is cheap. No platform thread is consumed while waiting. The SDK dispatches tool calls to your registered handlers automatically and feeds results back to the model until it’s done.\n\n#### Real-time event handling with `session.on(...)`\n\nSubscribe to session events to build responsive UIs:\n\n```\nsessionSubscription = session.on(event -> {\n    captureSessionEvent(event);\n    uiUpdateSocket.pushDetailUpdate(id);\n});\n```\n\nEvery tool call, every result, every assistant message fires an event. The sample app captures these events and pushes them to the browser via Jakarta WebSocket, so the pipeline dashboard updates in real time. You can use pattern matching to handle specific event types:\n\n```\nif (event instanceof AssistantMessageEvent msg) {\n    finalReport = msg.getData().content();\n} else if (event instanceof ToolExecutionStartEvent start) {\n    // Tool is being invoked...\n}\n```\n\n#### Headless client and permission handling\n\nThe client is configured for server-side operation:\n\n```\ncopilotClient = new CopilotClient(\n        new CopilotClientOptions()\n                .setMode(CopilotClientMode.EMPTY)\n                .setCopilotHome(copilotHome)\n                .setExecutor(contextualVirtualThreadExecutor));\n```\n\n`CopilotClientMode.EMPTY` means no IDE integration — the client talks directly to the Copilot CLI. The custom `Executor` (discussed below) ensures tool callbacks run with container context.\n\nFor permission handling, the sample uses:\n\n```\nsessionConfig.setOnPermissionRequest(PermissionHandler.APPROVE_ALL);\n```\n\n`APPROVE_ALL` is appropriate for demos and development. In production, implement a real permission policy that validates which tools the model is allowed to invoke.\n\n### Jakarta EE integration patterns\n\nThe SDK is not a framework island. It composes naturally with Jakarta EE — and of course also with proprietary frameworks such as Spring.\n\n**The `Executor` parameter is the key integration point.** Jakarta Concurrency (§5.2 in the 3.1 spec) requires that application-created threads be obtained from a `ManagedThreadFactory` so the container can:\n\n1. Track the thread for lifecycle shutdown (`@PreDestroy` / server stop)\n2. Apply concurrency constraints and policies\n3. Propagate context automatically (without needing manual `contextualRunnable`)\n\nOpen Liberty 26.x supports virtual-thread `ManagedThreadFactory` via the `virtual` attribute in `server.xml`.\n\n```\n<managedThreadFactory jndiName=\"concurrent/virtualThreadFactory\" virtual=\"true\" />\n```\n\nThen, in `AppState.java` we inject the factory:\n\n```\n@Resource(lookup = \"concurrent/virtualThreadFactory\")\nprivate ManagedThreadFactory virtualThreadFactory;\n```\n\nAnd use it to create the `Executor` we pass to the Copilot SDK.\n\n```\n// The ManagedThreadFactory (virtual=true) creates container-managed virtual\n// threads that automatically propagate CDI, JNDI, and transaction context.\nExecutor managedVirtualExecutor = runnable ->\n    virtualThreadFactory.newThread(runnable).start()\n\nString copilotHome = Path.of(System.getProperty(\"user.home\"), \".copilot\").toString();\nCopilotClientOptions copilotClientOptions = new CopilotClientOptions()\n        .setMode(CopilotClientMode.EMPTY)\n        .setCopilotHome(copilotHome)\n        .setExecutor(managedVirtualExecutor);\ncopilotClient = new CopilotClient(copilotClientOptions);\n```\n\nThis creates virtual threads that carry the container’s context. When the SDK dispatches a tool call to `searchProperties()`, that method can `@Inject` a JPA repository and query the database, because the container context is present on the callback thread.\n\nOther integration patterns in the sample:\n\n* **CDI `@ApplicationScoped`** for the singleton `CopilotClient` (one client per application lifecycle).\n* **Jakarta Faces `f:websocket` push** for real-time browser updates via `PushContext`.\n* **Jakarta Data `@Repository`** for type-safe database queries without raw JPA boilerplate.\n\n**Fine-grained tool access control with `ToolSet`.** The `SessionConfig` lets you specify exactly which tools each session can access:\n\n```\nsessionConfig.setAvailableTools(new ToolSet()\n        .addCustom(\"*\")           // all registered custom tools\n        .addBuiltIn(\"web_fetch\")); // only the web_fetch built-in\n```\n\nThis is an important production concern. Rather than exposing every built-in tool (file system access, shell execution, etc.), you explicitly opt in to only what the agent needs. In the sample app, we allow all custom tools plus `web_fetch` so the agent can look up real-time property information during the Search phase.\n\n## Summary\n\nHere’s what we covered:\n\n* **Java-native API**: `CompletableFuture`, annotations, lambdas, and virtual threads make the SDK feel like idiomatic Java, not a ported-from-another-language afterthought.\n* **Three tool-definition styles**: annotations for enterprise patterns, lambdas for inline convenience, JSON Schema for full control.\n* **System message customization**: section-level overrides give you precise control over agent behaviour.\n* **The agentic loop in one line**: `sendAndWait(...)` handles the full tool-calling loop automatically.\n* **Real-time event streaming**: `session.on(...)` enables responsive UIs and observability.\n* **Headless server-side operation**: no IDE required; runs anywhere the Copilot CLI is available.\n* **Natural composition with Jakarta EE**: CDI, JPA, WebSocket, and virtual threads all work together through the `Executor` integration point.\n\n## What to try next\n\n* **Explore the BYOK support.** The GitHub Copilot SDK can be used directly against model providers, for example OpenAI, Azure, Anthropic, or OpenAI-compatible endpoints, by passing a `provider`/`ProviderConfig` with your own `baseUrl` + `apiKey` (or bearer token). No Copilot subscription required.\n* **Clone the sample app** and run it locally. Submit multiple enquiries simultaneously to see virtual threads in action.\n* **Swap the model.** Try `session.setModel(...)` to experiment with different Copilot models.\n* **Add your own tool.** Define a new `@CopilotTool` method (a mortgage calculator, a school-district lookup) and watch the agent discover and use it.\n* **Deploy to Azure.** Open Liberty runs great on Azure App Service, AKS, or Azure Container Apps. See the Jakarta EE on Azure guidance at <https://aka.ms/java/ee>.\n\nThe Copilot SDK for Java puts the full power of GitHub Copilot behind your Java code with no IDE required and no framework lock-in.\n\n[Clone the sample app and try it yourself >](https://github.com/microsoft/Build26-BRK206-your-agent-anywhere-multiclient-multidevice-with-github-copilot-sdk)\n\nThe post [Using the GitHub Copilot SDK for Java](https://github.blog/engineering/using-the-github-copilot-sdk-for-java/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "Copilot SDK",
+        "Java",
+        "BYOK"
+      ],
+      "score": 75,
+      "summary": "GitHub发布Java版Copilot SDK，实现框架无关的AI集成，支持任意模型供应商和BYOK。",
+      "fetched_at": "2026-08-11T04:55:36.108444+08:00"
+    },
+    {
+      "title": "MatrAIx\n\nSimulating the World with 8.3 Billion Persona Agents\n\npaper: https://t.co/VJjnSeaY9l",
+      "link": "https://x.com/_akhaliq/status/2086894806932865475",
+      "published": "2026-08-11T03:17:49+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "MatrAIx  \n  \nSimulating the World with 8.3 Billion Persona Agents  \n  \npaper: [huggingface.co/papers/2608.04…](https://huggingface.co/papers/2608.04205)\n\n![Tweet Image](https://pbs.twimg.com/media/HPYjnALWcAEPQs6.jpg)\n\n💬4🔄3❤️26👀3606📊9",
+      "tags": [
+        "MatrAIx",
+        "83亿人格",
+        "世界模拟"
+      ],
+      "score": 75,
+      "summary": "AK转发论文：MatrAIx用83亿人格智能体模拟世界。",
+      "fetched_at": "2026-08-11T04:55:36.108458+08:00"
+    },
+    {
+      "title": "enjoy US hosted K3 on perplexity agent api!",
+      "link": "https://x.com/AravSrinivas/status/2086902500880478657",
+      "published": "2026-08-11T03:48:23+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "enjoy US hosted K3 on perplexity agent api!\n\n![Perplexity Developers](https://pbs.twimg.com/profile_images/1902407947008819200/oNj7Lt2O_normal.png)\n\nPerplexity Developers@perplexitydevs\n\nAccess the power of [@Kimi\\_Moonshot](https://x.com/Kimi_Moonshot) K3 in the Perplexity Agent API. Hosted exclusively on U.S.-based servers.  \n  \nTry it out today [bit.ly/pplx-kimi-k3](https://bit.ly/pplx-kimi-k3)\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HPYpS-0aQAEJJdH.jpg)](https://video.twimg.com/tweet_video/HPYpS-0aQAEJJdH.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/perplexitydevs/status/2086901735952699752)\n\n💬3🔄0❤️23👀4853📊4",
+      "tags": [
+        "Perplexity",
+        "Kimi K3",
+        "Agent API"
+      ],
+      "score": 82,
+      "summary": "Perplexity Agent API新增支持Kimi K3，由美国服务器独家托管。",
+      "fetched_at": "2026-08-11T04:55:36.108462+08:00"
+    },
+    {
+      "title": "We're making Claude Sonnet 5's introductory pricing permanent.\n\nWe launched Sonnet 5 in June at $2 p...",
+      "link": "https://x.com/claudeai/status/2086891169217122586",
+      "published": "2026-08-11T03:03:21+08:00",
+      "source": "Claude(@claudeai)",
+      "content": "We're making Claude Sonnet 5's introductory pricing permanent.  \n  \nWe launched Sonnet 5 in June at $2 per million input tokens and $10 per million output tokens through August 31, and that price will remain unchanged.\n\n![Claude](https://pbs.twimg.com/profile_images/1950950107937185792/QOfEjFoJ_normal.jpg)\n\nClaude@claudeai\n\nIntroducing Claude Sonnet 5, our most agentic Sonnet yet.  \n  \nIt makes plans, uses tools like browsers and terminals, and runs autonomously at a level that just a few months ago required larger and more expensive models.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2072014980103176192/vid/avc1/1728x2160/zHnxI04ExEMPKIbE.mp4?tag=28)\n\n[🔗 View on Twitter](https://x.com/claudeai/status/2072017450611142835/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/claudeai/status/2072017450611142835)\n\n💬564🔄164❤️3726👀557004📊637",
+      "tags": [
+        "Sonnet 5",
+        "永久定价"
+      ],
+      "score": 75,
+      "summary": "Claude官方宣布Sonnet 5的入门定价永久化，输入$2/百万token，输出$10/百万token。",
+      "fetched_at": "2026-08-11T04:55:36.108466+08:00"
+    },
+    {
+      "title": "A downside with VLM-based parsing is that they’re generally slower than text-based heuristic approac...",
+      "link": "https://x.com/jerryjliu0/status/2086915480389111830",
+      "published": "2026-08-11T04:39:58+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "A downside with VLM-based parsing is that they’re generally slower than text-based heuristic approaches. As a result they add latency to any ad-hoc file processing \\*in-the agent loop\\* (e.g. if you upload a file to Claude)  \n  \nWe built LiteParse to be a really good text-based, heuristic extractor so that you can use it as the default parser in the agent loop. It takes 4ms to parse 200 pages ⚡️, is more accurate than other OSS parsers, and you can install it within Claude Cowork/Code or Codex in one-line with our agent skill.  \n  \nIt also supports 50+ different doc formats and has a native complexity router so you can route it to OCR/VLMs for any complex pages  \n  \nCome check it out!  \n  \nRepo: [github.com/run-llama/lite…](https://github.com/run-llama/liteparse)\n\n![Tweet Image](https://pbs.twimg.com/media/HPY2hEYWYAAUMLI.png)\n\n💬2🔄1❤️4👀373📊3",
+      "tags": [
+        "LiteParse",
+        "4ms解析200页",
+        "50+格式"
+      ],
+      "score": 80,
+      "summary": "LlamaIndex发布LiteParse，4ms解析200页，支持50+文档格式，适合agent循环。",
+      "fetched_at": "2026-08-11T04:55:36.108468+08:00"
+    },
+    {
+      "title": "Brace yourselves \n\nit’s gonna be a big week",
+      "link": "https://x.com/julien_c/status/2086897311578481086",
+      "published": "2026-08-11T03:27:46+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "Brace yourselves   \n  \nit’s gonna be a big week\n\n![merve](https://pbs.twimg.com/profile_images/1982142240571920384/hla62KCQ_normal.jpg)\n\nmerve@mervenoyann\n\nTHIS WEEK ISN'T OVER YET\n\n[🔗 View Quoted Tweet](https://x.com/mervenoyann/status/2086798003654795526)\n\n💬1🔄0❤️34👀3442📊4",
+      "tags": [
+        "HuggingFace",
+        "big week"
+      ],
+      "score": 40,
+      "summary": "HuggingFace CEO发推暗示本周将有大动作，但未透露细节。",
+      "fetched_at": "2026-08-11T04:55:36.108471+08:00"
+    },
+    {
+      "title": "@elonmusk Big thanks to @zebriez for suggesting some great tidbits for this conversation",
+      "link": "https://x.com/lennysan/status/2086903043082297849",
+      "published": "2026-08-11T03:50:32+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "[@elonmusk](https://x.com/elonmusk) Big thanks to [@zebriez](https://x.com/zebriez) for suggesting some great tidbits for this conversation\n\n💬0🔄0❤️1👀1238",
+      "tags": [
+        "Lenny",
+        "Elon Musk"
+      ],
+      "score": 20,
+      "summary": "Lenny感谢zebriez为与马斯克的对话提供建议。",
+      "fetched_at": "2026-08-11T04:55:36.108473+08:00"
+    },
+    {
+      "title": "Listen to my full conversation with @wardadamp https://t.co/VGlSK70w8W",
+      "link": "https://x.com/lennysan/status/2086900790824931535",
+      "published": "2026-08-11T03:41:35+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Listen to my full conversation with [@wardadamp](https://x.com/wardadamp)[youtube.com/watch?v=zegYJ6…](https://www.youtube.com/watch?v=zegYJ6dhIg4)\n\n💬0🔄0❤️4👀2208📊2",
+      "tags": [
+        "Lenny",
+        "Adam Ward"
+      ],
+      "score": 30,
+      "summary": "Lenny分享与Adam Ward的完整对话视频链接。",
+      "fetched_at": "2026-08-11T04:55:36.108476+08:00"
+    },
+    {
+      "title": "You're probably hiring wrong\n\nAdam Ward (Head of Talent at Cursor) on the “funnel of doom,” and how ...",
+      "link": "https://x.com/lennysan/status/2086900469394477212",
+      "published": "2026-08-11T03:40:19+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "You're probably hiring wrong  \n  \nAdam Ward (Head of Talent at Cursor) on the “funnel of doom,” and how to fix your hiring process.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086898397748064256/vid/avc1/1920x1080/jjjaVUtRUnYnxj9K.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2086900469394477212/video/1)\n\n💬8🔄5❤️43👀7293📊17",
+      "tags": [
+        "Lenny",
+        "Cursor",
+        "招聘"
+      ],
+      "score": 45,
+      "summary": "Lenny发布与Cursor人才主管Adam Ward的招聘方法视频，讨论'漏斗'问题。",
+      "fetched_at": "2026-08-11T04:55:36.108478+08:00"
+    },
+    {
+      "title": "What does a company that runs itself actually look like?\n\nOur CEO @amasad joined @platformer to expl...",
+      "link": "https://x.com/Replit/status/2086890325608419625",
+      "published": "2026-08-11T03:00:00+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "What does a company that runs itself actually look like?  \n  \nOur CEO [@amasad](https://x.com/amasad) joined [@platformer](https://x.com/platformer) to explain the self-driving company: an internal bot that acts as the brain of the business, engineers who ship far more code with agents, and a future where we use fewer apps while agents use them on our behalf.  \n  \nRead more here:  \n[platformer.news/replit-amjad-m…](https://www.platformer.news/replit-amjad-massad-interview-coding-design-jobs/?ref=platformer-newsletter)\n\n💬4🔄5❤️26👀3874📊8",
+      "tags": [
+        "Replit",
+        "自我驱动公司",
+        "AI Agents"
+      ],
+      "score": 70,
+      "summary": "Replit CEO接受Platformer采访，解释自我驱动公司：AI Agent承担核心业务。",
+      "fetched_at": "2026-08-11T04:55:36.108481+08:00"
+    },
+    {
+      "title": "An hour of agentic computer use may now be cheaper than an hour of human labor:\n\nComputer-use agent:...",
+      "link": "https://x.com/a16z/status/2086906363947737406",
+      "published": "2026-08-11T04:03:44+08:00",
+      "source": "a16z(@a16z)",
+      "content": "An hour of agentic computer use may now be cheaper than an hour of human labor:  \n  \nComputer-use agent: $6-8  \nOffshore outsourced talent: ~$10  \nUS talent: $30-45  \n  \n\"The math only gets better - inference keeps getting cheaper, and open-source models are getting good enough for a growing share of these workflows.\"  \n  \nThe data on computer-use agents, from [@fabrisera2000](https://x.com/fabrisera2000), [@seema\\_amble](https://x.com/seema_amble), and [@zephratic](https://x.com/zephratic): [a16z.news/p/can-agents-u…](https://www.a16z.news/p/can-agents-use-a-computer-yet-weve)\n\n![Tweet Image](https://pbs.twimg.com/media/HPYuRyta8AAwOZH.jpg)\n\n![Fabrizio Serafini](https://pbs.twimg.com/profile_images/2065900391431389184/R7QreHHA_normal.jpg)\n\nFabrizio Serafini@fabrisera2000\n\n[x.com/i/article/2086…](http://x.com/i/article/2086827835671613440)\n\n[🔗 View Quoted Tweet](https://x.com/fabrisera2000/status/2086831520824934589)\n\n💬10🔄7❤️27👀6426📊10",
+      "tags": [
+        "a16z",
+        "agent成本",
+        "$6-8"
+      ],
+      "score": 75,
+      "summary": "a16z报告称计算机使用agent每小时成本$6-8，已低于海外外包和美国人力。",
+      "fetched_at": "2026-08-11T04:55:36.108484+08:00"
+    },
+    {
+      "title": "Auto mechanics at Kavak ship production AI agents six weeks after entering the company's bootcamp. C...",
+      "link": "https://x.com/a16z/status/2086893858559017028",
+      "published": "2026-08-11T03:14:03+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Auto mechanics at Kavak ship production AI agents six weeks after entering the company's bootcamp. CPO & AI Officer Alejandro Maza on their \"Jedi Academy\":  \n  \n\"The truth is that everyone's job will change. What we were doing a couple of years ago will probably be performed better by an AI agent.\"  \n  \n\"We train everyone, and after six weeks they launch AI agents to production. It's mechanics and finance guys and engineers. Everyone can do it.\"  \n  \n\" Maybe this person won't become an AI engineer. Some of them have, but they know how to collaborate with this new technology.\"  \n  \n\"You have the choice to train and get the skills to perform in this new reality, or maybe leave Kavak if this is not for you. This is the way we're going.\"  \n  \n[@alehandromz](https://x.com/alehandromz)[@GEVS94](https://x.com/GEVS94)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086893752988442624/vid/avc1/1280x720/dP1A-7WWXwYP_jrQ.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2086893858559017028/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nAI agents at Kavak sell the cars, underwrite the loans, coach the mechanics, and in one Mexican city, run the entire operation.  \n  \nThe Latin American used-car marketplace bet on agents three years ago. Today ~95% of interactions and transactions run end-to-end on AI: NPS tripled, sales conversion doubled, warranties down 26%, car loans approved in less than three minutes.  \n  \nCPO & AI Officer Alejandro Maza joins a16z's Angela Strange and Gabriel Vasquez on how they pulled it off, why adoption without redesign fails, and why they deleted two years of working architecture to start over.  \n  \n00:00 Intro  \n01:03 ML before transformers  \n02:23 Kavak's agent-per-customer architecture  \n04:59 Three bets: redesign the company, build superhuman agents, change the metrics  \n10:49 Agents with 2.1x conversion  \n14:23 Car loans approved in minutes  \n16:13 1.5x profits in a real city in six weeks  \n20:13 \"Jedi Academy\": training mechanics to ship agents  \n28:44 Destroying two years of work  \n32:52 Ford's factory: why adoption isn't enough  \n34:45 Advice for founders  \n  \n[@alehandromz](https://x.com/alehandromz)[@astrange](https://x.com/astrange)[@GEVS94](https://x.com/GEVS94)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086844879347634176/vid/avc1/1280x720/hjzUzIYBRVNqtrSs.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2086845184785203468/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2086845184785203468)\n\n💬7🔄5❤️31👀9871📊8",
+      "tags": [
+        "Kavak",
+        "AI agents",
+        "六周培训"
+      ],
+      "score": 70,
+      "summary": "a16z分享Kavak案例：技工经六周培训即交付生产级AI Agent，95%交易由AI端到端完成。",
+      "fetched_at": "2026-08-11T04:55:36.108486+08:00"
+    },
+    {
+      "title": "Anthropic 今天宣布，一个未公开的研究版 Claude 在尝试证明黎曼猜想的过程中，虽然没能证明猜想本身，却在一个相关问题上取得了重大突破：\n它把黎曼 ζ 函数的非平凡零点落在临界线上的已知比...",
+      "link": "https://x.com/dotey/status/2086902418139128225",
+      "published": "2026-08-11T03:48:03+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Anthropic 今天宣布，一个未公开的研究版 Claude 在尝试证明黎曼猜想的过程中，虽然没能证明猜想本身，却在一个相关问题上取得了重大突破：  \n它把黎曼 ζ 函数的非平凡零点落在临界线上的已知比例下界，从 41.6% 提高到了 67.2%。  \n  \n黎曼猜想是数学界最著名的未解难题之一，1859 年提出，至今 167 年无人能证明或推翻。它的核心主张是：黎曼 ζ 函数的所有非平凡零点都落在复平面上一条特定的竖直线上，数学家称之为“临界线”。  \n  \n如果这个猜想成立，素数的分布就有了一种深层的规律性。这个问题列在克雷数学研究所的七大千禧年问题之中，悬赏 100 万美元。  \n  \n既然全面证明太难，数学家们退而求其次：  \n能不能至少证明有多大比例的零点确实在这条线上？  \n  \n这个方向上的进展，过去 80 年是这样的：  \n- 1942 年 Selberg 首次证明有正比例的零点在线上，但比例很小；  \n- 1974 年 Levinson 证明至少三分之一；  \n- 1989 年 Conrey 推到五分之二；  \n- 此后又经历了几代数学家的努力，到 2020 年 Pratt 等人才把这个数字推到 41.7%。  \n  \n换句话说，从 33% 到 41.7%，人类花了将近 50 年。Claude 一步跳到 67.2%，跨度接近 26 个百分点，是这个问题历史上最大的一次单步提升。  \n  \nClaude 的发现建立在前人的工作之上。它结合了 Baluyot、Goldston、Suriajaya 和 Turnage-Butterbaugh 近年发表的一系列成果，以及数学家 Bombieri 在 2000 年的一篇论文。这些工作本身已经为突破铺好了路，而 Claude 找到了把它们拼在一起的方法。  \n  \nAnthropic 的两位数学家 Levent Alpöge 和 Ralph Furman 审查验证了 Claude 的证明，外部专家 Brian Conrey 和 Dan Goldston 也在短时间内审阅了论文。Claude 还用 Lean（一种形式化证明语言）写出了可机器验证的证明。  \n  \n过程本身和结果一样有故事。Anthropic 的一位员工 Jarred Sumner（不是数学家）在 Claude Code 中对 Claude 说了一句“认真试试黎曼猜想”，然后就把数学决策交给了模型。  \n  \nClaude 先生成了 650 个想法，全部失败。被鼓励再试一次后，它花了一天半时间协调大约 60 个子智能体（subagent），运行了 2400 条命令，写了数百个 Python 脚本。这些子智能体之间分工明确：2 个负责核心数学思路，13 个为它们提供想法，30 个尝试但未能提出新思路，13 个做验证，2 个帮忙写论文。  \n  \n整个过程中 Jarred 的参与基本限于给 Claude 打气，发的消息大多是“继续”和“相信自己”。  \n  \nAnthropic 说，这种鼓励似乎帮助 Claude 克服了“我真的能在这种级别的问题上有所推进吗”的自我怀疑。  \n  \n这已经是 Claude 今年第二次在数学领域搞出大新闻了。三周前，Anthropic 的数学家 Levent Alpöge 用 Claude Fable 5 找到了 Jacobian 猜想（Jacobian Conjecture）的反例，推翻了这个 87 年历史的代数几何猜想的一般形式。那次的反例简洁到人类数学家一天之内就能手动验证。  \n  \n两次事件有一个共同点：Claude 做的不是解题，而是原创性的数学研究，是在数学家们几十年没能推进的前沿问题上找到了新路径。  \n  \nAnthropic 也明确表示，Claude 使用的技术不太可能直接导向黎曼猜想的最终证明，但这个结果展示了 AI 模型在数学能力上的进步速度。  \n  \nAnthropic 公布了 Claude 的完整论文、Lean 形式化证明、简明证明笔记，以及 Claude 自己描述思路演化过程的附录，都可以在 Anthropic 官网的研究页面找到。\n\n![Tweet Image](https://pbs.twimg.com/media/HPYqrY9WoAAnJBs.jpg)\n\n![Jarred Sumner](https://pbs.twimg.com/profile_images/1342417825483300864/Vz4ChOFG_normal.jpg)\n\nJarred Sumner@jarredsumner\n\n8 days ago, while jogging, I asked Claude to solve the Riemann Hypothesis  \n  \nIt didn’t. 1.5 days later, it proved >= 67% of the zeros are on the line (prev: 41.6%)  \n  \nStill not sure what that means, but some analytic number theorists seem excited  \n  \n<https://t.co/vN10oM22HI>\n\n[🔗 View Quoted Tweet](https://x.com/jarredsumner/status/2086869681785500011)\n\n💬8🔄5❤️21👀4312📊9",
+      "tags": [
+        "Claude",
+        "黎曼猜想",
+        "67.2%"
+      ],
+      "score": 89,
+      "summary": "Claude将黎曼ζ函数零点临界线比例下界从41.6%提升至67.2%，用Lean给出证明。",
+      "fetched_at": "2026-08-11T04:55:36.108489+08:00"
+    },
+    {
+      "title": "CloudFlare Previews Automatic WebMCP Support for Web Pages",
+      "link": "https://www.infoq.com/news/2026/08/cloudflare-webmcp/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-11T04:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/cloudflare-webmcp/en/headerimage/cloudflare-webmcp-1786389410161.jpeg)\n\nCloudflare announced a developer preview that lets any website enable a WebMCP (Web Model Context Protocol) interface with a single dashboard switch. This allows browser-based AI agents to interact with unmodified web pages through structured tools instead of scraping or guessing, keeping human traffic and control on the original site.\n\n*By Sergio De Simone*",
+      "tags": [
+        "Cloudflare",
+        "WebMCP",
+        "AI Agent"
+      ],
+      "score": 70,
+      "summary": "Cloudflare预览WebMCP支持，网站可一键开启，让AI代理通过结构化工具与网页交互。",
+      "fetched_at": "2026-08-11T04:55:36.108491+08:00"
     }
   ]
 }
