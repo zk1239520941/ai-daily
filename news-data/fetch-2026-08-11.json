@@ -1347,6 +1347,284 @@
       "score": 70,
       "summary": "Cloudflare预览WebMCP支持，网站可一键开启，让AI代理通过结构化工具与网页交互。",
       "fetched_at": "2026-08-11T04:55:36.108491+08:00"
+    },
+    {
+      "title": "A sandbox without a network boundary is only half a sandbox",
+      "link": "https://vercel.com/blog/a-sandbox-without-a-network-boundary-is-only-half-a-sandbox",
+      "published": "2026-08-11T08:00:00+08:00",
+      "source": "Vercel News",
+      "content": "Running untrusted code safely requires more than separating it from the host. You also have to control what that code can reach.\n\nThis matters more as AI agents gain the ability to read files, execute commands, install packages, and generate programs of their own. A microVM can prevent that code from accessing the host or another workload. By itself, it cannot stop the code from exfiltrating data, probing internal services, attacking systems elsewhere on the internet, or using credentials available inside the environment.\n\nIsolation without egress control contains the process, not its consequences.\n\nA complete sandbox therefore needs both compute isolation and control over the authority available through its network: where code can connect, which credentials it can use, and how those permissions change throughout the workload’s lifecycle. These controls are part of the security boundary, not protections to bolt on later.\n\n## A sandbox has more than one boundary\n\nCompute isolation answers one important question: what can this program access on the machine where it runs? Network isolation answers another: what can it access, or attack, through the network?\n\nConsider an agent that reads a repository and runs generated code. A prompt injection hidden in an issue, log entry, dependency, or source file might instruct it to upload private data. The generated program does not need to escape its microVM. With unrestricted outbound traffic, it can simply send anything it can read to an external server.\n\nThe same access can be used to scan internal networks, exfiltrate data and credentials, or call an authenticated API. From the attacker’s perspective, crossing the VM boundary may be unnecessary. Without a network boundary, it is only half a sandbox.\n\n## A network bypass can be a sandbox escape\n\nRecent security research has made one pattern clear: untrusted code does not need to cross a VM boundary to escape containment. It only needs one network path that the security model failed to account for.\n\nThat path might be a DNS resolver left available in an otherwise disconnected environment, an empty allowlist that fails open, a hostname interpreted differently by a policy engine and a proxy, or a trusted package service turned into a relay. Any one of them can give untrusted code a channel to exfiltrate data, receive instructions, or move toward more sensitive infrastructure.\n\nThese are not compute escapes. The kernel, VM, or container boundary may continue working exactly as designed while containment still fails. The practical security boundary also includes DNS, proxies, identity services, internal networks, and every intentionally permitted destination.\n\nWhether we call the result an escape or a bypass, the requirement is the same: a sandbox must account for every path by which untrusted code can communicate.\n\n## Useful sandboxes need selective connectivity\n\nCompletely disconnecting a sandbox closes the network path, but it also makes many workloads impractical. An agent may need to clone a repository, install a dependency, call an AI model, query a database, or upload its result.\n\nUnrestricted internet access is not the only alternative. A useful sandbox should grant only the connectivity a workload requires:\n\n* Allow an AI provider, but no other public destination.\n* Allow one object storage bucket, rather than an entire cloud network.\n* Reach a private service, while blocking the rest of the private address space.\n* Install dependencies during trusted setup, then remove registry access before generated code runs.\n* Authenticate an API request without placing the API key inside the sandbox.\n\nA practical policy model should support fully open access, complete network isolation, and granular policies that deny unmatched traffic by default. Those policies should be able to combine domain rules with allowed and denied address ranges.\n\nDomains and CIDRs solve different problems. Domain policies are precise enough for modern services whose IP addresses change or serve many unrelated hostnames. CIDR policies work across protocols and provide control over fixed infrastructure and private networks.\n\nConnectivity should also be temporary. A workflow can begin with access to a package registry, narrow access before untrusted execution, briefly permit an output destination, and finish with no outbound access, all without restarting the workload.\n\n## How Vercel enforces the network boundary\n\nThe Vercel Sandbox firewall runs on the host, outside the microVM, where code inside the sandbox cannot modify or disable it.\n\nLinux networking transparently redirects outbound TCP connections and DNS queries through the firewall. Workloads do not need to configure a proxy, and the firewall retains each connection’s original destination.\n\nFor domain-restricted connections, the firewall inspects the beginning of the TLS handshake and extracts the Server Name Indication, or SNI. This identifies the requested hostname before the firewall opens an upstream connection. It checks that hostname against the sandbox’s domain policy and also checks the destination address against its CIDR policy.\n\nOrdinary allowed TLS connections pass through without decryption. The firewall reads only the unencrypted handshake information required to enforce the policy, then connects the workload directly to its destination.\n\nSome policies need to inspect or modify the HTTP request itself. For those configured domains only, header injection and request forwarding selectively terminate TLS using a certificate authority unique to the sandbox. The firewall can then match requests by hostname, path, method, query, or headers before injecting a credential or forwarding the request to an endpoint that you trust.\n\nDNS traffic is filtered using the same domain policy. Together, these layers control both where a sandbox can connect and what authority a particular connection receives.\n\n## Keep credentials outside untrusted compute\n\nAn agent often needs to call an authenticated service, but a credential stored in an environment variable or file is a transferable bearer credential. Every program inside the sandbox can read it. Malicious code can copy it to a third-party service, where it can be retained and used long after the sandbox stops.\n\nVercel Sandbox instead injects credentials at the host network boundary. The firewall creates a dedicated certificate authority just in time for the sandbox and adds it to the sandbox’s trusted certificates. For a configured destination, it selectively terminates TLS, adds or replaces the authentication header, then establishes a new TLS connection to the upstream service.\n\nThe credential never enters the microVM. It never leaves the host unencrypted. The certificate authority is unique to the sandbox and is disposed when the sandbox stops.\n\nInjection also limits where the credential can be used. The firewall sends it only to its configured destination, so uploading the sandbox’s files or environment to another service does not transfer that authority. Matchers can restrict it further by path, method, query, or request headers. Generated code might receive permission to submit results to one endpoint without receiving permission to read other resources from the same API.\n\nInjected credentials should still follow the principle of least privilege, with access limited to the specific operations the workload requires.\n\n## Put your own policy in the path\n\nStatic allowlists cannot express every security requirement. Some workloads need to inspect payloads, enforce business rules, record an audit trail, or make an authorization decision using context only you have.\n\nRequest forwarding sends selected HTTPS requests through a proxy that you control. The proxy receives the original request along with a Vercel-issued OIDC token identifying the team, project, and sandbox that originated it.\n\nThat proxy becomes a programmable policy layer. It can:\n\n* Redact sensitive fields before a request leaves the environment.\n* Enforce per-user or per-sandbox authorization.\n* Route package downloads through supply-chain scanning and block artifacts that fail organizational policy.\n* Record requests and responses for compliance workflows.\n* Exchange a sandbox identity for a narrowly scoped credential.\n* Reject an operation that does not match organizational policy.\n\nThe policy and its secrets remain outside the sandbox, even when the code being governed has full root access inside its microVM. You can read more about request proxying in the [Sandbox documentation](https://vercel.com/docs/sandbox/concepts/firewall#requests-proxying).\n\n## Security belongs in the baseline product\n\nWe believe a sandbox should not require a payment method before it can safely handle untrusted code.\n\nEvery Vercel Sandbox includes both compute isolation and a complete firewall for defining what code inside it can communicate with.\n\nThe goal is not to make every sandbox completely offline. It is to make authority explicit:\n\n* Which destinations can this sandbox reach?\n* Which private address ranges are unavailable?\n* Which requests can use credentials?\n* Which operations must pass through additional policy?\n* When should all communication stop?\n\nThese are fundamental properties of the execution environment, not security controls to add after a workload reaches production. We believe so strongly in this that we have made our [full egress firewall capabilities available to all Sandboxes](https://vercel.com/changelog/full-sandbox-egress-firewall-now-available-on-hobby-plan).\n\n## Getting started\n\nThe following policy allows outbound connections to one API and injects a credential only for one operation. Other destinations are denied by default, and the credential remains outside the sandbox.\n\nThe same policy can be replaced while the sandbox runs:\n\nA sandbox is not defined only by where its code runs. It is defined by what that code can reach, what authority it receives, and which boundaries still hold when the code itself is hostile.\n\nThe network is part of the sandbox.\n\n## Further reading\n\n* [Vercel Sandbox firewall documentation](https://vercel.com/docs/sandbox/concepts/firewall)\n* [Understanding Vercel Sandboxes](https://vercel.com/docs/sandbox/concepts)\n* [Security boundaries in agentic architectures](https://vercel.com/blog/security-boundaries-in-agentic-architectures)\n\n[Read more](https://vercel.com/blog/a-sandbox-without-a-network-boundary-is-only-half-a-sandbox)",
+      "tags": [
+        "Vercel",
+        "沙箱",
+        "网络边界"
+      ],
+      "score": 75,
+      "summary": "Vercel官方博客强调AI代理沙箱必须含网络边界控制，防止数据泄露。",
+      "fetched_at": "2026-08-11T05:53:09.798592+08:00"
+    },
+    {
+      "title": "The future of business media is @X",
+      "link": "https://x.com/aaditsh/status/2086908770630742390",
+      "published": "2026-08-11T04:13:18+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "The future of business media is [@X](https://x.com/X)\n\n💬1🔄0❤️3👀2849📊1",
+      "tags": [
+        "商业媒体",
+        "X"
+      ],
+      "score": 20,
+      "summary": "Aadit Sheth发推称商业媒体未来在X，无实际信息。",
+      "fetched_at": "2026-08-11T05:53:09.798606+08:00"
+    },
+    {
+      "title": "Indeed all tools should be about augmenting human agency, including AI! I had a fun chat with @huber...",
+      "link": "https://x.com/drfeifei/status/2086912906969719062",
+      "published": "2026-08-11T04:29:44+08:00",
+      "source": "Fei-Fei Li(@drfeifei)",
+      "content": "Indeed all tools should be about augmenting human agency, including AI! I had a fun chat with [@hubermanlab](https://x.com/hubermanlab) .\n\n![Andrew D. Huberman, Ph.D.](https://pbs.twimg.com/profile_images/1339713932085346306/jDTi4HKH_normal.jpg)\n\nAndrew D. Huberman, Ph.D.@hubermanlab\n\nThe new Huberman Lab episode is out: Using AI to Increase Your Intelligence & Enrich Humanity | Dr. Fei-Fei Li ([@drfeifei](https://x.com/drfeifei))  \n  \n0:00 Fei-Fei Li  \n3:46 Vision & Intelligence; Human Vision & Contribution to AI  \n12:11 Computer Vision & the AI Revolution  \n18:34 Sponsors: Lingo & Wealthfront  \n21:19 Speech, Sound & AI Development  \n23:36 AI & Contextual Learning, Human Intelligence  \n33:43 Current AI Gaps, Emotion & Creativity  \n45:48 Computers Enhancing Humanity; Tool: Personal Agency & Learning about AI  \n53:04 Sponsors: AG1 & LMNT  \n55:37 Public Discourse about AI  \n57:34 AI to Enhance Scientific Discovery & Healthcare; Human Collaboration  \n1:07:38 Intuition, Motivation & Human States Beyond AI  \n1:19:18 Sponsor: David  \n1:20:37 Social & Ethical Considerations for AI  \n1:27:38 Kids, Development & AI Tools; Tool: Prompt AI Effectively  \n1:35:04 Next Frontier for Robotics & AI; Human Agency  \n1:43:52 Human-Centered AI Future  \n1:50:10 World Labs, Spatial Intelligence  \n1:54:12 Concerns about AI & Creativity; Movies, Art, Storytelling  \n1:59:51 Younger Generation & AI, Teachers  \n2:05:38 Zero-Cost Support, YouTube, Spotify & Apple Follow, Reviews & Feedback, Sponsors, Protocols Book, Social Media, Neural Network Newsletter  \n  \nIncludes paid partnerships.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086679090128474113/vid/avc1/1920x1080/qLzlyMq4q1FV5G5l.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/hubermanlab/status/2086814834213925013/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/hubermanlab/status/2086814834213925013)\n\n💬5🔄6❤️42👀5903📊8",
+      "tags": [
+        "李飞飞",
+        "Huberman Lab",
+        "人类能动性"
+      ],
+      "score": 80,
+      "summary": "李飞飞转发Huberman Lab播客，强调AI应增强人类能动性。",
+      "fetched_at": "2026-08-11T05:53:09.798612+08:00"
+    },
+    {
+      "title": "Configure and run Fireworks training jobs from your coding agent.\n\nInstall the Training Skill in one...",
+      "link": "https://x.com/FireworksAI_HQ/status/2086907308106535400",
+      "published": "2026-08-11T04:07:29+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Configure and run Fireworks training jobs from your coding agent.  \n  \nInstall the Training Skill in one line, describe your goal, and Claude Code, Codex, or Cursor helps choose the method, validate data, estimate cost, launch training, and troubleshoot failures.  \n  \n[fireworksai-docs.mintlify.app/fine-tuning/ag…](https://fireworksai-docs.mintlify.app/fine-tuning/agent/use-with-coding-agents)\n\n💬0🔄0❤️4👀603📊1",
+      "tags": [
+        "Fireworks AI",
+        "训练作业",
+        "编码代理"
+      ],
+      "score": 75,
+      "summary": "Fireworks AI支持从Claude Code、Codex、Cursor配置并运行训练作业。",
+      "fetched_at": "2026-08-11T05:53:09.798615+08:00"
+    },
+    {
+      "title": "Cautionary counterpoint: everyone is roasting @deanwball (and I haven’t been a fan of some of his re...",
+      "link": "https://x.com/GaryMarcus/status/2086917694805430510",
+      "published": "2026-08-11T04:48:46+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Cautionary counterpoint: everyone is roasting [@deanwball](https://x.com/deanwball) (and I haven’t been a fan of some of his recent posts) but I do worry about the White House using a kind of line-item veto to deplatform individuals that they have disagreements with.\n\n💬0🔄0❤️2👀766",
+      "tags": [
+        "Gary Marcus",
+        "白宫",
+        "言论自由"
+      ],
+      "score": 30,
+      "summary": "Gary Marcus对白宫用line-item veto针对个人表示担忧。",
+      "fetched_at": "2026-08-11T05:53:09.798618+08:00"
+    },
+    {
+      "title": "Deepagents 👀\n\nWe did a bunch of work slimming down the harness, and it shows. Second cheapest harne...",
+      "link": "https://x.com/hwchase17/status/2086921857006268656",
+      "published": "2026-08-11T05:05:18+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Deepagents 👀  \n  \nWe did a bunch of work slimming down the harness, and it shows. Second cheapest harness!\n\n![ℏεsam](https://pbs.twimg.com/profile_images/1978647680357134336/ioMmfkXF_normal.jpg)\n\nℏεsam@Hesamation\n\nWAIT A MINUE, so Claude is not only the most expensive frontier model, but Claude Code is also the most token-hungry harness?  \n  \nthe Claude Code enterprise bills are starting to make sense.\n\n![Tweet Image](https://pbs.twimg.com/media/HPXlayhXEAAVCXu.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Hesamation/status/2086826255341469838)\n\n💬0🔄0❤️0👀98",
+      "tags": [
+        "Deepagents",
+        "Claude Code",
+        "Token消耗"
+      ],
+      "score": 65,
+      "summary": "Harrison Chase转发称Deepagents精简harness成本降低，Claude Code token消耗较高。",
+      "fetched_at": "2026-08-11T05:53:09.798621+08:00"
+    },
+    {
+      "title": "Now that AI has compressed the design phase for so many products, there is going to be more demand f...",
+      "link": "https://x.com/paulg/status/2086926176338194460",
+      "published": "2026-08-11T05:22:28+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Now that AI has compressed the design phase for so many products, there is going to be more demand for technologies that compress the construction phase. After we get those, the final frontier will be regulation.\n\n💬19🔄4❤️93👀6592📊23",
+      "tags": [
+        "Paul Graham",
+        "AI压缩设计",
+        "创业"
+      ],
+      "score": 75,
+      "summary": "Paul Graham认为AI压缩设计阶段，未来需构建阶段压缩技术，最后是监管。",
+      "fetched_at": "2026-08-11T05:53:09.798623+08:00"
+    },
+    {
+      "title": "Startup idea: Rephrase output to preserve the meaning while obliterating the watermarks. This might ...",
+      "link": "https://x.com/paulg/status/2086924675163345285",
+      "published": "2026-08-11T05:16:30+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Startup idea: Rephrase output to preserve the meaning while obliterating the watermarks. This might not become that big in itself, but it could make a great beachhead.\n\n![M1](https://pbs.twimg.com/profile_images/1923483967635795968/LKZbj2ff_normal.jpg)\n\nM1@M1Astra\n\nAnthropic says new Claude models will embed invisible watermarks in all generated text, everywhere Claude is offered.  \n  \nThe watermark is part of the text, it isn't metadata: \"it will travel with the text when it's copied and pasted elsewhere, and may persist through some editing.\"  \n  \nThis starts with models launched on or after August 2, 2026, under an EU AI Act code Anthropic signed. Anthropic is still working on adding it to current models. The rollout is worldwide.\n\n![Tweet Image](https://pbs.twimg.com/media/HPYmOXDWgAAFpIw.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/M1Astra/status/2086898041882030353)\n\n💬30🔄3❤️120👀19549📊28",
+      "tags": [
+        "Anthropic水印",
+        "Claude",
+        "创业想法"
+      ],
+      "score": 80,
+      "summary": "Paul Graham就Anthropic新模型嵌入隐形水印提出创业想法：改写去除水印。",
+      "fetched_at": "2026-08-11T05:53:09.798626+08:00"
+    },
+    {
+      "title": "P-Image-Ideogram is now on Runway.\n\nGo from prompt to image in as little as 0.6 seconds, with four q...",
+      "link": "https://x.com/runwayml/status/2086921725044817922",
+      "published": "2026-08-11T05:04:47+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "P-Image-Ideogram is now on Runway.  \n  \nGo from prompt to image in as little as 0.6 seconds, with four quality modes to balance speed and detail however you need.  \n  \nGet started now at the link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086921171568668672/vid/avc1/1920x1080/2NCfRHa0WlOEiGtO.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2086921725044817922/video/1)\n\n💬3🔄0❤️18👀2595📊5",
+      "tags": [
+        "Runway",
+        "P-Image-Ideogram",
+        "0.6秒生成"
+      ],
+      "score": 78,
+      "summary": "Runway上线P-Image-Ideogram，最快0.6秒生成图像，四种质量模式。",
+      "fetched_at": "2026-08-11T05:53:09.798629+08:00"
+    },
+    {
+      "title": "Get Started: https://t.co/j1NtDVkhuu",
+      "link": "https://x.com/runwayml/status/2086921726521131077",
+      "published": "2026-08-11T05:04:47+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Get Started: [app.runwayml.com](https://app.runwayml.com/)\n\n💬0🔄0❤️0👀799",
+      "tags": [
+        "Runway"
+      ],
+      "score": 20,
+      "summary": "Runway提供P-Image-Ideogram的上手链接。",
+      "fetched_at": "2026-08-11T05:53:09.798632+08:00"
+    },
+    {
+      "title": "Do I have any RL env friends who I can ask a couple questions to? Just curious about some stuff!",
+      "link": "https://x.com/Suhail/status/2086928196134707664",
+      "published": "2026-08-11T05:30:29+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Do I have any RL env friends who I can ask a couple questions to? Just curious about some stuff!\n\n💬1🔄0❤️3👀1301📊1",
+      "tags": [
+        "Suhail"
+      ],
+      "score": 10,
+      "summary": "Suhail发推询问有无RL环境朋友可请教。",
+      "fetched_at": "2026-08-11T05:53:09.798634+08:00"
+    },
+    {
+      "title": "Tune in: https://t.co/f8D7qdwJ36\n\nTranscript: https://t.co/jonTCfO46d",
+      "link": "https://x.com/ycombinator/status/2086925976047603766",
+      "published": "2026-08-11T05:21:40+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Tune in: [youtu.be/whcfSGN6CAU](https://youtu.be/whcfSGN6CAU)  \n  \nTranscript: [ycrootaccess.com/p/peter-steinb…](https://www.ycrootaccess.com/p/peter-steinberger-what-happens-when)\n\n![Tweet Image](https://pbs.twimg.com/media/HPY2SwGasAAJ6Ie.png)\n\n💬0🔄0❤️4👀1360",
+      "tags": [
+        "Y Combinator",
+        "访谈"
+      ],
+      "score": 30,
+      "summary": "YC发布访谈视频链接及文字记录。",
+      "fetched_at": "2026-08-11T05:53:09.798637+08:00"
+    },
+    {
+      "title": "Last November, @steipete was annoyed that there was no good way to talk to his coding agents from hi...",
+      "link": "https://x.com/ycombinator/status/2086925972369269105",
+      "published": "2026-08-11T05:21:39+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Last November, [@steipete](https://x.com/steipete) was annoyed that there was no good way to talk to his coding agents from his phone, so he built one himself. A few months later, OpenClaw exploded into one of the biggest open source AI projects in the world, with nearly 3,000 contributors and a peak of 4.7 million weekly downloads.  \n  \nAt Startup School 2026, Peter tells the story of what happened when OpenClaw took off, what he got wrong as it grew, and how he eventually stopped using the product he had built for himself.  \n  \nHe shares why the best products often start with something that annoys you, why focus matters more as building gets easier, and why, in his words, “fun is velocity.”  \n  \n01:16 — How OpenClaw Started  \n05:10 — Finding Product-Market Fit  \n07:01 — The Night OpenClaw Went Viral  \n09:50 — When the Project Exploded  \n11:05 — When the Attention Almost Broke Him  \n12:00 — Did You Sell Out?  \n14:17 — Your Name Can’t Be Forked  \n15:03 — What OpenClaw Got Wrong  \n20:40 — Hype Is Like the Weather  \n21:37 — When It Stopped Being Fun  \n25:30 — Fun Is Velocity  \n26:40 — What’s Next for OpenClaw  \n28:57 — Three Lessons From Building OpenClaw  \n30:08 — Q&A\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086917632566128640/vid/avc1/3840x2160/xq7Ljsus4JM2ukFV.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2086925972369269105/video/1)\n\n💬4🔄2❤️24👀7286📊7",
+      "tags": [
+        "OpenClaw",
+        "开源Agent",
+        "YC"
+      ],
+      "score": 78,
+      "summary": "YC发布OpenClaw创始人演讲，分享其从个人工具到470万周下载的历程。",
+      "fetched_at": "2026-08-11T05:53:09.798640+08:00"
+    },
+    {
+      "title": "\"I like to move extremely fast, but in order to move fast, you need to have brakes.\"\n\nUp to 200,000 ...",
+      "link": "https://x.com/a16z/status/2086921907958608255",
+      "published": "2026-08-11T05:05:30+08:00",
+      "source": "a16z(@a16z)",
+      "content": "\"I like to move extremely fast, but in order to move fast, you need to have brakes.\"  \n  \nUp to 200,000 AI agents wake up at Kavak every day. CPO & AI Officer Alejandro Maza says eval quality is what sets the ceiling on speed at that scale:  \n  \n\"So to give you a sense of the scale, 96% of all interactions are handled by agents. No humans there. 95% of all transactions are completely handled by agents.\"  \n  \n\"AI is super powerful, and I've seen many companies get this wrong because they try to go slow because they don't have the right brakes. So I thought about it the other way around: how fast can we go? Well, it depends on the quality of our evals.\"  \n  \n\"A good rule of thumb here is we spend about the same amount of engineer time, tokens, and money on building the evals as building the agents.\"  \n  \n[@alehandromz](https://x.com/alehandromz)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086921794284605440/vid/avc1/1280x720/zGyUmdd7FmTRIFbY.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2086921907958608255/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nAI agents at Kavak sell the cars, underwrite the loans, coach the mechanics, and in one Mexican city, run the entire operation.  \n  \nThe Latin American used-car marketplace bet on agents three years ago. Today ~95% of interactions and transactions run end-to-end on AI: NPS tripled, sales conversion doubled, warranties down 26%, car loans approved in less than three minutes.  \n  \nCPO & AI Officer Alejandro Maza joins a16z's Angela Strange and Gabriel Vasquez on how they pulled it off, why adoption without redesign fails, and why they deleted two years of working architecture to start over.  \n  \n00:00 Intro  \n01:03 ML before transformers  \n02:23 Kavak's agent-per-customer architecture  \n04:59 Three bets: redesign the company, build superhuman agents, change the metrics  \n10:49 Agents with 2.1x conversion  \n14:23 Car loans approved in minutes  \n16:13 1.5x profits in a real city in six weeks  \n20:13 \"Jedi Academy\": training mechanics to ship agents  \n28:44 Destroying two years of work  \n32:52 Ford's factory: why adoption isn't enough  \n34:45 Advice for founders  \n  \n[@alehandromz](https://x.com/alehandromz)[@astrange](https://x.com/astrange)[@GEVS94](https://x.com/GEVS94)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086844879347634176/vid/avc1/1280x720/hjzUzIYBRVNqtrSs.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2086845184785203468/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2086845184785203468)\n\n💬3🔄2❤️21👀6403📊4",
+      "tags": [
+        "Kavak",
+        "AI代理",
+        "95%交易"
+      ],
+      "score": 80,
+      "summary": "a16z分享Kavak案例：AI代理处理95%交易，每日20万代理运行。",
+      "fetched_at": "2026-08-11T05:53:09.798642+08:00"
+    },
+    {
+      "title": "If you are looking for a new passion, fall in love with learning. Aim to learn more every single day...",
+      "link": "https://x.com/omarsar0/status/2086921059190648998",
+      "published": "2026-08-11T05:02:08+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "If you are looking for a new passion, fall in love with learning. Aim to learn more every single day.  \n  \nDoesn't matter if you are a student or already graduated.  \n  \nThere is just so much to learn and discover. Always!\n\n![Michael Dell 🇺🇸](https://pbs.twimg.com/profile_images/2065882493136306176/Zt75bHLP_normal.jpg)\n\nMichael Dell 🇺🇸@MichaelDell\n\nIf you’re curious and love to learn, there has never been a better time to be alive.\n\n[🔗 View Quoted Tweet](https://x.com/MichaelDell/status/2086801283646914732)\n\n💬0🔄0❤️0👀366",
+      "tags": [
+        "elvis",
+        "学习"
+      ],
+      "score": 10,
+      "summary": "elvis转发Michael Dell热爱学习的励志语录。",
+      "fetched_at": "2026-08-11T05:53:09.798645+08:00"
+    },
+    {
+      "title": "Anthropic 宣布将给 Claude 的输出内容加上机器可读的标记，包括文本中嵌入的隐形水印，以及生成文件中附加的数字签名元数据。8 月 2 日起（也就是上周），所有新发布的 Claude 模型...",
+      "link": "https://x.com/dotey/status/2086928989549920678",
+      "published": "2026-08-11T05:33:39+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Anthropic 宣布将给 Claude 的输出内容加上机器可读的标记，包括文本中嵌入的隐形水印，以及生成文件中附加的数字签名元数据。8 月 2 日起（也就是上周），所有新发布的 Claude 模型已经开始执行这套标记机制。  \n  \n这是 Anthropic 为遵守欧盟 AI 法案第 50 条签署的透明度行为准则。但执行范围不限于欧盟，全球所有使用 Claude 的地方都会生效。  \n  \n具体来说有两层标记。  \n  \n第一层是文本水印：Claude 生成文字时，会在文本中织入人眼不可见的水印，不影响阅读体验和内容质量。这个水印的特点是“跟着文字走”，你把 Claude 写的一段话复制粘贴到邮件、文档或博客里，水印依然在，一定程度的编辑修改后也可能保留。  \n  \n第二层是文件元数据：Claude 生成 SVG、PNG、JPG 等文件时，会附加符合 C2PA 标准的签名元数据。C2PA 是 Adobe、微软、Google 等公司共同推动的内容溯源开放协议，OpenAI 和 Google 的图像生成工具已经在用。  \n  \n覆盖面很广。API、Claude 官网、Claude Code、Claude Cowork、Claude Tag，所有产品线都适用。通过 AWS、Google Cloud 或 Microsoft Foundry 调用 Claude 时，文本水印同样生效，但文件元数据取决于各云平台的功能支持。  \n  \n在此之前，Claude 一直没有公开部署过文本水印。OpenAI 此前开发过文本水印方案，但出于各种考虑一直没上线。Anthropic 这次直接在文本层面落地水印，算是 AI 大模型厂商中走得比较靠前的一步。  \n  \n对于用 Claude 写东西的人来说，一个直接的影响是：你用 Claude 起草的邮件、报告、文章，里面都会携带可被机器检测的水印。Anthropic 表示正在开发配套的检测工具，未来第三方也能检测。  \n  \n不过限制也很实际。检测到水印只能说明内容“可能经过 Claude 处理”，不能确认 Claude 是原始作者，因为很多人用它润色、翻译、总结已有内容。反过来也一样，检测不到水印不代表内容不是 AI 写的，文本被大量改写后水印会消失，太短的文本信号不够可靠，文件经过格式转换或截图也会丢失元数据。  \n  \n8 月 2 日之前发布的现有 Claude 模型，Anthropic 正在补充标记功能，具体时间表还没公布。如果你基于 Claude API 构建产品，Anthropic 建议你独立评估欧盟 AI 法案第 50 条对自己的合规要求。  \n  \n相关文档：[support.claude.com/en/articles/16…](https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content)\n\n![Tweet Image](https://pbs.twimg.com/media/HPZCva4WMAAXhXf.jpg)\n\n💬1🔄0❤️1👀348📊1",
+      "tags": [
+        "Anthropic",
+        "隐形水印",
+        "C2PA"
+      ],
+      "score": 85,
+      "summary": "宝玉解读Anthropic为Claude输出添加隐形水印和C2PA元数据，覆盖全球。",
+      "fetched_at": "2026-08-11T05:53:09.798648+08:00"
+    },
+    {
+      "title": "Research from XiaoHongShu\n\nUnderstanding video means staying present over time.\n\nStreamArena tests m...",
+      "link": "https://x.com/dongxi_nlp/status/2086916939486744671",
+      "published": "2026-08-11T04:45:46+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "Research from XiaoHongShu  \n  \nUnderstanding video means staying present over time.  \n  \nStreamArena tests memory, initiative, and tools in one living stream.  \nStreamMind lets quick action and deep memory grow together.  \n  \nPaper:  \n  \nStreamArena: Toward Continuous, Interactive, and LongHorizon Agentic Streaming Video Understanding\n\n![Tweet Image](https://pbs.twimg.com/media/HPY3xUEW8AACEgc.jpg)\n\n💬1🔄0❤️2👀188📊2",
+      "tags": [
+        "StreamArena",
+        "小红书",
+        "视频理解"
+      ],
+      "score": 70,
+      "summary": "小红书研究提出StreamArena，用于连续交互式视频理解。",
+      "fetched_at": "2026-08-11T05:53:09.798650+08:00"
+    },
+    {
+      "title": "StreamArena: Toward Continuous, Interactive, and LongHorizon Agentic Streaming Video Understanding\n\n...",
+      "link": "https://x.com/dongxi_nlp/status/2086916942170865768",
+      "published": "2026-08-11T04:45:46+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "StreamArena: Toward Continuous, Interactive, and LongHorizon Agentic Streaming Video Understanding  \n  \n[arxiv.org/pdf/2608.05703](https://arxiv.org/pdf/2608.05703)\n\n💬0🔄0❤️0👀109",
+      "tags": [
+        "StreamArena",
+        "论文",
+        "视频理解"
+      ],
+      "score": 65,
+      "summary": "推送StreamArena论文预印本链接。",
+      "fetched_at": "2026-08-11T05:53:09.798653+08:00"
+    },
+    {
+      "title": "Cloudflare One Client - Cloudflare One Client for Windows (version 2026.6.905.0)",
+      "link": "https://developers.cloudflare.com/changelog/post/2026-08-10-warp-windows-ga/",
+      "published": "2026-08-11T04:28:46+08:00",
+      "source": "Cloudflare Developers",
+      "content": "A new GA release for the Windows Cloudflare One Client is now available on the [stable releases downloads page](https://developers.cloudflare.com/cloudflare-one/team-and-resources/devices/cloudflare-one-client/download/).\n\nThis hotfix addresses an uncommon and intermittent case on Windows devices where the device is unable to reconnect after the device is woken from sleep.",
+      "tags": [
+        "Cloudflare One",
+        "Windows",
+        "修复"
+      ],
+      "score": 70,
+      "summary": "Cloudflare One Windows客户端更新，修复睡眠唤醒后重连问题。",
+      "fetched_at": "2026-08-11T05:53:09.798656+08:00"
     }
   ]
 }
