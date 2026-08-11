@@ -2169,6 +2169,443 @@
       "score": 78,
       "summary": "MAI-Image-2.6在图像生成排行榜中升至第二，比上一代第10大幅提升。",
       "fetched_at": "2026-08-11T07:43:54.856243+08:00"
+    },
+    {
+      "title": "2026 08 11 HackerNews",
+      "link": "https://supertechfans.com/cn/post/2026-08-11-HackerNews/",
+      "published": "2026-08-11T08:08:31+08:00",
+      "source": "SuperTechFans",
+      "content": "# 2026-08-11 Hacker News Top Stories [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#2026-08-11-hacker-news-top-stories)\n\n> 1. Meta 发布专为本地智能体工作流优化的 300 亿参数开源模型 Muse Glimmer，可在消费级 GPU 上运行，并在多项基准测试中优于同尺寸模型。\n> 2. 作者分享利用 AI 生成基础知识、验证准确性并制作成低多边形模拟动画来学习复杂主题的新方法，以芯片制造为例创建了 ChipTycoon 网站。\n> 3. Docker 推出 Sandboxes 产品，为 AI 编码代理提供 microVM 隔离沙箱，支持 YOLO 模式自主运行并保护主机系统安全。\n> 4. 安全研究员发现 AI 会议记录平台 tl;dv 的 Firestore 数据库完全开放，导致超 18 万场会议记录和 8 万多用户信息暴露，且漏洞长期未修复。\n> 5. 文章回顾了 HackerOne 平台自 2017 年以来的变化，指出其自 2020 年起转向销售驱动、背离黑客社区初心，正走向“垃圾化”。\n> 6. 扎克伯格抨击谷歌、Anthropic 和 OpenAI 等“封闭” AI 竞争对手，宣布 Meta 回归开放模型策略，并发布新模型 Muse Glimmer。\n> 7. 一位被裁的开发者分享正在构建的木工模拟器 Sawdust 项目，使用真实木材规格和工具进行设计，支持导出 3D 打印文件和切割计划。\n> 8. 在英国发现一根 1991 年生产的 Mars 巧克力棒重 62.5 克，比当今同款重 20 克，引发对“缩水式通胀”的讨论。\n> 9. Claude Code 宣布自动模式成为默认配置，通过分类器拦截危险操作，相比手动审批能更有效地发现危险指令并提升工作效率。\n> 10. 作者分享通过改变心态、将耳鸣视为朋友并与之和平共处，从而让耳鸣症状消失的经历。\n\n## 1. Muse Glimmer：专为始终在线的本地智能体工作流优化的 300 亿参数模型 (Muse Glimmer: 30B-parameter model optimized for always-on local agent workflows) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#1-muse-glimmer%e4%b8%93%e4%b8%ba%e5%a7%8b%e7%bb%88%e5%9c%a8%e7%ba%bf%e7%9a%84%e6%9c%ac%e5%9c%b0%e6%99%ba%e8%83%bd%e4%bd%93%e5%b7%a5%e4%bd%9c%e6%b5%81%e4%bc%98%e5%8c%96%e7%9a%84-300-%e4%ba%bf%e5%8f%82%e6%95%b0%e6%a8%a1%e5%9e%8b-muse-glimmer-30b-parameter-model-optimized-for-always-on-local-agent-workflows)\n\n<https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model>\n\nMeta 推出 Muse Glimmer，一个 300 亿参数的开源 AI 模型，专为本地设备上的智能体工作流优化。它能在单张消费级 GPU 上运行，支持本地智能体、函数调用、编程和评估等任务。\n\n模型通过知识蒸馏、量化等技术，在保持性能的同时适配本地硬件。它具备端到端任务完成、可靠工具调用、多步推理、故障恢复、多模态输入和多种语言支持等能力。\n\n在性能上，Muse Glimmer 在多个基准测试中表现优于同尺寸模型。通过 4 位量化，模型内存占用降至 20GB 以下，并采用推测解码技术提升生成速度，可在 MacBook 和 RTX 5090 等设备上流畅运行。\n\n模型权重已在 Hugging Face 上以 Apache 2.0 许可开源，并支持 llama.cpp、MLX、Ollama 等框架。开发者可立即下载并开始构建本地智能体应用。\n\n---\n\n### HN 热度 991 points | 评论 561 comments | 作者：riordan | 14 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-991-points--%e8%af%84%e8%ae%ba-561-comments--%e4%bd%9c%e8%80%85riordan--14-hours-ago)\n\n<https://news.ycombinator.com/item?id=49241679>\n\n* 期待 Qwen3.8 27B 与 Muse Glimmer 的对比，认为密集 30B 参数模型可能重新流行。\n* 根据基准测试，Muse Glimmer 仅略优于 Qwen3.6 27B，尤其在工具调用（MCP 等）方面，怀疑其发布时机是为了抢在 Qwen3.8 27B 之前。\n* 对 Qwen 3.6 27B 与 3.8 27B 在工具和终端使用上的直接对比感兴趣，认为能单 GPU 运行的模型类别有很大进步空间。\n* 认为开放权重模型的竞争文化有益，不局限于地缘政治，并欣赏 Muse Glimmer 的思考风格和简洁推理痕迹。\n* 指出 AI 公司会根据竞争对手的发布计划调整自身发布时间，以抢占新闻周期和市场份额。\n* 认为模型发布并非完全由工程进度决定，公关和市场成功也是重要因素，存在灵活性。\n* 举例说明 Meta、Minimax、BFL 等公司曾因竞争压力而提前或仓促发布模型。\n* 提到 BFL（Flux 系列）面临类似困境，其模型对硬件要求高且许可限制多，容易被更开放高效的竞品掩盖。\n\n---\n\n## 2. 我如何使用大语言模型学习复杂主题 (How I use LLMs to learn complex topics) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#2-%e6%88%91%e5%a6%82%e4%bd%95%e4%bd%bf%e7%94%a8%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e5%ad%a6%e4%b9%a0%e5%a4%8d%e6%9d%82%e4%b8%bb%e9%a2%98-how-i-use-llms-to-learn-complex-topics)\n\n<https://laurentiugabriel.github.io/blog/articles/how-i-use-llms-to-learn/>\n\n这是一个名为 Laurentiu Raducu 的个人博客页面，发布了一篇 2026 年 8 月 9 日的文章，标题是《How I use LLMs to learn complex topics》（我如何使用大语言模型学习复杂主题）。\n\n作者分享了一种利用 AI 学习复杂知识的新方法：不是直接让 AI 解释，而是让 AI 先生成某个主题的基础知识，然后验证其准确性，最后将其制作成一个低多边形风格、类似《过山车大亨》的模拟动画。作者认为这种可视化的互动方式比阅读文字材料或 AI 生成的列表更有效，且能避免幻觉。\n\n作者以芯片制造为例，创建了名为“ChipTycoon”的网站，用户可以通过跟随一辆推车，直观地看到从沙子到芯片的完整制造过程。他还建议，可以通过将图片转为 3D 物体来提升模拟的真实感，或加入问答挑战来增强学习效果。\n\n文章末尾列出了作者用同样方法创建的其他页面，包括火箭发动机制造、大语言模型工作原理、F1 发动机制造以及 EUV 光刻机制造。\n\n---\n\n### HN 热度 792 points | 评论 529 comments | 作者：laurentiurad | 1 day ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-792-points--%e8%af%84%e8%ae%ba-529-comments--%e4%bd%9c%e8%80%85laurentiurad--1-day-ago)\n\n<https://news.ycombinator.com/item?id=49234675>\n\n* LLM 在复杂学习中的作用被质疑，认为它们容易让人产生学习错觉，实际效果有限，如同 YouTube 教育视频一样娱乐性大于教育性。\n* 使用 LLM 辅助学习数学等复杂学科时，通过逐句解析教材并解决所有习题，可以真正掌握知识，而非依赖简化摘要。\n* 批评使用 LLM 简化经典教材（如 Baby Rudin）的做法，认为这既无法培养吸收困难材料的能力，也不是高效的学习方式。\n* 只要能独立解决问题，无论是否借助 LLM 辅助理解，都算掌握了知识，不应过度苛责工具的使用。\n* 将 LLM 辅助学习类比为历史上对书写技术的担忧，认为这种对新技术导致学习能力退化的批评是重复的“技术傲慢”模式。\n* 指出轻松获取的信息容易遗忘，而需要努力理解的内容记忆更持久，LLM 的便利性可能削弱学习效果。\n\n---\n\n## 3. Docker Sandboxes – 为 AI 代理提供的一次性隔离沙箱 (Docker Sandboxes – Disposable, isolated sandboxes for AI agents) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#3-docker-sandboxes--%e4%b8%ba-ai-%e4%bb%a3%e7%90%86%e6%8f%90%e4%be%9b%e7%9a%84%e4%b8%80%e6%ac%a1%e6%80%a7%e9%9a%94%e7%a6%bb%e6%b2%99%e7%ae%b1-docker-sandboxes--disposable-isolated-sandboxes-for-ai-agents)\n\n<https://www.docker.com/products/docker-sandboxes/>\n\nDocker Sandboxes 是一个为 AI 编码代理（如 Claude Code、Copilot CLI、Codex 等）提供安全、隔离的本地运行环境的产品。\n\n**核心功能：**\n\n* 每个代理在独立的 microVM 中运行，保护主机文件系统和网络安全。\n* 支持“YOLO 模式”（`--dangerously-skip-permissions`），让代理无需人工审批即可自主运行，同时通过隔离确保安全。\n* 代理可在沙箱内安装包、修改配置、运行 Docker 容器，实现无人值守工作。\n\n**主要优势：**\n\n* 快速启动和销毁，比传统 VM 更高效。\n* 提供可自定义的网络和文件系统控制，并可通过 Docker AI Governance 实现团队级统一管理。\n* 支持 macOS、Windows 和 Linux，无需 Docker Desktop。\n\n**适用场景：**\n\n* 需要让 AI 代理自主执行长时间、复杂任务，同时确保主机安全的开发团队。\n* 希望在不牺牲安全性的前提下，让代理获得最大自由度。\n\n---\n\n### HN 热度 620 points | 评论 347 comments | 作者：etoxin | 18 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-620-points--%e8%af%84%e8%ae%ba-347-comments--%e4%bd%9c%e8%80%85etoxin--18-hours-ago)\n\n<https://news.ycombinator.com/item?id=49239751>\n\n* 概念很好，工作正常，但文档关于覆盖认证的描述有误，且需要频繁重新登录很烦人。\n* 希望看到 macOS 上使用微虚拟机前后 Docker Desktop 性能的真实对比数据，因为之前文件系统性能太慢导致无法使用。\n* 对 Linux 平台的支持已可用（Ubuntu），但网页最初只显示了 brew 和 winget 安装方式。\n* 请考虑添加 MacPorts 支持，因为 Homebrew 有破坏基础环境的历史，对开发者不友好。\n* 秘密信息存储在操作系统专用钥匙串中，沙箱启动时网络代理仅在主机名匹配时注入请求。\n* 支持通过模板（快照运行中沙箱）和工具包（YAML 定义安装步骤、文件、网络规则等）进行自定义。\n* 沙箱看到的是单一网关端点，OAuth 令牌保留在主机凭证存储中而非虚拟机内。\n* 正在根据用户反馈考虑更多功能，如后台运行沙箱以支持长时间任务。\n\n---\n\n## 4. Tl;dv：超 18 万场会议数据完全暴露 (Tl;dv: Over 180k meetings left wide open) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#4-tldv%e8%b6%85-18-%e4%b8%87%e5%9c%ba%e4%bc%9a%e8%ae%ae%e6%95%b0%e6%8d%ae%e5%ae%8c%e5%85%a8%e6%9a%b4%e9%9c%b2-tldv-over-180k-meetings-left-wide-open)\n\n<https://bobdahacker.com/blog/tldv-hack>\n\n安全研究员 BobDaHacker 发现 AI 会议记录平台 tl;dv 存在严重数据泄露漏洞，其 Firestore 数据库完全开放，导致 181,874 场会议记录、84,312 名用户信息暴露，涉及 35,003 个域名。\n\n漏洞细节：任何经过认证的用户都能查询所有会议数据，包括创建者邮箱、可加入的会议 ID 等。攻击者可实时监控并加入正在进行的会议，研究员成功入侵了马来西亚教育部的会议和某美国大学创业团队的会议。\n\n受影响范围：涵盖 23 国政府会议（巴西、乌克兰、美国等）、伯克利等高校会议，以及 HubSpot、三井物产等企业会议。超过 1000 场会议为公开状态，暴露了 715 个参会者邮箱。\n\n额外发现：tl;dv 内部开发的世界杯预测游戏\"World Cup Pick’em\"同样存在安全漏洞，API 无需认证即可获取 43 名员工信息，包括 CEO 和负责安全沟通的 Raphael Allstadt 的个人邮箱。\n\n披露过程：研究员于 2026 年 1 月 28 日通过 LinkedIn 联系该公司，对方承诺转交 CTO 处理，但 6 个月后漏洞仍未修复，CTO 始终未回应。该公司官网宣称符合 SOC2、GDPR 等多项安全认证。\n\n---\n\n### HN 热度 519 points | 评论 173 comments | 作者：colesantiago | 11 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-519-points--%e8%af%84%e8%ae%ba-173-comments--%e4%bd%9c%e8%80%85colesantiago--11-hours-ago)\n\n<https://news.ycombinator.com/item?id=49242739>\n\n* SOC2 合规认证毫无意义，只是营销手段和繁琐工作\n* 公司嘴上说重视安全，实际却敷衍了事，连基本 2FA 都不愿实施\n* 企业对安全研究员的报告拖延数月不回应，暴露严重管理问题\n* AI 会议记录工具可能偷偷录音，违反州际窃听法律\n* 很多公司随意将聊天记录设为公开可见，安全是事后才想的事\n* 合规认证不保证实际安全，比如公司电脑可以装监控软件但人不用它工作\n* “AI 帮你走神”的会议记录产品其实是鼓励懒惰，而非真正学习或参与\n* 用户设备（如耳机）正把会议内容传给不重视安全的外部 AI 公司\n\n---\n\n## 5. HackerOne 发生了什么？ (What Happened to HackerOne?) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#5-hackerone-%e5%8f%91%e7%94%9f%e4%ba%86%e4%bb%80%e4%b9%88-what-happened-to-hackerone)\n\n<https://blog.teknogeek.io/posts/what-happened-to-hackerone/>\n\n这篇文章抨击了 HackerOne 平台近年来的衰落。作者是一位自 2017 年起参与漏洞赏金的研究员，也曾管理过多个大型项目，他从亲身体验出发，回顾了 HackerOne 的“黄金时代”：通过线下黑客活动和社区建设，安全研究员得以高效协作并发现高危漏洞，平台也凭此建立口碑。但大约从 2020 年起，为追求盈利，公司转向销售驱动，创始 CEO 被替换，收费模式改变，核心平台技术停滞，社区活动萎缩，精英化的邀请和积分系统也让参与者感到疏离。作者认为，HackerOne 偏离了以黑客为中心的本心，正走向“垃圾化”，并为此感到惋惜。\n\n---\n\n### HN 热度 365 points | 评论 193 comments | 作者：hipparchus | 22 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-365-points--%e8%af%84%e8%ae%ba-193-comments--%e4%bd%9c%e8%80%85hipparchus--22-hours-ago)\n\n<https://news.ycombinator.com/item?id=49238561>\n\n* HackerOne 的核心价值在于提供无需公司额外努力的全球支付系统，自行处理跨国支付非常繁琐。\n* 使用 SaaS 服务能将问题外包，自行解决则需承担所有缺陷、维护和持续支持的责任。\n* 在游戏行业，成功产品会引发大量模仿，但模仿者通常不会显著影响头部产品的收入。\n* 大公司利用 AI 的产出效率远高于小团队，SaaS 市场不会崩溃，而是会提升入门产品的标准。\n* 自行构建方案能按自身时间线解决独特问题，这是 SaaS 无法完全替代的。\n* 对于简单易复制的服务，SaaS 面临被 AI 取代的风险；而复杂问题（如全球支付）会因法规增加而更依赖专业服务。\n* 未来可能出现“源码可用”的企业软件，用户可用 LLM 低成本修改并整合新版本。\n* 使用第三方平台处理漏洞奖励的主要原因是规避支付麻烦和筛选误报，尤其在 AI 时代报告量激增的情况下。\n* 将难以一对一解决的问题系统化并作为服务销售，收取低于客户自建成本的费用，是可持续的盈利模式。\n\n---\n\n## 6. 马克·扎克伯格抨击“封闭”AI 竞争对手，Meta 回归开放模型 (Mark Zuckerberg attacks ‘closed’ AI rivals as Meta returns to open models) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#6-%e9%a9%ac%e5%85%8b%e6%89%8e%e5%85%8b%e4%bc%af%e6%a0%bc%e6%8a%a8%e5%87%bb%e5%b0%81%e9%97%adai-%e7%ab%9e%e4%ba%89%e5%af%b9%e6%89%8bmeta-%e5%9b%9e%e5%bd%92%e5%bc%80%e6%94%be%e6%a8%a1%e5%9e%8b-mark-zuckerberg-attacks-closed-ai-rivals-as-meta-returns-to-open-models)\n\n<https://www.ft.com/content/4e3957f8-ea7c-4c46-a3de-cdce8e526878>\n\n马克・扎克伯格在一篇文章中阐述了他计划向 “数十亿人” 免费分发人工智能（AI），以 “制衡机构权力”。他对此次计划的发布与 Meta 公司恢复向外部开发者提供部分 AI 模型的做法相关。\n\nMeta 公司最近发布了名为 Muse Glimmer 的新 “开放” AI 模型的基础参数，开发者可以下载并进行修改。此外，公司还计划在未来几周内发布其更强大的 Muse Spark 模型的参数。在此背景下，扎克伯格的批评了像谷歌、Anthropic 和 OpenAI 等其他大型实验室，认为这些实验室主要集中于为公司和政府构建 AI，导致权力集中在大机构手中，从而削弱个人的力量。\n\n扎克伯格表示，Meta 将重新采用 “开放” 的 AI 策略，旨在让更多人能够接触到强大的 AI 技术，作为抗大型机构的力量。他还提到，Meta 最近还推出了一项 10 亿美元的基金，旨在支持其在美国的数据中心建设，回应当地居民对数据中心建设的担忧。\n\n尽管 Meta 在 AI 基础设施上的支出导致其自由现金流下降 91%，并且股价在过去一年中下跌近 20%，扎克伯格仍坚信公司将继续投资于开放权重模型。他批评了竞争对手的 “封闭” 策略，认为这样的做法会限制个人的能力，并可能增加安全风险。他提到开放源代码系统在识别安全漏洞更为有效，举了初创公司 Hugging Face 的例子，表明它如何利用开放模型来增强安全性。\n\n此外，扎克伯格还评论了中国的 AI 实验室在开放模型方面的进步，认为这在一定程度上缩小了与美国实验室的差距。他支持通过 “蒸馏” 技术从其他实验室学习的做法，并表示这是保护学习原则的重要性。\n\n最后扎克伯格强调，Meta 会将其模型的安全审查权交给独立董事会，并批评一些竞争对手对 AI 风险的过度关注。他，技术的普及将使每个人都能更有效地塑造未来，而不是相反。\n\n---\n\n### HN 热度 333 points | 评论 355 comments | 作者：root-parent | 10 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-333-points--%e8%af%84%e8%ae%ba-355-comments--%e4%bd%9c%e8%80%85root-parent--10-hours-ago)\n\n<https://news.ycombinator.com/item?id=49243880>\n\n* Meta 通过 2023 年发布 Llama 无意中开启了开源 AI 竞赛，但 Llama 并非真正开源，只是源码可用且有使用限制。\n* 开源 AI 模型早在 2023 年之前就已存在，如 EleutherAI 的 GPT-Neo、Google 的 T5 和 BERT，T5 被认为是开源模型热潮的真正起点。\n* Llama 开源是因为模型泄露，Meta 被迫“支持”开源社区，而非主动选择。\n* Meta 的动机难以判断，可能是策略也可能是运气，但结果推动了个人和开源 AI 使用的发展。\n* 对 AI 模型的谨慎呼吁不应被简单视为“歇斯底里”，当时存在将 LLM 技术限制在精英圈子的企图。\n* 大型科技公司（如 Meta、Google 等）本质相似，都有优缺点，但 Nvidia 以员工友好文化著称，而 AMD 在开源方面更优。\n* Meta 继续开源是因为模型获得了大量用户和市场份额，放弃会损失巨大。\n* 中国公司（如 Minimax）能发布美国公司无法允许的“疯狂”内容。\n* “开源”与“开放权重”有区别，当前语境下词语含义已随使用演变。\n\n---\n\n## 7. 问 HN：你在做什么？ (Ask HN: What are you working on? ) August 2026 [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#7-%e9%97%ae-hn%e4%bd%a0%e5%9c%a8%e5%81%9a%e4%bb%80%e4%b9%88-ask-hn-what-are-you-working-on--august-2026)\n\n<https://news.ycombinator.com/item?id=49233423>\n\n这篇文章是一个关于个人项目的讨论，作者在四月底被裁员后开始构建一个名为 “Sawdust” 的虚拟木工具。该工具是一个拟物化的木工模拟器，用户可以从真实的木材规格，使用各种如斜切、路由器和台锯来创建木工项目。作者形容这个工具类似于 Sketchup，但不支持挤出矩形。\n\n在 “Sawdust” 中，用户可以通过简单的函数调用来执行参数化操作，例如构建框架，软件还支持人类用户与代理的完全平等交互。所有操作都是通过 YAML 文件来进行，代理可以快速学习这些操作。如果某个工具缺失，代理还可以提交功能请求。用户能够导出 3D 打印文件、视频演示、材料清单和切割计划，并且可以使用增强现实技术查看项目的实际尺寸。\n\n许多用户对这个项目表现出浓厚的兴趣，了许多建议，包括添加 VR 支持和使用公制单位等功能。文章中还提到，作者选择不接受风险投资，以确保软件的独立性，并不想追求高估值的压力下改变其原始愿景。\n\n此外，其他参与者也分享了他们的项目，其中包括一个名为 “Preloop” 的工具，用于在本地自托管环境中运行未修改的 GitHub Actions，了 GitHub Actions 在可靠性和本测试上的不足。\n\n整体来看，这篇文章展示了木工爱好者和开发者的梦想工具，以及社区对这一工具的热情与支持，展现了技术与创意结合的无限。\n\n---\n\n### HN 热度 301 points | 评论 1084 comments | 作者：david927 | 1 day ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-301-points--%e8%af%84%e8%ae%ba-1084-comments--%e4%bd%9c%e8%80%85david927--1-day-ago)\n\n<https://news.ycombinator.com/item?id=49233423>\n\n* 这个木工模拟器让用户可以用真实木材规格和工具进行设计，支持导出 3D 打印文件、BOM 清单和切割计划，还能用 AR 查看实物大小效果。\n* 希望软件能对接真实木材 SKU 和供应商，直接生成可采购的清单和切割服务，实现从设计到材料的一站式体验。\n* 对用 LLM 自动化木工流程表示怀疑，但如果成功并推广，将产生巨大影响。\n* 已有床架参数化设计功能，用户可通过描述或图片让 AI 定制设计，例如指定木材种类和连接方式。\n* VR 支持潜力大，但当前 VR 控制器操作繁琐，结合 AI 语音控制可优化设计体验。\n* 现有 CAD 工具（如 SketchUp）强制使用抽象几何体而非真实木材，而真实木工工具、连接方式和切割顺序是有限且可系统化的。\n* 另一位开发者也在做类似木工工具（shopspec.io），功能相似，验证了市场需求。\n* 用户已用该工具设计了滑轨键盘桌和 88 键 MIDI 控制器抽屉，体验满意。\n* 项目坚持独立开发、不拿风投，以避免“劣化”压力，更注重服务小众用户而非追求独角兽规模。\n\n---\n\n## 8. 1991 年生产的 Mars 巧克力棒被发现——比现在的重 20 克 (Mars Bar from 1991 found – and it’s 20g bigger than today’s) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#8-1991-%e5%b9%b4%e7%94%9f%e4%ba%a7%e7%9a%84-mars-%e5%b7%a7%e5%85%8b%e5%8a%9b%e6%a3%92%e8%a2%ab%e5%8f%91%e7%8e%b0%e6%af%94%e7%8e%b0%e5%9c%a8%e7%9a%84%e9%87%8d-20-%e5%85%8b-mars-bar-from-1991-found--and-its-20g-bigger-than-todays)\n\n<https://www.bbc.com/news/articles/c1j1kjy7gewo>\n\n在英国斯肯索普的一处房屋清理中，发现了一根 1991 年生产的 Mars 巧克力棒，重量为 62.5 克，而现在的同款巧克力棒仅重 40 克，小了约 20 克。发现者 Victoria Gordon 在社交媒体上分享对比照片后引发热议，被认为是“缩水式通胀”的典型例证。Mars 公司回应称，35 年来根据消费者需求和成本因素（如可可价格）调整了产品尺寸。Gordon 表示可能带着这根巧克力棒进行英国巡展。\n\n---\n\n### HN 热度 289 points | 评论 442 comments | 作者：RickJWagner | 8 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-289-points--%e8%af%84%e8%ae%ba-442-comments--%e4%bd%9c%e8%80%85rickjwagner--8-hours-ago)\n\n<https://news.ycombinator.com/item?id=49245023>\n\n* 缩水式通胀普遍存在，快餐汉堡面包 20 年前更密实，小汉堡肉饼从 1/8 磅缩水到 1/10 磅。\n* 麦当劳的肉饼一直是 10:1（1/10 磅），并未改变，但其他连锁店可能从 8:1 改为 10:1。\n* 冰淇淋品牌从半加仑（64 盎司）缩水到 60、62 盎司，如今甚至只有 48 盎司（3 品脱）。\n* 早餐麦片盒子越来越小，简直像“趣味装”而非“正常装”。\n* 缩小包装是短期主义的恶果，每次微调 1.6% 最终导致包装小到离谱，无法再缩。\n* 公司不愿涨价，所以通过缩小尺寸保持价格不变，等明显后再恢复原尺寸并提价，标榜“加量 20%”。\n* 消费者讨厌看到额外费用，所以公司把信用卡手续费、运费等打包进总价，实际上可能让消费者付更多。\n* 欧盟要求标注每单位重量的“比较价格”，有效遏制了包装欺诈，促进良性竞争。\n* 公司收缩包装是为了让股东满意，成本上升时只能选择缩小尺寸或涨价，而涨价会让顾客不满。\n* 真正的问题是品牌被垄断集团收购后，它们无需串通就能同步缩水，消费者别无选择。\n\n---\n\n## 9. 自动模式现在是 Claude Code 的默认配置 (Auto mode is now the default in Claude Code) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#9-%e8%87%aa%e5%8a%a8%e6%a8%a1%e5%bc%8f%e7%8e%b0%e5%9c%a8%e6%98%af-claude-code-%e7%9a%84%e9%bb%98%e8%ae%a4%e9%85%8d%e7%bd%ae-auto-mode-is-now-the-default-in-claude-code)\n\n<https://claude.com/blog/auto-mode-default-in-claude-code>\n\nClaude 博客宣布，从 2026 年 8 月 7 日起，Pro、Max 和 Team 套餐的 Claude Code 将默认启用自动模式，允许更长时间的自主工作。\n\n**核心变化：**\n\n* 自动模式通过分类器拦截不可逆、破坏性或针对系统外部的危险操作，被拦截后 Claude 会尝试自行寻找更安全的替代方案，或直接请求用户批准。\n* 连续三次或单次会话内累计二十次被拦截，系统将回退至手动审批模式。\n\n**安全测试结果：**\n\n* 内部红队、第三方渗透测试和真实会话分析均显示，自动模式的安全性与手动审批相当或更优。\n* 一项涉及 1053 名付费测试人员的对照实验表明，手动审批仅能发现 13.6% 的危险指令，而自动模式能拦截 89%。\n\n**用户行为数据：**\n\n* 用户对权限提示的批准率高达 97%，但对计划审批的拒绝率为 39%。\n* 49.5% 的活跃用户手动设置了允许规则，25% 的交互式会话以绕过权限模式启动。\n\n**采用情况：**\n\n* Adobe、Nuro、Gusto 和 Garner Health 等团队已默认使用自动模式。\n* 自动模式用户提交的 PR 数量增加了约 25%，实际工作效率显著提升。\n\n---\n\n### HN 热度 275 points | 评论 301 comments | 作者：sbehere | 20 hours ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-275-points--%e8%af%84%e8%ae%ba-301-comments--%e4%bd%9c%e8%80%85sbehere--20-hours-ago)\n\n<https://news.ycombinator.com/item?id=49239021>\n\n* 一直使用 `--dangerously-skip-permissions` 运行 Claude，认为 LLM 本身危险，应通过沙箱环境（如版本控制、不可变文件系统、只读令牌）而非人工审核命令来保障安全。\n* 手动批准每个命令不是为了防恶意行为，而是为了阻止 AI 浪费 token 做无用功（如实现未请求的功能），理想方式是批准行动摘要而非逐条命令。\n* 采用手动模式是为了有效结对编程，理解每一步的“为什么”和“怎么做”，虽然比全自动慢，但能保持对代码库的掌控。\n* 对现有手动批准系统感到繁琐，希望有一种“批量批准”或“迷你计划”模式，同时保留自动审计能力。\n* 曾用 Claude 编写远程成像协议（RIP）文档，发现它倾向于在每个页面/文件添加冗长摘要，需要人工引导修正。\n* 尝试过让 Claude 先写详细计划（如 plan/feature-XYZ.md），但计划文件容易变得冗长且与实现脱节，更倾向于交互式提问来澄清设计决策。\n* 认为“关于此聊天”功能与直接输入问题没有本质区别，反而多了一步不必要的“思考”过程。\n* 使用 TODO.md、DONE.md 和 WORKING.md 来跟踪进度，但需要每次手动指定当前工作文件。\n* 结合 Matt Pocock 的技能和本地 issue 追踪器效果很好，能产出高质量代码。\n* 认为 LLM 要替代程序员，就必须像优秀队友一样知道何时、如何、向谁提问，而不是盲目执行。\n* 将 Claude 放在虚拟机或 devcontainer 中运行，通过限制环境权限来替代人工审批，认为这样更高效。\n\n---\n\n## 10. 我将耳鸣视为朋友，然后它消失了 (I made tinnitus my friend, then it disappeared [video]) [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#10-%e6%88%91%e5%b0%86%e8%80%b3%e9%b8%a3%e8%a7%86%e4%b8%ba%e6%9c%8b%e5%8f%8b%e7%84%b6%e5%90%8e%e5%ae%83%e6%b6%88%e5%a4%b1%e4%ba%86-i-made-tinnitus-my-friend-then-it-disappeared-video)\n\n<https://mynoise.net/vlog.php?ep=20260803>\n\n这个网页是一篇发布于 2026 年 8 月 3 日的博客/视频文章，标题为《我与耳鸣做朋友（然后它消失了）》。作者分享了多种应对耳鸣的声音策略，包括白噪音、自然掩蔽声、调谐噪音、缺口噪音以及 myNoise 平台上的耳鸣神经调节器。当这些方法都不奏效时，作者提出了最终策略：改变与耳鸣的关系，不再对抗而是与之和平共处，这最终帮助了他自己。\n\n页面下方有用户评论，许多人也分享了类似的经验：通过放松、转移注意力、将耳鸣视为冥想中的“内在钟声”等方式，逐渐减轻了焦虑感。一位用户提到低频耳鸣（约 95Hz）难以掩蔽，作者建议尝试爱尔兰海岸、干雷暴等包含低频隆隆声的音景，并提醒需要使用大尺寸扬声器才能有效播放低频。还有用户分享了使用 myNoise 特定设置成功消除耳鸣的经验。\n\n---\n\n### HN 热度 217 points | 评论 165 comments | 作者：gregsadetsky | 1 day ago [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hn-%e7%83%ad%e5%ba%a6-217-points--%e8%af%84%e8%ae%ba-165-comments--%e4%bd%9c%e8%80%85gregsadetsky--1-day-ago)\n\n<https://news.ycombinator.com/item?id=49234271>\n\n* 不良姿势（尤其是颈部）会导致耳鸣，通过改善姿势可以缓解甚至消除耳鸣，但需要持续维护，否则可能复发。\n* 硬拉等基础力量训练能改善背痛，无需大重量，适度锻炼即可带来身体收益。\n* 侧睡时使用膝枕有助于脊柱对齐、减少膝盖不适，但长期使用可能产生依赖，难以再回到无枕状态。\n* 关于侧睡姿势，有说法建议用脚趾勾住另一只脚踝来调整膝盖位置以保持脊柱对齐。\n* 弹力带训练对提升老年人和久坐者的活动能力有效，可在日常中穿插进行。\n* 以适当轻重量的硬拉为例，一般持续做几组、每次短暂训练即可维持效果。\n* 改善姿势并非一劳永逸，需要持续的生活习惯配合，因为导致不良姿势的因素是持续存在的。\n* 筋膜（成纤维细胞持续生成纤维）会因长期驼背等姿势而被塑形，从而固定体态。\n* 日常利用碎片时间（如等待时）进行锻炼、而非刷手机，对身体有重要帮助。\n* 睡眠姿势和颈部压力与耳鸣的发作有关，睡眠充足且姿势佳时耳鸣可减轻或消失。\n\n---\n\n## Hacker News 精彩评论及翻译 [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#hacker-news-%e7%b2%be%e5%bd%a9%e8%af%84%e8%ae%ba%e5%8f%8a%e7%bf%bb%e8%af%91)\n\n### Taxi drivers rarely die of Alzheimer’s [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#taxi-drivers-rarely-die-of-alzheimers)\n\n<https://news.ycombinator.com/item?id=49238795>\n\nIt pains me to see such a low-effort contrarian comment at the top: as stated in TFA taxi drivers are below other profession when controlling for age, and there are multiple professions with lower life expectancy that still have significantly higher Alzheimer rate than taxi drivers.\n\nstymaar\n\n看到这样一个低质量的唱反调评论被顶到最上面，真让我难受：正如该文所述，在控制年龄因素后，出租车司机的阿尔茨海默病发病率低于其他职业，而且还有多个预期寿命更低的职业，其阿尔茨海默病发病率仍显著高于出租车司机。\n\n---\n\n### Windows 11’s built-in Weather app wastes more than… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#windows-11s-built-in-weather-app-wastes-more-than)\n\n<https://news.ycombinator.com/item?id=49233230>\n\nMy gaming PC that I built in January 2006 that IIRC I used to simultaneously run Battlefield 2, Trillian, Xfire, Thunderbird, and Winamp with a 1680x1050 monitor had 1 GB of total system RAM.\n\nndriscoll\n\n我于2006年1月组装的那台游戏PC，如果我没记错的话，当时用1680x1050分辨率的显示器同时运行了《战地2》、Trillian、Xfire、Thunderbird和Winamp，而它总共只有1GB的系统内存。\n\n---\n\n### Muse Glimmer: 30B-parameter model optimized for al… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#muse-glimmer-30b-parameter-model-optimized-for-al)\n\n<https://news.ycombinator.com/item?id=49243617>\n\nIt’s rather amusing to me to read comments like this, and then simultaneously whenever a Chinese company or team releases open-weight models or whatever there is a giant round of applause, America is so behind, and there’s nothing but positive things to say about the intelligent, creative, and well-intentioned Chinese engineers (which is true, America certainly doesn’t have a monopoly on great people). Don’t you know? Only China can release good, open weight models and American companies can’t compete. Oh by the way all the spend is for nothing because China alone can release open-weight models thus destroying American AI.\n\nWhen an American company does anything? Doom. And. Gloom. The engineers? Taken to the slaughterhouse! America? Behind! The public? Bamboozeled!\n\n> This is open weights because Meta couldn’t monetize it in any other way than to cloud developer’s judgement of their reputation.\n\nI’ve been told over and over this doesn’t matter. Just needs to be cheap and open. Or maybe that’s only when Chyna is involved?\n\nSorry this post is a bit snarky but it really is something to behold. And certainly I don’t know the OP’s opinions on Chinese open weight models. Perhaps they agree with me.\n\nericmay\n\n读这样的评论，再同时看到每当中国公司或团队发布开源权重模型或类似东西时，就会迎来一片掌声、说美国太落后了、对中国工程师只有聪明、有创意、用心良善之类的褒奖（这确实没错，美国当然不是优秀人才的垄断者），我觉得挺有意思的。难道你们不知道吗？只有中国能发布好的开源权重模型，美国公司根本没法比。哦对了，所有投入都是白费的，因为只有中国能发布开源权重模型，从而摧毁美国的人工智能。\n\n美国公司一做什么事？末日。加。阴霾。工程师？被拉去屠宰场！美国？落后！公众？被忽悠了！\n\n> 这是开源权重，因为Meta除了让开发者对他们的声誉判断产生迷惑之外，没有其他方式将其变现。\n\n我被一次次告知这不重要。只要便宜和开源就行。或者，也许只有涉及中国时才这样？\n\n抱歉这条帖子有点阴阳怪气，但这确实是非常值得一看的现象。而且我当然不知道楼主对中国开源权重模型的看法。也许他和我观点一致。\n\n---\n\n### Muse Glimmer: 30B-parameter model optimized for al… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#muse-glimmer-30b-parameter-model-optimized-for-al-1)\n\n<https://news.ycombinator.com/item?id=49242821>\n\nI lament the comments saying this in any way redeems Meta (the company).\n\nThe researchers releasing this stuff have almost nothing to do with Meta other than being bankrolled by the slaughterhouse.\n\nYou aren’t the customer, you are the pawn in big tech’s game of thrones. Your good will is a commodity to be traded, almost literally. It will be used against you the moment it’s convenient. This is open weights because Meta couldn’t monetize it in any other way than to cloud developer’s judgement of their reputation.\n\nBut I guess most people just don’t care.\n\nI’m glad it’s open. It does not make me think any better of Meta.\n\navaer\n\n我感叹那些说这能以某种方式挽回Meta（这家公司）的评论。\n\n发布这些内容的研究人员与Meta几乎毫无关系，只不过是被这家“屠宰场”资助罢了。\n\n你并非顾客，而是科技巨头权力游戏中的一枚棋子。你的善意几乎就像一种可交易的商品。一旦时机合适，它就会被用来对付你。这是开源权重，因为Meta除了通过蒙蔽开发者对其声誉的判断之外，无法以其他方式将其变现。\n\n但我想大多数人根本不在乎。\n\n我很高兴它是开源的。但这并不会让我对Meta的印象有任何改观。\n\n---\n\n### How I use LLMs to learn complex topics [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#how-i-use-llms-to-learn-complex-topics)\n\n<https://news.ycombinator.com/item?id=49239268>\n\nThis is, without exaggeration, probably the fiftieth blog post or long-form comment about how someone is using an LLM for “complex learning”, and I’d just really like to see at least one of these to be accompanied by a statement saying what are the kinds of problems the author can now confidently solve that they couldn’t before.\n\nIn my experience, LLMs are really good for taking up your time and making you feel like you’re learning, in the same way that many of the popular educational videos on YouTube are fun to watch and don’t really teach you anything.\n\nIf you ask an LLM to give you a 500-word summary of quantum physics, it’ll give you an oversimplification that probably leans on a hodgepodge of pop-sci metaphors. And if you start drilling down, you risk drilling down on these ELI5 metaphors, which can get you farther away from truth.\n\nmatherial\n\n毫不夸张地说，这大概是第五十篇关于某人如何利用大语言模型进行“复杂学习”的博客文章或长篇评论了，而我真的很希望至少其中一篇能附上一份声明，说明作者现在能自信解决哪些以前解决不了的问题。\n\n根据我的经验，大语言模型确实很擅长占用你的时间，让你觉得自己在学习，就像YouTube上许多热门教育视频一样，看着有趣，但实际上教不了你什么。\n\n如果你让大语言模型给你写一篇500字的量子物理概述，它会给你一个过度简化的版本，很可能堆砌了一堆科普比喻。而如果你开始深入追问，你可能会在这些“像对五岁小孩解释”的比喻上越陷越深，反而离真相越来越远。\n\n---\n\n### Illinois Just Passed a Law That Puts Linux on the … [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#illinois-just-passed-a-law-that-puts-linux-on-the-)\n\n<https://news.ycombinator.com/item?id=49249939>\n\nLinux distro founder here (stagex)\n\nI will never be compelled to implement this, and would never merge it.\n\nEvery release requires quorum signatures by an international maintainer team, and the distro is designed to work offline-first, with some variants not even supporting network drivers in the kernel, so Illinois legislators can eat shit.\n\nlrvick\n\n我是StageX Linux发行版的创始人。\n\n我绝不会被迫实现这个功能，也永远不会合并它。\n\n每次发布都需要一个国际维护者团队达成法定签名数，且发行版设计为离线优先，有些变体甚至在内核中都不支持网络驱动。伊利诺伊州的立法者们，吃屎去吧。\n\n---\n\n### How I use LLMs to learn complex topics [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#how-i-use-llms-to-learn-complex-topics-1)\n\n<https://news.ycombinator.com/item?id=49235490>\n\nI thought LLMs were a great tool for learning new topics - perhaps even complex ones. But overtime, I have had several frustrations with this. First, I get exhausted reading LLM prose. I really don’t want to read anything generated by something like Opus 5 at this point. Second, as I dive deeper, I need a way to organize the information in a useful way as I begin to branch out in many different directions. I have tried to use the LLM to fix this by having it generate a web page with diagrams and organized information flow. It’s an improvement, but I still run into the issues I described in my first pint - LLM prose is annoyingly dense, and the useful information gets lost in a bunch of noise. You can direct it do something like “use plain English and avoid LLM prose - provide only as much information as necessary to demonstrate the point”, but it is once again only a marginal improvement.\n\nAnd then I begin to think to myself that I should just read a book on the topic written by a trusted source who put a lot of effort into teaching the topic properly and presenting the information in a thoughtful way. So, I am back to books and mostly try to use LLMs to clarify certain questions or ideas I have.\n\n8bitsout\n\n我原以为大语言模型是学习新知识——甚至复杂知识——的绝佳工具。但久而久之，我对此产生了不少挫败感。首先，阅读大语言模型生成的文字让我感到疲惫。现在我真的不想再读任何类似Opus 5生成的东西了。其次，随着深入研究，当我开始向多个不同方向拓展时，我需要一种有效的方式来组织信息。我曾尝试让大语言模型生成带有图表和信息流程的网页来解决这个问题，这确实有所改进，但我仍然遇到了第一点中提到的问题——大语言模型的文字令人厌烦地冗长，有用信息淹没在大量噪音中。你可以指示它“使用平实的英语，避免大语言模型式的文字，只提供必要的信息来阐明要点”，但这依然只是微小的改进。\n\n然后我开始想，我或许应该去读一本由可靠作者撰写的相关书籍，他们投入了大量精力来恰当地讲解这个主题，并以深思熟虑的方式呈现信息。所以，我回到了书本，并主要利用大语言模型来澄清我遇到的某些问题或想法。\n\n---\n\n### Mark Zuckerberg attacks ‘closed’ AI rivals as Meta… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#mark-zuckerberg-attacks-closed-ai-rivals-as-meta)\n\n<https://news.ycombinator.com/item?id=49244765>\n\nMost probably believe this is a good thing, but don’t want to give Zuckerberg credit because a) he’s had a profoundly negative impact on society and b) the strategy is transparent, he’s trying to commoditize his closed rivals, it’s not out of principle.\n\nI personally think more open models are a good thing regardless of motive.\n\nkylecazar\n\n大多数人认为这是一件好事，但不想把功劳记在扎克伯格身上，原因有二：一是他对社会产生了深远的负面影响；二是这一策略显而易见——他是在试图将自己的封闭竞争对手商品化，而非出于原则。\n\n我个人认为，无论动机如何，更开放的模型都是件好事。\n\n---\n\n### Muse Glimmer: 30B-parameter model optimized for al… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#muse-glimmer-30b-parameter-model-optimized-for-al-2)\n\n<https://news.ycombinator.com/item?id=49241998>\n\nWill be interesting to see how Qwen3.8 27B compares against this once it releases this week. Seems like dense 30B is back in fashion?\n\nEDIT: An open weight version of Muse Spark 1.2 is going to be released as well:\n\n<https://x.com/alexandr_wang/status/2086756152034066792>\n\n<https://xcancel.com/alexandr_wang/status/2086756152034066792>\n\nscrlk\n\n本周Qwen3.8 27B发布后，将其与本品对比会很有趣。似乎稠密30B模型又要重新流行起来了？\n\n编辑：Muse Spark 1.2的开源权重版本也将同步发布：\n\n<https://x.com/alexandr_wang/status/2086756152034066792>\n\n<https://xcancel.com/alexandr_wang/status/2086756152034066792>\n\n---\n\n### What Happened to HackerOne? [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#what-happened-to-hackerone)\n\n<https://news.ycombinator.com/item?id=49239120>\n\n> To the companies: You don’t need HackerOne anymore. The tokens to build your own in-house platform cost less than single year of HackerOne.\n\nYou know, the biggest thing that HackerOne delivers is a universal payments system that requires absolutely no efforts from companies. Have you tried to manually pay hackers from around the world? It is a laborious process involving trying to find what providers are compatible and what forms of money go where. It is extremely taxing to handle this. HackerOne provides real, tangible value in not making people think about how precisely to pay a hacker and in what currency. No amount of tokens solve the accounting problem, and it is foolish to imply otherwise.\n\nShank\n\n对各大公司而言：你们再也不需要HackerOne了。搭建内部平台所需的开发代币成本，甚至比HackerOne一年的订阅费还要低。\n\n但要知道，HackerOne最核心的价值在于它构建了一套通用支付系统，让企业完全无需操心支付流程。你试过手动给全球各地的黑客发奖金吗？这是个极其繁琐的过程——要排查哪些支付渠道兼容、哪些货币能汇往哪些地区，处理起来相当棘手。HackerOne真正的价值，就是让人不必纠结该用哪种货币、通过什么方式向黑客付款。再多的开发代币也解决不了财务结算的难题，暗示代币能替代支付系统简直是愚蠢之见。\n\n---\n\n### Mistral Patent for “Code implemented tool calls” [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#mistral-patent-for-code-implemented-tool-calls)\n\n<https://news.ycombinator.com/item?id=49245543>\n\nHaving my name on a bunch of software patents - and, yes, I tried to get my name off them, but was not allowed - I can fairly confidently say: There is not A single worthy software patent out there. You know, one that is “not obvious to someone skilled in the art” and that actually protects a monetary investment.\n\nSoftware patent are a scourge of the software industry. Patents are designed to protect costly research; simply having an idea is not costly (but it makes in medical research for example). All that software patents do is creating a minefield that hinders competition.\n\nFor software Copyright is a far better instrument. Let the one with best implementation win… That’s where the cost is: Implementing, testing, shipping, maintaining. Protect that.\n\nSorry for the rant.\n\nEdit: Spelling\n\nlinuxhansl\n\n我的名字挂在好几项软件专利上——而且，没错，我曾试图把自己的名字从上面撤下来，但被拒绝了——因此我可以相当有把握地说：没有一项软件专利是真正有价值的。你懂的，就是那种“对本领域技术人员来说并非显而易见”的专利，并且真正保护了某项资金投入。\n\n软件专利是软件行业的一大祸害。专利的本意是保护高昂的研发投入；仅仅拥有一个想法并不算高昂的投入（但在医学研究等领域，情况就不同了）。软件专利所做的一切，就是制造一个阻碍竞争的雷区。\n\n对于软件来说，版权是一种远为更好的工具。让那些做出了最佳实现的人胜出……那才是成本所在：实现、测试、发布、维护。保护这些才对。\n\n抱歉，发了一通牢骚。\n\n编辑：修正了拼写错误。\n\n---\n\n### What Happened to HackerOne? [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#what-happened-to-hackerone-1)\n\n<https://news.ycombinator.com/item?id=49238929>\n\nSending the sales team on a paid vacation to a tropical paradise while the engineering product flounders is such a perfect representation of corporate rot it sounds like something out of a Mike Judge movie\n\nparadox460\n\n销售团队被送去热带天堂带薪度假，而工程产品却陷入困境，这简直是企业腐化的完美写照，听起来就像迈克·贾奇电影里的桥段。\n\n---\n\n### How I use LLMs to learn complex topics [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#how-i-use-llms-to-learn-complex-topics-2)\n\n<https://news.ycombinator.com/item?id=49235538>\n\nIt’s much better to feed the book to the LLM and ask questions as you read along, instead of asking the LLM to basically write a custom book for you from scratch.\n\ncopperx\n\n与其让大模型从头开始为你定制一本书，不如把书喂给它，边读边提问，这样效果要好得多。\n\n---\n\n### Muse Glimmer: 30B-parameter model optimized for al… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#muse-glimmer-30b-parameter-model-optimized-for-al-3)\n\n<https://news.ycombinator.com/item?id=49244353>\n\nRemember when we needed 200 servers for an enterprise website because Apache used one process or thread per connection - and Nginx collapsed that into a single box overnight? That moment for LLMs is near. It’s going to move us from the big iron era of AI to small portable brains. Nature has already proved it’s possible with 20 watts and very little heat generation. And I think the data center buildout will end in carnage.\n\nmmaunder\n\n还记得以前一个企业网站需要200台服务器，因为Apache每个连接就要占用一个进程或线程——而Nginx一夜间就把这压缩到一台机器上吗？大语言模型的那个时刻快到了。它将把我们从AI的\"大铁块\"时代，带向便携的小型智能体。自然界已经证明，用20瓦的功耗和极少的发热量就能实现这一点。而我认为，数据中心的建设热潮将以惨烈收场。\n\n---\n\n### Mars Bar from 1991 found – and it’s 20g bigger tha… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#mars-bar-from-1991-found--and-its-20g-bigger-tha)\n\n<https://news.ycombinator.com/item?id=49245512>\n\nShrinkflation is all over. Burger buns at fast food places were more dense 20 years ago. The small burgers had 1/8th pound patties instead of the current 1/10th pound. It’s hard to find a product that hasn’t gotten worse or more expensive, even adjusted for inflation.\n\nsmolder\n\n缩水式通胀无处不在。20年前快餐店的汉堡胚更厚实，小汉堡的肉饼是1/8磅，而现在是1/10磅。即使考虑到通货膨胀，也很难找到一款既没变差也没涨价的商品了。\n\n---\n\n### Illinois Just Passed a Law That Puts Linux on the … [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#illinois-just-passed-a-law-that-puts-linux-on-the--1)\n\n<https://news.ycombinator.com/item?id=49249786>\n\nI feel like all of these laws are being designed backwards. Content providers, like MPAA films, should have to identify what sort of content they are providing. Then I can give my kids a device configured to allow some or all of that at my discretion.\n\nRequiring my kids’ devices to advertise their age (or their age “bucket”, as if that was a meaningful difference) to protect them is not doing me or my kids any favors.\n\nkej\n\n感觉所有这些法律都是倒着设计的。像MPAA电影这类内容提供方，应该主动标明它们提供的内容类型。这样我就能给孩子配置一台设备，由我自行决定允许他们访问哪些内容。而要求我孩子的设备向外界公布他们的年龄（或者所谓的年龄\"段位\"，好像这能有多大区别似的）来保护他们，这对我和孩子都没半点好处。\n\n---\n\n### Everything you do is being recorded [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#everything-you-do-is-being-recorded)\n\n<https://news.ycombinator.com/item?id=49230675>\n\nI don’t think people want this. I think people want the other benefits that those things bring, and increasingly feel that it’s impossible to escape being surveilled anyway so do their best to ignore the whole issue.\n\nBeing resigned to something is not the same as wanting that thing.\n\nJohnFen\n\n我不认为人们想要这个。我认为人们想要的是那些事物带来的其他好处，并且越来越觉得反正无法逃避被监视，所以尽量忽视整个问题。顺从某事并不等同于想要那件事。\n\n---\n\n### Taxi drivers rarely die of Alzheimer’s [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#taxi-drivers-rarely-die-of-alzheimers-1)\n\n<https://news.ycombinator.com/item?id=49241493>\n\nThe comment insinuates that the study did not control for age. The study controlled for age.\n\nIt’s not terrible to not make a good point, but it’s not a good point. The not good points should not be ranked highly.\n\njstummbillig\n\n该评论暗示研究未控制年龄变量，而研究实际已控制年龄。\n\n论点不佳并不可怕，但终究不是好论点——不好的论点不应被高赞。\n\n---\n\n### Tl;dv: Over 180k meetings left wide open [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#tldv-over-180k-meetings-left-wide-open)\n\n<https://news.ycombinator.com/item?id=49244223>\n\nIt’s hilarious how these companies handle security breaches.\n\nI once reported superadmin user/pass committed to github at a major YC backed background check company I worked at and everyone tried to make it seem like it was my fault.\n\nI had just started working there and found it in the first week.\n\nAnyway, had to show that it was committed by their main Staff engineer 2 years before I even worked there. For 2 years everyone’s background check data in the United States that went through this thing - millions per year - thousands of Uber drivers, DoorDash, etc. all were viewable with no clearance. Anyone including overseas contractors, new hires, etc. could just login and check anyone’s criminal history.\n\nReporting it was a disaster. They all tried to cover their asses, this huge drama and hand waving started. They tried to blame anyone and everyone. Eventually it was just AWS fault somehow (it wasn’t, the Staff engineer was a dumbass, he committed it to a ruby seed file).\n\n---\n\nI digress, the CTO didn’t respond because he was more worried about how it would make him look. This industry is dead - the wrong people work in it.\n\npurplemoonx\n\n这些公司处理安全漏洞的方式真是可笑。  \n我曾在一家知名YC系背景调查公司工作，发现超级管理员账号密码被上传到GitHub，结果所有人都试图把责任推到我头上。  \n我才入职第一周就发现了这个问题。  \n总之，我不得不证明那个密码是我入职前两年，由他们的首席工程师提交的。整整两年间，所有通过这套系统处理的美国背景调查数据——每年数百万份，涉及数千名Uber司机、DoorDash配送员等——所有人都能随意查看，无需任何权限。任何海外承包商、新员工之类的人都能直接登录，查看任何人的犯罪记录。  \n举报这件事简直是一场灾难。他们全体试图掩盖真相，开始上演一出闹剧，互相推诿。他们想把责任栽给任何人。最后不知怎么就成了AWS的错（其实根本不是，那个首席工程师就是个蠢货，是他把密码写进ruby种子文件上传的）。\n\n——说回正题，CTO没有回应，因为他更担心这件事会损害自己的形象。这个行业已经完了——待在这行的都是些不称职的人。\n\n---\n\n### New Zealand lost its music media, and what we’re b… [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#new-zealand-lost-its-music-media-and-what-were-b)\n\n<https://news.ycombinator.com/item?id=49237031>\n\nThere’s a guy in Wellington making a photocopied weekly gig guide which will do more for the local music scene than this attempt at making a profitable social media. I guarantee it.\n\n<http://www.theimage04.com>\n\nideasphere\n\n惠灵顿有个人在做一份复印的每周演出指南，它对本地音乐圈的贡献会比这个试图盈利的社交媒体项目大得多。我敢保证。\n\n---\n\n### Improving Heuristics for A\\* Pathfinding [#](https://supertechfans.com/cn/post/2026-08-11-HackerNews/#improving-heuristics-for-a-pathfinding)\n\n<https://news.ycombinator.com/item?id=49227302>\n\n> I learned about this technique in 2007, then tried writing it up in 2015. I realized that I didn’t understand it enough to be able to explain it. I studied it off and on in 2016, 2018, 2019, 2022, 2024, and 2026. I abandoned and restarted this page many times. And by 2026 I think I understand it well enough to write this page.\n\nOutstanding.\n\nsimonw\n\n> 我在2007年了解到这个技术，然后在2015年尝试写下来。我意识到自己理解得还不够透彻，无法解释清楚。2016、2018、2019、2022、2024和2026年，我断断续续地研究它。这个页面我多次放弃又重写。到了2026年，我觉得自己已经足够理解，可以写下这个页面了。\n\n出色。\n\n---",
+      "tags": [
+        "Muse Glimmer",
+        "本地Agent"
+      ],
+      "score": 75,
+      "summary": "Hacker News汇总，Meta发布30B本地Agent模型Muse Glimmer。",
+      "fetched_at": "2026-08-11T10:02:51.015339+08:00"
+    },
+    {
+      "title": "早报｜苹果20周年iPhone或因良率问题取消/小米校招AI岗位增加50%/极氪回应7X充电场站过热",
+      "link": "https://www.ifanr.com/1674633?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-11T08:44:25+08:00",
+      "source": "爱范儿",
+      "content": "[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7a7059bb2d5.jpeg)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7a7059bb2d5.jpeg)\n\n![📱](https://s.w.org/images/core/emoji/11/72x72/1f4f1.png)\n\n机构预计 iPhone 18 系列 256GB 版本物料成本同比上升约 38%\n\n![📱](https://s.w.org/images/core/emoji/11/72x72/1f4f1.png)\n\n微信内测朋友圈 AI 帮写、AI 点评和公众号 AI 总结\n\n![🤖](https://s.w.org/images/core/emoji/11/72x72/1f916.png)\n\n60 个 AI 智能体协作，Claude 推进黎曼猜想相关问题\n\n![🚗](https://s.w.org/images/core/emoji/11/72x72/1f697.png)\n\n极氪回应宁波 7X 充电场站过热：车辆近期曾严重碰撞\n\n![🤖](https://s.w.org/images/core/emoji/11/72x72/1f916.png)\n\n小米启动 2027 届全球校招，AI 岗位需求增长 50%\n\n![💰](https://s.w.org/images/core/emoji/11/72x72/1f4b0.png)\n\n三星员工奖金约 298 万元，海力士员工或达 371 万元\n\n![🤖](https://s.w.org/images/core/emoji/11/72x72/1f916.png)\n\n千问办公助理开始收费，年费最高 1499 元\n\n![💰](https://s.w.org/images/core/emoji/11/72x72/1f4b0.png)\n\n智谱 API 用户接近 700 万，已启用超 5 万块国产算力芯片\n\n![🚀](https://s.w.org/images/core/emoji/11/72x72/1f680.png)\n\n宇树科技启动申购，美团和红杉位列前两大外部机构股东\n\n![💰](https://s.w.org/images/core/emoji/11/72x72/1f4b0.png)\n\n摩尔线程拟发行 H 股并申请港交所主板上市\n\n![💡](https://s.w.org/images/core/emoji/11/72x72/1f4a1.png)\n\n普渡机器人张涛：通用机器人的价值被高估，人形不会替代专用机器人\n\n![💰](https://s.w.org/images/core/emoji/11/72x72/1f4b0.png)\n\nAI 内存热潮抬高韩国芯片工程师奖金，相亲评级接近 A+\n\n![💰](https://s.w.org/images/core/emoji/11/72x72/1f4b0.png)\n\n英伟达联合六家金融机构，计划为 AI 基建引入超 5000 亿美元第三方资本\n\n![💡](https://s.w.org/images/core/emoji/11/72x72/1f4a1.png)\n\n扎克伯格：AI 最大的风险是权力过度集中\n\n![🤖](https://s.w.org/images/core/emoji/11/72x72/1f916.png)\n\n千问接入顺丰、自如等服务，覆盖手机、PC 和 AI 眼镜\n\n![🚙](https://s.w.org/images/core/emoji/11/72x72/1f699.png)\n\n小马智行把第四代自动驾驶卡车推向量产，目标 2030 年部署 10 万辆轻卡\n\n![🧠](https://s.w.org/images/core/emoji/11/72x72/1f9e0.png)\n\n微软最早 9 月发布 Maia 300，计划锁定 2027 年逾 30 万颗产能\n\n![🤖](https://s.w.org/images/core/emoji/11/72x72/1f916.png)\n\nMeta 开源 30B 智能体模型 Muse Glimmer，单张 24GB 显卡可运行\n\n![💰](https://s.w.org/images/core/emoji/11/72x72/1f4b0.png)\n\n豆包推荐酒店订单开始单独计费，综合费率约 12%\n\n![🛍](https://s.w.org/images/core/emoji/11/72x72/1f6cd.png)\n\n拼多多首页上线「最快明天达」，覆盖生鲜和日用百货\n\n![📋](https://s.w.org/images/core/emoji/11/72x72/1f4cb.png)\n\n12306 为 2026 级新生开放提前预约，最多可为 3 名同行人提交需求\n\n![重磅](https://s3.ifanr.com/images/ep/common-images/xin_wen.png)\n\n### 曝苹果 20 周年 iPhone 难产，或因生产良率问题取消\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/f4f148a9-b8c0-478e-9632-61b0cf9ac918.png)\n\n苹果原计划于明年秋季推出、用于纪念 iPhone 诞生 20 周年的全玻璃 iPhone，项目目前可能已经暂停或取消。\n\nJefferies 分析师 Edison Lee，他根据供应链调查称，该设备因「生产良率不佳」而难以继续推进，即生产过程中无法稳定制造出足够多的合格产品。\n\n这款 iPhone 此前被传采用覆盖机身正反面的曲面玻璃设计，正面和背面几乎没有开孔，部分功能可能通过屏下 Face ID 和固态按键实现。苹果曾在 2019 年申请一项「六面玻璃外壳」电子设备专利，该专利被认为与相关设计存在关联。\n\nMacRumors 报道称，如果项目按计划发布，这款设备的综合零售价可能达到约 2060 美元，成为苹果售价最高的 iPhone。Edison Lee 还认为，苹果原本计划将全玻璃设计逐步扩展至未来的 iPhone Pro 和 iPhone Pro Max，以提高高端机型的平均售价和利润率。\n\n不过，目前尚不清楚被取消的是整款 20 周年 iPhone，还是其中的全玻璃设计。\n\n### 机构预计 iPhone 18 系列 256GB 版本物料成本同比上升约 38%\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b57dabf4-74a3-4015-a9c8-b040e39f998a.png)\n\n据 TrendForce 集邦咨询最新产业研究，存储器等零部件涨价正在推高 iPhone 18 系列整机成本。该机构预计，256GB 版本的物料清单成本同比上升约 38%。\n\nTrendForce 此前指出，存储器在智能手机物料成本中的占比已由约 10% 至 15% 上升到 30% 至 40%，品牌需要在提高终端价格、调整产品组合和压缩毛利之间重新取舍。苹果高端机型占比较高，吸收部分成本的空间相对更大。\n\n![大公司](https://s3.ifanr.com/images/ep/common-images/da_gong_si.png)\n\n### 微信内测朋友圈 AI 帮写、AI 点评和公众号 AI 总结\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/845e5ef7-a693-4cf9-976b-de85745ed1f6.png)\n\n部分微信用户近期在朋友圈发布页看到「AI 帮写」按钮，可调用 AI 辅助生成朋友圈文案；在已发布朋友圈的评论区长按评论，还会出现「AI 点评」，由微信 AI 助手「小微」解读评论或生成回复。\n\n另一个测试入口位于微信「扫一扫」页面底部。用户点击「拍照给 AI」后，可以把当前画面发送给小微，进行识别、翻译、记录或继续追问；系统也能根据画面生成朋友圈文案，并跳转到朋友圈编辑页供用户确认和修改。\n\n这些功能仍在小范围测试，「拍照给 AI」依赖小微测试权限，因此并非所有用户都能看到相关入口。\n\n部分用户还在订阅号聚合页的「常看」区域看到「AI 总结」入口，用于汇总关注公众号的近期内容。该入口同样处于灰度状态，当前仅部分账号可见。\n\n### 60 个 AI 智能体协作，Claude 推进黎曼猜想相关问题\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/dd200ee3-5211-4c33-a176-8a307588709e.png)\n\nAnthropic 今日官宣，其尚未发布的科研版 Claude 在尝试证明黎曼猜想时未能解决原问题，但意外将一个相关下界从约 41.6% 提高至 67.2%，即证明至少 67.2% 的相关零点位于临界线上。这并不意味着黎曼猜想已经完成 67.2%，该猜想要求所有非平凡零点均位于临界线。\n\n研究过程中，Claude 测试了约 650 个思路，并协调约 60 个子 AI 智能体进行数值检查、论文检索和论证验证，两轮研究共消耗约 3100 万个输出 token。其核心进展来自对多项既有数学方法的重新组合，而非完整创立新理论。\n\nAnthropic 内部数学家已检查相关论证，核心结果也被写成 Lean 形式化证明，并通过验证工具检查。两位数论专家还对论文进行了初步审阅，但该成果仍未经过广泛、长期的学术检验。Anthropic 表示，目前不认为这套方法能够直接用于完整证明黎曼猜想。\n\n### 极氪回应宁波 7X 充电场站过热：车辆近期曾严重碰撞\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/42919ce4-29e8-4f3c-9f9a-4cb6b4b5ecf6.png)\n\n极氪就 8 月 9 日宁波市海曙区一处充电场站的车辆过热事件发布说明。消防部门已完成现场处置，事件没有造成人员伤亡；公司已成立专项工作组，并配合消防及相关部门开展勘验和原因调查。\n\n极氪初步核实，这辆 7X 近期曾发生严重碰撞，事故后没有在品牌官方授权服务中心接受检测和维修。公司提醒，车辆碰撞后需要对动力电池、高压系统和车身结构进行专业检查；购买二手新能源车时也应核验事故与维修记录。\n\n### 小米启动 2027 届全球校招，AI 岗位需求增长 50%\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/00cadcaa-c646-401d-8f27-f0b350371422.png)\n\n小米昨日启动 2027 届全球校园招聘，面向毕业时间在 2026 年 9 月 1 日至 2027 年 8 月 31 日之间的海内外应届毕业生开放 17 类以上岗位，产研岗位占整体需求的 70%，AI 相关岗位需求增长 50%。\n\n招聘方向覆盖 Xiaomi MiMo、Xiaomi miclaw、Xiaomi-Robotics-1、Xiaomi CyberOne、智能汽车世界模型及 AI for Science，工作地点包括北京、上海、深圳、南京、武汉、西安、慕尼黑和新加坡等地。网申截止时间为 12 月 31 日，每位申请人最多投递 2 个职位，但同一时间仅有 1 个申请进入招聘流程。\n\n### 三星员工奖金约 298 万元，海力士员工或达 371 万元\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/ec51d574-b531-44e5-9b0b-d5231bd54e50.png)\n\n据《华尔街日报》报道，AI 热潮推动内存芯片需求增长及相关企业利润上升，三星电子和海力士员工的奖金与社会地位随之提高，芯片工程师在韩国婚恋市场的受欢迎程度也明显上升。\n\n报道称，三星存储芯片业务一名基本年薪为 8000 万韩元的员工，今年奖金预计约为 6.26 亿韩元，约合人民币 298 万元。海力士此前同意将年度营业利润的 10% 用于员工奖金，据路透社测算，2026 年其员工平均奖金可能达到 7.79 亿韩元，约合人民币 370.8 万元。\n\n三星今年与工会达成的协议显示，芯片业务员工除可获得相当于年薪 50% 的现金奖金外，还将分享半导体业务的部分经营利润。高额奖金也开始改变员工的消费和生活计划，包括购置公寓、升级旅行方式及提前安排生育计划。\n\n韩国婚恋机构观察到，三星电子和海力士员工此前通常被评为 B+ 或 A 级，如今已接近 A+，逐渐与医生、律师及其他高收入专业人士处于同一档次。一名三星存储芯片工程师表示，他已不愿在首次约会时透露工作单位，因为难以判断对方更关注本人还是其快速增长的收入。\n\n这一变化也进入韩国流行文化。在一档相亲节目中，一名三星芯片工程师同时受到 3 名女性嘉宾关注；《SNL Korea》则以短剧调侃海力士员工社会地位上升。报道认为，背后的直接原因是 AI 带动的内存芯片需求增长及行业景气上行。\n\n### 千问办公助理开始收费，年费最高 1499 元\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/311babf0-358b-4d91-af47-1c29e45f99c5.png)\n\n千问办公助理已推出付费会员服务，套餐分为旗舰、精英和高级三档，覆盖月付和年付方案。\n\n千问 App 的 App Store 页面显示，旗舰套餐价格为 128 元 / 月或 1499 元 / 年，精英套餐为 49 元 / 月或 568 元 / 年，高级套餐则仅提供年付方案，价格为 200 元 / 年。\n\n除会员套餐外，千问办公助理还提供视频生成额度付费服务。10 个、50 个、100 个、200 个和 500 个视频生成额度，对应价格从 26 元至 968 元不等。\n\n### 智谱 API 用户接近 700 万，已启用超 5 万块国产算力芯片\n\n据《晚点 LatePost》报道，智谱 MaaS 开放平台注册用户已接近 700 万，较 7 月初增加约 200 万，其中包括 2.3 万家企业客户；对标 Codex 的开发者产品 ZCode 上线一个月后，用户数突破 100 万。今年以来，智谱 ARR 已增长 15 倍。\n\n报道称，智谱在 7 月启用了超过 5 万块国产算力芯片，以缓解推理需求增长带来的压力。其长期限售的 Coding Plan 已于 7 月 31 日恢复购买，但 Lite 版月费由上线初期的 20 元涨至 118 元，并引入积分制计费规则。\n\n为提高长程任务的处理效率，智谱近期持续优化推理基础设施。其与中科加禾合作的 KV 缓存分拆方案，可使单个推理服务的吞吐量随长程任务增长最高提升 132%；ZCube 推理网络架构可将生产集群吞吐量最高提高 15%，并减少最多三分之一的交换机与光模块需求。智谱已于 7 月完成对中科加禾的收购。\n\n据报道，智谱 API 在自有算力设施上运行时，理想情况下毛利率可达 50% 至 60%，但该口径不包含算力采购和人员等前期投入。\n\n报道称，智谱和 DeepSeek 均预计于 8 月发布新模型。与此同时，随着阿里、字节等大型科技公司增加模型和算力投入，独立模型厂商仍面临算力紧缺、模型领先周期缩短，以及企业客户采用多模型路由等挑战。\n\n### 宇树科技启动申购，美团和红杉位列前两大外部机构股东\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b94dc635-8e3b-4c6c-9ace-de32d547ac73.png)\n\n宇树科技昨日启动网上、网下申购，发行价为每股 150.80 元，发行后总市值约 609.93 亿元，募资总额接近 61 亿元。发行市盈率为 219.23 倍，高于行业最近一个月 38.56 倍的平均静态市盈率。\n\n招股材料显示，美团通过汉海信息技术、Galaxy Z 和成都龙珠等主体，合计持有宇树发行前 9.65% 股份，是持股比例最高的外部机构；红杉中国通过宁波红杉、厦门雅恒等平台合计持股 7.11%，位列第二。\n\n大疆旗下基金曾计划在 2018 年出资 1012.86 万元参与宇树增资，交易完成后持股比例约 17%，但在 2019 年减资退出。界面新闻按本次发行价估算，若这笔投资完整保留至上市，对应股权市值约 37 亿元。\n\n战略配售股份占本次发行总量的 20%。DeepSeek 获配 93.34 万股，认购金额 1.41 亿元；腾讯旗下上海启善投资获配 90.33 万股。8 月 12 日为中签缴款截止日。\n\n### 摩尔线程拟发行 H 股并申请港交所主板上市\n\n摩尔线程前日宣布，拟发行境外上市外资股（H 股），并申请在港交所主板挂牌上市，相关议案仍需提交股东会审议。公司已在科创板上市，此次筹备将增加一个境外融资平台。\n\n据财新报道，另一家科创板 GPU 企业沐曦股份今年 6 月也宣布拟赴港上市，其董事会和股东大会已陆续审议通过相关议案。国产 GPU 企业正在集中评估 A+H 两地上市路径。\n\n财新援引芯片业内人士称，芯片设计和流片成本较高，企业的资金实力还会影响锁定供应链资源的能力，因此账面现金充裕的芯片公司也可能通过双重上市或定向增发提前储备资本。\n\n### 普渡机器人张涛：通用机器人的价值被高估，人形不会替代专用机器人\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/c93b3d9c-ffaf-4369-a87f-7e3a4b5cad52.png)\n\n据财新报道，普渡机器人创始人兼 CEO 张涛在访谈中指出，外界可能高估了「通用」的价值，未来机器人行业不会只剩人形机器人，而会形成通用机器人、专用机器人和类人形机器人等多种形态并存的格局。\n\n例如，在商场、车库和停车场的大面积清洁中，专用机器人在效率、清洁效果和投资回报率上更有优势，不适合用人形机器人替代；人形机器人更适合类人化、复杂化任务，高频、标准化场景仍会长期依赖专用设备。\n\n他的理由是，机器人带有硬件，扩散速度慢于纯数字化大模型，规模化需要技术、渠道和产品共同突破。客户最终购买的是由外观、亲和力、易用性和易部署性共同构成的完整产品，单项技术突破不足以完成市场交付。\n\n在商业路径上，他提出从客户需求出发、复用既有技术，并让主业增长和现金流支撑长期研发。从专用机器人向人形延伸的企业已经经历产品、供应链和市场交付的检验，这些工程化与商业化积累可以继续用于人形、四足和具身智能产品。\n\n### AI 内存热潮抬高韩国芯片工程师奖金，相亲评级接近 A+\n\n据多家媒体报道，AI 服务器对内存芯片的需求推高三星电子与海力士利润，也改变了两家公司工程师在韩国就业和婚恋市场中的位置。婚恋机构过去通常把两家公司员工评为 B+ 或 A，如今相关评级已经接近医生、律师等高收入职业所在的 A+ 档。\n\n一名基本年薪 8000 万韩元的三星存储芯片员工，今年预计可获得约 6.26 亿韩元奖金，主要以股票支付。路透社同时指出，海力士此前调整利润分享方案后，员工奖金水平进一步上升，并推动三星重新谈判芯片部门的薪酬结构。\n\n收入变化也进入韩国流行文化。一档相亲节目中，三星芯片工程师同时受到三名女性嘉宾关注；韩国版《周六夜现场》还用短剧调侃海力士员工在奢侈品店里亮出公司背心后，店员立刻改变态度。\n\n### 英伟达联合六家金融机构，计划为 AI 基建引入超 5000 亿美元第三方资本\n\n据路透社报道，英伟达昨日宣布与 Apollo、贝莱德、黑石、Brookfield、高盛和 KKR 签署谅解备忘录，将共同搭建算力融资平台，目标是为 AI 基础设施引入超过 5000 亿美元第三方资本。\n\n这些平台将向前沿 AI 开发者、企业、政府和云服务商提供英伟达算力基础设施，并向资产管理机构和私募资本提供周期更长、回报与算力使用量挂钩的投资工具。英伟达 CEO 黄仁勋称，这套融资机制将帮助客户大规模获取紧缺算力。\n\n英伟达表示，合作将建立专门资本池，以更具吸引力的利率为客户融资。公司没有公布六家机构各自的投资承诺、具体条款和 5000 亿美元计划的执行时间表。\n\n### 💡 扎克伯格：AI 最大的风险是权力过度集中\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/9f89532d-4190-47ad-8275-2efc0a499017.png)\n\nMeta CEO 马克·扎克伯格昨日发布长文《未来属于每个人》，主张把超级智能广泛交给个人，而不是让单一公司、政府或 AI 系统决定所有人的目标和价值。他把「个人赋能、发明和权力制衡」列为 Meta 的 AI 路线，并在 Axios 采访中表示，自己更担心权力集中，而不是行业讨论中的某一种单独风险。\n\n他认为，智能体应对齐每名用户自己的目标，在法律与安全边界内帮助不同的人追求不同选择。Meta 计划提供个人智能体的完全私密模式，让公司和服务商都无法查看或授权访问用户信息；免费或低价版本面向广泛用户，需要更多算力的人则通过动态竞价购买资源。\n\n扎克伯格同时提出，前沿实验室应提前向美国政府提供模型训练中间检查点和技术人员，用于加固关键基础设施，而不是等模型发布时再启动审查。他认为，这种合作可以让政府提前获得安全能力，同时避免统一审查周期拖慢模型公开发布。\n\n在开源问题上，他主张美国减少训练数据和模型蒸馏方面的限制，称模型向其他模型学习是开源生态的一部分，「可以从能观察到的任何事物中学习」这一原则应受保护。Meta 将恢复发布部分开放模型，并由独立委员会审查模型发布安全标准。\n\n![新产品](https://s3.ifanr.com/images/ep/common-images/hao_chan_pin.png)\n\n### 千问接入顺丰、自如等服务，覆盖手机、PC 和 AI 眼镜\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/20c2a8c9-532a-46d5-b04f-e31dda263d16.png)\n\n千问昨日上线开放平台，面向生态伙伴和开发者开放手机、PC 和 AI 眼镜三类终端的服务接入。首批展示的服务覆盖顺丰速运、天鹅到家、自如、哈啰租车、彩云天气、快递 100、闪送、飞常准、美的美居和嘟嘟巴士等。\n\n接入后，用户可以在千问对话中完成查询、筛选和交易。例如，顺丰服务支持寄件、运费时效和物流进度查询；自如可按区域、户型和预算筛选房源；哈啰租车、快递 100、闪送和嘟嘟巴士可继续完成下单、支付、改址、购票或退票。\n\n平台支持合作伙伴通过标准化协议接入已有 AI 智能体，并提供账号、AI 支付、订单接入、前端组件和模板。AI 眼镜端提供 Skill 接入与行业定制两种模式，开发者可调用眼镜拍照能力，构建识别门槛、台阶等障碍物的辅助功能。\n\n### 小马智行把第四代自动驾驶卡车推向量产，目标 2030 年部署 10 万辆轻卡\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/49ac2043-e85f-4a61-8895-1bf7bb439735.png)\n\n小马智行公布了第四代 L4 自动驾驶卡车计划：未来两三年先在中国投放 500 至 1000 辆重卡，覆盖干线物流、散货运输和港口作业；到 2030 年，轻型自动驾驶卡车的累计部署目标是 10 万辆。\n\n第四代系统的硬件成本较上一代降低约 70%。公司称，去年 11 月以来已有超过 200 辆自动驾驶重卡投入运营，累计货运周转量超过 10 亿吨公里；今年第一季度，Robotruck 业务收入超过 1000 万美元，同比增长 30%。\n\n新一代车型已经进入生产阶段，首批客户交付将在今年余下时间展开。成本下降和车队规模扩张，将决定这套系统进入日常物流网络的速度。\n\n### 微软最早 9 月发布 Maia 300，计划锁定 2027 年逾 30 万颗产能\n\n据《The Information》援引知情人士消息，微软计划在今年秋季公开发布新一代 AI 芯片 Maia 300，最早可能在 9 月亮相。微软希望扩大自研芯片在 Azure 中的使用，减少对英伟达 AI 加速器的依赖。\n\n报道称，微软已与台积电洽谈，准备为 2027 年锁定超过 30 万颗 Maia 300 的制造产能，远高于 Maia 200 目前数万颗的生产规模。微软的长期目标是获得超过 100 万颗 Maia 300 的产能，但零部件供应和与台积电的产能谈判可能限制最终规模。\n\n微软还想让 Anthropic 等大型云客户使用 Maia 300。今年 1 月发布的 Maia 200 由台积电 3nm 工艺制造，配备 216GB HBM3e 和 272MB 片上 SRAM，已先在微软美国中部数据中心区域部署。\n\n### Meta 开源 30B 智能体模型 Muse Glimmer，单张 24GB 显卡可运行\n\nMeta 昨日发布开放权重智能体模型 Muse Glimmer。模型参数规模为 30B，面向本地、常驻的智能体工作流，采用 Apache 2.0 许可证；官方称其可在配备 24GB 显存的消费级 GPU 上运行。\n\nMeta 公布的评测覆盖 MCP Atlas、DeepSearch QA、OSWorld-Verified、SWE-Bench 和 TerminalBench 等智能体、编码与计算机操作任务。Muse Glimmer 在 MCP Atlas 和 DeepSearch QA 上分别得到 75.5 与 74.6，在 SWE-Bench Verified 上得到 76.0。\n\nMeta 超级智能实验室负责人 Alexandr Wang 同时表示，Muse Spark 1.2 也将发布开放权重版本。Muse Spark 当前通过 Meta Model API 向美国开发者开放，Muse Glimmer 则把本地运行和宽松许可证作为主要定位。\n\n![新消费](https://s3.ifanr.com/images/ep/common-images/pin_pai.png)\n\n### 豆包推荐酒店订单开始单独计费，综合费率约 12%\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/40b4ae2c-b80c-472c-abb7-690b08b1c6fb.png)\n\n抖音生活服务昨日开始对豆包等特定成交渠道执行独立软件服务费政策。通过豆包入口跳转抖音来客并成交的酒店订单，软件服务费为 11.4%，另收 0.6% 支付手续费，综合费率约 12%。\n\n抖音 7 月 27 日发布的政策说明显示，计费基数为用户实付金额与商家以外主体提供的补贴金额之和，具体费率会在抖音来客商家端展示。豆包成交是否属于特定渠道，以订单结算单为准。\n\n不同品类费率并不一致：运动健身综合费率约 9%，家居家装约 12%，教育培训约 14%，部分生活服务约 18%。豆包目前已把酒店、机票和部分景区门票接入对话与交易流程，酒店订单可跳转抖音或大众点评完成预订。\n\n### 拼多多首页上线「最快明天达」，覆盖生鲜和日用百货\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/4d524cec-0775-41be-a430-9de78e48a380.png)\n\n拼多多昨日在 App 首页加入「最快明天达」一级入口，与「百亿补贴」并列，首批商品覆盖水果生鲜、日用百货等高频品类。此前「明天达」只在商品详情页和搜索结果中动态展示，本次调整把它提升到首页导航。\n\n入口中的商品带有「明天达」或「后天达」时效承诺，核心城市的部分订单可在次日上午送达，更广区域提供后天送达。拼多多今年 1 月已上线共享仓服务，与仓配企业合作，把商家库存提前放入区域云仓，再按消费者位置匹配附近仓库发货。\n\n公开资料显示，多多云仓已布局 150 余个节点，集中在上海、杭州、广州、深圳、义乌、成都和武汉等商品集散地。该模式主要依赖区域仓储、商家发货和第三方运力，与美团闪购、淘宝闪购和京东秒送的分钟级即时配送路径不同。\n\n### 12306 为 2026 级新生开放提前预约，最多可为 3 名同行人提交需求\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/2d18aa0c-dc4a-4097-8053-3eb286a0d024.png)\n\n中国铁路在 8 月 1 日至 30 日开放新生预约购票服务。完成身份核验的 2026 级新生可预约开车前 20 至 17 天、出发日期在 8 月 17 日至 9 月 14 日之间的车票，并可同时为最多 3 名同行人提交需求。\n\n系统会在开车前第 16 天的凌晨至 7 时处理订单，成功后需在当日 23 时前付款。可选席别覆盖硬座、硬卧、二等座等常用席位；不在预约时间范围内的学生，仍可凭录取通知书在线下完成资质核验后购票。\n\n预约并不等于立即出票，但把新生集中出行需求提前纳入配票流程，减少临近开学时反复刷票。\n\n![好看的](https://s3.ifanr.com/images/ep/common-images/hao_kan_de.png)\n\n### 《肖申克的救赎》4K 修复版 8 月 28 日首次登陆内地院线\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/c88c8c19-011e-47cd-8003-071e8b5d7de6.jpg)\n\n1994 年电影《肖申克的救赎》宣布将于 8 月 28 日首次在中国内地公映。此次上映采用 4K 修复版，覆盖 2D、CINITY LED 和 IMAX 等格式。\n\n影片由弗兰克·德拉邦特执导，蒂姆·罗宾斯和摩根·弗里曼主演。银行家安迪含冤入狱后，在肖申克监狱度过 19 年，并持续寻找离开监狱、重获自由的机会。\n\n### 诺兰《奥德赛》发布终极预告，8 月 14 日在内地上映\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/017453ad-0430-4800-ab9a-62f349d6d098.png)\n\n克里斯托弗·诺兰执导的《奥德赛》发布中国内地终极预告，影片将于 8 月 14 日上映。故事改编自荷马史诗：特洛伊战争结束后，奥德修斯背负众神的诅咒踏上返乡之路。\n\n马特·达蒙饰演奥德修斯，演员还包括汤姆·霍兰德、安妮·海瑟薇、赞达亚、罗伯特·帕丁森、露皮塔·尼永奥和查理兹·塞隆等。影片时长 2 小时 52 分钟，采用 R 级分级，也是首部全片使用 IMAX 摄影机拍摄的电影。\n\nLudwig Göransson 继《信条》和《奥本海默》后继续为诺兰配乐，摄影由《星际穿越》《敦刻尔克》和《奥本海默》的摄影指导霍伊特·范·霍特玛担任。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "Muse Glimmer",
+        "微信AI帮写"
+      ],
+      "score": 65,
+      "summary": "爱范儿早报：Meta发布Muse Glimmer，微信内测AI帮写，小米AI招聘增50%。",
+      "fetched_at": "2026-08-11T10:02:51.015352+08:00"
+    },
+    {
+      "title": "五大高校联手发榜！首份机器人三视角世界模型评测结果出炉，榜单持续更新中",
+      "link": "https://www.qbitai.com/2026/08/469860.html",
+      "published": "2026-08-11T08:46:23+08:00",
+      "source": "量子位",
+      "content": "三视角世界模型谁更稳?",
+      "tags": [
+        "三视角世界模型",
+        "机器人评测"
+      ],
+      "score": 75,
+      "summary": "五大高校发布首份机器人三视角世界模型评测榜单。",
+      "fetched_at": "2026-08-11T10:02:51.015356+08:00"
+    },
+    {
+      "title": "#668.AI领域的下一个百倍增长：推理、网络与自我优化模型",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a79f6c436641f136d8629c3",
+      "published": "2026-08-11T09:00:00+08:00",
+      "source": "跨国串门儿计划",
+      "content": "📝 本期播客简介\n\n本期我们克隆了：知名 AI 工程播客 Latent Space Next 100x in AI: Inference, Networking, & Self-Optimizing Models — Philip Kiely & Ali Taha, Baseten\n\n原内容更新时间：2026-08-03\n\n本期节目由 Latent Space 主持人 swyx 与 Baseten 的资深推理工程师 Philip Kiely 和 Ali Taha 共同呈现，深入探讨了推理工程这一 AI 底层环节的实战内幕。节目围绕新模型发布后如何从“能跑”变成“跑得快又稳”展开，涉及量化、投机解码、模型并行等硬核话题，也聊到了模型自我优化这类前沿趋势。\n\n对话从一次 20 万 token 的长查询如何被路由、缓存、预填充和解码开始，逐步拆解了推理服务商在支持新模型时面临的真实挑战。两位嘉宾不仅分享了 Baseten 在 GLM-5.2、Kimi K3 等模型上的优化实践，还大胆预测了 GPU 向 ASIC 演进、KV 缓存压缩、持续学习等未来方向。无论你是 AI 工程师、创业者还是对底层技术充满好奇的听众，这期节目都能让你对 AI 基础设施有全新的认识。\n\n👨‍⚕️ 本期嘉宾\n\nPhilip Kiely 是 Baseten 的资深推理工程师，著有《推理工程》一书，长期专注于推理系统的性能优化与架构设计。Ali Taha 同样是 Baseten 的资深推理工程师，在视频扩散模型、GPU 内核优化等领域有深入研究。两位嘉宾都身处推理工程的第一线，亲历了从 Ampere 到 Blackwell 的硬件迭代，对量化、投机解码、模型并行等技术有丰富的实战经验。他们的分享不仅包含理论框架，更有大量来自生产环境的真实案例和判断。\n\n⏱️ 时间戳\n\n00:00 开场 & 播客简介\n\n节目介绍与嘉宾登场\n\n00:35 本期克隆节目介绍：Latent Space 推理工程深度对谈\n\n02:37 嘉宾 Philip 与 Ali 的自我介绍与“滑铁卢实习生”昵称趣谈\n\n长查询的旅程：从路由到解码\n\n03:53 20 万 token 长查询在 Baseten 推理服务中的完整流程\n\n04:16 缓存感知路由与分离式预填充/解码\n\n05:21 投机解码如何加速长查询场景\n\n从“支持”到“生产就绪”：新模型背后的工程\n\n13:26 新模型发布后推理工程的工作量\n\n14:22 推理速度竞赛与“支持”的两种含义\n\n15:29 量化、投机解码器训练与基础设施搭建\n\n模型改造与开源的力量\n\n17:20 为 GLM-5.2 嫁接 Kimi 视觉编码器的实验\n\n20:10 开源组件组合的潜力与“弗兰肯斯坦式合并”\n\n21:33 从其他模型改装层：MiniMax M3 的实践\n\n质量、量化与性能的平衡\n\n27:12 保持模型质量的标准与方法\n\n30:11 量化是否可能让模型变得更好\n\n31:19 Baseten 的量化研究：误差抵消与 20% 吞吐提升\n\n性能提升的极限与硬件演进\n\n33:56 从每秒 70 token 到 10 倍提升的路径\n\n38:42 投机解码与量化带来的 95% 性能收益\n\n41:34 Dynamo 与 KV 缓存卸载的未来\n\n模型并行与硬件趋势\n\n50:15 张量并行与专家并行的原理与区别\n\n55:33 Mega kernels 的争议与 GPU 向 ASIC 演进\n\n59:54 推理工程正变成纯粹的基础设施问题\n\n视频、音频与多模态推理\n\n01:10:57 视频扩散模型的推理挑战与 token 瓶颈\n\n01:15:05 自回归视频模型的优缺点与未来\n\n01:19:20 音频推理：自回归与扩散的权衡\n\n训练与推理的融合\n\n01:24:42 推理服务于训练：强化学习中的 rollout 优化\n\n01:25:32 训练服务于推理：量化感知训练与蒸馏\n\n01:26:24 持续改进系统与模型自我优化\n\n未来趋势与总结\n\n01:30:02 推理工程的下一个前沿：系统层面与多模型组合\n\n01:31:27 更快的网络芯片通信与 KV 缓存传输瓶颈\n\n01:32:34 持续学习与 KV 缓存压缩的潜力\n\n🌟 精彩内容\n\n💡 “我们推理引擎里跑 GLM-5.2 用的有些 GPU 内核，就是 GLM-5.2 自己写的。”\n\nBaseten 内部已经将 GLM-5.2 接入 Claude 代码框架，让模型自己分析性能跟踪、找出瓶颈内核并编写新内核。这标志着模型自我优化的循环已经从理论走向实践，尽管模型在决策能力上仍有局限。\n\n“它会在节点上的 GLM-5.2 实例上做一次前向传播，然后拿到性能分析跟踪，自己分析，找出 SG lang 里的瓶颈内核，然后写新的内核。”\n\n💡 “支持这个模型”和“支持这个模型”是有区别的——前者是我能让这个模型产出 token，后者是我能基于这个模型提供一个生产级 API。\n\n让模型跑起来不难，难的是让它跑得又快又稳。量化、投机解码器训练、基础设施搭建、测试与修补，每一步都需要大量工程投入。新模型发布后的第一周、第一个月，都是持续优化和修 bug 的过程。\n\n“真正的挑战在于，每家推理公司都有自己的专有技术栈，有些开源组件，有些是自研的。而且对任何一个新模型来说，总会有一些新东西。”\n\n💡 量化更多的模型部分确实有可能让结果更好，因为量化误差相互抵消了。\n\nBaseten 的研究团队通过数学验证，发现选择性地量化某些层可以让误差相互抵消，从而在提升吞吐的同时保持甚至提高模型保真度。这一发现打破了“量化越多越差”的传统认知。\n\n“你最终得到的模型比其他提供商多量化了 20%。所以你获得了 20% 更多的吞吐，因为有更多层在跑 NVFP4。而且你的质量比别的量化版本更好。”\n\n💡 推理会是一个值得长期做工程的地方，因为你在金融行业衡量提升是用基点，而我们发布优化成果的时候，是 20%，是 100%，是 200%。\n\n与高度优化的金融领域相比，推理工程仍处于早期阶段，性能提升的空间巨大。当研究人员开始发论文说自己在某件事上提速了 1% 的时候，你就能知道推理基本上已经被做透了。\n\n“我们追求的是大幅提速，而不是从 70 提到 90。”\n\n💡 GPU 正在越来越像 ASIC。你只是在编排 GPU 上发生什么，而不是在逐线程控制它。\n\n随着英伟达每一代 GPU 加入更多专用指令、专用张量核心，GPU 正沿着光谱朝硬件更专业化的方向演进。这对 AI ASIC 公司构成了挑战，但也意味着推理工程的重心正在从内核层面转向系统层面。\n\n“你看英伟达把 GPU 从通用编程范式，就是一台你可以用来编程线程的通用计算机，每一代都在加入更多专用指令、专用张量核心、专用的 UMA 指令。”\n\n💡 视频模型，你想生成高质量的视频。假设你做到 16 帧每秒，这是绝对的上限，然后假设你做 4K 视频。光是五秒钟的注意力计算，就要跑在三万五千个 token 上。\n\n视频扩散模型的 token 数量惊人，注意力机制成为巨大瓶颈。Ali 认为，要突破五秒的帧数限制、生成好莱坞级别的电影，视频模型必须转向自回归架构，或者算力出现疯狂的大跃进。\n\n“在我看来，它们只需要大幅扩展规模，并且转向自回归。但训练技术这方面，目前似乎还不清晰。”\n\n💡 如果你能在理论上这个理想状态下，拥有极快的网络，理论上你就可以省掉 HBM 这一步，直接把 KV 缓存从一个节点传到另一个节点。\n\n大规模推理服务中，KV 缓存的传输成为瓶颈。如果网络速度能接近 HBM，节点间的聚合推理服务将获得接近 100 倍的速度提升。这可能是推理工程下一个重大的突破方向。\n\n“如果有人能解决这个问题，解码速度真的会快两个数量级。这就是我的看法。”\n\n🌐 播客信息补充\n\n本播客采用原有人声声线进行播客音频制作，也可能会有一些地方听起来怪怪的\n\n使用 AI 进行翻译，因此可能会有一些地方不通顺；\n\n如果有后续想要听中文版的其他外文播客，也欢迎联系微信：iEvenight",
+      "tags": [
+        "推理工程",
+        "Baseten",
+        "模型自我优化"
+      ],
+      "score": 82,
+      "summary": "播客深度解析AI推理工程、模型自我优化与硬件演进。",
+      "fetched_at": "2026-08-11T10:02:51.015359+08:00"
+    },
+    {
+      "title": "源：https://t.co/omL9dzd0RF",
+      "link": "https://x.com/FinanceYF5/status/2086987767695995013",
+      "published": "2026-08-11T09:27:12+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/ErenChenAI/sta…](https://x.com/ErenChenAI/status/2085928165470576944)\n\n![Eren Chen](https://pbs.twimg.com/profile_images/1957418376328101888/GYV0ueqf_normal.jpg)\n\nEren Chen@ErenChenAI\n\nChina’s robotics startups are starting to invest in other companies while they’re still only at the Series A stage themselves.  \n  \nAnd another pattern is starting to appear: companies that were invested in are now turning around and investing in others.  \n  \nAgiBot → PsiBot → Mifeng Technology → KONVERY  \n  \n29 embodied AI companies have already made 125 external investment deals.  \n  \nI think this says a lot about how fast the sector is moving in China: Companies don’t want to wait years to build every capability in-house.   \n  \nThey’re using capital to lock in technologies, teams, and supply-chain positions early.\n\n![Tweet Image](https://pbs.twimg.com/media/HPK0mb6bEAAA8jB.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ErenChenAI/status/2085928165470576944)\n\n💬0🔄0❤️0👀268",
+      "tags": [
+        "AgiBot",
+        "具身智能投资"
+      ],
+      "score": 70,
+      "summary": "转述：中国具身智能公司已完成125笔对外投资，AgiBot投资37个。",
+      "fetched_at": "2026-08-11T10:02:51.015361+08:00"
+    },
+    {
+      "title": "中国机器人公司自己还在A轮，已经开始像VC一样到处投别人了。\n\n29家具身智能公司，累计做了125笔对外投资。\n\nAgiBot 一家就投了37个。\n\n产业链正在用资本提前锁技术、锁团队、锁位置。",
+      "link": "https://x.com/FinanceYF5/status/2086987755708657946",
+      "published": "2026-08-11T09:27:09+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "中国机器人公司自己还在A轮，已经开始像VC一样到处投别人了。  \n  \n29家具身智能公司，累计做了125笔对外投资。  \n  \nAgiBot 一家就投了37个。  \n  \n产业链正在用资本提前锁技术、锁团队、锁位置。\n\n![Tweet Image](https://pbs.twimg.com/media/HPZ4TfKaIAAmUPO.png)\n\n💬1🔄1❤️0👀449📊1",
+      "tags": [
+        "AgiBot",
+        "125笔投资"
+      ],
+      "score": 70,
+      "summary": "中国机器人公司A轮期即对外投资，AgiBot投37笔，总计125笔。",
+      "fetched_at": "2026-08-11T10:02:51.015363+08:00"
+    },
+    {
+      "title": "Owen的这个手帐的形式做的也挺好玩的，希望大家可以玩出更多好玩的东西。\n\n我的也要赶紧迭代先发不出来 让大家玩起来😂",
+      "link": "https://x.com/berryxia/status/2086975035948863683",
+      "published": "2026-08-11T08:36:37+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "Owen的这个手帐的形式做的也挺好玩的，希望大家可以玩出更多好玩的东西。  \n  \n我的也要赶紧迭代先发不出来 让大家玩起来😂\n\n![AI 有两下子](https://pbs.twimg.com/profile_images/2049518004711677952/MgUdiRYE_normal.jpg)\n\nAI 有两下子@iswangwenbin\n\n我做了一个会“自己写”的手帐模拟器。  \n  \n文字会一笔一笔长出来；  \n下划线、画圈和方框沿着手绘轨迹完成；  \n贴纸像刚被亲手贴上去；  \n饼图也会跟着笔尖一点点画出来。  \n还有一支真·手势笔，始终跟着笔尖在页面上走。  \n  \n接下来，我准备把它抽象成一套手帐组件，集成进我的自媒体视频制作工具。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086969622868504576/vid/avc1/1612x1080/o4bcoUG2IV8-9rc_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/iswangwenbin/status/2086972794936742042/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/iswangwenbin/status/2086972794936742042)\n\n💬3🔄0❤️3👀695📊3",
+      "tags": [
+        "手帐模拟器",
+        "AI笔迹"
+      ],
+      "score": 60,
+      "summary": "开发者展示会自己写的手帐模拟器，文字贴纸自动生成。",
+      "fetched_at": "2026-08-11T10:02:51.015365+08:00"
+    },
+    {
+      "title": "笑死，Ark 喊着说特斯拉不再需要中国哈哈\n\n马斯克就回复说，中国很棒，建议他们都去旅游体验下😄\n老马家的AI产品也算是对于国人最友好的海外产品了。",
+      "link": "https://x.com/berryxia/status/2086971227114012716",
+      "published": "2026-08-11T08:21:29+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "笑死，Ark 喊着说特斯拉不再需要中国哈哈  \n  \n马斯克就回复说，中国很棒，建议他们都去旅游体验下😄  \n老马家的AI产品也算是对于国人最友好的海外产品了。\n\n![Tweet Image](https://pbs.twimg.com/media/HPZpAV-XcAAOXWH.jpg)\n\n![Elon Musk](https://pbs.twimg.com/profile_images/2053244804520427520/m8mdWZCG_normal.jpg)\n\nElon Musk@elonmusk\n\n[@ARKInvest](https://x.com/ARKInvest) China is awesome. I strongly encourage people to visit.\n\n[🔗 View Quoted Tweet](https://x.com/elonmusk/status/2086949796653289545)\n\n💬1🔄0❤️0👀611📊1",
+      "tags": [
+        "马斯克",
+        "Ark"
+      ],
+      "score": 30,
+      "summary": "马斯克回应Ark称中国很棒，鼓励人们去旅游。",
+      "fetched_at": "2026-08-11T10:02:51.015367+08:00"
+    },
+    {
+      "title": "外媒说，今年的iPhone 18 Pro 将会有新颜色是这个深色的车厘子色。\n\n更加的暗红一些，这个渲染效果应该比较符合Apple的Style。\n\n今年发布会说的是9/9 日，但是似乎比往年早啊…  ...",
+      "link": "https://x.com/berryxia/status/2086967676312735807",
+      "published": "2026-08-11T08:07:22+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "外媒说，今年的iPhone 18 Pro 将会有新颜色是这个深色的车厘子色。  \n  \n更加的暗红一些，这个渲染效果应该比较符合Apple的Style。  \n  \n今年发布会说的是9/9 日，但是似乎比往年早啊… 一般都是下旬啊。\n\n![Tweet Image](https://pbs.twimg.com/media/HPZmCGBXEAA3Hcd.jpg)\n\n💬1🔄0❤️0👀587📊1",
+      "tags": [
+        "iPhone18Pro",
+        "车厘子色"
+      ],
+      "score": 30,
+      "summary": "外媒预测iPhone 18 Pro将推出深车厘子色。",
+      "fetched_at": "2026-08-11T10:02:51.015369+08:00"
+    },
+    {
+      "title": "somewhere between  “incomplete” and “self-serving and scarcely relevant”",
+      "link": "https://x.com/GaryMarcus/status/2086985295191511359",
+      "published": "2026-08-11T09:17:23+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "somewhere between “incomplete” and “self-serving and scarcely relevant”\n\n![nxthompson](https://pbs.twimg.com/profile_images/1258009714111078402/qs9cbOXO_normal.jpg)\n\nnxthompson@nxthompson\n\nThis, from Zuckerberg's essay, seems like an incomplete explanation of why Chinese open-source models have come to dominate American ones.\n\n![Tweet Image](https://pbs.twimg.com/media/HPX7OYwXYAApyoM.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/nxthompson/status/2086850303266103362)\n\n💬2🔄2❤️7👀2867📊3",
+      "tags": [
+        "Gary Marcus",
+        "中国开源模型"
+      ],
+      "score": 75,
+      "summary": "Gary Marcus评论扎克伯格文章，称其解释不完整且自私。",
+      "fetched_at": "2026-08-11T10:02:51.015372+08:00"
+    },
+    {
+      "title": "The only solution to this drama would start with a change at the top.\n\n@sama, for the benefit of hum...",
+      "link": "https://x.com/GaryMarcus/status/2086978679822028962",
+      "published": "2026-08-11T08:51:06+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "The only solution to this drama would start with a change at the top.  \n  \n[@sama](https://x.com/sama), for the benefit of humanity, and the benefit of the mission, maybe it’s time to let someone else take the reins.\n\n![NIK](https://pbs.twimg.com/profile_images/2048822563821035520/7nxCFEnk_normal.jpg)\n\nNIK@ns123abc\n\n🚨BREAKING: OpenAI head of ethics, head of safety systems AND head of mission alignment have ALL quit in the last few weeks…   \n  \nit’s so over\n\n![Tweet Image](https://pbs.twimg.com/media/HPZffd2XQAAEPtU.jpg)![Tweet Image](https://pbs.twimg.com/media/HPZffd3WYAA_boE.jpg)![Tweet Image](https://pbs.twimg.com/media/HPZffd4WsAAjj6i.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ns123abc/status/2086960475036635393)\n\n💬2🔄3❤️22👀4893📊4",
+      "tags": [
+        "OpenAI",
+        "高管离职"
+      ],
+      "score": 80,
+      "summary": "OpenAI道德、安全、使命对齐负责人离职，Marcus呼吁换帅。",
+      "fetched_at": "2026-08-11T10:02:51.015374+08:00"
+    },
+    {
+      "title": "Cloudflare Tunnel 与 Cloudflare Mesh 的区别",
+      "link": "https://x.com/geekbb/status/2086983039016734816",
+      "published": "2026-08-11T09:08:25+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "Cloudflare Tunnel 与 Cloudflare Mesh 的区别\n\n![Tweet Image](https://pbs.twimg.com/media/HPZz_-fbQAAHIi7.jpg)\n\n💬4🔄1❤️11👀1658📊7",
+      "tags": [
+        "Cloudflare",
+        "Tunnel",
+        "Mesh"
+      ],
+      "score": 55,
+      "summary": "对比Cloudflare Tunnel与Mesh的功能区别。",
+      "fetched_at": "2026-08-11T10:02:51.015376+08:00"
+    },
+    {
+      "title": "The biggest unfair advantage in recruiting: caring.\n\n\"It's easy to get caught up in the numbers game...",
+      "link": "https://x.com/lennysan/status/2086972835566883158",
+      "published": "2026-08-11T08:27:52+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "The biggest unfair advantage in recruiting: caring.  \n  \n\"It's easy to get caught up in the numbers game. I need to reach out to 100 to get to 20. I need to have 10 hiring manager screens to get 4 on-sites. You get caught up in the numbers, and you lose the human element. You're looking for the one.   \n  \nI try to remind my team, we're trying to hire one person for this role here, not 10. Focus on the one.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086971762307448832/vid/avc1/1920x1080/HQqrvylbzonP6gy_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2086972835566883158/video/1)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nCursor has spent its entire existence competing with every major AI lab and incumbent in the toughest market in tech—and has continued to win. So much so that [@elonmusk](https://x.com/elonmusk) bought them for $60 billion to help SpaceX win the AI race.  \n  \nThey've done this by building one of the most talent-dense teams in history.  \n  \nAdam Ward ([@wardadamp](https://x.com/wardadamp)) is Head of Talent at [@Cursor\\_AI](https://x.com/Cursor_AI)—who acquired his legendary recruiting firm after he spent 20+ years building the most elite teams in tech—and in our conversation he shares the entire playbook for building high talent-density teams.  \n  \nWe discuss:  \n🔸 Why the traditional recruiting funnel—the \"funnel of doom\"—guarantees mediocre hiring  \n🔸 Adam's three-step playbook for hiring the top 1%  \n🔸 The rise of the forward-deployed engineer  \n🔸 Today's \"tale of two cities\" talent market  \n🔸 The biggest mistake founders make with their first recruiting hire  \n🔸 The worst question you can ask when sourcing talent (you've definitely asked it)  \n  \nWatch the full episode right here 👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086861659898011648/vid/avc1/1920x1080/Rw9zBr3rWADt0KLX.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2086864753016885249/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2086864753016885249)\n\n💬2🔄0❤️14👀4529📊3",
+      "tags": [
+        "Cursor",
+        "马斯克收购"
+      ],
+      "score": 80,
+      "summary": "Lenny访谈透露马斯克以600亿美元收购Cursor。",
+      "fetched_at": "2026-08-11T10:02:51.015378+08:00"
+    },
+    {
+      "title": "People who are serious about software train their own models.",
+      "link": "https://x.com/naval/status/2086987724037185547",
+      "published": "2026-08-11T09:27:02+08:00",
+      "source": "Naval(@naval)",
+      "content": "People who are serious about software train their own models.\n\n💬28🔄14❤️124👀15328📊35",
+      "tags": [
+        "Naval",
+        "训练自有模型"
+      ],
+      "score": 65,
+      "summary": "Naval：认真做软件的人都会训练自己的模型。",
+      "fetched_at": "2026-08-11T10:02:51.015380+08:00"
+    },
+    {
+      "title": "Once again, limit case: super programmer building a new project from scratch that duplicates a lot o...",
+      "link": "https://x.com/paulg/status/2086977248830341231",
+      "published": "2026-08-11T08:45:24+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Once again, limit case: super programmer building a new project from scratch that duplicates a lot of the functionality of an existing service.\n\n💬9🔄0❤️50👀8106📊11",
+      "tags": [
+        "Paul Graham",
+        "AI编程"
+      ],
+      "score": 60,
+      "summary": "Paul Graham讨论超级程序员从零复刻现有服务的极限。",
+      "fetched_at": "2026-08-11T10:02:51.015382+08:00"
+    },
+    {
+      "title": "Are the people who were enraged by this tweet going to be even more enraged when I tell them I met a...",
+      "link": "https://x.com/paulg/status/2086976755718664253",
+      "published": "2026-08-11T08:43:27+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Are the people who were enraged by this tweet going to be even more enraged when I tell them I met a founder today who sometimes writes 50,000 lines of code in a day? Or is everyone now used to this?\n\n![Paul Graham](https://pbs.twimg.com/profile_images/1824002576/pg-railsconf_normal.jpg)\n\nPaul Graham@paulg\n\nI met a founder today who said he writes 10,000 lines of code a day now thanks to AI. This is probably the limit case. He's a hotshot programmer, he knows AI tools very well, and he's talking about a 12 hour day. But he's not naive. This is not 10,000 lines of bug-filled crap.\n\n[🔗 View Quoted Tweet](https://x.com/paulg/status/1953289830982664236)\n\n💬63🔄4❤️252👀42909📊54",
+      "tags": [
+        "Paul Graham",
+        "每日5万行"
+      ],
+      "score": 75,
+      "summary": "Paul Graham称有创始人在AI辅助下一天写5万行代码。",
+      "fetched_at": "2026-08-11T10:02:51.015384+08:00"
+    },
+    {
+      "title": "The ability of vision LLMs to describe photos of this level of detail never ceases to amaze me, even...",
+      "link": "https://x.com/simonw/status/2086975777292386308",
+      "published": "2026-08-11T08:39:34+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "The ability of vision LLMs to describe photos of this level of detail never ceases to amaze me, even more so the ones that can run on my own laptop  \n  \nI don't think this aspect of modern LLMs gets nearly the attention it deserves\n\n💬2🔄0❤️19👀1865📊4",
+      "tags": [
+        "Simon Willison",
+        "视觉LLM"
+      ],
+      "score": 65,
+      "summary": "Simon Willison惊叹本地视觉LLM对照片的细节描述能力。",
+      "fetched_at": "2026-08-11T10:02:51.015386+08:00"
+    },
+    {
+      "title": "I'm impressed with its vision abilities - here's how it described my most recent pelican photo, desc...",
+      "link": "https://x.com/simonw/status/2086972896900215019",
+      "published": "2026-08-11T08:28:07+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I'm impressed with its vision abilities - here's how it described my most recent pelican photo, description generated entirely on my laptop\n\n![Tweet Image](https://pbs.twimg.com/media/HPZqjRobgAAg3ZP.jpg)![Tweet Image](https://pbs.twimg.com/media/HPZqsZNaAAAG-0I.png)\n\n💬1🔄1❤️16👀2859📊3",
+      "tags": [
+        "Simon Willison",
+        "本地视觉"
+      ],
+      "score": 65,
+      "summary": "Simon Willison展示本地LLM对照片的详细描述。",
+      "fetched_at": "2026-08-11T10:02:51.015388+08:00"
+    },
+    {
+      "title": "I few notes on Meta's new Muse Glimmer 30B - their first Apache 2.0 licensed open weight model (the ...",
+      "link": "https://x.com/simonw/status/2086972895256007160",
+      "published": "2026-08-11T08:28:06+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "I few notes on Meta's new Muse Glimmer 30B - their first Apache 2.0 licensed open weight model (the Llama models had a janky non-OSI license) [simonwillison.net/2026/Aug/10/in…](https://simonwillison.net/2026/Aug/10/introducing-muse-glimmer/)\n\n💬7🔄2❤️76👀8271📊17",
+      "tags": [
+        "Muse Glimmer",
+        "Apache 2.0"
+      ],
+      "score": 85,
+      "summary": "Simon Willison详解Meta Muse Glimmer，称其为首个Apache 2.0开源权重模型。",
+      "fetched_at": "2026-08-11T10:02:51.015390+08:00"
+    },
+    {
+      "title": "Entered my Michael Truell Dm-ing era of the new co.",
+      "link": "https://x.com/Suhail/status/2086982664066842754",
+      "published": "2026-08-11T09:06:56+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Entered my Michael Truell Dm-ing era of the new co.\n\n💬0🔄0❤️16👀2264📊2",
+      "tags": [
+        "Suhail"
+      ],
+      "score": 30,
+      "summary": "Suhail称进入新公司Michael Truell DM阶段。",
+      "fetched_at": "2026-08-11T10:02:51.015392+08:00"
+    },
+    {
+      "title": "I am not starting an RL env company. Leaving that to all of you!",
+      "link": "https://x.com/Suhail/status/2086980801837830200",
+      "published": "2026-08-11T08:59:32+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "I am not starting an RL env company. Leaving that to all of you!\n\n💬0🔄0❤️1👀1111",
+      "tags": [
+        "Suhail",
+        "RL环境公司"
+      ],
+      "score": 40,
+      "summary": "Suhail澄清不会创办RL环境公司。",
+      "fetched_at": "2026-08-11T10:02:51.015394+08:00"
+    },
+    {
+      "title": "我还挺喜欢这个新的主题模式的",
+      "link": "https://x.com/yangyi/status/2086976551380570365",
+      "published": "2026-08-11T08:42:38+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "我还挺喜欢这个新的主题模式的\n\n![Tweet Image](https://pbs.twimg.com/media/HPZuE_YbEAALkFY.jpg)![Tweet Image](https://pbs.twimg.com/media/HPZuFjZaQAAaiaI.jpg)\n\n![Yangyi](https://pbs.twimg.com/profile_images/2006199964930879488/FCF1YJ0u_normal.jpg)\n\nYangyi@yangyi\n\n新的图片主题功能预告\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086782837920018432/vid/avc1/1280x816/Efrh5NARDnSK6C-1.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yangyi/status/2086783006564598245/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/yangyi/status/2086783006564598245)\n\n💬1🔄1❤️1👀547📊1",
+      "tags": [
+        "Yangyi",
+        "图片主题"
+      ],
+      "score": 45,
+      "summary": "Yangyi表示喜欢新的图片主题模式。",
+      "fetched_at": "2026-08-11T10:02:51.015396+08:00"
+    },
+    {
+      "title": "早期的ai时代\n是ADHD的红利窗口\n因为ADHD更适合探索型的创新任务\n且注意力极度分散\n更适合开5-8个窗口并行跑任务\n对任务的精度要求不高\n这也很符合ADHD遗忘细节的特性\n\n但当AI的红利期消...",
+      "link": "https://x.com/yangyi/status/2086973611316060645",
+      "published": "2026-08-11T08:30:57+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "早期的ai时代  \n是ADHD的红利窗口  \n因为ADHD更适合探索型的创新任务  \n且注意力极度分散  \n更适合开5-8个窗口并行跑任务  \n对任务的精度要求不高  \n这也很符合ADHD遗忘细节的特性  \n  \n但当AI的红利期消亡之后  \n就又会回归到规则节奏中  \nADHD的红利期也会随之结束\n\n💬4🔄0❤️1👀502📊4",
+      "tags": [
+        "ADHD",
+        "AI时代"
+      ],
+      "score": 45,
+      "summary": "Yangyi称AI早期是ADHD人群的红利期。",
+      "fetched_at": "2026-08-11T10:02:51.015398+08:00"
+    },
+    {
+      "title": "我看小红书上有一帮人问怎么用AI提取抖音小红书视频文稿\n这东西就直接跟NewMax里说句话\n做个Skill就能解决👇🏻",
+      "link": "https://x.com/yangyi/status/2086969806188855304",
+      "published": "2026-08-11T08:15:50+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "我看小红书上有一帮人问怎么用AI提取抖音小红书视频文稿  \n这东西就直接跟NewMax里说句话  \n做个Skill就能解决👇🏻\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086967007271096320/vid/avc1/1660x1080/u0IWpW8GRGy8-KUA.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yangyi/status/2086969806188855304/video/1)\n\n💬3🔄1❤️5👀970📊5",
+      "tags": [
+        "NewMax",
+        "视频文稿提取"
+      ],
+      "score": 65,
+      "summary": "Yangyi演示用NewMax的Skill提取视频文稿。",
+      "fetched_at": "2026-08-11T10:02:51.015400+08:00"
+    },
+    {
+      "title": "Test the model in Code Arena: WebDev to evaluate for yourself, and find the full leaderboard details...",
+      "link": "https://x.com/arena/status/2086979500496286133",
+      "published": "2026-08-11T08:54:21+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Test the model in Code Arena: WebDev to evaluate for yourself, and find the full leaderboard details at: [arena.ai/leaderboard/co…](https://arena.ai/leaderboard/code/webdev)\n\n💬0🔄1❤️1👀1162📊1",
+      "tags": [
+        "Code Arena",
+        "WebDev"
+      ],
+      "score": 50,
+      "summary": "LMArena邀请用户测试Code Arena WebDev模型。",
+      "fetched_at": "2026-08-11T10:02:51.015402+08:00"
+    },
+    {
+      "title": "In the Text Arena Muse Glimmer landed #97 overall, ranking #24 among open models (1426 pts).",
+      "link": "https://x.com/arena/status/2086979489612079538",
+      "published": "2026-08-11T08:54:19+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "In the Text Arena Muse Glimmer landed #97 overall, ranking #24 among open models (1426 pts).\n\n![Tweet Image](https://pbs.twimg.com/media/HPZwvloaQAA3CBD.jpg)\n\n💬1🔄0❤️6👀1334📊2",
+      "tags": [
+        "Muse Glimmer",
+        "Text Arena",
+        "排名第97"
+      ],
+      "score": 80,
+      "summary": "Muse Glimmer在Text Arena排第97，开源模型第24。",
+      "fetched_at": "2026-08-11T10:02:51.015403+08:00"
+    },
+    {
+      "title": "Muse Glimmer by @AIatMeta debuts at #77 in Code Arena: WebDev with 1359 pts, ranking #26 among open ...",
+      "link": "https://x.com/arena/status/2086979482162966600",
+      "published": "2026-08-11T08:54:17+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Muse Glimmer by [@AIatMeta](https://x.com/AIatMeta) debuts at #77 in Code Arena: WebDev with 1359 pts, ranking #26 among open models. As Meta's newest entry into this size range, and an open-weight model, Glimmer brings Meta into the top 3 US labs with an open-weights model.  \n  \nCongrats to [@AIatMeta](https://x.com/AIatMeta) for the solid contribution to the open small model ecosystem!\n\n![Tweet Image](https://pbs.twimg.com/media/HPZws5TbQAA2rCQ.jpg)\n\n![AI at Meta](https://pbs.twimg.com/profile_images/1454145678075117568/2qXqM_Cu_normal.png)\n\nAI at Meta@AIatMeta\n\nIntroducing Muse Glimmer, an open-weight 30B-parameter model optimized for local, always-on agent workflows.  \n  \nMuse Glimmer delivers strong performance on key agentic use cases and benchmarks compared with leading models in its size category, and is designed to run entirely on consumer hardware like a Mac or PCs with performant GPUs.  \n  \nIn keeping with our long tradition of sharing fundamental AI research, we’re releasing model weights under a permissive Apache 2.0 license.  \n  \n🧵👇\n\n![Tweet Image](https://pbs.twimg.com/media/HPWkSuDbkAExHc7.png)![Tweet Image](https://pbs.twimg.com/media/HPWk17aaoAAroWc.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/AIatMeta/status/2086757844544811485)\n\n💬5🔄3❤️40👀8048📊8",
+      "tags": [
+        "Muse Glimmer",
+        "Code Arena",
+        "第77名"
+      ],
+      "score": 82,
+      "summary": "Muse Glimmer在Code Arena WebDev排第77，开源模型第26。",
+      "fetched_at": "2026-08-11T10:02:51.015405+08:00"
+    },
+    {
+      "title": "x 的关键词屏蔽系统坏掉了 \n好像可能是推荐算法那边完全漏了这个设定…",
+      "link": "https://x.com/oran_ge/status/2086983529729241395",
+      "published": "2026-08-11T09:10:22+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "x 的关键词屏蔽系统坏掉了   \n好像可能是推荐算法那边完全漏了这个设定…\n\n💬2🔄0❤️0👀615📊2",
+      "tags": [
+        "X平台",
+        "关键词屏蔽"
+      ],
+      "score": 30,
+      "summary": "用户反馈X平台关键词屏蔽系统故障。",
+      "fetched_at": "2026-08-11T10:02:51.015407+08:00"
+    },
+    {
+      "title": "转自刘群MT-to-Death：\n很多人不理解文本水印是怎么回事。\n\n文本水印是嵌入到语言生成中的一种印记，比如可以用A/B两个同义词的时候总是选择B、可以用两种表达方式C/D的时候总是选择次高概率的...",
+      "link": "https://x.com/dotey/status/2086990367216312612",
+      "published": "2026-08-11T09:37:32+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "转自刘群MT-to-Death：  \n很多人不理解文本水印是怎么回事。  \n  \n文本水印是嵌入到语言生成中的一种印记，比如可以用A/B两个同义词的时候总是选择B、可以用两种表达方式C/D的时候总是选择次高概率的D，这样文本看起来没有任何问题，但实际上是可以检测到的。  \n  \n由于水印是加在文本内容上的，转变成图像再用OCR扫描出文本也没有任何用处。这种水印的添加和检测都是由大模型来做的，人很难感知到。  \n  \n当然修改文本有可能破坏这种水印，但由于人不知道这些水印会加在那些词上，所以水印也很难全部破坏掉。\n\n![Tweet Image](https://pbs.twimg.com/media/HPZ6rUVXAAEO7z0.jpg)\n\n💬0🔄0❤️0👀114",
+      "tags": [
+        "文本水印",
+        "生成检测"
+      ],
+      "score": 75,
+      "summary": "科普文本水印原理：在生成文本中嵌入可检测印记。",
+      "fetched_at": "2026-08-11T10:02:51.015409+08:00"
+    },
+    {
+      "title": "这个试验很有意思：100万美元预算，让给20多人的团队不限量 Token 使用 AI。\n\n结论是：\n人会更累，AI 的成本比人还高；\n效率提升最大的是组织从 0 到 1 使用 AI；\n公司的组织架构还...",
+      "link": "https://x.com/dotey/status/2086989769955811633",
+      "published": "2026-08-11T09:35:10+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "这个试验很有意思：100万美元预算，让给20多人的团队不限量 Token 使用 AI。  \n  \n结论是：  \n人会更累，AI 的成本比人还高；  \n效率提升最大的是组织从 0 到 1 使用 AI；  \n公司的组织架构还是为人设计的，就算有无限 Token，效率提升上也有明显天花版；  \n人的思考都外包给 AI 了，对项目细节掌控度下降，需要问 AI 才能回复别人的问题。\n\n![美研芒格君](https://pbs.twimg.com/profile_images/2062215881573507072/lfaUYNav_normal.jpg)\n\n美研芒格君@Kay2289123\n\n目前我在硅谷的 AI 训练/推理大厂带领一个 20 多人的团队，跟公司申请了预算100万美元，进行Token 不限量的激进实验, 这个帖子分享我在一线的使用认知和结论  \n  \n结论是：Token 不限量不切实际，比人类贵很多，反而造成了在组织效率提升上，遭遇了明显的边际效益门槛。  \n  \n我预计 AI 真正的上行空间不在于单个组织消耗 token 冲破天际线，而在于基本的大盘子从 0 到 1 开始到 AI token 使用  \n  \nAI 现在无法落地，有很大一部分是因为我们的公司不够 AI native，整个组织架构还是为人而设计的。因此，AI 的无预算上线使用出现了水土不服  \n  \n> 先说数据：  \n  \n最多的成员单日花费 Token $7,000，团队中位数 $2,000。大家最喜欢的模型是 GPT-5.6 Sol Fast 和 Fable 5 Fast。算下来超过了大部分人的月工资，不可持续  \n  \n> 今天跟团队每个成员都 1 对 1 过，说几个共性问题  \n  \n1. 团队成员普遍反映比之前更累，真的很累，工资没变，干的活反而更多  \n  \n在等待推理过程中，团队成员中位数大概会开 5 个 session 并行去使用，context 不断地转换，这对于人脑是一个很大的挑战  \n  \n此外，人类去 review AI 产生的大量工作，也带来了非常大的负担  \n  \n2. 未必所有工作都需要贵模型。模型路由非常关键，但便宜模型未必真的便宜  \n  \n成员通常会将一些更偏向于快问快答、前期调研的任务交给 Grok 4.5（便宜、快）。虽然等待时间更短，但来回反复的次数更多。很多贵模型一次能完成的事情，便宜模型要来回迭代，再加上之前多个 session 并行，反而造成了一种负担。总的调用量换算成价格，甚至比贵模型更贵  \n  \n3. 团队的会议数上个月环比减少了将近 80%，整个团队好像变成了 AI 跟 AI 在对话工作  \n  \n很多团队成员将自己的大脑都托管给 AI 了，因此有的时候对项目的细节掌握度、理解度都不够。  \n  \n在会上别人问什么问题，人类完全无法 real-time 回答，所以更多地变成了 offline 的沟通方式——因为在 offline 情况下，收到问题之后才能去问 AI，然后再进行回答  \n  \n个别情况下，群里出现了 AI 一通乱答，对面的 AI 再一通乱答，两个人直接聊偏的情况\n\n[🔗 View Quoted Tweet](https://x.com/Kay2289123/status/2086933133208006689)\n\n💬1🔄0❤️3👀759📊1",
+      "tags": [
+        "100万美元",
+        "Token不限量"
+      ],
+      "score": 75,
+      "summary": "硅谷团队实验：100万美元Token不限量，成本高于人力，效率受限。",
+      "fetched_at": "2026-08-11T10:02:51.015411+08:00"
+    },
+    {
+      "title": "重置了",
+      "link": "https://x.com/op7418/status/2086987109739671626",
+      "published": "2026-08-11T09:24:35+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "重置了\n\n![Tibo](https://pbs.twimg.com/profile_images/2075819673263001600/pj1vyX6I_normal.jpg)\n\nTibo@thsottiaux\n\nHi.  \n  \nIt is done.\n\n[🔗 View Quoted Tweet](https://x.com/thsottiaux/status/2086972802457063486)\n\n💬1🔄0❤️4👀871📊1",
+      "tags": [
+        "Tibo",
+        "重置"
+      ],
+      "score": 30,
+      "summary": "歸藏转发Tibo：已完成重置。",
+      "fetched_at": "2026-08-11T10:02:51.015412+08:00"
     }
   ]
 }
