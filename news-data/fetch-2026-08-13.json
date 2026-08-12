@@ -1097,6 +1097,547 @@
       "score": 75,
       "summary": "歸藏称DeepSeek V4 Pro正式版0813发布，测试成绩爆炸。",
       "fetched_at": "2026-08-13T01:07:45.545285+08:00"
+    },
+    {
+      "title": "Part 2: Amazon Bedrock cost attribution with Amazon Athena and CUDOS",
+      "link": "https://aws.amazon.com/blogs/machine-learning/part-2-amazon-bedrock-cost-attribution-with-amazon-athena-and-cudos/",
+      "published": "2026-08-13T01:45:20+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "[Part 1](https://aws.amazon.com/blogs/machine-learning/introducing-granular-cost-attribution-for-amazon-bedrock/) introduced granular cost attribution for Amazon Bedrock. This feature automatically traces every inference request back to the IAM principal that made the call. It showed how the new `line_item_iam_principal` column can give you per-user and per-application visibility. With optional cost allocation tags, you can also aggregate spend by team, project, or tenant using AWS Cost Explorer. With this approach, you can typically track usage at the granularity you want for any Bedrock-powered service or application, whether third-party tools like Claude Code or Codex or your own custom builds. This post shows how to visualize and analyze cost attribution for Amazon Bedrock through Amazon Athena queries and CUDOS dashboards.\n\nFirst, this post shows you how to set up Cost and Usage Report (CUR) 2.0 through [Data Exports](https://docs.aws.amazon.com/cur/latest/userguide/dataexports-create.html) instrumented with IAM principal data. Next, this post shows you how to query CUR data with Amazon Athena for analysis. It then introduces the new capabilities of CUDOS dashboards, including granular Bedrock cost and usage data. While Athena provides flexibility for aggregations, integration with different business intelligence (BI) tools, and chargeback processes, CUDOS offers pre-built visuals tailored to your organization’s specific structure.\n\n![Table of example query output with columns for IAM principal, usage type, and unblended cost, showing per-user Claude model token costs](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-1.png)\n\nExample query output showing Amazon Bedrock costs by IAM principal and usage type\n\n## Setting up Cost and Usage Reports (CUR 2.0)\n\nBefore you can analyze Amazon Bedrock costs, set up a CUR 2.0 data export and connect it to Amazon Athena.\n\n### Prerequisites\n\nYou need the following:\n\n* An AWS account with billing console access.\n* IAM permissions for Cost and Usage Reports, S3, and Athena.\n* An S3 bucket for CUR data storage.\n* Basic familiarity with SQL and the AWS Management Console.\n* (Optional) Claude Code or Kiro-CLI for automated setup.\n\nMake sure you have the [required IAM permissions](https://github.com/aws-samples/sample-cur-iam-principal-bedrock-tracking/tree/main#required-iam-permissions).\n\nFor Amazon Bedrock cost attribution, you need to enable IAM principal data in your CUR 2.0 export so that the `line_item_iam_principal` column and associated IAM principal tags are populated.\n\n### Creating a CUR 2.0 data export with IAM principal data\n\nFollow the instructions in [Creating a standard data export](https://docs.aws.amazon.com/cur/latest/userguide/dataexports-create-standard.html) to set up your CUR 2.0 export. When configuring the export, make sure the following options are part of your final configuration:\n\n![The Create export page in the AWS Billing and Cost Management console with Standard data export, CUR 2.0, and Include caller identity (IAM principal) allocation data selected](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-2.png)\n\nCreating a CUR 2.0 standard data export with caller identity (IAM principal) allocation data enabled\n\n* In **Additional export content**, select the following checkboxes:\n  + **Include caller identity (IAM principal) allocation data** — This is the critical setting that populates the `line_item_iam_principal` column and surfaces IAM principal tags (prefixed with `iamPrincipal/`) in your cost data.\n* In **Data table configurations**:\n  + **Time granularity**: Select Hourly for maximum detail.\n* In **Data export delivery options**:\n  + **File versioning**: Select Overwrite existing report to avoid storing duplicate data.\n\n***Important:** Enabling IAM principal data increases CUR file sizes because usage that was previously a single row is now expanded into multiple rows, one for each IAM principal that contributed to the usage. For high-volume workloads with many distinct principals, plan your Amazon S3 storage accordingly and consider [Amazon S3 Lifecycle policies](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html) for older CUR files.*\n\nIt may take up to 24 hours for AWS to deliver your first CUR 2.0 report to the S3 bucket.\n\n### Connecting CUR 2.0 to Amazon Athena\n\nWith Amazon Athena, you can query your CUR data using standard SQL with no infrastructure to manage. To streamline this setup, an optional agent.md skill repo is available that you can use with AI assistants like Claude Code, Kiro-CLI, or Codex. It automates the end-to-end process of connecting your Athena environment to your CUR data.\n\n1. Clone the repo (`git clone https://github.com/aws-samples/sample-cur-iam-principal-bedrock-tracking`).\n2. Launch Claude Code (`claude`) or Kiro CLI (`kiro`) in this directory.\n3. Prompt: “Read agent.md and follow its workflow to set up Cost and Usage Report tracking and run the Amazon Bedrock-by-principal query for the current month.”\n\nYou may also follow the [manual setup steps](https://github.com/aws-samples/sample-cur-iam-principal-bedrock-tracking/blob/main/manual_setup.md).\n\nIf you plan to deploy the CUDOS dashboard as well, you can [deploy it from AWS CloudFormation](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/deployment-in-global-regions.html). This also deploys the Athena query database as part of the process.\n\nOnce deployed, here is a sample test query in the [Athena Query Editor](https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/history) that you can use:\n\n```\nSELECT\n    line_item_iam_principal,\n    line_item_usage_type,\n    line_item_unblended_cost\n    --# Note: replace your_cur_table_name, like `cid_data_export.cur2`\nFROM your_cur_table_name\nWHERE line_item_product_code in ('AmazonBedrock', 'AmazonBedrockService')\n    AND line_item_iam_principal IS NOT NULL\nLIMIT 10;\n```\n\nIf this returns rows with IAM principal ARNs and Bedrock usage types, your setup is complete and ready for deeper analysis.\n\n## Athena query patterns for Bedrock cost tracking\n\nWith your CUR 2.0 data available in Athena, you can now answer granular cost attribution questions using SQL. This section provides three progressively sophisticated query patterns that cover the most common analysis scenarios.\n\n**Note:** In the following queries, replace `your_cur_table_name` with the actual name of your CUR Athena table (for example, `cid_data_export.cur2`).\n\n### Query 1: Bedrock costs by IAM principal and usage type\n\nThis query provides a complete breakdown of Amazon Bedrock spending by caller identity and model usage. It answers the question: *“Who is calling which models, and how much are they spending?”*\n\n```\nSELECT\n    line_item_iam_principal,\n    line_item_usage_type,\n    SUM(line_item_usage_amount) AS total_tokens,\n    SUM(line_item_unblended_cost) AS total_cost\nFROM your_cur_table_name\nWHERE line_item_product_code in ('AmazonBedrock', 'AmazonBedrockService')\n    AND billing_period = DATE_FORMAT(CURRENT_DATE, '%Y-%m')\n    AND line_item_iam_principal IS NOT NULL\n    -- AND line_item_usage_type LIKE '%Sonnet%input%'\nGROUP BY\n    line_item_iam_principal,\n    line_item_usage_type\nORDER BY total_cost DESC;\n```\n\n**Example output:**\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| **line\\_item\\_iam\\_principal** | **line\\_item\\_usage\\_type** | **total\\_tokens** | **total\\_cost** |\n| arn:aws:sts::123456789012:assumed-role/ChatApp/session-1 | USW2-anthropic.claude-opus-4-8-mantle-cache-write-tokens-standard | 1629.5 | $11.2029 |\n| arn:aws:sts::123456789012:assumed-role/DocProcessor/batch-7 | USW2-Claude4.6Sonnet-output-tokens | 68.579 | $1.131 |\n| arn:aws:sts::123456789012:assumed-role/ClaudeCode/chat | USW2-Claude4.6Sonnet-cache-write-input-token-count | 831.74 | $3.4309 |\n| arn:aws:iam::123456789012:user/alice | USW2-Claude4.6Sonnet-input-tokens | 17.33 | $0.0572 |\n\n**Analysis tips:**\n\n* Use LIKE patterns such as `line_item_usage_type LIKE '%Sonnet%output%'` or `%nova%` to filter for specific models.\n* The `line_item_iam_principal` column contains the full ARN. For assumed roles, the session name after the last `/` identifies the specific user or session.\n\n### Query 2: Costs broken down by known IAM principal tags\n\nWhen you’ve tagged your IAM principals with dimensions like `team`, `project`, or `costcenter` (and activated those tags as cost allocation tags), they appear in your CUR 2.0 data as part of the *tags* columns, with the `iamPrincipal/` prefix followed by your tag key. This query groups costs by those tags to answer questions like: *“How much did the engineering team spend on Bedrock this month?”* or *“What’s the total Bedrock cost for the chatbot project?”*\n\n**By project:**\n\n```\nSELECT\n    tags['iamPrincipal/project'] AS project,\n    line_item_usage_type,\n    SUM(line_item_usage_amount) AS total_tokens,\n    SUM(line_item_unblended_cost) AS total_cost\nFROM your_cur_table_name\nWHERE line_item_product_code in ('AmazonBedrock', 'AmazonBedrockService')\n    AND billing_period = DATE_FORMAT(CURRENT_DATE, '%Y-%m')\n    AND line_item_iam_principal IS NOT NULL\nGROUP BY\n    tags['iamPrincipal/project'],\n    line_item_usage_type\nORDER BY total_cost DESC;\n```\n\n**Example output:**\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| **project** | **line\\_item\\_usage\\_type** | **total\\_tokens** | **total\\_cost** |\n| data-science | USW2-Claude4.5Sonnet-cache-write-input-token-count | 433.893 | 1.789808625 |\n| data-science | USW2-Claude4.6Sonnet-cache-read-input-token-count | 5372.659 | 1.77297747 |\n| engineering | USW2-Claude4.5Sonnet-input-tokens | 29.481 | 0.0972873 |\n| engineering | USW2-Claude4.5Sonnet-output-tokens | 31.102 | 0.513183 |\n\n**Note:** This query returns results only if your IAM principals have been tagged with the relevant keys and those tags have been activated as cost allocation tags.\n\n### Query 3: Dynamic tag discovery using UNNEST for unknown tag schemas\n\nIn large organizations, you may not know in advance which tags have been applied across all IAM principals. Different teams might use different tag keys, or new tags might be introduced over time. The following example shows how to dynamically explore using Athena’s UNNEST function.\n\nThis query discovers all IAM principal tags being used across your Bedrock workloads and shows cost allocation for each tag key-value pair:\n\n```\nWITH iam_principal_costs AS (\n    SELECT\n        t.key AS tag_name,\n        t.value AS tag_value,\n        line_item_usage_type,\n        line_item_unblended_cost\n    FROM your_cur_table_name\n    CROSS JOIN UNNEST(tags) AS t(key, value)\n    WHERE line_item_product_code IN ('AmazonBedrock', 'AmazonBedrockService')\n        AND line_item_iam_principal IS NOT NULL\n        AND line_item_iam_principal != ''\n        AND t.key LIKE 'iamPrincipal/%'\n)\nSELECT\n    tag_name || ': ' || tag_value AS tags,\n    line_item_usage_type,\n    SUM(line_item_unblended_cost) AS total_cost\nFROM iam_principal_costs\nGROUP BY tag_name, tag_value, line_item_usage_type\nORDER BY total_cost DESC;\n```\n\n## Real-world use case: Multi-service cost comparison\n\nConsider a platform team running multiple AI-powered services. For example, the team might run a document summarization pipeline (DocProcessor) and a customer-facing chatbot (ChatApp). The team can assign each service to its own IAM role. With the query patterns from the preceding section, you can isolate how the spend for each service trends with the following query:\n\n```\nSELECT\n    line_item_iam_principal,\n    line_item_usage_type,\n    SUM(line_item_usage_amount) AS total_usage,\n    SUM(line_item_unblended_cost) AS total_cost\nFROM your_cur_table_name\nWHERE line_item_product_code IN ('AmazonBedrock', 'AmazonBedrockService')\n    AND billing_period = DATE_FORMAT(CURRENT_DATE, '%Y-%m')\n    AND line_item_iam_principal IS NOT NULL\n    AND (\n        line_item_iam_principal LIKE '%DocProcessor%'\n        OR line_item_iam_principal LIKE '%ChatApp%'\n    )\nGROUP BY\n    line_item_iam_principal,\n    line_item_usage_type\nORDER BY total_cost DESC;\n```\n\nExample output:\n\n|  |  |  |  |\n| --- | --- | --- | --- |\n| **line\\_item\\_iam\\_principal** | **line\\_item\\_usage\\_type** | **total\\_usage** | **total\\_cost** |\n| arn:aws:sts::123456789012:assumed-role/ChatApp/session-1 | USE1-Claude4.6Sonnet-output-tokens | 4,800,000 | $72.00 |\n| arn:aws:sts::123456789012:assumed-role/ChatApp/session-1 | USE1-Claude4.6Sonnet-input-tokens | 2,900,000 | $8.70 |\n| arn:aws:sts::123456789012:assumed-role/DocProcessor/batch-7 | USE1-NovaLite-output-tokens | 6,100,000 | $1.46 |\n| arn:aws:sts::123456789012:assumed-role/DocProcessor/batch-7 | USE1-NovaLite-input-tokens | 3,200,000 | $0.19 |\n\nFrom this output, the platform team can answer questions like:\n\n**Which application is the top contributor to this month’s Bedrock spend?** In this example, ChatApp accounts for over $80 using Claude 4.6 Sonnet, while DocProcessor costs under $5 using Nova Lite.\n\n**Could we reduce costs by using a different model for each workload?** DocProcessor is already on Nova Lite (appropriate for straightforward summarization tasks), but the team might evaluate whether ChatApp could handle some interactions with a lighter model to reduce the $72 output-token cost.\n\n## Cost of Athena queries\n\nYou pay only for the queries that you run. You are charged based on the amount of data scanned by each query. The console displays this information after each query, and this information is also available in the Recent Queries tab in the Athena console.\n\nAthena queries are billed at $5 per TB scanned (with a 10 MB minimum per query). Because our table automatically uses [hive partition projection](https://docs.aws.amazon.com/athena/latest/ug/partition-projection.html) on billing\\_period, queries scoped to a single month only scan the parquet files in that month’s folder. Scans are typically well under 10 MB, which costs about $0.00005 per query (the 10 MB minimum).\n\nTo keep costs low, always include a `WHERE billing_period = ...` filter and select only the columns you need rather than `SELECT *`.\n\n## The Cloud Intelligence Dashboards framework\n\n[CUDOS dashboard](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/cudos-cid-kpi.html#foundational-cudos-dashboard) is part of the open source [Cloud Intelligence Dashboards (CID) framework](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/getting-started.html), which you can deploy in your AWS account using the provided infrastructure as code (IaC) templates. The framework helps you drive financial accountability and increase operational efficiency across your AWS organizations. The CUDOS dashboard provides detailed and actionable insights, supporting data-driven decisions for cost efficiency across your AWS infrastructure.\n\n### Amazon Bedrock cost and usage insights in CUDOS\n\n[CUDOS version 5.8](https://github.com/aws-solutions-library-samples/cloud-intelligence-dashboards-framework/blob/main/changes/CHANGELOG-cudos.md#cudos---580) introduces a comprehensive Amazon Bedrock section in the AI/ML tab, with full IAM principal cost attribution support. The dashboard provides:\n\n* **Flexible grouping dimensions:** Group your Amazon Bedrock spend by IAM Principal, IAM Principal Tags (such as Project or Team), Model/Resource Group, Region, or any other cost taxonomy fields configured during dashboard deployment.\n* **Cost-per-million-tokens tracking:** A trend line overlaid on your spend chart showing how cost per million tokens evolves over time, helping you measure the impact of model selection changes or prompt optimization efforts, like caching for example.\n\nThe following figure shows the Amazon Bedrock Summary section in the AI/ML tab of the CUDOS dashboard, grouped by IAM principal, with per-principal cost breakdown and cost-per-million-tokens trend.\n\n![CUDOS dashboard AI/ML tab showing Amazon Bedrock spend grouped by IAM principal with a cost-per-million-tokens trend line](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-3.png)\n\nCUDOS dashboard showing Amazon Bedrock spend grouped by IAM principal\n\n* **Interactive drill-down filtering:** Choose any value in the top-level spend chart (such as a specific project, principal, or account) and every other visual automatically filters to that selection, letting you drill from a high-level overview into per-model and per-usage-type detail without navigating away from the dashboard.\n* **Granular model and usage breakdown:** Additional visuals, filtered by the top-level chart, show spend per model, per usage type, and cost-per-million-tokens by model, so you can identify which models and token types are driving costs for a given team or project.\n\nWhen you switch the grouping to IAM Principal Tag Project and choose a specific project (in this example, “chatbot-v2”), all other visuals filter to show only that project’s spend. The visuals break down that spend by model, usage type, and unit cost trends.\n\n![CUDOS dashboard showing Amazon Bedrock spend for the chatbot-v2 project broken down by model and usage type](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-4.png)\n\nCUDOS dashboard showing Amazon Bedrock spend grouped by IAM principal tag Project, filtered to the chatbot-v2 project\n\nWith these visuals, you can quickly answer questions like “Which project is driving the most output token costs?”, “Is our chatbot team using cost-efficient models?”, or “How has our cost per million tokens changed since we switched from Opus to Sonnet?”, without writing any SQL.\n\n### Getting started with CUDOS\n\nTo get started with CUDOS, you can explore the Bedrock section in an [interactive demo](https://cid.workshops.aws.dev/demo/?dashboard=cudos&sheet=AI/ML) dashboard. Follow the [deployment guide](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/deployment-in-global-regions.html) to set up CUDOS in your organization.\n\nIf you’re already using CUDOS, follow the [update guidance](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/update-dashboards.html) to upgrade to version 5.8. You can also use the [add organizational taxonomy](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/add-org-taxonomy.html) to add IAM Principal data to your existing CUDOS dashboard.\n\n## Clean up\n\nFirst, drop the Athena table and AWS Glue database (these are metadata, so no compute is running):\n\nWarning: Dropping the Athena table and Glue database will remove your ability to query CUR data. You will need to recreate these resources following the preceding section if you want to analyze billing data in the future.\n\n```\naws glue delete-table --region us-east-1 --database-name your_cur_table_name --name curexport\naws glue delete-database --region us-east-1 --name your_cur_table_name\n```\n\nSecond, if you no longer need the cost data itself, disable the export in the AWS Billing and Cost Management console under Data Exports and empty the S3 prefix it writes to. Note this is your raw billing history, so only delete it if you’re sure.\n\nFinally, clear out any Athena query results that have accumulated:\n\n```\naws s3 rm s3://<your-cur-bucket>/athena-results/ --recursive\n```\n\nThere are no crawlers, AWS Lambda functions, or schedules to delete. Partition projection means the only ongoing cost is S3 storage for the CUR files themselves, which is typically pennies per month.\n\nFor cleaning up CUDOS, refer to the [CUDOS dashboard teardown instructions](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/dashboard-teardown.html).\n\n## Conclusion and next steps\n\nThis two-part series walked through a complete toolkit for understanding and managing Amazon Bedrock inference costs:\n\n* **Part 1** introduced granular cost attribution: how Amazon Bedrock automatically captures the IAM principal behind every inference call, and how you can use cost allocation tags to aggregate spend by team, project, or tenant.\n* **Part 2** (this post) showed you how to put that data to work: setting up CUR 2.0 with IAM principal data, querying cost patterns in Amazon Athena, and comparing spend across projects and principals to inform cost allocation decisions. It also introduces the CUDOS dashboard, which provides a comprehensive AI/ML sheet with similar insights for Bedrock.\n\nTurn on CUR 2.0 with caller identity data in the AWS Billing console, connect it to Athena using the provided agent.md file, and run your first cost-by-principal query. Track Bedrock adoption across your organization with the CUDOS dashboard.\n\n---\n\n## About the authors\n\n![Abhi Shivaditya](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-5.png)\n\n### Abhi Shivaditya\n\n[Abhi](https://www.linkedin.com/in/ashivaditya/) is a Principal Solutions Architect at AWS, working with strategic global enterprise organizations to facilitate the adoption of AWS services in areas such as Artificial Intelligence, distributed computing, networking, and storage. Abhi assists customers in deploying high-performance machine learning models efficiently within the AWS ecosystem.\n\n![Brenno Passanha](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-6.png)\n\n### Brenno Passanha\n\n[Brenno](https://www.linkedin.com/in/brennopassanha/) is a Senior Technical Account Manager. He is part of the Cloud Operations Technical Field Community, focusing on Cloud Financial Management. Outside of work, Brenno enjoys raising his children, traveling the world, and creating memories through new experiences.\n\n![Yash Yamsanwar](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/10/ML-21078-7.png)\n\n### Yash Yamsanwar\n\n[Yash](https://www.linkedin.com/in/yash-yamsanwar/) is a Machine Learning Architect at Amazon Web Services (AWS), where he designs high-performance, scalable infrastructure for large-scale LLM inference and agentic AI systems. His work spans the full lifecycle of machine learning models — from training to production deployment — with a focus on optimizing generative AI systems at scale. Yash collaborates closely with ML research teams to push the boundaries of what is possible with large language models and other frontier machine learning technologies.",
+      "tags": [
+        "Amazon Bedrock",
+        "成本归因",
+        "Athena"
+      ],
+      "score": 75,
+      "summary": "AWS 教程演示用 Athena 和 CUDOS 可视化分析 Bedrock 成本。",
+      "fetched_at": "2026-08-13T03:14:49.837580+08:00"
+    },
+    {
+      "title": "Docker VMM Public Beta: A Complete Overhaul, Built for Performance",
+      "link": "https://www.docker.com/blog/docker-vmm-public-beta/",
+      "published": "2026-08-13T02:13:20+08:00",
+      "source": "Docker",
+      "content": "Today we’re announcing the public beta of a fully rebuilt Docker VMM: a new first-party virtualization layer underneath [Docker Desktop](https://www.docker.com/products/docker-desktop/), optimized for containers, and now available on both Mac and Windows starting with Docker Desktop v4.86.\n\n## What’s Changed, and Why It Matters\n\nPart of the magic of Docker Desktop is how it provides a seamless deployment of the Linux-native Docker engine on other platforms, like macOS and Windows. To support that, Desktop automatically creates and manages a VM and all the complicated integration of your local network and filesystem, in a safe and performant way.\n\nCreating that VM is the job of a virtual machine monitor, the layer that sits between your hardware and the containers Docker runs. Most developers never think about it. But when it’s slow, unstable, or holding onto your machine’s memory it should have released, you notice it constantly.\n\nDocker Desktop has always relied on a third-party VMM for this. Now it runs on Docker VMM, built by us from the ground up. That means we own the full stack, and we can tune every part of the engine for container workloads specifically. That translates directly to you: an engine that improves continuously, responds to developer feedback, and ships on our own schedule.\n\nThis matters for everyone running Docker Desktop today. Performance, stability, and governance improvements at the virtualization layer enhance the experience across the board, for every workflow, on every team.\n\n![Isometric diagram of the Docker stack: Host, DockerVMM, and Docker Engine layers supporting apps and containers today, with agent support is coming next.](https://www.docker.com/app/uploads/2026/08/IMG_9344-1.png \"- IMG 9344 1\")\n\nImage 1: Isometric diagram of the Docker stack: Host, DockerVMM, and Docker Engine layers.\n\n## The Performance Improvements Are Real\n\nHere’s what you’ll notice when you start using the beta release of Docker VMM:\n\n**Faster startup.** Container startup is measurably faster across the board, from first launch to project switches to restart recovery.\n\n**Better file I/O.** File sharing between container and host is significantly faster. When you’re in an edit-compile-test loop, you’ll see improvements every single build.\n\n**Smarter memory management.** Docker VMM returns memory to the host when containers are idle, so Docker Desktop isn’t holding onto RAM you’re not using.\n\n**Improved stability on Windows.** For the first time, Windows developers get a VMM built and maintained by Docker, with performance and stability work coming straight from us.\n\n**Stronger isolation, better performance.** DockerVMM still runs in a fully isolated VM, optimized for performance. On Windows, that means the isolation you’d expect from Hyper-V with the speed you’d expect from WSL2.\n\n## One Engine, Everywhere You Run Docker\n\nThe virtualization engine powering Docker VMM also powers Docker Sandboxes (SBX). That’s not a coincidence; it’s intentional. Every improvement lands in both products, so you get them wherever you choose to run Docker.\n\nThis matters beyond performance. As we build deeper capabilities into the engine, including enterprise admin controls and tighter governance for dev environments, they surface across both products. Longer term, we’re building toward a unified runtime that spans laptop, cloud, and on-prem, where containers, Compose apps, and agents are all first-class on one foundation. Docker VMM is how Docker Desktop gets there, and this is step one.\n\n## How To Enable It\n\n**On Mac:** If you are already using Docker VMM in Settings, you will be automatically updated to the new engine when you upgrade to v4.86.\n\n**On Windows:** Open Settings > General and you will see a new “Docker VMM” option. Switch it to opt in.\n\n![Feature Flag for Docker VMM in Settings ](https://www.docker.com/app/uploads/2026/08/image1.png \"- image1\")\n\nImage 2: Feature Flag for Docker VMM in Settings\n\nNo feature flag, no waitlist. Any Docker Desktop user on v4.86 or later can switch today. *Note: Linux support will be available at GA.*\n\n## What’s Next\n\nBeta runs through fall, focused on real developer workflows: builds, file syncs, and the container startup patterns you hit every day.\n\nGA is targeted for the end of October 2026, when Docker VMM becomes the default engine for new Docker Desktop installs across Mac, Windows, and Linux. GA is the baseline, and from there, the pace picks up. Everything we build next sits on this foundation.\n\n## Try It Today\n\nUpdate to [Docker Desktop v4.86](https://docs.docker.com/desktop/release-notes/#4860) to get started.\n\nNoticing a difference? Have ideas for where you’d want us to go next? We’re collecting feedback through [in-product](https://docs.docker.com/desktop/troubleshoot-and-support/feedback/) responses, our [community Slack](https://dockr.ly/comm-slack), and [support](https://www.docker.com/support/) channels.\n\nThis is the best Docker Desktop has ever run, and it only gets better from here.\n\n### Learn more\n\n* Read more on [Docker Docs](https://docs.docker.com/desktop/features/vmm/)\n\n**Docker VMM is available today in public beta in Docker Desktop v4.86 for Mac and Windows. Follow the Docker blog to stay up to date on GA and what comes next.**",
+      "tags": [
+        "Docker VMM",
+        "Docker Desktop",
+        "虚拟化"
+      ],
+      "score": 72,
+      "summary": "Docker 发布重建的 VMM 公开测试版，优化容器性能。",
+      "fetched_at": "2026-08-13T03:14:49.837595+08:00"
+    },
+    {
+      "title": "A new security baseline for enterprise agentic adoption",
+      "link": "https://www.docker.com/blog/a-new-security-baseline-for-enterprise-agentic-adoption/",
+      "published": "2026-08-13T01:25:31+08:00",
+      "source": "Docker",
+      "content": "###### **Agent Baseline is a blueprint for AI adoption that defines six security outcomes for putting enterprise agents to work without giving them unchecked authority.**\n\nConsider this scenario: a customer-support agent receives a ticket with an attachment. Hidden inside the attachment is an instruction: query the customer database and send the results to an external address.\n\nThe agent has everything it needs to comply. It can read tickets, query internal systems, call tools, and connect to the internet. The instruction is malicious, but it looks like part of the work.\n\nWhat stops the agent before customer data leaves the company?\n\nThat is the practical security problem enterprises face as agents move from experiments into daily operations. The problem is not only whether a model can recognize a malicious instruction. It is whether the systems around the model limit what the agent can reach, what authority it can use, and what actions it can take when the model gets the decision wrong.\n\n## Agents turn familiar controls into a new systems problem\n\nEnterprises already know how to manage identities, isolate workloads, restrict networks, test software, collect logs, and respond to incidents. Those controls remain necessary.\n\nAgents change how the controls must work together. An agent can be reprogrammed at runtime through natural-language instructions. It can choose how to pursue a goal, call tools, use delegated credentials, and spawn other agents. Its effective capabilities may change as models, prompts, tools, MCP servers, and permissions change.\n\nA coding agent illustrates the problem. Give it a bug to fix and it may read source code and internal documentation, install packages, call an external API, delegate tasks to sub-agents, and commit a change. Each step may be reasonable on its own. The risk emerges from the combination: one runtime-programmable actor moving across systems under delegated authority, faster than a person can review every decision.\n\nSecurity teams therefore need to answer three questions about every agent:\n\n1. **What is operating, and what can it do?**\n2. **Is it staying inside approved boundaries?**\n3. **If something goes wrong, can we prove what happened and stop it?**\n\nMost organizations can answer parts of these questions. Far fewer can answer them for one agent, one task, and one run across every model, tool, credential, policy decision, and downstream action\n\n## Enter the Agent Baseline: an open blueprint for building, operating and governing enterprise agents.\n\nAgent Baseline was created by Docker, Snyk and Keycard to define the minimum security outcomes an enterprise agent deployment should meet.\n\nThe current v1.0 draft contains [35 controls across six outcomes](https://agentbaseline.org/controls):\n\n* **Discover:** Maintain an accurate record of every agent, its owner, purpose, components, dependencies, and effective access.\n* **Constrain:** Limit the agent’s runtime, data, tools, network reach, compute, and duration to what its approved purpose requires.\n* **Authorize:** Bind consequential actions to a distinct identity, task, target, scope, and period of validity.\n* **Observe:** Connect intent, identity, policy, tool use, actions, and outcomes with a stable run or trace ID.\n* **Validate:** Test the agent in the configuration and environment in which it will operate, then verify its outputs and outcomes.\n* **Respond:** Stop the agent, revoke its authority, quarantine affected components, preserve evidence, and determine impact.\n\n**We officially launched the Agent Baseline  at Black Hat 2026**, to a full house during the event *Securing your AI Agent: The Road to Software Factory.*  If you’re curious to hear how it went, check the video below:\n\n[](https://www.docker.com/app/uploads/2026/08/riverside_agents__no-morals-no-limits_insecure_agents-stu.mp4)\n\n*Eli Aleyner, VP of Strategy, Docker*\n\n## The Agent Baseline in Practice\n\nHere is how the baseline contains the support-ticket incident:\n\n**“Discover” establishes what is at risk.** The agent registry identifies the agent’s owner and purpose, the model and tools it is actually running, the database it can query, the credentials it may use, and any downstream agents it can call. This is current runtime evidence, not the configuration approved six months ago.\n\n**“Constrain” blocks the path out.** The agent runs inside an isolated environment with a capability profile built for customer support. Its filesystem access is limited. Its network policy denies unapproved destinations by default. When it attempts to reach the external address, the request fails and generates evidence instead of quietly succeeding.\n\n**“Authorize” limits the value of compromised access.** The agent does not carry a standing credential with broad database rights. It receives short-lived authority tied to the customer-support task, the permitted records, and the allowed action. If it delegates work, the downstream agent cannot receive more authority than the original agent held.\n\nTogether, “**Constrain” and “Authorize”** make the blast radius measurable, which is far better done before an incident than during one. A compromised run reaches in three directions: what it can execute and touch on the host, what identity it can prove and use, and what it can connect to outside. Each direction has a control that shrinks it.\n\n![image](https://www.docker.com/app/uploads/2026/08/image.png \"- image\")\n\nThe blocked request and the odd query land under one run ID. That is “**Observe”**: correlated evidence, so the story does not have to be pieced together from five logs a week later. And none of it was a surprise, because “**Validate”** had already tested this agent against prompt injection in the configuration it actually runs in.\n\n**“Respond”** contains it. The run is stopped and its active grants revoked, the evidence is preserved, and the affected customer records are scoped so the team knows exactly what the run reached. Essential tickets keep moving through an approved manual fallback while the investigation runs.\n\nNone of this depends on the model behaving. Most teams already run three or four of these controls; the usual gap is that they do not connect, so one fires in one place and the evidence lands somewhere else.\n\n## Securing organizations in the decade of agents\n\nAgents can accomplish a wide range of tasks. A single agent can navigate seamlessly through the inner and outer loops of development, go through PRDs, write code, commit it, and ultimately push changes to production, much like a human engineer. It also has the ability to do that incredibly fast, using different tools, and creating sub-agents that work in parallel, leveraging the same tools and authentication of the original agent.\n\nAgent governance has become a recurring requirement in our work with customers. They want the productivity of coding agents without giving those agents unchecked access to developer machines, credentials, source code, and external services.\n\nThis led to the development of [Docker Sandboxes](https://www.docker.com/products/docker-sandboxes/), microVM sandboxes that run AI agents securely, and [Docker AI Governance](https://www.docker.com/products/ai-governance/), a centralized control layer for managing what AI agents can access and do across an organization. These new products, along with the existing [Docker MCP Gateway](https://docs.docker.com/ai/mcp-catalog-and-toolkit/mcp-gateway/) and [Docker Hardened Images](https://www.docker.com/products/hardened-images/) now give organizations of all sizes an underlying infrastructure with which to manage agentic risk.\n\n## Read more about Agent Baseline:\n\nWe published Agent Baseline v1.0-draft on July 30, 2026, and presented it at **Securing Your AI Agent: The Road to the Software Factory** during Black Hat USA 2026. You can watch the session on demand on the link below.\n\nThe draft is open for community review until September 30, 2026. We are looking for implementation feedback, missing controls, evidence that a control is ineffective, and cases where a requirement creates disproportionate operational burden.\n\n* Download the white paper [here](https://www.docker.com/resources/six-security-outcomes-for-safely-building-deploying-and-operating-ai-agents/)\n* Visit [agentbaseline.org](http://agentbaseline.org) and contribute your comment to the architecture\n\nAgents will keep gaining access and autonomy. The standard cannot be that they behave perfectly. The standard must be that we know what they can do, enforce where they can go, trace what they did, and stop them when something goes wrong.",
+      "tags": [
+        "Agent安全",
+        "企业AI",
+        "基线"
+      ],
+      "score": 77,
+      "summary": "Docker 提出企业 Agent 安全基线，定义六个安全成果。",
+      "fetched_at": "2026-08-13T03:14:49.837599+08:00"
+    },
+    {
+      "title": "Write your first prompt with the GitHub Copilot app",
+      "link": "https://github.blog/ai-and-ml/github-copilot/write-your-first-prompt-with-the-github-copilot-app/",
+      "published": "2026-08-13T03:00:00+08:00",
+      "source": "The GitHub Blog",
+      "content": "Opening a new AI tool can feel a little like staring at a blank page. You know you want help with something, but figuring out exactly what to ask can be its own task.\n\nThe good news is that you don’t need to write the perfect prompt to get started. A prompt is simply a description of what you want to accomplish. Start with what you know, give Copilot some context, and refine the request as you go.\n\nLet’s walk through what it looks like to start your first task in the [GitHub Copilot app](https://github.com/features/ai/github-app?utm_source=blog-copilot-app-ep2&utm_medium=blog&utm_campaign=copilot-app-for-beginners-series).\n\n## Start with the right context\n\nBefore you can ask Copilot to make a change, it needs something to work on. Agent sessions can be connected to a GitHub repository or a folder on your local machine, giving Copilot access to the code and files it needs for the task.\n\nFrom the GitHub Copilot app home screen, you can select a project you’ve worked with before or add a new one.\n\nIf you’re working on code that’s only on your computer, you can add a local folder instead. Either way, connecting a project gives the session the context it needs to work with your codebase.\n\nOnce your project is selected, you’re ready to write your first prompt.\n\n## Describe what you want in plain English\n\nYou don’t need to learn a special syntax or figure out the perfect way to phrase your request. Start by describing the change you want to make.\n\nFor example: `Add a most-funded sort option to the games list.`\n\nThat’s enough to get started. Copilot can examine the project, find the relevant parts of the codebase, and work on the requested change.\n\nIf the first attempt isn’t quite what you had in mind, you can provide additional details or ask for changes. Prompting is an iterative process, so you don’t have to anticipate every detail before you begin.\n\nThe best prompt is often the one that gets you moving.\n\n## Choose the right model when you need it\n\nThe GitHub Copilot app also lets you choose which AI model handles your task. Different models have different strengths, and some are better suited to complex reasoning while others can handle simpler tasks more quickly.\n\nIf you’re just getting started, the default model is a good place to begin. You don’t need to understand every difference between the available models before you can use the app.\n\nAs you work, you can switch models when a task requires more complex reasoning or when the first approach isn’t giving you the results you need. Think of the model selector as another tool you can reach for when the task calls for it, rather than something you need to configure before every session.\n\n## Use whatever input feels natural\n\nTyping isn’t the only way to write a prompt. The GitHub Copilot app includes built-in voice input, which can be useful when you’re thinking through a problem out loud or have a longer request to describe.\n\nYour speech is converted into text in the prompt box, where you can review and edit it before sending it. That means you can think out loud without immediately committing to the first version of your request.\n\nSometimes it’s easier to explain what you want than to type it out. Voice input gives you another way to get that idea into the session.\n\n## Customize how the work runs\n\nYou can also change how your session handles the work. From the session title, you can select a different agent or enable remote control for the session.\n\nDifferent agents can be configured for different types of work, so you can choose the one that best fits the task you’re working on.\n\nRemote sessions give you another kind of flexibility. Instead of running the work only on your local machine, you can access the same session from the web. You can start a task, close your laptop, and return to the session later from another device without losing your place.\n\nThese options aren’t things you need to configure before your first prompt. They’re there when you need more control over how a task is handled.\n\n## Start small and iterate\n\nYour first prompt doesn’t need to be perfect. Start with a small change you’d like to make in a project you already know, describe what you want in plain language, and see what happens.\n\nFrom there, you can refine the request, try a different model, or adjust how the session runs. The more you use the app, the more natural these choices become.\n\nThe important part is getting started. Pick a project, give Copilot a task, and see where it takes you.\n\n[Get started with the GitHub Copilot app >](https://github.com/features/ai/github-app?utm_source=blog-copilot-app-ep2&utm_medium=blog&utm_campaign=copilot-app-for-beginners-series)\n\nThe post [Write your first prompt with the GitHub Copilot app](https://github.blog/ai-and-ml/github-copilot/write-your-first-prompt-with-the-github-copilot-app/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "GitHub Copilot",
+        "提示词"
+      ],
+      "score": 70,
+      "summary": "GitHub 官方教程指导用户用 Copilot App 编写首个提示词。",
+      "fetched_at": "2026-08-13T03:14:49.837602+08:00"
+    },
+    {
+      "title": "Your contributors are AI-first now. Is your project?",
+      "link": "https://github.blog/open-source/maintainers/your-contributors-are-ai-first-now-is-your-project/",
+      "published": "2026-08-13T02:00:08+08:00",
+      "source": "The GitHub Blog",
+      "content": "The same question keeps coming up in maintainer conversations: what do you do when the pull request queue fills with work written by agents?\n\nIt’s something Nicholas Tindle, founding AI engineer at AutoGPT, also deals with every day. [I spoke with him in May](https://www.youtube.com/watch?v=Ro_VMXWbLt8&list=PL0lo9MOBetEFmtstItnKlhJJVmMghxc0P&index=14) for Maintainer Month. At the time of the interview, AutoGPT had over 180,000 stars and around 150 open pull requests. A big chunk of those pull requests were written by agents, including Copilot, OpenClaw, and AutoGPT’s own internal tooling, among others. Most maintainers I talk to have the same reaction: close the door. Turn off pull requests. Don’t tax the team with reviewing slop.\n\nNicholas saw an upside:\n\n> It’s basically somebody else paying for your compute.\n>\n> Nicholas Tindle, founding AI engineer at AutoGPT\n\nThe way he sees it, if a contributor wants to spend their tokens improving your project, let them. Just make it so the only way through the door is the way that works for you.\n\n## Your docs aren’t the problem. Discovery is.\n\nAutoGPT tried the obvious thing first. Better contributor guidelines. Better docs. A whole wiki dedicated to working with the repo.\n\nNone of it moved the needle. It turns out the tools aren’t going to go read your docs unless they’re told to. That’s the part a lot of us get wrong. We treat documentation like the agent will go find it. It won’t. Agents read what’s in front of them, at the level of the directory they’re working in.\n\nSo AutoGPT started putting instructions where agents look. First `CLAUDE.md` files, because Claude was generating pull requests without enough repository-specific context. The commit trailer made each one easy to spot, because they announced themselves in the commit trailer. Then they hit the next wall: Copilot and Codex ignore Claude files, because they’re not Claude. So they centralized the standard `AGENTS.md` and pointed Claude files at it.\n\nHere’s the nuance I found most useful. `AGENTS.md` is scoped to a directory. A skill can be discovered outside that directory. (If you haven’t shipped one: a skill is an instruction file with a description that tells the agent when to load it. The agent scans descriptions up front and pulls in the full instructions when the task matches.)\n\nAutoGPT’s `AGENTS.md` sits beside the code it governs. That placement matters as much as the instructions themselves.\n\n> If you’re writing backend tests and you think about doing front-end stuff, a skill may load dynamically. It’s not going to know what directory to go look in for an AGENTS.md file, but the skill can tell it that.\n\nTheir front-end engineer got tired of the same class of broken pull request, so they wrote a guide, and shipped it as a skill in the repo. The description contained trigger phrasing: write a Storybook test if your component lives in these folders. Now every harness that touches the repo discovers it automatically. The backend enforces its own version of the rule the same way: hit 80% coverage or don’t open the pull request.\n\n## Gates that actually work\n\nThese are the gates you can adapt for your project.\n\n**Enforce the pull request template, loudly.** AutoGPT tells agents that pull requests not matching the template get closed automatically with zero hesitation. They built the tooling to actually do it, then found they didn’t need to run it. At AutoGPT, the rule changed agent behavior before the automation ever ran. The agents followed the template. Human contributors sometimes needed more room, which Nicholas treats as a feature:\n\n> If you don’t follow the template, I know you’re probably a person, and I’m going to be kinder.\n\n**The test plan trick.** The template requires a test plan, and its wording casually mentions testing the pull request. That phrase triggers a skill called `test PR`, which installs agent browser (with permission), spins up the app, and executes the change. The agent set out to fill in a checkbox and ended up running the code.\n\nThey almost never get pull requests that don’t work anymore. What they get now is pull requests that work but don’t fit the roadmap, which is a much better problem to have.\n\n**Make CI a wall, not a suggestion.** Codecov coverage thresholds are required checks. The agent opens the pull request, checks back a few minutes later, sees it can’t merge, loads the testing skill, and writes the tests. Nobody had to ask.\n\n**Use the CLA as a human detector.** AutoGPT is dual licensed, but Nicholas argues every project should do this, MIT included. Signing requires a browser and a GitHub OAuth flow on a separate domain. Agents are bad at that today, and for good reason: most maintainers do not want an agent logged into GitHub in a browser with broad account access.\n\n> If your CLA is not signed after a week, we close the pull request with a comment that says sign the CLA, reopen when you’re done.\n\nThat gate works because it puts a human back in the loop. A CLA is one option. A code-of-conduct checkbox can do the same job.\n\n**Require a commit SHA before resolving a review thread.** Some agents mark every review thread as resolved without touching the code. AutoGPT’s fix is a `pr-address` skill in the repo that declares the only valid sequence: fix, commit, push, reply, then resolve. The reply has to link the fixing commit, with the full SHA pulled from `git rev-parse HEAD` after committing, so the agent can’t recycle an old one. The skill even names the anti-patterns: “Acknowledged” is not a fix, and neither is citing a commit that doesn’t touch the flagged line.\n\n## The gate they turned off\n\nWhen a check fails, AutoGPT had an agent read the run and comment on what broke. Their first version wired Claude Code into GitHub Actions and authenticated it inside the workflow, which meant one more broad credential living in CI. Running Copilot in the workflow gets the same result without that. Nicholas is a fan:\n\n> It’s unbelievable. I’m so happy I never had to bother with YAML ever again. I’m never writing a workflow for an action ever.\n\nThen they turned the commenting off anyway. Their CI fails a lot, and a bot narrating every failure all day is not much better than the failure itself. The lesson is the restraint: keep what lowers the maintainer burden, shut off what becomes noise.\n\n## Four gotchas worth writing down\n\n**A bad AGENTS.md file is worse than no AGENTS.md.** AutoGPT littered them everywhere at first and ended up polluting context, pulling the agent’s attention toward files that didn’t matter. If behavior gets worse, go read what you wrote.\n\n**The GraphQL API will rate limit you.** When every tool on your team hits the CLI as an individual user, you hit the ceiling fast. Create a GitHub App and authenticate the CLI through it.\n\n**The heavy review tooling costs real money.** Their pull request test rig clones the branch, spawns eight agents with different jobs, runs the whole stack, and uploads screenshots. It’s great. It’s also expensive enough that they now run it only on very small or very large pull requests.\n\n**Go audit your authorized apps.** AutoGPT is part of the Secure [Open Source Fund](https://github.com/open-source/github-fund), and this was one of Nicholas’s takeaways from that work. Every tool they trialed and dropped left an authorization behind.\n\n> If you stop using a GitHub app, remove it from the authorized apps. Do a little audit right now after this stream and go see what you have. You’ll be surprised.\n\nLogging in with GitHub is so automatic at this point that most of us have never gone back to look. I opened my settings during the stream. He was right.\n\n## Not everything is a gate\n\nTwo takeaways from Nicholas had almost nothing to do with tooling.\n\nFirst: you don’t have to accept every pull request. Merging someone else’s LLM output is asymmetric. You do the upkeep, forever. Closing the pull request and building the fix yourself is a legitimate choice.\n\nYou can [disable pull requests entirely](https://github.blog/changelog/2026-02-13-new-repository-settings-for-configuring-pull-request-access/). You can [restrict issue creation to collaborators](https://github.blog/changelog/2026-06-29-restrict-issue-creation-to-collaborators-only/). Nicholas tied those controls back to the thing he kept coming back to in the interview: maintainers need knobs. Sometimes the right answer is fewer drive-by pull requests. Sometimes it’s issues only. Sometimes it’s “talk to us first.”\n\nSQLite doesn’t take external code contributions. They take bug reports. That’s a valid open source boundary. Your project can have one too.\n\nSecond: when you close a pull request you’re going to rebuild yourself, add the contributor as a co-author if it makes sense. AutoGPT has around 800 contributors, so one more costs them nothing. For most people, the thing that matters is that their problem got fixed and somebody noticed they showed up.\n\n## What I’m taking back\n\nOpen source has always evolved by making collaboration explicit. Licenses made permissions explicit. Issues made work visible. Pull requests made review a shared practice. Instructions in the repo look like another step in that direction, though I’d hold that loosely. Nobody’s landed on the right shape yet. AutoGPT is on its third version, and it got there by shipping bad versions first and watching what agents did with them.\n\nYou still decide what belongs. You still set the bar. The difference is that more of that judgment can live next to the code, where your contributors and their agents already are.\n\nGo look at the [AutoGPT repo](https://github.com/Significant-Gravitas/AutoGPT) and read how they structured their agent files.\n\nThen go join [maintainers.github.com](https://maintainers.github.com/). I’d tell you that anyway because I work here, so take it from Nicholas instead:\n\n> You’ve got to go there. You’ve got to sign up. It gets you all the connections you want at GitHub. That’s where I learned about all this stuff, and where I share it.\n\nIt’s also where Tiny Wins gets prioritized, the weekly drip of small maintainer-requested improvements. Some of those asks have already shown up in the controls GitHub highlighted during [Maintainer Month](https://github.blog/open-source/maintainers/welcome-to-maintainer-month-celebrating-the-people-behind-the-code/). It’s also where our product managers and engineers read feedback before anything ships. If you want a say in what the platform does for maintainers next, that’s the room. Your contributors are already AI-first. Put the rules next to the code before the next pull request lands.\n\nThe post [Your contributors are AI-first now. Is your project?](https://github.blog/open-source/maintainers/your-contributors-are-ai-first-now-is-your-project/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [
+        "AI贡献者",
+        "AGENTS.md"
+      ],
+      "score": 74,
+      "summary": "GitHub 博客探讨开源项目如何应对 AI 生成的贡献。",
+      "fetched_at": "2026-08-13T03:14:49.837604+08:00"
+    },
+    {
+      "title": "BDH-CQ\n\nIn-Context Learning with Recurrent Latent Reasoning\n\npaper: https://t.co/5AiCPxyujR",
+      "link": "https://x.com/_akhaliq/status/2087591432697651424",
+      "published": "2026-08-13T01:25:57+08:00",
+      "source": "AK(@_akhaliq)",
+      "content": "BDH-CQ  \n  \nIn-Context Learning with Recurrent Latent Reasoning  \n  \npaper: [huggingface.co/papers/2608.09…](https://huggingface.co/papers/2608.09888)\n\n![Tweet Image](https://pbs.twimg.com/media/HPidOxdXgAIu6Pv.jpg)\n\n💬2🔄5❤️17👀4039📊5",
+      "tags": [
+        "BDH-CQ",
+        "In-Context Learning"
+      ],
+      "score": 72,
+      "summary": "AK 分享论文：带循环潜在推理的上下文学习。",
+      "fetched_at": "2026-08-13T03:14:49.837607+08:00"
+    },
+    {
+      "title": "The goal isn't to go viral once. The goal is to get so good at storytelling that people want to list...",
+      "link": "https://x.com/aaditsh/status/2087588384109637835",
+      "published": "2026-08-13T01:13:50+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "The goal isn't to go viral once. The goal is to get so good at storytelling that people want to listen to you when you have something to say!\n\n💬6🔄0❤️14👀3218📊7",
+      "tags": [
+        "讲故事",
+        "创业"
+      ],
+      "score": 45,
+      "summary": "Aadit 分享关于讲故事价值的个人感悟。",
+      "fetched_at": "2026-08-13T03:14:49.837609+08:00"
+    },
+    {
+      "title": "这一刻，梁圣在我心目中的形象具象化了。",
+      "link": "https://x.com/berryxia/status/2087601961642180920",
+      "published": "2026-08-13T02:07:48+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这一刻，梁圣在我心目中的形象具象化了。\n\n![向阳乔木](https://pbs.twimg.com/profile_images/1960882043249942533/h4J39ERy_normal.jpg)\n\n向阳乔木@vista8\n\nDeepSeek-V4-Pro-0813 来了，喜大普奔！  \n  \n但是今天还是8月12日啊，为啥用0813命名啊，哈哈。  \n  \n百万tokens输入（缓存命中）0.025元 （vs flash 0.02元）  \n百万tokens输入（缓存未命中）3元 （vs flash 1元）  \n百万tokens输出 6元 （vs flash 2元）  \n  \n并发限 500，Flash 是 2500  \n  \n注意：价格是当下价格，最近会上涨。\n\n![Tweet Image](https://pbs.twimg.com/media/HPiDy2TasAAKm74.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/vista8/status/2087565229224034521)\n\n💬3🔄0❤️1👀216📊3",
+      "tags": [
+        "DeepSeek V4 Pro",
+        "价格"
+      ],
+      "score": 85,
+      "summary": "KOL 分享 DeepSeek V4 Pro 定价，缓存命中输入仅 0.025 元/百万 tokens。",
+      "fetched_at": "2026-08-13T03:14:49.837611+08:00"
+    },
+    {
+      "title": "🔥好久没有爆肝了！！兄弟们！\n刚刚熬夜把这三位老大哥给凑齐，来评测一下其对于3D 建模和空间理解的能力比拼！\n\n分别参与的模型有：\n1、Kimi K3 with Kimi Code \n2、DeepS...",
+      "link": "https://x.com/berryxia/status/2087600025102582243",
+      "published": "2026-08-13T02:00:06+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "🔥好久没有爆肝了！！兄弟们！  \n刚刚熬夜把这三位老大哥给凑齐，来评测一下其对于3D 建模和空间理解的能力比拼！  \n  \n分别参与的模型有：  \n1、Kimi K3 with Kimi Code   \n2、DeepSeek V4 Pro with Bloome  \n3、Grok 4.6 with Grok CLI   \n  \nPrompt：使用Three.JS技术 设计开发一款类似JigSpace的可互动、动态教学的展示法拉利汽车的软件，支持动态交互和完整还原其核心功能，用于教学使用。  \n  \n我录制了个小视频，可以对比看看模型的差别，你觉得谁最强，以此排名一下吧！  \n制作不易，记得三连啊，兄弟们，太困了，睡觉了。😪  \n明天继续肝啊！\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087599012291526656/vid/avc1/2634x1440/uJN1WL3fM_boZnqn.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2087600025102582243/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n.[@elonmusk](https://x.com/elonmusk) Elon   \nUnpopular take: Grok Bot can learn from [Bloome.im](http://Bloome.im) .  \n  \nThey launched multi-agent human–AI group mode 4 months ago for complex task execution.  \n  \nGrok Bot still trails on several of those product surfaces.  \n  \nCopy what works. Ship faster.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087558078073839616/vid/avc1/1920x1080/GqZ9k1lJJ7MyDPad.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2087560474019713141/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2087560474019713141)\n\n💬5🔄0❤️1👀389📊4",
+      "tags": [
+        "Kimi K3",
+        "DeepSeek V4 Pro",
+        "Grok 4.6"
+      ],
+      "score": 78,
+      "summary": "KOL 用 Three.JS 任务对比三个模型的 3D 建模能力。",
+      "fetched_at": "2026-08-13T03:14:49.837613+08:00"
+    },
+    {
+      "title": "https://t.co/fkRl2dHb0k",
+      "link": "https://x.com/berryxia/status/2087590273308041513",
+      "published": "2026-08-13T01:21:21+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "[huggingface.co/unsloth/Qwen3.…](https://huggingface.co/unsloth/Qwen3.8-2.4T-A95B-GGUF)\n\n💬0🔄0❤️0👀97",
+      "tags": [
+        "Qwen3.8",
+        "GGUF"
+      ],
+      "score": 50,
+      "summary": "转发 Qwen3.8 模型 GGUF 量化版链接。",
+      "fetched_at": "2026-08-13T03:14:49.837616+08:00"
+    },
+    {
+      "title": "Qwen3.8这个2.4T的巨型模型，现在被压到397GB，能本地跑了。\n\nUnsloth用Dynamic 1-bit量化，把原来4.9TB的体积砍掉了91%，通过选择性量化层实现。\n\n模型地址见评论...",
+      "link": "https://x.com/berryxia/status/2087590206257999957",
+      "published": "2026-08-13T01:21:05+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "Qwen3.8这个2.4T的巨型模型，现在被压到397GB，能本地跑了。  \n  \nUnsloth用Dynamic 1-bit量化，把原来4.9TB的体积砍掉了91%，通过选择性量化层实现。  \n  \n模型地址见评论区👇🏻\n\n![Tweet Image](https://pbs.twimg.com/media/HPicOKvbIAAbbV_.jpg)\n\n![Unsloth AI](https://pbs.twimg.com/profile_images/2036313340616777728/OLALWB2__normal.jpg)\n\nUnsloth AI@UnslothAI\n\nQwen3.8 can now be run locally! 🔥  \n  \nWe shrank Qwen3.8-2.4T-A95B from 4.9TB to 397GB (-91% size) via Dynamic 1-bit by selectively quantizing layers  \n  \nRun on 410GB+ RAM/VRAM via Unsloth Desktop  \n  \nQwen3.8 rivals GPT-5.6 Sol  \n  \nGuide:[unsloth.ai/docs/models/qw…](https://unsloth.ai/docs/models/qwen3.8)Z  \nGGUF:[huggingface.co/unsloth/Qwen3.…](https://huggingface.co/unsloth/Qwen3.8-2.4T-A95B-GGUF)I\n\n![Tweet Image](https://pbs.twimg.com/media/HPiJheraIAAA-WN.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/UnslothAI/status/2087569665652580797)\n\n💬5🔄0❤️2👀680📊5",
+      "tags": [
+        "Qwen3.8",
+        "1-bit量化"
+      ],
+      "score": 82,
+      "summary": "Unsloth 将 Qwen3.8 压缩至 397GB，可本地运行。",
+      "fetched_at": "2026-08-13T03:14:49.837618+08:00"
+    },
+    {
+      "title": "Digg was by far my favorite site of the web 2.0 era. Getting my tech essays onto \"the digg front pag...",
+      "link": "https://x.com/rauchg/status/2087605691158827499",
+      "published": "2026-08-13T02:22:37+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Digg was by far my favorite site of the web 2.0 era. Getting my tech essays onto \"the digg front page\" was one of the coolest memories of my teenage years 😁  \n  \nSo happy to be powering the new, agent-native[digg.com](http://digg.com)H on [@vercel](https://x.com/vercel). Full 🕳️\n\n![Kevin Rose](https://pbs.twimg.com/profile_images/1943511529237680130/cy-Te05B_normal.jpg)\n\nKevin Rose@kevinrose\n\nTwo months in after relaunch, really proud of the [@digg](https://x.com/digg) crew: [@addison](https://x.com/addison) and [@JustinMezzell](https://x.com/JustinMezzell)[@maubrowncow](https://x.com/maubrowncow) -- 100+ running tasks/agents/judges, automated clustering, sentiment analysis, image creation, newsletters, everything... traffic is up 20%+ MoM, [@grok](https://x.com/grok) models have been great at grounded truth and [@vercel](https://x.com/vercel) rock solid for infra. ([@elonmusk](https://x.com/elonmusk) would love to see further/deeper integration with [@grok](https://x.com/grok) + [@API](https://x.com/API)) 🙏\n\n![Tweet Image](https://pbs.twimg.com/media/HPiQHRKaUAUVHZL.png)\n\n[🔗 View Quoted Tweet](https://x.com/kevinrose/status/2087577913344631219)\n\n💬4🔄1❤️5👀1644📊3",
+      "tags": [
+        "Digg",
+        "Grok",
+        "Vercel"
+      ],
+      "score": 70,
+      "summary": "Vercel 助力 Digg 重构为 agent-native，使用 Grok 模型。",
+      "fetched_at": "2026-08-13T03:14:49.837620+08:00"
+    },
+    {
+      "title": "📹Build a social media agent\n\nThis Managed Deep Agent scans Hacker News and optional X, drafts three...",
+      "link": "https://x.com/hwchase17/status/2087607611097264579",
+      "published": "2026-08-13T02:30:15+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "📹Build a social media agent  \n  \nThis Managed Deep Agent scans Hacker News and optional X, drafts three posts, saves them to durable memory, and sends them to Slack.  \n  \nLearn how to use:  \n  \n> Slack channel integration  \n> Custom tools  \n> Memory  \n  \nVideo: <https://t.co/NODJYR76pE>\n\n![Tweet Image](https://pbs.twimg.com/media/HPisCrMawAEKHKa.png)\n\n💬1🔄0❤️0👀307📊1",
+      "tags": [
+        "LangChain",
+        "社交媒体Agent"
+      ],
+      "score": 75,
+      "summary": "Harrison Chase 发布构建社交媒体 agent 的视频教程。",
+      "fetched_at": "2026-08-13T03:14:49.837622+08:00"
+    },
+    {
+      "title": "https://t.co/8qsYASDk7o",
+      "link": "https://x.com/HeyGen/status/2087595873631109523",
+      "published": "2026-08-13T01:43:36+08:00",
+      "source": "HeyGen(@HeyGen_Official)",
+      "content": "[x.com/i/article/2087…](http://x.com/i/article/2087309219431342080)\n\n💬7🔄1❤️26👀2224📊9",
+      "tags": [
+        "HeyGen"
+      ],
+      "score": 50,
+      "summary": "HeyGen 官方推文仅包含文章链接，无实质内容。",
+      "fetched_at": "2026-08-13T03:14:49.837624+08:00"
+    },
+    {
+      "title": "LangSmith is now available as a bring your own cloud deployment on @awscloud.\n\nKeep agent traces and...",
+      "link": "https://x.com/LangChain/status/2087592261165150280",
+      "published": "2026-08-13T01:29:15+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "LangSmith is now available as a bring your own cloud deployment on [@awscloud](https://x.com/awscloud).  \n  \nKeep agent traces and runtime data inside your AWS boundary, while LangChain manages provisioning, upgrades, scaling, and support.  \n  \nBYOC gives teams data sovereignty with the speed of a managed service.  \n  \n[langchain.com/blog/langsmith…](https://www.langchain.com/blog/langsmith-byoc-is-now-generally-available-on-aws)\n\n💬0🔄2❤️12👀2245📊2",
+      "tags": [
+        "LangSmith",
+        "AWS",
+        "BYOC"
+      ],
+      "score": 76,
+      "summary": "LangSmith 在 AWS 上推出自带云部署，数据留在用户边界。",
+      "fetched_at": "2026-08-13T03:14:49.837627+08:00"
+    },
+    {
+      "title": "We're hearing that our announcement today is eclipsing the light of the sun...?",
+      "link": "https://x.com/Lovable/status/2087613914788057566",
+      "published": "2026-08-13T02:55:17+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "We're hearing that our announcement today is eclipsing the light of the sun...?\n\n![Tweet Image](https://pbs.twimg.com/media/HPixymKbAAAihQS.png)![Tweet Image](https://pbs.twimg.com/media/HPixymEboAAPUMi.png)\n\n💬0🔄0❤️1👀485",
+      "tags": [
+        "Lovable",
+        "预告"
+      ],
+      "score": 55,
+      "summary": "Lovable 预告今天有重大发布，未透露细节。",
+      "fetched_at": "2026-08-13T03:14:49.837629+08:00"
+    },
+    {
+      "title": "Fable 5 has been removed by the US gov\n\n\"Way too dangerous\"\n\nDeepSeek V4 Pro has just been officiall...",
+      "link": "https://x.com/itsPaulAi/status/2087600021860655482",
+      "published": "2026-08-13T02:00:05+08:00",
+      "source": "Paul Couvert(@itsPaulAi)",
+      "content": "Fable 5 has been removed by the US gov  \n  \n\"Way too dangerous\"  \n  \nDeepSeek V4 Pro has just been officially released and is just as powerful... and you'll be able to download it.  \n  \nLike a PDF file.\n\n![Tweet Image](https://pbs.twimg.com/media/HPiiSFLbQAAHpoD.jpg)\n\n💬5🔄3❤️20👀2710📊7",
+      "tags": [
+        "Fable 5",
+        "DeepSeek V4 Pro"
+      ],
+      "score": 65,
+      "summary": "KOL 称 Fable 5 被美政府下架，DeepSeek V4 Pro 正式发布。",
+      "fetched_at": "2026-08-13T03:14:49.837631+08:00"
+    },
+    {
+      "title": "A lot of founders I talk to are worried about what will happen with AI. So am I frankly. But they're...",
+      "link": "https://x.com/paulg/status/2087604352622153922",
+      "published": "2026-08-13T02:17:18+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "A lot of founders I talk to are worried about what will happen with AI. So am I frankly. But they're actually better off than anyone else. If the world is going to get turned upside down, the safest place to be is in a small, fast-moving company that can easily change direction.\n\n💬48🔄31❤️402👀16460📊77",
+      "tags": [
+        "Paul Graham",
+        "AI创业"
+      ],
+      "score": 70,
+      "summary": "PG 认为 AI 颠覆时代，小公司更易调整方向。",
+      "fetched_at": "2026-08-13T03:14:49.837633+08:00"
+    },
+    {
+      "title": "AI may eventually turn starting a startup upside down, but it hasn't happened yet. So far the core o...",
+      "link": "https://x.com/paulg/status/2087602421791105033",
+      "published": "2026-08-13T02:09:37+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "AI may eventually turn starting a startup upside down, but it hasn't happened yet. So far the core of starting a startup is the same. You try to get growth by building what users need. But there are a lot of new things you can build; that's the biggest change so far.\n\n💬8🔄1❤️57👀6134📊11",
+      "tags": [
+        "Paul Graham",
+        "AI创业"
+      ],
+      "score": 70,
+      "summary": "PG 称 AI 尚未颠覆创业，核心仍是满足用户需求。",
+      "fetched_at": "2026-08-13T03:14:49.837636+08:00"
+    },
+    {
+      "title": "One common question I get now is how much of the standard startup advice is still true in the AI era...",
+      "link": "https://x.com/paulg/status/2087601208123126228",
+      "published": "2026-08-13T02:04:48+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "One common question I get now is how much of the standard startup advice is still true in the AI era. So far almost all of it. There's more difference between the advice I give different startups in one batch than between what I've given pre-AI and post-AI startups.\n\n💬4🔄1❤️50👀7774📊7",
+      "tags": [
+        "Paul Graham",
+        "AI创业"
+      ],
+      "score": 70,
+      "summary": "PG 表示标准创业建议在 AI 时代仍基本适用。",
+      "fetched_at": "2026-08-13T03:14:49.837638+08:00"
+    },
+    {
+      "title": "This is the 47th YC batch. I missed talking to a couple during covid, but except for that I think I'...",
+      "link": "https://x.com/paulg/status/2087599777076887651",
+      "published": "2026-08-13T01:59:07+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "This is the 47th YC batch. I missed talking to a couple during covid, but except for that I think I've talked to all of them. Strangely enough I actually write new talk notes each time, though I bet there's a huge amount of overlap with what I've said in past years.\n\n💬23🔄11❤️295👀22624📊43",
+      "tags": [
+        "YC",
+        "Paul Graham"
+      ],
+      "score": 50,
+      "summary": "PG 分享第 47 届 YC 批次谈话经历。",
+      "fetched_at": "2026-08-13T03:14:49.837640+08:00"
+    },
+    {
+      "title": "As often happens, this exercise was also useful for the startups themselves. For example, trying to ...",
+      "link": "https://x.com/paulg/status/2087596692568949072",
+      "published": "2026-08-13T01:46:51+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "As often happens, this exercise was also useful for the startups themselves. For example, trying to cook up super ambitious future plans to present to investors would often result in genuinely good new ideas.\n\n💬2🔄1❤️24👀6513📊4",
+      "tags": [
+        "Paul Graham",
+        "创业"
+      ],
+      "score": 70,
+      "summary": "PG 称为投资者准备未来计划常产生真正好点子。",
+      "fetched_at": "2026-08-13T03:14:49.837642+08:00"
+    },
+    {
+      "title": "The reason they're called vertebrae is that you can't expect Demo Day investors to remember more tha...",
+      "link": "https://x.com/paulg/status/2087595354921554252",
+      "published": "2026-08-13T01:41:32+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "The reason they're called vertebrae is that you can't expect Demo Day investors to remember more than about 5 things about you. So you want to decide in advance what the most important 5 things are and make them the vertebrae of your pitch.\n\n![Jason Freedman](https://pbs.twimg.com/profile_images/1855356848867799040/kVBUG5_m_normal.jpg)\n\nJason Freedman@jasonfreedman\n\nPG used to personally edit/polish/rewrite every startup’s pitch.   \n  \nIt was called the vertebrae session. About a week before demo day.  \n  \nHe did it for my S09 batch where there was like 28 companies.   \n  \nI then saw him do it for my W12 batch which was like 100 companies.   \n  \nIt was crazy,\n\n[🔗 View Quoted Tweet](https://x.com/jasonfreedman/status/2087462319500730462)\n\n💬13🔄12❤️244👀30833📊33",
+      "tags": [
+        "Paul Graham",
+        "pitch"
+      ],
+      "score": 70,
+      "summary": "PG 解释 pitch 的“脊椎骨”方法，强调五个关键点。",
+      "fetched_at": "2026-08-13T03:14:49.837644+08:00"
+    },
+    {
+      "title": "The reason we're standing next to the wall, incidentally, is to take advantage of the acoustic foam....",
+      "link": "https://x.com/paulg/status/2087594659786989669",
+      "published": "2026-08-13T01:38:47+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "The reason we're standing next to the wall, incidentally, is to take advantage of the acoustic foam. That's what the spiky orange stuff is. Our architect Cate Courteau decided to own it instead of hiding it, and now it has become part of YC's visual identity.\n\n![Tyler Bosmeny](https://pbs.twimg.com/profile_images/1872155964398612480/6vbmVVIs_normal.jpg)\n\nTyler Bosmeny@bosmeny\n\nSome things never change\n\n![Tweet Image](https://pbs.twimg.com/media/HPiZZA-a4AAiF_P.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/bosmeny/status/2087587212196213219)\n\n💬14🔄5❤️169👀28427📊20",
+      "tags": [
+        "YC",
+        "视觉设计"
+      ],
+      "score": 50,
+      "summary": "PG 讲述 YC 声学泡沫墙成为视觉标识的故事。",
+      "fetched_at": "2026-08-13T03:14:49.837646+08:00"
+    },
+    {
+      "title": "We shipped a small Gemini API Update! You can now combine  Google Maps and Google Search tool at the...",
+      "link": "https://x.com/_philschmid/status/2087589594590036009",
+      "published": "2026-08-13T01:18:39+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "We shipped a small Gemini API Update! You can now combine Google Maps and Google Search tool at the same time with Gemini to build cool location apps.   \n  \n[x.com/\\_philschmid/st…](https://x.com/_philschmid/status/2087589486800654821?s=20)\n\n![Philipp Schmid](https://pbs.twimg.com/profile_images/2066207048648323072/u-UPEKOH_normal.jpg)\n\nPhilipp Schmid@\\_philschmid\n\n[x.com/i/article/2087…](http://x.com/i/article/2087588209605726208)\n\n[🔗 View Quoted Tweet](https://x.com/_philschmid/status/2087589486800654821)\n\n💬5🔄2❤️31👀2726📊7",
+      "tags": [
+        "Gemini API",
+        "Google Maps",
+        "Google Search"
+      ],
+      "score": 76,
+      "summary": "Gemini API 更新，可同时结合 Google Maps 与 Search 构建位置应用。",
+      "fetched_at": "2026-08-13T03:14:49.837649+08:00"
+    },
+    {
+      "title": "https://t.co/UpN8YgfMbI",
+      "link": "https://x.com/_philschmid/status/2087589486800654821",
+      "published": "2026-08-13T01:18:13+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "[x.com/i/article/2087…](http://x.com/i/article/2087588209605726208)\n\n💬0🔄2❤️28👀4331📊5",
+      "tags": [
+        "Gemini API"
+      ],
+      "score": 55,
+      "summary": "转发 Gemini API 更新详情文章链接。",
+      "fetched_at": "2026-08-13T03:14:49.837651+08:00"
+    },
+    {
+      "title": "Want lower latency in Replit, and control over where your project previews are hosted?\n\nPro &amp; En...",
+      "link": "https://x.com/Replit/status/2087600007171957131",
+      "published": "2026-08-13T02:00:02+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Want lower latency in Replit, and control over where your project previews are hosted?  \n  \nPro & Enterprise customers can now choose where new Replit workspaces are hosted.  \n  \nPick between North America, Europe, or Asia.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HPihsgBXIAACGrx.jpg)](https://video.twimg.com/tweet_video/HPihsgBXIAACGrx.mp4)\n\n💬6🔄1❤️30👀3965📊9",
+      "tags": [
+        "Replit",
+        "托管区域"
+      ],
+      "score": 73,
+      "summary": "Replit 支持 Pro 和企业用户选择工作区托管区域。",
+      "fetched_at": "2026-08-13T03:14:49.837653+08:00"
+    },
+    {
+      "title": "This is in addition to being able to select the region of published apps.\n\nTrusted infrastructure yo...",
+      "link": "https://x.com/Replit/status/2087600007591473171",
+      "published": "2026-08-13T02:00:02+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "This is in addition to being able to select the region of published apps.  \n  \nTrusted infrastructure you can rely on.  \n  \nRead more: [docs.replit.com/features/secur…](https://docs.replit.com/features/security/geography)\n\n💬1🔄0❤️5👀765📊2",
+      "tags": [
+        "Replit",
+        "托管区域"
+      ],
+      "score": 70,
+      "summary": "Replit 补充说明区域选择功能，应用发布也可选区域。",
+      "fetched_at": "2026-08-13T03:14:49.837655+08:00"
+    },
+    {
+      "title": "Exceptional team, enormous market, great founder-market fit. Sometimes you just know.\n\nCongrats to @...",
+      "link": "https://x.com/ScottWu46/status/2087599301468008544",
+      "published": "2026-08-13T01:57:13+08:00",
+      "source": "Scott Wu(@ScottWu46)",
+      "content": "Exceptional team, enormous market, great founder-market fit. Sometimes you just know.  \n  \nCongrats to [@moritz\\_stephan](https://x.com/moritz_stephan) and the whole Hone team - this will be one to watch!\n\n![Hone](https://pbs.twimg.com/profile_images/2087435103693910016/E3DXOoK7_normal.jpg)\n\nHone@hone\n\nAnnouncing Hone  \n  \nIntelligence has become abundant. Yet the world looks remarkably similar to how it did five years ago. With every model release, the gap between what frontier AI can do and the economic value derived from it widens.  \n  \nClosing the gap requires re-organizing work around organizational outcomes, not individual tasks. Hone builds AI that creates, orchestrates, and improves agents and software continuously to own organizational outcomes over weeks and months.  \n  \nWe are ex-founders and early core contributors to Cognition, Mercor, Ramp, and OpenAI. We obsess over real-world value, not theoretical benchmarks.  \n  \nOur core beliefs on closing the gap in the thread below.\n\n[🔗 View Quoted Tweet](https://x.com/hone/status/2087572482220048477)\n\n💬0🔄3❤️41👀1767📊4",
+      "tags": [
+        "Hone",
+        "Agent"
+      ],
+      "score": 72,
+      "summary": "Scott Wu 祝贺 Hone 成立，该公司专注于 AI 代理编排。",
+      "fetched_at": "2026-08-13T03:14:49.837657+08:00"
+    },
+    {
+      "title": "One of the most important updates coming out of Made by Google today is our new sign-to-text feature...",
+      "link": "https://x.com/sundarpichai/status/2087594472008003850",
+      "published": "2026-08-13T01:38:02+08:00",
+      "source": "Sundar Pichai(@sundarpichai)",
+      "content": "One of the most important updates coming out of Made by Google today is our new sign-to-text feature in Gboard & Live Transcribe.   \n  \nBuilt in partnership with the Deaf community, this can help people who sign ASL communicate more seamlessly with their phone or with those who don't sign, like in this Live Transcribe demo:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087591917085507584/vid/avc1/1280x718/ZUeDmEiDsFlfYZQZ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/sundarpichai/status/2087594472008003850/video/1)\n\n💬50🔄56❤️500👀34834📊64",
+      "tags": [
+        "Google",
+        "手语转文字",
+        "Gboard"
+      ],
+      "score": 88,
+      "summary": "Google 发布 Gboard 与 Live Transcribe 手语转文字功能。",
+      "fetched_at": "2026-08-13T03:14:49.837660+08:00"
+    },
+    {
+      "title": "Today in \"everything is an 80/20 rule\": For most B2B businesses, a few buyers make up the bulk of th...",
+      "link": "https://x.com/a16z/status/2087597299941941425",
+      "published": "2026-08-13T01:49:16+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Today in \"everything is an 80/20 rule\": For most B2B businesses, a few buyers make up the bulk of their revenue.  \n  \nFull piece on how Stuut uses agents to help B2B companies get paid the money they're owed: [a16z.news/p/what-it-take…](https://www.a16z.news/p/what-it-takes-to-get-paid)\n\n![Tweet Image](https://pbs.twimg.com/media/HPiirnabQAAGGd4.jpg)\n\n![Tarek Alaruri](https://pbs.twimg.com/profile_images/1582149995767205912/-GOmBNiN_normal.jpg)\n\nTarek Alaruri@realtarek\n\n[x.com/i/article/2087…](http://x.com/i/article/2087329858305044480)\n\n[🔗 View Quoted Tweet](https://x.com/realtarek/status/2087540216298885512)\n\n💬1🔄0❤️20👀8426📊3",
+      "tags": [
+        "a16z",
+        "Stuut",
+        "Agent"
+      ],
+      "score": 70,
+      "summary": "a16z 分享 Stuut 用 AI agents 帮助 B2B 企业收款。",
+      "fetched_at": "2026-08-13T03:14:49.837662+08:00"
+    },
+    {
+      "title": "Why does CLAUDE.MD keep growing?\n\nIf you maintain a CLAUDE.md or an AGENTS.md, this one is worth you...",
+      "link": "https://x.com/omarsar0/status/2087605040240582991",
+      "published": "2026-08-13T02:20:02+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Why does CLAUDE.MD keep growing?  \n  \nIf you maintain a CLAUDE.md or an AGENTS.md, this one is worth your time.  \n  \n(bookmark it)  \n  \nThis work traces why these files grow without bound. Appending an instruction is free. Deleting one after its rationale is gone costs exponential verification, so nobody removes anything.  \n  \nAcross 247,694 instruction lifetimes in 1,867 repositories, prompts more than tripled over their lifetime and gained 4.9 net instructions per commit. The older an instruction gets, the less likely anyone is to delete it.  \n  \nThe proposed fix is comments. Writing down the reasoning behind an instruction removed 99.3% of excess instructions in verifiable settings and improved real agentic instruction-following by up to 23.1%.  \n  \nPaper: [arxiv.org/abs/2608.11095](https://arxiv.org/abs/2608.11095)  \n  \nTrack more trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HPipuFkaIAICGl3.jpg)\n\n💬2🔄0❤️6👀936📊3",
+      "tags": [
+        "CLAUDE.md",
+        "指令膨胀"
+      ],
+      "score": 78,
+      "summary": "研究发现 CLAUDE.md 指令无限增长，注释可减少 99.3% 冗余。",
+      "fetched_at": "2026-08-13T03:14:49.837664+08:00"
+    },
+    {
+      "title": "Higgsfield Plugin is live in the ChatGPT app.\n\nI described the shot, ChatGPT structured the prompt, ...",
+      "link": "https://x.com/omarsar0/status/2087598187951317316",
+      "published": "2026-08-13T01:52:48+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Higgsfield Plugin is live in the ChatGPT app.  \n  \nI described the shot, ChatGPT structured the prompt, and the finished frame landed right in the chat.  \n  \nGeneration runs on top models with your existing Higgsfield credits and no API key. Edits work the same way.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087597665596964865/vid/avc1/3708x2160/PM3kFNrqAKZUKwi_.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/omarsar0/status/2087598187951317316/video/1)\n\n![Higgsfield AI 🧩](https://pbs.twimg.com/profile_images/2029949430317637632/6qPl4MTS_normal.jpg)\n\nHiggsfield AI 🧩@higgsfield\n\nHiggsfield Plugin is officially in the ChatGPT app.  \n  \nGenerate with Seedance 2.5, Seedance 2.0, Seedream 5.0 Pro, GPT Image 2.0, and Kling 3.0 without leaving the chat.  \n  \nThe Faceless Channel, Narrator, and Subtitles skills are already live inside it.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087552798531702785/vid/avc1/1920x1080/9eBlCe8-31tFizAb.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/higgsfield/status/2087553298362699926/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/higgsfield/status/2087553298362699926)\n\n💬1🔄1❤️5👀1755📊3",
+      "tags": [
+        "Higgsfield",
+        "ChatGPT",
+        "插件"
+      ],
+      "score": 76,
+      "summary": "Higgsfield 插件上线 ChatGPT，可生成多种视频模型。",
+      "fetched_at": "2026-08-13T03:14:49.837666+08:00"
+    },
+    {
+      "title": "We analyzed tens of thousands of real-world, high-reasoning Claude Opus and Fable outputs from versi...",
+      "link": "https://x.com/arena/status/2087614570043215937",
+      "published": "2026-08-13T02:57:54+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "We analyzed tens of thousands of real-world, high-reasoning Claude Opus and Fable outputs from versions 4.5 to 5 in the Text Arena and found that [@claudeai](https://x.com/claudeai)'s writing has changed in more ways than one:  \n  \nAcross language complexity, patterns and markers, we now see:  \n  \nClaude’s answers have become much longer:  \n- Opus 5 averages 510 words per response  \n- This makes Opus 5 responses 3x longer than Opus 4.5’s average of 158  \n  \nResponses have also become more structurally elaborate from Opus 4.5 to Opus 5:  \n- 58% rise in average sentence length  \n- 46% rise in clause frequency rises  \n  \nHowever, the vocabulary itself is not becoming more difficult, making Opus 5 longer and more structurally complex, but lexically simpler between 4.5 and 5:  \n- 6.8% pt drop in long content words (46.9% to 40.1%)  \n- 53% drop in abstract nouns (6.02 → 3.79 per 1k words)  \n  \nWriting habits people notice are much more common in Opus 5:   \n- 2.3x as many em dashes  \n- ~2x as many phrases like “load-bearing”  \n- 50% more honesty wording like “honestly” and “frankly”  \n  \nFable 5 is 38% more concise than Opus 5, averaging 316 words vs. 510. At the same time, it is nearly 2x as likely to include praise/validation or open with phrases like “yes, exactly”\n\n![Tweet Image](https://pbs.twimg.com/media/HPixA9ab0AA35AI.jpg)![Tweet Image](https://pbs.twimg.com/media/HPixA9aaoAEMl3L.jpg)![Tweet Image](https://pbs.twimg.com/media/HPixA9YbgAEljL6.jpg)\n\n💬7🔄1❤️50👀3359📊12",
+      "tags": [
+        "Claude Opus 5",
+        "Fable 5",
+        "写作分析"
+      ],
+      "score": 82,
+      "summary": "LMArena 分析：Opus 5 回答更长，Fable 5 更简洁。",
+      "fetched_at": "2026-08-13T03:14:49.837668+08:00"
+    },
+    {
+      "title": "每天都要骂一句。花了一天时间是，试着改codex。。。。改挂了 😭",
+      "link": "https://x.com/yan5xu/status/2087588499486904790",
+      "published": "2026-08-13T01:14:18+08:00",
+      "source": "yan5xu(@yan5xu)",
+      "content": "每天都要骂一句。花了一天时间是，试着改codex。。。。改挂了 😭\n\n![yan5xu](https://pbs.twimg.com/profile_images/1818445093218430976/2Pvxg6Vf_normal.jpg)\n\nyan5xu@yan5xu\n\n傻逼 codex，我不玩了\n\n[🔗 View Quoted Tweet](https://x.com/yan5xu/status/2087212968169939214)\n\n💬0🔄0❤️2👀806",
+      "tags": [
+        "Codex"
+      ],
+      "score": 40,
+      "summary": "开发者吐槽 Codex 修改失败，个人情绪抒发。",
+      "fetched_at": "2026-08-13T03:14:49.837670+08:00"
+    },
+    {
+      "title": "感觉 Grok 4.6 一次成功率比 DeepSeek v4 Pro 0813还好些。\n\n不过价格上还是DeepSeek赢了。\n\n睡觉，明天做更多对比。\n\n测试很主观和生成也很随机，过一段时间大家真生...",
+      "link": "https://x.com/vista8/status/2087594418534859050",
+      "published": "2026-08-13T01:37:49+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "感觉 Grok 4.6 一次成功率比 DeepSeek v4 Pro 0813还好些。  \n  \n不过价格上还是DeepSeek赢了。  \n  \n睡觉，明天做更多对比。  \n  \n测试很主观和生成也很随机，过一段时间大家真生产环境用起来后的口碑可能更重要。\n\n💬4🔄0❤️13👀2587📊5",
+      "tags": [
+        "Grok 4.6",
+        "DeepSeek V4 Pro",
+        "对比"
+      ],
+      "score": 75,
+      "summary": "KOL 对比 Grok 4.6 与 DeepSeek V4 Pro，前者成功率略高。",
+      "fetched_at": "2026-08-13T03:14:49.837672+08:00"
+    },
+    {
+      "title": "Grok 4.6 效果也相当优秀啊！\n\n用刚才跑 Deepseek V4 Pro 的类似提示词。\n\n一个打砖块游戏，竟然别出心裁设计了熔炉故事场景，音效也不赖。\n\n一个生成60种 Bento 样式风格...",
+      "link": "https://x.com/vista8/status/2087590765354701133",
+      "published": "2026-08-13T01:23:18+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Grok 4.6 效果也相当优秀啊！  \n  \n用刚才跑 Deepseek V4 Pro 的类似提示词。  \n  \n一个打砖块游戏，竟然别出心裁设计了熔炉故事场景，音效也不赖。  \n  \n一个生成60种 Bento 样式风格，有些比DS 4 Pro好看。  \n  \n真的是过年了~\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087590072959086592/vid/avc1/1734x1080/gP5yDRUiFL6GShyG.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2087590765354701133/video/1)\n\n![向阳乔木](https://pbs.twimg.com/profile_images/1960882043249942533/h4J39ERy_normal.jpg)\n\n向阳乔木@vista8\n\n疯狂星期三，过年了啊！  \n  \n- Grok 4.6  \n- DeepSeek V4 Pro 0813  \n- WeLM-617B  \n- Qwen3.8-2.4T-A95B  \n  \n你最想先测哪个？\n\n[🔗 View Quoted Tweet](https://x.com/vista8/status/2087583384545776020)\n\n💬6🔄2❤️6👀3652📊5",
+      "tags": [
+        "Grok 4.6",
+        "评测"
+      ],
+      "score": 75,
+      "summary": "KOL 实测 Grok 4.6 效果优秀，游戏和设计表现佳。",
+      "fetched_at": "2026-08-13T03:14:49.837674+08:00"
+    },
+    {
+      "title": "Grok 4.6这次真的很不错，直接怒氪300刀的会员了，现在买300刀的SuperGrok Heavy，还能白嫖Cursor Ultra，这就很香。。。。",
+      "link": "https://x.com/Khazix0918/status/2087601177496277115",
+      "published": "2026-08-13T02:04:41+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "Grok 4.6这次真的很不错，直接怒氪300刀的会员了，现在买300刀的SuperGrok Heavy，还能白嫖Cursor Ultra，这就很香。。。。\n\n![Tweet Image](https://pbs.twimg.com/media/HPil9pjawAEqwLL.jpg)\n\n![Elon Musk](https://pbs.twimg.com/profile_images/2053244804520427520/m8mdWZCG_normal.jpg)\n\nElon Musk@elonmusk\n\nGrok 4.6 is now out 🚀🚀🚀  \n  \nSmart, fast & amazing bang for buck!\n\n[🔗 View Quoted Tweet](https://x.com/elonmusk/status/2087565020158992709)\n\n💬8🔄0❤️4👀1551📊7",
+      "tags": [
+        "Grok 4.6",
+        "SuperGrok"
+      ],
+      "score": 55,
+      "summary": "用户为 Grok 4.6 购买 SuperGrok Heavy，并获赠 Cursor Ultra。",
+      "fetched_at": "2026-08-13T03:14:49.837676+08:00"
     }
   ]
 }
