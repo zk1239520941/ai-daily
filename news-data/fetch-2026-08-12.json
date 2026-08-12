@@ -3157,6 +3157,306 @@
       "score": 65,
       "summary": "宝玉分享Agent并行任务经验：冲突时挂起等待其他任务完成。",
       "fetched_at": "2026-08-12T14:22:58.713881+08:00"
+    },
+    {
+      "title": "[AINews] How to steal a Reasoning Trace",
+      "link": "https://www.latent.space/p/ainews-how-to-steal-a-reasoning-trace",
+      "published": "2026-08-12T15:11:08+08:00",
+      "source": "Latent Space",
+      "content": "It’s not very often that a paper breaks through to become headline story of the day. For [understandable reasons](https://www.latent.space/p/ainews-ai-cybersecurity-becomes-top) both [domestic](https://www.latent.space/p/ainews-fearing-rsi-openai-anthropic) and [foreign](https://www.latent.space/p/ainews-anthropic-accuses-deepseek?utm_source=publication-search), there is renewed interest in the **Interpretability Venn Diagram** of alignment, security, and chain of thought monitoring, so today’s paper could not have come at a better time:\n\nSince [the o1 launch](https://www.latent.space/p/karina?utm_source=publication-search), frontier lab reasoning models have obscured their traces, with cryptographic signatures, for fear of distillation (not that this prevented anyone from Chinese labs accusing them of doing so). The first compromise was [responsibly reported by Matthew Green](https://blog.cryptographyengineering.com/2026/05/29/fooling-around-with-encrypted-reasoning-blobs/) in May, who broke down how it works and figured out how to replay and side channel these indirectly using latency measures. Today’s paper demonstrates that it is possible to **DECODE and** port these encrypted thoughts to different models/sessions/users… and to dramatically improve open models as a result\n\n[![Image](https://substackcdn.com/image/fetch/$s_!JSlb!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F18b4c6ea-cef8-43ba-9ef6-4aa7ae493944_3300x1890.jpeg \"Image\")](https://substackcdn.com/image/fetch/$s_!JSlb!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F18b4c6ea-cef8-43ba-9ef6-4aa7ae493944_3300x1890.jpeg)\n\nThe alarming note is here:\n\n> “Further, **if you ever shared online a Claude Code/Codex session with encrypted reasoning blobs, they can be decoded and leak your personal data.**\n>\n> We did a preliminary scan of ~7,000 public traces and found 62 unique API keys, 33 email addresses, 33 passwords, and other sensitive data.”\n>\n> (**64 appeared exclusively inside the reasoning blocks** and nowhere in the visible session.)\n\nThe authors also detail alignment issues:\n\n* **[COT Summarizers hiding answers](https://x.com/kotekjedi_ml/status/2087147148819468694)**\n* **[Unintelligible reasoning](https://x.com/kotekjedi_ml/status/2087147166435627253)**\n* **[Considerations of cheating](https://x.com/kotekjedi_ml/status/2087147183707697175)**\n* **[Attacking Websites](https://x.com/kotekjedi_ml/status/2087147204146499890)**\n\nThe [website](https://stolen-thoughts.com/) has more examples.\n\n[![](https://substackcdn.com/image/fetch/$s_!DKxl!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5fea1dc2-6c18-4636-8bbd-2011993d73e3_1611x1041.png)](https://substackcdn.com/image/fetch/$s_!DKxl!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5fea1dc2-6c18-4636-8bbd-2011993d73e3_1611x1041.png)\n\nThe technique is somewhat described in the paper:\n\n1. Obtain a legitimate encrypted/signed reasoning block from an API response.\n2. Replay that block into a different request—potentially another account/session—to a weaker model from the same provider.\n3. Place it in an assistant/model turn and prompt or prefill the weaker model to transcribe the attached reasoning.\n4. Sample repeatedly, discard refusals, and optionally reconcile multiple noisy transcriptions.\n\nThe paper gives concrete templates with some minor variations per model:\n\n* Claude: replay the signed thinking block to Haiku 4.5, followed by an assistant prefill such as `<thinking-copy>`.\n* GPT: inject the `encrypted_content` reasoning item multiple times into a fabricated conversation; sample up to 50 outputs. It also describes bypassing an apparent ~50-token verbatim-output threshold using chunked continuations.\n* Gemini: attach `thought_signature` to a model turn with a `<thought>` prefill, then use repeated sampling and reconciliation.\n\n[![](https://substackcdn.com/image/fetch/$s_!J8X_!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F4e3ea54a-54b6-40f4-a6c7-49d788389414_856x850.png)](https://substackcdn.com/image/fetch/$s_!J8X_!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F4e3ea54a-54b6-40f4-a6c7-49d788389414_856x850.png)\n\nThis paper was [responsibly disclosed](https://x.com/jonasgeiping/status/2087229080865275997), with several vulnerabilities already fixed, but surely similar attacks still seem possible.\n\n> AI News for 8/10/2026-8/11/2026. We checked 12 subreddits, [544 Twitters](https://twitter.com/i/lists/1585430245762441216) and no further Discords. [AINews’ website](https://news.smol.ai/) lets you search all past issues. As a reminder, [AINews is now a section of Latent Space](https://www.latent.space/p/2026). You can [opt in/out](https://support.substack.com/hc/en-us/articles/8914938285204-How-do-I-subscribe-to-or-unsubscribe-from-a-section-on-Substack) of email frequencies!\n\n---\n\n# **AI Twitter Recap**\n\n**Reasoning-Trace Exposure, CoT Privacy, and Watermarking Debate**\n\n* **Frontier API vulnerability exposed hidden reasoning**: A widely discussed disclosure from [@kotekjedi\\_ml](https://x.com/kotekjedi_ml/status/2087147042888114428) claims a vulnerability across frontier APIs allowed extraction of “encrypted” hidden reasoning, with recovered token counts matching billed thinking tokens **1:1** on most queried prompts. In a follow-up, the team reports that a scan of ~**7,000** public traces found **62 unique API keys, 33 email addresses, 33 passwords**, and other sensitive data in decoded blobs [@kotekjedi\\_ml](https://x.com/kotekjedi_ml/status/2087147116468826513). Additional context from [@jonasgeiping](https://x.com/jonasgeiping/status/2087229080865275997) emphasizes both the immediate privacy risk of sharing traces publicly and the operational-security implications: during the investigation, they reportedly encountered a leaked Hugging Face prod key during the broader cyber incident. Several posts also highlight how difficult monitoring becomes when decoded CoT is terse, fragmented, multilingual, or effectively “neuralese” [@jonasgeiping](https://x.com/jonasgeiping/status/2087229091510395260), [@scaling01](https://x.com/scaling01/status/2087181454098809287), [@eliebakouch](https://x.com/eliebakouch/status/2087179305474298162). A practical corollary: even if labs hide reasoning, tool interfaces may re-expose it; [@\\_can1357](https://x.com/_can1357/status/2087228354399265125) notes that disabling explicit thinking while providing a `deep_think` tool can still induce internal-format CoT output.\n* **What this means technically**: Discussion split between “serious privacy/safety problem” and “not a scalable distillation path.” [@vipulved](https://x.com/vipulved/status/2087258429836685358) argues the attack does **not** imply practical mass theft of chain-of-thought for model training, framing the encryption more as a stateless distributed-inference protocol optimization than a hard confidentiality barrier. Still, the episode sharpens a few points: public trace sharing is risky; hidden CoT is not a reliable monitoring interface; and labs may need stronger guarantees around sandboxing, telemetry, and tool surfaces [@BlackHC](https://x.com/BlackHC/status/2087211796927009104). In parallel, a separate thread debated **AI text watermarking** under EU-style compliance pressure. [@trq212](https://x.com/trq212/status/2087258090169414008) said labs are adding watermarking and a text-detection API; critics questioned whether this could bloat outputs or harm code/doc brevity [@wightmanr](https://x.com/wightmanr/status/2087207067883122841). Others argued the entropy budget is large enough that signatures can be subtle, especially for longer outputs [@RyanGreenblatt](https://x.com/RyanGreenblatt/status/2087258125690867930), [@giffmana](https://x.com/giffmana/status/2087291194401604041).\n\n**NVIDIA Nemotron 3.5 Lightning and the Small Open Agent Model Push**\n\n* **Nemotron 3.5 Lightning**: NVIDIA released [Nemotron 3.5 Lightning](https://x.com/NVIDIAAI/status/2087162151995629926), a **30B MoE** model with roughly **3B active** parameters, positioned for always-on agent workloads. NVIDIA and ecosystem posts stress **up to 4× throughput**, **1M context**, open/customizable release artifacts, and support for **weights, data, and recipes** on Hugging Face [@NVIDIAAI](https://x.com/NVIDIAAI/status/2087173733823680855). Artificial Analysis provides the most detailed third-party summary: **31.6B total / 3.6B active**, **OpenMDW-1.1** license, NVFP4 and BF16 weights, median serving near **670 tok/s** in pre-release endpoint testing, and a score of **24** on its Intelligence Index—roughly in line with **gpt-oss-120b** while being much smaller and faster [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2087163514037408085). Agentic results look particularly strong for the size: **GDPval-AA v2 Elo 824** and **Terminal-Bench v2.1 24%**, both major jumps over Nemotron 3 Nano [@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2087163522212045033).\n* **Distribution and downstream tuning**: Lightning shipped fast across the stack: [Together AI](https://x.com/togethercompute/status/2087163477404041345), [Ollama](https://x.com/ollama/status/2087208006455111779), [Baseten](https://x.com/baseten/status/2087173719873446192), [vLLM](https://x.com/vllm_project/status/2087217150813729122), [Perplexity API](https://x.com/AravSrinivas/status/2087352727923998941), and others. A recurring pattern is pairing a cheaper execution model with a stronger planner: [@kimmonismus](https://x.com/kimmonismus/status/2087179573477650881) frames Lightning as NVIDIA’s “local agent workforce,” complementing larger planning models via routing. Harvey reports post-training on **Legal Agent Bench** improved Lightning from **0% to 8.3%** on held-out tasks, beating Opus 4.6 and Nemotron 3 Ultra in that setup while cutting average output from **90k to 37k** tokens [@harvey](https://x.com/harvey/status/2087166789876945338). Overall, this release reinforces the current open-model trend: smaller, faster models tuned for high-volume tool use rather than general chat prestige.\n\n**Local AI Tooling: Unsloth Desktop, Muse Glimmer Support, and Linux Codex**\n\n* **Unsloth Desktop expands the local stack**: [@UnslothAI](https://x.com/UnslothAI/status/2087177146662072546) launched **Unsloth Desktop**, an open-source desktop app for **running and training** models locally across **Mac, Windows, and Linux**, with support spanning **MLX, GGUF, diffusion image/video, audio**, CPU and multi-GPU setups, plus OpenAI-compatible APIs. The notable systems angle is ambition beyond “local chat UI”: tool calling, sandboxed code execution, private search, RAG, MCP, exports, and claims of **2× faster training with 70% less VRAM**. Multiple observers positioned it as a more end-to-end local AI operating environment rather than just an LM Studio competitor [@TeksEdge](https://x.com/TeksEdge/status/2087182335678750731), [@dessaigne](https://x.com/dessaigne/status/2087203910297809270).\n* **Model/runtime support keeps improving**: The open/local ecosystem also moved quickly on **Meta Muse Glimmer 30B** and Nemotron. [@mervenoyann](https://x.com/mervenoyann/status/2087149740026655138) highlighted **DFlash drafter** support for Muse Glimmer in **llama.cpp** and Transformers, claiming **2–4×** generation speedup at small memory cost, with simple `llama serve` instructions following shortly [@mervenoyann](https://x.com/mervenoyann/status/2087158085865402465). On the model-analysis side, [@rasbt](https://x.com/rasbt/status/2087180773497421926) gave a useful architectural breakdown of Glimmer: a **dense 30B multimodal reasoning model** with hybrid local/global attention, **extreme KV-cache efficiency** (~**52 KiB/token** BF16 by his estimate), and a design closer to Gemma-family patterns than MoE competitors.\n* **OpenAI finally shipped Linux desktop support**: OpenAI announced the **ChatGPT desktop app for Linux** in preview [@OpenAI](https://x.com/OpenAI/status/2087231350134980830), with support for **Ubuntu 24.04/26.04, Debian 13, Fedora 43/44**, x64 and ARM64 packages [@OpenAIDevs](https://x.com/OpenAIDevs/status/2087231805846102424). More importantly for existing agent users, the desktop app can now **import/sync projects, chats, skills, and plugins** from other agents into **ChatGPT Work and Codex**, including automatic updates [@OpenAIDevs](https://x.com/OpenAIDevs/status/2087242829076791392). This looks like an effort to reduce switching friction and make Codex/Desktop the integration hub rather than a fresh silo.\n\n**Agent Products, Benchmarks, and Enterprise Evaluation**\n\n* **Grok Bot is a stronger product signal than another model launch**: xAI introduced [Grok Bot](https://x.com/bot/status/2087224798078517251), pitched as AI teammates with their own cloud computers that can sign into tools and do persistent work. The interesting details from early users are product/ops-oriented rather than model-centric: bots can watch Slack threads and GitHub Actions, repeat scheduled routines, create/manage other bots, and work across linked cloud environments [@shaoruu](https://x.com/shaoruu/status/2087235466278101368), [@n2parko](https://x.com/n2parko/status/2087251704744235298), [@sjwhitmore](https://x.com/sjwhitmore/status/2087231290076696715). [@kimmonismus](https://x.com/kimmonismus/status/2087234458336604370) notes how deeply this seems tied to Cursor distribution and pricing, hinting at a “virtual coworker” product category where persistent context, logged-in environments, and inter-agent delegation matter more than raw benchmark gains.\n* **Evaluation is shifting toward long-horizon, deterministic, domain-real tasks**: LlamaIndex launched [ExtractBench](https://x.com/jerryjliu0/status/2087195936225108171), a deterministic benchmark for enterprise document extraction across **370 documents / 4,869 pages / 67 doc types**. Its most actionable result is that commercial VLMs can keep precision high while **recall collapses below 35% on documents >50 pages**, mainly via silent row/list truncation. They also introduced an “Agentic Plus” extraction tier in LlamaParse claiming **95.6% value accuracy** at less than one-third the cost of the nearest peer. Artificial Analysis released [AA-AnalystAgent](https://x.com/ArtificialAnlys/status/2087303970725499361), an agentic benchmark for spreadsheet/document quantitative analysis using a **pass^5** reliability metric across 80 tasks. **Claude Opus 5** leads at **54%**, followed by **GPT-5.5** at **50%** and **Claude Fable 5** at **49%**; **Kimi K3** is the top open-weights model at **39%**. The strong theme across both is reliability and workflow correctness over one-shot capability.\n* **Benchmark skepticism is rising**: A thoughtful critique from [@hrishioa](https://x.com/hrishioa/status/2087252719321133298) argues many modern evals are being “vibed” rather than engineered carefully, leading to broken scoring, bad aggregation, and even exploitable prompts/sandboxes. That critique lands harder given recent reports of sandbox escapes, outbound network access, and agent reward hacking. Separately, Microsoft research drew attention for a prompt-time “skill compilation” result: [@xidulu](https://x.com/xidulu/status/2087185532707111092) shared work feeding the **previous hidden state** at decoding time for free gains, while [@dair\\_ai](https://x.com/dair_ai/status/2087264294782279808) summarized another paper showing that compact natural-language skills distilled from prior trajectories can recover **55% to >100%** of the gap between non-reasoning and reasoning modes on several multi-step agentic tasks, often with **2.7–6× fewer output tokens**.\n\n**Infra, Verification, and Systems Research**\n\n* **Verifiable inference is moving from theory toward product**: [@Yogi\\_Brn](https://x.com/Yogi_Brn/status/2087222696170103125) launched **Attestable** with a **$20M seed**, pitching practical zero-knowledge proofs for AI integrity. The core claim is proving that the correct model ran on the correct inputs and invoked the correct tools, which becomes more valuable as agent traces lengthen. [@jaminball](https://x.com/jaminball/status/2087223317375971807) says the team reduced ZK overhead by many orders of magnitude from previously impractical levels. The response from [@VitalikButerin](https://x.com/VitalikButerin/status/2087241620618088674) is notable: he estimates the current approach may already be within **single-digit (<10×) overhead** relative to raw inference in some settings, and frames that as a stepping stone toward stronger privacy-preserving inference stacks.\n* **Deterministic integer-only inference across hardware**: One of the more technically interesting systems posts came from [@nathanrs](https://x.com/nathanrs/status/2087226432284139723), who reports fully deterministic LLM inference across **A100, H100, Apple M5 Max, AMD EPYC, and Intel Xeon** by using exact integer arithmetic end-to-end instead of letting nonlinear ops bounce back into floating point. On a Qwen3-0.6B test, all integer runs produced identical hashed logits across devices, with **WikiText2 perplexity 20.72 vs 20.95 for fp16** and **106 tok/s** CUDA-graphed decode on A100 at batch 1—claimed as **3.6×** fp16 eager baseline. If robust, that’s relevant both for reproducibility and for proof-friendly inference.\n* **Compiler/inference portability as an agentic systems target**: A smaller but recurring theme is “agents moving down the stack.” Posts around [@JvNixon](https://x.com/JvNixon/status/2087224880169439390) and Infinity describe automated compiler/memory-planner/debugger workflows for running optimized models across heterogeneous chips, with supporters framing software-generated per-chip adaptation as a way to weaken the CUDA moat. Separately, infra vendors shipped more incremental but practical updates: **Qdrant 1.19** adds prefix matching on keyword indexes [@qdrant\\_engine](https://x.com/qdrant_engine/status/2087182514637201627), and **Together + IBM + NVIDIA** announced enterprise inference infrastructure on IBM Cloud [@togethercompute](https://x.com/togethercompute/status/2087200403150807073).\n\n**Top tweets (by engagement)**\n\n* **Reasoning trace vulnerability / hidden CoT extraction**: the original disclosure from [@kotekjedi\\_ml](https://x.com/kotekjedi_ml/status/2087147042888114428) and the follow-up privacy findings [@kotekjedi\\_ml](https://x.com/kotekjedi_ml/status/2087147116468826513) were among the day’s most consequential technical posts.\n* **Grok Bot beta**: xAI’s agent product launch [@bot](https://x.com/bot/status/2087224798078517251) drew the biggest product reaction, largely because it points to a persistent, logged-in AI coworker UX rather than a simple chatbot iteration.\n* **ChatGPT desktop for Linux + sync/imports**: OpenAI’s Linux desktop preview [@OpenAI](https://x.com/OpenAI/status/2087231350134980830) and agent-workflow import/sync support [@OpenAIDevs](https://x.com/OpenAIDevs/status/2087242829076791392) landed strongly with developer audiences.\n* **Nemotron 3.5 Lightning**: Jensen’s post [@JensenHuang](https://x.com/JensenHuang/status/2087184542050496763) and NVIDIA’s launch [@NVIDIAAI](https://x.com/NVIDIAAI/status/2087162151995629926) marked the most important open-model systems release of the day.\n\n---\n\n# **AI Reddit Recap**\n\n## **/r/LocalLlama + /r/localLLM Recap**\n\n### **1. Meta Muse Glimmer 30B Release and Local Benchmarks**\n\n* **[Introducing Muse Glimmer: an open-weight model optimized for always-on local agent workflows](https://www.reddit.com/r/LocalLLaMA/comments/1vkgsum/introducing_muse_glimmer_an_openweight_model/)** (Activity: 2435): **Meta announced Muse Glimmer, a permissively licensed Apache 2.0 open-weight** `30B` **dense multimodal model for always-on local agent workflows, with interleaved text/image input via a dedicated perception encoder,** `100+` **language training, controllable reasoning effort, and agent-focused training for tool use, long-horizon reasoning, failure recovery, and benchmarks such as DeepSearch QA, MCP-Atlas, τ³-Bench, and SWE-Bench. The post claims ~**`4-bit` **quantization reduces the LM to <20 GB, enabling operation in** `24–32 GB` **memory envelopes alongside KV cache, perception encoder, and a DFlash-based speculative decoding drafter with “identical output quality”; weights/resources are linked on [Hugging Face](https://huggingface.co/meta-models), the [research blog](https://go.meta.me/museglimmer), and [developer docs](https://developer.meta.com/ai/models/muse-glimmer/). A technical comment points to Alexandr Wang saying an open-weight Muse Spark 1.2 release is coming soon on [X](https://x.com/alexandr_wang/status/2086756152034066792).** Comments are mostly positive but light on technical scrutiny, expressing enthusiasm that Meta is releasing open weights again and jokingly framing Muse Glimmer as “llama 5.”\n\n  + A commenter cites **Alexandr Wang** on X stating that **an open-weight version of** `Muse Spark 1.2` **will be released soon**, which is technically relevant because it suggests Meta may follow Muse Glimmer with a higher-tier or newer open-weight variant. Source: [x.com/alexandr\\_wang/status/2086756152034066792](https://x.com/alexandr_wang/status/2086756152034066792).\n* **[Meta releases Muse Glimmer 30B - a new open model](https://www.reddit.com/r/LocalLLM/comments/1vkgnb0/meta_releases_muse_glimmer_30b_a_new_open_model/)** (Activity: 450): **The [image](https://i.redd.it/0fnmzjj7uiih1.png) is a promotional benchmark graphic for Meta “Muse Glimmer-30B”, presented as a new open-weight 30B dense vision model under Apache 2.0. It claims competitive results versus Gemma 4-31B and Qwen3.6-27B on agentic/code/math/science benchmarks including** `MCP Atlas`**,** `DeepSearch QA`**,** `SWE-Bench Pro`**,** `AIME 2026`**, and** `SciCode`**, and advertises that it can run on** `18GB` **RAM/VRAM setups via Unsloth Desktop.** Commenters were broadly positive about Meta returning to open model releases, but one noted skepticism about cadence, saying it may be *“the strongest agentic model for its size for like three days before they release Qwen,”* implying rapid competition from Qwen and pressure on Meta to improve release velocity.\n\n  + Commenters frame **Muse Glimmer 30B** as a potentially strong **agentic model in the ~30B dense-model size class**, but expect it to be quickly challenged by upcoming **Qwen** releases; one commenter says it may be *“the strongest agentic model for its size for like three days before they release Qwen.”* The technically relevant concern is release cadence: Meta is seen as needing faster iteration to remain competitive with Qwen and other open-model labs.\n  + A substantive ecosystem point is that the **~30B parameter tier** is becoming crowded, with commenters naming **Qwen, Google, NVIDIA, and Meta** as active players. One commenter hopes Meta follows this release with a similarly sized **MoE** model, mirroring expectations that Qwen may also expand in that direction.\n* **[Muse Glimmer ACTUALLY fits on a single RTX 3090](https://www.reddit.com/r/LocalLLaMA/comments/1vkm42m/muse_glimmer_actually_fits_on_a_single_rtx_3090/)** (Activity: 640): **A user reports Meta Muse Glimmer 30B** `Q4_K_XL` **GGUF runs on a single RTX 3090 24GB with** `262144` **context, DFlash speculative draft,** `mmproj`**, FlashAttention, and F16 KV cache, using only ~**`22–23GB` **VRAM—unlike their tested** `Q4_K_XL` **Qwen3.6-27B and Gemma-4-31B, which hit VRAM limits at ~**`70k/52k` **tokens with F16 KV or** `125k/81k` **with Q8 KV. They measured ~**`64–124 tok/s` **generation under DFlash, ~**`1400 tok/s` **prompt processing, and passed a two-needle retrieval test at ~**`150k` **tokens, suggesting the model is not effectively capped at** `128k`**; a commenter notes the official [Muse-Glimmer-30B-GGUF](https://huggingface.co/meta-models/Muse-Glimmer-30B-GGUF) releases already target** `24GB`**/**`32GB` **VRAM, and another reports very compact KV usage: ~**`1.8 GiB` **for** `131k` **F16 despite SWA on all layers.** Commenters were positively surprised by the KV-cache efficiency, especially given SWA across all layers; one joked that this could further increase RTX 3090 demand/prices.\n\n  + Users highlighted that **Muse Glimmer’s KV cache appears unusually memory-efficient despite SWA on all layers**: one report claims a `131k` context with `F16` KV uses only about `1.8 GiB`, making long-context operation feasible on a single RTX 3090.\n  + A commenter noted that the **official Meta GGUF builds already target** `24GB` **and** `32GB` **VRAM configurations**, including DFlash support, so Unsloth GGUFs may not be required. The referenced official repository is [meta-models/Muse-Glimmer-30B-GGUF](https://huggingface.co/meta-models/Muse-Glimmer-30B-GGUF).\n  + Another technical report claims `256k` **context + DFlash + mmproj fits in roughly** `22–23GB` **VRAM on an RTX 3090**, with observed throughput around `64–124 tok/s`. They also noted that a `150k` needle test reportedly holds up, but questioned how performance and retrieval quality behave once the context is filled closer to `200k+`.\n* **[1 Day in and I feel okay saying Muse-Glimmer-30B finally beats 3.6-27B for the size in some use-cases](https://www.reddit.com/r/LocalLLaMA/comments/1vl64et/1_day_in_and_i_feel_okay_saying_museglimmer30b/)** (Activity: 709): **OP reports that Muse-Glimmer-30B appears to outperform Qwen 3.6-27B in selected** `24GB GPU`**-class local use cases after ~1 day of testing, especially efficient reasoning, low-bit quantization (**`iq3_xxs` **reportedly degrades less than Qwen/Gemma), no-tools trivia/knowledge depth, and OpenCode agent efficiency. They still rate it weaker for general coding—roughly around Gemma4-31B level—but claim it completes agentic tasks faster than 3.6-27B despite similar task success.** Commenters echoed strong early results for **agentic workflows/tool calling**, with one saying Muse-Glimmer-30B “isn’t even close,” but others expect an imminent **3.8** release to erase the lead. One technical criticism was that American models may waste tokens on safety/self-validation before answering.\n\n  + One commenter reported a few hours of A/B testing where **Muse-Glimmer-30B** substantially outperformed **3.6 27B** specifically in *agentic workflows and tool calling*, saying *“it isn’t even close.”* Another user qualified the improvement as strongest for **non-coding tasks**, while coding performance was left unverified.\n  + A technical concern raised was **token inefficiency from safety/alignment preambles**: one user asked whether Muse-Glimmer-30B spends many tokens validating that requests are allowed under its policy framework. This was framed as a common issue with some American-aligned models where safety verbosity can reduce practical throughput in interactive or agentic use.\n  + Several comments noted that the comparison may be short-lived because **3.8** is expected imminently and could change the relative ranking versus **Muse-Glimmer-30B** and **3.6 27B**. One dissenting commenter still considered **3.6 27B** the stronger baseline overall, suggesting the new model’s advantage may be workload-specific rather than universal.\n* **[Early signs that Muse-Glimmer-30B might quantize](https://www.reddit.com/r/LocalLLaMA/comments/1vkn16q/early_signs_that_museglimmer30b_might_quantize/)** ***[very](https://www.reddit.com/r/LocalLLaMA/comments/1vkn16q/early_signs_that_museglimmer30b_might_quantize/)*** **[well? Share your experiences.](https://www.reddit.com/r/LocalLLaMA/comments/1vkn16q/early_signs_that_museglimmer30b_might_quantize/)** (Activity: 354): **The image is a social media post from Unsloth AI showing Muse-Glimmer-30B-GGUF running in a chat/coding-agent workflow with visible tool calls, claiming a 2-bit quantized 30B model executed** `100+` **tool calls while using about** `14GB` **RAM: [image](https://i.redd.it/isk68qed9kih1.jpeg). In the Reddit discussion, users question whether** `14GB` **is actually impressive for “2-bit” on a 30B model, while another reports Q4\\_K\\_XL on a single RTX 3090 performing well for agentic coding and roughly “on-par with 3.6 27B.”** Commenters are split between optimism about Glimmer’s quantization/agentic-coding performance and skepticism about memory efficiency. There is also concern that the model may be overly safety-restricted, with one user citing refusals for code that moves the mouse pointer.\n\n  + One user reports running **Muse-Glimmer-30B** as `Q4_K_XL` on a single **RTX 3090** for agentic coding and says it is “performing great,” roughly **on par with 3.6 27B** in their early testing. Another commenter notes that a `14GB` “2-bit” quant is relatively large for a 30B model, implying the packaging/quantization format may include substantial overhead or not be a straightforward 2-bit weight-only footprint.\n  + A technically focused concern is how Glimmer behaves under **KV-cache quantization**, especially whether degradation from `fp16` to `q8_0` resembles **Qwen** or **Gemma**-style sensitivity. The commenter specifically wants Glimmer added to Anbeeld’s KV-cache benchmark methodology: [KV cache quantization benchmarks / KVARn precision tail](https://anbeeld.com/articles/kv-cache-quantization-benchmarks-kvarn-precision-tail).\n  + A user testing the **BF16** model through **vLLM** reports disappointing quality versus **Laguna-S-2.1**, saying Glimmer made many errors that Laguna would not. They suggest the result may be due to early-release issues and plan to retest once the official repo/model release stabilizes.\n\n### **2. Qwen 3.8-27B and Ling-3.0 Tiny Open Weights**\n\n* **[Qwen 3.8-27b coming this week](https://www.reddit.com/r/LocalLLaMA/comments/1vl8bpt/qwen_3827b_coming_this_week/)** (Activity: 2791): **The [image](https://i.redd.it/06v8tcdekoih1.jpeg) is a screenshot of the official Qwen / Alibaba\\_Qwen X account confirming that** `Qwen3.8-27B` **open weights are landing this week, matching the post title’s claim. Comments point to a ModelScope listing for** `Qwen3.8-2.4T-A95B`**, noting ModelScope is Alibaba-owned and suggesting the release timing/countdown may be credible.** Commenters are already comparing expectations against other Qwen variants, especially asking whether a **35B-A3B-like** model is coming because it reportedly performs well on certain tasks with strong speed for its hardware footprint.\n\n  + Commenters pointed to an apparent official **Alibaba ModelScope** listing for `Qwen3.8-2.4T-A95B` with a countdown of roughly `1 day 9 hours`, treating it as a credible signal because ModelScope is Alibaba-owned: <https://modelscope.cn/models/Qwen/Qwen3.8-2.4T-A95B> and <https://modelscope.cn/models/Qwen/Qwen3.8-2.4T-A95B/summary>.\n  + There was interest in whether a `35B-A3B`-style Qwen variant will arrive, with one user noting that `35BA3B` performs *“amazing”* on certain task types while maintaining strong speed for its hardware footprint, implying demand for smaller active-parameter MoE-style models rather than only larger dense releases.\n  + A Strix Halo owner requested a newer `122B` release, saying the current `Qwen 3.5 122B` feels outdated; this reflects interest in very large local models that can plausibly run on high-memory AMD APU platforms.\n* **[inclusionAI/Ling-3.0-tiny · 8B A1.3B MoE· Hugging Face](https://www.reddit.com/r/LocalLLaMA/comments/1vkqwso/inclusionailing30tiny_8b_a13b_moe_hugging_face/)** (Activity: 427): **inclusionAI released** `Ling-3.0-tiny`**, an** `8B`**-parameter MoE with ~**`1.3B` **active parameters, positioned by the OP between** `4B` **and** `8–12B` **Qwen/Gemma-class dense models. The model card reports FP8 throughput of ~**`100–105 tok/s` **on DGX Spark and** `86–90 tok/s` **on an M4 Pro MacBook, with ~**`8.34 GiB` **peak memory at** `8K` **context; commenters also highlight a** `256K` **context window and an AA Bench score of** `25` **from a shared benchmark image. One commenter compared it favorably against recent LFM small models:** `IFBench 63.61`**,** `Multi-IF 83.15`**, and** `BFCL-v4 62.72`**, beating** `LFM2.5-8B-A1B` **and** `LFM2.5-2.6B` **on those listed metrics.** Commenters were broadly positive about tiny MoE architectures for low-memory, mobile, and edge inference due to high tokens/sec, with one saying it may replace `Ling-Mini-2.0` locally. There was interest in larger `15–50B` Ling releases and speculation that speculative decoding could push throughput toward diffusion-model-like responsiveness.\n\n  + Users highlighted **Ling-3.0-tiny** as an `8B` MoE model with roughly `A1.3B` active parameters, making it attractive for **low-memory, mobile, and edge** deployments due to expected faster tokens/sec versus denser models. One commenter noted it scores `25` **on AA Bench**, which they considered notable for this size class.\n  + A technical comparison against recent **LFM** small models reported **Ling-3.0-tiny** ahead on instruction-following and tool-use benchmarks: `IFBench 63.61` vs `56.47` for LFM2.5-8B-A1B, `Multi-IF 83.15` vs `79.93`, and `BFCL-v4 function calling 62.72` vs `49.73`. The same commenter emphasized its `256k` **context window** on an `8B/A1B`-style model as a key differentiator.\n  + There was interest in runtime compatibility, specifically whether **llama.cpp** support exists yet. Another commenter suggested future larger **15B–50B** Ling models combined with **speculative decoding** could significantly improve throughput, potentially approaching the perceived responsiveness of diffusion-style generation pipelines.\n\n[Read more](https://www.latent.space/p/ainews-how-to-steal-a-reasoning-trace)",
+      "tags": [
+        "推理轨迹解码",
+        "思维链安全",
+        "数据泄露"
+      ],
+      "score": 85,
+      "summary": "新论文演示可解码加密思维链并移植到其他模型，扫描7000条公共轨迹發現62处泄露。",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!nQZJ!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fpbs.substack.com%2Fmedia%2FHPcJLMtagAAx07t.jpg",
+      "fetched_at": "2026-08-12T16:25:58.057059+08:00"
+    },
+    {
+      "title": "iOS 27 曝光苹果 AI 收费：想让 iPhone 更聪明？得加钱",
+      "link": "https://www.ifanr.com/1674897?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-12T15:03:57+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/images/ep/uploads/Apple_Intelligence_%E6%94%B6%E8%B4%B9/aa8c8f90-998d-40f1-a594-800ff05cf1af.png)\n\n国内用户等 Apple Intelligence 等了两年。今年 7 月，「Apple 智能」完成手机端侧生成式 AI 服务备案，国行版本终于离正式上线近了一步。\n\n**只是还没正式用上，收费的消息先传出来了。**\n\n长期关注苹果生态的内容创作者 Stephen Robles 发现，iOS 27 beta 5 的家庭 App 新增了 Apple Intelligence 页面，其中已经出现了和 iCloud+ 套餐挂钩的 AI 使用限制。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/485f27ba-0e5d-417d-b4d7-59536a2a300a.png)\n\n目前测试版中，2TB iCloud+ 支持 5 个摄像头使用 AI 摘要，12TB 档位则增加到 15 个。页面下方还有一个升级选项，写着「升级 iCloud+，可以获得更多 Apple Intelligence 使用量」。\n\n事实上，2TB iCloud+ 早就支持接入不限数量的 HomeKit Secure Video 摄像头，监控录像也不会占用 iCloud 存储空间。同一个 2TB 套餐，你可以接入一大堆摄像头，但能用 AI 摘要的只有 5 个。\n\n翻译一下，苹果的意思很明确：得加钱。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/1f229d1b-185f-4f23-a2c5-0a391942a557.gif)\n\n苹果在今年 6 月 WWDC 介绍新一代 Apple Intelligence 时，其实已经确认：包括图像生成在内，部分依赖服务器模型的功能会设置每日使用上限，而升级 iCloud+ 套餐可以获得更高的使用量。\n\nBeta 5 这次则更进一步，开始按照 iCloud+ 的具体档位区分 AI 使用量。至少在家庭摄像头上，2TB 和 12TB 用户能用 AI 摘要的摄像头数量已经不同。至于图像生成等其他功能会不会采用类似的分档方式，还需要等待后续版本来回答。\n\n### 2TB 还不够，AI 也要看套餐\n\n[其实早在 2024 年 Apple Intelligence 刚发布时，关于收费的讨论就已经出现](https://mp.weixin.qq.com/s/UVH4H2xEyhiZ-X9GoRd7Nw)。彭博社记者 Mark Gurman 当时爆料，苹果未来可能推出「Apple Intelligence+」，基础 AI 功能继续免费，再通过高级订阅提供更多能力。\n\n两年后，苹果似乎没打算再单独做一个「Apple Intelligence+」，而是直接从现有的 iCloud+ 下手。\n\n现在打开 iCloud+ 的套餐页面，50GB、200GB、2TB、6TB 和 12TB 依然是最醒目的几个数字。过去升级 iCloud+ 的理由很简单：手机里的照片越来越多，设备备份越来越大，原来的空间装不下了，就往上买一档。\n\n后来苹果陆续往 iCloud+ 里加入隐藏邮件地址、专用代理、HomeKit 安防视频等功能，但对大多数用户来说，价格和存储空间之间仍然有一套很直观的对应关系。但到了 AI 这里，就很难再找到一个像「GB」这么好懂的刻度。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/1b322acb-ac8e-49ca-a269-f4e0d775f408.png)\n\n图｜HomeKit Secure Video｜9to5Mac\n\n生成一张图片、总结几小时监控录像，或者让 Siri 完成一次更复杂的任务，消耗的主要是模型和算力。普通用户没必要知道一次请求用了多少 Token，更不可能像 API 开发者一样，对着「每百万 Token 多少钱」的价目表决定今天要不要多问 Siri 两句。\n\n苹果选择 iCloud+ 的聪明之处，恰好在这里。AI 的成本不好直接讲给普通用户听，但 iCloud+ 的几档套餐大家已经很熟悉。过去选哪一档，主要看需要多少存储空间；以后再往上升级，理由可能还会多一个：**想多用一些 AI**。\n\n上个月，库克在财报电话会上也公开谈到过这件事。他提到，一部分用户未来可能会大量使用这些 AI 能力，如果需要更多使用量，可以通过 iCloud+「buy up the stack」。\n\n不到两周，这个想法就在 iOS 27 Beta 5 中出现了雏形。\n\n这样一来，苹果也不用重新教用户怎么给 AI 付费。以前照片太多，iPhone 会提醒你升级 iCloud；以后图片生成得太多、家里需要 AI 摘要的摄像头太多，出现的可能还是同一个升级页面。\n\n### 卖完硬件之后，苹果还想继续收钱\n\n如果 iCloud+ 以后真的开始卖更多 AI 使用量，受影响的可能远不止 iPhone。\n\n有传言称，苹果接下来正在准备一批更依赖 AI 的新硬件。除了 Apple TV、HomePod mini 和配备屏幕的家庭中枢，彭博社今年还报道过智能眼镜、带摄像头的 AirPods，以及一款可以夹在衣服上或挂在脖子上的 AI 设备。家庭安防摄像头也在苹果的开发计划中。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/14e75dc0-575a-47dd-be93-98afe07635aa.png)\n\n图｜MacRumors\n\n摄像头要理解录像，眼镜和耳机要知道用户面前正在发生什么，家庭中枢还要根据站在屏幕前的是谁，调出对应的日历、提醒和照片。这些任务不可能全靠设备自己完成。\n\n苹果过去几年一直强调 Apple Intelligence 的端侧能力，很多任务可以直接在 iPhone、iPad 和 Mac 上完成。但设备算不过来的部分，还是要交给 Private Cloud Compute。\n\n举一个更好理解的例子：买一台 256GB 的 iPhone 回来，机身容量就「固定」在 256GB。刚开始可能完全够用，几年以后照片越来越多、文件越来越大，本地空间装不下了，最方便的办法就是去订阅 iCloud+。\n\n到了 AI 这里也是同理：设备本身先提供一部分「固定」的计算能力，超过它能够承担的范围以后，再由苹果的服务器接手。\n\n而苹果接下来要做的智能眼镜、带摄像头的 AirPods、家庭中枢这些设备，本身能够留给计算的空间只会更有限。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/ab713f5a-b9ec-4e10-b3b4-8693a453d691.png)\n\n图｜苹果智能眼镜假想图｜TT Technology\n\n它们如果要持续理解周围的声音、画面和用户指令，很多更复杂的任务自然也要借助 iPhone，甚至进一步调用苹果的云端算力。\n\n### AI 的免费时代，正在悄悄关门\n\n苹果现在才开始考虑怎么给 AI 收钱，其实已经算晚的。\n\nChatGPT、Claude 和 Gemini 这三家早就把更强的模型和更高的使用量放进付费套餐，今年国内几家用户规模最大的 AI 产品也开始跟进。\n\n豆包从 5 月开始测试付费订阅，6 月正式推出不同等级的服务，复杂的 PPT、数据分析、影视制作等任务成为主要付费内容。普通聊天依然可以免费使用，但如果真的把豆包当生产力工具，每天让它干大量重活，就需要付费。\n\n千问这周也开始面向专业用户收费。办公助理按照不同套餐增加使用量，AI 视频生成则直接单独购买额度。你当然还可以继续免费和它聊天，只是从聊天走向办公、视频这些更耗算力的场景以后，免费额度就没那么经用了。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b30a3e63-0802-4b5c-8e31-3e1fcda37416.png)\n\n前两年，大家更急着让用户养成习惯。聊天免费，搜索免费，图片生成免费，更强的模型也不断往免费套餐里下放。等到 AI 开始进入办公、视频、深度推理和 Agent，单次任务需要的 Token 越来越多，再让所有用户无限使用就很难算得过来了。\n\n所以现在看到的收费方式基本也都是一个思路：日常需求尽量免费，真正大量消耗计算资源的功能，按会员等级或者使用量收费。\n\n苹果的区别，大概只是不会在 iPhone 里放一个醒目的「购买 1000 AI Credits」。\n\n有意思的是，就在 iOS 27 beta 5 的 AI 套餐被发现的同一天，苹果和 Epic 打了多年的 App Store 官司也有了新进展。美国联邦法官拒绝暂停对 App Store 外链交易佣金的审理，苹果接下来需要拿出具体费率、计算方法和证据，解释这笔佣金究竟该收多少。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/276497c0-e112-41f0-94be-0160dae2c2c3.png)\n\n图｜9to5Mac\n\n应用商店时代的抽成为什么是 30%，外链交易又为什么曾经要收 27%，这么多年以来，各方一直争论不休。\n\nAI 时代，这笔账就好算多了：用得越多，消耗的计算资源也越多。\n\n这也让 iCloud+ 成了一个顺理成章的收费工具。用户不需要关心 Token、模型大小这些细节，只需要判断自己现有的套餐够不够用。\n\n两年前，Apple Intelligence 发布时，我们曾向大家提过一个问题：「你会愿意花钱，让你的 iPhone 更聪明一点吗？」\n\n当时，国内用户甚至还没机会回答。等了两年，Apple Intelligence 终于要来了，今天我们又要面对那个「灵魂拷问」——\n\n**你会愿意花钱，让你的 iPhone 更聪明一点吗？**\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "Apple Intelligence",
+        "iCloud+",
+        "AI收费"
+      ],
+      "score": 75,
+      "summary": "iOS 27测试版显示Apple Intelligence用量与iCloud+套餐挂钩，2TB支持5个摄像头AI摘要。",
+      "fetched_at": "2026-08-12T16:25:58.057074+08:00"
+    },
+    {
+      "title": "2026中国科创投资夏季峰会暨陕西科创产业生态大会圆满落幕",
+      "link": "https://www.qbitai.com/2026/08/470901.html",
+      "published": "2026-08-12T15:31:19+08:00",
+      "source": "量子位",
+      "content": "2026年7月29日—30日，由融中财经和秦创原科技创新投资集团主办的2026中国科创投资夏季峰会暨陕西科创产业生态大会圆满落幕。",
+      "tags": [
+        "科创投资峰会",
+        "陕西科创"
+      ],
+      "score": 60,
+      "summary": "2026中国科创投资夏季峰会在陕西落幕，聚焦科创产业生态。",
+      "fetched_at": "2026-08-12T16:25:58.057078+08:00"
+    },
+    {
+      "title": "源：https://t.co/TCFUzoABCI",
+      "link": "https://x.com/FinanceYF5/status/2087429153452933366",
+      "published": "2026-08-12T14:41:07+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/rohanpaul\\_ai/s…](https://x.com/rohanpaul_ai/status/2087198053036167532)\n\n![Rohan Paul](https://pbs.twimg.com/profile_images/1816185267037859840/Fd18CH0v_normal.jpg)\n\nRohan Paul@rohanpaul\\_ai\n\nNVIDIA released Nemotron 3.5 Lightning for long-running agent execution.  \n  \n- 30B total / 3B active parameters, with up to 1M tokens of context.   \nReady for commercial use.  \n  \n- Local deployment: NVIDIA ships BF16 and much smaller NVFP4 checkpoints, lists 1× DGX Spark or 1× H100 for single-GPU deployment, and also lists RTX 5090 among supported hardware.  \n  \n- NVIDIA then adds multi-token prediction, DSpark and DFlash speculative decoding, plus NVFP4 quantization to push generation speed further.  \n  \n- NVIDIA claims up to 4× output speed; on PinchBench, 86% accuracy and 30% faster completion than Qwen3.6 35B at similar accuracy.\n\n![Tweet Image](https://pbs.twimg.com/media/HPc0-NKbEAEm-Fc.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rohanpaul_ai/status/2087198053036167532)\n\n💬0🔄0❤️0👀467",
+      "tags": [
+        "Nemotron 3.5 Lightning",
+        "NVIDIA",
+        "百万token"
+      ],
+      "score": 85,
+      "summary": "Rohan Paul转述NVIDIA发布Nemotron 3.5 Lightning，支持百万token上下文，可商用。",
+      "fetched_at": "2026-08-12T16:25:58.057080+08:00"
+    },
+    {
+      "title": "官方博客：\nhttps://t.co/BzLRAWulXM",
+      "link": "https://x.com/FinanceYF5/status/2087429141524267428",
+      "published": "2026-08-12T14:41:04+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "官方博客：  \n[developer.nvidia.com/blog/nvidia-ne…](https://developer.nvidia.com/blog/nvidia-nemotron-3-5-lightning-delivers-fast-accurate-specialized-task-execution-for-long-running-agents/?ncid=so-twit-473485)\n\n![Tweet Image](https://pbs.twimg.com/media/HPgJvhnb0AA7ca5.jpg)\n\n💬1🔄0❤️0👀377📊1",
+      "tags": [
+        "Nemotron 3.5 Lightning",
+        "官方博客"
+      ],
+      "score": 60,
+      "summary": "转发NVIDIA官方博客链接，宣布发布Nemotron 3.5 Lightning。",
+      "fetched_at": "2026-08-12T16:25:58.057083+08:00"
+    },
+    {
+      "title": "NVIDIA发布Nemotron 3.5 Lightning\n\n30B 总参数，激活只有 3B，支持 100 万 token 上下文，可商用。\n\n本地部署友好：BF16 和更小的 NVFP4 版本，单...",
+      "link": "https://x.com/FinanceYF5/status/2087429113468649500",
+      "published": "2026-08-12T14:40:57+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "NVIDIA发布Nemotron 3.5 Lightning  \n  \n30B 总参数，激活只有 3B，支持 100 万 token 上下文，可商用。  \n  \n本地部署友好：BF16 和更小的 NVFP4 版本，单卡 H100 或 DGX Spark 就能跑，RTX 5090 也在支持列表里。  \n  \n官方称输出速度最高提升 4 倍，PinchBench 上准确率 86%，比同准确率的 Qwen3.6 35B 快 30%。\n\n![Tweet Image](https://pbs.twimg.com/media/HPgJt49bQAAlyuZ.png)\n\n💬4🔄0❤️1👀971📊4",
+      "tags": [
+        "Nemotron 3.5 Lightning",
+        "30B激活3B",
+        "百万上下文"
+      ],
+      "score": 87,
+      "summary": "NVIDIA发布Nemotron 3.5 Lightning，30B总参数激活3B，支持百万token上下文，输出速度最高提升4倍。",
+      "fetched_at": "2026-08-12T16:25:58.057085+08:00"
+    },
+    {
+      "title": "源：https://t.co/u9Yq1YRjgb",
+      "link": "https://x.com/FinanceYF5/status/2087426728587330014",
+      "published": "2026-08-12T14:31:29+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/sourceryy/stat…](https://x.com/sourceryy/status/2086865030532960756)\n\n![Tweet Image](https://pbs.twimg.com/media/HPgHjBTaAAA-kYJ.jpg)\n\n![sourcery](https://pbs.twimg.com/profile_images/1983214024767553537/IenNgEX1_normal.jpg)\n\nsourcery@sourceryy\n\nFounding Architect of the Thiel Fellowship [@DStrachman](https://x.com/DStrachman) shares the top 3 traits they look for:  \n  \n1. Hyper Fluency:  \n\"They have this deep, deep passion in an area and they can talk backward and forwards about it all day, all night.\"  \n  \n2. They can scaffold their language  \n\"They can talk to the geekiest geek in their area, but also talk to anybody about what they're doing. We find that particular trait is a very high indicator.\"  \n  \n3.  Alchemy  \n\"This is a team's ability to stretch resources in a really surprising, almost magical way.\"  \n  \n One anti-trait: The cloud of abstractions  \n\"When someone is way up in the stratosphere on what they're talking about, and every time you try to pull them back down to Earth.\"  \n  \n\"You're like, 'Hey, this sounds brilliant. What are you doing on Friday though to like, get this done?'\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2086862459663753217/vid/avc1/1920x1080/1Hofrpp-UYzzlsYI.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/sourceryy/status/2086865030532960756/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/sourceryy/status/2086865030532960756)\n\n💬0🔄0❤️0👀572",
+      "tags": [
+        "Thiel Fellowship",
+        "选人标准"
+      ],
+      "score": 60,
+      "summary": "Thiel Fellowship创始人分享选人标准：极度痴迷、能深入浅出、资源利用能力。",
+      "fetched_at": "2026-08-12T16:25:58.057087+08:00"
+    },
+    {
+      "title": "Thiel Fellowship 挑人的标准，和“履历有多漂亮”关系不大。\n\n他们最看重3点：对某个领域极度痴迷、既能和顶尖专家聊也能让普通人听懂，以及用有限资源做出超预期成果。\n\n最减分的则是：满口...",
+      "link": "https://x.com/FinanceYF5/status/2087426710296007122",
+      "published": "2026-08-12T14:31:24+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Thiel Fellowship 挑人的标准，和“履历有多漂亮”关系不大。  \n  \n他们最看重3点：对某个领域极度痴迷、既能和顶尖专家聊也能让普通人听懂，以及用有限资源做出超预期成果。  \n  \n最减分的则是：满口抽象概念，却说不清这周五准备具体做什么。  \n这个标准看创业者还挺准。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087426559183601664/vid/avc1/1280x720/3wxDKpXxRIEFq72Q.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2087426710296007122/video/1)\n\n💬2🔄1❤️2👀1053📊3",
+      "tags": [
+        "Thiel Fellowship",
+        "创业者标准"
+      ],
+      "score": 60,
+      "summary": "Thiel Fellowship最看重痴迷领域、语言亲和力、创造性利用资源，反感满口抽象。",
+      "fetched_at": "2026-08-12T16:25:58.057089+08:00"
+    },
+    {
+      "title": "以上就是全部\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/HbMsjwOrae",
+      "link": "https://x.com/FinanceYF5/status/2087426177531281701",
+      "published": "2026-08-12T14:29:17+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2087425773334593930)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n开放权重会毁掉AI创新吗？  \n  \n1/ AI开源与闭源之争，可能从一开始就问错了。  \n  \nChristian Catalini梳理大量经济学研究后提出：开放权重未必减少AI投资，只会改变【钱投向哪里、谁负责创新、最后谁赚走利润】。  \n  \n这个视角挺值得看。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HPgGreEbUAAzCQt.png)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2087425773334593930)\n\n💬0🔄0❤️0👀411",
+      "tags": [
+        "推广",
+        "关注"
+      ],
+      "score": 30,
+      "summary": "用户请求关注和转发以支持主题内容。",
+      "fetched_at": "2026-08-12T16:25:58.057091+08:00"
+    },
+    {
+      "title": "7/ 文章最后的判断很有意思：\n\n闭源实验室可能守住最前沿能力，开放模型承接大部分日常需求；一旦模型“足够好”，价格、可靠性、数据和行业经验会比多几分能力更重要。\n\nAI的护城河，或许不在权重里，而在...",
+      "link": "https://x.com/FinanceYF5/status/2087425851336143142",
+      "published": "2026-08-12T14:28:00+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "7/ 文章最后的判断很有意思：  \n  \n闭源实验室可能守住最前沿能力，开放模型承接大部分日常需求；一旦模型“足够好”，价格、可靠性、数据和行业经验会比多几分能力更重要。  \n  \nAI的护城河，或许不在权重里，而在尚未被发现和记录的现实信息中。你怎么看？\n\n![Tweet Image](https://pbs.twimg.com/media/HPgGwA7bIAAj9l2.png)\n\n💬1🔄0❤️0👀350📊1",
+      "tags": [
+        "开放权重",
+        "AI护城河"
+      ],
+      "score": 68,
+      "summary": "讨论开放权重对AI创新的影响，认为护城河在于现实信息。",
+      "fetched_at": "2026-08-12T16:25:58.057092+08:00"
+    },
+    {
+      "title": "开放权重会毁掉AI创新吗？\n\n1/ AI开源与闭源之争，可能从一开始就问错了。\n\nChristian Catalini梳理大量经济学研究后提出：开放权重未必减少AI投资，只会改变【钱投向哪里、谁负责创...",
+      "link": "https://x.com/FinanceYF5/status/2087425773334593930",
+      "published": "2026-08-12T14:27:41+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "开放权重会毁掉AI创新吗？  \n  \n1/ AI开源与闭源之争，可能从一开始就问错了。  \n  \nChristian Catalini梳理大量经济学研究后提出：开放权重未必减少AI投资，只会改变【钱投向哪里、谁负责创新、最后谁赚走利润】。  \n  \n这个视角挺值得看。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HPgGreEbUAAzCQt.png)\n\n💬2🔄0❤️0👀1124📊2",
+      "tags": [
+        "开放权重",
+        "经济学分析"
+      ],
+      "score": 70,
+      "summary": "Christian Catalini提出开放权重未必减少AI投资，只改变资金流向。",
+      "fetched_at": "2026-08-12T16:25:58.057094+08:00"
+    },
+    {
+      "title": "https://t.co/Gkd5qvcrAk",
+      "link": "https://x.com/addyosmani/status/2087427868343373919",
+      "published": "2026-08-12T14:36:01+08:00",
+      "source": "Addy Osmani(@addyosmani)",
+      "content": "[x.com/i/article/2087…](http://x.com/i/article/2087205551038230528)\n\n💬6🔄16❤️129👀31305📊55",
+      "tags": [
+        "Addy Osmani",
+        "链接分享"
+      ],
+      "score": 50,
+      "summary": "Addy Osmani分享一篇无标题文章链接。",
+      "fetched_at": "2026-08-12T16:25:58.057097+08:00"
+    },
+    {
+      "title": "sub2api、EasyCLIProxyAPI、new-api、opencodex 都用过了，目前 CLIProxyAPI + CPA Usage Keeper 最好用，还没试过 TokenHub，打...",
+      "link": "https://x.com/geekbb/status/2087437919296561203",
+      "published": "2026-08-12T15:15:57+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "sub2api、EasyCLIProxyAPI、new-api、opencodex 都用过了，目前 CLIProxyAPI + CPA Usage Keeper 最好用，还没试过 TokenHub，打算尝试一下。\n\n![Tweet Image](https://pbs.twimg.com/media/HPgRszvbIAEDAfb.jpg)\n\n![LinearUncle](https://pbs.twimg.com/profile_images/1906323582759874560/6Elwf5WN_normal.jpg)\n\nLinearUncle@LinearUncle\n\n今天分享6个反代 / 网关开源项目，想给企业或者自己把账号集中起来反代成API 的可以参考。  \n  \nsub2api [github.com/Wei-Shaw/sub2a…](https://github.com/Wei-Shaw/sub2api)  \n大量中转站用的就是它，X 上搜“sub2api 中转站”一堆教程。项目很成熟，企业内部也能用。  \n  \nCLIProxyAPI [github.com/router-for-me/…](https://github.com/router-for-me/CLIProxyAPI)  \n最近的明星反代项目，把你订阅的 codex、kimi、grok 等套餐反代出来给其他项目用。个人使用推荐这个，部署好就无忧了。  \n  \nEasyCLIProxyAPI [github.com/router-for-me/…](https://github.com/router-for-me/EasyCLIProxyAPI)  \n上面那个的 GUI 套壳，上手门槛低，推荐。  \n  \nnew-api [github.com/QuantumNous/ne…](https://github.com/QuantumNous/new-api)  \n老牌 gateway，one-api 停更了它还在持续更新。  \n  \nTokenHub [github.com/astaxie/TokenH…](https://github.com/astaxie/TokenHub)  \nGolang界大佬谢神的新项目，目标企业级 AI gateway。  \n  \n但以上项目我全要喷一遍：都开始脱离群众了！比如最近最火的 opencode deepseek订阅，一个支持的都没有，全得自己配置。  \n  \n另外 codex app 最近是真热——都在研究怎么让它接非 GPT 系模型（kimi、grok、deepseek 等）。群众喜新厌旧，越来越多人扔掉 ClaudeCode 换 codex/zcode GUI app，就盼着能对接其他模型。  \n  \nopencodex [github.com/lidge-jun/open…](https://github.com/lidge-jun/opencodex) ｜ [opencodex.me](https://opencodex.me/)  \n这个项目也开始支持 ClaudeCode 等其他 coding CLI，开始抢 CCSwitch 的市场了。  \n  \n建议自研：我是自研，需要什么需求，用AI去这些项目里面自己挖，这样可以扔掉包袱。  \n  \n结论就一句：抓住群众需求，才不会被淘汰，反代+coding CLI模型替换二者缺一不可。\n\n![Tweet Image](https://pbs.twimg.com/media/HPFR3YxbMAAxfb5.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/LinearUncle/status/2085540799190839616)\n\n💬2🔄0❤️10👀2992📊5",
+      "tags": [
+        "CLIProxyAPI",
+        "API网关",
+        "开源项目"
+      ],
+      "score": 72,
+      "summary": "Geek分享多个反代/网关开源项目，推荐CLIProxyAPI+CPA Usage Keeper组合。",
+      "fetched_at": "2026-08-12T16:25:58.057099+08:00"
+    },
+    {
+      "title": "📄New Research on Self-Evolving Agents:\nWhen AI agents modify themselves, how do we know they actual...",
+      "link": "https://x.com/TencentHunyuan/status/2087444616832594022",
+      "published": "2026-08-12T15:42:34+08:00",
+      "source": "Hunyuan(@TXhunyuan)",
+      "content": "📄New Research on Self-Evolving Agents:  \nWhen AI agents modify themselves, how do we know they actually got better?  \n  \nWe present Diving into Reliable Self-Evolving Agents: A Survey—a systematic map of how agents self-evolve and what evidence is needed to trust each update.  \nThe survey:  \n🔹 Defines an L0–L4 taxonomy for self-evolving agents  \n🔹 Introduces a reliability ladder for trustworthy updates  \n🔹 Curates 549 works in an open companion catalog  \nOne core principle: no update should control the only evidence used to accept itself.  \n  \nExplore the full survey ↓  \n📄 Pap[openreview.net/forum?id=CGO1h…](https://openreview.net/forum?id=CGO1hDTHNe)dF2FP  \n🌐 Pro[wkqdzkd.github.io/Awesome-Reliab…](https://wkqdzkd.github.io/Awesome-Reliable-Self-Evolving-Agents/)9EIPf0  \n💻 G[github.com/wkqdzkd/Awesom…](https://github.com/wkqdzkd/Awesome-Reliable-Self-Evolving-Agents)now4J9X\n\n![Tweet Image](https://pbs.twimg.com/media/HPgXyC1bcAAtack.jpg)\n\n💬0🔄4❤️15👀743📊5",
+      "tags": [
+        "自进化智能体",
+        "可靠性调查",
+        "L0-L4"
+      ],
+      "score": 88,
+      "summary": "腾讯混元发布自进化智能体可靠性调查，提出L0-L4分类法。",
+      "fetched_at": "2026-08-12T16:25:58.057100+08:00"
+    },
+    {
+      "title": "Excited to be back!",
+      "link": "https://x.com/_philschmid/status/2087437231396884895",
+      "published": "2026-08-12T15:13:13+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "Excited to be back!\n\n💬3🔄0❤️13👀1013📊4",
+      "tags": [
+        "个人动态"
+      ],
+      "score": 40,
+      "summary": "Philipp Schmid发推表示自己回来了。",
+      "fetched_at": "2026-08-12T16:25:58.057102+08:00"
+    },
+    {
+      "title": "昨天看好多人都在说的这个 Beautiful UI 确实很漂亮：https://t.co/FlFEg6BBKR\n\n之前大部分都是用 vercel 的 ai-elements，以及其他的一些小组件组合，...",
+      "link": "https://x.com/vikingmute/status/2087447507995668929",
+      "published": "2026-08-12T15:54:03+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "昨天看好多人都在说的这个 Beautiful UI 确实很漂亮：[beautifului.dev](https://www.beautifului.dev/)  \n  \n之前大部分都是用 vercel 的 ai-elements，以及其他的一些小组件组合，现在要做 agent 相关的应用都可以直接用它了，很全而且确实很精致。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087447188351983616/vid/avc1/1840x1080/2T4V3qQ5NUli12Mt.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vikingmute/status/2087447507995668929/video/1)\n\n💬1🔄0❤️1👀401📊2",
+      "tags": [
+        "Beautiful UI",
+        "Agent应用"
+      ],
+      "score": 70,
+      "summary": "Viking推荐Beautiful UI组件库，适用于开发Agent相关应用。",
+      "fetched_at": "2026-08-12T16:25:58.057105+08:00"
+    },
+    {
+      "title": "Codex 这个 reset 时间感觉很鸡贼啊， 我记得我昨天刚有一个送的 reset 过期，明天有另外一个过期，这个时候送完全没有那么止渴了，看来是故意的吧。",
+      "link": "https://x.com/vikingmute/status/2087432128946696475",
+      "published": "2026-08-12T14:52:56+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "Codex 这个 reset 时间感觉很鸡贼啊， 我记得我昨天刚有一个送的 reset 过期，明天有另外一个过期，这个时候送完全没有那么止渴了，看来是故意的吧。\n\n![Tweet Image](https://pbs.twimg.com/media/HPgMamgbAAA_QAW.jpg)\n\n![Tibo](https://pbs.twimg.com/profile_images/2075819673263001600/pj1vyX6I_normal.jpg)\n\nTibo@thsottiaux\n\nI previously promised a reset for every 1M in additional active users for Codex, until 10M.   \n  \nWe blew past that and have been silent since 10M. Little surprise for you tomorrow.\n\n[🔗 View Quoted Tweet](https://x.com/thsottiaux/status/2087423996115681767)\n\n💬4🔄0❤️3👀1619📊4",
+      "tags": [
+        "Codex",
+        "reset"
+      ],
+      "score": 60,
+      "summary": "Viking抱怨Codex赠送reset时间安排不合理。",
+      "fetched_at": "2026-08-12T16:25:58.057107+08:00"
+    },
+    {
+      "title": "AI的计费是按token消耗积分\n长程任务里就一定会出现异常导致任务中断的问题\n用户损耗了很多积分\n但却没拿到结果\n这是大部分AI效率产品会面对的问题",
+      "link": "https://x.com/yangyi/status/2087428257339859329",
+      "published": "2026-08-12T14:37:33+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "AI的计费是按token消耗积分  \n长程任务里就一定会出现异常导致任务中断的问题  \n用户损耗了很多积分  \n但却没拿到结果  \n这是大部分AI效率产品会面对的问题\n\n💬1🔄0❤️0👀576📊1",
+      "tags": [
+        "Token计费",
+        "AI效率"
+      ],
+      "score": 55,
+      "summary": "Yangyi指出AI按token计费时，长程任务中断会造成用户积分损失。",
+      "fetched_at": "2026-08-12T16:25:58.057109+08:00"
+    },
+    {
+      "title": "零克查词 https://t.co/FTbffKYNJ6",
+      "link": "https://x.com/vista8/status/2087437535010037855",
+      "published": "2026-08-12T15:14:25+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "零克查词 [lingkechaci.com](https://www.lingkechaci.com/)\n\n💬1🔄0❤️1👀202📊1",
+      "tags": [
+        "零克查词"
+      ],
+      "score": 40,
+      "summary": "分享零克查词工具链接。",
+      "fetched_at": "2026-08-12T16:25:58.057110+08:00"
+    },
+    {
+      "title": "“新手用AI，消耗 Token 比工资都高，但产出物不及格。”\n\n除限制Token用量，感觉未来需要 “AI驾校”，哈哈哈。",
+      "link": "https://x.com/vista8/status/2087426931029389545",
+      "published": "2026-08-12T14:32:17+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "“新手用AI，消耗 Token 比工资都高，但产出物不及格。”  \n  \n除限制Token用量，感觉未来需要 “AI驾校”，哈哈哈。\n\n💬5🔄0❤️9👀1770📊5",
+      "tags": [
+        "AI消耗",
+        "Token用量"
+      ],
+      "score": 50,
+      "summary": "Vista感叹新手用AI消耗大量Token但产出不佳。",
+      "fetched_at": "2026-08-12T16:25:58.057112+08:00"
+    },
+    {
+      "title": "Manus 还是挺了不起的，期待再创辉煌",
+      "link": "https://x.com/dotey/status/2087434739929977149",
+      "published": "2026-08-12T15:03:19+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Manus 还是挺了不起的，期待再创辉煌\n\n![晚点 LatePost](https://pbs.twimg.com/profile_images/1988876346496565248/A_UR6LFZ_normal.jpg)\n\n晚点 LatePost@latepostnews\n\n《Manus 第二季，浪子回头》  \n  \n8 月 11 日晚间，Manus 网站上挂了小半年的那句 “Manus 现已成为 Meta 的一部分”，变成了 “Manus 即将恢复独立运营。”  \n  \n从被收购到确认拆分，中间不到八个月。  \n  \n2025 年 7 月，肖弘离开了长居的武汉，和整个团队搬去新加坡。同年 12 月 29 日，他决定将这家公司以超过 20 亿美元卖给 Meta，出任 Meta 副总裁。  \n  \n这是大模型应用领域当时最大的收购案，交易从接触到签约仅约 10 天；也是 Meta 历史上第三大并购案，仅次于 WhatsApp 与 ScaleAI。  \n  \n交易宣布一周后，中国商务部新闻发言人在例行记者会上说，将会同相关部门对此项收购与出口管制、技术进出口、对外投资等相关法律法规的一致性开展评估调查。  \n  \n戏剧性转变引发了看戏的热情，社交网络上参与讨论的人远远多过用过 Manus 的人，“香槟开早了”“20 亿美金一夜归零” 被复读。也有人将其视为转折点——在中国创业，通过美国资本退出的终结。  \n  \n这期间，曾经会从任何缝隙挤进来，争取股份的风险投资机构谨慎地保持着距离。肖弘、季逸超和张涛每日跟留在新加坡的团队打视频电话，同步进展，安排工作。  \n  \n风波中，Manus 产品依然保持每周 1-2 个功能更新，跟 2025 年底的高峰相当，快过一年前。但没有大版本号变动，产品停留在 1.6，更多是功能完善，增加连接器（接入 GMail、Shopify、Slack 等全球产品）、上线客户端。一位 Manus 人士说，开发节奏如常，2.0 版本已经开发完，将在交易完全结束后再发布。  \n  \n4 月 27 日，国家发改委发布决定：“对外资收购 Manus 项目作出禁止投资决定，要求当事人撤销该收购交易。”Meta 随后在发给媒体的一份声明中回应称，交易完全符合适用法律，并期待审查得到妥善解决。交易撤销（deal unwind）——通常是指，撤销已经完成的交易并尽可能恢复交易前的状态。  \n  \n几天后，Meta 与 Manus 实际拆分开始。据媒体报道，两边停止了数据共享，Manus 员工也不再能访问 Meta 内部系统。  \n  \n到了六七月，保持距离的投资机构开始意识到这是一个有利可图的机会。有一位投资人告诉我们，如果还有资金缺口，他们很想参与进来。  \n  \n一些嗅觉敏感的 VC 和企业家开始行动，他们准备好资金，希望参与 Manus 回来之后的首轮融资。  \n  \n因为在风波发生的这三个月里，Manus 收入增长了约 5 倍，从每日 30 万美元上涨至近 150 万美元，一度超过了 DeepSeek。  \n  \n其间，各种传言不断。7 月，有报道称腾讯将控股 Manus。于是，Manus 北京与新加坡团队每天保持沟通，安抚情绪、稳定团队。几个月的动荡中，这家 150 人的公司无一人离职。  \n  \n在北京的人有了新的生活节奏。肖弘重新学数学、研究大模型。张涛学习攀岩、练习魔方，花了半年把体重从 150 斤减到 120 斤，每天睡够 7 小时，连血压都降了下来。  \n  \n这几个月重画了这家创业公司的轨迹，也让它的创业者想清楚自己到底想要什么。  \n  \n回到 2025 年 12 月，Manus 正在融资，Meta 来人说想要见见核心团队，看是否有业务合作机会。几轮沟通之后，在一次核心团队全员参加的会议中，猝不及防地，Meta 当着一群人的面表明了收购意图。到这时，多位合伙人、核心技术人员已经跟随肖弘多年，经历过两次创业。卖掉公司，是对所有人的交代和回报。  \n  \n收购结束后，2026 年元旦，肖弘走在新加坡海边，觉得曲折的十年旅程已经走到终点，接下来要去大公司上班了。但真正抵达这个看似圆满的终点时，他心里反而有些失落。  \n  \n而在收购明确将被撤销后，外界眼中的巨大反转和打击，反而让这几位连续创业者重新有了期待：他们的创业故事进入了第二季。  \n  \n据一位接近 Manus 的人士说，肖弘在团队电话会上表示，他不想旁观或回忆这个时代，而要继续置身浪潮、参与其中。否则，他只会变成一个写自传回忆当年的人。  \n  \nManus 是一个经典的科技创业故事。有 ChatGPT 之前，肖弘用了更早发布的 GPT-3 大语言模型，看到技术的可能性，拉季逸超、张涛入伙，给 GPT 做了个浏览器的壳 “Monica”。  \n  \n浏览器很难让人看到下一个超级产品的可能性。一位创业者在 Manus 发布前一年见到肖弘的一位合伙人，聊到已经发布的 Monica，觉得对方颇有些不自信。  \n  \n开发 Monica 期间，伴随大模型的进步，这个团队在试错中找到了超前的产品形态，让 agent 像人一样全自动工作。到 2024 年，Cursor、Copilot 乃至 ChatGPT 都还在假设人盯着屏幕，不断发提示词指挥 AI 工作。当时模型推理成本比现在高一个量级，但 Manus 已经在做海量消耗 token 的 Wide Research（广度研究），赌 token 将变得特别便宜。他们也是很早自建 Evaluation（评测）团队的 AI 应用公司，建立闭环开发的循环。  \n  \n这些前瞻判断和投入让 Manus 在很长时间里保持领先和增长。2025 年初，Manus 发布不久，有一家科技大厂内部就立项至少 7 个类似项目，但并没有抢走它的用户。被调查期间，Manus ARR 首次突破 3 亿美元。  \n  \n肖弘曾经用 “贸工技” 概括自己理解的创业路径：先找到市场，再建立产品和商业，最后向技术深处走。通过 Manus 现在他已经完成了前两步——做出一个被大批用户需要的产品，也建立起一门真正的生意。  \n  \nManus 今天的对手都掌握了最核心的技术。过去半年，Claude 和 Codex 激烈竞争，从模型到应用，快速完善以 agnet 控制电脑完成任务。Manus 在此期间推出的桌面应用和先计划再执行的 Plan Mode 都是在追赶这两个硅谷先锋。最近，一众国内大公司也把电脑上工作视为下一个战场。  \n  \n交易完成后，Manus 也将面临选择，是继续以产品洞见争取领先，还是投入更核心的技术，比如模型训练，迎接大模型应用最残酷的挑战。  \n  \n8 月 11 日晚，Manus 正式确认将恢复独立运营。Meta 收购已经进入实质性撤销阶段，Manus 即将恢复独立；但最终的出资回购金额、公司是否重返中国资本体系，目前尚未正式公布。  \n  \n当晚，肖弘给团队和投资人写信：“This is my third trip.” 他们在心态上把新的 Manus 视为一家重新出发的创业公司：起点是 150 多人的团队、一群历经风波仍然团结的合伙人，以及一个 ARR 超过 3 亿美元的产品。Manus 的故事远未结束。\n\n![Tweet Image](https://pbs.twimg.com/media/HPgFQpgbkAAo_WM.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/latepostnews/status/2087424969869603182)\n\n💬4🔄0❤️16👀7695📊4",
+      "tags": [
+        "Manus",
+        "独立运营",
+        "Meta收购"
+      ],
+      "score": 80,
+      "summary": "宝玉转发晚点报道，Manus即将恢复独立运营，此前被Meta收购不到八个月。",
+      "fetched_at": "2026-08-12T16:25:58.057114+08:00"
     }
   ]
 }
