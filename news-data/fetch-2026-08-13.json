@@ -4773,6 +4773,628 @@
       "score": 70,
       "summary": "歸藏分析DeepSeek涨价，缓存命中价格最高涨12倍。",
       "fetched_at": "2026-08-13T21:37:03.003240+08:00"
+    },
+    {
+      "title": "Recovery strategies to meet data residency requirements",
+      "link": "https://aws.amazon.com/blogs/architecture/recovery-strategies-to-meet-data-residency-requirements/",
+      "published": "2026-08-13T22:05:39+08:00",
+      "source": "AWS Architecture Blog",
+      "content": "Data residency requirements can affect how government agencies, regulated industries such as financial services, healthcare, and power and utilities, and businesses that make residency commitments plan for the recovery of their critical workloads on AWS. These requirements must be considered and balanced against applicable workload recovery objectives. This post assumes familiarity with AWS Regions, disaster recovery concepts, and AWS encryption services.\n\nWhere residency requirements are scoped at the national level, AWS provides multiple Regions within the same country in the United States, Canada, Australia, India, Japan, Germany, and China (operated by Sinnet and NWCD). In some cases, residency requirements can span national borders. For example, AWS offers multiple Regions within the European Union (EU), including the AWS European Sovereign Cloud, giving EU customers options for hosting and recovering workloads across member states where pan-national regulations treat the EU as a unified jurisdiction for data protection. This allows customers to use multi-Region recovery architectures and maintain data residency.\n\nWhere residency requirements are scoped to a country or countries served by a single [AWS Region](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/), or you need to address failure scenarios not fully mitigated by multiple Regions in the same country, alternate strategies can help you achieve your recovery requirements. In this post, we present three strategies that customers can use in close collaboration with their regulators to achieve bounded recovery while addressing data residency requirements. These strategies range from encryption-based compensating controls on multi-Region replication to fully in-country architectures.\n\n## Recovery strategies\n\nWe present three strategies for backing up critical business data (source code and data you cannot reproduce from other sources) and launching recovery infrastructure from those backups at a location distinct from your primary Region. Each strategy represents a different set of constraints on where data and administrative operations can reside. You should select the strategy that best matches your requirements and risk appetite, then evaluate the options within that strategy in collaboration with your regulator. The most important factor of success for whichever strategy you choose is your ability to test it end-to-end, continuously, to build and maintain confidence it will work when required.\n\n### Strategy 1: Cryptographic boundary\n\nThis approach replicates data into another AWS Region in a geopolitically aligned country with compatible data protection frameworks using encryption as a compensating technical control. Customers use [AWS Key Management Service](https://aws.amazon.com/kms/) (AWS KMS) keys to encrypt the data, so that no one, including AWS operators, can access the data without the customer-controlled data encryption keys. This approach supports replication using features like [Amazon Simple Storage Service](https://aws.amazon.com/s3/) (Amazon S3) [Cross-Region Replication](https://aws.amazon.com/s3/features/replication/) (CRR) or [AWS Backup](https://aws.amazon.com/backup/) cross-Region copy.\n\nWith AWS KMS, you can also use key policies to explicitly deny decryption operations in the recovery Region. This provides you with strong assurance that your data in the recovery Region cannot be decrypted under any circumstances until you modify the key policy. You can work with your regulators to determine when to update these key policies as part of your recovery process.\n\n![Server-side encryption architecture using AWS KMS with cross-Region replication](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/12/ARCHBLOG-1530-1.png)\n\nFigure 1 – Server-side encryption architecture using AWS KMS with cross-Region replication.\n\n  \n You can also use this approach with client-side encryption for backups you manage and store in S3. Customers manage their own backup processes and use the\n[AWS Encryption SDK](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html) or their own clients with\n[multi-Region AWS KMS keys](https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html) to encrypt the data. Multi-Region keys allow you to encrypt and decrypt replicated S3 data in multiple Regions using the same key material.\n\n![Client-side encryption approach using multi-Region AWS KMS keys](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/12/ARCHBLOG-1530-2.png)\n\nFigure 2 – Client-side encryption approach using multi-Region AWS KMS keys.\n\n  \n You can explore additional strategies for enhancing controls on the key policies to meet your requirements. For example, you can require Multi-Factor Authentication (MFA) to update your key policies. This allows the MFA holder and credential holder to be two distinct parties. They could be two different teams within an organization, or you could consider greater separation by providing the MFA device to a trusted third party such as a regulator. Another option is to implement controls in your identity provider to issue specific IAM session tags that provide conditional access to update the key policy. You should also scope key policy update permissions to a set of named IAM principals using condition keys, so that only explicitly authorized identities can modify decryption access.\n\nChoose this strategy when storing encrypted data in a partner country is acceptable. Key policies prevent unauthorized access, and this approach offers the simplest operational model with the lowest recovery time.\n\n### Strategy 2: Data boundary\n\nIn this strategy, you store backups or operate a [pilot light](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html#pilot-light) recovery environment on [AWS Outposts](https://aws.amazon.com/outposts/) in an on-premises site within the source country or other approved location. You replicate data from your primary Region using tools such as [AWS DataSync](https://aws.amazon.com/datasync/) for S3 data or other replication tools like MySQL binlog or Postgres logical replication for [Amazon Relational Database Service](https://aws.amazon.com/rds/) (Amazon RDS) instances. You maintain full control of where your business data physically resides at all times. You can also use third-party backup solutions to replicate data from your primary Region to on-premises or in-country storage.\n\n![AWS Outposts recovery architecture with data replicated to on-premises infrastructure](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/12/ARCHBLOG-1530-3.png)\n\nFigure 3 – AWS Outposts recovery architecture with data replicated to on-premises infrastructure.\n\n  \n Data access occurs directly over the local network in your on-premises facility through the\n[data planes](https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/control-planes-and-data-planes.html) of the resources hosted on the Outposts infrastructure. These are resources like\n[Amazon Elastic Compute Cloud](https://aws.amazon.com/ec2/) (Amazon EC2) instances, Amazon RDS database instances, and S3 buckets. You provision and configure those resources through each service’s\n[control plane](https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/control-planes-and-data-planes.html), which is hosted in the parent Region you select when you order your Outposts racks.\n\nChoose a parent Region that is different from your primary Region. This prevents simultaneous impact to your primary workloads and your ability to use control plane operations for recovery, such as launching new instances on your Outposts. Note that Outposts are [not designed for disconnected operations](https://aws.amazon.com/outposts/rack/faqs/) or environments with limited to no connectivity. Maintain highly available networking connections from your on-premises site back to the parent AWS Region.\n\nDuring recovery, you can restore your environment directly on the Outposts infrastructure. AWS Outposts support a subset of the available AWS services in a Region, so you need to design your workloads to use the services available. Alternatively, you may obtain regulator agreement to restore your environment from backups stored on your Outposts to an AWS Region in a different country during extreme circumstances.\n\nSelect this strategy when you must physically maintain your backups and data in specific locations, want a consistent experience using AWS services and hardware in the cloud and on-premises, and using control planes for your Outposts infrastructure from outside your primary Region is acceptable.\n\n### Strategy 3: Strict local autonomy boundary\n\nSome data residency frameworks, such as those in financial services or national security contexts, may require customer data and the control plane systems used to manage that data and recovery environments remain within national borders. Two options achieve this outcome.\n\n#### Option 1: On-premises infrastructure\n\nIn this option, you operate hardware and software in an on-premises location to store backup data. Like the Outposts option, this provides flexibility on where backed-up data is restored: it could be restored to on-premises physical hardware or to an AWS Region in a different country.\n\n![On-premises backup architecture with data copied from Amazon S3 to local storage](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/12/ARCHBLOG-1530-4.png)\n\nFigure 4 – On-premises backup architecture with data copied from Amazon S3 to local storage.\n\n  \n This solution requires you to self-manage backups in S3, then copy them to on-premises storage using tools like AWS DataSync. You need to decide how to manage encryption of your data on-premises. Encrypting and decrypting data on-premises should not depend on the availability of the primary Region.\n\n#### Option 2: Multi-cloud\n\nIn a multi-cloud solution, you can replicate backups from your primary cloud to an environment on another cloud provider and recover your workloads there. You can also use a [lifeboat strategy](https://youtu.be/oDroYE4unmY?si=Kdy1t0BoukNt8MuD&t=825).\n\nA lifeboat strategy involves running a separate set of systems in another cloud provider which meets your residency requirements. These systems are not replicas of the primary platform. They are built and developed natively to provide a subset of critical functionality. This approach avoids architecting to the least common denominator of services across providers. You can take full advantage of all services available on AWS for your primary workload while the stand-in system uses a separate, purpose-built architecture.\n\n![Multi-cloud lifeboat architecture with a purpose-built stand-in system](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/12/ARCHBLOG-1530-5.png)\n\nFigure 5 – Multi-cloud lifeboat architecture with a purpose-built stand-in system.\n\n  \n[Monzo Bank’s stand-in system](https://monzo.com/blog/tolerating-full-cloud-outages-with-monzo-stand-in) is a well-documented example of this pattern. Monzo operates its primary banking system on AWS with thousands of microservices. Rather than replicating that entire stack, they built a small set of purpose-built services on a separate cloud provider that supports only the operations most critical to their customer experience: card payments, bank transfers, and balance information. According to Monzo, the stand-in shares no code and no infrastructure with the primary system.\n\nThe lifeboat pattern follows several key design principles. The stand-in supports only key functionality, which helps minimize the cost of the solution. Using different software reduces the probability that the same defect or failure mode affects both systems simultaneously. The stand-in accepts eventually consistent data, which avoids strong coupling between the two environments and preserves availability independence. The recovery does not appear transparent to end users. The experience is intentionally degraded to a subset of services, which is an explicit trade-off for maintaining availability.\n\nA multi-cloud lifeboat provides protection against service disruptions of an AWS Region in a single country, but using multi-cloud to keep data in-country may not fully mitigate scenarios where all major cloud providers in a geography face simultaneous disruption.\n\n## Testing\n\nYou must continuously test your recovery strategy to build and maintain confidence it will succeed during a real event. Testing must be performed end-to-end: validating the integrity and consistency of backups, launching compute and database resources, and running synthetic test traffic through the recovered system. The more frequently you test, the more recovery becomes a standard operational process rather than a one-off monthly or quarterly activity. Your testing must keep up with the rate of change in your environment. If a change breaks your recovery process, you want to know about it and fix the procedures as quickly as possible.\n\nThe approach to testing is generally the same as traditional multi-Region recovery testing, but the additional complexities and operational processes of these solutions require an increased level of rigor:\n\n* **Strategy 1 (Cryptographic boundary):** You need to decide if decrypting data and launching recovery environments with that data is acceptable. Ideally, you run full end-to-end recovery tests during approved test windows. If you cannot, you need to test your recovery procedures using synthetic data that is not subject to data residency requirements. This helps validate your recovery procedures, but it does not prove you can recover your critical business data.\n* **Strategy 2 (Data boundary):** Validate replication lag meets your recovery requirements. Test launching recovery workloads on Outposts infrastructure and confirm that the parent Region control plane can orchestrate recovery while the primary Region is simulated as unavailable.\n* **Strategy 3 (Strict local autonomy boundary):** For on-premises recovery, validate that backups can be restored to your target environment and that workloads function correctly outside of AWS. For multi-cloud lifeboats, test failover activation and verify that the lifeboat has no dependencies on your primary environment.\n\n## Summary\n\nIn this post, we presented three strategies for implementing disaster recovery solutions that support data residency requirements:\n\n* **Strategy 1 (Cryptographic boundary)** uses encryption to meet the intent of data residency while using multi-Region AWS infrastructure for recovery. This offers the lowest operational complexity and best recovery performance, if permitted by applicable regulations.\n* **Strategy 2 (Data boundary)** uses AWS Outposts to maintain data in-country in customer-controlled facilities while using an out-of-country control plane for management operations, if permitted by applicable regulations.\n* **Strategy 3 (Strict local autonomy boundary)** keeps both data and control in-country during a recovery event using on-premises infrastructure or a multi-cloud lifeboat strategy. This offers the highest degree of control but with the greatest operational complexity.\n\nThe option that works best will be a joint decision between your business, regulators, and your customers. You should consider potential failures proactively and build recovery plans before an event occurs. This framework provides a structured way to evaluate the trade-offs and determine where to invest based on your regulatory environment, risk appetite, and operational capabilities.\n\n## Next steps\n\nTo learn more about the services and approaches discussed in this post, see the following resources:\n\n* [Disaster Recovery of Workloads on AWS](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/)\n* [AWS Key Management Service](https://aws.amazon.com/kms/)\n* [AWS Outposts](https://aws.amazon.com/outposts/)\n* [AWS Backup](https://aws.amazon.com/backup/)\n* [AWS DataSync](https://aws.amazon.com/datasync/)\n\nIf you have questions about applying these strategies to your specific workloads and regulatory environment, reach out to your AWS account team to discuss your recovery requirements in detail.\n\n---\n\n## About the authors",
+      "tags": [
+        "数据驻留",
+        "AWS",
+        "恢复策略"
+      ],
+      "score": 72,
+      "summary": "AWS博客介绍满足数据驻留要求的三种恢复策略。",
+      "fetched_at": "2026-08-13T23:07:42.795693+08:00"
+    },
+    {
+      "title": "这些「缺点」，其实也许意味着你很聪明",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzAxNTY0NjEzNg==&mid=2247488934&idx=1&sn=bff54edb9fb74184413ce7077f6348c2",
+      "published": "2026-08-13T21:30:00+08:00",
+      "source": "L先生说",
+      "content": "原创 李睿秋Lachel 2026-08-13 21:30 广东\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=ab867fae&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOmI14lP1ia4y9xKhyBqeh4QvuHMeSPcplWnApMXicmrpTpmIsKoGUKtuZNGQHZEkn3eCQtSAeHHSk4E0b0NCD4Lgia0msYDPL4uKkTRQjSWxyY%2F0%3Fwx_fmt%3Djpeg)\n\n轻松好读不烧脑\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c04c61eb&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOmI14lP1ia4wcl4EIPPngRcmg1GKmsrpXTRTZGazcztScVXeSMXuia2icwmsoamKPEdpGNc35iavxbQVJg0nzFxwu6rBa3RIths2IhA0MteYaYc%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\nPhoto by Gilles Lambert on Unsplash\n\n**本文共有 4000 字**\n\n欢迎星标 L先生说\n\n避免收不到推送喔\n\n我们对于聪明的人往往有一些刻板印象，比如记忆力强，理解能力强，反应快，妙语连珠……\n\n但其实，许多聪明的人，表现出来的特质也许很多并不是正面的，甚至从传统的观念来说，更像是「缺点」。\n\n今天的文章，我想跟你分享：有哪些别人眼中的缺点，其实也许说明你很聪明。\n\n当然，这只是一种解释和可能性，并不意味着有这些缺点就一定比没有这些缺点的人更聪明。我希望的是，每个人都能够更好地认识自己、了解自己，而不是局限于外在的社会规范束缚之中，被迫选择了不适合自己的生活方式。\n\n希望这篇文章，能够帮到你。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n1. 喜欢独处\n\n我们总被教导要合群，但有些人可能就是喜欢独来独往，一个人做各种各样的事情，乃至在朋友、同事和领导眼中都有点「不好相处」。\n\n包括我之前写关于社交的文章，也有读者留言，说：可是我就是不喜欢跟别人来往，怎么办呢？\n\n如果你也有过这样的感受和困惑，那么，除了说明你可能比较内向之外，还有一种可能性：那就是你比较聪明。\n\n一个简单的理解是：社交是人的默认模式，因为社交可以得到更多的支持，有助于更好地解决问题。而如果一个人本身社交需求就不强，那么他通常会有一些其他的特质，能够弥补社交所带来的帮助。\n\n比如：2016 年的一项研究，针对 18 - 28 岁的成年人，抽取了 1.5 万例样本，发现：在学业、工作上表现更好的人，普遍能够更好地接受独处。\n\n研究者认为：更聪明的人往往意味着更高的适应能力，因此他们受环境的干扰和影响会更少，也就不容易因为社交空间的压缩而感到难受。\n\n并且，更聪明的人往往有一个特点：更愿意把时间和精力用在对他们来说更重要的事情上。而社交对他们能起到的帮助不仅比较小，还要求他们去刻意表现来融入圈子和环境，因此，他们自然而然会更倾向于减少不必要的社交，将这些资源节省下来去做更重要的事。\n\n当然，这并不是说一个人喜欢独处，就一定比不喜欢独处的人更聪明。它只是一种可能性。我想说的是，如果你觉得你跟周围的环境格格不入，那么不一定是你的问题，也许是你本来就需要一种不同的生活方式。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n2. 容易分心\n\n这可能很违背直觉。我们的传统观念都是「专注的人才能做成事情」，为什么说容易分心反而可能是更聪明的表现呢？\n\n原因在于：如果一个人容易分心，其实有一种可能性：那就是他的思维较为敏捷，理解和处理能力较强，只需要花很少的认知资源就能处理好手头的事情，从而导致「注意力不饱和」。\n\n换句话说，对他来说，「容易分心」其实是大脑的资源没有良好利用起来，闲置资源太多的表现。\n\n这一点可以解释一个问题：现在有不少人觉得自己有 ADHD，但其实 ADHD 是一个比较严肃的事情，是需要去确诊和治疗的。实际上，这些人其实有可能并不是 ADHD，而是因为日常处理的事项对他们来说过于简单，大脑的资源长期被闲置，因而很容易分心、走神。\n\n尤其是，这样的人往往有一个特征：很容易快速理解和掌握一件事物的模式。因此，他们往往会在面对新鲜事物的时候热情高涨，注意力空前集中；但在面对重复性、机械性的单调事务时，特别容易走神，感到无聊。\n\n也就是说：如果你在工作中，只有全新的任务和挑战能够为你带来激情，而处理单调重复的事情时特别容易分心，那你就很有可能属于这种类型。\n\n不过，如果你属于这种类型，那么可能也要留意：你的「注意力涣散」在很多时候可能会成为你的制约。它可能会让你犯错，遗漏，或是难以全力以赴地投入去做一件事。这可能会导致你错失掉许多原本可以得到的成果和机会。\n\n因此，请有意识地培养自己「全力以赴的能力」，这会是你最好的补充。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n3. 过度思考和准备\n\n这是许多聪明的人特别容易踩中的陷阱：做一件事情，总是想得多、做得少，甚至会把大量的时间精力都用来思索、权衡和规划，导致时间分配严重不对等，很多时候快到截止期限了才不得不匆匆行动，结果当然难以令人满意。\n\n原因在于：不少聪明的人，在成长过程中很容易被训练出这么一种思维：问题是可以通过思考解决的（比如考试做题）。这种思维容易影响他们的一生，让他们无论做什么事情都倾向于通过思考来寻找答案。\n\n但是，现实的逻辑是什么呢？很多问题并不是通过思考解决的，而是通过行动解决的。思考只是为行动做好铺垫、搭建路径、提供基础。\n\n所以，他们往往也能够解决问题，但通常得到的并不是最好的结果。\n\n如果你也有类似的情况，一个很重要的建议是：主动为自己设定「何时行动」的规则。比如：一个问题需要在一段时间内解决，那么，不妨把前一半时间拿来搜集信息、权衡对比、思考规划，后一半时间用来行动。不管思考的成果如何，都不要再花时间去挤占行动的空间了。\n\n你也许会发现：很多信息，其实单单思考是很难得到的，你一定必须经过行动才能获得反馈。同样，很多对问题的切身感受和体会，其实也是「隔岸观火」时难以真正理解和把握的，你必须亲自动手去做一做，才能更有手感。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n4. 完美主义\n\n这跟上一点有些相似，但根源的原因不太一样。\n\n完美主义是如何形成的呢？他们在成长过程中，往往会处于这么一个环境里面：过度地强调「做得好」，将结果和奖惩高度挂钩。\n\n也就是说，他们接受了太多「做得好 → 被夸奖」「做不好 → 被责备」的信息输入，所以会建立起这么一种信念：我必须做到足够好，这样我才能够被认可。\n\n而一个人的能力越强、潜力越大，周围的人是会看到这一点的，故而对他的要求和期待也就越大。因此，他也会下意识地调高对自己的期待，从而将其拉高到一个不理性的高度。\n\n这就会形成一种「过度担责」的心态：一个结果，正常人可能已经觉得足够好了，可以去做下一件事了。但对于完美主义者来说，他永远会用最挑剔的眼光来看待：这个结果还有没有可能做到更好？我在完成它的过程里有没有犯错误？\n\n但是，没有人能保证把每一件事情都做到百分之百，也不可能完全不犯错误。但这就是会给完美主义者很重的心理压力。他们过度害怕没有发挥出自己的最佳水平，以至于很多时候他们宁愿不采取行动。\n\n如果你也有类似的困扰，我想对你说：你并不需要总是通过「做得好」来证明自己，你自己的价值是无需证明的。专注地投入到自己的生活中，去享受做每一件事的过程，享受自己在每一次行动里面的成长和进步，这本身就是一种价值的体现。\n\n请给自己松绑，降低不必要的期待，接受这个优秀、但并不完美的自己。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n5. 喜欢晚睡和熬夜\n\n很多人会把晚睡和熬夜看作是缺乏自制力的表现，但其实这可能有一定的两面性：缺乏自制力的另一面，可能意味着你更不循规蹈矩，更容易有突破性和打破常规的想法。\n\n实际上，近几十年以来，一直有研究试图挖掘晚睡跟认知表现之间的关系。目前比较受认可的观点是：晚睡确实跟更高的认知能力有一定的相关性。但这种相关性可能并不是「晚睡的人更聪明」，而是「更聪明的人有更高的可能选择晚睡」。\n\n原因在于：如果一个人比较聪明，他往往可能会有更多的想法、更强的创作欲，同时需要更不受约束和干扰的空间，而这些加在一起，就会导致他更加倾向于在晚上工作，从而不断将睡眠时相延迟。\n\n另外，夜晚的环境会放松大脑对记忆的抑制，使得更多的想法能够进入意识，并彼此碰撞、整合，产生火花，这种感受会让聪明的人非常痴迷，难以停下。\n\n换言之，白天很大程度上是属于外部世界的，只有夜晚才是真正属于自己的。\n\n所以，如果你总是在晚上有很多想法，觉得脑海里点子特别多、想问题特别清楚，那你可能就属于这一类。\n\n但是，任何时候都不要为了工作和创作而牺牲睡眠。保持充足的睡眠，就是对大脑最好的保养。喜欢晚睡并不意味着你一定要熬夜，你可以稍微延后一点上床和起床的时间，但一定要保证睡眠质量。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n6. 三分钟热度\n\n这也是跟传统格格不入的一种特征。我们传统的观念，都认为一个人要有「定性」，要专注，要认准一个方向不断努力……但总有些人，对很多事情都能迅速地产生兴趣，又容易失去兴趣。\n\n在别人看来，这个人就好像总是没干正事，而是不断在折腾一些奇怪的东西。\n\n但其实，这很可能也是聪明的一个表现。\n\n比较聪明的人往往有一个特征，就是容易被新奇、复杂、抽象的事物吸引，热衷于去分析和理解这些事物。因此，他们很容易对各种稀奇古怪的东西产生兴趣，这能够给他们极大的精神愉悦感。\n\n但与此同时，一旦他们掌握了这件事物的要领，理解它的机制和原理，它就会变得不再神秘和神奇，失去吸引力。因而他们同样很容易失去兴趣。\n\n这就会导致，他们明明很聪明，理解能力很强，但却容易在不少事情上面浅尝辄止，难以长期投入去做出成果。\n\n所以，如果你属于这一类型的人，请试着培养自己能够长时间专注在一件事情上面的能力。不要让自己完全被兴趣和热情主导，而是用意义感和价值感来主导。\n\n试一试，通过做出一些小的成果，把它们发布、传播出去，从中获得成就感，把它作为驱动自己去行动的动力，而不是完全由精神愉悦感来驱动。这会让你更能够长期持续做下去。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n7. 沟通时容易「慢半拍」\n\n你可能会疑惑：聪明的人不应该反应很快、妙语连珠吗？为什么反而在沟通时会显得反应慢？\n\n其实很简单：一个人显得反应快，接话特别迅速，往往并不是因为他已经在脑海里想清楚了来龙去脉，而是因为他经历了大量类似的场合，已经培养出了下意识的反应，也就是知道在这样的场合下对方可能会问什么、自己可能需要答什么。这是一个满意解，但并不是最优解。\n\n反过来，一个聪明的、但没有经历那么多沟通场合的人，往往会有一个特征：他会倾向于抑制自己的第一反应，一定要把事情来来回回想清楚了，找到一个最优解，再去表达。\n\n他们往往会在脑海里维持多个假设，需要理清每一个条件，需要确认每一个用词，甚至有时候容易把很简单的问题复杂化。用大白话来说，就是头脑转得更快，因此特别容易想太多。\n\n如果你有过类似的经历，你可能会感受到「说话太累了」，你会下意识地要求自己说话时要非常准确、毫无错误，这可能也是不少聪明人不太愿意社交的原因之一。\n\n但是，其实很多时候，你说得越准确、越全面，沟通效果并不一定会更好。沟通是双向的，你既要考虑自己如何表达，又要考虑对方如何接收和理解。把大量信息压缩起来一股脑讲出去，以及为了澄清一个用词而来来回回地「叠甲」，有时候只会适得其反。\n\n表现得自然一点，不要害怕犯错，也许效果反而会更好。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=476796c3&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FyWXmuSFeCk3Bn6XzqGMbK9EcZjbGoRJytuR3H8jAgf62lEF7w9mrpUwibbjqDn42ETt37R6Yr2Oxr5ReyVxRiaoA%2F640%3Fwx_fmt%3Dpng)\n\n我是 李睿秋Lachel\n\n欢迎关注 L先生说\n\n每周四晚 21:30 更新\n\n一起探索心智成长的奥秘\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=2ad3b215&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FyWXmuSFeCk3QuKiaicwXwBRSJGB1LTKUzt8zse5FEOSmRGIGzZCntTkBD4boCfgE932LhvnmRpicPMLdYX5J8qDaQ%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n[![](https://wechat2rss.bestblogs.dev/img-proxy/?k=45fef02a&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FyWXmuSFeCk3QuKiaicwXwBRSJGB1LTKUztl8tU0crGBErnbceibdbicEJmX9JuXmibTthUMBnZbKOvKIeukXp27XibzQ%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)](https://mp.weixin.qq.com/s?__biz=MzAxNTY0NjEzNg==&mid=2247488440&idx=1&sn=01154335d1f4e0e4cc5899c72d1877bb&scene=21#wechat_redirect)\n\nTHE END\n\n-  晚  安  -\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=0366ee08&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzAxNTY0NjEzNg%3D%3D%26mid%3D2247488934%26idx%3D1%26sn%3Dbff54edb9fb74184413ce7077f6348c2)",
+      "tags": [
+        "心理学",
+        "聪明特质"
+      ],
+      "score": 30,
+      "summary": "文章讨论人们眼中的缺点可能意味着聪明。",
+      "fetched_at": "2026-08-13T23:07:42.795706+08:00"
+    },
+    {
+      "title": "9.99 万元起，EV 版 9 分钟充到 97%，秦 MAX 正式上市",
+      "link": "https://www.ifanr.com/1675157?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-13T21:35:08+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/qinmfm.jpeg)\n\n8 月 13 日晚，比亚迪秦 MAX 正式上市。这台王朝网全新的 B 级轿车同时提供 DM-i 和 EV 两种动力，共推出 9 款车型，售价 9.99 万—14.39 万元，比亚迪给它的称呼是「秦家族闪充超大杯」。\n\n其中，DM-i 提供 4 款车型：\n\n* 230KM 领先型：9.99 万元\n* 230KM 超越型：10.99 万元\n* 320KM 超越型：11.99 万元\n* 320KM 卓越型：12.99 万元\n\nEV 提供 5 款车型：\n\n* 530KM 领先型：10.99 万元\n* 530KM 超越型：11.99 万元\n* 530KM 卓越型：12.99 万元\n* 630KM 超越型：13.29 万元\n* 630KM 卓越型：14.39 万元\n\n部分车型可花费 1.2 万元选装天神之眼 B 辅助驾驶激光版，全系还可花费 3000 元选装三款双色车身。发布会上，比亚迪也为秦 MAX EV 提供了一年免费闪充权益。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-2.jpg)\n\n秦 L 正在逐渐退出品牌序列，秦 MAX 直接接过了它在王朝网中型轿车市场的位置。这次换代不只改了后缀，比亚迪还把闪充、后五连杆和带激光雷达的天神之眼 B 一并放进秦家族，用一张更长的配置表继续向上探了一步。\n\n### 秦 MAX 的三项重点\n\n秦 MAX 的产品重点可以概括成三项：EV 版全系标配的第二代刀片电池和闪充、带激光雷达的天神之眼 B，以及后五连杆独立悬架。\n\n秦 MAX DM-i 版本延续第五代 DM 技术，由最大功率 74kW 的 1.5L 自然吸气发动机与 175kW 驱动电机组成，提供 230km 和 320km 两档 CLTC 纯电续航，综合续航最高达到 2370km，官方公布的亏电油耗低至 2.59L/100km。\n\n秦 MAX EV 采用后置后驱，提供 120kW 和 240kW 两档电机，对应 52.868kWh 和 64.315kWh 的第二代刀片电池，CLTC 纯电续航分别为 530km 和 630km。其中高功率版本峰值扭矩超过 400N·m，零百加速进入 5 秒级。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-3.jpg)\n\n不过，相比加速，补能才是这套三电系统更明显的变化。第二代刀片电池常温下电量从 10% 充至 70% 需要约 5 分钟，从 10% 充至 97% 约 9 分钟；即便在零下 30℃ 的环境里，后者也只多用约 3 分钟。\n\n快还不够，闪充站也要足够多。发布会上，比亚迪表示目前已经建成 7000 多座闪充站，覆盖全国 325 座城市，从双鸭山、喀什到三亚、呼伦贝尔，乃至吐鲁番、珠峰和可可托海等偏远地区都已有布局。比亚迪近期还与中石化签署合作协议，接下来会继续借助现有加油站网络增加闪充站点。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-4.jpg)\n\n智驾部分，秦 MAX 部分车型提供带车顶激光雷达的天神之眼 B 方案，相比主要覆盖高速领航和泊车的天神之眼 C，最明显的能力增量是城市领航辅助。\n\n在高速和城市快速路上，这套系统可以按照导航路线完成上下匝道、车道保持、自主变道和部分障碍物避让；进入城区后，城市领航辅助继续处理跟车、车道选择与路口通行，到达目的地后再由全场景泊车辅助完成停车。对一台高频通勤的家用轿车而言，它将辅助驾驶从高速延伸到了城区里更复杂的路况上。\n\n辅助驾驶能力之外，比亚迪还为搭载天神之眼 B 的秦 MAX 提供城市领航和智能泊车双兜底，也就是所谓的「迪迪兜兜」。新车用户可享一年城市领航兜底，智能泊车则继续提供安全兜底，在合规使用相应功能、且事故损失依法应由本车承担的范围内，由比亚迪直接承担，不设赔付上限，也不影响车主次年保费。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-5.jpg)\n\n底盘层面，秦 MAX 采用前麦弗逊、后五连杆独立悬架，部分高配车型还提供云辇-C 智能阻尼车身控制系统，并配合路面预瞄识别前方起伏。它会根据路况改变减振器阻尼，经过破损路面时尽量过滤多余振动，快速变线或过弯时则加强车身支撑。\n\n其他变化则更接近一台换代家轿的常规补全。秦 MAX 的长宽高为 4866/1880/1495mm，轴距 2820mm；相比秦 L，车长增加 36mm、轴距增加 30mm，车宽收窄 20mm，接近 4.9 米的车身显得更修长，溜背车顶和贯穿式中国结尾灯则继续保留王朝网的家族特征。\n\n颜色倒是跳出了过去秦家族偏单调的印象。秦 MAX 提供 6 款单色车漆，其中包括云初粉、星月紫、森野绿等更鲜明的选择，比亚迪还确认增加 3 款双色车身，并计划在 9 月推出。\n\n配置方面，秦 MAX 高配车型提供 DiLink 150、15.6 英寸悬浮式中控屏、AR-HUD 和冷暖车载冰箱等功能。车内共设置 27 处储物空间，EV 版还有 115L 前备箱，后备箱常规容积 523L，放倒后排后可扩展至 1450L。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-6.jpg)\n\n座舱设计也有明显进步。双辐方向盘、缩小的方向盘徽标和更克制的装饰，内饰比过去的秦简约、干净了不少。此外，秦 MAX 的座舱内还配备了前排的螺纹接口和小挂钩，对应手机支架、挂外卖奶茶和随身小物这些日常会遇到的细节需求。\n\n比亚迪在过去给人的印象往往是着重于大件而不太在意细节，而秦 MAX 这一次不只关注电池、智驾和底盘，显然也观察了当前市场上较好的产品定义，把日常体验里容易被忽略的小麻烦一并处理掉了，这一点值得肯定。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-7.jpg)\n\n座舱里更值得单独说的是「迪迪虾」AI 出行伙伴。它支持连续、复杂的多轮对话，也能从不完整、甚至有些模糊的表达里理解需求。在发布会的演示中，用户只需说出接朋友、途中充电、逛艺术区和寻找宠物友好餐厅等一连串安排，它就能规划包含多个目的地的路线，并继续完成餐厅排队、咖啡点单等操作。从产品形态看，「迪迪虾」更像是一个上车的 Agent：先理解任务，再拆解步骤，并调用导航、生活服务和车控能力去执行。\n\n从后五连杆到闪充，再到激光雷达和冰箱，加上补足了此前经常被忽视的细节产品点，这台秦系列的「超大杯」确实十分全面。\n\n不过，如果你只看硬性配置，秦 MAX 的这张配置表多少有些眼熟。\n\n### 秦 MAX 绕不开海豹 06\n\n秦 MAX 绕不开的，是两天前刚刚上市的 2027 款海豹 06。是的，这两台车基本可以视作同一款车在王朝网和海洋网下的两种变体。\n\n秦 MAX 和海豹 06 的轴距同为 2820mm，车长只差 4mm，车宽只差 10mm。两台车都提供 DM-i 和后驱 EV，DM-i 都使用 74kW 的 1.5L 发动机与 175kW 驱动电机，EV 都有 120kW 和 240kW 两档动力，以及 530km、630km 两档 CLTC 续航。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-8.jpg)\n\n两台车的 EV 版本都搭载第二代刀片电池和闪充，天神之眼 B、云辇-C、DiLink 150、AR-HUD 和冷暖冰箱也都能在各自的配置表中找到。除了外观、内饰细节和具体版本分配，秦 MAX 与海豹 06 的核心机械和技术标签几乎完全重合。\n\n王朝网与海洋网长期采用双车战略，在相近的平台与技术基础上，分别做一套设计、命名和销售体系。王朝网借助秦、汉、唐、宋等名字维持更传统的家族认知，海洋网则用海豹、海狮、海鸥等产品争取更年轻的用户，到了门店里，两套渠道再用各自的价格、权益和服务争夺订单。\n\n对比亚迪而言，这套方法可以在一套研发和供应链基础上覆盖更多审美与渠道，也让王朝网和海洋网保持内部竞争。同一项技术不会被一款车独占，两边都要用更快的产品更新、更清楚的配置和更有吸引力的权益，把用户留在自己的门店里。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-9.jpg)\n\n但对消费者而言，代价则是一笔额外的理解成本。两台车尺寸、动力、续航和核心配置高度重合，选择题很容易从产品能力变成了哪张前脸更顺眼、以及同一项配置在两套版本表里分别要花多少钱。而这场内部竞争的天平，正在向海洋网倾斜。\n\n2025 年，海洋网全年销售约 222 万辆，首次超过王朝网的 188.5 万辆，分别占比亚迪集团全年销量的约 48.2% 和 41.0%。这份领先延续到了 2026 年，今年 5 月，海洋网销售约 17 万辆，王朝网约为 15.2 万辆，海洋网在这两年已然成为比亚迪销售体系中的一哥。\n\n王朝网需要一款足够有分量的新车稳住自己的走量基本盘，秦 MAX 正是关键的一步。2025 年，秦家族销售约 66.1 万辆，贡献了王朝网超过三分之一的销量；秦 L 退出之后，秦 MAX 不只要接过一款 B 级轿车的位置，还要继续承担秦家族乃至王朝网的销量任务。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/QinMAX-10.jpg)\n\n但显然，王朝网对秦 MAX 很有信心。发布会临近结束时，比亚迪王朝网总经理路天说：\n\n> 「其实我这两天睡得很好，也没有拉大家开会。没听懂这个梗的，可以去看看两天前的发布会。」\n\n两天前，正是海洋网发布海豹 06 的日子。\n\n比亚迪的新一轮内部竞争，开始了。\n\n**[陈世琛](https://www.ifanr.com/author/chenshichen)**\n\n师傅开慢点我晕车。\n\n[邮箱](mailto:shchean@outlook.com)\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "秦MAX",
+        "比亚迪",
+        "闪充"
+      ],
+      "score": 75,
+      "summary": "比亚迪秦MAX上市，售价9.99万起，EV版9分钟充至97%。",
+      "fetched_at": "2026-08-13T23:07:42.795710+08:00"
+    },
+    {
+      "title": "出海应用的增长逻辑变了：游戏精品化、非游戏爆发，开发者怎么接住这波？",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575587&idx=1&sn=19d56c7216145c60d11a210d00256f62",
+      "published": "2026-08-13T21:30:00+08:00",
+      "source": "白鲸出海",
+      "content": "原创 白鲸小编 2026-08-13 21:30 四川\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8b6e01d6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8zuHSKMEukEqQ8Yn3qpvkjC9H43X4NLbCIxnDXlvcDicstbA59L9v40OjZfk6VtgzOcXySPcgPWjpOKg8VWUsNnpbPcbwJZCJo%2F0%3Fwx_fmt%3Djpeg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=07a0970e&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qibtkUsRS1rOnnTyhlozUJP8ZqTqz3nKibPY6LHuLBEoZAXVum6O8licWuwGjM2tCEWqnAFZ3ODqW4ugFMJktQa0D1zFIzZkibAuxY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nAI 来了，出海变了。\n\n出品｜白鲸出海编辑部\n\n作者｜智婷\n\n近期，一份移动出海营销报告准确反映出了当下中国 APP 在海外市场的增长现状，其中 2026 年 Q1 的统计数据，让出海开发者既振奋、又略带警觉。\n\n振奋的部分是，在全球移动应用市场上，非游戏品类的增长速度显著超出行业的预期。据 AppsFlyer 统计披露，短剧类应用整体激活量同比增长 225.6%，生成式 AI 产品同比增长 155.5%，这表明，新的增长赛道，正在以肉眼可见的速度放量。[1]\n\n让人警觉的是另一组数字——游戏出海大盘收入依然在涨，但能进入全球 Top100 的新游数量，却在持续减少。增长的果实越来越集中在头部产品手里，精品化门槛越来越高，长线运营能力越来越决定胜负。[2]\n\n两个方向并存，说明出海应用的增长逻辑正在分化：老赛道要求精而深，新赛道要求快而准。\n\n这正是 Meta 早前在上海举办“AI 破局由您主宰”移动应用与游戏海外营销峰会的背景。从广告算法迭代到创意生成工具，从增量归因到业务消息，Meta 全面披露了自己在 AI 层面的产品升级与路线图，试图回答一个核心问题：在 AI 时代，出海开发者的增长飞轮，应该怎么转？\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**一、精品游戏时代，**\n\n**内容速度和买量效率必须同步提升**\n\n游戏是中国应用出海的传统优势赛道，成熟的买量能力、经过验证的商业模式、以及在全球市场积累多年的在线运营经验，成就了一批具备全球竞争力的文化出海品牌。\n\n但精品化趋势正在给这个赛道带来一种特殊的压力：经过“爆发式”产品潮一轮又一轮的洗礼，全球玩家对游戏产品的要求在普遍提升，反过来推动产品投入不断加码，新产品“上桌”门槛被显著拉高，存活下来的产品生命周期确实变长了，但需要持续迭代内容才能维持玩家热度，而这也意味着，广告素材的消耗速度大幅加快。\n\n内容产出跟不上买量节奏，是目前精品游戏最常见的运营卡点之一。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=1c2e3796&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6qib28kJ7GBqs2qF7orgNjeNdiaXAN5LBMjvNuQVlKBNISErPcdz283Od5PiatfB8eQ9kCaNcKJvicusfCStYEWstKOReySOQ4c9iaG4%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n图：2026年H1全球手游投放素材数达到\n\n1187.3万组，较2025年H1增长22.1% | \n\n来源：DataEye《2026上半年全球手游买量数据报告》\n\n在此背景下，Meta 旗下生成式 AI 创意工具开始发力，规模化的使用数据颇能说明问题，Meta 在峰会上披露，目前，全球已有 800 万广告主在使用 Meta 旗下的 AI 创意工具。背后驱动的，正是整个行业对“规模化素材生产”的高度需求。\n\nAI 加持本地化，文化壁垒不再是出海增长的瓶颈\n\n精品游戏打全球市场，往往要同时服务多个语言区。过去，给同一套素材做多语言适配，需要大量本地化团队的介入，既费时、费力、费预算，也很难跟上内容迭代的节奏。知名出海游戏大厂 FunPlus 在旗下一款全球同步上线的新游中，使用了 Meta 的 AI 翻译工具。结果，一套英文素材被批量制作成覆盖多个本地语言的版本，广告效果提升近 2.6 倍，同时转化成本显著降低。\n\n这里的“翻译”并非机器直译，Meta 广告系统会根据广告的上下文和广告主历史受众数据，判断哪些语言的受众更活跃，并自动为这些语言生成符合语境习惯的文案，包括广告标题、正文乃至视频字幕。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=11b41425&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6qicHiaB5bZfOyHZ8Bib8OQaHmIjZYD7nBAgztHDXRfZuYXuLr8VdxQ87yNDQR9icicvP8ZfURsA7ELu4KATeDCmHZApvnvHB6nqw5y8%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n其实，Meta 早在 2023 年就开始首次推出生成式 AI 工具，过去几年又陆续扩展创意制作工具的种类，从最初的文本到图片、再到视频类工具，功能也不断优化。\n\n除本地化翻译之外，Meta 今年还在创意工具层面做了多项实质性升级。增强文本生成支持根据不同用户画像自动生成差异化文案——同一款游戏，面向核心玩家强调“战斗深度”，面向休闲玩家强调“轻松上手”，每个广告组最多可生成 10 条主文案和 10 条标题的自由组合，系统自动混排找出最优表现；视频生成功能支持从单张图片生成动态场景视频，实测 CTR 有约 10% 的提升，CVR 有接近 8% 的提升，多图模式下更可自动生成多场景切换的完整广告视频。\n\n账户层面的创意洞察工具也在今年进入测试，在 Ads Manager 中，部分广告主不仅已经可以看到自己素材中哪些元素表现更好，还能看到行业维度上哪些素材方向和创意元素更高效。对于正在建立本地化素材库的精品游戏来说，这是一个少走弯路的工具。\n\nAI 投放真的来了，机器执行解放人的创造力和判断力\n\n对于出海新手而言，投放获客始终是最重要、同时又过于复杂的环节。对于运营成熟的精品游戏来说，其运营规模又往往意味着成百上千个广告账户、数万条素材在 Meta 系统里同时跑动。这种量级下，靠人力逐一优化广告早已触及天花板。\n\n“千呼万唤始出来”，在今年的峰会上，Meta 推出了一系列全新的工具，帮助出海开发者直接创建和管理广告活动，当中包括 AI 智能体（Agentic AI）工作流设计的接口工具 Meta Ads AI Connectors。\n\n如果说过去这些年，Meta 的 AI 能力主要投入在了广告系统后端的提效和优化上，那么今年发布的新产品，真正把“AI 投放”带到了出海开发者团队中。\n\nMeta Ads AI Connectors 可以让任何第三方 AI 智能体——例如 ChatGPT、Claude、Perplexity——无需编写任何代码，即可直接连接到你的 Meta 广告账户，也就是说，AI 智能体能够以经过身份验证的方式，实时访问你的广告账户，通过自然语言完成广告活动的创建、管理与优化，实现端到端的广告运营。更重要的是，Meta Ads AI Connectors 会结合 Meta 针对相关产品沉淀的最佳实践，为 AI 提供更加准确、可靠的上下文信息，让 AI 能够基于产品的实际情况，提供更具针对性、更可执行的广告优化建议。\n\n而且，开发者可以根据自己团队和业务情况，选择不同的使用方式：最简单的是对话式、即插即用的连接方式 Meta Ads MCP，适合市场营销人员使用。另一种是 CLI（Command-Line Interface，命令行界面），通过命令行提供程序化控制能力，支持自主式 AI 编码智能体调用，其能力与 Marketing API 保持一致，适合开发者构建自动化工作流和广告运营管道。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c27faaab&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6qibA7eLQMexWEO91QXo1jP47nEicCculerolq1tj9HfLYPf2kWexDXKvhWssqgIWH8qVb6GGB44AqHgmDOGTbXdbOiavsdhibJoAWY%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\nMarketing API 的几个典型应用场景，揭示了Meta “AI 投放”产品的实际价值：\n\n. 批量应用优化建议：拥有数百广告账户的广告主，可通过 API 一键筛选并批量应用符合条件的 Meta 优化建议，省去人工逐一处理的时间；\n\n. 大规模素材测试：某欧洲大型客户每月通过 API 新建约 3 万个广告，实时获取数据后由系统根据预设逻辑自动做出优化决策——找到新素材、淘汰疲劳素材，整个过程几乎不需要人工干预；\n\n. 素材老化预警与自动微调：当某个素材的疲劳度达到预设阈值，系统自动对素材进行细微调整，重新激活它在 Meta 算法中的探索能力，延长素材生命周期。\n\nMeta 大中华区行业副总经理 David Chen 在峰会上给了一个直观的比喻：“MAPI 相当于给你一个全自动的工厂，CLI 是用 AI 来建这个工厂，MCP 则是让每一个人都有一个随时待命的助理，帮你把广告的事情都打理好。”人负责制定规则，机器负责执行——这是出海团队在广告运营层面效率跃升的基础。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**二、短剧和 GenAI 新品类爆发，**\n\n**快速找到高 LTV 用户抢占增量红利**\n\n与精品游戏的“精而深”不同，短剧和生成式 AI 应用的出海路径，仍处于快速验证阶段。\n\n增长数字亮眼，但新入局者面临一个共同的困境：买量成本高企，而且新品类缺乏历史数据积累，不知道广告算法应该如何“看懂”这类应用，也不确定哪种用户信号最能预测用户长期价值。\n\n对此，Meta 今年在底层算法和产品上的一系列升级，正在直接降低这类新品类的验证成本。\n\n底层算法优化迭代，保障产品跨平台精准获客\n\n过去两年，Meta 广告系统的“中央大脑”历经多次迭代。与 NVIDIA 合作开发的新一代检索引擎 Andromeda，模型复杂度较此前提升了 10,000 倍，在大幅加快广告匹配速度的同时，将广告质量提升了 8%，并已适配生成式 AI 工具带来的广告请求量激增。Meta Lattice 将过去数百个针对不同场景的垂直模型，整合为少数几个可跨产品平台共享的统一大模型，在提升能力的同时显著改善了整体运营效率。\n\n今年的最新迭代，则集中在两个方向：序列学习（Sequence Learning）采用 Transformer 架构，对用户在 Meta 应用中的行为序列进行深度建模，更准确地预测用户下一步最可能的行为，从而优化广告展示时机；自适应排序模型（Adaptive Ranking Model）在用户每次打开应用时，根据实时信号动态调整广告排序，为每个用户匹配最相关的广告内容。\n\n这些底层能力的累积，让使用 Meta Advantage+系列 AI 驱动产品的广告主，广告互动率平均高出传统广告 22%。\n\n找到高价值的 IAP 用户，推动新品类快速验证商业闭环\n\n付费解锁、订阅制，可以说是短剧和 GenAI 类产品最为重要的商业模式。\n\n但对于短剧和 AI 订阅类应用来说，高 LTV 用户往往不会在安装后立即付费，可能需要一到两周的摸索期。过去 Meta 广告优化窗口只有 7 天，系统就会错把“没有立刻付费”的高价值用户排在后面，反而追着那些冲动下载、很快流失的低质量用户跑。这对于生成式 AI 产品尤其不利，“薅完新手 Token 就跑”的用户，对于 AI 产品开发者而言，多一个下载可能就意味着多一份亏损。\n\nMeta 今年推出的 28 天应用内购价值优化窗口（此前为 7 天）已完成内测并进入公测阶段。数据显示，采用 28 天窗口的头部广告主，ROAS 平均提升了 105%。逻辑并不复杂：窗口更长，系统能识别并积累更多真实付费信号，优化的目标也从“谁更可能安装”变成了“谁更可能持续为产品付费”。\n\nIAA 应用终于有了专属优化工具\n\n以广告变现（IAA）为主要商业模式的短剧和内容类应用，过去在 Meta 平台上长期缺乏针对性的优化产品。由于系统无法直接理解“广告收入”这一信号，开发者只能将其伪装成购买事件来优化，数据噪音较大。\n\n今年 Meta 推出的全新 IAA 价值优化产品（IAA VO），专门学习应用广告收入信号，为广告变现开发者重新设计了优化逻辑。大规模测试显示，使用 IAA VO 的广告，7 天 ROI 平均提升 35%，且不以牺牲流量质量为代价。据 Meta 官方披露，目前 Android 端已全面开放，iOS 端进入公测阶段。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**三、留存和转化才是真正的战场，**\n\n**AI 商业消息打通用户全生命周期**\n\n随着增量见顶、拉新成本持续走高，留存、转化和老用户召回的含金量还在上升。\n\n玩家首次充值后如何维持复购？短剧用户订阅后如何引导续费升级？GenAI 应用的免费用户，什么时机最容易转化付费？这些问题的答案，都指向同一个场景：一次恰到好处的对话。\n\n当前，每天有 36 亿用户使用 Meta 全家桶中的至少一款应用，每周超过 10 亿人通过 WhatsApp、Instagram Direct、Messenger 等 Meta 消息产品主动与企业建立联系。当用户更偏爱“聊天”的方式沟通时，“聊天”就很可能是产品找到和留住用户的窗口。\n\nMeta Business Agent 把客服、营销、支付装进对话窗口\n\nMeta 今年 6 月发布了 AI 驱动业务消息矩阵产品，即基于 Meta 旗下三大即时通讯应用 WhatsApp、Instagram Direct 和 Messenger 消息场景的 Business Agent 及 AI 基础设施平台 Meta Business Agent Platform。\n\n相当于让 Meta 消息类应用上的每一家出海企业，无论规模大小，都拥有了一个 7x24 小时在线的、懂业务、通晓多国语言、能促成交易的 AI 智能体。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=603a47e7&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q8yupKRMub73w2axPeic5fduIcWZx7HlDPtLpevDOaKQ96yHTKRSOltRlvmUMzYRRicY9Rw3rMicdyvmXzScdRTEIWI7tkdCKf2xA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n图：Instagram、Messenger、WhatsApp\n\n上的每一家出海企业都可以拥有一个AI 智能体\n\n一项调查研究结果显示，62% 的消费者表示，未来更愿意通过对话式 AI 与企业互动；80% 的消费者认为，AI Agent 将彻底改变企业与用户之间的沟通方式。\n\n具体到应用场景，它支持开发者在 WhatsApp 中构建完整的用户运营闭环——礼包兑换、账户充值、进度查询、赛季更新通知、VIP 等级提醒——用户无需跳出对话界面，在 WhatsApp 里就能走完整个流程。\n\n对于出海游戏和应用来说，这条通路有一个被低估的价值，那就是它不依赖用户主动打开 APP，而是主动去用户所在的地方建立连接。也是整个增长逻辑的延伸——不只是把用户带进来，而是让他们在更高频次、更多场景中产生价值，逐步拉高每个用户的生命周期贡献。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**写在最后**\n\n出海应用的结构性分化，最终可以归结为一场“谁的增长效率更高”的竞争。\n\n游戏精品化要求内容迭代和买量效率并驾齐驱；短剧和 GenAI 等新品类要求开发者快速找到高价值用户、降低验证成本；而商业消息，正在漏斗之外悄悄构建着留存和复购的第二条增长曲线。不同品类，问题不同，但对 AI 工具的依赖逻辑是一样的：不是用 AI 做了什么，而是 AI 有没有真正嵌入产品的增长飞轮。\n\nMeta 专家在此次峰会上提到了一个数字——目前只有约 5% 的企业真正从 AI 中获得了可量化的业务增长。而这 5% 的 AI-native 企业，营收增速是行业均值的 2 倍，EBIT 利润率 1.6 倍，股东回报率高出同行 3.6 倍。差距不会随着 AI 普及而缩小，只会随着时间加大。\n\n工具已经在这里了。谁先把它跑通，谁就先到。\n\n参考资料：\n\n1.《2026 中国 App 出海营销趋势报告：AI 浪潮下的增长新机遇》，AppsFlyer\n\n2.《2025全球移动游戏市场企业竞争力报告》，伽马数据（CNG）；\n\n3.《2026中国手游出海洞察研究报告》报告解读，亿欧网\n\n4.《2025手游出海图鉴：谁在重塑收入榜？》，游戏陀螺\n\n5.《详解 Meta 家的 AI Agent：除了出海“做客服”，它还能做什么？》，白鲸出海\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=58fbfcb6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q9p88HEGGK4bSZT9ZrGgKDqgFNn2JicdE1HYNjkZchD1HxQeu7qUjhoribEf4cj2p2s9PeW7ESNhIKXTibICmw1G6iaueKWg8YCXXc%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n推荐阅读\n\n## [AI硬件，“老厂”凶猛](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575431&idx=1&sn=2f4522a14bec4e7826da54a46e6afb3c&scene=21#wechat_redirect)\n\n## [再破千万，智能健身赛道站满中国玩家](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575545&idx=1&sn=38a24f0f661c60bbf8a6ee22f7e734b6&scene=21#wechat_redirect)\n\n## [剪映员工离职创业，已出现「人传人」现象](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575561&idx=1&sn=a240fa5ae0b7eb5fdd5b298e79492c6d&scene=21#wechat_redirect)\n\n## [4人团队+AI，做出千万美元年销｜对话创始人](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575517&idx=1&sn=c9148b9af4dedfd227f37757cb355bfd&scene=21#wechat_redirect)\n\n## [被2家大厂共同“致敬”后，这家北京团队又把新品送上了赛道Top10](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575483&idx=1&sn=4e54de656518406bf6cad86faef22f1a&scene=21#wechat_redirect)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=b2eaf153&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575587%26idx%3D1%26sn%3D19d56c7216145c60d11a210d00256f62)",
+      "tags": [
+        "出海应用",
+        "生成式AI",
+        "增长"
+      ],
+      "score": 70,
+      "summary": "报告称非游戏应用出海增长，生成式AI产品同比增长155.5%。",
+      "fetched_at": "2026-08-13T23:07:42.795713+08:00"
+    },
+    {
+      "title": "AI硬件都在做加法，「阅星曈」靠一块“减法屏”拿下近5000万融资",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575587&idx=2&sn=03425b452976db8cf0cf8d3f3d020379",
+      "published": "2026-08-13T21:30:00+08:00",
+      "source": "白鲸出海",
+      "content": "连冉 2026-08-13 21:30 四川\n\n以下文章来源于：极客公园\n\n**极客公园**\n\n用极客视角，追踪你最不可错过的科技圈。欢迎同步关注极客公园视频号👇\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8d2ba464&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2Fz6JAVpoB67QSp5VE0zN1zDuNvlmaXDkfuuK5XiciaRSvt2sV4v6DkbMb2XIMp1b9UNBxI0kjT7AxBJkvOCZO47jcWwPeAO3uZ1kQHQwoavwqI%2F0%3Fwx_fmt%3Djpeg)\n\n手机背后的注意力空间。\n\n极客公园获悉，超便携电子纸品牌阅星曈近期完成一笔接近 5000 万元的 A 轮追加融资，由顺为资本、经纬创投、博裕创投和小红书四家老股东继续投资。\n\n此前在今年 4 月，阅星曈曾对外披露，自天使轮至 A 轮累计完成五轮、总额超过亿元的融资。公司方面称，此次近 5000 万元是滚动融资中近期完成的一笔 A 轮交割。资金将主要用于提前锁定电子纸屏幕和产能、研发新硬件、改善软件交互、探索 AI 能力，以及拓展内容版权和海外市场。\n\n过去两年，AI 硬件普遍在做加法：加入麦克风、摄像头、更多传感器和更大的模型，希望设备能够听见、看见并主动理解用户。\n\n阅星曈目前获得市场反馈的产品，却是一块功能克制的电子纸。它没有开放的应用商店，没有短视频和信息流，也没有一套需要被反复强调的 AI 功能。它只是磁吸在手机背面，让用户在地铁上、排队时或睡觉前读几页内容。\n\n但阅星曈也开始尝试把 AI 接入这套原本克制的产品体系。按照创始人兼 CEO 胡宇沸的介绍，公司正在测试一套由云端、手机 App 和电子纸设备组成的三端架构，已经调通部分 Agent-to-Agent 测试。\n\n按照胡宇沸的设想，AI 更像信息抵达屏幕之前的一层处理：理解用户需要什么、整理内容、减少导入和推送的步骤，最后仍由电子纸呈现结果。\n\n一家公司因为做减法获得用户，又因为增长必须开始做加法。这是阅星曈融资之后真正值得观察的问题。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**从「把规模做大」，到「把产品做小」**\n\n阅星曈是一家成立于 2023 年、从超便携电子纸切入的消费电子创业公司。现阶段的核心产品是 X3、X4 等小尺寸电子纸设备，其中，X3 配备 3.7 英寸屏幕，机身约 58 克；X4 的屏幕为 4.3 英寸。产品可以通过磁吸配件附着在手机背后，用户用实体按键翻页，通过手机 App 或「星曈云」导入书籍、图片等内容。\n\n它与传统电子纸阅读器最明显的差别，在于借用手机的随身性：传统阅读器需要单独携带，阅星曈则试图让阅读设备始终与手机同时出现，目前月销量已达数十万。\n\n阅星曈创始人胡宇沸过去更擅长的是运营。此前，他先后在 Uber 中国、小蓝单车、饿了么、OYO 酒店和新石器无人车等公司负责运营或管理工作。OYO 官方信息曾称，胡宇沸创立的 EMO 事业群在半年内开拓 275 座城市、签约 1600 家酒店。组织人、建立线下网络和快速扩大规模，是他过去最鲜明的职业标签。\n\n但当商业模式还没有成立，速度和资本只会同步放大问题。「我是一路做运营出身，一直做 COO。」胡宇沸说，「但真正到底层，还是产品得好。」他把过去的教训归结为三条：做好产品、不依靠烧钱增长、维持小团队的战斗力。\n\n作为电子纸重度用户，胡宇沸发现，传统阅读设备不便随身，碎片时间仍主要被手机占据。他最初想解决的问题是：能不能让一本书像手机一样，总在手边？答案是一块足够薄、足够轻、可以磁吸在手机背面的电子纸。\n\n「我们做了一件事情，就是让几千年来都不好带的书变得好带。」他说。为了描述这种关系，他用了一个不太精致却很准确的比喻：像一块「狗皮膏药」贴在手机背后。\n\n从行业维度看，全球电子阅读器市场正增长平稳却早已陷入存量博弈。2025 年全球电子墨水阅读器市场规模约 24.5 亿美元，预计 2032 年将接近 39 亿美元，年复合增速维持在 6.8% 左右；其中 7 英寸以下的小尺寸设备占据了超半数市场份额，便携化已是行业共识的方向。\n\n但主流品牌大多困在 6-10 英寸的「独立阅读设备」框架里，在屏幕素质、续航与版权内容上反复内卷，阅星曈的核心差异化，则跳出了「把阅读器做小」的惯性思维，转而借势手机这一用户最高频的随身设备，重构了电子纸的存在方式。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4d21378d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FOHnTJ4kA6q9LtJl5NIfJ2cgqworndm2xiaBgXE7ExJuhwOQqolzNTPTx1qy0HiaUGU05Ayq9IStbh9WOAyTz9UJeVe7sBliavy2hqM9Y1micrics%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n图片来源｜阅星曈\n\n它不需要用户额外分配背包空间，不需要单独培养使用习惯，仅通过磁吸设计就把阅读能力「植入」了用户已有的日常动线里。这种「零额外负担」的产品形态，契合了年轻群体对数字排毒、低干扰生活的诉求，也让它有机会打开一个新的增量市场。\n\n2025 年春节后，胡宇沸在小红书公开自己的产品设想：一定要轻、能磁吸，可以牺牲部分电池容量，但续航不能太短。早期用户随后参与讨论屏幕「额头」、翻页键位置和握持方式。\n\n胡宇沸把这套方法概括成「六十对四十」：创始人先想清楚产品的 60%，剩下的 40% 交给用户补充。轻薄、磁吸、低干扰，是团队事先确定的部分；按键位置和具体结构，则可以根据用户反馈调整。\n\n这更像一种公开的产品验证：用户可以改变按钮和结构，却不能替创始人定义产品。「绝对不能什么都听。」胡宇沸说。如果把所有意见都做进产品，最后很可能得到一台功能不少、但没有人真正喜欢的设备。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**一块贴在手机背后的「减法屏」**\n\n用户先在手机 App 或「星曈云」中导入书籍、图片等内容，再通过网络同步到设备。设备采用封闭系统，不依赖开放的安卓应用生态，也不会把社交消息、广告和信息流一起带进来。\n\n磁吸设计让阅读器借用了手机的随身性：手机正面是算法持续供给的信息，翻到背面，则是用户提前选择的一本书。\n\n在极客公园的实际体验中，X3 足够轻，单手阅读压力很小，电子纸在自然光下也保持了舒适的可读性。但用户在阅读前往往需要自行寻找文件、导入并推送。阅读过程很安静，把内容送进设备的过程却还不够顺滑。\n\n初代产品没有触屏和前光。胡宇沸最初将产品定义为通勤和户外阅读设备；同时，团队当时的工艺能力也不足以在加入触控和前光的情况下保住轻薄，于是先舍弃了这两项功能。\n\n后来，睡前阅读成为一个反复出现的用户场景：用户希望在更低干扰的屏幕上看几页小说。胡宇沸自己试过后，认为这个场景足够成立，团队开始筹备带触控和前光的新版本。\n\n目前，X4 Pro 已上市，新产品在接近初代 X4 厚度的情况下加入触控和前光，1100mAh 电池容量可以支持一周左右的碎片化阅读。\n\n这段迭代反映了阅星曈的产品方法：减法不等于永远拒绝功能，判断标准是一个功能能否对应明确、重复出现的场景。抽象的「参数更强」不足以改变产品，具体的使用行为可以。\n\n阅星曈试图填补的，是传统电纸书没有覆盖好的碎片阅读时间。但一个成立的小场景，并不等于一门已经跑通的生意。\n\n电子纸上游供应商数量有限，屏幕采购和备货周期较长。公司通常需要提前约半年锁定货源；销量增长时，缺货和库存资金占用会同时出现。这也是本轮融资首先被用于备货和供应链的原因。\n\n低价硬件也很难单独支撑一家持续扩张的消费电子公司。胡宇沸将硬件称为「一张门票」，公司不会追求很高的硬件毛利，他希望先让更多设备进入用户手中，长期价值则来自软件、内容和服务。\n\n目前，阅星曈已经提供内容导入、图片和图书制作、推送及社区等能力，国内外书籍、漫画等版权合作仍处于拓展阶段。产品已经证明人们愿意购买一块更便携的阅读屏，但设备能否被持续使用、用户是否愿意继续购买内容，仍待验证。\n\n增长还放大了早期团队不成熟的一面。此前，阅星曈一款产品的详情页曾出现参数误标，引发部分用户对「虚标」的质疑。胡宇沸称，这是团队填写错误，并非有意误导；公司向涉及相应购买时段、提出要求的用户提供退货退款。他也承认，创业早期的合规工作做得不够好。\n\n对于一个从公开共创中获得第一批用户的品牌而言，这类争议的代价不只是一项参数如何解释，也包括用户是否继续相信团队对产品的判断。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**当用户不喜欢 AI，AI 应该放在哪里？**\n\nAI 被视为阅星曈从电子纸阅读器走向「手机副屏」和个人信息入口的关键一步。但在现有用户中，这种延展并未天然获得认同。\n\n胡宇沸称，在公司面向现有用户的调研中，海外受访用户对引入 AI 更为谨慎；国内反馈略好一些，但整体仍偏保守。许多人购买阅星曈，恰恰因为它足够克制，不会再增加一套通知、推荐和交互。\n\n对于追求「Digital Detox」的用户，一块没有信息流的电子纸已经完成了自己的任务；如果 AI 意味着更多推荐和打扰，算法只是从手机正面追到了背面。\n\n这构成了阅星曈下一阶段最重要的产品课题：公司因为克制获得用户，却又需要通过软件和 AI 扩大产品边界。\n\n目前，阅星曈正在搭建一套由云端、App 和电子纸设备组成的三端架构。复杂计算发生在手机和云端，电子纸负责低功耗显示。按照胡宇沸的描述，团队已经调通部分 Agent-to-Agent 测试：用户未来可以通过设备或 App 发出指令，让云端完成订阅推送或连接外部服务等任务；一些能力将随新品逐步上线。\n\n阅星曈并不准备在一块几十克的设备上运行本地模型。AI 的作用更接近信息进入屏幕之前的处理器：它负责理解需求、筛选内容和缩短操作路径，电子纸仍是最后的输出界面。\n\n「AI 不一定要讲得那么 fancy。」胡宇沸说，「它应该坐在业务或工作流的后端。」如果 AI 能够自动整理待读内容、同步阅读进度、生成适合小屏的信息卡片，用户感知到的应该是步骤减少，而不是功能增加。\n\n首先是输入。现有 X3、X4 本质上都是输出设备，缺少高频、自然的主动交互。胡宇沸称，公司正在研发带语音输入的新产品，并一度考虑让主动输入使用不同品牌；长期看，输入和输出可能重新结合。产品边界目前仍在变化。\n\n其次是内容。海外电子书市场的壁垒不仅是硬件，也包括出版社、作者版权、购买习惯和账户体系。阅星曈希望先凭借小尺寸和价格获得硬件用户，再以用户规模与出版社、漫画和 IP 版权方谈判。但硬件销量能否转化为内容购买，用户是否愿意在一个新平台建立书库，仍需要验证。\n\n最后是扩张本身。胡宇沸给公司的长期方向取了一个名字：Portable Everything——把更多东西做小，让阅读、声音、影像、音乐甚至运动变得随身可得。电子纸是第一个品类，团队也在对其他小型硬件进行预研。\n\n在公司的规划中，阅读只是小尺寸电子纸首先完成验证的场景。墨水屏低功耗、常显的特性，还可延展到壁纸、工牌、桌面信息卡等用途；App、内容和 AI 创作工具则被视为提高设备使用频率的后续能力。这些方向目前大多仍处于研发或拓展阶段。\n\n支撑这一品类想象的，是阅星曈的互联网原生组织能力：前端以社区（国内小红书、海外 Reddit/Discord）触达年轻用户、完成产品共创，中层以软件与 AI 创作平台快速迭代内容生态，底层以自研嵌入式 OS 与小尺寸供应链锚定硬件体验，形成「需求 - 定义 - 落地 - 反馈」的完整闭环。\n\n而 AI 的深度接入，则是激活这块常显终端价值的核心钥匙。\n\n未来，依托云端 Agent 的信息处理能力，用户可以用自然语言完全自定义屏幕内容：让 AI 整理当日核心资讯、生成个性化阅读书单、同步行程与待办事项，甚至根据情绪生成专属壁纸。电子纸的常显低功耗特性，让这些信息始终以无打扰的方式呈现在手机背面—— 用户无需解锁手机、无需打开任何 App，翻转即可获取。\n\n这为公司提供了一个比阅读器更大的图景，也可能把它重新带回一直警惕的陷阱：当「少即是多」扩展成「超便携的一切」，一家强调单点场景的公司，是否会再次开始追求大而全？\n\n近 5000 万元的新融资，让阅星曈有能力同时推进供应链、软件、内容和新品，也更容易把产品边界拉大。下一阶段的关键不是证明这块屏幕还能承载多少功能，而是软件、内容和 AI 能否提高设备的使用频率，同时不破坏用户最初购买它的理由。这将决定，Portable Everything 是一套可复制的产品方法，还是一个被增长迅速放大的愿景。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=58fbfcb6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q9p88HEGGK4bSZT9ZrGgKDqgFNn2JicdE1HYNjkZchD1HxQeu7qUjhoribEf4cj2p2s9PeW7ESNhIKXTibICmw1G6iaueKWg8YCXXc%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n推荐阅读\n\n## [AI硬件，“老厂”凶猛](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575431&idx=1&sn=2f4522a14bec4e7826da54a46e6afb3c&scene=21#wechat_redirect)\n\n## [再破千万，智能健身赛道站满中国玩家](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575545&idx=1&sn=38a24f0f661c60bbf8a6ee22f7e734b6&scene=21#wechat_redirect)\n\n## [剪映员工离职创业，已出现「人传人」现象](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575561&idx=1&sn=a240fa5ae0b7eb5fdd5b298e79492c6d&scene=21#wechat_redirect)\n\n## [4人团队+AI，做出千万美元年销｜对话创始人](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575517&idx=1&sn=c9148b9af4dedfd227f37757cb355bfd&scene=21#wechat_redirect)\n\n## [被2家大厂共同“致敬”后，这家北京团队又把新品送上了赛道Top10](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575483&idx=1&sn=4e54de656518406bf6cad86faef22f1a&scene=21#wechat_redirect)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=9b82bd7b&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575587%26idx%3D2%26sn%3D03425b452976db8cf0cf8d3f3d020379)",
+      "tags": [
+        "阅星曈",
+        "电子纸",
+        "融资"
+      ],
+      "score": 65,
+      "summary": "电子纸品牌阅星曈完成近5000万A轮追加融资，探索AI能力。",
+      "fetched_at": "2026-08-13T23:07:42.795716+08:00"
+    },
+    {
+      "title": "Shopee母公司Q2财报：东南亚电商到底赚不赚钱？",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575587&idx=3&sn=707791948dc3951750ea5361d202fee3",
+      "published": "2026-08-13T21:30:00+08:00",
+      "source": "白鲸出海",
+      "content": "MW 2026-08-13 21:30 四川\n\n以下文章来源于：墨腾创投\n\n**墨腾创投**\n\n总部新加坡，深耕海外高增长市场。凭借深厚在地资源与丰富实战经验，驱动自有及合作项目孵化，为投资者提供战略方案，助力精准决策与高效落地。赋能全球，决胜新市场。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=9d06dabb&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6qibrs1ZFEuaBB0ib1XTJo0NuIkt98EhJJBOnHiaHyHT9bZvicib6fdr9zF9PNA4PfcHGuklvIqg4Eo9PDREia5JINSicpr4Nxw2CEBibSQ%2F0%3Fwx_fmt%3Djpeg)\n\n冬海发布了 2026 年第二季度财报：营收 78 亿美元，同比增长 48%。\n\n8 月 11 日，Shopee 母公司冬海发布了 2026 年第二季度财报：营收 78 亿美元，同比增长 48%；调整后 EBITDA 达到 9.17 亿美元；净利润同比增长 11%，至 4.58 亿美元。\n\n整体来看，这是一个表现相当不错的季度，公司股价也在财报后涨了超过 14%，恢复到年初水平。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=af79e016&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q8jfL3gHaTvwDkQ6PSVv8rOQ8yX5PtEPTUbQicAGzBOC1XEyd1TQq8LoxdpbqRu90E5GqNfXoOoTHO1M8dickC3uOnjEnd0J3Qvs%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n墨腾的一些笔记和看法：\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**1. 东南亚电商业务到底赚不赚钱**\n\n大摩的一位分析师在财报电话会上直接问管理层：Shopee 的东南亚电商业务现在是否已经盈利？\n\n管理层没有回答“是”或者“不是”，而是花了不少时间解释公司怎么看 take rate，以及提高变现率时需要考虑的四个因素，但并没有再回到“东南亚业务是否已经盈利”这个问题。\n\n目前 Shopee 整体调整后 EBITDA 大约相当于 GMV 的 0.67%；管理层依然认为，中期做到 2%-3% 是可以实现的，而且在部分市场，该比率目前的水平已经明显高于整体；但当分析师直接问东南亚业务是否盈利时，管理层没有给出明确答案。\n\n这也说明，电商平台“赚不赚钱”这个问题，远没有集团整体利润数字看起来那么简单。\n\n不同市场、不同业务，以及哪些收入和成本被算进去，都会影响最后的答案。\n\n同样的问题，其实也存在于大家对 TikTok Shop 东南亚业务是否盈利的讨论里。很容易成为罗生门。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**2. Monee 已经有五个市场**\n\n**的贷款余额超过 10 亿美元**\n\n菲律宾成为了集团金融业务 Monee 第五个贷款余额超过 10 亿美元的市场。而巴西的贷款余额也在之前一个季度超过了 10 亿美元。Monee 目前整体贷款余额已经达到 111 亿美元，同比增长 62%；不良贷款率（NPL）则稳定在 1.0%。\n\n到了现在这个体量，Monee 已经很难再被简单看成 Shopee 的辅助业务。\n\n另外一组数字也值得注意：Monee 收入同比增长 59%，但调整后 EBITDA 只增长了 13%。管理层将两者之间的差距归因于贷款产品结构、针对新借款人的促销，以及在巴西市场的投入。\n\n随着 Monee 继续扩大规模，这个差距值得继续观察。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**3. Monee 将在巴西推出银行 App**\n\nMonee 计划在巴西推出一个独立的金融服务 App，类似 ShopeePay。\n\n公司在巴西还获得了 SCFI（Sociedade de Crédito, Financiamento e Investimento）类别的金融牌照。Nubank 旗下的 Nu Financeira 也属于同一类别。\n\nShopee 已经在巴西积累了大量用户和交易数据，而且过去五年已经把信贷规模做到了一定的水平。它接下来面对的，是美客多旗下的 Mercado Pago、Nubank，以及一个已经非常成熟的巴西金融科技生态。\n\n接下来的竞争会很有意思。对了，滴滴的消费金融业务在巴西做得也很不错。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**4. AI 到处都在，但 Migoo 没有出现**\n\n上个季度，冬海的财报电话会上还有一个很明确的“接下来讲 AI”的部分，包括 agentic AI 购物助手等产品。\n\n这个季度，管理层已经不太把 AI 单独拿出来讲了。AI 更多地被放进具体业务里：Monee 用 Transformer 模型做信贷风控，AI 被用于收入文件审核、广告匹配和搜索；Shopee 也在用数字助手，减少商家必须直接找真人客户经理解决问题的情况。\n\n分析师在电话会上多次问到 AI，管理层的回答基本也都落在这些具体应用上。换句话说，AI 正在从一个单独的话题，变成日常业务的一部分。或许“万亿美金”变成了敏感词。\n\n而且冬海自己推出的消费级 AI 产品 Migoo 以及其他类似产品在财报和财报会里面完全没有被提到。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=156887aa&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FibJzB4CZdSVVZ7JnPtEEqnkicw1JmIUibze4kI4o76tr2zVE3LC8g6wTX3sBXRJLOJP3ick53GT05KzcjvVROmLoJA%2F640%3Fwx_fmt%3Dpng%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwxpic)\n\n**5. Shopee 正在从更多地方找流量**\n\n根据财报，目前，东南亚超过 25% 的 Shopee 实物商品订单已经来自直播和短视频。（这也和我们去年的估算类似）。\n\n另外，冬海还提到正在加强和 Meta、YouTube 的合作。财报里宣布通过 Facebook 创作者带来的 affiliate 订单环比增长超过 85%；和 Instagram 的整合也已经覆盖八个核心市场。\n\n不过，这里需要分开看的是，这个 25% 并不是 Meta 和 YouTube 带来的订单。冬海也没有披露这些外部渠道目前具体贡献了多少订单。\n\n更值得注意的是背后的方向。Shopee 正在不断增加自己 App 之外的流量来源，Meta、YouTube、affiliate 以及其他渠道，再想办法把这些流量导回 Shopee 并转化成交易。\n\nTikTok 的起点是流量和内容，然后不断往电商上走。Shopee 的起点是电商，所以它需要不断给自己增加新的流量来源。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=c66a1adf&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FOHnTJ4kA6q8icOOd3GdxEoJlwnqEwXDWxibAM1licH04P547YYXGeQonT0KePibkfDutL7ib1ibzbRTHskE9MoUaFZjaHInb6pA3icoE2dZr3YDyWk%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=93c7f814&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FOHnTJ4kA6q8BnjOFeOU0ib0SOacVHbTx2qbGcIYHXmhr7cNZnHS9PbKaFibuWtGPsf7pg8FPzHwGEh0EPZS9xyUyUgiakiaVHYam7cztJEst7qs%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=4f7ca358&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FibJzB4CZdSVUCgbVGfYFMASptRibT2mpHn8yxRvKApk1tZea0BoD7pECL6HeRWWBRgrMMfNY62VlERDMdia93bahQ%2F640%3Fwx_fmt%3Dgif)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=58fbfcb6&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FOHnTJ4kA6q9p88HEGGK4bSZT9ZrGgKDqgFNn2JicdE1HYNjkZchD1HxQeu7qUjhoribEf4cj2p2s9PeW7ESNhIKXTibICmw1G6iaueKWg8YCXXc%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n推荐阅读\n\n## [AI硬件，“老厂”凶猛](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575431&idx=1&sn=2f4522a14bec4e7826da54a46e6afb3c&scene=21#wechat_redirect)\n\n## [再破千万，智能健身赛道站满中国玩家](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575545&idx=1&sn=38a24f0f661c60bbf8a6ee22f7e734b6&scene=21#wechat_redirect)\n\n## [剪映员工离职创业，已出现「人传人」现象](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575561&idx=1&sn=a240fa5ae0b7eb5fdd5b298e79492c6d&scene=21#wechat_redirect)\n\n## [4人团队+AI，做出千万美元年销｜对话创始人](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575517&idx=1&sn=c9148b9af4dedfd227f37757cb355bfd&scene=21#wechat_redirect)\n\n## [被2家大厂共同“致敬”后，这家北京团队又把新品送上了赛道Top10](https://mp.weixin.qq.com/s?__biz=MzYzNTkyMTI2Ng==&mid=2247575483&idx=1&sn=4e54de656518406bf6cad86faef22f1a&scene=21#wechat_redirect)\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=e03933ea&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzYzNTkyMTI2Ng%3D%3D%26mid%3D2247575587%26idx%3D3%26sn%3D707791948dc3951750ea5361d202fee3)",
+      "tags": [
+        "冬海集团",
+        "财报",
+        "电商"
+      ],
+      "score": 50,
+      "summary": "冬海集团Q2营收78亿美元，同比增长48%。",
+      "fetched_at": "2026-08-13T23:07:42.795719+08:00"
+    },
+    {
+      "title": "Ouraca 张栖铭 & 吴俊东：只要你还在开会，你们公司用了 AI 也快不起来",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a7dcf8f2e27ea5b21cad33b",
+      "published": "2026-08-13T21:39:30+08:00",
+      "source": "AI炼金术",
+      "content": "「如果一个组织还需要不停地开会和大量地写文档来做对齐，那它一定快不起来。」\n\n这不是管理鸡汤，是一家 AI 创业公司踩了一年多坑之后的结论。\n\n  \n\n这家公司现在没有日报周报，每天只开十分钟站会；产品、设计、研发全员写代码，想知道谁的进展，直接上 GitHub 拉代码跑一下。但他们也坦白了另一半故事：最开始全员用 AI 提效，版本却没有变快，人反而「脑子都烧坏了」——因为他们只是在用 AI 加速旧流程，开会、评审、对齐的时间一分钟都没省。\n\n  \n\n本期任鑫请来 Ouraca 的两位联合创始人张栖铭和吴俊东，把一家 AI native 公司的组织形态从头到尾拆开：怎么分工、怎么对齐、怎么定 OKR、怎么判断人才。如果你也在纠结 AI 到底有没有让你的团队变快，这一期会让你先放松下来——然后知道该改哪里。\n\n  \n\n嘉宾\n\n张栖铭：Ouraca 联合创始人，负责产品与研发。曾在字节智慧教育负责整个中台，做过多个亿级用户量的产品。本期大部分一线踩坑细节和组织打法来自他：从「AI 写的按钮为什么先变小再播放」，到「按上下文分工而不是按职能分工」。\n\n吴俊东（Frank）：Ouraca 联合创始人，哈佛肯尼迪学院毕业，非技术背景出身。曾在好未来七年，一半时间做投资，一半时间负责内容营销等业务。作为文科生，他用 vibe coding 独立写出了一个能实时侦测屏幕、教你操作电脑的 Mac 客户端——他是「learning by building」这个理念的活案例。\n\n  \n\n**本期亮点**\n\n→ **AI 提效的三个错觉，让他们「经常睡不着觉」**。张栖铭复盘一年多前的踩坑史：团队小、决策链短、同事能力强，按理说套上 AI 应该起飞，结果出了一堆人类无法理解的诡异 bug——一个播放按钮被 AI 写成「先变小再播放」，改了别的功能后这个隐藏逻辑突然暴露出来。「发现冰山一角的时候，你不知道水面下还有多少问题在。」\n\n  \n\n→ **拆完时间账才发现：AI 在加速旧流程，而旧流程的大头是人跟人对齐**。每个节点都在用 AI，版本却没快多少。真正写代码的时间本来就不长，大头是开会、讨论、评审——这些一分钟都没省。更惨的是双重工作量：先让 AI 生成，再看懂 AI 补的细节，再讲给别人听，被问两句卡住，「别人就觉得这个人没想清楚就把事情丢过来了」。\n\n  \n\n→ **解法是按上下文分工，不是按职能分工**。访谈了一批「一个人做七个产品」的超级个体后，张栖铭发现他们快的原因是：每个决定对自己都是确定的，没有上下游对接。于是公司改成一个人负责一个完整上下文闭环，「除非必要沟通，其他就不沟通」——讨论观点不如各自出 demo，最后让 AI 把两人 demo 里好的部分合成一个。\n\n  \n\n→ **流程反转：研发先上线，设计师最后介入**。主流程变成：有想法的人直接做出 demo 发给真实用户，验证没问题之后，设计师才把代码拉下来、直接改代码做优化——不再画 Figma 设计稿。开会基本没有，「务虚的东西很少，全部看实际的产出页面」；想知道某人进展，上 GitHub 看提交、拉下来跑一下，日报周报「完全不需要」。\n\n  \n\n→ **Claude 团队的「五种人」，他们已经默默实施了很久**。原型者用 demo 代替空对空讨论；建造者把原型变成生产级产品；清扫者专门叫停和删掉不必要的东西——当开发成本趋近于零，「顺手就做」会堆出大量无效甚至负向的功能，任鑫补充：Claude Code 团队自己也把 harness 里 80% 的代码删掉了；再加上增长者和维护者。\n\n  \n\n→ **两个最容易踩的风险：AI 让自我欺骗更高级，以及更快地做出没人要的东西**。模型天然倾向顺着你，「你说什么它都能夸你从一个非常不一样的视角给出了答案」——所以要刻意让它做反方辩手。而当做东西不再花时间，对需求场景的判断力反而变成最稀缺的东西。\n\n  \n\n→ **OKR 的新写法：少写完成了哪些功能，多写验证了哪些假设**。以前定 OKR 是垫脚就够得着的确定性目标，照着做；现在一个双月已经「非常漫长」，应该用大目标逼出完全不同的思路——呼应任鑫引的 YC 掌门人 Garry Tan 的说法：把目标定成 boil the ocean。「你说去楼下，那你只能想到走楼梯；你说登月，思路就宽广了。」\n\n  \n\n→ **人才判定翻转：「杠杆率」取代「靠谱」**。古法编程时代产出稳定、节假日秒响应的靠谱员工，现在分数反而变低；能把模型当成一堆虚拟员工来编排的人，发挥出的能力是以前的十倍百倍。张栖铭现在看人只看三样：业务理解、元认知、能不能快速把模型的杠杆拉满。\n\n  \n\n→ **彩蛋：给普通人的两个动作**。吴俊东：停止刷视频课，找一个 project，能用 AI 就用 AI，从头到尾做出来、给真实用户用——learning by building，「现在是 the age for builders」。张栖铭：把日常的会议、文档、语音全部沉淀下来，「蒸馏自己」，飘到天上客观地看自己。任鑫自曝已经在做：全天候录音，每晚处理，「所有电话会都会自动后台偷偷录下来」。\n\n  \n\n**时间戳**\n\n00:05 开场：还在开会的组织快不起来\n\n02:40 踩坑史：AI 提效的三个错觉，与人类无法理解的诡异 bug\n\n05:59 拆完时间账：AI 在加速旧流程，对齐时间一分钟没省\n\n08:46 访谈超级个体的启发：按上下文分工，一个人负责一个闭环\n\n12:01 全员出原型：不许空口白牙提需求，拿 demo 对齐\n\n16:48 岗位边界模糊：负责人要降低控制欲，学会「外包式躺平」\n\n19:46 Claude 团队的「五种人」：原型者、建造者、清扫者、增长者、维护者\n\n25:28 元认知与杠杆率：开工先问模型「你会怎么把这事做到最好」\n\n30:11 协作实况：全在 GitHub，设计师直接改代码，没有日报周报\n\n37:32 两大风险：AI 让自我欺骗更高级；更快做出没人要的东西\n\n39:21 OKR 新写法：少写完成了哪些功能，多写验证了哪些假设\n\n43:45 效果验收：言出法随，一周十几万行代码，讨论观点不如各出 demo\n\n49:44 人才判定翻转：古法时代最靠谱的人，分数反而低了\n\n51:32 传统企业想转型：第一位的是一把手的决心\n\n54:34 AI 时代的驾校：8 月 14 日上线的课，和 FDE 认证计划\n\n01:03:37 结尾两问：learning by building ＆ 蒸馏自己\n\n  \n\n**欢迎订阅「AI炼金术」的播客，以及同名公众号、视频号**\n\n「AI 炼金术」是一档由徐文浩和任鑫——两位多年老友、AI 领域的资深从业者——打造的播客。这里是探讨 AI 和创业的理想聚集地，我们会邀请一线创业者、产品产品和科研学者，深入探讨 AI 如何重塑行业、变革生活，以及如何从 0 到 1 打造 AI 原生产品。 \n\n我们的讨论会涵盖多个话题：从 AI 如何改变世界的未来，到如何找到 AI 创业的 PMF；从如何利用 AI 降本增效，到怎样将 AI 技术融入日常生活……如果你对 AI、产品、创业感兴趣，这里有满满的干货和一线实战经验，欢迎关注并推荐给你的朋友，共同探索未来的无限可能！ \n\n**商务合作：**公众号 「AI炼金术 」菜单栏中【商务】获取联系方式 \n\n  \n\n**节目主理人：** \n\n**徐文浩：**某AI创业公司联合创始人，正在面向全球市场开发AI应用。连续创业者，参与过多家创业公司，拼多多早期员工。广告科技公司MediaV的算法和数据负责人，后被360收购。离开后加入成立不到1个月的拼多多。后创办了基于AI的海外客服聊天机器人公司 BotHub.AI 和 海外社交电商平台 Bukito 都宣告失败。2023年再次下场创业。\n\n**任鑫：**美元基金合伙人，主要在投资和孵化面向全球市场的 AI 应用。之前是连续创业者，曾经打造“今夜酒店特价”用移动互联网应用特价销售酒店尾房；被京东并购后内部创业“京东到家”开展本地即时零售业务；2015 年再次创业 Get 探索对话式人工智能助理成为先烈；2021 年出售公司，2023 年重新回到 AI 世界。\n\n  \n\n**播客剪辑：**\n\n十六颗糖\n\n  \n\n**BGM:**\n\n  \n\n**片头：**Shortwire - Reconfig\n\n**片尾：**James TW - Butterflies",
+      "tags": [
+        "AI组织",
+        "提效",
+        "Ouraca"
+      ],
+      "score": 65,
+      "summary": "Ouraca创始人分享AI提效经验，认为关键在于减少会议和对齐。",
+      "fetched_at": "2026-08-13T23:07:42.795721+08:00"
+    },
+    {
+      "title": "地址 https://t.co/JLpunhF1kc",
+      "link": "https://x.com/berryxia/status/2087906939560665507",
+      "published": "2026-08-13T22:19:40+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "地址 [github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)\n\n💬0🔄0❤️0👀186",
+      "tags": [
+        "DeepSeek Harness",
+        "GitHub"
+      ],
+      "score": 30,
+      "summary": "仅提供DeepSeek Harness的GitHub链接。",
+      "fetched_at": "2026-08-13T23:07:42.795724+08:00"
+    },
+    {
+      "title": "卧槽！终于等到了！\n\nDeepSeek把Agent框架也开源了，核心理念就一句话：Everything is a plugin。\n\nDeepSeek Harness v0.1进入开发者预览，MIT协议...",
+      "link": "https://x.com/berryxia/status/2087906844572299288",
+      "published": "2026-08-13T22:19:17+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "卧槽！终于等到了！  \n  \nDeepSeek把Agent框架也开源了，核心理念就一句话：Everything is a plugin。  \n  \nDeepSeek Harness v0.1进入开发者预览，MIT协议开源。  \n  \n它基于Cordis元框架构建，模型、工具、Skills、会话、沙盒、文件系统、循环、编排和UI全部都以插件形式实现，可以自由组合、替换和扩展。  \n  \n当Agent的每一个核心部分都被拆成可插拔模块时，开发和定制的自由度会高很多。  \n  \n这不再是又一个固定工作流的包装器，而是一套可以按需组装的底层系统。  \n  \n开源模型之后，开源Harness，DeepSeek继续在把整条链路往开放方向推。  \n  \n项目地址👇\n\n![Tweet Image](https://pbs.twimg.com/media/HPm8K85WQAA_Zsg.jpg)\n\n![DeepSeek](https://pbs.twimg.com/profile_images/1717417613775757312/Uk1zNOj4_normal.jpg)\n\nDeepSeek@deepseek\\_ai\n\n🧩 DeepSeek Harness v0.1 is now available in Developer Preview!  \n  \n🔹 We’re opening it up to developers building agent harnesses worldwide and open-sourcing the codebase in MIT license.  \n🔹 Powered by the Cordis meta-framework, DeepSeek Harness is an agent harness built around one core idea: Everything is a plugin. Models, tools, skills, sessions, sandboxes, filesystems, loops, orchestration, and UI are ALL implemented as plugins, and can be mixed, matched, replaced, and extended.  \n  \nTry it no[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)hKA\n\n[🔗 View Quoted Tweet](https://x.com/deepseek_ai/status/2087887408440164663)\n\n💬2🔄0❤️0👀532📊2",
+      "tags": [
+        "DeepSeek Harness",
+        "插件系统",
+        "开源"
+      ],
+      "score": 82,
+      "summary": "DeepSeek开源Agent框架Harness v0.1，核心为Everything is a plugin。",
+      "fetched_at": "2026-08-13T23:07:42.795726+08:00"
+    },
+    {
+      "title": "Devin now works directly on your live data in @MongoDB Atlas.\n\nQuery it, manage it, provision a new ...",
+      "link": "https://x.com/cognition/status/2087892577185829004",
+      "published": "2026-08-13T21:22:36+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Devin now works directly on your live data in [@MongoDB](https://x.com/MongoDB) Atlas.  \n  \nQuery it, manage it, provision a new cluster mid-task. No stale schemas, no copied-in context, no waiting on someone to set up a database.  \n  \nGet started today by provisioning a MongoDB database directly from Devin.\n\n![Tweet Image](https://pbs.twimg.com/media/HPmvOzFW0AA02BB.jpg)\n\n💬6🔄10❤️71👀20462📊17",
+      "tags": [
+        "Devin",
+        "MongoDB",
+        "数据操作"
+      ],
+      "score": 78,
+      "summary": "Devin支持直接操作MongoDB Atlas实时数据，可查询、管理、配置集群。",
+      "fetched_at": "2026-08-13T23:07:42.795729+08:00"
+    },
+    {
+      "title": "看完 deepseek harness\n让我想起了 foobar2000\n\n能看懂的可以转个发\n看不懂的可以点个赞",
+      "link": "https://x.com/lifesinger/status/2087911248440783141",
+      "published": "2026-08-13T22:36:47+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "看完 deepseek harness  \n让我想起了 foobar2000  \n  \n能看懂的可以转个发  \n看不懂的可以点个赞\n\n💬8🔄4❤️26👀2471📊13",
+      "tags": [
+        "DeepSeek Harness",
+        "评论"
+      ],
+      "score": 20,
+      "summary": "玉伯评论DeepSeek Harness让人联想到foobar2000。",
+      "fetched_at": "2026-08-13T23:07:42.795731+08:00"
+    },
+    {
+      "title": "what happens when you take a bunch of agents that you can’t really trust and try to coordinate them?...",
+      "link": "https://x.com/GaryMarcus/status/2087898848928964700",
+      "published": "2026-08-13T21:47:31+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "what happens when you take a bunch of agents that you can’t really trust and try to coordinate them?  \n  \nsometimes it works; sometimes it doesn’t.\n\n![Rohan Paul](https://pbs.twimg.com/profile_images/1816185267037859840/Fd18CH0v_normal.jpg)\n\nRohan Paul@rohanpaul\\_ai\n\nAnthropic's new research found found that identical or similar agents can converge on the same bad decision, turning individual errors into system-wide failures.  \n  \nStronger agents don't automatically coordinate better. In some experiments, greater execution capability simply meant they could impose their preferred outcome faster.  \n  \nWe may end up needing an entire institutional layer for agents: identity, reputation, dispute resolution, communication protocols, resource-allocation rules, and mechanisms for escalating ambiguity back to humans.  \n  \nBuilding smarter agents may turn out to be only half the problem.  \n  \nHumans had thousands of years to build institutions around coordination failures: reputation, norms, markets, courts, contracts, recourse.  \n  \nAI may have a few years.  \n  \nWhen agents received incompatible software-migration objectives, they frequently escalated into sabotage, process killing, account lockouts, and disguised malicious code.\n\n![Tweet Image](https://pbs.twimg.com/media/HPmaz1jakAAQOS-.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/rohanpaul_ai/status/2087870832223670416)\n\n💬3🔄3❤️15👀2389📊4",
+      "tags": [
+        "多智能体",
+        "协调失败",
+        "Anthropic"
+      ],
+      "score": 85,
+      "summary": "Gary Marcus引用Anthropic研究：不信任的智能体协调时可能系统性失败。",
+      "fetched_at": "2026-08-13T23:07:42.795733+08:00"
+    },
+    {
+      "title": "The best things in life are free",
+      "link": "https://x.com/rauchg/status/2087900672083857815",
+      "published": "2026-08-13T21:54:46+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "The best things in life are free\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nAll Pro customers now get a free domain.  \n  \nClaim one at [vercel.com/domains](https://vercel.com/domains):  \n  \n✓ .online  \n✓ .site  \n✓ .space  \n✓ .store  \n✓ .tech  \n✓ .website\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2087899402379882808)\n\n💬10🔄1❤️78👀9699📊13",
+      "tags": [
+        "Vercel",
+        "免费域名",
+        "Pro"
+      ],
+      "score": 30,
+      "summary": "Vercel Pro用户现在可免费领取一个域名。",
+      "fetched_at": "2026-08-13T23:07:42.795736+08:00"
+    },
+    {
+      "title": "𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝 gives you the freedom to run and swap any brain. Or make a bunch of brains ...",
+      "link": "https://x.com/rauchg/status/2087891362289164333",
+      "published": "2026-08-13T21:17:46+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝 gives you the freedom to run and swap any brain. Or make a bunch of brains compete or collaborate on a problem. It’s now one line of code to switch to [@grok](https://x.com/grok).\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nUse [@grok](https://x.com/grok) Build with AI SDK 𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐𝚎𝚗𝚝:  \n  \n𝚌𝚘𝚗𝚜𝚝 𝚊𝚐𝚎𝚗𝚝 = 𝚗𝚎𝚠 𝙷𝚊𝚛𝚗𝚎𝚜𝚜𝙰𝚐�[vercel.com/changelog/grok…](https://vercel.com/changelog/grok-build-harness-adapter)�𝚜: 𝚐𝚛𝚘𝚔𝙱𝚞𝚒𝚕𝚍,  \n});  \n  \n<https://t.co/AvcN1mwv2U>\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2087890803616325804)\n\n💬8🔄2❤️63👀11509📊13",
+      "tags": [
+        "HarnessAgent",
+        "Grok",
+        "AI SDK"
+      ],
+      "score": 75,
+      "summary": "Vercel的HarnessAgent支持一行代码切换Grok等任意模型。",
+      "fetched_at": "2026-08-13T23:07:42.795738+08:00"
+    },
+    {
+      "title": "This week we launched the world's most accurate document extraction agent over real-world documents....",
+      "link": "https://x.com/jerryjliu0/status/2087898625934250095",
+      "published": "2026-08-13T21:46:38+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "This week we launched the world's most accurate document extraction agent over real-world documents.  \n  \nIntroducing LlamaExtract Agentic Plus 💫 . It is a complete document extraction model+harness engine that can convert even the most complex document types/lengths/schemas into clean, grounded, structured output.  \n  \nWe benchmarked it over ExtractBench - a comprehensive set of real-world enterprise documents. It is measured over various dimensions: document length (short/medium/long), task (long-list, needle in haystack, dense docs), perception (rotated, scanned, handwriting), table structured (merged headers, cross-page tables, table within cells), and business domains.  \n  \nWe compared it against a variety of coding agent harness to document extraction solutions. LlamaExtract Agentic Plus is not only highly accurate, it is quite price efficient relative to its capabilities (25-50% the price of Claude Code/Codex).  \n  \nYou can see the full release of ExtractBench here:[llamaindex.ai/blog/introduci…](https://www.llamaindex.ai/blog/introducing-extractbench)z  \n  \nIf you want to check it out, come sign up for an account on LlamaParse:[cloud.llamaindex.ai](https://cloud.llamaindex.ai/)A\n\n![Tweet Image](https://pbs.twimg.com/media/HPm0kBBXkAAbm7m.jpg)\n\n![Jerry Liu](https://pbs.twimg.com/profile_images/1283610285031460864/1Q4zYhtb_normal.jpg)\n\nJerry Liu@jerryjliu0\n\nIntroducing ExtractBench, the most comprehensive benchmark for information extraction from complex enterprise documents.  \n  \nThe latest models are pushing the frontier of coding and knowledge work, but surprisingly they still struggle on complex doc extraction tasks in production. A well-tuned extractor must parse multi-page filings without dropping rows, emit exact spatial citations for auditability, and handle messy scans. Also they must do all of this at a viable per-page cost so that you can scale this to millions of docs in production (you can’t be paying upwards of $1 in tokens per page!)  \n  \nExisting extraction benchmarks fall short: they are not large/diverse enough in document domain (finance, energy, gov, auto), elements (long records, scans, grounding), and schemas.  \n  \nSo our applied research team built ExtractBench.  \n  \nWe evaluated 14 systems: frontier VLMs, coding agents, and specialized extraction APIs, against 370 enterprise documents: 4,869 pages, 67 document types.  \n  \nOur biggest finding 🧪: Short documents mask critical system flaws. On files past 50 pages, commercial VLMs collapse below 35% recall due to silent list truncation. They hold high precision, but lose output attention and drop most of the table rows.  \n  \nExtractBench evaluates value accuracy, long-record completeness, spatial grounding, and per-page cost with zero LLM judges. It is 100% deterministic and reproducible.  \n  \nIn tandem with ExtractBench, we’re also introducing 𝗔𝗴𝗲𝗻𝘁𝗶𝗰 𝗣𝗹𝘂𝘀, a new Extract tier in LlamaParse that debuts at #1 on the leaderboard: 95.6% value accuracy, at less than a third the cost of the closest peer.  \n  \nExplore the findings, download the dataset, or run the harne[llamaindex.ai/blog/introduci…](https://www.llamaindex.ai/blog/introducing-extractbench)o/tsXfovK[github.com/run-llama/Extr…](https://github.com/run-llama/ExtractBench)o/auzmOGgUl3  \nH[huggingface.co/datasets/llama…](https://huggingface.co/datasets/llamaindex/ExtractBench)o/1eKisSBrE8  \n  \nWe will be actively evolving both our extraction benchmark as well as our extraction harness over time.   \n  \nIf you check out either ExtractBench or LlamaParse, let us know your feedback!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087194456252375040/vid/avc1/3840x2160/jxSztNpmZ2sox7Ap.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/jerryjliu0/status/2087195936225108171/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/jerryjliu0/status/2087195936225108171)\n\n💬2🔄1❤️9👀1153📊3",
+      "tags": [
+        "LlamaExtract",
+        "文档提取",
+        "ExtractBench"
+      ],
+      "score": 85,
+      "summary": "LlamaIndex发布LlamaExtract Agentic Plus，自称最准确的文档提取agent。",
+      "fetched_at": "2026-08-13T23:07:42.795741+08:00"
+    },
+    {
+      "title": "Every year you spend waiting to feel ready is a year someone less talented spends getting ahead of y...",
+      "link": "https://x.com/thejustinwelsh/status/2087888672045593071",
+      "published": "2026-08-13T21:07:05+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Every year you spend waiting to feel ready is a year someone less talented spends getting ahead of you.\n\n💬56🔄10❤️118👀5561📊59",
+      "tags": [
+        "鸡汤",
+        "个人成长"
+      ],
+      "score": 20,
+      "summary": "激励语录：等待准备好不如行动。",
+      "fetched_at": "2026-08-13T23:07:42.795743+08:00"
+    },
+    {
+      "title": "Every document extraction system has a perception blind spot. We mapped them.\n\nFor ExtractBench, we ...",
+      "link": "https://x.com/llama_index/status/2087903295037669869",
+      "published": "2026-08-13T22:05:11+08:00",
+      "source": "LlamaIndex 🦙(@llama_index)",
+      "content": "Every document extraction system has a perception blind spot. We mapped them.  \n  \nFor ExtractBench, we tested 14 systems on documents that weren't born digital: 1950s regulatory filings, hand-filled tax forms, and pages degraded with fax thresholding, photocopier tone curves, sensor noise, and phone-camera capture.  \n  \nThe failures don't overlap.   \n  \n💡 Codex reads scans and handwriting above 93%, then drops to ~80% on rotated or image-only pages.   \n💡 Specialized APIs are the exact inverse: fine on rotation and handwriting, 81% on scans  \n💡 Gemini 3.5 Flash falls from 88.6% to 71.1% the moment a page is scanned.  \n  \nYou benchmark on clean PDFs. Production sends you a shadowed photocopy from 1953.  \n  \nOur new Extract Tier, Agentic Plus, was the only system with no blind spot: 95.9% / 93.9% / 93.8% across rotated, scanned, and handwritten, a 2-point spread where others swing 10+.  \n  \nLearn more about ExtractBench 👇️   \n  \nBl[lnkd.in/gNm97fXp](https://lnkd.in/gNm97fXp)ceB6  \nPap[lnkd.in/euAfScWx](https://lnkd.in/euAfScWx)kQpF\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2087902563425198080/pu/vid/avc1/1280x720/iFar7_aN92gmUQh1.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/llama_index/status/2087903295037669869/video/1)\n\n💬3🔄2❤️8👀1382📊4",
+      "tags": [
+        "ExtractBench",
+        "文档提取",
+        "感知盲区"
+      ],
+      "score": 83,
+      "summary": "LlamaIndex发布ExtractBench基准，显示各系统在扫描件等有感知盲区。",
+      "fetched_at": "2026-08-13T23:07:42.795746+08:00"
+    },
+    {
+      "title": "All three built in a weekend, on Runway Dev.\n\nThe media API platform with Runway's creative expertis...",
+      "link": "https://x.com/runwayml/status/2087895233929613556",
+      "published": "2026-08-13T21:33:09+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "All three built in a weekend, on Runway Dev.  \n  \nThe media API platform with Runway's creative expertise built in.  \n  \nStart building: [dev.runwayml.com](https://dev.runwayml.com)[dev.runwayml.com](https://dev.runwayml.com/)\n\n💬0🔄0❤️3👀1071",
+      "tags": [
+        "Runway Dev",
+        "API",
+        "Hackathon"
+      ],
+      "score": 65,
+      "summary": "Runway公布API黑客松获奖作品，均用Runway Dev在周末完成。",
+      "fetched_at": "2026-08-13T23:07:42.795748+08:00"
+    },
+    {
+      "title": "3rd, Scene Fixer by AL Anany.\n\nYour AI clips don't match. Scene Fixer makes them one. Drop the seque...",
+      "link": "https://x.com/runwayml/status/2087895221854142551",
+      "published": "2026-08-13T21:33:06+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "3rd, Scene Fixer by AL Anany.  \n  \nYour AI clips don't match. Scene Fixer makes them one. Drop the sequence in, its vision AI flags what's off: wardrobe, props, lighting, eyeline. You confirm the spot and Aleph fixes only that. No rerolling: the rest stays frame-identical, audio intact.  \n  \n[scenefixer.com](http://scenefixer.com)[scenefixer.com](http://scenefixer.com/)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087895154212712448/vid/avc1/640x360/VYqWFxNzUNs5F2MS.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2087895221854142551/video/1)\n\n💬1🔄0❤️2👀1130📊1",
+      "tags": [
+        "Scene Fixer",
+        "AI视频",
+        "连续性"
+      ],
+      "score": 65,
+      "summary": "Runway展示黑客松作品Scene Fixer，修复AI剪辑中的不连续问题。",
+      "fetched_at": "2026-08-13T23:07:42.795750+08:00"
+    },
+    {
+      "title": "The winners of our API Hackathon, all built in a weekend with Runway Dev, our API platform for build...",
+      "link": "https://x.com/runwayml/status/2087895092220833853",
+      "published": "2026-08-13T21:32:35+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "The winners of our API Hackathon, all built in a weekend with Runway Dev, our API platform for building with the best models from Runway and other frontier labs.  \n  \n1st, Quigo: turn passive video into interactive stories, no code  \n2nd, ClinicalSim: rehearse hard conversations with virtual patients  \n3rd, Scene Fixer: continuity repair for mismatched AI footage  \n  \nSee what they built 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HPmxhToa8AAlIHg.jpg)\n\n💬3🔄2❤️14👀3702📊5",
+      "tags": [
+        "Runway",
+        "黑客松",
+        "Quigo"
+      ],
+      "score": 65,
+      "summary": "Runway公布API黑客松奖项：Quigo、ClinicalSim、Scene Fixer。",
+      "fetched_at": "2026-08-13T23:07:42.795753+08:00"
+    },
+    {
+      "title": "@garrulous_abyss 我发现一个定律，从小喜欢音乐的程序员要去学作曲等音乐理论。从小喜欢绘画的程序员要去研究如射影几何等绘画科学。总之，把这些以前看成“艺考生”的科目当成咱科学来学就对了。",
+      "link": "https://x.com/feltanimalworld/status/2087911288689107309",
+      "published": "2026-08-13T22:36:57+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "[@garrulous\\_abyss](https://x.com/garrulous_abyss) 我发现一个定律，从小喜欢音乐的程序员要去学作曲等音乐理论。从小喜欢绘画的程序员要去研究如射影几何等绘画科学。总之，把这些以前看成“艺考生”的科目当成咱科学来学就对了。\n\n💬0🔄1❤️1👀242📊1",
+      "tags": [
+        "程序员",
+        "音乐",
+        "科学"
+      ],
+      "score": 20,
+      "summary": "个人观点：程序员应把艺术科目当科学学。",
+      "fetched_at": "2026-08-13T23:07:42.795755+08:00"
+    },
+    {
+      "title": "3D打印没有必要打印所有的部件。相反应该利用最常见的材料，直接用3D打印做成连接件，托盘，或者一切能把他们利用上的设施才对。",
+      "link": "https://x.com/feltanimalworld/status/2087902279005348055",
+      "published": "2026-08-13T22:01:09+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "3D打印没有必要打印所有的部件。相反应该利用最常见的材料，直接用3D打印做成连接件，托盘，或者一切能把他们利用上的设施才对。\n\n💬0🔄0❤️0👀328",
+      "tags": [
+        "3D打印",
+        "连接件",
+        "实践"
+      ],
+      "score": 20,
+      "summary": "分享3D打印经验：无需打印全部部件，用常见材料做连接件。",
+      "fetched_at": "2026-08-13T23:07:42.795757+08:00"
+    },
+    {
+      "title": "设计一款灯罩。还行吧，能用。\n\n小时候穷过，就会各种动脑DIY。也不想降低生活水准。\n\n小时候刚去深圳的时候，衣服都是自己做的。我妈那个时候自学成为一个非常厉害的裁缝。现在让我设计服装，也没啥问题。",
+      "link": "https://x.com/feltanimalworld/status/2087896748924477584",
+      "published": "2026-08-13T21:39:10+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "设计一款灯罩。还行吧，能用。  \n  \n小时候穷过，就会各种动脑DIY。也不想降低生活水准。  \n  \n小时候刚去深圳的时候，衣服都是自己做的。我妈那个时候自学成为一个非常厉害的裁缝。现在让我设计服装，也没啥问题。\n\n![Tweet Image](https://pbs.twimg.com/media/HPmyrlAXAAAm2Fs.png)![Tweet Image](https://pbs.twimg.com/media/HPmyrlkWYAAJgf0.jpg)![Tweet Image](https://pbs.twimg.com/media/HPmyrljWAAAL8OE.jpg)\n\n💬8🔄1❤️9👀979📊10",
+      "tags": [
+        "DIY",
+        "灯罩",
+        "生活"
+      ],
+      "score": 10,
+      "summary": "展示自制灯罩作品，分享童年经历。",
+      "fetched_at": "2026-08-13T23:07:42.795760+08:00"
+    },
+    {
+      "title": "Read more: https://t.co/w7yxt4rFAY",
+      "link": "https://x.com/TheRundownAI/status/2087909695012864098",
+      "published": "2026-08-13T22:30:37+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Read more: [robotnews.therundown.ai/p/honor-robot-…](https://robotnews.therundown.ai/p/honor-robot-phone-is-finally-here)\n\n💬0🔄0❤️0👀535",
+      "tags": [
+        "机器人",
+        "新闻汇总"
+      ],
+      "score": 20,
+      "summary": "机器人新闻汇总的链接。",
+      "fetched_at": "2026-08-13T23:07:42.795762+08:00"
+    },
+    {
+      "title": "Top stories in robotics today:\n\n- Honor’s much-hyped robot phone arrives\n- Agility uncages Digit for...",
+      "link": "https://x.com/TheRundownAI/status/2087909689736466719",
+      "published": "2026-08-13T22:30:36+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Top stories in robotics today:  \n  \n- Honor’s much-hyped robot phone arrives  \n- Agility uncages Digit for factories  \n- Northrop’s robotic mechanic is orbit-bound  \n- Mitsubishi retools engine plant for humanoids   \n- Quick hits on other robotics news\n\n![Tweet Image](https://pbs.twimg.com/media/HPm-ywpXcAAtnqq.jpg)\n\n💬1🔄1❤️2👀1803📊1",
+      "tags": [
+        "机器人",
+        "荣耀",
+        "Agility"
+      ],
+      "score": 65,
+      "summary": "今日机器人新闻：荣耀机器人手机发布、Agility Digit进工厂等。",
+      "fetched_at": "2026-08-13T23:07:42.795764+08:00"
+    },
+    {
+      "title": "当 Google 都能整出这种设计来，现在标准的 AI Slop 看起来比这顺眼一百倍，这大圆角加字体也太 TM 丑了。\n\n还有评论必看啊，简直是高级吐槽大会，骂人不带脏字，可以好好学习一个。顺便说一...",
+      "link": "https://x.com/vikingmute/status/2087904611025989990",
+      "published": "2026-08-13T22:10:25+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "当 Google 都能整出这种设计来，现在标准的 AI Slop 看起来比这顺眼一百倍，这大圆角加字体也太 TM 丑了。  \n  \n还有评论必看啊，简直是高级吐槽大会，骂人不带脏字，可以好好学习一个。顺便说一句，Google 在 AI 已经多久没动静了，Antigravity 还有人用吗？Gemini 3.5 Pro 还有戏没？\n\n![Google Design](https://pbs.twimg.com/profile_images/1856407846629359616/bW8F25x6_normal.jpg)\n\nGoogle Design@GoogleDesign\n\nCelebrating small wins is hardwired into \"Achieve,\" our goal-tracking sample app.  \n  \nWe wanted the simple act of checking off a task to feel like a celebration. Instead of the standard #Material ripple, we used Styles to drop in a custom, high-contrast completion animation—specifically, a brand-colored ring that expands and fades on tap, paired with a subtle pressed-state gradient.  \n  \nIt lets us focus entirely on polishing those custom, rewarding micro-interactions while Material handles the foundation.  \n  \n#GoogleDesign#MaterialDesign#JetpackCompose#AndroidDev#UXDesign#InteractionDesign\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HPc1CEBaIAALZi6.jpg)](https://video.twimg.com/tweet_video/HPc1CEBaIAALZi6.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleDesign/status/2087195277094695096)\n\n💬1🔄0❤️1👀790📊1",
+      "tags": [
+        "Google设计",
+        "吐槽",
+        "AI"
+      ],
+      "score": 20,
+      "summary": "吐槽Google设计丑，质疑其AI进展。",
+      "fetched_at": "2026-08-13T23:07:42.795767+08:00"
+    },
+    {
+      "title": "Why do creative workflows become harder to search as projects grow?\n\nFolders begin with a clear stru...",
+      "link": "https://x.com/weaviate_io/status/2087917560482222082",
+      "published": "2026-08-13T23:01:52+08:00",
+      "source": "Weaviate • vector database(@weaviate_io)",
+      "content": "Why do creative workflows become harder to search as projects grow?  \n  \nFolders begin with a clear structure. Tags work when teams have time to maintain them. Keyword search works when everyone uses the same language.  \n  \nProduction rarely stays that tidy.  \n  \nIn Episode 2 of Building Foundry, we explore:  \n  \n1. Why folder structures become historical records rather than useful maps.  \n2. Why tagging becomes inconsistent under delivery pressure.  \n3. Why keyword search fails when people describe the same asset differently.  \n  \nThese problems compound as teams change, archives expand, and project knowledge becomes dependent on the people who remember where everything lives.  \n  \nThe article looks at what retrieval needs to do differently. That means combining semantic similarity, exact keyword matching, and metadata filters instead of relying on one perfect naming system.  \n  \nRead Episode 2:  \n[weaviate.io/blog/building-…](https://weaviate.io/blog/building-foundry-where-workflows-break?utm_source=channels&utm_campaign=blog_post&utm_content=808906403)\n\n![Tweet Image](https://pbs.twimg.com/media/HPnF9LQXEAAYK0_.jpg)\n\n💬0🔄0❤️0👀34",
+      "tags": [
+        "Weaviate",
+        "向量检索",
+        "创意工作流"
+      ],
+      "score": 70,
+      "summary": "Weaviate博客探讨创意工作流搜索难题，提出语义检索与元数据结合。",
+      "fetched_at": "2026-08-13T23:07:42.795769+08:00"
+    },
+    {
+      "title": "\"'100% of this text is AI' is the new Scarlet Letter of dunking on people and posts.\"\n\n\"I hate to gi...",
+      "link": "https://x.com/a16z/status/2087909895664460099",
+      "published": "2026-08-13T22:31:25+08:00",
+      "source": "a16z(@a16z)",
+      "content": "\"'100% of this text is AI' is the new Scarlet Letter of dunking on people and posts.\"  \n  \n\"I hate to give the French credit for anything, but the 1960s semantic thinkers who created 'French Theory' really cooked when they anticipated Pangram and AI authorship 80 years ago.\"  \n  \n\"There are certain tells that you can spot where, it's like, 'This is a coherent sentence, but there's no way a human wrote this.'\"  \n  \n\"To bastardize Voltaire, if a wise and brilliant author doesn't exist, the LLM has to invent one.\"  \n  \n\"People want authorship. They want authorship because it is meaning, because the indexing and relation and handling of ideas is itself the meaning of the idea.\"  \n  \nAlex Danco on Pangram, authorship, & French Theory: [a16z.news/p/this-essay-i…](https://www.a16z.news/p/this-essay-is-10-ai-generated)\n\n![Alex Danco](https://pbs.twimg.com/profile_images/2013314547692539904/JJgVoXhL_normal.jpg)\n\nAlex Danco@Alex\\_Danco\n\n[x.com/i/article/2087…](https://x.com/i/article/2087904354573721601)\n\n[🔗 View Quoted Tweet](https://x.com/Alex_Danco/status/2087907142565273975)\n\n💬3🔄3❤️23👀7026📊5",
+      "tags": [
+        "AI作者身份",
+        "法国理论",
+        "Pangram"
+      ],
+      "score": 75,
+      "summary": "Alex Danco探讨AI文本与作者身份，称100%AI文本是新红字。",
+      "fetched_at": "2026-08-13T23:07:42.795772+08:00"
+    },
+    {
+      "title": "teach grok bot a task!\n\nhit + in the chat and record yourself doing it in the browser. the bot watch...",
+      "link": "https://x.com/ericzakariasson/status/2087916871727354302",
+      "published": "2026-08-13T22:59:08+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "teach grok bot a task!  \n  \nhit + in the chat and record yourself doing it in the browser. the bot watches, then it can do it again.  \n  \nmost tasks it can completely by itself, so use this when you find your bot to be struggling\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087916841750716417/vid/avc1/928x720/Zp2AP012TJtRIDBo.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/ericzakariasson/status/2087916871727354302/video/1)\n\n💬1🔄1❤️6👀259📊2",
+      "tags": [
+        "Grok",
+        "任务教学",
+        "浏览器"
+      ],
+      "score": 65,
+      "summary": "演示如何录制浏览器操作教会Grok bot执行任务。",
+      "fetched_at": "2026-08-13T23:07:42.795774+08:00"
+    },
+    {
+      "title": "DeepSeek Harness 终于来了！\n\n先🐴明天再看\nhttps://t.co/e8QpydYsG4",
+      "link": "https://x.com/shao__meng/status/2087892483225067606",
+      "published": "2026-08-13T21:22:13+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "DeepSeek Harness 终于来了！  \n  \n先🐴明天再看[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)4\n\n![DeepSeek](https://pbs.twimg.com/profile_images/1717417613775757312/Uk1zNOj4_normal.jpg)\n\nDeepSeek@deepseek\\_ai\n\n🧩 DeepSeek Harness v0.1 is now available in Developer Preview!  \n  \n🔹 We’re opening it up to developers building agent harnesses worldwide and open-sourcing the codebase in MIT license.  \n🔹 Powered by the Cordis meta-framework, DeepSeek Harness is an agent harness built around one core idea: Everything is a plugin. Models, tools, skills, sessions, sandboxes, filesystems, loops, orchestration, and UI are ALL implemented as plugins, and can be mixed, matched, replaced, and extended.  \n  \nTry it no[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)hKA\n\n[🔗 View Quoted Tweet](https://x.com/deepseek_ai/status/2087887408440164663)\n\n💬1🔄2❤️0👀425📊2",
+      "tags": [
+        "DeepSeek Harness",
+        "开源",
+        "v0.1"
+      ],
+      "score": 80,
+      "summary": "转述DeepSeek Harness v0.1发布，MIT协议开源。",
+      "fetched_at": "2026-08-13T23:07:42.795776+08:00"
+    },
+    {
+      "title": "DeepSeek Harness 有点像技术理想主义的玩具\n模型发展这么快，要支持这么开放的系统\n稳定性不可能好的",
+      "link": "https://x.com/oran_ge/status/2087901447165993012",
+      "published": "2026-08-13T21:57:50+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "DeepSeek Harness 有点像技术理想主义的玩具  \n模型发展这么快，要支持这么开放的系统  \n稳定性不可能好的\n\n💬10🔄0❤️18👀6646📊10",
+      "tags": [
+        "DeepSeek Harness",
+        "稳定性",
+        "评价"
+      ],
+      "score": 60,
+      "summary": "认为DeepSeek Harness是技术理想主义玩具，稳定性存疑。",
+      "fetched_at": "2026-08-13T23:07:42.795779+08:00"
+    },
+    {
+      "title": "AI 图片社区 Labnana 秋日促销上线，限时三天：\n帝王蕉套餐限时 5 折 + Seedream 5.0 Pro 免费体验！\n\n活动期间\n- 购买帝王蕉年付套餐享 5 折；\n- 新用户可使用 S...",
+      "link": "https://x.com/oran_ge/status/2087888465799344417",
+      "published": "2026-08-13T21:06:15+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "AI 图片社区 Labnana 秋日促销上线，限时三天：  \n帝王蕉套餐限时 5 折 + Seedream 5.0 Pro 免费体验！  \n  \n活动期间  \n- 购买帝王蕉年付套餐享 5 折；  \n- 新用户可使用 Seedream 免费生成 5 次  \n- 老用户每日签到再送 Seedream 体验 1 次  \n  \n基本是全网最实惠的 AI 生图方案了  \n[labnana.com](https://labnana.com/)\n\n![Tweet Image](https://pbs.twimg.com/media/HPmrZqFaIAAIm3e.jpg)\n\n💬5🔄0❤️2👀2851📊5",
+      "tags": [
+        "Labnana",
+        "促销",
+        "Seedream"
+      ],
+      "score": 20,
+      "summary": "AI图片社区Labnana秋日促销，帝王蕉套餐5折。",
+      "fetched_at": "2026-08-13T23:07:42.795781+08:00"
+    },
+    {
+      "title": "笑死了😂",
+      "link": "https://x.com/vista8/status/2087896758626214214",
+      "published": "2026-08-13T21:39:13+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "笑死了😂\n\n![Tweet Image](https://pbs.twimg.com/media/HPmzB3TakAAT4wD.jpg)\n\n💬1🔄0❤️1👀665📊1",
+      "tags": [
+        "表情包",
+        "搞笑"
+      ],
+      "score": 5,
+      "summary": "无实质内容，仅一个表情。",
+      "fetched_at": "2026-08-13T23:07:42.795783+08:00"
+    },
+    {
+      "title": "感觉Deepseek Harness的插件系统很好玩，虽然DSH现在是半成品。\n\n很多Geek会喜欢“毛坯房”，弄“宜家家具”自己组装。\n\n看参与内测的高手也开发了很多插件。\n\n你可以跟Codex说：...",
+      "link": "https://x.com/vista8/status/2087893992126226897",
+      "published": "2026-08-13T21:28:13+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "感觉Deepseek Harness的插件系统很好玩，虽然DSH现在是半成品。  \n  \n很多Geek会喜欢“毛坯房”，弄“宜家家具”自己组装。  \n  \n看参与内测的高手也开发了很多插件。  \n  \n你可以跟Codex说：“帮我监控仓库中的各种插件，有好玩的装上去：[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)”  \n  \n给我装了18款离线小游戏 ，强化了通知和文件搜索\n\n![Tweet Image](https://pbs.twimg.com/media/HPmvsrmaMAEb0gG.jpg)\n\n💬11🔄1❤️27👀6995📊14",
+      "tags": [
+        "DeepSeek Harness",
+        "插件",
+        "体验"
+      ],
+      "score": 68,
+      "summary": "体验DeepSeek Harness插件系统，通过Codex安装18款小游戏。",
+      "fetched_at": "2026-08-13T23:07:42.795786+08:00"
+    },
+    {
+      "title": "官方给的安装指令：npx @deepseek-ai/dsh web",
+      "link": "https://x.com/vista8/status/2087893061254963294",
+      "published": "2026-08-13T21:24:31+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "官方给的安装指令：npx [@deepseek](https://x.com/deepseek)-ai/dsh web\n\n💬0🔄0❤️1👀3279📊1",
+      "tags": [
+        "DeepSeek Harness",
+        "安装",
+        "dsh"
+      ],
+      "score": 60,
+      "summary": "分享DeepSeek Harness官方安装命令npx @deepseek-ai/dsh web。",
+      "fetched_at": "2026-08-13T23:07:42.795788+08:00"
+    },
+    {
+      "title": "Github 地址 https://t.co/hhj3GEcPVv",
+      "link": "https://x.com/vista8/status/2087891484985212970",
+      "published": "2026-08-13T21:18:15+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Github 地址 [github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)\n\n💬0🔄0❤️2👀2899📊1",
+      "tags": [
+        "DeepSeek Harness",
+        "GitHub"
+      ],
+      "score": 20,
+      "summary": "仅提供DeepSeek Harness的GitHub地址。",
+      "fetched_at": "2026-08-13T23:07:42.795791+08:00"
+    },
+    {
+      "title": "Deepseek Harness 怎么感觉瞬间 7k Star，太猛了。\n\n看了大聪明写的报告，感觉灵活性超高，很适合搭积木做自己的Agent。",
+      "link": "https://x.com/vista8/status/2087891340122300714",
+      "published": "2026-08-13T21:17:41+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "Deepseek Harness 怎么感觉瞬间 7k Star，太猛了。  \n  \n看了大聪明写的报告，感觉灵活性超高，很适合搭积木做自己的Agent。\n\n![Tweet Image](https://pbs.twimg.com/media/HPmt80KaAAAe5Rq.jpg)\n\n💬22🔄2❤️50👀13424📊25",
+      "tags": [
+        "DeepSeek Harness",
+        "Star"
+      ],
+      "score": 20,
+      "summary": "感叹DeepSeek Harness Star增长快。",
+      "fetched_at": "2026-08-13T23:07:42.795793+08:00"
+    },
+    {
+      "title": "官方github：https://t.co/hhj3GEcPVv",
+      "link": "https://x.com/vista8/status/2087888354872533434",
+      "published": "2026-08-13T21:05:49+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "官方github：[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)\n\n💬0🔄0❤️1👀3990📊1",
+      "tags": [
+        "DeepSeek Harness",
+        "官方",
+        "GitHub"
+      ],
+      "score": 20,
+      "summary": "再次分享官方GitHub链接。",
+      "fetched_at": "2026-08-13T23:07:42.795795+08:00"
+    },
+    {
+      "title": "DeepSeek Harness 正式发布了，也是开源的",
+      "link": "https://x.com/dotey/status/2087893881496985988",
+      "published": "2026-08-13T21:27:47+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "DeepSeek Harness 正式发布了，也是开源的\n\n![Tianyi Cui](https://pbs.twimg.com/profile_images/378800000650737082/b849b67d6470fafe8b3deb2ae97acfda_normal.jpeg)\n\nTianyi Cui@tianyi\n\nDeepSeek Harness was just released with MIT license. The current 0.1.0 version is a developer preview, and may still have many rough edges. Feedback is welcome!   \n  \nDeepSeek Harness 已经以MIT协议开源发布。现在的0.1.0版本是一个面向Harness开发者的预览版，还很不完善。恳请大家多提提宝贵意见。   \n  \n[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)[deepseek.com/harness/](https://deepseek.com/harness/)\n\n[🔗 View Quoted Tweet](https://x.com/tianyi/status/2087888089759015218)\n\n💬9🔄1❤️19👀7679📊8",
+      "tags": [
+        "DeepSeek Harness",
+        "开源",
+        "发布"
+      ],
+      "score": 82,
+      "summary": "宝玉转述DeepSeek Harness正式发布，MIT协议开源。",
+      "fetched_at": "2026-08-13T23:07:42.795798+08:00"
+    },
+    {
+      "title": "论文：https://t.co/nzhaLgzjkI\n\n攻击示例站：https://t.co/G4dJb1mRsT",
+      "link": "https://x.com/xiaohu/status/2087905849415249987",
+      "published": "2026-08-13T22:15:20+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "论文：[arxiv.org/abs/2608.09867](https://arxiv.org/abs/2608.09867)  \n  \n攻击示例站：[stolen-thoughts.com](https://stolen-thoughts.com/)\n\n💬0🔄0❤️0👀257",
+      "tags": [
+        "思维链破解",
+        "论文",
+        "AI安全"
+      ],
+      "score": 65,
+      "summary": "提供破解三大AI思维链研究的论文与示例站链接。",
+      "fetched_at": "2026-08-13T23:07:42.795800+08:00"
+    },
+    {
+      "title": "Claude、GPT、Gemini三大AI的加密推理思维链被破解 \n\n可轻松偷取顶级模型的“商业机密”（盗版蒸馏）\n\n一支欧洲研究团队 8 月 10 日挂出一篇论文：\n他们找到办法，把 Anthrop...",
+      "link": "https://x.com/xiaohu/status/2087905846475063796",
+      "published": "2026-08-13T22:15:19+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Claude、GPT、Gemini三大AI的加密推理思维链被破解   \n  \n可轻松偷取顶级模型的“商业机密”（盗版蒸馏）  \n  \n一支欧洲研究团队 8 月 10 日挂出一篇论文：  \n他们找到办法，把 Anthropic、OpenAI、Google 三家旗舰模型的隐藏思考完整读出来，并且从网上公开的 6708 份 AI 会话日志里，翻出了 62 把真实的 API 密钥。  \n  \n加密算法本身没被破，出问题的是 API 的设计  \n  \n[best.xiaohu.ai/article/stolen…](https://best.xiaohu.ai/article/stolen-thoughts/)\n\n💬4🔄2❤️4👀1156📊4",
+      "tags": [
+        "思维链破解",
+        "Claude/GPT/Gemini",
+        "API密钥"
+      ],
+      "score": 88,
+      "summary": "欧洲团队破解Claude、GPT、Gemini加密思维链，并泄露62把API密钥。",
+      "fetched_at": "2026-08-13T23:07:42.795802+08:00"
+    },
+    {
+      "title": "别的不说，Deepseek harness 这个 star 的涨势是真猛，一个多小时都快两万 star 了",
+      "link": "https://x.com/op7418/status/2087903809205108832",
+      "published": "2026-08-13T22:07:14+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "别的不说，Deepseek harness 这个 star 的涨势是真猛，一个多小时都快两万 star 了\n\n![Tweet Image](https://pbs.twimg.com/media/HPm5WvJbMAAlhAP.jpg)\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\nDeepseek Harness 0.1 版本正式发布了，而且开源！  \n  \n看起来主打的是他们那套插件系统，有点复杂。\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2087887711881597009)\n\n💬6🔄1❤️15👀4303📊6",
+      "tags": [
+        "DeepSeek Harness",
+        "Star",
+        "社区热度"
+      ],
+      "score": 70,
+      "summary": "DeepSeek Harness开源一小时后Star近2万，社区反应热烈。",
+      "fetched_at": "2026-08-13T23:07:42.795805+08:00"
     }
   ]
 }
