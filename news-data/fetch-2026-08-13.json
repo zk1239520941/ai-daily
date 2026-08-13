@@ -3080,6 +3080,66 @@
       "score": 58,
       "summary": "宝玉转述称Codex用户数已突破1500万，未获官方证实。",
       "fetched_at": "2026-08-13T10:18:27.648787+08:00"
+    },
+    {
+      "title": "Loads of tech fans attacked me when I asked whether Astra might be better at some kinds of math than...",
+      "link": "https://x.com/GaryMarcus/status/2087715917140832344",
+      "published": "2026-08-13T09:40:37+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Loads of tech fans attacked me when I asked whether Astra might be better at some kinds of math than others, but here’s the legendary [@wtgowers](https://x.com/wtgowers) asking the same question.\n\n![Timothy Gowers @wtgowers](https://pbs.twimg.com/profile_images/1595481042030403584/5LVqlp06_normal.jpg)\n\nTimothy Gowers @wtgowers@wtgowers\n\n[gowers.wordpress.com/2026/08/12/wha…](https://gowers.wordpress.com/2026/08/12/what-sort-of-maths-are-llms-good-at/)\n\n[🔗 View Quoted Tweet](https://x.com/wtgowers/status/2087480160916328657)\n\n💬0🔄1❤️7👀2229📊1",
+      "tags": [
+        "Astra",
+        "LLM数学能力",
+        "Timothy Gowers"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus转发菲尔兹奖得主Gowers关于LLM擅长何种数学的提问。",
+      "fetched_at": "2026-08-13T10:36:34.861453+08:00"
+    },
+    {
+      "title": "Grok 4.6 实战经验笔记\n\n来自 Cursor 团队 @ericzakariasson，把 Grok 4.6 当做几周日常主力模型之后，写下自己真正改了什么工作方式。\n\nEric 实际怎么用这款...",
+      "link": "https://x.com/shao__meng/status/2087725577738580197",
+      "published": "2026-08-13T10:19:00+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Grok 4.6 实战经验笔记  \n  \n来自 Cursor 团队 [@ericzakariasson](https://x.com/ericzakariasson)，把 Grok 4.6 当做几周日常主力模型之后，写下自己真正改了什么工作方式。  \n  \nEric 实际怎么用这款模型  \n· 用浏览器替他走网站，包括在供应商控制台里点出 API key  \n· 对正在跑的应用做功能和视觉 QA  \n· 把收件箱压到只剩真正需要回的几封  \n· 帮他起草 Cursor SDK Bridge、/rename-chat 的发布帖，并用 Remotion 做发布视频  \n  \n另外专门做了几组对照，用来压测模型 “能撑到哪里”：电子表格应用、浏览器版帝国时代 2、MSN Messenger、给开源 Excalidraw 加 presentation mode、虚构季度董事会 deck、以及 X TypeScript SDK 的 60–90 秒发布片。  \n  \n他最看重的两个体感  \n1. 信息密度。摘要里是真正的信息，不是把任务复述一遍；运行中的短更新够他判断要不要打断。小改动时它会安静，一旦开始动很多文件才会开始叙述。作者说这个“何时说话、何时闭嘴”的分寸，调起来比想象中费劲，而且现在仍会说一些他不需要的话。  \n2. 速度加上更聪明。4.5 已经快。4.6 是快，而且明显更聪明。这个组合改变了节奏：异步能在他不在时多干活，但回来要冷启动看一份大 diff；4.6 把他拉回同步。他写得很清楚——当他在乎结果时，他更愿意待在同步里。  \n  \n最高杠杆不是提示词写法，是验收标准  \n他专门对比过提示风格：长 vs 短，以及 “work very hard” 这类措辞。结论分三层：  \n1. 措辞几乎没用。 “努力工作、一直做到完”这类话，对 4.6 基本加不上分。它自己就会撑相当一段时间。  \n2. 长度有用，但不是因为更长就更好。 长 prompt 买的是具体性：你已经知道要什么，就写下来。短 prompt 把更多决定交给模型的品味。以前这个交易通常偏向把一切写死；4.6 的品味已经好到：短 prompt 加一条清楚偏好，通常就能落到不错的地方。 长规格仍然有效——他给过一份带 session capture、server handler、cloud agent dispatch 的 feedback widget 规格，模型能从头跟到尾，结构也合理；只是组件会重复，除非你明确要求拆开。  \n3. 真正拉开结果的，是一句验收指令。  \n  \n全文最重要的抽象：可自检性  \n需要他上手去带的地方，几乎都收束到一件事：模型有多容易验证自己的工作。  \n· 网站最好验。 DOM 是文本，可以读页面、截图、对照意图。所以 UI 上的验证环特别有效。  \n· 3D 更难。 多了一个读不出来的维度。  \n· 视频更难。 时间是额外维度，检查意味着截一串帧、推理帧与帧之间的差。  \n· 物理同类。 模型对世界“应该怎样”有感觉，但单张截图回答不了“它是不是真的那样动了”。\n\n![Tweet Image](https://pbs.twimg.com/media/HPkXVg3boAAwTVo.jpg)\n\n![eric zakariasson](https://pbs.twimg.com/profile_images/1841151626456801283/HnXqy3TQ_normal.jpg)\n\neric zakariasson@ericzakariasson\n\ngrok 4.6 is live! a write up on my learnings, findings and tips to using the model! [x.com/i/article/2087…](http://x.com/i/article/2087564694706106372)\n\n[🔗 View Quoted Tweet](https://x.com/ericzakariasson/status/2087566447178547494)\n\n💬1🔄0❤️0👀239📊1",
+      "tags": [
+        "Grok 4.6",
+        "实战经验",
+        "可自检性"
+      ],
+      "score": 85,
+      "summary": "Cursor团队成员Eric分享Grok 4.6实战经验，强调信息密度与可自检性。",
+      "fetched_at": "2026-08-13T10:36:34.861467+08:00"
+    },
+    {
+      "title": "DeepSeek-V4-Pro-0813 又一次静默发布了，官方 X 没有官宣，也没有铺天盖地的 PR 稿，但是真强、真便宜！\n\n还没看到官方评测发布，先看看 @cline 团队测试的数据。\n\nTer...",
+      "link": "https://x.com/shao__meng/status/2087722173482115167",
+      "published": "2026-08-13T10:05:28+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "DeepSeek-V4-Pro-0813 又一次静默发布了，官方 X 没有官宣，也没有铺天盖地的 PR 稿，但是真强、真便宜！  \n  \n还没看到官方评测发布，先看看 [@cline](https://x.com/cline) 团队测试的数据。  \n  \nTerminal-Bench 2.1 得分 87.9，仅差 Claude Fable 5 0.1 分，屈居第二。而且，比 Fable 5 便宜 57 倍。  \n  \n谁能爆锤 A 社，都值得叫好！再加上这地板价格，叫一声梁圣，确实不过分！\n\n![Tweet Image](https://pbs.twimg.com/media/HPkUNODa4AAU1oH.png)\n\n![Cline](https://pbs.twimg.com/profile_images/2046714588948033536/86HNYurv_normal.jpg)\n\nCline@cline\n\nDeepSeek silently released V4-Pro 0813, up 15.8% on Terminal Bench from their April Preview model, with Fable 5 performance at ~57x cheaper cost.  \n  \n1.6T param, 49B active, 1M context. This is the best price-to-perfomance model on the market right now.  \n  \nAvailable in ClinePass now!\n\n![Tweet Image](https://pbs.twimg.com/media/HPimCYvbUAAeLSW.png)\n\n[🔗 View Quoted Tweet](https://x.com/cline/status/2087602193205694891)\n\n💬2🔄0❤️0👀406📊2",
+      "tags": [
+        "DeepSeek V4-Pro-0813",
+        "Terminal-Bench 2.1",
+        "便宜57倍"
+      ],
+      "score": 88,
+      "summary": "DeepSeek静默发布V4-Pro-0813，Terminal-Bench得分87.9仅次于Fable 5，成本低57倍。",
+      "fetched_at": "2026-08-13T10:36:34.861471+08:00"
+    },
+    {
+      "title": "Grok 4.6 果然来了，老马诚不欺我，甚至很期待 Grok 4.7 \n\n现在 Grok Build, Cursor, Grok Bot 和 API 已经可用，感觉我的 Cursor Ultra 订...",
+      "link": "https://x.com/shao__meng/status/2087720373949481199",
+      "published": "2026-08-13T09:58:19+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "Grok 4.6 果然来了，老马诚不欺我，甚至很期待 Grok 4.7   \n  \n现在 Grok Build, Cursor, Grok Bot 和 API 已经可用，感觉我的 Cursor Ultra 订阅含金量还在上升！  \n  \nGrok 4.6 在 4.5 的基础上，专门加强两件事：  \n1. 长程 Agent：能在多步任务里待得住——调研、分析、改代码库、把一个想法做成可用产物。  \n2. 更重的交互与视觉工作：给一个具体产品想法，一次性把应用结构和视觉语言立起来，再进入迭代。  \n  \nGrok 团队自己的测试观察还包括：更长轨迹上出现更多自测与核验；视觉/交互项目的第一稿明显强于 4.5。  \n  \n规格上，Grok 4.6 是当前最强也最快的文本模型：grok-4.6，上下文 50 万 token，文本 + 图像进、文本出，支持函数调用、结构化输出和推理。  \n  \n评测：相对自己是代际跃迁，相对 SOTA 是进入梯队  \n官方用 Grok 4.6 High 对比 Grok 4.5 High、GPT-5.6 Sol Max、Fable 5 Max。Artificial Analysis 综合指数上，4.6 得 61，与 GPT-5.6 Sol Max 持平，比 4.5 的 56 高 5 分，距 Fable 5 Max 的 62 只差 1 分。  \n  \n相对 4.5，10 项全升。涨得最狠的是需要真正动手的任务：DeepSWE 54% → 65.9%，APEX-Agents 47.1% → 57.5%，Terminal-Bench 15.7% → 26%。知识工作 Elo 同样跳得很明显：GDPVal-AA 1526 → 1753，AA-Briefcase 1313 → 1577。编码相关里，APEX-SWE 只加了 2.8 个百分点，说明“写软件”这条线的提升并不均匀。\n\n![Tweet Image](https://pbs.twimg.com/media/HPkSm9VaAAETL8N.jpg)\n\n![SpaceXAI](https://pbs.twimg.com/profile_images/2074224934159876096/aelorWHq_normal.jpg)\n\nSpaceXAI@SpaceXAI\n\nIntroducing Grok 4.6.  \n  \nIt delivers frontier intelligence and is a significant improvement over Grok 4.5 at the same price.\n\n![Tweet Image](https://pbs.twimg.com/media/HPiC3t5awAA2WS-.png)\n\n[🔗 View Quoted Tweet](https://x.com/SpaceXAI/status/2087562800982077492)\n\n💬2🔄0❤️0👀365📊2",
+      "tags": [
+        "Grok 4.6",
+        "长程Agent",
+        "评测"
+      ],
+      "score": 88,
+      "summary": "xAI发布Grok 4.6，强化长程Agent与视觉交互，综合指数持平GPT-5.6 Sol Max。",
+      "fetched_at": "2026-08-13T10:36:34.861475+08:00"
     }
   ]
 }
