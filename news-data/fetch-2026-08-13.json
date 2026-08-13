@@ -4384,6 +4384,395 @@
       "score": 85,
       "summary": "Anthropic审计发现Claude因配置错误三次逃逸沙箱，已暂停攻击性评估。",
       "fetched_at": "2026-08-13T19:57:05.880902+08:00"
+    },
+    {
+      "title": "Certificate Transparency Monitoring is now generally available",
+      "link": "https://blog.cloudflare.com/certificate-transparency-monitoring-ga/",
+      "published": "2026-08-13T21:00:00+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "Since we launched [Certificate Transparency Monitoring in public beta](https://blog.cloudflare.com/introducing-certificate-transparency-monitoring/) in 2019, we've been emailing subscribers whenever a new TLS certificate appears in a public [Certificate Transparency](https://blog.cloudflare.com/introducing-certificate-transparency-and-nimbus/) (CT) log for one of their domains. Today, it's turned on for more than 650,000 customer domains. It's an early warning that someone, somewhere, has issued a certificate for a hostname in your zone, giving you a chance to spot a mis-issued certificate early.\n\nIt's a useful signal, but it had a noise problem, and we felt it ourselves. Cloudflare issues a large volume of certificates on your behalf: Universal SSL renewals, certificates from Advanced Certificate Manager, and backup certificates. All of them are logged to public CT logs by design, because a certificate that isn't logged won't be trusted by major browsers like Google Chrome and Apple's Safari. So the same transparency that lets you monitor for mis-issuance also surfaces every certificate we issue for you.\n\nAnd issuance isn't a one-time event. Certificates are short-lived and renew automatically: a single Universal SSL certificate can [renew as often as every 60 days](https://developers.cloudflare.com/ssl/reference/certificate-validity-periods/), up to about six times a year. That cadence is set to increase, with the [CA/Browser Forum](https://cabforum.org/working-groups/server/baseline-requirements/requirements/#632-certificate-operational-periods-and-key-pair-usage-periods) having voted to cut the maximum certificate lifetime to 47 days by 2029, multiplying the routine renewals that flow through those logs. Every one of those renewals generated an alert. But at the scale Cloudflare issues certificates, a genuinely suspicious one could look just like a routine renewal, and the alert that mattered was easy to miss.\n\nWe heard the same thing from customers. On our community forum, one described disabling the feature across all their sites because they were \"tired of regularly getting spammed with tons of completely normal certificate renewals,\" adding \"I wasn't even actually reading them by the end.\" That noise came from Cloudflare's own certificates.\n\nToday, we're changing that. Certificate Transparency Monitoring now filters out the certificates Cloudflare issued on your behalf before an alert is sent. The alerts that reach your inbox are the ones that deserve your attention: a certificate you didn't expect, that Cloudflare didn't issue. With that fix in place, Certificate Transparency Monitoring is generally available.\n\n## Filter out the certificates Cloudflare manages\n\nThe goal is to identify and eliminate noisy alerts for routine, Cloudflare-managed certificate issuances and renewals while ensuring we catch all external certificates managed outside our system.\n\n### Why couldn't we just identify and filter these out previously?\n\nThere are two independent systems built to serve separate products: certificate management, which deals with internal certificate issuance data, and CT alerting service, which parses data from public CT logs.\n\nThe two flows handle the same certificate, but never at the same moment and never with the same information. When the alerting flow is deciding whether to email you, all it has is what it pulled from the log. It has no signal from the issuance flow saying \"the ordering service just created this one.\" That missing link was the problem.\n\n### What is the lifecycle of a certificate?\n\nAs shown above, [certificate issuance](https://datatracker.ietf.org/doc/html/rfc6962?cf_target_id=FB76C3BCC6BDA462922440973DD1A472) happens in two stages:\n\n1. Certificate Authority (CA) creates a pre-certificate, writes to logs and receives [SCTs](https://blog.cloudflare.com/another-look-at-pq-signatures/#the-signatures-in-tls) (Signed Certificate Timestamps).\n2. CA embeds those SCTs into the final certificate and logs it.\n\nThus, the alerting service sees two log entries for a single certificate order: 1) pre-certificate and 2) final certificate. To avoid alerting twice per pair, an internal identifier called `stripped_fingerprint`is storedfordeduplicationpurposes. This fingerprint is the hashed value of DER (Distinguished Encoding Rules)-encoded TBSCertificate (to be signed certificate). This value is consistent and unique for a pre-certificate/final certificate pair that belongs to the same certificate order. Therefore, this is one identifier which is already present, and it sits entirely inside the alerting flow.\n\n### Why does the obvious fix fail?\n\nThe intuitive shortcut is to copy `stripped_fingerprint` into the ordering service so the alerter can look it up. But that doesn't work because the ordering service doesn’t receive the pre-certificate, so it can't produce this value when the alerting service receives it.\n\nSo even if this is used as an identifier, it can only be recorded after the final certificate is received by the ordering service. In that window between pre-cert and final cert log entries, if the alerting service looks up `stripped_fingerprint(precert)`inthe ordering service’s database,then it is not going to find any information matching this identifier to confirm that it is issued by us — and this leads to an extra alert again.\n\nAlthough the certificate ordering service is the right system to answer “Is this ours?”, the match key with which this information was being uniquely identified is not winning the race. So the problem reframed itself. The question was no longer where to store the fingerprint, but what is that one identifier which can be persisted from order creation to the final logged certificate.\n\n### What is the right key?\n\nThe right key had to check these boxes:\n\n1. **Early**: recorded before anything reaches the log, i.e., present at key generation.\n2. **Consistent**: throughout all stages from pre-certificate to final certificate.\n3. **Reproducible**: the CT alerting service can recompute it independently, from the log entries alone.\n4. **Unique**: to each certificate order.\n\nThe **public key** is one such identifier that checks all those boxes. It travels inside a structure called `SubjectPublicKeyInfo` (SPKI).\n\n**Consistency**: As the diagram above shows, `SubjectPublicKeyInfo` (SPKI) is present from the first step and stays the same through the CSR (Certificate Signing Request), pre-certificate, and final certificate.\n\n**Uniqueness and Safety**: Cloudflare generates a fresh keypair for every issuance, so the public key is effectively unique. Since only Cloudflare has the private key, a certificate with a matching SPKI must have come from a Cloudflare issuance only. A collision is astronomically unlikely, and no outsider could create a valid signing request without the private key.\n\nSo the identifier we record is `spki_sha256` — an SHA-256 hash of the DER-encoded SPKI, a short fixed-length value that's cheap to index. The ordering service computes it straight off the CSR and writes it at key generation, before issuance begins.\n\n### How do both flows agree on the value?\n\nRecording the key early solves this in the certificate ordering. With that in place, the alerting flow performs an extra step. When the alerter sees a log entry, it recomputes `spki_sha256` from the certificate's public key and looks it up to see if the ordering service has recorded this value in its database – on:\n\n* **Match** → the ordering service recorded this key, so the certificate is ours. Suppress the alert.\n* **No** **match** → key not found –  alert, exactly as before.\n\nBecause the key is identical in the pre-certificate and the final certificate, it no longer matters which one arrives first.\n\nThree things follow, all toward less noise:\n\n* **Certificates we manage no longer alert you**. Universal SSL, Advanced Certificate Manager, Total TLS, and Backup Certificates all match a recorded key and pass silently.\n* **Abandoned pre-certificates no longer alert you**. Sometimes a pre-certificate is logged but issuance never completes. Those alerts used to look like unexplained certificates; now they match a record and stay quiet. The event is still recorded on our side; we just don't email you about something we already know is ours.\n* **Custom certificates you upload still alert you**. We didn't generate those keys, so there's no record on the issuance side and nothing to suppress. That's exactly the case CT monitoring and alerting exists for, and it's untouched.\n\nMost of the work here wasn't writing the fix; it was understanding both flows well enough to see that the key connecting them was a field we'd been carrying the whole time. Once we picked the identifier that's early and shared, the rest was bookkeeping.\n\nCT alerting should fire only on issuance we can't account for. With this change, it does.\n\n## Alerts are now easier to review\n\nUpdated emails identify the affected hostname in the subject line, include certificate details in the message, and link to the certificate in the Cloudflare dashboard, so you can review it and take action as needed.\n\n## What's next\n\nWe plan to bring Certificate Transparency Monitoring to [Cloudflare Notifications](https://developers.cloudflare.com/notifications/). This would let teams route CT alerts to webhooks, PagerDuty, or additional email destinations, just as they manage other Cloudflare alerts, instead of relying on today’s email-only channel.\n\n## Try it\n\nAlready using Certificate Transparency Monitoring? There is nothing you need to do. Filtering is already enabled. Starting today, you will only be notified of certificates issued outside of Cloudflare's automated systems.\n\nNot using it yet? In the [Cloudflare dashboard](https://dash.cloudflare.com/), go to SSL/TLS → Edge Certificates → Certificate Transparency Monitoring and turn it on. Available on every plan at no extra cost, with unified settings across plan tiers, so you can manage alert recipients in one consistent view.\n\nIf you have thoughts on how Certificate Transparency Monitoring should evolve, let us know through your account team or the [Cloudflare Community](https://community.cloudflare.com/top?period=daily). That input will shape the customization controls we build next.",
+      "tags": [
+        "Certificate Transparency",
+        "GA"
+      ],
+      "score": 76,
+      "summary": "Cloudflare宣布证书透明度监控正式可用，覆盖超65万域名。",
+      "image_url": "https://blog.cloudflare.com/_emdash/api/media/file/01KZQPYFA4V0A6ZGSYZDJGASME.png",
+      "fetched_at": "2026-08-13T21:37:03.003152+08:00"
+    },
+    {
+      "title": "Omni experts share what excites them most about the model.",
+      "link": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-experts-roundtable/",
+      "published": "2026-08-13T21:30:00+08:00",
+      "source": "The Keyword (blog.google) ",
+      "content": "![](https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Omni_experts_social.max-600x600.format-webp.webp)We interviewed some of the experts behind Gemini Omni to hear what excites them most about the model.",
+      "tags": [
+        "Gemini Omni",
+        "专家访谈"
+      ],
+      "score": 70,
+      "summary": "Google官方发布Gemini Omni专家圆桌，分享模型亮点。",
+      "image_url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Omni_experts_social.max-600x600.format-webp.webp",
+      "fetched_at": "2026-08-13T21:37:03.003167+08:00"
+    },
+    {
+      "title": "首发体验 | DeepSeek Harness 来了，它不想做下一个Codex",
+      "link": "https://www.ifanr.com/1675083?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-13T20:46:11+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/cover6.png)\n\n就在刚刚，DeepSeek 正式发布了首款 Agent 产品，DeepSeek Harness。\n\n早在 V4 Flash 正式版更新日志里，除了直接对标 Claude Opus 模型的 benchmark 成绩，还有一行说明写着「正式版 DeepSeek-V4-Flash 使用 DeepSeek Harness 极简模式（即将发布）作为框架进行测试。」\n\nAPPSO 在发布之前拿到了 DeepSeek Harness 的内测资格，管理项目、长任务协作、多 Agent 编排、上下文管理以及联网搜索和 Skill 等等，这些本地 Agent 工作台该有的功能，DeepSeek Harness 全部都有。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_10-45-51.png)\n\n▲ DeepSeek Harness 自己描述的与 Codex 的区别\n\n但如果只是用「DeepSeek 版 Codex」来形容它又肯定不够，**自定义的 Agent 预设，可重建的会话，以及强大的插件功能**，都让 DeepSeek Harness 变得和传统的 Codex 类产品不太一样。\n\n当 DeepSeek 也开始争夺模型输出之后的 Agent 执行层，这个姗姗来迟的 Harness 除了可以让手上本就「物美价廉」的 DeepSeek 模型更好用，更重要的是，它或许会改变我们使用 Agent 的习惯。\n\n## 先来认识一下 DeepSeek Harness\n\n> 以下功能和界面等内容均来自内测版，可能与正式版略有出入，以正式发布的版本为主。\n\n第一眼看和市面上大多数的本地 Agent 产品没什么两样，左侧边栏从上到下依次是「新建会话」、「工作区」，以及不同工作区/文件夹内的多个会话。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_08-40-10.png)\n\n对话的设置部分，我们可以切换不同的工作区，不同的模型和思考深度，一共有 Off、High、Max 三档推理等级，还有允许 DeepSeek Harness 可访问的权限。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_08-43-20.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_08-43-50.png)\n\n和一般的 Codex 产品只区分日常/办公、办公/代码等工作场景不同，**DeepSeek Harness 使用一套「Agent 预设」来应对不同的任务**。\n\n在 V4 Flash 正式版中提到的极简模式（minimal），正是 Harness 内置的四种 Agent 预设之一，它适合用于简单修改、测试最小 Agent，没有压缩、搜索、Skill、计划和子 Agent 这些功能。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_08-45-21.png)\n\n▲ 写作工作台是我们自己创建一个 Agent 预设\n\n另外三种预设模式分别是适合用来日常写代码、修 Bug、分析项目，以及默认选择的标准模式（standard）；处理大批量搜索、并行读取和多步骤自动处理的代码模式（code）；以及能开发新的 Agent 预设或插件的创造模式（cordis）。\n\n不同的 Agent 预设模式可使用的命令不同，我们也可以直接在输入框内使用「/」快速选择不同的指令或 Skills。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_09-36-59.png)\n\n标准模式、代码模式和创造模式，都包含有对话压缩、目标、计划等命令，而极简模式下，只有目标命令。\n\n## 用创作模式自定义 Agent 预设\n\n对于什么是 Agent 预设，以及几款 Agent 预设的具体区别，我们还能在设置页面看到详细的情况。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_09-47-02.png)\n\n> 预设即一个会话的 Agent 所运行的插件组装 —— 它的工具、提示词与能力。复制一份既有预设改成自己的，或用「创造模式」让 Agent 帮你创建。\n\n如果说模型等于大脑，决定基础的推理和理解能力；Skill 等于一份操作手册，告诉模型遇到某类任务时，具体怎么做；Tool / 插件 相当于软件和权限，它决定了模型能否搜索、改文件、运行命令、收发邮件等。\n\n那么 Agent 预设就是一个岗位＋工作环境，身份、长期规则、可用工具、工作方式，都由 Agent 预设决定。\n\n一个 Agent 预设通用由一份配置文档构成，文档内把 Agent 的系统提示词、工具、上下文压缩和多 Agent 能力完整组合起来。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_09-55-01.png)\n\n我们也新建了一个专门用于写作的 Agent 预设，在这份预设内，不仅可以使用文件进行配置，还能引入文件夹，加入不同的 Skill，来让自己的 Agent 更加完善。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/2026-08-13-10.06.01.png)\n\n▲ 自定义写作工作台 Agent 预设文件夹内包含的信息\n\nDeepSeek Harness 内也提供了「用创作模式自定义预设」的方法，就像大多数 Agent 用对话创建 Skills 一样，我们可以一步步要求 Harness 创建一个自己的 Agent 预设。\n\n在设置页面，我们还能看到模型的配置，DeepSeek Harness 允许我们接入不同的第三方大模型，默认提供方包括 Kimi、OpenAI、Anthropic、Google 等将近 40 个大模型厂商。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_10-13-01.png)\n\n## 一切都是插件化运行\n\n最后一项设置是 DeepSeek Harness 这次的重头戏——插件，DeepSeek Harness 在内测产品中介绍里写着「**Everything is a plugin**」，一切皆插件。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_10-11-57.png)\n\n这个插件有多离谱，在内测的项目仓库里，参与内测的用户短短几天的时间就已经开发了约 300 个插件。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_10-51-59.png)\n\n有的插件能把 DeepSeek Harness 整个的工作界面修改，有的可以像 Codex 一样接入自定义桌面宠物，还有针对对话界面的优化，**以及为 DeepSeek Harness 带来「跨会话长期记忆 + 后台自我进化」能力的纯插件实现。**\n\n虽然最底层的记忆依然是本地文件，但这套插件并没有把「长期记忆」做成传统的向量数据库 + RAG，而是通过本地文件持久化 + 分层上下文注入 + LLM 自我整理，形成的一套完整系统。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_11-08-34.png)\n\n插件的能力还在于能实现模型的自我进化，定期让 LLM 回头审视自己的完整工作上下文，把临时经验压缩成长久知识。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/tab.png)\n\n▲使用该记忆插件的 DeepSeek Harness 界面\n\n但无论是记忆插件，还是皮肤插件，这些都只是插件能力的冰山一角。\n\n在 DeepSeek Harness 的开发文档里，从架构层面来说，**插件几乎就是 DeepSeek Harness 的主打，模型、工具、策略、存储、上下文和界面都能通过插件进行替换或组合。**\n\n通常我们理解的插件是给当前的产品增加一些小功能，就像 VS Code 里有着丰富的插件系统，或者是 Chrome 浏览器，我们能安装不同的插件，增加浏览器对应的能力。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_14-49-29.png)\n\nCodex 应用内也有大量的插件，像是计算机使用、Chrome、Notion 等等对应不同的工具和服务。\n\n但 DeepSeek Harness 这次给出的插件，是在 Agent 的大脑、工具箱、规则和界面里加能力，它更深入、更自由。\n\n如果你嫌 DeepSeek 官方界面太简洁，不妨加点广告。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/english-mode-1.png)\n\n▲ 内测用户自己开发的 DSH 插件，能够直接修改页面 UI\n\n举个例子，一个 Agent 的「标题生成插件」，通常是在对话里增加一个按钮或命令，点击后调用 AI 根据已有命令处理。\n\n一个 DSH 的「写作插件」，则可能同时做到：给 Agent 增加 /headline 等能力；注册一个模型可以自主调用的标题工具；换掉系统提示词和写作规则；接入我们的各类 Skills； 增加网页检索或外部 MCP；保存文章素材和长期偏好；**在 DeepSeek 的交互页面中增加写作面板**；限制这个 Agent 可以使用哪些 Shell、文件或网络工具……等等。\n\n市面上插件功能同样强大的产品可能是 Pi Agent，它也可以通过 Extension 改写工具、模型请求、会话行为和终端界面。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_15-12-32.png)\n\n▲ Pi 的介绍写着「有很多 Agent，但这个才是你的」\n\nPi 让一个 Coding Agent 可以任意扩展；DSH 则试图让整个 Agent 产品都由插件重新组合。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/exec-e82afa28-d142-4ed7-bb26-1500ac1229a3.png)\n\n## 用起来怎么样\n\n很难想象吧，以快著称的 DeepSeek，有一天运行一项编程任务的时间也会来到半个多小时。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_11-18-17.png)\n\n为了观察执行层能给同一个模型带来多大变化，我们让 DeepSeek-V4-Flash 分别在 DeepSeek Harness、Reasonix 和 Codex 中完成同一个 Three.js 滑沙游戏。\n\n先看使用 V4 Flash 在 DeepSeek Harness 中的表现，基本上没有太多可以挑剔的 Bug，玩家一开始就在滑行，完全遵守核心玩法，穿过下坡途中的每个门，最终抵达沙漠绿洲。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8d4721a28.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8d4721a28.png)\n\n而使用刚刚上新的 V4 Pro，用时更长，表现反而更没那么好。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_16-07-41.png)\n\n虽然界面似乎有更加精美了一点，太阳光沙漠都更自然，但是金字塔等元素又很抽象。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8db0c1740.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8db0c1740.png)\n\n▲ 使用 DeepSeek V4 Pro 正式版，在 DeepSeek Harness 内生成\n\nReasonix，据说是最适合 DeepSeek 的第三方 Agent ，我们让它处理了同一个任务，看看 V4 Flash 正式版模型，在不同的 Harness 应用中，表现会有什么不同。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/2026-08-12-16.03.15.png)\n\n同样是最高等级的推理，差别真的很大。\n\n首先是整体画面的美感就完全不如 DeepSeek Harness 所交付的「金黄、快速、阳光明媚、清晰明朗」，其次虽然游戏同样能玩，但是太过于简陋，渲染的金字塔、人物、天空都很粗糙，不像是一款 3D 游戏。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8de887eee.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8de887eee.png)\n\n而如果是 Codex+DeepSeek V4 Flash 的组合呢，一开始我们在本地新建了一个文件夹，Codex 的处理方式很聪明，他说他自己先扫描了一遍本地文件夹，发现了另一个项目中存在一个 3D 库的复制文件。\n\n接着他又找到了我使用 DeepSeek Harness 创建的 pyramid-speed-run 项目，他说他要先看看那个是怎么处理 3D 库文件的，但是他不会直接复制，然后把那个项目作为一个原型参考，开始构建自己的项目。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_11-55-27.png)\n\n一个是允许他继续参考做出来的网页，一个是我们新开了一个对话，让 Codex 完全依靠自己的工具处理的网页。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8e156edad.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8e156edad.png)\n\n▲ 使用 V4 Flash 正式版的 Codex，干净工作区组\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8e2d8cc56.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7d8e2d8cc56.png)\n\n▲ 使用 V4 Flash 正式版的 Codex，受污染上下文组\n\n两个版本似乎都比用 Reasonix 要更好，和 DeepSeek Harness 版本相比，似乎还是 Harness 版本给人沉浸感更强。\n\n「受污染」版把色彩调好的同时，但是金字塔完全不像是金字塔。而从 0 开始做的版本确实有 Codex 的感觉，整体画面更明亮，也更简单。\n\n就像 V4 Flash 使用极简模式的 DeepSeek Harness 进行评测能得到更好结果。\n\n这个单次案例虽然无法证明 Harness 在所有任务上更强，但至少说明：当模型完全相同时，Harness 提供的工具、提示词、上下文组织和执行策略，已经足以显著改变最终产物。\n\n## 它不是 DeepSeek 版 Codex\n\n查看 DeepSeek Harness 仓库中大量的 Markdown 说明文档，以及使用指南等内容，可以很确定地说，**DSH 不是「DeepSeek 版 Codex」，它更接近一套可重组、可回放的 Agent 运行时。**\n\nDeepSeek Harness 真正特别的地方，是把「插件生命周期、每个 Agent 的能力组合、工具执行、会话日志、Web UI」接进了同一套内核。\n\n从底层的技术配置到如何处理用户交互、AI 交互，DeepSeek Harness 都有自己独特的一套流程。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_13-43-21.png)\n\n▲ 图片由 AI 生成\n\nDeepSeek Harness 最重要的插件功能，根据其文档介绍，它并不只是一个 API 接口，每个工具、模型适配器、策略、提示词、存储、UI 区域都可以是插件。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_15-24-51.png)\n\n就像我们看到，已经有内测用户能通过插件，修改 DeepSeek Harness 的主界面。\n\n其次是 Profile 和 Preset 构成的两级组合系统，Profile 决定整个 DSH 进程怎么运行，例如 Web、Headless、安装哪些 Bundle，它本质上是有顺序的 cordis.patch.yml 配置层。\n\nAgent Preset（Agent 预设）决定某个会话里的 Agent 能看到哪些工具、提示词、Skill、子 Agent 和工作流。Preset 的作用域按 agent → preset → global 解析。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-13_13-45-04.png)\n\n根据 Preset 作用域机制，意味着同一个进程中，可以同时运行写作 Agent、编码 Agent、研究 Agent，而且各自看到不同的工具和指令，不必启动四套服务。\n\n另一个有价值的技术点是「**模型可见 ⇔ 已记录**」。\n\n普通聊天工具往往只保存最终消息，DSH 保存的是完整事件流： turn/start、step/start 用户消息、实际请求使用的模型、系统提示词、工具定义、原始流式等等内容。\n\n同时甚至上下文压缩也不会删除原始历史，只是用 replacement 事件改变模型此后看到的「表面」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/634788467-dfdb875e-a1a8-4d4b-8340-353736b1708f.png)\n\n▲DSH-better-sidebar 插件，将 DeepSeek Harness 界面修改为多个侧边栏的 UI\n\n还有采用「先记录意图，再执行副作用」的 Agent Loop，以及所有工具共用一条执行内核。即模型可以写一段 TypeScript，把多个工具调用编排成程序，但中间数据留在运行环境里，只有最终结果进入模型上下文。\n\n最后一项特别设计就是前端，即我们使用 DeepSeek Harness 的界面，DSH 并不是一个传统的「固定前端页面 + 后端插件」，界面本身也是第二棵插件树。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/exec-9aafebca-d4bc-4a06-ac2a-509749206168.png)\n\n▲图片由 AI 生成\n\n应用启动后，界面挂载机制会加载一组 UI 插件。页面先声明侧边栏、对话区、输入区和设置区等标准挂载位，各插件再把自己的组件注册进去。\n\nMCP、Skill、网页搜索、终端、子 Agent、多模型、Plan Mode、Workflow，这些单独看都已经是 Agent 产品的常见能力。\n\nDeepSeek Harness 的不同在于它把模型、工具、会话、插件和界面，都接入统一的底层机制。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/20260805103335_4676_120.png)\n\n而这带来的最大改变，大概是以前我们是使用一个通用 AI Agent，每个人都在用一样的 Codex 去处理办公、编程、写作等任务；但 DeepSeek Harness 给我们的是自己探索的空间。\n\n总的来说，Codex 尝试交付一个拿来即用的 Agent。DeepSeek Harness 更像一套组装 Agent 的运行时：它把更多结构暴露出来，让开发者决定 Agent 应该是谁、使用什么工具，以及如何工作。\n\n既然 Codex 可以切换不同的模型，**模型只是 Agent 的一个部件，那 Agent 本身也应该能持续配置、替换和重组**。\n\nDeepSeek 过去最受关注的是模型本身。现在到了 DeepSeek Harness，它开始处理模型之外的问题：如何组织工具和上下文、保存执行过程，以及在同一套系统里配置不同的 Agent。\n\n以前我们挑 Agent，挑的是哪家公司做出了最好用的那个产品。\n\nDeepSeek Harness 给出的另一种可能是，**Agent 和模型同样是基础设施**。开发者和用户，可以使用 DeepSeek Harness 创造出无数个 Codex，而真正属于我们的 Agent，也可以由自己组装出来。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-13T21:37:03.003172+08:00"
+    },
+    {
+      "title": "4.8亿美元砸向端侧算力！Agent芯片新贵冲出重围",
+      "link": "https://www.qbitai.com/2026/08/472059.html",
+      "published": "2026-08-13T20:34:42+08:00",
+      "source": "量子位",
+      "content": "首颗AI芯片已进入量产",
+      "tags": [
+        "Agent芯片",
+        "端侧算力",
+        "4.8亿美元"
+      ],
+      "score": 70,
+      "summary": "量子位报道Agent芯片新贵获4.8亿美元融资，首颗AI芯片已量产。",
+      "fetched_at": "2026-08-13T21:37:03.003175+08:00"
+    },
+    {
+      "title": "马斯克Grok 4.6重回一梯队！更低价格反超Fable 5，这Cursor是真没白收购",
+      "link": "https://www.qbitai.com/2026/08/472067.html",
+      "published": "2026-08-13T20:04:29+08:00",
+      "source": "量子位",
+      "content": "马斯克版Workbuddy也来了",
+      "tags": [
+        "Grok 4.6",
+        "Fable 5",
+        "Workbuddy"
+      ],
+      "score": 70,
+      "summary": "量子位报道Grok 4.6以更低价格重归第一梯队，并推出Workbuddy。",
+      "fetched_at": "2026-08-13T21:37:03.003178+08:00"
+    },
+    {
+      "title": "具身数据来了实战派！40天2轮融资数千万，瞄准物理AI基础设施",
+      "link": "https://www.qbitai.com/2026/08/472060.html",
+      "published": "2026-08-13T19:53:02+08:00",
+      "source": "量子位",
+      "content": "重新定义物理AI数据基础设施",
+      "tags": [
+        "具身数据",
+        "物理AI",
+        "融资"
+      ],
+      "score": 68,
+      "summary": "量子位报道具身数据公司40天两轮融资数千万，聚焦物理AI基础设施。",
+      "fetched_at": "2026-08-13T21:37:03.003181+08:00"
+    },
+    {
+      "title": "🧩 DeepSeek Harness v0.1 is now available in Developer Preview!\n\n🔹 We’re opening it up to developer...",
+      "link": "https://x.com/deepseek_ai/status/2087887408440164663",
+      "published": "2026-08-13T21:02:03+08:00",
+      "source": "DeepSeek(@deepseek_ai)",
+      "content": "🧩 DeepSeek Harness v0.1 is now available in Developer Preview!  \n  \n🔹 We’re opening it up to developers building agent harnesses worldwide and open-sourcing the codebase in MIT license.  \n🔹 Powered by the Cordis meta-framework, DeepSeek Harness is an agent harness built around one core idea: Everything is a plugin. Models, tools, skills, sessions, sandboxes, filesystems, loops, orchestration, and UI are ALL implemented as plugins, and can be mixed, matched, replaced, and extended.  \n  \nTry it no[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness)hKA\n\n💬97🔄156❤️1053👀37842📊233",
+      "tags": [
+        "DeepSeek Harness",
+        "v0.1",
+        "MIT开源"
+      ],
+      "score": 95,
+      "summary": "DeepSeek官宣Harness v0.1开发者预览版，全插件化架构并开源。",
+      "fetched_at": "2026-08-13T21:37:03.003184+08:00"
+    },
+    {
+      "title": "SL2T is our amazing sign-language-to-text model allows users to sign directly to their phones for th...",
+      "link": "https://x.com/demishassabis/status/2087885303855944001",
+      "published": "2026-08-13T20:53:42+08:00",
+      "source": "Demis Hassabis(@demishassabis)",
+      "content": "SL2T is our amazing sign-language-to-text model allows users to sign directly to their phones for the first time. Built in close collaboration with the Deaf community, it’s a great example of the good that can be done with AI. Congrats to the team for the launch!\n\n![Google DeepMind](https://pbs.twimg.com/profile_images/1695024885070737408/-M-HSH5P_normal.jpg)\n\nGoogle DeepMind@GoogleDeepMind\n\nSL2T is our breakthrough sign language-to-text model powering new features for Deaf and hard of hearing users on [@Android](https://x.com/Android).  \n  \nStarting with American Sign Language-to-English on Pixel 11, people can sign directly into Gboard and Live Transcribe instead of typing.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087539808885211137/vid/avc1/1920x1920/N1J2hBJOlnulJGvp.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/GoogleDeepMind/status/2087541213284946191/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/GoogleDeepMind/status/2087541213284946191)\n\n💬16🔄18❤️301👀18123📊33",
+      "tags": [
+        "SL2T",
+        "手语转文本",
+        "Pixel 11"
+      ],
+      "score": 85,
+      "summary": "DeepMind发布SL2T手语转文本模型，可在Pixel 11上实时转写。",
+      "fetched_at": "2026-08-13T21:37:03.003187+08:00"
+    },
+    {
+      "title": "如果你对这个感兴趣，我做了一个收录创业公司和个人开发者产品发布视频的网站。每天自动用 Grok 搜索 X 上面的产品发布或宣传视频，可以看到当天有哪些新产品发布了，也可以学习一下人家的视频风格。\n\nh...",
+      "link": "https://x.com/dingyi/status/2087874343498039640",
+      "published": "2026-08-13T20:10:08+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "如果你对这个感兴趣，我做了一个收录创业公司和个人开发者产品发布视频的网站。每天自动用 Grok 搜索 X 上面的产品发布或宣传视频，可以看到当天有哪些新产品发布了，也可以学习一下人家的视频风格。  \n  \n[whatships.com](https://whatships.com/)\n\n![Tweet Image](https://pbs.twimg.com/media/HPmef-bbkAAMD0B.jpg)\n\n![Ding](https://pbs.twimg.com/profile_images/2000755831135191040/s6Pf_wjc_normal.jpg)\n\nDing@dingyi\n\n最近人们都挤进做视频这个赛道了，国内人手一个口播 skills，国外则是出现很多视频制作的工具。比如：  \n  \n- Butter Video - 可编程视频编辑器，能在时间线上组合动效、3D、Shader，适合团队协作。[butter.video](https://www.butter.video/)  \n- MOVO - 浏览器端做视频，200 多个 AI 增强模板，直接导出社交媒体内容。[movo.video](https://movo.video/)  \n- Ultramock - 一款用于将产品界面/截图转化为 3D 视觉展示和动效视频的在线设计工具。 [ultramock.io](https://www.ultramock.io/)\n\n[🔗 View Quoted Tweet](https://x.com/dingyi/status/2087388859629994210)\n\n💬8🔄3❤️27👀2627📊10",
+      "tags": [
+        "whatships",
+        "Grok",
+        "产品视频"
+      ],
+      "score": 55,
+      "summary": "开发者推出whatships网站，用Grok自动收录产品发布视频。",
+      "fetched_at": "2026-08-13T21:37:03.003190+08:00"
+    },
+    {
+      "title": "把 Apple/iCloud 隐私邮箱的登录、IMAP 同步、验证码提取和自动创建收进一个本地自架、单管理员的后台里。\n\nhttps://t.co/n7K7hs92BJ",
+      "link": "https://x.com/geekbb/status/2087874306894340154",
+      "published": "2026-08-13T20:10:00+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "把 Apple/iCloud 隐私邮箱的登录、IMAP 同步、验证码提取和自动创建收进一个本地自架、单管理员的后台里。  \n  \n[github.com/xiuxiu56/iClou…](https://github.com/xiuxiu56/iCloud-Privacy-Mail-v2)\n\n![Tweet Image](https://pbs.twimg.com/media/HPkVZSJaMAAeWut.jpg)![Tweet Image](https://pbs.twimg.com/media/HPkVaBsa8AAcxd0.jpg)\n\n💬6🔄2❤️5👀3063📊9",
+      "tags": [
+        "iCloud隐私邮箱",
+        "自托管"
+      ],
+      "score": 55,
+      "summary": "开发者发布本地自架iCloud隐私邮箱管理后台，支持IMAP同步。",
+      "fetched_at": "2026-08-13T21:37:03.003193+08:00"
+    },
+    {
+      "title": "Don't be impressed by people who are only successful at work.",
+      "link": "https://x.com/thejustinwelsh/status/2087872315627393068",
+      "published": "2026-08-13T20:02:05+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Don't be impressed by people who are only successful at work.\n\n💬25🔄7❤️88👀3960📊30",
+      "tags": [
+        "成功",
+        "工作"
+      ],
+      "score": 30,
+      "summary": "Justin Welsh发文称不要只佩服工作上成功的人。",
+      "fetched_at": "2026-08-13T21:37:03.003196+08:00"
+    },
+    {
+      "title": "15 Seconds · Perfect Consistency · MiniMax H3 on Lovart",
+      "link": "https://x.com/lovart_ai/status/2087884879811977693",
+      "published": "2026-08-13T20:52:01+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "15 Seconds · Perfect Consistency · MiniMax H3 on Lovart\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087884702371938304/vid/avc1/2160x2880/sUNa_eFcMc6TnVUi.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2087884879811977693/video/1)\n\n![LovartAI](https://pbs.twimg.com/profile_images/2065372538763694080/KSuXj3OU_normal.jpg)\n\nLovartAI@lovart\\_ai\n\nMiniMax H3 Just Dropped on Lovart! 🔥  \n  \nThe world's #2 video model just landed on Lovart.  \n  \nProduction-quality AI video at less than half the cost.  \n•15s cinematic output with fluid, high-fidelity motion  \n•15multimodal references: text, image, video & audio  \n•Consistent characters, products, scenes & styles  \n  \nFrom Ads to MV to TVC, no more choosing between quality and cost.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2083065890095161345/vid/avc1/3840x2160/fdp562aFaPn2Nitx.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2083066728431689836/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lovart_ai/status/2083066728431689836)\n\n💬0🔄0❤️1👀237",
+      "tags": [
+        "MiniMax H3",
+        "视频生成",
+        "Lovart"
+      ],
+      "score": 72,
+      "summary": "Lovart宣布上线MiniMax H3视频模型，支持15秒生成和多模态参考。",
+      "fetched_at": "2026-08-13T21:37:03.003199+08:00"
+    },
+    {
+      "title": "DeepSeek 新价格出来了，Pro 还是涨的挺多的，毕竟原来简直太便宜了，仔细看了下，缓存命中才是杀伤力比较大的地方，因为 v4 的缓存命中都很高的，都是 95% 以上，Pro 直接涨 6到12 ...",
+      "link": "https://x.com/vikingmute/status/2087894380187402426",
+      "published": "2026-08-13T21:29:46+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "DeepSeek 新价格出来了，Pro 还是涨的挺多的，毕竟原来简直太便宜了，仔细看了下，缓存命中才是杀伤力比较大的地方，因为 v4 的缓存命中都很高的，都是 95% 以上，Pro 直接涨 6到12 倍，还有Pro 输出最高直接到 27 元/M，我想我最近应该会使用比较多的是 flash 了，价格涨幅小一点，并且我工作也是空闲时间（晚上）多一点。  \n  \n现在国产的模型我用的就是 flash 和 Kimi K3 了，虽然 K3 一直比较慢，但是前端的审美和产出的结果还是很不错的，这两个模型可以比较完美的胜任 Sol 分配任务的干活主力。\n\n💬0🔄0❤️1👀76",
+      "tags": [
+        "DeepSeek",
+        "V4 Pro",
+        "涨价"
+      ],
+      "score": 70,
+      "summary": "开发者分析DeepSeek V4 Pro涨价，缓存命中价格涨12倍，输出最高27元/M。",
+      "fetched_at": "2026-08-13T21:37:03.003201+08:00"
+    },
+    {
+      "title": "缓存命中输入 0.025 直接干到 0.30，12 倍。缓存未命中翻 3 倍， 输出涨到 4.5 倍。\n\n这定价太自信了...\n这样的 Pro 毫无性价比\n\n而且这个 pro 模型还有bug，很多人反...",
+      "link": "https://x.com/oran_ge/status/2087873150747115608",
+      "published": "2026-08-13T20:05:24+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "缓存命中输入 0.025 直接干到 0.30，12 倍。缓存未命中翻 3 倍， 输出涨到 4.5 倍。  \n  \n这定价太自信了...  \n这样的 Pro 毫无性价比  \n  \n而且这个 pro 模型还有bug，很多人反映还不如 flash，我们测试下来这个模型的表现在很多场景还不如之前的版本  \n  \n梁子，凉子？\n\n💬1🔄0❤️2👀2653📊1",
+      "tags": [
+        "DeepSeek V4 Pro",
+        "涨价",
+        "Bug"
+      ],
+      "score": 65,
+      "summary": "用户吐槽DeepSeek V4 Pro定价过高且存在Bug，表现不如Flash。",
+      "fetched_at": "2026-08-13T21:37:03.003204+08:00"
+    },
+    {
+      "title": "这才是真干货啊，好友陈言是小红书10w+ 关注AI博主。\n\n他把自己的接单赚钱的方法全分享了，掏箱底！毫无保留。\n\n最让人佩服的，陈言老师在游戏、汽车等各方面都有广泛涉猎，一听都很深。",
+      "link": "https://x.com/vista8/status/2087882019833577613",
+      "published": "2026-08-13T20:40:39+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "这才是真干货啊，好友陈言是小红书10w+ 关注AI博主。  \n  \n他把自己的接单赚钱的方法全分享了，掏箱底！毫无保留。  \n  \n最让人佩服的，陈言老师在游戏、汽车等各方面都有广泛涉猎，一听都很深。\n\n![陈言Linkc-Chen](https://pbs.twimg.com/profile_images/1692369431815737344/amhVdVBE_normal.jpg)\n\n陈言Linkc-Chen@Linkc\n\n分享一下我在小红书做自媒体的选题工作流，不是那种抄话题和复刻账号的。我靠这个方法获得了稳定的广告客户与合作机会。  \n这套方法容易操作，成本极低，只需要坚持。下面是具体流程。  \n（1/n）\n\n[🔗 View Quoted Tweet](https://x.com/Linkc/status/2087823949778546947)\n\n💬1🔄0❤️5👀432📊1",
+      "tags": [
+        "小红书",
+        "AI接单"
+      ],
+      "score": 40,
+      "summary": "博主推广好友分享的小红书AI接单工作流。",
+      "fetched_at": "2026-08-13T21:37:03.003207+08:00"
+    },
+    {
+      "title": "DeepSeek Harness 由 Cordis 元框架驱动\n\n围绕：一切皆插件的核心理念构建\n\n模型、工具、技能、会话、沙箱、文件系统、循环、编排和 UI 全部作为插件实现，可以自由组合、匹配、替...",
+      "link": "https://x.com/xiaohu/status/2087890907882553415",
+      "published": "2026-08-13T21:15:58+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "DeepSeek Harness 由 Cordis 元框架驱动  \n  \n围绕：一切皆插件的核心理念构建  \n  \n模型、工具、技能、会话、沙箱、文件系统、循环、编排和 UI 全部作为插件实现，可以自由组合、匹配、替换和扩展。\n\n💬0🔄0❤️0👀410",
+      "tags": [
+        "DeepSeek Harness",
+        "Cordis",
+        "插件化"
+      ],
+      "score": 65,
+      "summary": "小互介绍DeepSeek Harness由Cordis元框架驱动，一切皆插件。",
+      "fetched_at": "2026-08-13T21:37:03.003210+08:00"
+    },
+    {
+      "title": "DeepSeek-Harness 正式发布：\n\n下载安装：https://t.co/1XnyBZc6H4",
+      "link": "https://x.com/xiaohu/status/2087888930519777562",
+      "published": "2026-08-13T21:08:06+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "DeepSeek-Harness 正式发布：  \n  \n下载安装：[github.com/deepseek-ai/de…](https://github.com/deepseek-ai/deepseek-harness/blob/master/README.zh.md)\n\n![小互](https://pbs.twimg.com/profile_images/1765404718959095808/BX7VN1hS_normal.jpg)\n\n小互@xiaohu\n\nDeepSeek-Harness  \n  \n这个描述看的一头雾水😅\n\n![Tweet Image](https://pbs.twimg.com/media/HPmp3EJa0AAz5Af.png)\n\n[🔗 View Quoted Tweet](https://x.com/xiaohu/status/2087886797548421513)\n\n💬5🔄1❤️9👀1956📊5",
+      "tags": [
+        "DeepSeek Harness",
+        "发布"
+      ],
+      "score": 65,
+      "summary": "小互转发DeepSeek Harness正式发布消息并附安装链接。",
+      "fetched_at": "2026-08-13T21:37:03.003212+08:00"
+    },
+    {
+      "title": "安装：npx @deepseek-ai/dsh web\n\nhttps://t.co/Aj2GBjEIbF",
+      "link": "https://x.com/xiaohu/status/2087887308536369155",
+      "published": "2026-08-13T21:01:40+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "安装：npx [@deepseek](https://x.com/deepseek)-ai/dsh web  \n  \n[npmjs.com/package/@deeps…](https://www.npmjs.com/package/@deepseek-ai/dsh)\n\n💬0🔄0❤️0👀800",
+      "tags": [
+        "DeepSeek Harness",
+        "安装"
+      ],
+      "score": 55,
+      "summary": "小互分享DeepSeek Harness安装命令npx @deepseek-ai/dsh web。",
+      "fetched_at": "2026-08-13T21:37:03.003215+08:00"
+    },
+    {
+      "title": "DeepSeek-Harness\n\n这个描述看的一头雾水😅",
+      "link": "https://x.com/xiaohu/status/2087886797548421513",
+      "published": "2026-08-13T20:59:38+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "DeepSeek-Harness  \n  \n这个描述看的一头雾水😅\n\n![Tweet Image](https://pbs.twimg.com/media/HPmp3EJa0AAz5Af.png)\n\n💬6🔄2❤️4👀3825📊7",
+      "tags": [
+        "DeepSeek Harness"
+      ],
+      "score": 45,
+      "summary": "小互表示DeepSeek Harness描述令人困惑。",
+      "fetched_at": "2026-08-13T21:37:03.003218+08:00"
+    },
+    {
+      "title": "涨价很猛啊\n\n没性价比了\n\n融资后要为投资人负责了",
+      "link": "https://x.com/xiaohu/status/2087886237395034527",
+      "published": "2026-08-13T20:57:24+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "涨价很猛啊  \n  \n没性价比了  \n  \n融资后要为投资人负责了\n\n![Tweet Image](https://pbs.twimg.com/media/HPmpXQ0aoAA4ndZ.jpg)\n\n💬0🔄0❤️2👀571",
+      "tags": [
+        "DeepSeek",
+        "涨价"
+      ],
+      "score": 50,
+      "summary": "小互评论DeepSeek涨价后失去性价比。",
+      "fetched_at": "2026-08-13T21:37:03.003220+08:00"
+    },
+    {
+      "title": "另外DeepSeek-Harness已经泄露\n\n应该马上会发布\n\nhttps://t.co/Aj2GBjEIbF",
+      "link": "https://x.com/xiaohu/status/2087883877578846558",
+      "published": "2026-08-13T20:48:02+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "另外DeepSeek-Harness已经泄露  \n  \n应该马上会发布  \n  \n[npmjs.com/package/@deeps…](https://www.npmjs.com/package/@deepseek-ai/dsh)\n\n💬0🔄0❤️1👀1689",
+      "tags": [
+        "DeepSeek Harness",
+        "泄露"
+      ],
+      "score": 55,
+      "summary": "小互称DeepSeek Harness已泄露，称即将发布。",
+      "fetched_at": "2026-08-13T21:37:03.003223+08:00"
+    },
+    {
+      "title": "DeepSeek-V4 API 大幅涨价\n\n应该是为了 DeepSeek-Harness 的套餐让路",
+      "link": "https://x.com/xiaohu/status/2087883874961633558",
+      "published": "2026-08-13T20:48:01+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "DeepSeek-V4 API 大幅涨价  \n  \n应该是为了 DeepSeek-Harness 的套餐让路\n\n![Tweet Image](https://pbs.twimg.com/media/HPmmgZCbgAAgo6z.jpg)\n\n![DeepSeek](https://pbs.twimg.com/profile_images/1717417613775757312/Uk1zNOj4_normal.jpg)\n\nDeepSeek@deepseek\\_ai\n\nWe’re launching DeepSeek-V4-Pro today! 🚀  \n  \n🔷 Major Agent upgrades with strong production gains!  \n🔷 Flexible reasoning effort for V4-Pro & V4-Flash: low for simple tasks, high for daily Agent workflows, max for complex tasks.  \n🔷 Native OpenAI Responses API support, optimized for Codex with one-click setup.  \n  \nV4 Pro is now available on app/web. Try it via “Expert Mode”.  \nV4 Pro is also available via API. Model names remain unchanged—please refer to the API docs for setup details.\n\n![Tweet Image](https://pbs.twimg.com/media/HPmOJZlbUAAOgVt.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/deepseek_ai/status/2087864585504305397)\n\n💬8🔄0❤️2👀4109📊5",
+      "tags": [
+        "DeepSeek V4",
+        "涨价",
+        "API"
+      ],
+      "score": 60,
+      "summary": "小互称DeepSeek V4 API大幅涨价，或为Harness套餐让路。",
+      "fetched_at": "2026-08-13T21:37:03.003226+08:00"
+    },
+    {
+      "title": "据说DeepSeek V4 Pro 版本发错了\n\n撤回重发",
+      "link": "https://x.com/xiaohu/status/2087879166901535184",
+      "published": "2026-08-13T20:29:18+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "据说DeepSeek V4 Pro 版本发错了  \n  \n撤回重发\n\n💬10🔄0❤️20👀9024📊10",
+      "tags": [
+        "DeepSeek V4 Pro",
+        "发错版本"
+      ],
+      "score": 50,
+      "summary": "小互称DeepSeek V4 Pro版本发错，已撤回重发。",
+      "fetched_at": "2026-08-13T21:37:03.003229+08:00"
+    },
+    {
+      "title": "https://t.co/zxREqoU1fp",
+      "link": "https://x.com/op7418/status/2087882844664377700",
+      "published": "2026-08-13T20:43:55+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "[huggingface.co/deepseek-ai/De…](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-0813)\n\n💬0🔄0❤️2👀1029",
+      "tags": [
+        "DeepSeek V4 Pro",
+        "Hugging Face"
+      ],
+      "score": 65,
+      "summary": "歸藏分享DeepSeek-V4-Pro-0813模型权重链接。",
+      "fetched_at": "2026-08-13T21:37:03.003231+08:00"
+    },
+    {
+      "title": "可能会有单独的套餐吧，要不就是 API 涨价推他们的 Harness？",
+      "link": "https://x.com/op7418/status/2087870651042496722",
+      "published": "2026-08-13T19:55:28+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "可能会有单独的套餐吧，要不就是 API 涨价推他们的 Harness？\n\n💬2🔄0❤️1👀3340📊2",
+      "tags": [
+        "DeepSeek",
+        "Harness"
+      ],
+      "score": 55,
+      "summary": "歸藏猜测DeepSeek将推单独套餐或通过涨价推广Harness。",
+      "fetched_at": "2026-08-13T21:37:03.003234+08:00"
+    },
+    {
+      "title": "Deepseek Harness 内测群说晚上 8:25 左右发布。",
+      "link": "https://x.com/op7418/status/2087869793974292483",
+      "published": "2026-08-13T19:52:04+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "Deepseek Harness 内测群说晚上 8:25 左右发布。\n\n![Tweet Image](https://pbs.twimg.com/media/HPmagmtawAACmuB.jpg)\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\nV4 Pro 0813 的正式更新公告来了，同时涨价额度也确定了。  \n  \n看来下午的 V4 Pro 0813 模型是有点不对，现在他们正式发了更新公告，这次估计是没啥问题了。  \n  \n同时涨价也尘埃落定了，采用峰谷定价，峰值定价 Pro 模型输出比原来贵了 4 倍多。  \n  \n空闲时段的 Pro 模型定价比原来贵了一倍多。\n\n![Tweet Image](https://pbs.twimg.com/media/HPmVMOMbsAAuILT.jpg)![Tweet Image](https://pbs.twimg.com/media/HPmVMt_aYAAvnkC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2087863955150799113)\n\n💬20🔄2❤️30👀16723📊17",
+      "tags": [
+        "DeepSeek V4 Pro",
+        "涨价",
+        "峰谷定价"
+      ],
+      "score": 75,
+      "summary": "歸藏展示V4 Pro 0813官方更新公告，峰值定价涨幅超4倍，采用峰谷定价。",
+      "fetched_at": "2026-08-13T21:37:03.003237+08:00"
+    },
+    {
+      "title": "关于 Deepseek 这次涨价，这张图做的清晰一点。\n\n但不知道图是谁做的，从群里拿来的。\n\n我才发现那个 Pro 的缓存命中最高涨了 12 倍价格。",
+      "link": "https://x.com/op7418/status/2087868251242184839",
+      "published": "2026-08-13T19:45:56+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "关于 Deepseek 这次涨价，这张图做的清晰一点。  \n  \n但不知道图是谁做的，从群里拿来的。  \n  \n我才发现那个 Pro 的缓存命中最高涨了 12 倍价格。\n\n![Tweet Image](https://pbs.twimg.com/media/HPmZGybakAAMCvJ.jpg)\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\n卧槽，V4 Pro 08313 正式版涨价，那个峰值最高比原来涨了 4 倍多，这回真成梁子了。\n\n![Tweet Image](https://pbs.twimg.com/media/HPmWWzpa8AEqjJc.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2087865228122108037)\n\n💬11🔄0❤️9👀6214📊8",
+      "tags": [
+        "DeepSeek",
+        "涨价",
+        "缓存命中"
+      ],
+      "score": 70,
+      "summary": "歸藏分析DeepSeek涨价，缓存命中价格最高涨12倍。",
+      "fetched_at": "2026-08-13T21:37:03.003240+08:00"
     }
   ]
 }
