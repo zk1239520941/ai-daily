@@ -3697,6 +3697,94 @@
       "score": 74,
       "summary": "Astro 7正式发布，采用Rust编译器和Vite 8，构建速度最高提升61%。",
       "fetched_at": "2026-08-13T14:27:10.508817+08:00"
+    },
+    {
+      "title": "Qodana Lints Your Code. What’s Checking Your DevOps and Platform Engineering Stack?",
+      "link": "https://blog.jetbrains.com/qodana/2026/08/qodana-for-devops/",
+      "published": "2026-08-13T14:35:26+08:00",
+      "source": "The JetBrains Blog",
+      "content": "![Qodana for DevOps. ](https://blog.jetbrains.com/wp-content/uploads/2026/08/QD-social-BlogFeatured-1280x720-1-2.png)\n\nA developer in DevOps pushes a Kubernetes deployment with no resource limits, a pod running as root explicitly, and a GitHub Actions workflow runs with mutable tags – and it goes straight to production, unnoticed. No quality gate. No IDE warning. No CI failure. An innocuous change, silently shipped, but with high consequences.\n\nQodana lints your application code. It catches unused variables, security vulnerabilities, code style violations, and architectural issues before they reach production. Quality gates drive the build. The IDE flags problems inline. Developers get fast feedback on every commit.\n\n![Andre Petrov Qodana for DevOps](https://blog.jetbrains.com/wp-content/uploads/2026/08/andre.jpeg)\n\n#### Andrei Petrov, DevOps and Platform Engineer\n\n## Who’s checking your DevOps and platform engineering stack?\n\nMost DevOps/platform engineering teams rely on a collection of disconnected CLI tools to analyse infrastructure:\n\n* Kube-score: Kubernetes manifest analysis;\n* Checkov: Terraform and CloudFormation;\n* Hadolint: Dockerfile linting;\n* Ansible-lint: Ansible playbooks and roles;\n* Tfsec/Tflint: Terraform security and best practices;\n* Trivy: container image and IaC scanning;\n* Conftest: policy-as-code with OPA;\n* Yamllint: generic YAML validation;\n* Actionlint: GitHub Actions workflow linting.\n\nEach has its own configuration syntax, its own severity model, its own CI integration, and its own maintenance story. There is no shared quality gate. There is no IDE feedback loop. And there is no cross-domain analysis – a Terraform module that provisions a public S3 bucket and the Helm chart that references it cannot be evaluated together.\n\nThe result: infrastructure code gets merged with a fraction of the scrutiny applied to application code. Security misconfigurations, reliability gaps, and operational risks ship quietly.\n\n## What if Qodana extended to DevOps artifacts?\n\nHere is what findings could look like across the five domains that matter most:\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image-36.png)\n\nThe analysis could be extensible: community-built adapters for tools like Pulumi, CDK, or GitLab CI could plug in directly via *qodana.yaml*.\n\n## Look and feel\n\nA Qodana DevOps Linter would surface findings in the same user interface teams already use for application code – same report structure, same severity model, same quality gate.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image-37.png)\n\nUsing Qodana fits the DevOps philosophy because it would close the loop between who writes software and who runs it in production.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image-38.png)\n\nThe overview report would give an immediate picture of the infrastructure [quality posture](https://blog.jetbrains.com/qodana/2025/01/state-of-software-quality/) – total problems, inspections run, and a breakdown by severity and category across all five domains.\n\n## Why this matters beyond the linter itself\n\nThe deeper value isn’t catching individual misconfigurations. It’s establishing a shared quality standard for infrastructure code, the same way Qodana established one for application code.\n\nThat means:\n\n* The same developer experience: IDE feedback, CI enforcement, quality gates;\n* The same configuration model: one *qodana.yaml* covers both application code and DevOps artifacts;\n* Cross-domain analysis: rules that span a Terraform module and the Helm  \n  chart it backs;\n* A shift-left posture for the entire stack: not just the application layer.\n\n## Is this a problem you recognize?\n\nThis is still an idea in early exploration. We are looking forward to learning if other practitioners see the same gap.\n\nDoes this match a pain point in your team? Is there a domain or tool you would want analysed first? [Get in touch](mailto:andrei.petrov@jetbrains.com) and let’s discuss your thoughts.",
+      "tags": [
+        "Qodana",
+        "DevOps",
+        "代码质量"
+      ],
+      "score": 75,
+      "summary": "JetBrains推出Qodana for DevOps，用于检查基础设施代码质量。",
+      "fetched_at": "2026-08-13T16:29:00.520757+08:00"
+    },
+    {
+      "title": "打工人的办公三件套，被 WorkBuddy 用 AI 重做了",
+      "link": "https://www.ifanr.com/1674810?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-13T15:40:36+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/442.png)\n\n最近我的朋友圈里，Markdown、HTML 这些词的存在感明显高了起来。\n\n三个月前，Claude Code 工程师 Thariq 曾发文分享，他认为 HTML 是比 Markdown 文本更适合 AI 输出的格式，这个观点引发了热议，也让 HTML 重新进入 AI 产品视野。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/112-1.png)\n\nAndrej Karpathy 也认为人机交互正在形成新的输入输出范式——人类更适合用语音表达需求，AI 更适合用视觉呈现复杂信息。\n\nAPPSO 在日常办公里这个感受也愈加明显，AI 输出正在从文本走向界面，而 HTML 成为关键载体。但问题也随之出现：即使生成变简单，编辑、协作、发布与数据同步仍将大多数用户挡在网页之外。\n\nWorkBuddy 近期更新的资料库能力，尝试把 HTML 这些新一代的 AI 原生格式，和 AI 办公产品结合起来。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/111-2.png)\n\n▲ WorkBuddy资料库界面截图\n\n此前它通过「人机双写」让 AI 进入 Word、Excel、PPT，实现人、同事与 Agent 的协同编辑；这次进一步扩展到 HTML、智能 Markdown，并加入「轻应用」，让 HTML 具备数据存储与多端同步能力。\n\n如果上一阶段解决的是让 AI 进入 Office，那么现在要继续解决的问题，就是如何让 AI 已经大量生成的新文件，真正融入日常办公流程。\n\n### HTML，开始变成一份多人多 Agent 文档\n\n使用资料库并不复杂。\n\nWorkBuddy 目前主要分成「我的文档」和「团队空间」两个位置，前者用于保存个人和 Agent 共同完成的内容（也可邀请他人协作），后者面向多人协作，成员可以按照权限查看、编辑、评论和分享，Agent 也可以参与其中。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/113-1.png)\n\n实际使用基本可以概括成三个动作：\n\n任务完成后，把最终的文档、Markdown、HTML 或其他文件存进资料库；下一次工作时，直接指定其中的资料，让 Agent 读取原有内容继续修改和分析；需要团队共同维护时，再把相关内容移入团队空间并设置协作者权限。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/114.png)\n\n于是，一次 AI 任务的终点，也就变成了下一次协作的起点。资料库保存的不只是最终文件，也包括之后的人和 Agent 可以继续工作的上下文。\n\n为了验证这套能力能否用于真实办公，我做了一个简单的测试。\n\n我直接输入一组基础项目数据，包括汽车发布会、官网重构、门店拓展等五个项目，以及负责人、部门、状态、预算、执行金额和里程碑时间。\n\nWorkBuddy 会先将其整理为结构化数据表，可直接查看和筛选进度、预算执行与负责人分布。最终生成的 HTML 已接近轻量项目管理后台。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/4444.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/116-1.png)\n\n如需后续同步更新，我们可以先在资料库中将看板与「2026 年 Q2 项目与预算管理看板」及「2026 年重点项目管理表.csv」建立关联；\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/221-1.png)\n\n接着再输入提示词「将看板静态数据改为从关联数据表动态读取」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/222-2.png)\n\n完成后，看板将直接读取数据表内容。后续只需修改表格并刷新页面，即可同步更新，我们无需重新生成 HTML，实现数据表驱动看板的前后端分离结构。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/223.gif)\n\n当然，现阶段让 AI 直接生成 HTML，第一次成稿还很难保证每次都达到设计师级别。不过对于办公场景来说，第一次生成到什么程度只是其中一环。\n\n更关键的是，我们还能在生成页面上进一步修改。一个页面如果可以被人修改、让多个 Agent 分别处理不同部分、交给同事继续编辑，并且所有修改都围绕同一份文件发生，它才开始拥有类似 Word、Excel、PPT 的办公属性。\n\n也正是在接下来的修改环节里，我开始觉得它更接近一套真正的办公工具。点击右上角对应按钮，我就可以在 HTML 中选中风险模块，让 AI 将背景调浅，并补充「需本周五前召开专案会议解决」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/224-1.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/225-1.png)\n\n修改仅作用于选区，其余结构保持不变，可像编辑文档一样调整，无需进入源码。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/226-1.png)\n\n▲ 修改后的结果\n\n对非程序员的大部分用户而言，这比能生成网页更重要。过去修改网页往往意味着重新生成或进入代码层，而现在可以直接在页面局部与 AI 交互，让编辑像改文档一样发生。\n\n页面修改完成后，还剩下一个过去经常让 AI 生成 HTML 卡住的问题，怎么给别人看。对于程序员来说，后面还有部署、服务器、域名等办法；对于只是想把明天汇报做好的人来说，这种明显复杂过头了。\n\nWorkBuddy 资料库也想到了这一点，现在支持把本地 HTML 直接发布成在线网页。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/227-1.png)\n\n页面做好以后，通过分享即可生成链接，同事领导在手机上打开，客户在微信里点开，都不需要额外下载文件，还能直接在网页上划词添加评论——就像批注在线文档一样简单。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/331-1.png)\n\n基于此，HTML 正在进入一个过去长期由 Office 三件套主导的场景。\n\n比如一份新品营销方案，可以把三个传播阶段做成可点击的时间轴；一份经营分析可以让管理者按照部门筛选数据；一份产品方案可以放进视频、动画和交互式 Demo；遇到临时修改，也可以直接在网页里选中文字让 AI 调整。\n\n不止如此，WorkBuddy 还给智能 Markdown 加入了 AI 原生审阅模式。\n\n团队写周报、PRD 或方案时，可以先在 Markdown 里专注处理内容，AI 给出的修改会以修订建议出现，用户逐条确认后才进入正文；等内容定稿，再把文档转换成 HTML，用更适合展示的形式交给老板或者客户。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/332-1.png)\n\n于是两种文件形成了一种很自然的分工。Markdown 用于协同轻量写作和内容维护，HTML 更适合视觉表达和演示场景，也支持协作编辑。\n\n换句话说，HTML 从 AI 的交付结果，开始变成一种可以继续工作的文件。\n\n### 从一个人的工作台，到会记事的人机协作空间\n\n如果只解决 HTML 的编辑和发布，WorkBuddy 这个功能仍然更接近一套 AI 网页工具。\n\n此次资料库升级更往前的一步，是「轻应用」让网页开始保存和同步数据，而资料库又让这些数据和文档继续成为下一次 Agent 工作的材料。\n\n我拿一份烘焙店库存数据进行了测试。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/333-1.png)\n\nCSV 里放入商品名称、SKU、实时库存、安全库存、成本和进货日期，再让 WorkBuddy 生成库存看板，页面会直接提示库存不足的商品，也可以按照类别筛选。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/334-1.png)\n\n背后的 CSV 继续保存数据，所以它不再只是一张一次性的可视化报告，而更像一个可以持续使用的小型工作台。\n\n再比如为了验证它在个人场景里的效果，我把每日状态、耗能事件和回血项目写入 CSV 后，然后让 WorkBuddy 做了一个「生命电量工作台」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/335.gif)\n\n此外，我们也可以充分发挥脑洞，将之应用到我们实际的生活当中，比如把情侣之间的家务、情绪积分和「待赎罪事项」做成共同账本。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/336-1.png)\n\n又或者把公司附近餐厅的价格、距离和评价做成午饭抽签系统。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/337.gif)\n\n类似方法还可以用于自媒体达人管理、项目进度、客户合作、个人习惯记录等场景。智能 CSV 甚至可以放入合同、发票、图片和设计稿，让数据和对应资料一起留在资料库里。\n\n资料保存下来以后，又自然进入了 Agent 的下一次工作。\n\n孙北北面包店就是一个官方介绍的真实案例。\n\n据悉，他们团队把每个月的仓配、筹建和产品成本报告按业务主题放进资料库，下个月再做经营分析时，可以直接调用历史报告，让 AI 沿着已有结论继续分析，再把新结果存回原来的目录。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/441.png)\n\n在整个过程中，资料库因此多了一层传统文件夹没有的作用。\n\n它既保存人的工作成果，也保存 Agent 下一次工作需要的上下文，一次生成的网页、数据和文档，可以继续被个人、团队和 AI 反复使用。\n\n对于大量数据、复杂权限和完整业务流程，专业数据库和 SaaS 依然不可替代。但对于个人和小团队，很多需求其实只是数据能保存、多设备能访问、团队能一起用，同时 AI 下次还能接着做。\n\n轻应用和资料库结合起来，解决的正是这一类更轻量的需求。\n\n### 打工人的办公三件套，要被 WorkBuddy 用 AI 重做了\n\n回头看 WorkBuddy 最近两个大版本的变化，上一阶段的「人机双写」，解决的是 AI 怎样进入我们已经非常熟悉的 Office。人写一部分，AI 修改一部分，同事继续协作，传统文档第一次把 Agent 也纳入编辑者。\n\n资料库升级之后，这套能力又扩展到了 AI 更擅长处理的格式。\n\nHTML 可以由人和多个 Agent 一起编辑，也可以直接发布成网站；智能 Markdown 有面向 AI 修改设计的审阅模式；CSV 除了作为结构化数据，还可以和 HTML 联动，让网页获得实时数据交互和多端同步能力。\n\n由此形成的体验，很像给传统 Office 增加了一套 AI 原生的「三件套」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/442.png)\n\n它们不会让 Word、Excel、PPT 一夜之间消失。\n\n相反，WorkBuddy 仍然保留传统 Office 文件，并继续通过人机双写连接它们。真正发生变化的，是办公软件开始同时容纳两代文件。\n\n一边是过去几十年为人类鼠标、键盘和屏幕建立起来的 Word、Excel、PPT，另一边是越来越适合 Agent 生成、理解和修改的 Markdown、CSV、HTML。\n\nOffice 进入 AI 时代以后，真正改变的或许不仅是菜单栏里多了一个 AI 按钮。\n\nAI 开始参与写作、编辑、数据处理、页面制作和协作之后，我们每天打开的那份「文件」，不再只是静态的文档，而是变成了可以被 AI 修改、自动更新数据、生成页面并持续协作的工作载体。\n\n文件格式从来都不只是一种后缀，它背后其实规定了我们如何生产信息、修改信息，又如何把信息交给别人，只不过，工作的参与者从人增加到人和 Agent。\n\n几十年前，Office 定义了电脑时代的人应该怎样办公。到了 AI 时代，Agent 也开始反过来改变 Office 应该处理什么样的文件，以及我们每天打开的那个「文件」，究竟应该长什么样。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "WorkBuddy",
+        "AI办公",
+        "资料库"
+      ],
+      "score": 75,
+      "summary": "AI办公工具WorkBuddy更新资料库，支持HTML与智能Markdown，实现人机协作编辑。",
+      "fetched_at": "2026-08-13T16:29:00.520770+08:00"
+    },
+    {
+      "title": "联想集团Q1再创史上最佳业绩，AI服务器业务迎来爆发期",
+      "link": "https://www.qbitai.com/2026/08/471697.html",
+      "published": "2026-08-13T14:33:52+08:00",
+      "source": "量子位",
+      "content": "当季实现营收1834亿元人民币，同比猛增43%，创历史新高",
+      "tags": [
+        "联想",
+        "AI服务器",
+        "财报"
+      ],
+      "score": 65,
+      "summary": "联想集团Q1营收1834亿元同比增43%，AI服务器业务爆发。",
+      "fetched_at": "2026-08-13T16:29:00.520775+08:00"
+    },
+    {
+      "title": "我和姚老师的新书已上架到微信读书。\n\n还没有收到纸质书或喜欢便携的朋友，可以读起来了！\n\n微信读书搜“AI领导力”，红色封皮那本就是。😁",
+      "link": "https://x.com/vista8/status/2087791869480804692",
+      "published": "2026-08-13T14:42:25+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "我和姚老师的新书已上架到微信读书。  \n  \n还没有收到纸质书或喜欢便携的朋友，可以读起来了！  \n  \n微信读书搜“AI领导力”，红色封皮那本就是。😁\n\n![Tweet Image](https://pbs.twimg.com/media/HPlTofsbgAAgEao.jpg)\n\n💬6🔄1❤️11👀1346📊7",
+      "tags": [
+        "AI领导力",
+        "新书",
+        "微信读书"
+      ],
+      "score": 25,
+      "summary": "KOL发布新书《AI领导力》上架微信读书。",
+      "fetched_at": "2026-08-13T16:29:00.520778+08:00"
+    },
+    {
+      "title": "xAI 发布 Grok 4.6：性能追平 GPT-5.6 Sol\n\n附提示词和使用指南https://t.co/kOaBtl6ewD",
+      "link": "https://x.com/xiaohu/status/2087795209161822700",
+      "published": "2026-08-13T14:55:41+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "xAI 发布 Grok 4.6：性能追平 GPT-5.6 Sol  \n  \n附提示词和使用指南[best.xiaohu.ai/article/grok-4…](https://best.xiaohu.ai/article/grok-4-6/)\n\n💬6🔄1❤️6👀3255📊7",
+      "tags": [
+        "Grok 4.6",
+        "GPT-5.6 Sol",
+        "性能对比"
+      ],
+      "score": 85,
+      "summary": "KOL称xAI发布Grok 4.6，性能追平GPT-5.6 Sol。",
+      "fetched_at": "2026-08-13T16:29:00.520781+08:00"
+    },
+    {
+      "title": "https://t.co/XuDZeAbplV",
+      "link": "https://x.com/Khazix0918/status/2087789153727721790",
+      "published": "2026-08-13T14:31:38+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "[x.com/i/article/2087…](https://x.com/i/article/2087788124932112384)\n\n💬5🔄4❤️19👀5107📊11",
+      "tags": [
+        "卡兹克"
+      ],
+      "score": 10,
+      "summary": "KOL分享一条文章链接，未提供内容。",
+      "fetched_at": "2026-08-13T16:29:00.520784+08:00"
     }
   ]
 }
