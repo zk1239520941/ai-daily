@@ -1435,6 +1435,412 @@
       "score": 70,
       "summary": "宝玉以普通用户角度反馈DeepSeek Harness启动门槛高但速度快。",
       "fetched_at": "2026-08-14T03:15:54.324360+08:00"
+    },
+    {
+      "title": "What are AI Hallucinations?",
+      "link": "https://www.databricks.com/blog/ai-hallucinations",
+      "published": "2026-08-14T03:35:16+08:00",
+      "source": "Databricks",
+      "content": "AI hallucinations are outputs that sound coherent and confident but are factually wrong, fabricated...",
+      "tags": [
+        "AI幻觉",
+        "事实错误"
+      ],
+      "score": 72,
+      "summary": "Databricks发布文章解释AI幻觉，指出模型输出看似合理但事实错误。",
+      "fetched_at": "2026-08-14T04:55:36.430250+08:00"
+    },
+    {
+      "title": "Total eclipse of the Internet: traffic impacts in Iceland, Spain, and Portugal",
+      "link": "https://blog.cloudflare.com/total-eclipse-internet-traffic-iceland-spain-portugal/",
+      "published": "2026-08-14T03:58:01+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "At a time when looking down at our devices is a ritual in daily life, a natural phenomenon that demands our attention communally upward is a welcome event. On Wednesday, August 12, a total solar eclipse swept from the North Atlantic across Europe, moving over Iceland and northern Spain and Portugal, with a deep partial eclipse over the rest of Western Europe, all near local sunset. This was the first total solar eclipse to cross mainland Europe in twenty years, and it drew millions outdoors to witness the moon pass between Earth and the sun.\n\nAs we saw [during the 2026 World Cup](https://blog.cloudflare.com/2026-world-cup-internet-traffic/) and [the last total eclipse in 2024](https://blog.cloudflare.com/total-eclipse-internet-traffic-impacts-mexico-us-canada/), online behavior is noticeably affected when an event at this scale takes place. In this blog post, we’ll use data from [Cloudflare Radar](https://radar.cloudflare.com/) to examine how Internet traffic shifted alongside the moon and the sun.\n\n## Internet traffic dips align precisely with maximum obscuration\n\nIn the figure above, we measured HTTP request volume in five-minute buckets across the affected countries on eclipse day, and compared it to a normal-day baseline. Each row is a country (except for Alaska) and each column is a five-minute slice of August 12, 2025, the day of the eclipse. The countries appear above in the order in which they saw the eclipse.\n\nThe black diamonds mark the moment of maximum eclipse and the color shows the percent change in HTTP traffic versus the baseline (red = below normal, blue = above). We can see very clearly that the black diamonds overlay the darkest red, almost perfectly, signaling that **as the eclipse deepened, Internet traffic decreased.** The decrease was most significant along the path of totality and in countries that saw the deepest partial eclipse (Iceland, Ireland, the UK, France, Spain and Portugal) and all but absent where the sun was barely obscured (Sweden, Denmark, Poland, Switzerland).\n\nWhere the eclipse was deep, the red color and black diamonds mirror each other: traffic falls into a trough that sits directly beneath the peak of obscuration and rebounds as the sun reappears, typically within minutes of maximum coverage as people return to their screens.\n\nThe scatter plot above suggests that these decreases are not due to random chance. Each point represents the peak solar obscuration of an individual country (*x*-axis), against the region's traffic dip (*y*-axis). The traffic dip is measured as the average percentage change versus baseline in the 15-minute window surrounding maximum eclipse. The downward trend of the dotted line following the dots demonstrates that **regions along the path of totality saw traffic fall by roughly 15% to 30%, whereas areas experiencing only a shallow partial eclipse dipped far less or not at all.** While local variables like population density, time of day, and cloud cover account for scatter at any given coverage level, the overall direction remains consistent. Paired with the precise timing of the drops, the trend of the data demonstrates that the eclipse itself was the primary driver of the decline.\n\n## Iceland, Spain and Portugal saw the biggest decreases in traffic\n\nThe figure above shows trend lines for each individual country. The gray triangles represent the progression of the eclipse obscuration, while the red line tracks the amount of traffic changed from its usual baseline. In almost all the countries and regions impacted in the course of the eclipse, traffic made noteworthy changes ranging from 9.3 to -46.7%.\n\nThe right-hand numbers on the “*y2*”-axis are the obscuration, calculated using precise sun and moon positions. For each location we found the apparent angular sizes of the sun and moon and how far apart they are in the sky, then calculated the fraction of the sun's disk covered by the moon every 5 minutes via the geometric overlap of two circles. That gave each place both its peak obscuration (how deep the eclipse got, 0–100%) and its moment of maximum eclipse. We then summed all regions in each country for the traffic total, and took the average obscuration across a country's regions to place its national max-eclipse time.\n\nTo differentiate the eclipse from a typical Wednesday evening, we compared eclipse day against the same weekday: the median of the three previous Wednesdays, matched slot-by-slot on time-of-day. Using the median keeps one odd week from skewing the comparison. Every number is then reported as percent change vs. baseline. When looking at the percentage on the left-hand y-axis, 0% means \"totally normal\" and negative means \"less active than usual.\"\n\nWe can see the changes in traffic beginning in Alaska around 15:35 UTC, where the eclipse began its pathway. Iceland, Spain, and Portugal experienced the most dramatic drops in traffic, whereas Poland and Denmark quickly returned to pre-eclipse levels. Norway and Sweden actually saw slight traffic increases above baseline, while Denmark recorded the least overall change.\n\nUltimately, these findings reveal a clear correlation between the path of the eclipse and human behavior online. While the severity and duration of traffic drops varied by region, Radar’s HTTP traffic data demonstrates how a shared physical event can temporarily reshape digital activity across an entire continent.\n\n## Track the impact of world events on Cloudflare Radar\n\nMajor events in the physical world remind us that digital traffic is, at its core, a direct reflection of human attention. When the moon obscured the sun across Europe, the Internet slowed down not because of network failures, but because people paused their online activity to watch. As network patterns quickly normalized post-eclipse, the data left behind offers a fascinating snapshot of how a cosmic event can momentarily realign our online world.\n\nTo explore more interactive traffic insights and track how major worldwide events shape internet activity every day, visit [Cloudflare Radar](https://radar.cloudflare.com/) or follow us on social media at [@CloudflareRadar](https://twitter.com/CloudflareRadar) (X), <https://noc.social/@cloudflareradar> (Mastodon), and [@](https://bsky.app/profile/radar.cloudflare.com)[radar.cloudflare.com](http://radar.cloudflare.com) (Bluesky).",
+      "tags": [
+        "日食",
+        "Cloudflare Radar",
+        "互联网流量"
+      ],
+      "score": 70,
+      "summary": "Cloudflare分析日食期间多国互联网流量显著下降。",
+      "image_url": "https://blog.cloudflare.com/_emdash/api/media/file/01KZY9E03GZQKFZPVFDA5EKNGP.png",
+      "fetched_at": "2026-08-14T04:55:36.430264+08:00"
+    },
+    {
+      "title": "Gemini 3.7 flash is a clear upgrade over 3.6!",
+      "link": "https://x.com/browser_use/status/2087978438112301162",
+      "published": "2026-08-14T03:03:47+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Gemini 3.7 flash is a clear upgrade over 3.6!\n\n![Gregor Zunic](https://pbs.twimg.com/profile_images/1980037752797175809/cTfw6IDz_normal.jpg)\n\nGregor Zunic@gregpr07\n\nGemini 3.7 Flash scores 67% on hardest browser use dataset 🌚 (vs 83% SOTA)  \n  \nLuna with its 5x price reduction is Pareto frontier though (even with Google's 50% discount).\n\n![Tweet Image](https://pbs.twimg.com/media/HPn8ZL_akAASKzP.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/gregpr07/status/2087978075984429290)\n\n💬0🔄0❤️15👀1768📊2",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "浏览器自动化",
+        "性能测试"
+      ],
+      "score": 82,
+      "summary": "Browser Use实测Gemini 3.7 Flash，在浏览器任务上得分67%。",
+      "fetched_at": "2026-08-14T04:55:36.430269+08:00"
+    },
+    {
+      "title": "Gemini 3.7 Flash is now available in Devin.\n\nOn FrontierCode 1.1, it reaches Claude Sonnet 5-level p...",
+      "link": "https://x.com/cognition/status/2087994792819237357",
+      "published": "2026-08-14T04:08:46+08:00",
+      "source": "Cognition(@cognition_labs)",
+      "content": "Gemini 3.7 Flash is now available in Devin.  \n  \nOn FrontierCode 1.1, it reaches Claude Sonnet 5-level performance at less than half the cost, with the low latency the Flash series is known for.\n\n![Tweet Image](https://pbs.twimg.com/media/HPoL9OJbIAA2ylX.jpg)\n\n💬1🔄2❤️19👀2355📊4",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "Devin",
+        "FrontierCode"
+      ],
+      "score": 85,
+      "summary": "Cognition宣布Devin接入Gemini 3.7 Flash，性能达Claude Sonnet 5级且成本更低。",
+      "fetched_at": "2026-08-14T04:55:36.430272+08:00"
+    },
+    {
+      "title": "We’re excited to welcome the Firetiger team to Cursor!\n\nTogether, we're building agents that can fol...",
+      "link": "https://x.com/cursor_ai/status/2087991786279251993",
+      "published": "2026-08-14T03:56:49+08:00",
+      "source": "Cursor(@cursor_ai)",
+      "content": "We’re excited to welcome the Firetiger team to Cursor!  \n  \nTogether, we're building agents that can follow their work into production and fix what goes wrong.  \n  \n[cursor.com/blog/firetiger](https://cursor.com/blog/firetiger)\n\n💬29🔄25❤️499👀19036📊80",
+      "tags": [
+        "Cursor",
+        "Firetiger",
+        "生产环境"
+      ],
+      "score": 85,
+      "summary": "Cursor宣布Firetiger团队加入，共同开发可跟进生产的Agent。",
+      "fetched_at": "2026-08-14T04:55:36.430275+08:00"
+    },
+    {
+      "title": "Oh yes, and Flash 3.7 is also lightning fast! ⚡️",
+      "link": "https://x.com/demishassabis/status/2087995995694960670",
+      "published": "2026-08-14T04:13:33+08:00",
+      "source": "Demis Hassabis(@demishassabis)",
+      "content": "Oh yes, and Flash 3.7 is also lightning fast! ⚡️\n\n![Logan Kilpatrick](https://pbs.twimg.com/profile_images/1943787288955084800/QOl7OJMc_normal.jpg)\n\nLogan Kilpatrick@OfficialLoganK\n\n3.7 Flash : )\n\n![Tweet Image](https://pbs.twimg.com/media/HPn7n1FaMAAsr_c.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/OfficialLoganK/status/2087976757731409998)\n\n💬3🔄0❤️33👀3394📊4",
+      "tags": [
+        "Demis Hassabis",
+        "Gemini 3.7 Flash",
+        "速度"
+      ],
+      "score": 70,
+      "summary": "DeepMind CEO Hassabis称赞Gemini 3.7 Flash速度极快。",
+      "fetched_at": "2026-08-14T04:55:36.430278+08:00"
+    },
+    {
+      "title": "Partnering up with @arcee_ai to help everyone find a route to own their intelligence is easy when th...",
+      "link": "https://x.com/FireworksAI_HQ/status/2087982146988433727",
+      "published": "2026-08-14T03:18:31+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Partnering up with [@arcee\\_ai](https://x.com/arcee_ai) to help everyone find a route to own their intelligence is easy when their launch videos serve up good vibes.   \n  \nTry our Kimi-K3 on Arcee.\n\n![Arcee.ai](https://pbs.twimg.com/profile_images/1976103399113490433/HkRDFgYC_normal.jpg)\n\nArcee.ai@arcee\\_ai\n\nToday we're open-sourcing nac, an agent harness for long-running tasks, and launching the Arcee open models API beta.  \n  \nNac is available now under Apache 2.0 on GitHub, built for developers running complex, multi-step engineering workloads.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087932684202868736/vid/avc1/1920x1080/xS_0s58mM7TKdd4R.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/arcee_ai/status/2087952461478633548/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/arcee_ai/status/2087952461478633548)\n\n💬0🔄1❤️8👀891📊1",
+      "tags": [
+        "Kimi-K3",
+        "Arcee",
+        "Fireworks AI"
+      ],
+      "score": 75,
+      "summary": "Fireworks AI与Arcee合作，在Arcee平台推出Kimi-K3模型。",
+      "fetched_at": "2026-08-14T04:55:36.430280+08:00"
+    },
+    {
+      "title": "Getting an AI product from prototype to production requires more than choosing a model. \n\nThis guide...",
+      "link": "https://x.com/FireworksAI_HQ/status/2087980546660180429",
+      "published": "2026-08-14T03:12:09+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Getting an AI product from prototype to production requires more than choosing a model.   \n  \nThis guide from [@Microsoft](https://x.com/Microsoft) Teams Calls for Startups breaks down how startups can deploy Fireworks models on Microsoft Foundry and build an architecture designed to evolve as they grow.  \n  \nRead the full guide: [microsoft.com/en-us/startups…](https://www.microsoft.com/en-us/startups/blog/how-to-deploy-fireworks-ai-on-microsoft-foundry-a-startup-architecture-blueprint/)\n\n![Microsoft for Startups](https://pbs.twimg.com/profile_images/1420793333077577734/IiFUT_ww_normal.png)\n\nMicrosoft for Startups@msft4startups\n\nThe model you choose for an #MVP can shape cost, latency, flexibility, and future model choice. 🧩  \n  \nWith [@FireworksAI\\_HQ](https://x.com/FireworksAI_HQ) on#MicrosoftFoundryy, startups can serve open models in Azure and scale toward production with monitoring, caching, governance, and model experimentation.  \n  \n➡️[msft.it/6017aE6Ix](https://msft.it/6017aE6Ix)z  \n#MicrosoftForStartupss#GenerativeAII#Developerss\n\n![Tweet Image](https://pbs.twimg.com/media/HO-EfIGXAAAg36e.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/msft4startups/status/2085030825511264403)\n\n💬0🔄1❤️5👀723📊1",
+      "tags": [
+        "Fireworks AI",
+        "Microsoft Foundry",
+        "部署指南"
+      ],
+      "score": 65,
+      "summary": "Microsoft for Startups发布Fireworks模型在Foundry上的部署指南。",
+      "fetched_at": "2026-08-14T04:55:36.430283+08:00"
+    },
+    {
+      "title": "tweet from two years ago on OpenAI’s talent exodus that has aged extremely well",
+      "link": "https://x.com/GaryMarcus/status/2087992748095996365",
+      "published": "2026-08-14T04:00:38+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "tweet from two years ago on OpenAI’s talent exodus that has aged extremely well\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\n👉 If OpenAI’s employees thought OpenAI was close to AGI, they wouldn’t be leaving in droves.  \n  \n👉 If investors took the hint, they wouldn’t be re-upping at nearly double the last valuation.  \n  \n👉 If governments took the hint, they would stop giving so much power and trust to the CEO of a company that has recently hemorrhaged top talent and never turned a profit.   \n  \n👉 But here we are, treating Sam like a god– entirely on promise, a promise that his own employees are apparently increasingly starting to doubt.\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/1839314183772590162)\n\n💬1🔄2❤️13👀2282📊2",
+      "tags": [
+        "OpenAI",
+        "人才流失",
+        "AGI"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus转发旧推文，称OpenAI人才流失表明其AGI承诺可疑。",
+      "fetched_at": "2026-08-14T04:55:36.430285+08:00"
+    },
+    {
+      "title": "agree with most of this, @tobyordoxford",
+      "link": "https://x.com/GaryMarcus/status/2087990171967103018",
+      "published": "2026-08-14T03:50:24+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "agree with most of this, [@tobyordoxford](https://x.com/tobyordoxford)\n\n![Rob Wiblin](https://pbs.twimg.com/profile_images/1890364551423504384/VSUxxPid_normal.jpg)\n\nRob Wiblin@robertwiblin\n\nThe 14 most common ways we're all screwing up AGI forecasting according to Toby Ord (my wording based on our interview):  \n  \n1. Believing AI research is just hill-climbing  \n2. Imagining AI research is mostly programming  \n3. Forecasting 'could' instead of 'will'   \n4. Thinking the current benchmarks are the last ones  \n5. Extrapolating trends out to a finish line when the finish line is unknown  \n6. Assuming inputs scaling at the same rate forever  \n7. Conflating intelligence and capability  \n8. Consuming point estimates and discarding the error bars  \n9. Dismissing dissenting experts  \n10. Forecasting very different things using the same words  \n11. Assuming different capabilities arrive simultaneously  \n2. Treating 'we don’t know' as permission to carry on as usual  \n13. Choosing a plan of action that minimises regret rather than maximises impact  \n14. Taking surface model impressiveness at face value  \n  \nIn our convo [@tobyordoxford](https://x.com/tobyordoxford) also makes the case that:  \n  \n• AI self-improvement is uniquely dangerous in 4 ways, but also might not even work  \n• A ban on superintelligence is possible  \n• A US-China treaty on superintelligence is also possible  \n• ‘Broad timelines’ are what we should act on  \n• Transformative AI is likely a decade away  \n• We should just ban unmonitorable chain-of-thought today  \n  \nOn the 80,000 Hours Podcast wherever you get podcasts, links below. Enjoy!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087874054497677312/vid/avc1/1920x1080/zZxLyZ8SWmAKStzL.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/robertwiblin/status/2087880043322073348/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/robertwiblin/status/2087880043322073348)\n\n💬1🔄0❤️8👀2247📊2",
+      "tags": [
+        "Toby Ord",
+        "AGI预测",
+        "80,000 Hours"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus推荐Toby Ord关于AGI预测误区的访谈。",
+      "fetched_at": "2026-08-14T04:55:36.430288+08:00"
+    },
+    {
+      "title": "anthropic’s best hope is that OpenAI falls apart. which it might.",
+      "link": "https://x.com/GaryMarcus/status/2087989960767119375",
+      "published": "2026-08-14T03:49:34+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "anthropic’s best hope is that OpenAI falls apart. which it might.\n\n![Ara Kharazian](https://pbs.twimg.com/profile_images/2073773754774163457/0VnHuKre_normal.jpg)\n\nAra Kharazian@arakharazian\n\nNEW from Ramp AI Index: disappointing adoption of Fable 5  \n  \nWe've heard several reasons from businesses...mainly Fable 5 is just too expensive.  \n  \nA model so powerful it was briefly banned, and yet businesses don't think it's worth the price.\n\n![Tweet Image](https://pbs.twimg.com/media/HPh0dajWYAA8y02.png)\n\n[🔗 View Quoted Tweet](https://x.com/arakharazian/status/2087547366417064166)\n\n💬1🔄3❤️14👀2757📊3",
+      "tags": [
+        "Fable 5",
+        "采用率",
+        "Anthropic"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus评论称Anthropic的机会是OpenAI崩溃，因Fable 5企业采用不佳。",
+      "fetched_at": "2026-08-14T04:55:36.430291+08:00"
+    },
+    {
+      "title": "again: it starts at the top",
+      "link": "https://x.com/GaryMarcus/status/2087989710321070533",
+      "published": "2026-08-14T03:48:34+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "again: it starts at the top\n\n![Luiza Jarovsky, PhD](https://pbs.twimg.com/profile_images/2024420453649928192/7kuWCKoQ_normal.jpg)\n\nLuiza Jarovsky, PhD@LuizaJarovsky\n\nWhat is happening at OpenAI? Can anyone explain?\n\n[🔗 View Quoted Tweet](https://x.com/LuizaJarovsky/status/2087986933884502519)\n\n💬1🔄5❤️14👀2491📊3",
+      "tags": [
+        "OpenAI",
+        "领导层"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus称OpenAI问题始于高层。",
+      "fetched_at": "2026-08-14T04:55:36.430293+08:00"
+    },
+    {
+      "title": "Guaranteed!",
+      "link": "https://x.com/GaryMarcus/status/2087983949113155957",
+      "published": "2026-08-14T03:25:40+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Guaranteed!\n\n![Hoà Paul Duong](https://pbs.twimg.com/profile_images/1964446890013171712/WGtLkuuJ_normal.jpg)\n\nHoà Paul Duong@EconMcCausland\n\nYes.   \n  \nIf you gave me trillions of dollars, I could find a way to generate billions in revenue.\n\n[🔗 View Quoted Tweet](https://x.com/EconMcCausland/status/2087983691352154289)\n\n💬2🔄0❤️10👀3326📊2",
+      "tags": [
+        "收入",
+        "讽刺"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus对一条关于收入与投资的讽刺推文表示赞同。",
+      "fetched_at": "2026-08-14T04:55:36.430296+08:00"
+    },
+    {
+      "title": "this is not normal",
+      "link": "https://x.com/GaryMarcus/status/2087981340876742772",
+      "published": "2026-08-14T03:15:19+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "this is not normal\n\n![ℏεsam](https://pbs.twimg.com/profile_images/1978647680357134336/ioMmfkXF_normal.jpg)\n\nℏεsam@Hesamation\n\nOpenAI has been bleeding leadership. Just in the past 12 months:  \n> Chief Operating Officer  \n> CEO of AGI Deployment  \n> Chief Futurist  \n> Chief People Officer  \n> Chief Communications Officer  \n> Chief Marketing Officer  \n> CTO, B2B Applications  \n> COO / Head of OpenAI for Science  \n> Head of Sora  \n> Head of Safety Systems  \n> Head of Ethics  \n> Head of Hardware  \n> Head of Model Policy  \n> Stargate / Data Center Executive  \n> Compute Strategy & Business Development Lead  \n> Compute Infrastructure Leader\n\n[🔗 View Quoted Tweet](https://x.com/Hesamation/status/2087302834349879385)\n\n💬9🔄5❤️62👀6864📊11",
+      "tags": [
+        "OpenAI",
+        "高管离职",
+        "16人"
+      ],
+      "score": 70,
+      "summary": "Gary Marcus贴出OpenAI过去12个月16名高管离职的清单。",
+      "fetched_at": "2026-08-14T04:55:36.430298+08:00"
+    },
+    {
+      "title": "Wonder which researcher (rhymes with TheMoon) wishes people didn’t know this?",
+      "link": "https://x.com/GaryMarcus/status/2087978445477474413",
+      "published": "2026-08-14T03:03:48+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Wonder which researcher (rhymes with TheMoon) wishes people didn’t know this?\n\n![Jürgen Schmidhuber](https://pbs.twimg.com/profile_images/1715797038535680000/ZFrYnYWD_normal.jpg)\n\nJürgen Schmidhuber@SchmidhuberAI\n\nThe first modern backprop-trained CNN for vision was published in 1988 in Japan by Wei Zhang (a Chinese researcher), J. Tanida, K. Itoh, Y. Ichioka. Wei brought it to Silicon Valley, earning 1998 FDA PMA approval for radiology’s 1st AI, reading 10M+ mammograms/yr in the US.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087897958138204162/vid/avc1/1920x1080/JEsrDVxSsqOo467E.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/SchmidhuberAI/status/2087902009038938586/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/SchmidhuberAI/status/2087902009038938586)\n\n💬1🔄2❤️10👀4015📊2",
+      "tags": [
+        "Jürgen Schmidhuber",
+        "CNN历史"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus评论Schmidhuber关于早期CNN历史贡献的说法。",
+      "fetched_at": "2026-08-14T04:55:36.430301+08:00"
+    },
+    {
+      "title": "The only cure for the constant talent hemorrhaging would start with a change at the top.",
+      "link": "https://x.com/GaryMarcus/status/2087976694221246806",
+      "published": "2026-08-14T02:56:51+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "The only cure for the constant talent hemorrhaging would start with a change at the top.\n\n![NIK](https://pbs.twimg.com/profile_images/2048822563821035520/7nxCFEnk_normal.jpg)\n\nNIK@ns123abc\n\n🚨BREAKING: OpenAI Chief Revenue Officer just quit after only 8 months, their SECOND CRO in less than a year… and their COO also quit yesterday  \n  \nwhat is going on at OpenAI\n\n![Tweet Image](https://pbs.twimg.com/media/HPnbZ8MWgAAgfWo.jpg)![Tweet Image](https://pbs.twimg.com/media/HPnbZ8OW8AAZPBl.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ns123abc/status/2087941144206283234)\n\n💬6🔄5❤️37👀4003📊8",
+      "tags": [
+        "OpenAI",
+        "CRO离职",
+        "人才流失"
+      ],
+      "score": 65,
+      "summary": "Gary Marcus评论OpenAI CRO离职，称人才流失根源在高层。",
+      "fetched_at": "2026-08-14T04:55:36.430303+08:00"
+    },
+    {
+      "title": "🆕 @GoogleAI's Gemini 3.7 Flash is now generally available and rolling out in GitHub Copilot.\n\nEarly...",
+      "link": "https://x.com/github/status/2087988626265395417",
+      "published": "2026-08-14T03:44:16+08:00",
+      "source": "GitHub(@github)",
+      "content": "🆕 [@GoogleAI](https://x.com/GoogleAI)'s Gemini 3.7 Flash is now generally available and rolling out in GitHub Copilot.  \n  \nEarly testing shows:  \n➡️ improvements in web and app development and agentic coding workflows  \n➡️ improvements in code quality, final-output presentation, codebase research, and verification during complex coding tasks  \n  \nTry it out in the GitHub Copilot app, CLI, and [@code](https://x.com/code).[github.blog/changelog/2026…](https://github.blog/changelog/2026-08-13-gemini-3-7-flash-is-now-available-in-github-copilot/)C\n\n![Tweet Image](https://pbs.twimg.com/media/HPoGXX6aIAAiyec.jpg)\n\n💬8🔄1❤️13👀4540📊8",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "GitHub Copilot"
+      ],
+      "score": 85,
+      "summary": "GitHub宣布Gemini 3.7 Flash全面上线Copilot。",
+      "fetched_at": "2026-08-14T04:55:36.430306+08:00"
+    },
+    {
+      "title": "Learn more:\nhttps://t.co/knKYgOqdTO",
+      "link": "https://x.com/googleaidevs/status/2087976606056763633",
+      "published": "2026-08-14T02:56:30+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Learn more:  \n[blog.google/innovation-and…](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-3-7-flash/)\n\n💬0🔄0❤️5👀827📊1",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "官方发布"
+      ],
+      "score": 88,
+      "summary": "Google AI开发者发布Gemini 3.7 Flash官方介绍链接。",
+      "fetched_at": "2026-08-14T04:55:36.430309+08:00"
+    },
+    {
+      "title": "One spec. Five native apps. Zero boilerplate.\n\nWatch how Gemini 3.7 Flash in @antigravity takes a si...",
+      "link": "https://x.com/googleaidevs/status/2087976604471267592",
+      "published": "2026-08-14T02:56:29+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "One spec. Five native apps. Zero boilerplate.  \n  \nWatch how Gemini 3.7 Flash in [@antigravity](https://x.com/antigravity) takes a single architecture specification and generates native, production-ready code across 5 mobile frameworks: Flutter, SwiftUI, Jetpack Compose, React Native, and NativeScript.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087976338988605440/vid/avc1/3840x2160/DdTDa6mQ8Q1snmGk.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2087976604471267592/video/1)\n\n💬2🔄3❤️29👀3291📊6",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "Antigravity",
+        "多框架"
+      ],
+      "score": 86,
+      "summary": "Google演示Gemini 3.7 Flash从单一规范生成5个原生应用。",
+      "fetched_at": "2026-08-14T04:55:36.430311+08:00"
+    },
+    {
+      "title": "Try https://t.co/L9YIua3HSf with 🆓 GLM 5.2 @ up to 500TPS from @blackboxai",
+      "link": "https://x.com/rauchg/status/2087982033499042205",
+      "published": "2026-08-14T03:18:04+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Try [eve.dev](https://eve.dev) with 🆓 GLM 5.2 @ up to 500TPS from [@blackboxai](https://x.com/blackboxai)\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nGLM 5.2 via [@blackboxai](https://x.com/blackboxai) is now free for eve agents on AI Gateway.  \n  \n✓ Free until Aug 27  \n✓ Fast (up to 500TPS)  \n✓ Use \"𝚣𝚊𝚒/𝚐𝚕𝚖-𝟻.𝟸\" in 𝚊𝚐𝚎𝚗𝚝.𝚝𝚜  \n✓ Default for new eve agents  \n  \n𝚗𝚙𝚡 𝚎𝚟𝚎@�[vercel.com/changelog/glm-…](https://vercel.com/changelog/glm-5-2-free-for-eve-agents-through-august-27-via-blackbox-on-ai-gateway)𝚎𝚠-𝚊𝚐𝚎𝚗𝚝  \n<https://t.co/uhhgsMbbLR>\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2087970380762013760)\n\n💬8🔄8❤️97👀13361📊17",
+      "tags": [
+        "GLM 5.2",
+        "Eve.dev",
+        "500TPS"
+      ],
+      "score": 70,
+      "summary": "Vercel CEO推广Eve.dev上免费使用GLM 5.2，最高500TPS。",
+      "fetched_at": "2026-08-14T04:55:36.430314+08:00"
+    },
+    {
+      "title": "Every Saturday, I write a short essay on working less, earning enough, and living right now.\n\nRead b...",
+      "link": "https://x.com/thejustinwelsh/status/2087977622135341112",
+      "published": "2026-08-14T03:00:32+08:00",
+      "source": "Justin Welsh(@thejustinwelsh)",
+      "content": "Every Saturday, I write a short essay on working less, earning enough, and living right now.  \n  \nRead by 200,000+.  \n  \nJoin us for free here: [justinwelsh.me/subscribe](https://www.justinwelsh.me/subscribe)\n\n💬2🔄0❤️1👀746📊2",
+      "tags": [
+        "Justin Welsh",
+        "订阅"
+      ],
+      "score": 30,
+      "summary": "Justin Welsh推广其每周一次的免费订阅通讯。",
+      "fetched_at": "2026-08-14T04:55:36.430316+08:00"
+    },
+    {
+      "title": "Go @maticrobots 🙌",
+      "link": "https://x.com/lennysan/status/2087984914830610441",
+      "published": "2026-08-14T03:29:31+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "Go [@maticrobots](https://x.com/maticrobots) 🙌\n\n💬1🔄0❤️2👀753📊1",
+      "tags": [
+        "Matic"
+      ],
+      "score": 30,
+      "summary": "Lenny Rachitsky对Matic机器人公司表示支持。",
+      "fetched_at": "2026-08-14T04:55:36.430319+08:00"
+    },
+    {
+      "title": "Gemini 3.7 Flash is now available on Poe.\n\n@GoogleAI's most intelligent workhorse model — fast, powe...",
+      "link": "https://x.com/poe_platform/status/2087994099731153370",
+      "published": "2026-08-14T04:06:01+08:00",
+      "source": "Poe(@poe_platform)",
+      "content": "Gemini 3.7 Flash is now available on Poe.  \n  \n[@GoogleAI](https://x.com/GoogleAI)'s most intelligent workhorse model — fast, powerful reasoning for coding and agents, across a 1M-token context window for text, images, audio, and video.  \n  \nTry it now → [poe.com/Gemini-3.7-Fla…](https://poe.com/Gemini-3.7-Flash)\n\n![Tweet Image](https://pbs.twimg.com/media/HPoLQbVXYAEFw3n.jpg)\n\n💬1🔄0❤️2👀586📊1",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "Poe"
+      ],
+      "score": 82,
+      "summary": "Poe平台正式上线Gemini 3.7 Flash。",
+      "fetched_at": "2026-08-14T04:55:36.430321+08:00"
+    },
+    {
+      "title": "It’s important not to let our biases stand in the way of our objectivity. To get good results, we ne...",
+      "link": "https://x.com/RayDalio/status/2087990551761096864",
+      "published": "2026-08-14T03:51:55+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "It’s important not to let our biases stand in the way of our objectivity. To get good results, we need to be analytical rather than emotional.  \n  \nWhenever I observe something in nature that I (or mankind) think is wrong, I assume that I’m wrong and try to figure out why what nature is doing makes sense. That has taught me a lot. It has changed my thinking about 1) what’s good and what’s bad, 2) what my purpose in life is, and 3) what I should do when faced with my most important choices. #principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HPoFbckX0AAJbIn.png)\n\n💬6🔄7❤️34👀9401📊11",
+      "tags": [
+        "Ray Dalio",
+        "原则"
+      ],
+      "score": 20,
+      "summary": "Ray Dalio分享关于保持客观分析的原则。",
+      "fetched_at": "2026-08-14T04:55:36.430325+08:00"
+    },
+    {
+      "title": "matic is the first robot i’ve owned that actually feels like it gets smarter with every update",
+      "link": "https://x.com/ryolu_/status/2087992867918864668",
+      "published": "2026-08-14T04:01:07+08:00",
+      "source": "Ryo Lu(@ryolu_)",
+      "content": "matic is the first robot i’ve owned that actually feels like it gets smarter with every update\n\n![Matic Robots](https://pbs.twimg.com/profile_images/2057582914804785152/4ptko5Yd_normal.jpg)\n\nMatic Robots@maticrobots\n\nIntroducing Cues: Voice & Gesture control for Matic  \n  \nWe raised $115M and spent 9 years to make the world’s first intuitive home robot  \n  \nSay you spilled coffee: Point to the spill and say, \"Hey Matic, clean this\" and it will hear, see, locate in 3D, and go clean on its own.  \n  \nMatic comes with a lot of features:  \n  \n1. Say \"Hey Matic\" - it locates your voice, turns, and looks at you  \n2. Say \"Hey Matic, follow me\" and start walking. Matic will follow behind  \n3. Say \"Hey Matic, go clean the living room\". Since it knows your house map, it navigates and just does it  \n  \nIt's so easy, a 5 year old and an 80 year old can use it and it understands 75 different languages.  \n  \nMatic has 8x the airflow, specialised cleaning algorithms for rugs, corners, toekicks, mopping, etc and cleans better than any other robot vacuum.  \nAlso keeps improving with software updates.  \n  \n13,000 families use and love Matic.  \nWIRED magazine gave it a 10/10 (the only hardware to receive this rating in a decade)  \n  \nBuy yours at [maticrobots.com](http://maticrobots.com) and if you don't love it after 6 months, we'll give you a full refund.  \n  \nTo celebrate our launch, we're cleaning 300 homes with Matic in San Francisco and New York City.  \n  \nComment \"Matic\" below, we'll send you the link to sign up and come to your doorstep to clean your home with Matic.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087962757044015104/vid/avc1/1280x720/9u6NpT8MCGwHOqUV.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/maticrobots/status/2087962897267990915/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/maticrobots/status/2087962897267990915)\n\n💬1🔄0❤️12👀1136📊2",
+      "tags": [
+        "Matic",
+        "语音控制"
+      ],
+      "score": 40,
+      "summary": "Ryo Lu称赞Matic机器人的Cues语音和手势控制功能。",
+      "fetched_at": "2026-08-14T04:55:36.430327+08:00"
+    },
+    {
+      "title": "... turns out Firefox and Chrome render these differently from Safari - Safari looks good to me, Fir...",
+      "link": "https://x.com/simonw/status/2087988362401742956",
+      "published": "2026-08-14T03:43:13+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "... turns out Firefox and Chrome render these differently from Safari - Safari looks good to me, Firefox and Chrome are missing important pieces  \n  \nI think it's because there's an SVG bug which Safari ignores, while Firefox and Chrome follow the spec\n\n💬0🔄0❤️6👀1323📊1",
+      "tags": [
+        "SVG",
+        "浏览器"
+      ],
+      "score": 35,
+      "summary": "Simon Willison发现SVG渲染在Safari与Firefox/Chrome之间存在差异。",
+      "fetched_at": "2026-08-14T04:55:36.430330+08:00"
+    },
+    {
+      "title": "Download Devin Desktop:\n\nhttps://t.co/3GW52oqv5g",
+      "link": "https://x.com/devindesktop/status/2087995114224591314",
+      "published": "2026-08-14T04:10:02+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "Download Devin Desktop:  \n  \n[devin.ai/desktop](https://devin.ai/desktop)\n\n💬0🔄0❤️0👀153",
+      "tags": [
+        "Devin Desktop"
+      ],
+      "score": 40,
+      "summary": "提供Devin Desktop下载链接。",
+      "fetched_at": "2026-08-14T04:55:36.430332+08:00"
+    },
+    {
+      "title": "Gemini 3.7 Flash is now available in Devin Desktop and Devin CLI at a 50% discount through August 27...",
+      "link": "https://x.com/devindesktop/status/2087995112983081194",
+      "published": "2026-08-14T04:10:02+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "Gemini 3.7 Flash is now available in Devin Desktop and Devin CLI at a 50% discount through August 27!\n\n![Cognition](https://pbs.twimg.com/profile_images/1765909640364068865/MvH-m0gd_normal.jpg)\n\nCognition@cognition\n\nGemini 3.7 Flash is now available in Devin.  \n  \nOn FrontierCode 1.1, it reaches Claude Sonnet 5-level performance at less than half the cost, with the low latency the Flash series is known for.\n\n![Tweet Image](https://pbs.twimg.com/media/HPoL9OJbIAA2ylX.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/cognition/status/2087994792819237357)\n\n💬1🔄2❤️5👀999📊2",
+      "tags": [
+        "Gemini 3.7 Flash",
+        "Devin Desktop",
+        "折扣"
+      ],
+      "score": 84,
+      "summary": "Devin Desktop和CLI支持Gemini 3.7 Flash，8月27日前半价。",
+      "fetched_at": "2026-08-14T04:55:36.430335+08:00"
     }
   ]
 }
