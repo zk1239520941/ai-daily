@@ -1981,6 +1981,211 @@
       "score": 80,
       "summary": "a16z发布Travis Kalanick访谈，介绍工业AI公司Atoms及Ben Horowitz最大投资。",
       "fetched_at": "2026-08-15T05:33:39.760145+08:00"
+    },
+    {
+      "title": "Don't classify. Hallucinate!",
+      "link": "https://simonwillison.net/2026/Aug/14/dont-classify-hallucinate/",
+      "published": "2026-08-15T05:54:35+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Don't classify. Hallucinate!](https://softwaredoug.com/blog/2026/08/10/hypothetical-classifications)**\n\nI still have quite a bit of older content on my blog that I never got round to tagging. My blog has [1,856 tags](https://simonwillison.net/) - likely too many to feed to an LLM in one go and say \"which of these tags match the following content\".\n\nDoug Turnbull has a neat solution. Tell the model to output tags without any details of the existing vocabulary, then use vector embeddings against the existing corpus to find the concrete tags that are closest to the ones the model imagined might fit!\n\nHis example prompt suggests including an example of the shape of your tags to help the model make a more useful guess:\n\n> `Your task is to create novel, never seen before, furniture, home goods, or hardware classification that best fit a search query.`\n>\n> `Product classifications might look like:`\n>\n> `Furniture / Living Room Furniture / Coffee Tables & End Tables / Coffee Tables`  \n> `Décor & Pillows / Decorative Pillows & Blankets / Throw Pillows`  \n> `Furniture / Bedroom Furniture / Dressers & Chests`  \n> `Kitchen & Tabletop / Kitchen Organization / Food Storage & Canisters`  \n> `School Furniture and Supplies / School Furniture / School Chairs & Seating / Stackable Chairs`  \n> `Baby & Kids / Toddler & Kids Bedroom Furniture / Kids Beds`\n>\n> `Here's the query to generate classifications for:`\n>\n> `brown coffee table`\n\nTags: [search](https://simonwillison.net/tags/search), [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [embeddings](https://simonwillison.net/tags/embeddings), [doug-turnbull](https://simonwillison.net/tags/doug-turnbull)",
+      "tags": [
+        "LLM标签生成",
+        "向量嵌入匹配"
+      ],
+      "score": 75,
+      "summary": "Simon Willison介绍利用LLM虚构分类再通过向量嵌入匹配现有标签的技巧。",
+      "fetched_at": "2026-08-15T06:32:45.085945+08:00"
+    },
+    {
+      "title": "Explaining the current capabilities of consumer AI to a normal person is basically impossible at thi...",
+      "link": "https://x.com/AiBreakfast/status/2088382191235641765",
+      "published": "2026-08-15T05:48:09+08:00",
+      "source": "AI Breakfast(@AiBreakfast)",
+      "content": "Explaining the current capabilities of consumer AI to a normal person is basically impossible at this point.  \n  \nAs it stands today, you can automate just about 100% of low to mid level remote jobs.  \n  \nOpenAI/Anthropic/Grok all have \"screen record a skill\" functions. They can all auto read/write emails. All of them can synthesize data, draw conclusions, recommend next steps, and now login to specialty software tools and execute tasks on your behalf for $20-200 a month.   \n  \nYou can spend a day or two dialing in a workflow and be hands off from that point.\n\n💬1🔄0❤️2👀950📊1",
+      "tags": [
+        "消费级AI",
+        "远程工作"
+      ],
+      "score": 55,
+      "summary": "AiBreakfast称当前消费级AI可自动化几乎所有中低层远程工作。",
+      "fetched_at": "2026-08-15T06:32:45.085960+08:00"
+    },
+    {
+      "title": "remember how i said OpenAI might turn out to be the WeWork of AI?",
+      "link": "https://x.com/GaryMarcus/status/2088374104013562217",
+      "published": "2026-08-15T05:16:01+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "remember how i said OpenAI might turn out to be the WeWork of AI?\n\n![Ricardo](https://pbs.twimg.com/profile_images/1894529472432340992/TnsGtwUV_normal.jpg)\n\nRicardo@Ric\\_RTP\n\nOpenAI is falling apart right now.  \n  \n9 of their most important leaders have left the company recently, and Altman is about to ask the public to buy the stock.  \n  \n2 of them even walked out within 72 hours of OpenAI handing its own staff $7 billion in cash...  \n  \nOn Monday, August 10, OpenAI completed a deal letting current and former employees sell roughly $7 billion worth of their shares. The price valued the company at $852 billion, the exact same number as its March funding round.  \n  \nOn Tuesday, August 11, Brad Lightcap announced he was leaving after 8 years. He spent 4 of them as chief financial officer, then ran the company as chief operating officer from 2022 until April. He worked alongside Sam Altman at Y Combinator before OpenAI existed.  \n  \nOn Thursday, August 13, chief revenue officer Denise Dresser announced she was leaving. She was hired in December from Salesforce, where she had been the CEO of Slack. In April she took over most of Lightcap's responsibilities. She lasted 8 months.  \n  \nThe cash window opened Monday. By Thursday both executives who ran the business side were gone.  \n  \nBut what's interesting is who actually wrote the $7 billion cheque:  \n  \nEvery previous time OpenAI let its employees cash out, an outside investor bought the shares. In October, Thrive Capital, SoftBank and others put up $6.6 billion at a valuation near $500 billion. There was a $1.5 billion version of the same deal in 2024.  \n  \nThis time OpenAI bought the shares back itself, using its OWN money.  \n  \nSo no outside investor put a single dollar behind that $852 billion price. The company named its own number and then paid it.  \n  \nThis is a business generating around $2 billion a month while losing roughly $1.22 for every single dollar it earns.  \n  \nAnd it just spent $7 billion of that cash buying its own stock at a number no third party ever tested.  \n  \nHere is the full list of the people who left since April:  \n  \n- Bill Peebles, who ran the Sora video app  \n- Kevin Weil, vice president of OpenAI for Science  \n- Srinivas Narayanan, technology chief of B2B applications  \n- Kate Rouch, chief marketing officer  \n- Josh Achiam, chief futurist, after nearly nine years  \n- Johannes Heidecke, head of Safety Systems  \n- Chloe Bakalar, the only person at OpenAI whose entire job was ethics  \n- Brad Lightcap  \n- Denise Dresser  \n  \nBakalar left in July. OpenAI never announced it, and NOBODY has replaced her.  \n  \nFidji Simo stepped down the same month, and two thirds of the organization had been reporting to her.  \n  \nGreg Brockman absorbed most of her job. He also introduced Dresser's replacement this week, a Wiz executive named Dali Rajic.  \n  \nOpenAI filed its IPO paperwork confidentially on June 8. The full prospectus, the one with audited financials in it, still has not appeared.  \n  \nSo the order of operations is worth sitting with...  \n  \nFile the paperwork in June. Buy your insiders out in August at a price you set yourself. Watch the people who built the commercial side leave that same week. Then show the public the books.  \n  \nRetail investors will see those numbers for the first time in a document written after every one of these people had already made their decision.  \n  \nSam Altman told staff in June that he expects to go public within the next year. Reporting since then has pointed at 2027 instead, and a tender offer of this size is usually what a company does when the listing is not close.  \n  \nHere is what I think happens next:  \n  \nThat prospectus lands with a revenue line big enough to carry the story, and the executive turnover gets buried in the risk factors where almost nobody reads. The people who priced OpenAI at $852 billion this month were the same people who took the money out of it; and the next set of buyers will not get that arrangement.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088261106129100800/vid/avc1/2114x1206/0yLwWeuFBj-JKU9q.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Ric_RTP/status/2088261230054060274/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/Ric_RTP/status/2088261230054060274)\n\n💬2🔄5❤️19👀2683📊4",
+      "tags": [
+        "OpenAI",
+        "高管离职",
+        "股票回购"
+      ],
+      "score": 85,
+      "summary": "Gary Marcus引用消息称OpenAI多名高管离职，公司自购70亿美元股票。",
+      "fetched_at": "2026-08-15T06:32:45.085963+08:00"
+    },
+    {
+      "title": "We're giving out 100 coupons, $10 each, one per person, first come first served\n\nTo get started with...",
+      "link": "https://x.com/OpenRouter/status/2088372713949937975",
+      "published": "2026-08-15T05:10:29+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "We're giving out 100 coupons, $10 each, one per person, first come first served  \n  \nTo get started with Ori Harness:  \n  \n$ curl -fsSL [openrouter.ai/labs/ori/insta…](https://openrouter.ai/labs/ori/install.sh) | bash  \n  \nUse any harness:  \n  \n$ ori {claude, codex, opencode, hermes, pi, deepseek, etc}  \n  \nRead more at: [openrouter.ai/ori/harness](https://openrouter.ai/ori/harness)\n\n💬0🔄0❤️2👀671",
+      "tags": [
+        "OpenRouter",
+        "Ori Harness",
+        "优惠券"
+      ],
+      "score": 40,
+      "summary": "OpenRouter发放100张$10优惠券推广Ori Harness。",
+      "fetched_at": "2026-08-15T06:32:45.085966+08:00"
+    },
+    {
+      "title": "We pinned the code in the #ori channel in the OpenRouter Discord. Grab it there, redeem at https://t...",
+      "link": "https://x.com/OpenRouter/status/2088372702117790104",
+      "published": "2026-08-15T05:10:26+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "We pinned the code in the #ori channel in the OpenRouter Discord. Grab it there, redeem at [openrouter.ai/redeem](https://openrouter.ai/redeem), then tell us what breaks and what you want next:  \n  \nJoin the #ori channel: [discord.com/channels/10912…](https://discord.com/channels/1091220969173028894/1533872006813188186)\n\n💬1🔄0❤️2👀773📊1",
+      "tags": [
+        "OpenRouter",
+        "Ori Harness",
+        "Discord"
+      ],
+      "score": 40,
+      "summary": "OpenRouter在Discord公布兑换码，邀请用户反馈。",
+      "fetched_at": "2026-08-15T06:32:45.085968+08:00"
+    },
+    {
+      "title": "We're giving you a $10 coupon to build on Ori Harness this weekend\n\nWhat will you build?\n\nRun your f...",
+      "link": "https://x.com/OpenRouter/status/2088372690180882564",
+      "published": "2026-08-15T05:10:24+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "We're giving you a $10 coupon to build on Ori Harness this weekend  \n  \nWhat will you build?  \n  \nRun your favorite agent - Claude Code, Codex, DeepSeek, and more - with 500+ models, 70+ providers, all in one account, on OpenRouter  \n  \nRedeeming is easy:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088372677778292737/vid/avc1/960x720/Vw2eiG49NTD6Ta4j.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/OpenRouter/status/2088372690180882564/video/1)\n\n💬6🔄3❤️18👀2154📊9",
+      "tags": [
+        "OpenRouter",
+        "Ori Harness",
+        "优惠券"
+      ],
+      "score": 40,
+      "summary": "OpenRouter送$10优惠券鼓励构建Ori Harness。",
+      "fetched_at": "2026-08-15T06:32:45.085970+08:00"
+    },
+    {
+      "title": "When they returned, the first new idea they mentioned was great. Even better than they realized. We ...",
+      "link": "https://x.com/paulg/status/2088389544836280581",
+      "published": "2026-08-15T06:17:22+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "When they returned, the first new idea they mentioned was great. Even better than they realized. We only had to talk about it for 10 minutes. In 3 minutes more we found a good domain for less than $5000. So 15 minutes total and they walk out with a good idea and a good name.\n\n💬0🔄0❤️2👀224",
+      "tags": [
+        "Paul Graham",
+        "创业建议"
+      ],
+      "score": 40,
+      "summary": "Paul Graham分享创业者找到新想法和域名的过程。",
+      "fetched_at": "2026-08-15T06:32:45.085972+08:00"
+    },
+    {
+      "title": "One startup today was ready to give up because their idea wasn't working. I suggested they just star...",
+      "link": "https://x.com/paulg/status/2088388382590451841",
+      "published": "2026-08-15T06:12:45+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "One startup today was ready to give up because their idea wasn't working. I suggested they just start over from scratch with a new idea and defer to the next demo day. I sent them to have lunch and mull over potential new ideas and come back at the end of office hours.\n\n💬9🔄0❤️46👀3666📊10",
+      "tags": [
+        "Paul Graham",
+        "创业建议"
+      ],
+      "score": 40,
+      "summary": "Paul Graham建议失败的创业项目推倒重来，延期至下届演示日。",
+      "fetched_at": "2026-08-15T06:32:45.085974+08:00"
+    },
+    {
+      "title": "❤️ Crowd & Judges Favorite — The ChronoGlobe by Noni / Shehnoor Ansari (@Noni_Shehnoor)\n\nAn immersiv...",
+      "link": "https://x.com/Replit/status/2088385178750370208",
+      "published": "2026-08-15T06:00:01+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "❤️ Crowd & Judges Favorite — The ChronoGlobe by Noni / Shehnoor Ansari ([@Noni\\_Shehnoor](https://x.com/Noni_Shehnoor))  \n  \nAn immersive journey through the ancient world, a living globe you step inside. Explore Rome and Giza.  \n  \nWhat we liked: this one selected itself. Praise everywhere, on Discord, X, and LinkedIn, tons of Replicash and favorites. The community spoke.  \n  \n🔗[thechronoglobe.replit.app](http://thechronoglobe.replit.app)j\n\n💬1🔄0❤️3👀398📊1",
+      "tags": [
+        "Replit",
+        "ChronoGlobe",
+        "Designathon"
+      ],
+      "score": 70,
+      "summary": "Replit设计大赛获奖作品ChronoGlobe获社区和评委喜爱。",
+      "fetched_at": "2026-08-15T06:32:45.085976+08:00"
+    },
+    {
+      "title": "That's all 10 wins across 9 incredible builders. 🏆\n\nHuge congrats to everyone who won, and to every...",
+      "link": "https://x.com/Replit/status/2088385179081748590",
+      "published": "2026-08-15T06:00:01+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "That's all 10 wins across 9 incredible builders. 🏆  \n  \nHuge congrats to everyone who won, and to everyone who submitted. This community shows up! 🙌  \n  \nCatch the full announcement show replay [youtu.be/BBC0QyQnoRE](https://youtu.be/BBC0QyQnoRE)Ym\n\n💬0🔄0❤️2👀586",
+      "tags": [
+        "Replit",
+        "Designathon",
+        "获奖名单"
+      ],
+      "score": 70,
+      "summary": "Replit公布设计大赛10个奖项全部得主。",
+      "fetched_at": "2026-08-15T06:32:45.085979+08:00"
+    },
+    {
+      "title": "The Designathon winners are in! 🏆\n\n$50K+ in cash and credits, 3 grand prizes + 7 category awards, a...",
+      "link": "https://x.com/Replit/status/2088385172836331881",
+      "published": "2026-08-15T06:00:00+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "The Designathon winners are in! 🏆  \n  \n$50K+ in cash and credits, 3 grand prizes + 7 category awards, and some amazing work from the community built with Replit Design.  \n  \nHere's every winner and why they stood out 🧵\n\n![Tweet Image](https://pbs.twimg.com/media/HPtrjTBXcAA5P2l.jpg)\n\n💬1🔄4❤️7👀1793📊3",
+      "tags": [
+        "Replit",
+        "Designathon",
+        "5万美元奖金"
+      ],
+      "score": 70,
+      "summary": "Replit设计大赛公布获奖者，总奖金超5万美元。",
+      "fetched_at": "2026-08-15T06:32:45.085981+08:00"
+    },
+    {
+      "title": "Congratulations to the Cursor team on an exciting next phase! Have always admired the incredible wor...",
+      "link": "https://x.com/ScottWu46/status/2088370147136614413",
+      "published": "2026-08-15T05:00:17+08:00",
+      "source": "Scott Wu(@ScottWu46)",
+      "content": "Congratulations to the Cursor team on an exciting next phase! Have always admired the incredible work you all have done in a few short years.  \n  \nOne of the best teams in Silicon Valley today.\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nCursor is now part of [@SpaceX](https://x.com/SpaceX).   \n  \nToday, we have officially closed our acquisition. We will join the [@SpaceXAI](https://x.com/SpaceXAI) team to help make Grok the world's most useful AI and improve Grok Build, Grok Bot, Grok API, Cursor, and more.  \n  \nSpaceX has built some of the most inspiring and impressive technology in the world, and we’re grateful for the opportunity to become part of such a special company. Onwards.\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2088249881718919393)\n\n💬11🔄7❤️434👀15535📊40",
+      "tags": [
+        "Cursor",
+        "SpaceX",
+        "收购"
+      ],
+      "score": 88,
+      "summary": "Cursor正式被SpaceX收购，将加入SpaceXAI团队。",
+      "fetched_at": "2026-08-15T06:32:45.085983+08:00"
+    },
+    {
+      "title": "Michael Truell in 2025 on Cursor's trajectory:\n\n\"Eventually in the future, we want to touch the mode...",
+      "link": "https://x.com/a16z/status/2088385269619957871",
+      "published": "2026-08-15T06:00:23+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Michael Truell in 2025 on Cursor's trajectory:  \n  \n\"Eventually in the future, we want to touch the model side of things... that's actually been a really important product lever for us.\"  \n  \n\"I do think we're gonna need to be a multi-product company going into the future.\"  \n  \n\"There's a whole AI coding bundle to be built, and we want to be, for many of our customers, the AI coding provider for them.\"  \n  \n\"The ways in which work is changing within the editor start to affect how teams work together too... It's necessary to have the best editor, as to also have this complement that's helping teams review and collaborate.\"  \n  \n[@mntruell](https://x.com/mntruell) w/ [@martin\\_casado](https://x.com/martin_casado), a16z Runtime 2025\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088385205572960256/vid/avc1/1280x720/vTb-KYgQOzj-w6r3.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2088385269619957871/video/1)\n\n![Sarah Wang](https://pbs.twimg.com/profile_images/1778898223165521920/8FfWUPa__normal.jpg)\n\nSarah Wang@sarahdingwang\n\n[x.com/i/article/2088…](https://x.com/i/article/2088266757551316992)\n\n[🔗 View Quoted Tweet](https://x.com/sarahdingwang/status/2088271571848986965)\n\n💬2🔄1❤️10👀3350📊2",
+      "tags": [
+        "Cursor",
+        "Michael Truell",
+        "AI编程"
+      ],
+      "score": 72,
+      "summary": "a16z分享Michael Truell谈Cursor未来计划和AI编程。",
+      "fetched_at": "2026-08-15T06:32:45.085985+08:00"
+    },
+    {
+      "title": "Cursor, 4 years ago",
+      "link": "https://x.com/a16z/status/2088372597788729570",
+      "published": "2026-08-15T05:10:02+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Cursor, 4 years ago\n\n![Tweet Image](https://pbs.twimg.com/media/HPtjz3ObwAAoiNk.jpg)\n\n![Sarah Wang](https://pbs.twimg.com/profile_images/1778898223165521920/8FfWUPa__normal.jpg)\n\nSarah Wang@sarahdingwang\n\n[x.com/i/article/2088…](https://x.com/i/article/2088266757551316992)\n\n[🔗 View Quoted Tweet](https://x.com/sarahdingwang/status/2088271571848986965)\n\n💬8🔄17❤️154👀15885📊22",
+      "tags": [
+        "Cursor",
+        "四年回顾"
+      ],
+      "score": 60,
+      "summary": "a16z分享Cursor四年前的照片，回顾发展历程。",
+      "fetched_at": "2026-08-15T06:32:45.085987+08:00"
     }
   ]
 }
