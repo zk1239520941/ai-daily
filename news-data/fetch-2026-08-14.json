@@ -3419,6 +3419,352 @@
       "score": 60,
       "summary": "npm 12发布，默认禁用安装脚本，要求显式信任以避免安全风险。",
       "fetched_at": "2026-08-14T16:24:34.472614+08:00"
+    },
+    {
+      "title": "Serverless vehicle tracking at scale: Bosch L.OS on AWS",
+      "link": "https://aws.amazon.com/blogs/architecture/serverless-vehicle-tracking-at-scale-bosch-l-os-on-aws/",
+      "published": "2026-08-14T18:02:13+08:00",
+      "source": "AWS Architecture Blog",
+      "content": "When Bosch Mobility Platform Solutions set out to unify vehicle tracking across India’s fragmented spot logistics market, they faced a daunting reality: dozens of telematics providers, incompatible data formats, and thousands of concurrent tracking requests — all needing real-time resolution. The result was L.OS, a serverless platform on AWS that standardizes this chaos into a single visibility layer.\n\nIn this post, we’ll show you how [Bosch Mobility Platform Solutions](https://www.l-os.com/in/en) (MPS) uses AWS services to solve these challenges through their L.OS solution. You’ll learn how Bosch built a scalable, serverless architecture that standardizes and integrates multiple tracking data sources, so you can achieve real-time visibility and data-driven decision-making across complex logistics networks.\n\n## Key challenges in logistics visibility\n\nIf you manage a modern supply chain, you face several critical challenges:\n\n1. Data fragmentation and integration complexity.\n   * Multiple tracking systems with incompatible data formats.\n   * Different communication protocols across providers.\n   * Lack of standardization in data exchange.\n   * Complex and costly point-to-point integrations.\n2. Operational inefficiencies.\n   * Manual coordination between stakeholders.\n   * Time-consuming reconciliation of conflicting information.\n   * Difficulty in providing accurate ETAs.\n   * Limited real-time visibility into shipment status.\n3. Scale and performance issues.\n   * High volume of concurrent tracking requests.\n   * Variable data quality from different sources.\n   * Performance bottlenecks during peak operations.\n   * Cost implications of real-time tracking.\n4. Regional complexities.\n   * Fragmented spot logistics networks.\n   * Multiple intermediaries in the supply chain.\n   * Varying levels of technological adoption.\n   * Regional compliance requirements (such as AIS140 and FASTag in India).\n\n## Introducing L.OS on AWS: A unified visibility solution\n\nTo address these challenges, Bosch’s Logistics Operating System (L.OS) on AWS provides a horizontal integration layer that connects previously siloed logistics solutions. The solution features a service catalog where solution providers and consumers can collaborate to solve complex use cases, fostering innovation in the logistics sector. Let’s explore how L.OS enhances vehicle visibility through its core workflows: discovery, tracking, and termination.\n\n### Discovery\n\nWhen a client needs to track a vehicle, the service app makes a discovery call to the L.OS gateway. This call includes essential details such as the vehicle number plate or vehicle identification number (VIN). Upon receiving the request, the L.OS solution performs necessary authentication and authorization. L.OS then broadcasts the request and waits for acknowledgment from one or more connected participants. The responses contain information such as the mode, frequency, and reliability of tracking, which can be used for shortlisting and decision-making.\n\nThe following diagram illustrates the discovery workflow, showing how a client’s tracking request flows through L.OS to connected participants and back.\n\n![Discovery workflow diagram showing how a client’s tracking request flows through L.OS to connected participants](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/13/ARCHBLOG-1243-1.png)\n\nFigure 1 – The discovery flow: the service app sends a discovery call to the L.OS gateway with vehicle identifiers. L.OS broadcasts the request to connected participants, collects acknowledgments containing tracking mode, frequency, and reliability details, and returns them to the consumer for shortlisting.\n\n### Tracking\n\nOnce the consumer has selected a vehicle and a service provider (if there are multiple options), a request is sent to the L.OS to initiate tracking. This request is relayed to the specific service provider. The tracking mode determines who must grant consent. For SIM tracking, a consent request goes to the driver. For GPS tracking, it goes to the fleet owner. The solution waits for the tracking provider to create the trip. Upon receiving confirmation, L.OS registers the tracking request and provides a unique tracking ID to indicate that tracking has been initiated. From here, the consumer is asynchronously notified of the vehicle’s location at the specified frequency, or the maximum frequency supported by the service provider, whichever is faster. Consumers can also request the live location of the vehicle at any time between the regular reporting intervals.\n\nThe following diagram shows the tracking workflow, from initiation through consent, trip creation, and ongoing location updates.\n\n![Tracking workflow diagram showing initiation, consent, trip creation, and location updates](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/13/ARCHBLOG-1243-2.png)\n\nFigure 2 – The tracking flow: the consumer sends a tracking request to L.OS, which relays it to the selected service provider. A consent request is issued (to the driver for SIM tracking, or the fleet owner for GPS tracking). Once the provider confirms trip creation, L.OS returns a unique tracking ID and begins delivering asynchronous location updates at the agreed frequency.\n\n### Termination\n\nThe tracking is automatically terminated when the vehicle enters the destination geo-fence. Alternatively, tracking can be terminated manually by sending an explicit request to L.OS, which is then relayed to the service provider.\n\n## Architecture overview\n\nThe L.OS solution built on AWS uses various services to create a scalable, secure, and maintainable system. The architecture implements serverless components ([AWS Lambda](https://aws.amazon.com/lambda/) adapters) where appropriate while using containers ([Amazon Elastic Container Service (Amazon ECS) with AWS Fargate](https://aws.amazon.com/fargate/)) for the core connector service. Let’s explore how these AWS managed services work together to create a flexible and scalable integration solution. The following diagram shows the end-to-end architecture, illustrating how requests flow from client applications through the API layer, into the core connector service, and out to individual tracking providers.\n\n![L.OS end-to-end architecture on AWS showing client applications, API Gateway, ECS Fargate connector, Lambda adapters, and Amazon MSK](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2026/08/13/ARCHBLOG-1243-3.png)\n\nFigure 3 – L.OS architecture on AWS: Client applications connect through Amazon API Gateway to the Tracking Connector running on Amazon ECS Fargate, which handles protocol standardization, routing, and session management. Provider-specific Lambda adapters translate between the standardized connector API and each tracking provider’s API. Amazon MSK serves as the event bus for asynchronous location updates. Amazon ElastiCache provides low-latency caching for frequently accessed data, Amazon DynamoDB stores business rules and security policies, and the Marketplace Subscription Management service (also on Fargate) handles authentication, customer relationships, and provider configurations. Amazon QuickSight delivers real-time monitoring and usage analytics.\n\n### Key components\n\nThe architecture comprises five core components that work together to deliver reliable, real-time vehicle tracking at scale. Each component handles a distinct responsibility — from protocol translation to event streaming — allowing the system to scale and evolve independently.\n\n#### Centralized orchestration with Amazon ECS Fargate\n\nThe Tracking Connector, running on Amazon ECS Fargate, serves as the central orchestration layer. It handles critical functions including:\n\n* Protocol standardization across multiple providers.\n* Intelligent request routing.\n* Response aggregation.\n* Session management.\n* Comprehensive error handling.\n* Performance optimization using [Amazon ElastiCache](https://aws.amazon.com/elasticache/).\n\n#### Serverless provider integration\n\nWe use AWS Lambda to implement Tracking Adapters that handle provider-specific transformations. These adapters efficiently translate between our standardized connector API and various provider APIs, allowing for easy onboarding of new providers.\n\n#### Event-driven communication\n\n[Amazon MSK](https://aws.amazon.com/msk/) (Managed Streaming for Apache Kafka) powers our message bus, enabling:\n\n* Standardized topic patterns.\n* Support for multiple domain connectors.\n* Real-time data streaming for tracking, parking, vehicle health, charging, and fleet management.\n\n#### Subscription and access management\n\nThe Marketplace Subscription Management service, deployed on [Amazon ECS Fargate,](https://aws.amazon.com/pm/ecs/) manages:\n\n* Customer relationships.\n* Service consumer configurations.\n* Provider integrations.\n* Authentication and authorization token claims.\n\n#### Policy and security enforcement\n\nWe use [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) to store and manage:\n\n* Business rules.\n* Security policies.\n* Authorization configurations.\n* Routing rules.\n\n#### Monitoring and analytics\n\n[Amazon QuickSight](https://aws.amazon.com/quick/quicksight/) provides:\n\n* Real-time system performance metrics.\n* Usage analytics.\n* Health monitoring.\n* Anomaly detection.\n\n## Benefits\n\nBy implementing this serverless architecture on AWS, Bosch L.OS achieved significant improvements in vehicle tracking capabilities:\n\n#### Operational efficiency\n\nThe combination of standardized Lambda adapters and the centralized Tracking Connector on ECS Fargate eliminates the manual coordination that previously slowed provider onboarding. Where ISVs once spent 2–4 weeks on bespoke integration work for each new customer request, the standardized connector API and adapter pattern reduces this to within 3 days. Real-time data validation at the connector layer — before events reach downstream consumers — also improves data accuracy by catching format inconsistencies at ingestion rather than during reconciliation.\n\n#### Scalability and performance\n\nBecause the core connector runs on Fargate with auto-scaling task definitions, and each provider adapter is an independent Lambda function, the system scales horizontally without manual intervention. Bosch’s deployment currently handles 35,000 trips per day — each generating multiple location events — with sub-second response times for 99.9% of tracking queries. As new ISVs are onboarded, additional Lambda adapters are deployed independently, so scaling the provider network does not add load to existing integrations.\n\n#### Cost optimization\n\nIntegrations in fragmented logistics markets often stall because multiple vendors must coordinate through manual processes — handoffs, SIM card provisioning, consent management, and troubleshooting. By automating these workflows within the L.OS connector layer and MSK event bus, Bosch estimates integration costs are reduced by 15–20%. The architecture also removes per-vendor overhead (SIM management, consent flows, provider-specific troubleshooting) that was previously passed on to small transporters. This potentially lowers their total tracking costs by 25–30%.\n\n#### Enhanced customer experience\n\nThe unified API Gateway endpoint and MSK-powered event streaming mean consumers receive location updates from any connected provider through a single interface — regardless of the underlying tracking technology. What previously required hours of manual coordination across providers now surfaces as a consolidated event within approximately 1 minute, according to Bosch. Improved ETA accuracy is a direct result: with standardized, high-frequency location data flowing through ElastiCache, downstream planning systems can compute more reliable arrival predictions.\n\n#### Compliance and security\n\nDynamoDB-backed policy enforcement ensures that business rules, authorization configurations, and regional compliance requirements (such as India’s AIS140 and FASTag mandates) are evaluated consistently on every request. The built-in security features of AWS — IAM roles, virtual private cloud (VPC) isolation, and encryption at rest and in transit — provide the baseline. Automated audit trails captured through the event bus give organizations a verifiable record of all tracking operations.\n\n#### L.OS growth\n\nL.OS is currently operational in India with 10 integrated ISVs. The serverless adapter pattern makes geographic expansion straightforward: new region-specific adapters can be deployed as independent Lambda functions without modifying the core connector. Bosch plans to use this approach to expand into Europe for trailer monitoring use cases.\n\n## Conclusion\n\nIn this post, we showed how Bosch built L.OS, a serverless vehicle tracking platform on AWS that unifies fragmented logistics visibility into a single integration layer. By using AWS services such as Amazon ECS with Fargate for centralized orchestration and AWS Lambda for provider-specific adapters, the architecture standardizes multiple tracking providers into a unified API.\n\nThis standardization eliminates the need for maintaining multiple point-to-point integrations, freeing you to focus on core operations instead of managing repetitive integration tasks. Through strategic collaboration with key stakeholders in the visibility solutions space, L.OS is helping businesses achieve measurable outcomes: enhanced customer experience, increased operational agility, reduced operational expenses, and improved profit margins.\n\nWhat started as a vehicle tracking solution is now evolving into a broader mobility services portfolio, powered by the scalable infrastructure that AWS provides. This evolution positions L.OS to address not only today’s tracking needs, but a broader range of logistics use cases as they emerge.\n\nIf you have questions or feedback about this post, leave a comment in the comments section.\n\n* To learn more about the AWS services used in this solution, explore these resources:\n  + [Explore the sample code for this solution on GitHub](https://github.com/aws-samples/sample-guidance-for-serverless-vehicle-tracking-on-aws) — includes Infrastructure as Code templates, Lambda function source code, and step-by-step deployment instructions.\n  + [Building real-time fleet tracking applications on AWS](https://aws.amazon.com/blogs/architecture/field-notes-fleet-tracking-using-amazon-location-service-with-aws-iot/)\n  + [Best practices for container-based applications using Amazon ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-best-practices.html)\n  + [Implementing event streaming with Amazon MSK](https://aws.amazon.com/blogs/big-data/building-serverless-event-streaming-applications-with-amazon-msk-and-aws-lambda/)\n\nFor more information about the Bosch L.OS solution and its capabilities, visit [Bosch L.OS website](https://www.l-os.com/in/en/solutions).\n\nContact your AWS account team to learn how we can help you build similar solutions for your logistics operations.\n\n---\n\n## About the authors",
+      "tags": [
+        "Bosch L.OS",
+        "无服务器",
+        "AWS"
+      ],
+      "score": 70,
+      "summary": "Bosch在AWS上构建可扩展的无服务器车辆跟踪平台。",
+      "fetched_at": "2026-08-14T18:14:19.289566+08:00"
+    },
+    {
+      "title": "实测GLM-5.3: 在神仙打架的一周杀回国模顶流，还按下了重置键",
+      "link": "https://www.ifanr.com/1675225?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-14T17:44:28+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/ChatGPT-Image-20217_03_48.png)\n\n神仙打架，这周的大模型圈，已经卷到了几乎一天一个新旗舰。\n\n有 Cursor 数据加持的 Grok 4.6 突飞猛进，马斯克还说 4.7 马上就要来；DeepSeek V4 Pro 正式版虚晃一枪后正式发布，多项 benchmark 直指 Fable 5；还有一个不能算旗舰的 Gemini Flash。\n\n然后今天，智谱也把 GLM-5.3 端了上来。\n\n这个在 5.2 期间，一直被调侃「我知道很好用，但不给我开会员用」的顶尖国产编程模型，终于迎来了更新。\n\n新的模型继续在编程方面发力，评测榜单的结果显示，**GLM-5.3 在编程能力上比肩 Fable 5 和 GPT-5.6 Sol**。在社交媒体上参与内测用户的反馈则提到，**使用体感比 Kimi K3、DeepSeek V4-Pro-0813 要更好**。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_13-30-25.png)\n\n能跟 GLM-5.3 上桌对比的模型，在可视化图表中只剩下了 Kimi K3、Fable 5 和 GPT-5.6 Sol。以前是开源自己一堆模型对比，不找闭源自讨苦吃，现在是「对标 Fable 5」成了开源的基本配置。\n\n六个 benchmark，GLM-5.3 的表现都不赖，尤其是由 OpenAI 提出的 GDPVal 评估测试，智谱拿到了第一名。\n\nAutomationBench、Agents’ Last Exam，一个是用来测试跨应用工作流编排能力，一个是测试智能体能力，GLM-5.3 的成绩也是数一数二。\n\n和 Kimi K3、Qwen3.8-Max 迈向万亿大参数不同，GLM-5.3 这次参数量和上一版本差不多，同样是 7000 亿参数级别。官方技术博客中提到，**此次升级带来的提升主要原因是后训练 Scaling**。\n\n就是靠着 743B 的基模，智谱训练出来了 Kimi K3 2.8T 级别的大模型。\n\n> 我们在与 GLM-5.2 完全相同基座上高效推进强化学习，可能我们还远未开发出这个基座（即 GLM-5.2 模型）的智能上界。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_13-35-59.png)\n\n▲ 更完整的 benchmark 对比，经过后训练的 GLM-5.3 对比 GLM-5.2 提升相当明显，Coding、网络安全和 Agentic 成绩进步都不像是一个基座模型。\n\n不得不说，现在大模型做好后训练在某些程度上比预训练都更好使。就拿四月份发布的 DeepSeek V4 Flash 预览版和 7 月底发布的正式版相比，两个模型的能力几乎是断层的。\n\n智谱这次还开源了名为史莱姆 Slime 的一个后训练框架，直接能覆盖发布级模型后训练所需要的完整工作流。他们说**从 GLM 4.5 开始，就一直在用这套框架进行后训练**。\n\n目前 Slime 支持对 GLM 系列、Qwen 系列以及 DeepSeek 系列的部分模型和 Llama 3 进行后训练。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_13-51-45.png)\n\n▲ 教你如何用 128xH100 训练 DeepSeek R1，以及如何蒸馏\n\n除了主打编程，GLM-5.3 的另一个重点方向是网络安全。从 Hugging Face 事件开始，现在哪个模型不能谈谈网络安全，都算不上是一个好模型。\n\n无论是模型的攻击能力强，能逃出设置的沙箱，还是防守能力强，能监控、抵御和分析复杂的 AI Zero Day 漏洞；这些以前听着离我们普通用户很远的东西，也成了大模型角力的新赛场。\n\nGLM-5.3 在网络安全相关的任务中，表现与 Claude Mythos 5 持平。其中 ExploitGym 网络安全测试，就是 OpenAI 在评估自己的待发布模型时，为了解决更多问题去攻击了 Hugging Face，GLM-5.3 的表现也非常不错，898 到题，限时 6 小时内完成的情况下，达到了 130 道。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_14-05-15.png)\n\n针对模型的网络安全能力，智谱还公开了一项网络安全披露账本，记录模型在不同的项目中找到的各种漏洞。**GLM 找到的最古老漏洞，甚至可以追溯到大约 40 年前**。\n\n40 年都没找到，GLM-5.3 一出手就找到了，放 OpenAI 或者 A 社手里，这不比证明了一个数学难题强吗。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_14-01-30.png)\n\n▲ 网络安全披露账本 https://cvd.z.ai/\n\n虽然我们普通用户不会拿它去找各种攻防漏洞，但模型的能力提升是实打实的，具体到日常的办公和编程任务上，GLM-5.3 的表现又如何。\n\nAPPSO 提前拿到了 GLM-5.3 的测试资格，继续用一些 3D 网页生成、网页应用开发、macOS 小工具开发等任务，来看看 GLM-5.3 的表现是否能快速实现我们的想法。\n\n目前 GLM-5.3 已经上线智谱官方 Agent 应用 Zcode 和效率工具 AutoClaw，同时面向 GLM Coding Plan 用户全量开放并开放订阅。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_14-37-05.png)\n\n▲ 在 Zcode 应用内可以直接选择 GLM-5.3 进行体验\n\n第三方平台像是 WorkBuddy，QwenWork，TraeWork 等应用也已经开放抢先体验。而 API 调用预计在下周二开放，模型的完整权重则会在两周内开源。\n\n## 当所有 AI 都开始卷编程\n\n相较于写作或者文科领域，那些见仁见智，审美无法统一的任务，编程大概是大模型最适合发力的场景。\n\n简单粗暴的一句提示词丢进去，就等着看它用代码能写出什么好看好玩有意思的画面。\n\n我们先是让它做了一个人体血液循环的 3D 交互仿真系统，原以为它会做一个写实的人体透视，至少像是这种细节满满的 3D 仿真，有真实的身体轮廓，合理排放的血管，真实的肌肉线条。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/D654A6DBA4E6C909CBB396832A1_603F03E2_63CAF.jpg)\n\n但不知道是不是提示词不够详细，GLM-5.3 给的交付是看起来比较粗糙的版本。整个人更像是一个火柴人，内部器官也全部堆在了一起。\n\n比较难得的是，整个的演示有较多的自定义，例如视图图层可以选择不同的场景，生理参数也有心率、压力等内容。我们甚至可以选择失血性休克的场景，直接看到血液循环的流向。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_14-44-45.png)\n\n▲ 提示词：做一个高精度的人体血压循环 3D 可交互仿真系统，使用 GLM-5.3 + Claude Code\n\n总的来说，这个交互网页能够用在教学场景，但就是没有那么好看。\n\n继续我们在 DeepSeek Harness 中的金字塔滑板游戏测试，同样的提示词，GLM-5.3 + Claude Code 最高推理深度给出的结果也不赖——游戏体验好，场景渲染也准确。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7ed57c6ecd1.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7ed57c6ecd1.png)\n\n▲ 如果你不好好操作，可能真的会输，只是这个滑板的残影，过于「亮眼」。\n\n当我们想要它生成一些惊艳的 3D 场景时，像是一个满是水母的湖，数百万只写实的水母在一片翡翠湖泊里飘动。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7ed5a78c26e.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7ed5a78c26e.png)\n\n这个效果确实还挺漂亮的，渲染水母就不会像渲染人体一样，只用一些简单的圆圈，不过这个 3D 水母的提示词也相当长。\n\n在 Claude Code 中使用 GLM-5.3 时，如果你开启了自动审批命令，会经常遇到一个错误，显示「auto mode cannot determine thesafety of Bash right now.」即「自动模式目前无法判断 Bash 命令的安全性。」\n\n这大概是 Claude Code 应用自身的机制来处理自动模式下，如何识别不同的命令是否需要弹窗通知交给我选择，但第三方的模型，暂时还没有适配 Claude Code。\n\n于是我们切换到 ZCode 进行体验，它能像 Codex 一样使用不同的工具，不断对已经生成的网页截图识屏，分析存在的问题，然后持续优化，整个运行时间也比单纯在 Claude Code 中使用会更久。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_15-27-48.png)\n\n就像这个行星撞地球的模拟，两个行星碰撞，我们在 Claude Code 中的任务最长没有超过 1h，但这个 3D 网页过了一个小时，ZCode 还在反复地测试检查。\n\n好在最后的效果没有让人失望，我们第一眼就能看到地壳开裂、熔岩喷出、碎片形成行星环等壮观画面。就这些复杂的粒子运动，要面面俱到的编程好，肯定是需要一点模型底子的。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7ed5ecc49e2.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a7ed5ecc49e2.png)\n\n## 同尺寸里的最强模型\n\nGLM-5.3 的意义，我们测试下来就觉得它还是回到了原本属于它的位置，即同尺寸最强模型，编程开发者的首选。\n\nK3 用了 2.8T，DeepSeek V4 用了 1.6T，而 GLM 5.2 用了不到一半的参数，就实现了同样程度的智能。\n\n所以如果你本来就在用智谱，已经购买了 Coding Plan（今天下午他们也重置了一次），从六月中旬发布的 GLM-5.2 切换到 5.3，是能感受到比较明显的差异。\n\n虽然 API 版本预计要等到下周二更新，目前官网显示的 API 价格也还是 GLM-5.2 版本，但同样的模型尺寸，估计 GLM-5.3 的 API 定价不会有太大的变化。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-14_15-48-36.png)\n\nKimi K3、Qwen3.8-Max、DeepSeek V4 正式版、Grok 4.6、Gemini 3.7 Flash、GLM-5.3，最近的模型发布节奏几乎是前所未有，每天都有新的模型，新的工具可以测试。\n\n模型之间的区别也随着密集的发布逐渐在缩小。拿我们自己来说，曾经 Claude 被认为是写作上最好用的模型，优化一些句子的结构，把脑子里乱成一团的想法让它有逻辑的串联起来，Claude 给的文章有时比人类写得还要好。\n\n但频繁封号的 Claude，让我们转到了用 GPT 以及其他的模型，于是发现好像所谓的 Fable 5 和 Opus 5 并不是那么的非它不可。\n\n写作如此，编程、生图、整理文档、做报告、构建知识库也越来越接近这个状态。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/image.jpg)\n\nGLM-5.3 和最近这一连串新模型一起，把大模型的「最强保质期」压得越来越短。\n\n新发布的 GLM 用了 20 天，就有更强更好的 Kimi，Kimi 用了 20 天，又能换到新发布的 DeepSeek，等 DeepSeek 不好用了，那个时候又可以轮到 GLM 了。\n\n所以当别人问你，现在最好的国产编程模型是什么，你会说 Kimi K3、DeepSeek V4 还是 GLM 5.3？\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "GLM-5.3",
+        "后训练",
+        "编程能力"
+      ],
+      "score": 85,
+      "summary": "爱范儿实测GLM-5.3，编程比肩Fable 5，开源后训练框架Slime。",
+      "fetched_at": "2026-08-14T18:14:19.289579+08:00"
+    },
+    {
+      "title": "刚刚，GLM-5.3发布：Coding更接近Fable 5！潜伏40年的bug都被揪出来了",
+      "link": "https://www.qbitai.com/2026/08/473038.html",
+      "published": "2026-08-14T16:47:51+08:00",
+      "source": "量子位",
+      "content": "顺手拿下最强开源安全模型",
+      "tags": [
+        "GLM-5.3",
+        "编程",
+        "安全"
+      ],
+      "score": 80,
+      "summary": "量子位报道GLM-5.3发布，编程接近Fable 5，安全能力开源最强。",
+      "fetched_at": "2026-08-14T18:14:19.289583+08:00"
+    },
+    {
+      "title": "百度文库网盘「库库AI」AI办公MAU超2500万，新推办公独立端",
+      "link": "https://www.qbitai.com/2026/08/473144.html",
+      "published": "2026-08-14T16:36:00+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [
+        "库库AI",
+        "AI办公",
+        "百度文库"
+      ],
+      "score": 70,
+      "summary": "百度文库网盘「库库AI」AI办公MAU超2500万，推独立端。",
+      "fetched_at": "2026-08-14T18:14:19.289587+08:00"
+    },
+    {
+      "title": "源：\nhttps://t.co/ovu6fNiszR",
+      "link": "https://x.com/FinanceYF5/status/2088185238795194790",
+      "published": "2026-08-14T16:45:32+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：  \n[x.com/tickerplus/sta…](https://x.com/tickerplus/status/2087597849538162701)\n\n![TickerTrends 🔬](https://pbs.twimg.com/profile_images/1968414690893017088/cY-t4vYc_normal.jpg)\n\nTickerTrends 🔬@tickerplus\n\nOpenClaw still leads on absolute Enterprise accounts, but Hermes Agent’s recent adoption pace is accelerating faster on a 4-week basis.  \n  \nTickerTrends tracking shows the gap in velocity beginning to narrow.\n\n![Tweet Image](https://pbs.twimg.com/media/HPijAfqXcAEQnLB.png)\n\n[🔗 View Quoted Tweet](https://x.com/tickerplus/status/2087597849538162701)\n\n💬0🔄0❤️0👀371",
+      "tags": [
+        "OpenClaw",
+        "Hermes Agent",
+        "企业采用"
+      ],
+      "score": 65,
+      "summary": "TickerTrends显示OpenClaw企业账户领先，但Hermes Agent增速更快。",
+      "fetched_at": "2026-08-14T18:14:19.289590+08:00"
+    },
+    {
+      "title": "TickerTrends 表示，OpenClaw 在企业账户的绝对数量上仍然领先。\n\n但从最近 4 周的采用速度来看，Hermes Agent 的增长正在加速得更快。\n\n追踪数据显示，两者之间的增长速...",
+      "link": "https://x.com/FinanceYF5/status/2088185226946281777",
+      "published": "2026-08-14T16:45:29+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "TickerTrends 表示，OpenClaw 在企业账户的绝对数量上仍然领先。  \n  \n但从最近 4 周的采用速度来看，Hermes Agent 的增长正在加速得更快。  \n  \n追踪数据显示，两者之间的增长速度差距正在开始缩小。\n\n![Tweet Image](https://pbs.twimg.com/media/HPq5ZgKasAAbteB.png)\n\n💬3🔄0❤️0👀565📊3",
+      "tags": [
+        "OpenClaw",
+        "Hermes Agent",
+        "增速"
+      ],
+      "score": 65,
+      "summary": "TickerTrends：Hermes Agent采用速度加快，与OpenClaw差距缩小。",
+      "fetched_at": "2026-08-14T18:14:19.289592+08:00"
+    },
+    {
+      "title": "以上就是全部，原作者 @minchoi\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/76bQBvy4Zw",
+      "link": "https://x.com/FinanceYF5/status/2088183737825771965",
+      "published": "2026-08-14T16:39:34+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部，原作者 [@minchoi](https://x.com/minchoi)  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2088183507877253395)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n不到48小时前，SpaceXAI 发布了 Grok 4.6。  \n  \n人们已经开始用它创造各种疯狂的东西。  \n  \n10个惊艳案例：\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2088183507877253395)\n\n💬0🔄0❤️0👀307",
+      "tags": [
+        "Grok 4.6",
+        "案例汇总"
+      ],
+      "score": 30,
+      "summary": "KOL分享Grok 4.6案例合集并引导关注。",
+      "fetched_at": "2026-08-14T18:14:19.289595+08:00"
+    },
+    {
+      "title": "10. 从草图直接变成精美网站\nhttps://t.co/L4UdeWjGm3",
+      "link": "https://x.com/FinanceYF5/status/2088183626840375338",
+      "published": "2026-08-14T16:39:07+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "10. 从草图直接变成精美网站  \n[x.com/chetaslua/stat…](https://x.com/chetaslua/status/2087840911300710836)\n\n![Chetaslua](https://pbs.twimg.com/profile_images/1926364057004646400/z3oD9QyB_normal.jpg)\n\nChetaslua@chetaslua\n\nGrok 4.6 came a long way in webdev   \n  \ninput sketch leads to this beauty , i just asked change this into website , no skill and no special instruction\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087840725774016512/vid/avc1/1080x1080/bS2MAx9Jtu78LK0P.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/chetaslua/status/2087840911300710836/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/chetaslua/status/2087840911300710836)\n\n💬1🔄0❤️0👀380📊1",
+      "tags": [
+        "Grok 4.6",
+        "草图生成网站"
+      ],
+      "score": 70,
+      "summary": "展示Grok 4.6将草图直接转化为精美网站的能力。",
+      "fetched_at": "2026-08-14T18:14:19.289598+08:00"
+    },
+    {
+      "title": "不到48小时前，SpaceXAI 发布了 Grok 4.6。\n\n人们已经开始用它创造各种疯狂的东西。\n\n10个惊艳案例：",
+      "link": "https://x.com/FinanceYF5/status/2088183507877253395",
+      "published": "2026-08-14T16:38:39+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "不到48小时前，SpaceXAI 发布了 Grok 4.6。  \n  \n人们已经开始用它创造各种疯狂的东西。  \n  \n10个惊艳案例：\n\n💬5🔄0❤️0👀920📊5",
+      "tags": [
+        "Grok 4.6",
+        "创意应用"
+      ],
+      "score": 70,
+      "summary": "SpaceXAI发布Grok 4.6，KOL汇总10个创意应用案例。",
+      "fetched_at": "2026-08-14T18:14:19.289601+08:00"
+    },
+    {
+      "title": "看到这种页面，我想骂街。",
+      "link": "https://x.com/dingyi/status/2088188384057737385",
+      "published": "2026-08-14T16:58:02+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "看到这种页面，我想骂街。\n\n![Tweet Image](https://pbs.twimg.com/media/HPq8ROAa0AE6K4z.jpg)\n\n💬6🔄0❤️14👀2234📊7",
+      "tags": [
+        "情绪宣泄"
+      ],
+      "score": 20,
+      "summary": "用户发文批评某个网页设计并表达不满。",
+      "fetched_at": "2026-08-14T18:14:19.289604+08:00"
+    },
+    {
+      "title": "净化一下网络",
+      "link": "https://x.com/dingyi/status/2088179477302178191",
+      "published": "2026-08-14T16:22:38+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "净化一下网络\n\n![Tweet Image](https://pbs.twimg.com/media/HPq0KZaaIAAUg_i.jpg)\n\n💬5🔄0❤️21👀1063📊6",
+      "tags": [
+        "净化网络"
+      ],
+      "score": 20,
+      "summary": "用户呼吁净化网络环境。",
+      "fetched_at": "2026-08-14T18:14:19.289606+08:00"
+    },
+    {
+      "title": "这个不错，把 pi 命令行 AI 编程代理封装成 macOS/Windows 桌面 App，免装 Node.js、免开终端。\n\nhttps://t.co/LeHQLOQ93k",
+      "link": "https://x.com/geekbb/status/2088185437852770766",
+      "published": "2026-08-14T16:46:19+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "这个不错，把 pi 命令行 AI 编程代理封装成 macOS/Windows 桌面 App，免装 Node.js、免开终端。  \n  \n[github.com/abcwyc/pi-agen…](https://github.com/abcwyc/pi-agent-desktop)\n\n![Tweet Image](https://pbs.twimg.com/media/HPq5ZwUbsAAHbwE.jpg)\n\n💬4🔄0❤️7👀1725📊6",
+      "tags": [
+        "pi编程代理",
+        "桌面App"
+      ],
+      "score": 75,
+      "summary": "将pi命令行AI编程代理封装为macOS/Windows桌面应用。",
+      "fetched_at": "2026-08-14T18:14:19.289609+08:00"
+    },
+    {
+      "title": "Prompt 1:\nIntimate wide-angle fashion editorial photograph of a stylish young woman with a messy pla...",
+      "link": "https://x.com/recraftai/status/2088188571060494420",
+      "published": "2026-08-14T16:58:46+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "Prompt 1:  \nIntimate wide-angle fashion editorial photograph of a stylish young woman with a messy platinum-blonde pixie cut stopped on a cherry-red vintage bicycle beside a tiny street kiosk. She leans dramatically toward the camera until her oversized translucent amber sunglasses almost fill the frame, smiling while holding a cold glass bottle of cloudy lemonade in one hand. She wears an oversized faded sunflower-yellow T-shirt, ivory tailored shorts, white crew socks and dark green retro sneakers. A cream bicycle basket is filled casually with sunflowers, lemons and a striped beach towel.  \nHard direct summer sunlight combined with subtle frontal flash, deep crisp shadows and glowing warm skin. Sunflower yellow, cherry red, cream, dark green and amber palette. Extreme 24mm perspective, playful facial distortion near the lens, 35mm film grain, slightly overexposed highlights, casual imperfect crop, nostalgic early-2000s fashion editorial, Mediterranean city feeling without identifiable landmarks, spontaneous rather than posed.  \n  \nPrompt 2:  \nCandid fashion editorial street photograph shot from directly above, a stylish young man with bleached buzz-cut hair sitting on warm concrete pavement in bright summer sun, wearing long chocolate-brown shorts, a butter-yellow vintage polo, white ribbed socks and burgundy sneakers. He stretches one hand toward the camera holding an oversized paper cup of pale pistachio gelato topped with crushed pistachios and a drizzle of olive oil, making the dessert dominate the foreground while his smiling face remains partially hidden beneath it. Sunglasses and a folded newspaper lie casually on the pavement nearby. Strong midday sunlight creates a long crisp body shadow across the ground. Butter yellow, pistachio green, chocolate brown and warm cream color palette. Spontaneous 35mm analog fashion snapshot, playful overhead perspective, tactile food texture, subtle grain, saturated warm colors, imperfect framing, late-90s / early-2000s magazine feeling, no polished commercial food photography.  \n  \nPrompt 3:  \nCandid fashion editorial street photograph of two stylish friends sharing lunch at a tiny yellow metal table outside a city pizza bar. In the foreground, a young man with shoulder-length curls and translucent brown sunglasses wears an oversized pale-yellow striped shirt and holds a thick slice of potato, rosemary and parmesan pizza close to his mouth. Behind him, softly out of focus, a young woman with a platinum-blonde bob wears an ivory blazer and drinks cloudy homemade lemonade from a chunky green glass. A second pizza slice sits casually on a small cream plate between them. Direct golden midday sunlight cuts across the scene, creating strong shadows and warm highlights. Butter yellow, cream, olive green, toasted brown and soft gold palette. Shot on 35mm film with shallow depth of field, visible grain, spontaneous gestures, slightly imperfect crop, intimate street-fashion storytelling, late-90s / early-2000s European editorial feeling.  \n  \nPrompt 4:  \nCandid urban fashion photograph on a nearly empty underground metro platform, a stylish young man with dark curly hair and a thin moustache rushing toward an arriving train while looking directly back into the camera. He wears a butter-yellow knitted vest over a white T-shirt, loose washed denim, burgundy sneakers, narrow amber sunglasses and a dark green canvas shoulder bag. In one hand he carries a transparent takeaway cup filled with bright red strawberry soda and ice, while a long baguette wrapped loosely in paper sticks dramatically out of his shoulder bag.  \nThe camera follows extremely close behind at waist height, creating exaggerated perspective and a sense of sudden movement. The incoming train and tiled station walls stretch into motion blur while his face remains imperfectly sharp. Warm fluorescent station light mixed with aggressive direct on-camera flash. Butter yellow, tomato red, forest green, denim blue and warm cream palette. 24mm wide-angle lens, gritty 35mm film grain, slight camera tilt, accidental cropping, high-energy early-2000s street-fashion editorial, spontaneous metropolitan summer-night feeling, raw rather than cinematic.\n\n💬0🔄0❤️0👀59",
+      "tags": [
+        "Recraft",
+        "prompt",
+        "时尚摄影"
+      ],
+      "score": 70,
+      "summary": "Recraft官方分享时尚摄影风格的prompt示例。",
+      "fetched_at": "2026-08-14T18:14:19.289611+08:00"
+    },
+    {
+      "title": "V4.1 holds a style. \n\nNo retraining. No retouching after.\n\nPrompts ↓",
+      "link": "https://x.com/recraftai/status/2088187733768388770",
+      "published": "2026-08-14T16:55:27+08:00",
+      "source": "Recraft(@recraftai)",
+      "content": "V4.1 holds a style.   \n  \nNo retraining. No retouching after.  \n  \nPrompts ↓\n\n![Tweet Image](https://pbs.twimg.com/media/HPq7pUMWkAAEKNK.jpg)![Tweet Image](https://pbs.twimg.com/media/HPq7pUMXQAAaHBM.jpg)![Tweet Image](https://pbs.twimg.com/media/HPq7pUXWAAAUq8B.jpg)![Tweet Image](https://pbs.twimg.com/media/HPq7pUSW8AEPf0F.jpg)\n\n💬1🔄0❤️1👀182📊1",
+      "tags": [
+        "Recraft V4.1",
+        "风格保持"
+      ],
+      "score": 78,
+      "summary": "Recraft V4.1宣称保持风格一致，无需重新训练。",
+      "fetched_at": "2026-08-14T18:14:19.289614+08:00"
+    },
+    {
+      "title": "90 分钟podcast，文字很多，时长很长，但是，把其中的关键概念提取出来，绘制成一张概念网络图，是否有“一图胜千言”的效果？\n\n先读前面的千字笔记，再配合这个 concept diagram，会有...",
+      "link": "https://x.com/howie_serious/status/2088186765958127715",
+      "published": "2026-08-14T16:51:36+08:00",
+      "source": "howie.serious(@howie_serious)",
+      "content": "90 分钟podcast，文字很多，时长很长，但是，把其中的关键概念提取出来，绘制成一张概念网络图，是否有“一图胜千言”的效果？  \n  \n先读前面的千字笔记，再配合这个 concept diagram，会有利于倒逼理解和费曼吗？  \n  \n欢迎体验测试，在评论区留下你的反馈。\n\n![Tweet Image](https://pbs.twimg.com/media/HPq6MYMaYAAHcYp.jpg)\n\n![howie.serious](https://pbs.twimg.com/profile_images/738174666309652480/UgeKnQOm_normal.jpg)\n\nhowie.serious@howie\\_serious\n\n晚点 latepost 对田渊栋的podcast 访谈，90 分钟接近一部电影的时长，今天刚听完。访谈聊他离开 meta 创业做 rsi （recursive self improvement，递归式自我进化），也聊大模型什么时候才能算一门科学。  \n  \n分享一些重点笔记。  \n  \n- 「大模型现在还不是科学，但终将变成科学」。模型今天仍然是个黑箱，找到黑箱背后的基本原理，既能让它更强，也能让它更安全。他的行动路径叫 rsi，用 ai 让 ai 自我进化、自我迭代，去找到新的训练范式和逻辑。  \n  \n- 离开 meta 后他创立的公司叫 recursive superintelligence，缩写恰好也是 rsi。转折点在去年 8 月。他和当时的 gpt-5 合作完成了那篇解释模型如何顿悟的 grokking 研究，做完之后意识到「模型已经强到让我不再需要实习生了」。他给思路和方向，模型能改进新思路、证明新定理，代码和实验也交给 ai。他的推论很直接，也许 5 年后自己就会被取代，与其等着，不如开家公司来做这件事。  \n  \n- rsi 和 autoresearch 今年 4、5 月才变火，他去年动手时大部分人还没想过这事。同行也在冒出来，openai 出来的 jerry tworek 做了 core automation，anthropic 出来的 behnam neyshabur 做了 mirendil。8 月 5 日 jeff dean 也进场，在 google 干了近 27 年后卸任，成立公益公司 discovery loop。  \n  \n- 过去 3 年的胜利公式是速度和规模，scale、scale、scale，干就完了，年轻人冲劲足、决策执行都快，优势明显。coding agent 达到人类水平之后格局反转，一些多年不怎么写代码的人重返一线，觉得爷的青春又回来了。执行的重任落在 ai 身上，人更多是做判断，方向选择、直觉、经验和研究品味变得更值钱。他也承认这个判断争议很大。  \n  \n- anthropic 已经展示的那种自我进化，基本还停留在代码层面的提效和加速：先把大问题拆成子任务，再看 ai 能不能在这些任务上自己越做越好，硬前提是有可量化的反馈指标。可以参照的数据是 claude 的研究 agent 累计跑了约 800 小时，追回 weak-to-strong 97% 的性能差距，两名人类研究者用一周只追回 23%。  \n  \n- 田渊栋认为更难的是第二层，也就是真正的研究。很多问题连人都不知道怎么解决，需要突破性的发现，靠的不是更强的 coding，而是研究品味、方向感和对问题的抽象能力。他把这种能力叫人的 grokking，并且说大多数人也不具备。分野在数据上，大模型强是因为有大数据，而科研面对的往往是样本很少、没有固定模式可参考的新问题。  \n  \n- 要说开创性问题，最典型的就是理解模型本身，而它没有现成的数据集。从 2013、2014 年开始，理论研究者拿重整化群、自旋玻璃、神经正切核、常微分方程、高斯过程去解释深度学习，结论是都没有特别令人满意的结果。一种全新的理解可能和过去所有方向都不一样，这恰恰是最难让 ai 照搬已有逻辑完成的那类任务。  \n  \n- 决定创业公司有没有机会的变数，不是谁的 coding 更强，而是智能提升是平滑渐进还是阶段式跳跃。平滑的话 openai 和 anthropic 快一点就会快更多，创业公司追不上；沿 s 型曲线上升、中间有平台期就有空间。他赌后者，「我觉得是有平台的，否则我也不创业了」。理由是成本，推进 scaling law 要 10 倍算力、10 倍数据才换来线性增长，而算力、数据、电力都已见顶。  \n  \n- 在可解释性上他明确承认自己是少数派。不少人已经绝望，觉得大模型太复杂，没希望搞懂它里面在干什么，他相信一定存在一个好的 principle 能解释模型为什么这样运转。信心来自一个拐点，过去十几年他一直在做理解神经网络训练算法的研究，一开始很不顺，2020、2021 年之后很多想不通的问题想通了。同行倒是在流失，做理论和可解释性的人纷纷加入模型公司，打不过就加入。  \n  \n- 他给 ai 找的历史坐标是第谷、开普勒、牛顿，先有海量观测，再有经验性规律，最后才有原理。牛顿之前大家觉得现象太复杂无法解释，原理出来之后又发现它其实很简单。下一个牛顿是不是人类？他说不一定，可能是人类加 ai，也可能是 ai。至于那时人类研究者做什么，答案只有三个字，欣赏它的美。他随即给这份审美上了刹车，理想上总希望找到很美很简洁的结构，但现实世界不一定是这样。\n\n![Tweet Image](https://pbs.twimg.com/media/HPW3jHPakAA_ZHc.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/howie_serious/status/2086775861857132771)\n\n💬0🔄0❤️1👀727📊1",
+      "tags": [
+        "田渊栋",
+        "RSI",
+        "大模型科学"
+      ],
+      "score": 85,
+      "summary": "KOL分享田渊栋访谈笔记，谈RSI与AI自我进化。",
+      "fetched_at": "2026-08-14T18:14:19.289616+08:00"
+    },
+    {
+      "title": "原来 @jietang 唐杰教授的「sooooooon」是按小时算的吗 😃\n\nGLM-5.3 在唐杰教授发帖后几小时就正式发布了，又是后训练的一个典型案例！中国开源模型这一轮热潮也是 GLM-5.2...",
+      "link": "https://x.com/shao__meng/status/2088188409336795484",
+      "published": "2026-08-14T16:58:08+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "原来 [@jietang](https://x.com/jietang) 唐杰教授的「sooooooon」是按小时算的吗 😃  \n  \nGLM-5.3 在唐杰教授发帖后几小时就正式发布了，又是后训练的一个典型案例！中国开源模型这一轮热潮也是 GLM-5.2 带起来的。[z.ai/blog/glm-5.3](https://z.ai/blog/glm-5.3)P  \n  \nGLM-5.3 和 GLM-5.2 沿用了同一套基座模型，所有可观测的能力提升，都来自后训练阶段的持续规模化。  \n  \n过去一个月 [@Zai\\_org](https://x.com/Zai_org) 在 GLM-5.2 已搭好的技术栈上持续加码：  \n· IndexShare：长上下文的高效处理机制；  \n· SAO（含 compaction）：面向长程任务的强化学习算法，使增益不只在短任务上显现，也能在长程任务上保持；  \n· slime：大规模异步后训练框架，训练侧用 Megatron，rollout 侧用 SGLang。  \n  \nGLM-5.3 在此之上做了三件事：更多环境、更多样任务、更多算力。在复杂编码与长程任务上对 GLM-5.2 形成明显代差，并在网络安全方向上出现了团队自己也未完全预期的\"涌现式\"能力跃升。  \n  \nbtw... GLM-5.3 是一个只有 743B 的模型，综合能力和 Kimi K3 互有胜负，厉害！\n\n![Tweet Image](https://pbs.twimg.com/media/HPq8R6pbEAA3eID.jpg)\n\n![Z.ai](https://pbs.twimg.com/profile_images/1970775077181411328/W8XKaUIh_normal.jpg)\n\nZ.ai@Zai\\_org\n\nIntroducing GLM-5.3: Built to Code. Ready for Cyber Defense.  \n  \n- Top-tier coding and agentic capabilities, achieved through post-training on the 743B base model  \n- A major leap in cybersecurity, setting a new standard among open models  \n  \nTech Blog: [z.ai/blog/glm-5.3](https://z.ai/blog/glm-5.3)\n\n![Tweet Image](https://pbs.twimg.com/media/HPqGDYVXAAEtyrV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Zai_org/status/2088132965922476159)\n\n💬2🔄0❤️2👀588📊2",
+      "tags": [
+        "GLM-5.3",
+        "后训练",
+        "Slime"
+      ],
+      "score": 72,
+      "summary": "网友总结GLM-5.3发布，强调后训练及开源框架Slime。",
+      "fetched_at": "2026-08-14T18:14:19.289619+08:00"
+    },
+    {
+      "title": "给codex tool use 加上desc之后，可控感明显好了很多。之前bash 命令，真的看的人自卑。",
+      "link": "https://x.com/yan5xu/status/2088191859105710277",
+      "published": "2026-08-14T17:11:50+08:00",
+      "source": "yan5xu(@yan5xu)",
+      "content": "给codex tool use 加上desc之后，可控感明显好了很多。之前bash 命令，真的看的人自卑。\n\n![Tweet Image](https://pbs.twimg.com/media/HPq_Bnga0AA-U8f.jpg)\n\n![yan5xu](https://pbs.twimg.com/profile_images/1818445093218430976/2Pvxg6Vf_normal.jpg)\n\nyan5xu@yan5xu\n\n每天都要骂一句。花了一天时间是，试着改codex。。。。改挂了 😭\n\n[🔗 View Quoted Tweet](https://x.com/yan5xu/status/2087588499486904790)\n\n💬0🔄0❤️1👀339",
+      "tags": [
+        "Codex",
+        "tool use",
+        "技巧"
+      ],
+      "score": 65,
+      "summary": "开发者分享为Codex工具添加描述提升可控性的经验。",
+      "fetched_at": "2026-08-14T18:14:19.289621+08:00"
+    },
+    {
+      "title": "不知道现在有没有 token 银行或 Agent 接单平台？\n\n比如把用不完的 token 帮别人跑任务赚积分或钱。\n\n等自己 Token 不够用的时候，从平台里调用？",
+      "link": "https://x.com/vista8/status/2088180582815760774",
+      "published": "2026-08-14T16:27:02+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "不知道现在有没有 token 银行或 Agent 接单平台？  \n  \n比如把用不完的 token 帮别人跑任务赚积分或钱。  \n  \n等自己 Token 不够用的时候，从平台里调用？\n\n💬27🔄0❤️12👀5250📊24",
+      "tags": [
+        "token银行",
+        "Agent平台"
+      ],
+      "score": 40,
+      "summary": "用户提问是否存在token银行或Agent接单平台。",
+      "fetched_at": "2026-08-14T18:14:19.289624+08:00"
+    },
+    {
+      "title": "晚上抽空测试体验，对glm团队有信心。",
+      "link": "https://x.com/vista8/status/2088177798297084327",
+      "published": "2026-08-14T16:15:58+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "晚上抽空测试体验，对glm团队有信心。\n\n![Z.ai](https://pbs.twimg.com/profile_images/1970775077181411328/W8XKaUIh_normal.jpg)\n\nZ.ai@Zai\\_org\n\nIntroducing GLM-5.3: Built to Code. Ready for Cyber Defense.  \n  \n- Top-tier coding and agentic capabilities, achieved through post-training on the 743B base model  \n- A major leap in cybersecurity, setting a new standard among open models  \n  \nTech Blog: [z.ai/blog/glm-5.3](https://z.ai/blog/glm-5.3)\n\n![Tweet Image](https://pbs.twimg.com/media/HPqGDYVXAAEtyrV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Zai_org/status/2088132965922476159)\n\n💬5🔄0❤️2👀1876📊4",
+      "tags": [
+        "GLM",
+        "测试"
+      ],
+      "score": 30,
+      "summary": "用户表示对GLM团队有信心，将于晚上测试。",
+      "fetched_at": "2026-08-14T18:14:19.289626+08:00"
+    },
+    {
+      "title": "便携钓鱼装备又升级了！\n\n乐伯乐路亚腰包，装水凤梨小物竿，钛合金竿稍微物路亚竿，一堆饵和一个路亚钳。\n\n晚上出发去大连，岸钓走起。",
+      "link": "https://x.com/vista8/status/2088177395161505927",
+      "published": "2026-08-14T16:14:22+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "便携钓鱼装备又升级了！  \n  \n乐伯乐路亚腰包，装水凤梨小物竿，钛合金竿稍微物路亚竿，一堆饵和一个路亚钳。  \n  \n晚上出发去大连，岸钓走起。\n\n![Tweet Image](https://pbs.twimg.com/media/HPqyPpKakAAZ_Ag.jpg)![Tweet Image](https://pbs.twimg.com/media/HPqyPpNasAAFgg7.jpg)\n\n💬7🔄0❤️3👀1189📊6",
+      "tags": [
+        "钓鱼装备"
+      ],
+      "score": 10,
+      "summary": "用户分享便携钓鱼装备升级并计划去大连岸钓。",
+      "fetched_at": "2026-08-14T18:14:19.289629+08:00"
+    },
+    {
+      "title": "15 张数据图帮你了解 DeepSeek Harness\n\n昨天 DeepSeek Harness 发布，于是就想着让 Codex 分析一下，找到了一个很好的角度，就是从一些数据上向大家介绍这个产品。...",
+      "link": "https://x.com/op7418/status/2088199058313957734",
+      "published": "2026-08-14T17:40:27+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "15 张数据图帮你了解 DeepSeek Harness  \n  \n昨天 DeepSeek Harness 发布，于是就想着让 Codex 分析一下，找到了一个很好的角度，就是从一些数据上向大家介绍这个产品。  \n  \n确实也发现了一些很有意思的东西：  \n  \n插件系统与 Koishi 高度相似： 他们主打的插件系统与 Koishi 的插件平台相似度高达 75%。大概率是整个平台都挪过来了，不知道是不是他们的核心开发者入职了。  \n  \n大量使用 AI 开发： Codex 命名的主干 PR 达到了 21.2%，分支信息中提到 Codex 的比例有 28.2%。 猜测他们肯定用了 Claude Code 开发，只是删掉了一些 Claude 的痕迹。  \n  \n参考了大量外部 Agent 项目： 提到最多的外部项目是 Pi，第二多的是 Codex，之后是 Claude Code。甚至直接引用了一些 Pi 的 TypeScript 文件。  \n  \n高效的代码产出： 整个产品在 GitHub 上有记录的是 65 天，总共的代码产出量是 84 万行，有一万多个 commit，非常高效。  \n  \n交互入口的演变： 他们曾经押注 TUI，后来改成 Web UI 和 TUI 的双入口，再之后整个删除了所有的 TUI，只留下了 Web UI。  \n  \n开发与工程规范： 整个项目的测试代码比生产代码多很多，基本上达到了 1:1。 全仓库的 Markdown 文档也非常多，说明他们是基于文档去控制 Harness 开发的。他们有完整的工具和科学模型 schema 共 52 个，但最后只留下了一个，目的是为了减少上下文占用。  \n  \n社区热度与生态：从昨天发布到现在 20 小时，GitHub 已经涨到了 8 万多的 star，非常快。插件体系标签（DSH plugin）已经有 1425 个项目，但有很多并不是真正的插件，看来有不少蹭热度的。 精选清单收录了 211 个仓库，主要补充的是工具、UI 和运行的一些基础设施，甚至一上来就出现了插件市场和插件管理的插件。  \n  \n学术论文： 他们顺便发了一篇 88 页的论文，其中 57% 都在做一些形式化的理论推导和展示。论文主要讨论的是插件的热插拔和系统稳定性问题。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088198977384775680/vid/avc1/1080x1440/Lv4c8hMb-PuEJs1y.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/op7418/status/2088199058313957734/video/1)\n\n💬7🔄0❤️7👀1581📊8",
+      "tags": [
+        "DeepSeek Harness",
+        "Codex分析",
+        "插件系统"
+      ],
+      "score": 82,
+      "summary": "歸藏用Codex分析DeepSeek Harness，以15张数据图展示其特性。",
+      "fetched_at": "2026-08-14T18:14:19.289631+08:00"
+    },
+    {
+      "title": "GLM-5.3 发布了，看了一下，着重提升的主要是两部分：\n\n1. 安全能力：看来 Hugging Face 在拿 GLM-5.2 防御了 OpenAI 的模型入侵以后，智谱也看到了这方面的价值，尤其...",
+      "link": "https://x.com/op7418/status/2088180816128143829",
+      "published": "2026-08-14T16:27:57+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "GLM-5.3 发布了，看了一下，着重提升的主要是两部分：  \n  \n1. 安全能力：看来 Hugging Face 在拿 GLM-5.2 防御了 OpenAI 的模型入侵以后，智谱也看到了这方面的价值，尤其是大家最近都在聊这块，他们针对性地做了一些优化。  \n  \n2. 长程任务的执行：  \n比如终端里的任务、工具调用，以及大代码库的修复任务，都有非常大的提升。  \n  \n这个模型依然是只进行了后训练，没有重新进行预训练。这都几个版本了，还能有这么大的提升，确实猛啊！\n\n![Tweet Image](https://pbs.twimg.com/media/HPq0_9UaYAAn7wg.jpg)\n\n![Z.ai](https://pbs.twimg.com/profile_images/1970775077181411328/W8XKaUIh_normal.jpg)\n\nZ.ai@Zai\\_org\n\nIntroducing GLM-5.3: Built to Code. Ready for Cyber Defense.  \n  \n- Top-tier coding and agentic capabilities, achieved through post-training on the 743B base model  \n- A major leap in cybersecurity, setting a new standard among open models  \n  \nTech Blog: [z.ai/blog/glm-5.3](https://z.ai/blog/glm-5.3)\n\n![Tweet Image](https://pbs.twimg.com/media/HPqGDYVXAAEtyrV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Zai_org/status/2088132965922476159)\n\n💬10🔄1❤️18👀7827📊9",
+      "tags": [
+        "GLM-5.3",
+        "安全能力",
+        "长程任务"
+      ],
+      "score": 75,
+      "summary": "歸藏解读GLM-5.3发布，重点提升安全与长程任务能力。",
+      "fetched_at": "2026-08-14T18:14:19.289634+08:00"
+    },
+    {
+      "title": "LLM-Generated GraphQL Mocks Arrive at Airbnb and Expedia, While the Spec Lags Behind",
+      "link": "https://www.infoq.com/news/2026/08/graphql-llm-mocking-spec/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-14T18:01:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/graphql-llm-mocking-spec/en/headerimage/generatedHeaderImage-1786102945106.jpg)\n\nExpedia Group has open-sourced mockql-rs, a Rust CLI that fills @mock-annotated GraphQL fields with LLM-generated data at request time. It follows Airbnb's @generateMock in April and a GraphQL Foundation RFC opened in February. All three solve the same problem with different architectures, and two use the same directive name with incompatible semantics.\n\n*By Steef-Jan Wiggers*",
+      "tags": [
+        "GraphQL",
+        "LLM Mock",
+        "Airbnb"
+      ],
+      "score": 68,
+      "summary": "Airbnb和Expedia采用LLM生成GraphQL模拟数据，规范滞后。",
+      "fetched_at": "2026-08-14T18:14:19.289636+08:00"
+    },
+    {
+      "title": "Podcast: Founders, Friction, and Focus: Building Engineering Teams at Early-Stage Startups",
+      "link": "https://www.infoq.com/podcasts/building-engineering-teams-early-stage-startups/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-14T17:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/podcasts/building-engineering-teams-early-stage-startups/en/smallimage/engineering-culture-podcast-thumbnail-1786109915926.jpg)\n\nIn this podcast, Shane Hastie, Lead Editor for Culture & Methods, spoke to David Gudeman about the unique culture of early-stage startup engineering, how founder personality quirks and premature process impositions can derail teams, and how engineers can build influence and make deliberate career choices without formal power.\n\n*By David Gudeman*",
+      "tags": [
+        "工程团队",
+        "创业公司"
+      ],
+      "score": 60,
+      "summary": "InfoQ播客探讨早期创业公司工程团队的建设与挑战。",
+      "fetched_at": "2026-08-14T18:14:19.289639+08:00"
     }
   ]
 }
