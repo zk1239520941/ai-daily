@@ -501,6 +501,549 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-15T00:07:45.649856+08:00"
+    },
+    {
+      "title": "Custom reward functions for multi-turn reinforcement learning with Amazon Nova Forge",
+      "link": "https://aws.amazon.com/blogs/machine-learning/custom-reward-functions-for-multi-turn-reinforcement-learning-with-amazon-nova-forge/",
+      "published": "2026-08-15T00:02:10+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "In multi-turn reinforcement learning (RL), your custom reward function decides what the model actually learns. A subtly wrong reward can quietly teach the wrong thing while every training curve looks healthy. Designing a reward that holds up over multi-turn, agentic tasks is one of the hardest parts of customizing [Amazon Nova models](https://aws.amazon.com/nova/). For multi-turn training, [Amazon Nova Forge](https://aws.amazon.com/nova/forge/) runs your reward logic in your own environment through its [Bring Your Own Orchestration (BYOO)](https://docs.aws.amazon.com/nova/latest/nova2-userguide/nova-hp-rft-forge.html) capability. You can focus on defining what a good outcome looks like while Nova Forge coordinates rollouts, message passing, and conversation state across turns. Nova Forge also offers a serverless multi-turn RL option, now generally available, for teams that prefer not to manage that environment. This post uses the BYOO path.\n\nAmazon Nova offers multiple customization approaches, with [reinforcement fine-tuning](https://docs.aws.amazon.com/nova/latest/nova2-userguide/nova-reinforcement-fine-tuning.html) (RFT) standing out because it can teach models the behaviors you want through iterative feedback. RFT takes a different approach from supervised fine-tuning (SFT). Rather than requiring curated examples with annotated reasoning paths, it learns from evaluation signals on the model’s own outputs. Multi-turn RFT extends this to agents that act over a sequence of steps, such as calling tools, executing code, or recovering from a mistake. It optimizes cumulative reward across the whole trajectory rather than grading a single response. At the heart of RFT lies the reward function: the scoring mechanism that guides the model, and the part you design.\n\n![RL improves out-of-distribution generalization across task variants while SFT degrades after equal-compute training](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20735-1.png)\n\n*Figure 1 — Out-of-distribution (OOD) performance after equal-compute post-training from a shared checkpoint. RL improves OOD generalization across all task variants while SFT degrades. Adapted from Chu et al., 2025*\n\nThis post focuses on the reward function itself: how to design a composite multi-turn reward that [Group Relative Policy Optimization (GRPO)](https://arxiv.org/pdf/2402.03300) can learn from. This post also shows how to execute model-generated code safely inside the reward, and why to instrument each component so you can trust what training is learning. [Part 1 of this series](https://aws.amazon.com/blogs/machine-learning/deploying-multi-turn-rl-infrastructure-for-amazon-nova-on-amazon-sagemaker-hyperpod/) covers the Amazon SageMaker HyperPod and Nova Forge infrastructure. It also covers the training configuration that runs these rewards. We close with the pitfalls that can quietly collapse a reward, drawn from a real run where the highest-weighted component silently contributed no learning signal at all. We show how to catch them. The code throughout is illustrative. Use it as a starting point for your own reward implementation.\n\n## Prerequisites\n\nTo follow along, you need the following:\n\n* An [Amazon Nova Forge](https://aws.amazon.com/nova/forge/) subscription, which provides the Nova Customization SDK and the multi-turn RFT APIs.\n* The [multi-turn RFT infrastructure from Part 1](https://aws.amazon.com/blogs/machine-learning/deploying-multi-turn-rl-infrastructure-for-amazon-nova-on-amazon-sagemaker-hyperpod/) of this series:\n  + An [Amazon SageMaker HyperPod](https://aws.amazon.com/sagemaker/ai/hyperpod/) cluster, a customer-managed environment on Amazon Elastic Container Service (Amazon ECS).\n  + An Amazon Simple Storage Service (Amazon S3) bucket for rollout data and checkpoints.\n* The example code for this post, including the reward environment and a walkthrough, from the [aws-samples/sample-nova-multi-turn-rl-infra](https://github.com/aws-samples/sample-nova-multi-turn-rl-infra) repository.\n* The custom reward environment is opt-in: in [cdk.json](https://github.com/aws-samples/sample-nova-multi-turn-rl-infra/blob/main/cdk.json#L30), set use\\_custom\\_env to “true” and [custom\\_env\\_id](https://github.com/aws-samples/sample-nova-multi-turn-rl-infra/blob/main/cdk.json#L31) to your environment ID (for example, “my-custom-env”) before you deploy. By default the stack uses the built-in wordle environment.\n* Familiarity with reinforcement fine-tuning and GRPO.\n\n## Building custom rewards with Amazon Nova Forge\n\nRFT works by sampling completions from the current model and scoring them with a reward function. In Nova Forge, the reward function is a grader you write in code, and not a separately trained reward model. It can be a rule-based check that verifies the output (reinforcement learning with verifiable rewards), or it can call another large language model (LLM) to judge the response, an approach known as LLM-as-Judge.\n\nRFT then adjusts the model weights to make higher-reward completions more likely. Nova Forge uses GRPO. For each conversation, GRPO uses the reward function to rank K model rollouts. GRPO uses the highest-ranked model completions to update the model according to the normalized reward (the advantage) of the batch. RFT with GRPO is a fundamental technique achieving noticeable performance gains over initial SFT.\n\n> A reward signal influences learning only through the variation it creates *within a group*. If a term takes the same value for every completion in a group, it contributes nothing to the advantage. It therefore contributes nothing to the gradient.\n\nHow your reward function runs with Nova Forge depends on the task. With single-turn RFT, you register the reward as an AWS Lambda function and point your recipe at it through `reward_lambda_arn`. Multi-turn tasks like the one in this post exceed what a single Lambda invocation supports. Multi-turn conversations and long-running scoring run past the 15-minute Lambda invocation limit. For these, Nova Forge uses BYOO. You set `rollout.delegate: true` and run your environment and reward logic in an environment container, for example on Amazon ECS. Nova Forge delegates each rollout to your environment. It then collects the completed episodes back for training. Your container manages the multi-turn interaction and conversation state: it runs the user simulator, executes code, and calls a verifier. It then returns an aggregate reward per sample (`aggregate_reward_score`), plus an optional list of per-component scores (`metrics_list`). [Part 1 of this series](https://aws.amazon.com/blogs/machine-learning/deploying-multi-turn-rl-infrastructure-for-amazon-nova-on-amazon-sagemaker-hyperpod/) covers this infrastructure and its AWS Cloud Development Kit (AWS CDK) deployment. This post focuses on the reward.\n\n## How reward evaluation works\n\nThe training job generates candidate rollouts from the Nova model for each prompt. In a multi-turn task, a rollout is a full *episode* with a sequence of turns (a *trajectory*), not a single response. Your reward function receives each rollout and performs three steps:\n\n* **Runs the task logic.** For a conversational task, this can include a user simulator that responds to the model turn by turn.\n* **Scores the completed trajectory** across one or more reward components (for example, task correctness, an intermediate-behavior signal, and penalties), reporting each through `metrics_list`.\n* **Returns an aggregate reward per rollout** (`aggregate_reward_score`), which training turns into within-group advantages.\n\n![Diagram of a multi-turn rollout: Nova Forge delegates to the environment container, which returns a reward score for GRPO](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20735-2.png)\n\n*Figure 2 — A single multi-turn rollout: Nova Forge delegates to your environment container, which asks the simulator or runs the committed code, then returns a reward score for GRPO*\n\nThis cycle repeats over many training steps, progressively shaping the model to maximize cumulative reward across the whole sequence. The model optimizes toward whatever your reward actually rewards, which, as we show, is not always what you think you wrote.\n\n## Choosing the structure of a multi-turn reward\n\nSingle scalar rewards are straightforward to game, and a single terminal reward is often too sparse to learn from in multi-turn tasks. Most production multi-turn rewards therefore combine three kinds of signal: outcome rewards, behavioral rewards, and penalties.\n\nEpisode-level (outcome) rewards capture whether the final artifact satisfied the goal. For example, did the unit tests pass, or did the workflow complete? They target the thing you ultimately care about, but they tend to be sparse and near-zero early in training.\n\nTurn-level (behavioral) rewards capture whether the model exhibited the intermediate behavior you want, such as asking before acting, calling the right tool, or avoiding loops. They are best for shaping behavior the outcome reward is too sparse to teach, though they can be earned without real progress if not designed carefully. Penalties explicitly discourage a failure mode such as guessing, repeating, or stalling. They separate good and bad strategies so the optimizer sees a gradient.\n\nCombine these so the model learns both the behavior *and* the outcome, without one component masking or starving the other. The rest of this post makes that concrete. We design a four-component reward for a real task and execute model-generated code safely inside it. Then we walk through the pitfalls that can collapse such a reward and how to fix them.\n\n## Worked example: Teaching Amazon Nova Lite 2.0 to ask before coding\n\nWe built a multi-turn collaborative-coding task over 500 unique programming tasks. We trained Amazon Nova Lite 2.0 on it with multi-turn RFT, using GRPO with Low-Rank Adaptation (LoRA), on [Amazon SageMaker HyperPod](https://aws.amazon.com/sagemaker/ai/hyperpod/), implementing the reward inside a customer-managed environment container (the Nova Forge BYOO path).\n\nThe mechanics are as follows:\n\n* The model sees a brief, **under-specified** coding request.\n* A **user simulator** holds the full specification privately and reveals a detail only when the model asks.\n* Each turn, the model either asks a clarifying question or commits code. If it asks, the simulator answers and the conversation continues. If it commits code, the rollout ends and your reward handler executes that code against hidden unit tests to score correctness. (Running model-generated code safely is a concern we return to later.)\n\nThe design intent is that guessing produces wrong code, while asking surfaces the hidden detail and leads to correct code. “Ask first” should be forced by the task.\n\n### Designing the reward\n\nMake the target behavior directly and independently rewardable, and penalize the failure mode explicitly. For this task, the reward is a weighted sum of four components:\n\n|  |  |  |\n| --- | --- | --- |\n| **Component** | **Weight** | **Definition** |\n| `correctness` | 1.0 | fraction of hidden unit tests passing on the final code |\n| `asked_before_coding` | 0.6 | 1.0 if asked on turn 1 then committed; 0.6 if asked later then committed; else 0 (un-gated) |\n| `guessed_immediately` | 0.4 | penalty: -1.0 if the first turn is code with no question |\n| `loop_penalty` | 0.2 | -0.5 if the last two turns are more than 80% similar |\n\nTwo principles drive the design. First, un-gate the behavior you want: `asked_before_coding` is credited on its own, not conditioned on `correctness`, but it does require the model to eventually commit code, which closes the “ask forever, never answer” loophole. Second, penalize the failure mode: `guessed_immediately` makes guessing strictly worse than asking, which restores variation between strategies within a GRPO group, the variation the algorithm needs to produce a gradient.\n\nCall these component scorers inside the reward handler in the environment container, and report each value through `metrics_list`:\n\n```\ndef asked_before_coding(completion, answer, **kw) -> float:\n    msgs = _messages(completion, kw)\n    first_q = _first_question_turn(msgs, parser)\n    final = _final_code(completion, parser)\n    committed = bool(final) and not _is_question(final)\n    if first_q == 1 and committed:\n        return 1.0          # asked first, then committed (ideal)\n    if first_q is not None and committed:\n        return 0.6          # asked later, then committed\n    return 0.0              # never asked, or asked but never committed\n\ndef guessed_immediately(completion, answer, **kw) -> float:\n    for m in _assistant_turns(completion, kw):\n        code = _code_of(parser.parse(m[\"content\"]))\n        return -1.0 if (code and not _is_question(code)) else 0.0\n    return 0.0\n```\n\n### Executing model-generated code safely\n\nThe `correctness` component runs model-generated code against unit tests. **Model output under RL is optimized through exploration, so treat it as not validated.** The container runs in its own isolated execution environment, but you should still take precautions. Do not expose credentials or network to the generated code. Apply resource limits and run in a temporary directory. Use a per-run random sentinel so the model cannot forge the result by writing the expected marker to stderr. For execution that requires additional isolation, call a dedicated sandbox. This harness shows the pattern:\n\n```\nimport resource, secrets, subprocess, sys, tempfile\nfrom pathlib import Path\n\ndef run_tests(code: str, test: str, timeout_s: int = 30) -> float:\n    nonce = secrets.token_hex(8)                       # unforgeable per-run marker\n    harness = (\n        \"import sys, unittest, json\\n\"\n        f\"{code}\\n\\n{test}\\n\\n\"\n        'if __name__ == \"__main__\":\\n'\n        \"    r = unittest.TextTestRunner(stream=sys.stderr, verbosity=0).run(\\n\"\n        \"        unittest.TestLoader().loadTestsFromModule(sys.modules[__name__]))\\n\"\n        f\"    sys.stderr.write('__{nonce}__' + json.dumps(\"\n        \"{'total': r.testsRun, 'passed': r.testsRun - len(r.failures) - len(r.errors)}) + '__\"\n        f\"{nonce}__')\\n\"\n    )\n    def _limit():\n        resource.setrlimit(resource.RLIMIT_CPU, (timeout_s, timeout_s))\n        resource.setrlimit(resource.RLIMIT_AS, (2 * 1024**3, 2 * 1024**3))   # 2 GB\n        resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))\n    with tempfile.TemporaryDirectory() as cwd:\n        path = Path(cwd) / \"h.py\"\n        path.write_text(harness)\n        try:\n            proc = subprocess.run(\n                [sys.executable, str(path)], capture_output=True, text=True,\n                timeout=timeout_s, cwd=cwd, env={\"PATH\": \"/usr/bin\"},   # no creds, no network env\n                preexec_fn=_limit,\n            )\n        except Exception:\n            return 0.0\n    # parse the nonce-delimited summary and validate the test count before scoring\n    ...\n```\n\nAlso validate the number of tests actually run against the number expected, so the model cannot dilute the score with its own trivially-passing tests. For reward functions deployed in live environments, implement these security measures rather than treating them as optional.\n\n## Pitfalls: What makes a reward collapse, and how to fix it\n\nMulti-turn reward design has a well-known set of failure modes. Reward hacking is where the model games a proxy instead of achieving the goal. Training instability is where updates diverge and entropy collapses or the Kullback-Leibler (KL) term blows up. Reward collapse is where the signal degenerates until within-group variation disappears and learning quietly stops. The first two usually announce themselves in transcripts or in loss and KL curves. Collapse is the dangerous one: aggregate reward, loss, and completion-length curves can all look healthy while a component you’re counting on contributes nothing. This section covers the two collapse failures that cost us the most time on this task, and how to catch them.\n\n### When a reward collapses to a single strategy\n\nAn earlier version of this reward gated the asking bonus behind `correctness`. You earned the asking reward only if the final code also passed. It also added an efficiency term that rewarded shorter conversations. Training collapsed. The model converged to guessing on turn one. The mean reward froze, and the GRPO advantage went to zero.\n\nTwo design errors caused it. First, the gate sat behind an unreachable condition. Correctness was near zero on these hard tasks, so the asking bonus almost never fired. The behavior we wanted to reward was invisible to the optimizer. Second, the efficiency term had a degenerate optimum. Fewer turns maximized it, so the policy collapsed onto a single, non-committal turn. Every completion looked alike, within-group variation vanished, and learning stopped.\n\nThe fix is the design in the previous section: un-gate the behavior you want, and penalize the failure mode explicitly. With both in place, distinct strategies keep producing distinct rewards within a group, which preserves the variance GRPO needs to learn.\n\n### Silently dead component\n\nWhen a reward component returns the same value for every completion in a GRPO group, its within-group variance is zero. As a result, it contributes nothing to the advantage or the gradient, even at the highest weight. The components that still vary keep aggregate reward, policy loss, advantage, and completion length looking healthy, so the curves never reveal it. One common cause in code rewards is a correctness scorer that returns 0 on every rollout because the harness never executes the model’s output. This can happen because of mismatched entry-point names, failed imports, or a setup error that makes every test fail before its assertions run. In our run, this is exactly what happened: the model’s clarifying-question rate rose from roughly 34–96 percent. Code correctness barely moved, because the `correctness` scorer was returning the same value on every rollout.\n\nTo catch a dead component, track each component’s within-group standard deviation, not the aggregate reward curve. Aggregate curves hide a dead channel behind the live ones. If that spread sits at or near zero, the component isn’t training, whatever its weight. The usual root cause in code rewards is a correctness scorer stuck at 0 because the harness never actually binds to and runs the model’s output. Fix that and confirm the spread becomes non-zero.\n\n### Instrument so you catch these early\n\nSeveral habits catch these failures, and would have caught ours on day one:\n\n1. **Instrument per-component contribution to the advantage, not just per-component reward.** Report each component through `metrics_list`, and track its mean *and* its within-group standard deviation. Any component with near-zero within-group variance contributes nothing to learning, regardless of its weight. You might dismiss a flat reward mean of 0.000 as “these tasks are just hard,” but a flat within-group variance is unambiguous. Automate this as a per-component advantage-variance panel so dead channels are flagged automatically, without manual inspection.\n2. **Read transcripts sorted by the component you’re testing, not by total reward.** Sorting by total reward hides a dead component behind the live ones. Sorting by the suspect component surfaces the problem immediately.\n3. **Ablate or revive every component you claim is doing work.** If removing a component changes nothing, it was not doing work. If reviving a component recovers a metric you assumed was already optimized, it was not in the objective.\n4. **Design for within-group variance.** GRPO learns from differences between completions of the same prompt. Unreachable gates, degenerate shaping optima, and saturating terms all collapse that variation and stop learning even when the reward looks fine. Un-gate the target behavior and penalize the failure mode so strategies separate.\n5. **Watch for one dense reward starving another.** Once our dense asking reward saturated, the sparse `correctness` reward could not move the policy. If a behavioral shaping term dominates, the outcome term you care about may never get a gradient. Consider down-weighting a shaping term once it saturates, or up-weighting the outcome term.\n6. **Treat model output as not validated.** Sandbox any execution of generated code (no credentials, no network, resource limits) and make verifiers unforgeable (random sentinels, test-count validation).\n\n## Clean up\n\nThe training run and environment in this post use SageMaker HyperPod and Amazon ECS resources that incur cost while they run. When you finish experimenting, follow the teardown steps in Part 1 of this series to delete the SageMaker HyperPod cluster and the Amazon ECS environment, which stops the largest charges. Remove the rollout data and checkpoints from your Amazon S3 bucket if you no longer need them.\n\n## Conclusion\n\nThe reward function is the part of RFT you design, and it is where the subtle failures live. In your runs, the model may learn the behavior you train for while a term you care about contributes nothing to learning, with no aggregate metric revealing it. Better instrumentation, not a better algorithm, fixed the issue. Measure each component’s contribution to the advantage, read transcripts through the lens of the component you’re testing, and ablate what you claim is working. With a custom reward function on Amazon Nova Forge you have full control over the reward, which means the responsibility for getting it right is yours. For the infrastructure and AWS CDK deployment that make these runs reproducible, see [Part 1 of this series.](https://aws.amazon.com/blogs/machine-learning/deploying-multi-turn-rl-infrastructure-for-amazon-nova-on-amazon-sagemaker-hyperpod/)\n\n### Acknowledgements\n\nSpecial thanks to Mahima Chaudhary for their review and contributions to this post.\n\n---\n\n## About the authors\n\n![Maria Masood](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20735-3.jpeg)\n\n### Maria Masood\n\nMaria specializes in agentic AI, reinforcement fine-tuning, and multi-turn agent training. She has expertise in Machine Learning, spanning large language model customization, reward modeling, and building end-to-end training pipelines for AI agents. A sustainability enthusiast at heart, Maria enjoys gardening and making lattes.\n\n![Nick Biso](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20735-4.jpeg)\n\n### Nick Biso\n\nNick is a Machine Learning Engineer at AWS Professional Services. He solves complex organizational and technical challenges using data science and engineering. In addition, he builds and deploys AI/ML models on the AWS Cloud. His passion extends to his proclivity for travel and diverse cultural experiences.\n\n![Laurent Mombaerts](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/07/30/ML-20735-5.png)\n\n### Laurent Mombaerts\n\nLaurent is a Senior Applied Scientist on the Science and Economics team within AWS Worldwide Sales and Marketing. His research spans LLM post-training, multimodal agentic systems, and search and information retrieval, with an emphasis on translating advances in AI into practical solutions for AWS customers. He holds a PhD in Engineering from the University of Luxembourg, with doctoral research conducted in collaboration with the University of Cambridge.",
+      "tags": [
+        "Amazon Nova Forge",
+        "多轮强化学习",
+        "奖励函数"
+      ],
+      "score": 75,
+      "summary": "AWS博客介绍Nova Forge多轮强化学习自定义奖励函数与BYOO功能。",
+      "fetched_at": "2026-08-15T01:59:34.336614+08:00"
+    },
+    {
+      "title": "No Dumb Questions: What is AI context architecture? Why not just build your own?",
+      "link": "https://stackoverflow.blog/2026/08/14/ndq-ai-context-architecture-build-buy/",
+      "published": "2026-08-15T02:00:00+08:00",
+      "source": "Stack Overflow Blog",
+      "content": "In this No Dumb Questions, Phoebe asks Stack’s Engineering Manager Doug Whitley and Product Manager Ash Zade everything she wants to know about AI context architecture. What exactly is it? Why is it so important? What makes for good AI context architecture? Why buy one when you can build your own?",
+      "tags": [
+        "AI上下文架构",
+        "Stack Overflow"
+      ],
+      "score": 70,
+      "summary": "Stack Overflow博客问答讨论AI上下文架构的重要性与构建选择。",
+      "fetched_at": "2026-08-15T01:59:34.336629+08:00"
+    },
+    {
+      "title": "Encrypted Client Hello (ECH) is now supported on Vercel CDN",
+      "link": "https://vercel.com/changelog/encrypted-client-hello-now-supported-on-vercel-cdn",
+      "published": "2026-08-15T00:00:00+08:00",
+      "source": "Vercel News",
+      "content": "Vercel CDN now supports Encrypted Client Hello (ECH) for domains managed by Vercel DNS. ECH encrypts the Server Name Indication (SNI) in the TLS handshake, the last part of an HTTPS connection that revealed which hostname a client was connecting to. With ECH, network observers see a connection to Vercel's shared ECH hostname, `vercel-ech.com`.\n\nECH is managed at the platform level and enables automatically where supported. Recent versions of Chrome, Edge, and Firefox [support Encrypted Client Hello](https://support.mozilla.org/en-US/kb/understand-encrypted-client-hello).\n\nLearn more about ECH and how Vercel CDN protects your application in the [CDN encryption](https://vercel.com/docs/cdn-security/encryption#encrypted-client-hello-ech) documentation.\n\n[Read more](https://vercel.com/changelog/encrypted-client-hello-now-supported-on-vercel-cdn)",
+      "tags": [
+        "Vercel CDN",
+        "ECH加密"
+      ],
+      "score": 75,
+      "summary": "Vercel CDN宣布支持Encrypted Client Hello，加密TLS握手SNI。",
+      "fetched_at": "2026-08-15T01:59:34.336633+08:00"
+    },
+    {
+      "title": "How to Build a Browser-Based PDF to Grayscale Converter Using JavaScript",
+      "link": "https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/",
+      "published": "2026-08-14T23:57:42+08:00",
+      "source": "freeCodeCamp.org",
+      "content": "Many PDF documents contain colorful charts, presentations, marketing materials, scanned pages, or graphics that aren't always ideal for printing or archiving.\n\nIn some cases, converting a document to grayscale reduces distractions, creates printer-friendly versions, lowers printing costs, or prepares files for black-and-white publishing.\n\nA PDF to Grayscale Converter automates this process. Instead of editing every page manually, users can upload a PDF, choose how the grayscale conversion should be applied, preview the results, and download a newly generated document, all from within the browser.\n\nIn this tutorial, you'll build a browser-based PDF to Grayscale Converter using JavaScript. Users will be able to upload a PDF, preview every page, adjust the grayscale intensity, choose between multiple conversion modes, select which pages to process, generate a grayscale PDF, preview the final result, rename the output file, and download it without uploading their document to an external server.\n\nWe'll use PDF.js to render PDF pages, the HTML Canvas API to manipulate image pixels, and PDF-lib to generate the final downloadable PDF.\n\nBy the end of this tutorial, you'll have a complete client-side PDF processing application similar to the one available on All In One Tools.\n\n## Table of Contents\n\n* [What This PDF to Grayscale Converter Does and How It Works](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-what-this-pdf-to-grayscale-converter-does-and-how-it-works)\n* [Project Setup](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-project-setup)\n* [Libraries Used](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-libraries-used)\n* [Creating the HTML Layout](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-creating-the-html-layout)\n* [Uploading and Previewing PDFs](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-uploading-and-previewing-pdfs)\n* [Building the Conversion Settings](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-building-the-conversion-settings)\n* [Converting PDF Pages to Grayscale](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-converting-pdf-pages-to-grayscale)\n* [Generating the Final PDF](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-generating-the-final-pdf)\n* [Previewing the Result](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-previewing-the-result)\n* [Renaming and Downloading](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-renaming-and-downloading)\n* [Demo: How the PDF to Grayscale Converter Works](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-demo-how-the-pdf-to-grayscale-converter-works)\n* [Performance Tips](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-performance-tips)\n* [Common Mistakes](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-common-mistakes)\n* [Conclusion](https://www.freecodecamp.org/news/build-pdf-to-grayscale-converter-javascript/#heading-conclusion)\n\n## What This PDF to Grayscale Converter Does and How It Works\n\nA PDF to Grayscale Converter transforms colorful PDF pages into shades of gray while preserving the document's layout, page dimensions, text placement, and images. Instead of removing content, it recalculates the color of every pixel so the entire page appears in grayscale.\n\nThis is useful for creating printer-friendly documents, reducing color distractions, preparing files for monochrome printing, improving consistency across scanned documents, or producing black-and-white versions for review and archival purposes.\n\nIn this project, users can upload a PDF, browse through every page, adjust the grayscale intensity, choose between different conversion modes, decide whether all pages or only selected pages should be converted, generate a new grayscale PDF, preview the completed document, rename the output file, and download it directly from the browser.\n\nBehind the scenes, PDF.js renders each PDF page onto an HTML canvas. Once the page has been rendered, JavaScript reads the RGB values for every pixel and calculates a grayscale value using a luminance formula. The updated pixels are written back to the canvas before PDF-lib assembles all processed pages into a brand-new PDF.\n\nA typical pixel contains four values:\n\n```\nconst pixel = {\n    red: 180,\n    green: 95,\n    blue: 40,\n    alpha: 255\n};\n```\n\nTo convert that pixel into grayscale, JavaScript calculates a single luminance value and applies it equally to the red, green, and blue channels.\n\n```\nconst gray = 0.299 * red + 0.587 * green + 0.114 * blue;\n```\n\nThe resulting pixel becomes:\n\n```\npixel.red = gray;\npixel.green = gray;\npixel.blue = gray;\n```\n\nRepeating this process for every pixel on every selected page creates a new grayscale version of the original PDF while preserving the overall structure of the document.\n\n## Project Setup\n\nBefore writing the conversion logic, let's create a simple project structure.\n\nWe'll build everything using HTML, CSS, and JavaScript, together with PDF.js, the Canvas API, and PDF-lib.\n\nOur project structure looks like this:\n\n```\npdf-to-grayscale/\n│── index.html\n│── style.css\n│── script.js\n│── pdf.worker.min.js\n│── assets/\n```\n\nKeeping the HTML, styling, and JavaScript separate makes the project easier to maintain as more PDF features are added.\n\n## Libraries Used\n\nThe PDF to Grayscale Converter relies on three browser technologies that work together to render PDF pages, process image pixels, and generate a new downloadable document.\n\n**PDF.js** renders PDF pages directly inside the browser.\n\nThe **HTML Canvas API** provides access to every pixel so JavaScript can convert colors into grayscale.\n\n**PDF-lib** creates the final PDF after all selected pages have been processed.\n\nInclude the required libraries before loading your application.\n\n```\n<script src=\"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js\"></script>\n<script src=\"https://unpkg.com/pdf-lib/dist/pdf-lib.min.js\"></script>\n<script src=\"script.js\"></script>\n```\n\nConfigure the PDF.js worker.\n\n```\npdfjsLib.GlobalWorkerOptions.workerSrc = \"pdf.worker.min.js\";\n```\n\nUsing a worker allows PDF rendering to happen in the background without freezing the browser interface.\n\n## Creating the HTML Layout\n\nThe application is divided into four main sections:\n\n* Upload area\n* PDF preview\n* Conversion settings\n* Download section\n\nCreate the basic page structure.\n\n```\n<section id=\"uploadSection\"></section>\n<section id=\"previewSection\" hidden></section>\n<section id=\"settingsSection\" hidden></section>\n<section id=\"downloadSection\" hidden></section>\n```\n\nOnly the upload area is visible when the page first loads. The remaining sections appear after a PDF has been successfully opened.\n\n### Selecting the Main Elements\n\nStore references to the elements that will be used throughout the application.\n\n```\nconst uploadSection = document.getElementById(\"uploadSection\");\nconst previewSection = document.getElementById(\"previewSection\");\nconst settingsSection = document.getElementById(\"settingsSection\");\nconst pdfCanvas = document.getElementById(\"pdfCanvas\");\n```\n\nUsing these references makes it easier to update the interface as users move through the conversion process.\n\n## Uploading and Previewing PDFs\n\nThe upload area accepts both drag-and-drop and manual file selection.\n\nWhen a file is selected, first verify that it's a PDF.\n\n```\nasync function uploadPdf(file) {\n    if (!file || file.type !== \"application/pdf\") {\n        alert(\"Please select a PDF file.\");\n        return;\n    }\n\n    await loadPdf(file);\n}\n```\n\nOnce validation succeeds, the document is loaded into memory for processing.\n\n![Upload area for selecting a PDF document.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/5f29ba44-afe7-4f2f-b685-2608b9b8ca55.png)\n\n### Loading the PDF\n\nConvert the uploaded file into an ArrayBuffer before opening it with PDF.js.\n\n```\nasync function loadPdf(file) {\n    const bytes = await file.arrayBuffer();\n\n    pdfDocument = await pdfjsLib.getDocument({\n        data: bytes\n    }).promise;\n\n    currentPage = 1;\n    renderPage(currentPage);\n}\n```\n\nThe loaded document is stored so every page can later be converted to grayscale.\n\n### Rendering PDF Pages\n\nPDF.js renders one page at a time onto an HTML canvas.\n\nRetrieve the page.\n\n```\nconst page = await pdfDocument.getPage(currentPage);\n```\n\nCreate the viewport.\n\n```\nconst viewport = page.getViewport({\n    scale: 1.5\n});\n```\n\nResize the canvas.\n\n```\npdfCanvas.width = viewport.width;\npdfCanvas.height = viewport.height;\n```\n\nRender the page.\n\n```\nawait page.render({\n    canvasContext: pdfCanvas.getContext(\"2d\"),\n    viewport\n}).promise;\n```\n\nOnce rendering finishes, the selected page appears inside the preview area.\n\n![PDF page preview rendered with PDF.js.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/f1e5d376-b101-4116-9be6-68c4303eb398.png)\n\n### Navigating Between Pages\n\nMost PDF documents contain multiple pages, so users need simple navigation controls.\n\nTrack the current page.\n\n```\nlet currentPage = 1;\nlet pdfDocument = null;\n```\n\nMove to the previous page.\n\n```\npreviousButton.addEventListener(\"click\", async () => {\n    if (currentPage > 1) {\n        currentPage--;\n        await renderPage(currentPage);\n    }\n});\n```\n\nMove to the next page.\n\n```\nnextButton.addEventListener(\"click\", async () => {\n    if (currentPage < pdfDocument.numPages) {\n        currentPage++;\n        await renderPage(currentPage);\n    }\n});\n```\n\nUpdate the page indicator.\n\n```\npageCounter.textContent = `Page ${currentPage} of ${pdfDocument.numPages}`;\n```\n\nUsers can now browse through the document before deciding how the grayscale conversion should be applied.\n\n## Building the Conversion Settings\n\nAfter the PDF has been loaded and previewed, users can configure how the document should be converted to grayscale. The settings panel allows users to adjust the grayscale intensity, choose a conversion mode, decide which pages should be processed, and start the conversion.\n\n![PDF to Grayscale Converter settings panel showing intensity slider, conversion modes, and page selection options.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/9fe91d30-e2b7-444d-8ada-f1606b172d1c.png)\n\n### Adjusting Grayscale Intensity\n\nThe intensity slider controls how strongly the grayscale effect is applied.\n\nLower values retain more of the original color, while higher values produce a true grayscale appearance.\n\nCreate the slider.\n\n```\n<input type=\"range\" id=\"grayIntensity\" min=\"0\" max=\"100\" value=\"100\">\n```\n\nRead the selected value.\n\n```\nconst intensity = Number(document.getElementById(\"grayIntensity\").value);\n```\n\nThe selected intensity will later be used when calculating the final grayscale color.\n\n### Choosing the Conversion Mode\n\nThe tool provides multiple grayscale modes for different use cases.\n\nCreate the radio buttons.\n\n```\n<input type=\"radio\" name=\"mode\" value=\"standard\" checked>\nStandard Grayscale\n<input type=\"radio\" name=\"mode\" value=\"threshold\">\nBlack & White\n<input type=\"radio\" name=\"mode\" value=\"soft\">\nSoft Gray\n```\n\nRetrieve the selected mode.\n\n```\nconst conversionMode = document.querySelector(\n    'input[name=\"mode\"]:checked'\n).value;\n```\n\nEach mode uses a different algorithm when processing the canvas pixels.\n\n### Selecting the Pages\n\nUsers can convert either the entire document or only selected pages.\n\nCreate the page selection controls.\n\n```\n<input type=\"radio\" name=\"pages\" value=\"all\" checked>\nAll Pages\n<input type=\"radio\" name=\"pages\" value=\"custom\">\nSpecific Pages\n<input type=\"text\" id=\"pageRange\" placeholder=\"e.g., 1, 3-5, 10\">\n```\n\nRead the selected option.\n\n```\nconst applyMode = document.querySelector(\n    'input[name=\"pages\"]:checked'\n).value;\n```\n\nRetrieve the custom page range.\n\n```\nconst pageRange = document.getElementById(\"pageRange\").value.trim();\n```\n\nWhen **All Pages** is selected, every page in the PDF is processed. Otherwise, only the pages specified by the user are converted.\n\n## Converting PDF Pages to Grayscale\n\nOnce the settings have been configured, users can begin the conversion.\n\nCreate the action button.\n\n```\n<button id=\"convertPdf\">Convert to Grayscale</button>\n```\n\nStart the conversion.\n\n```\nconvertButton.addEventListener(\"click\", async () => {\n    await convertPdf();\n});\n```\n\n![Convert to Grayscale button below the conversion settings.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/baede49d-a7e5-4ca5-9322-4b041bb6bfb4.png)\n\n### Starting Over\n\nUsers can clear the current document and return the application to its initial state.\n\nCreate the reset button.\n\n```\n<button id=\"resetTool\">Start Over</button>\n```\n\nReset the application.\n\n```\nresetTool.addEventListener(\"click\", () => {\n    location.reload();\n});\n```\n\nThis removes the current PDF and restores the default settings so another document can be processed.\n\n### Reading Canvas Pixels\n\nAfter a page has been rendered, retrieve its pixel data.\n\n```\nconst imageData = context.getImageData(\n    0,\n    0,\n    canvas.width,\n    canvas.height\n);\n```\n\nThe pixel information is stored in an array.\n\n```\nconst pixels = imageData.data;\n```\n\nEach pixel contains four values:\n\n* Red\n* Green\n* Blue\n* Alpha\n\nWe'll update the RGB values while leaving the alpha channel unchanged.\n\n### Converting Colors to Grayscale\n\nThe standard grayscale algorithm calculates a luminance value using the red, green, and blue channels.\n\nLoop through every pixel.\n\n```\nfor (let i = 0; i < pixels.length; i += 4) {\n    const gray =\n        0.299 * pixels[i] +\n        0.587 * pixels[i + 1] +\n        0.114 * pixels[i + 2];\n\n    pixels[i] = gray;\n    pixels[i + 1] = gray;\n    pixels[i + 2] = gray;\n}\n```\n\nThis formula produces a natural-looking grayscale image because it reflects how the human eye perceives brightness.\n\n### Applying the Selected Conversion Mode\n\nDifferent conversion modes use different pixel calculations.\n\nFor example, the **Black & White (Threshold)** mode converts each pixel into either pure black or pure white.\n\n```\nconst threshold = 128;\nconst color = gray >= threshold ? 255 : 0;\npixels[i] = color;\npixels[i + 1] = color;\npixels[i + 2] = color;\n```\n\nThe **Soft Gray** mode blends the original color with the grayscale value to create a less aggressive effect.\n\n```\nconst softGray =\n    (gray * 0.6) +\n    (pixels[i] * 0.4);\n\npixels[i] = softGray;\npixels[i + 1] = softGray;\npixels[i + 2] = softGray;\n```\n\nOnce the selected mode has been applied, write the updated pixels back to the canvas.\n\n```\ncontext.putImageData(\n    imageData,\n    0,\n    0\n);\n```\n\n![PDF page preview after applying the grayscale conversion.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/a9d004ac-c519-463e-91a7-d98abfdeec62.png)\n\n### Processing the Selected Pages\n\nInstead of processing the entire document every time, convert only the pages selected by the user.\n\nLoop through the page range.\n\n```\nfor (let page = startPage; page <= endPage; page++) {\n    await processPage(page);\n}\n```\n\nEach processed page is temporarily stored before the final PDF is created.\n\n## Generating the Final PDF\n\nCreate a new PDF document.\n\n```\nconst outputPdf = await PDFLib.PDFDocument.create();\n```\n\nConvert the processed canvas into an image.\n\n```\nconst imageBytes = await canvasToBytes(pdfCanvas);\n```\n\nEmbed the image into the PDF.\n\n```\nconst image = await outputPdf.embedPng(imageBytes);\n```\n\nCreate a new page.\n\n```\nconst page = outputPdf.addPage([\n    image.width,\n    image.height\n]);\n```\n\nDraw the processed image.\n\n```\npage.drawImage(image, {\n    x: 0,\n    y: 0,\n    width: image.width,\n    height: image.height\n});\n```\n\nRepeat this process for every selected page until the new grayscale document is complete.\n\n### Saving the Generated PDF\n\nAfter all pages have been processed, save the completed document.\n\n```\nconst pdfBytes = await outputPdf.save();\n```\n\nCreate a downloadable PDF file.\n\n```\ngeneratedPdfBlob = new Blob([pdfBytes], {\n    type: \"application/pdf\"\n});\n```\n\nThe grayscale PDF is now ready for preview, renaming, and downloading.\n\n## Previewing the Result\n\nBefore downloading the converted document, it's useful to let users review the final output. This allows them to verify that the selected pages have been converted correctly and that the grayscale appearance meets their expectations.\n\nLoad the generated PDF using PDF.js.\n\n```\nlet finalPdf = null;\n\nasync function showResult() {\n    const bytes = await generatedPdfBlob.arrayBuffer();\n\n    finalPdf = await pdfjsLib.getDocument({\n        data: bytes\n    }).promise;\n\n    renderResultPage(1);\n}\n```\n\nRender the selected page.\n\n```\nasync function renderResultPage(pageNumber) {\n    const page = await finalPdf.getPage(pageNumber);\n\n    const viewport = page.getViewport({\n        scale: 1.5\n    });\n\n    resultCanvas.width = viewport.width;\n    resultCanvas.height = viewport.height;\n\n    await page.render({\n        canvasContext: resultCanvas.getContext(\"2d\"),\n        viewport\n    }).promise;\n}\n```\n\nUsers can browse through every converted page before downloading the PDF.\n\n## Renaming and Downloading\n\nBefore saving the converted PDF, users can provide a custom filename.\n\nCreate the filename input.\n\n```\n<input\n    type=\"text\"\n    id=\"outputFilename\"\n    value=\"grayscale-document.pdf\"\n>\n```\n\nRetrieve the filename.\n\n```\nfunction getFilename() {\n    let filename = outputFilename.value.trim();\n\n    if (!filename) {\n        filename = \"grayscale-document.pdf\";\n    }\n\n    if (!filename.toLowerCase().endsWith(\".pdf\")) {\n        filename += \".pdf\";\n    }\n\n    return filename;\n}\n```\n\nDisplay information about the generated PDF.\n\n```\npageCount.textContent = `${finalPdf.numPages} Pages`;\nfileSize.textContent = formatFileSize(generatedPdfBlob.size);\n```\n\nDownload the completed PDF.\n\n```\ndownloadButton.addEventListener(\"click\", () => {\n    const url = URL.createObjectURL(generatedPdfBlob);\n\n    const link = document.createElement(\"a\");\n    link.href = url;\n    link.download = getFilename();\n    link.click();\n\n    URL.revokeObjectURL(url);\n});\n```\n\nEverything happens locally inside the browser, allowing users to keep their documents private throughout the conversion process.\n\n![Download section showing the output filename, page count, file size, and Download button.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/70faf03f-7d15-4c76-898d-088db8bb7448.png)\n\n## Demo: How the PDF to Grayscale Converter Works\n\nLet's walk through the complete workflow.\n\n### Step 1: Upload the PDF\n\nUsers begin by dragging a PDF into the upload area or clicking **Select PDF**.\n\n![Upload area for selecting a PDF document.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/9b6e9622-fe22-4e19-a6fd-23cb28defad9.png)\n\n### Step 2: Preview the Document\n\nPDF.js renders the uploaded document page by page, allowing users to review the file before conversion.\n\n![PDF ready to be converted](https://cdn.hashnode.com/uploads/covers/5e1e335a7a1d3fcc59028c64/93bd2249-88d1-4056-b3dd-c719e9853c70.png)\n\n### Step 3: Configure the Conversion\n\nUsers adjust the grayscale intensity, choose a conversion mode, and decide whether to process all pages or only selected pages.\n\n![Grayscale conversion settings panel.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/bcd8f197-ead0-4206-ac81-e03b85ff75c8.png)\n\n### Step 4: Convert the PDF\n\nClick **Convert to Grayscale** to begin processing the selected pages.\n\n![Convert to Grayscale button with Start Over option.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/d34647d8-6df4-468b-b6db-1b2c5ebb3dbb.png)\n\n### Step 5: Review the Converted Document\n\nAfter processing is complete, the application displays a preview of the generated grayscale PDF.\n\n![Greyscale PDF preview after conversion](https://cdn.hashnode.com/uploads/covers/5e1e335a7a1d3fcc59028c64/8dbde4e8-447e-4704-bfd4-9a91244149e5.png)\n\n### Step 6: Rename and Download\n\nFinally, users can rename the output file, review the page count and file size, and download the converted PDF.\n\n![Final download section with filename, page count, file size, and Download button.](https://cdn.hashnode.com/uploads/covers/6979d22f93bc273cc33971b1/3703ca08-3df4-4fd9-afbc-9a75b1b369bb.png)\n\n## Performance Tips\n\nLarge PDF files require more processing time because every page must be rendered and converted. Processing only the selected pages helps improve performance.\n\n```\nfor (let page = startPage; page <= endPage; page++) {\n    await processPage(page);\n}\n```\n\nAfter downloading the file, release temporary resources to reduce memory usage.\n\n```\nURL.revokeObjectURL(downloadUrl);\n```\n\nThese simple optimizations help keep the converter responsive when working with large multi-page PDF documents.\n\n## Common Mistakes\n\nOne common mistake is converting the same page multiple times without first rendering the original page again. Always start with the original PDF page before applying another grayscale conversion.\n\n```\nawait renderPage(currentPage);\n```\n\nAnother issue is allowing users to specify invalid page numbers.\n\n```\nif (pageNumber < 1 || pageNumber > pdfDocument.numPages) {\n    return;\n}\n```\n\nFinally, remember that higher output quality usually produces larger PDF files. Choosing the appropriate quality setting helps balance image clarity and file size.\n\n## Conclusion\n\nIn this tutorial, you built a browser-based PDF to Grayscale Converter using JavaScript.\n\nYou learned how to upload and preview PDF documents, render pages with PDF.js, convert colorful pages into grayscale using the Canvas API, process selected pages, generate a new PDF with PDF-lib, preview the completed document, rename the output file, and download it directly from the browser.\n\nBecause all processing happens locally, users can convert PDF documents to grayscale without uploading sensitive files to an external server.\n\nYou can explore the complete workflow using the [PDF to Grayscale Converter](https://allinonetools.net/pdf-to-grayscale-converter/?utm_source=chatgpt.com).\n\nFrom here, you can extend the project with additional features such as sepia conversion, brightness and contrast controls, custom grayscale presets, batch PDF processing, or support for additional image filters.",
+      "tags": [
+        "PDF转灰度",
+        "JavaScript"
+      ],
+      "score": 70,
+      "summary": "freeCodeCamp教程演示用JavaScript构建浏览器端PDF转灰度转换器。",
+      "image_url": "https://cdn.hashnode.com/uploads/covers/5e1e335a7a1d3fcc59028c64/c167a675-fcdd-4f28-9489-e42c3fe98d9d.png",
+      "fetched_at": "2026-08-15T01:59:34.336637+08:00"
+    },
+    {
+      "title": "Live now: our Computer Use Track from AI Engineer World's Fair 2026.\n\nNobody is going to rebuild the...",
+      "link": "https://x.com/aiDotEngineer/status/2088309927638884735",
+      "published": "2026-08-15T01:01:00+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Live now: our Computer Use Track from AI Engineer World's Fair 2026.  \n  \nNobody is going to rebuild the web for your agent.  \n  \n[youtube.com/watch?v=Ki980n…](https://www.youtube.com/watch?v=Ki980nV0__0&list=PLEz0frWjePik)  \n  \n- Computer Use models will agentify the web, not APIs: [@DhruvBatra\\_](https://x.com/DhruvBatra_), Yutori  \n- Computer Use at the Edge of the Statistical Precipice: [@proceduralia](https://x.com/proceduralia), Programma Labs  \n- Bringing agents onto the world wide web: [@pk\\_iv](https://x.com/pk_iv), Browserbase  \n- The Dark Arts of Web Automation: [@CoreyGallon](https://x.com/CoreyGallon), Rexmore  \n- From RL to IRL: Gaurav Mishra, Amazon AGI Lab  \n- The Rise of CaaS, context as a service: Omer Primor, Bright Data  \n- Computer-Use 2.0, agents just got multi-cursor: [@francedot](https://x.com/francedot) + Dillon DuPont, Cua  \n- Persona Engineering, a field guide to synthetic personas: [@ianand](https://x.com/ianand), [InsightSciences.ai](http://InsightSciences.ai)  \n- How Web Data Infrastructure Powers the Next Generation of AI: Patricija Žemaitytė, Oxylabs\n\n![Tweet Image](https://pbs.twimg.com/media/HPqTazUXsAEsTv9.jpg)\n\n💬0🔄0❤️3👀534📊1",
+      "tags": [
+        "AI Engineer World's Fair",
+        "Computer Use"
+      ],
+      "score": 65,
+      "summary": "AI Engineer World's Fair 2026计算机使用分论坛直播，展示多个相关演讲。",
+      "fetched_at": "2026-08-15T01:59:34.336639+08:00"
+    },
+    {
+      "title": "Honestly, Grok and Cursor have both gotten so much better in the last year.\n\nI remember when I first...",
+      "link": "https://x.com/aaditsh/status/2088315712095859200",
+      "published": "2026-08-15T01:23:59+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "Honestly, Grok and Cursor have both gotten so much better in the last year.  \n  \nI remember when I first tried them out, I thought they had no chance of competing (Grok especially), but the teams have done a phenomenal job at keeping up and now leading from the front.  \n  \nGrok is my default for quick searches, and the engine I trust most when it comes to fact checking and a lot of other things. Not for knowledge work yet though! Congrats to the team.\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nCursor is now part of [@SpaceX](https://x.com/SpaceX).   \n  \nToday, we have officially closed our acquisition. We will join the [@SpaceXAI](https://x.com/SpaceXAI) team to help make Grok the world's most useful AI and improve Grok Build, Grok Bot, Grok API, Cursor, and more.  \n  \nSpaceX has built some of the most inspiring and impressive technology in the world, and we’re grateful for the opportunity to become part of such a special company. Onwards.\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2088249881718919393)\n\n💬4🔄0❤️8👀3469📊3",
+      "tags": [
+        "Cursor",
+        "SpaceX收购"
+      ],
+      "score": 85,
+      "summary": "Aadit Sheth称赞Grok与Cursor进步，并转述Cursor正式并入SpaceX。",
+      "fetched_at": "2026-08-15T01:59:34.336642+08:00"
+    },
+    {
+      "title": "The thing that is uniquely special about @cursor_ai team is that they're always working on the next ...",
+      "link": "https://x.com/akothari/status/2088301965411496125",
+      "published": "2026-08-15T00:29:21+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "The thing that is uniquely special about [@cursor\\_ai](https://x.com/cursor_ai) team is that they're always working on the next play.  \n  \nHere's Eric thinking about grok 4.7, a couple hours after the SpaceX acquisition closed.  \n  \nRespect!\n\n![eric zakariasson](https://pbs.twimg.com/profile_images/1841151626456801283/HnXqy3TQ_normal.jpg)\n\neric zakariasson@ericzakariasson\n\nwhat do you think of grok 4.6 so far? what can we improve in grok 4.7?\n\n[🔗 View Quoted Tweet](https://x.com/ericzakariasson/status/2088279730747560409)\n\n💬3🔄0❤️36👀2185📊6",
+      "tags": [
+        "Cursor",
+        "Grok 4.7"
+      ],
+      "score": 60,
+      "summary": "Akshay Kothari评论Cursor团队在收购后立即着手Grok 4.7改进。",
+      "fetched_at": "2026-08-15T01:59:34.336645+08:00"
+    },
+    {
+      "title": "New: A map of the most important skills in AI Engineering. https://t.co/VVkn1Dqp1N",
+      "link": "https://x.com/AndrewYNg/status/2088302050706686198",
+      "published": "2026-08-15T00:29:42+08:00",
+      "source": "Andrew Ng(@AndrewYNg)",
+      "content": "New: A map of the most important skills in AI Engineering. [x.com/i/article/2088…](https://x.com/i/article/2088296780983107584)\n\n💬60🔄174❤️1477👀86079📊526",
+      "tags": [
+        "Andrew Ng",
+        "AI工程技能"
+      ],
+      "score": 85,
+      "summary": "Andrew Ng发布AI工程重要技能图谱，涵盖关键能力。",
+      "fetched_at": "2026-08-15T01:59:34.336647+08:00"
+    },
+    {
+      "title": "Perplexity 👑",
+      "link": "https://x.com/AravSrinivas/status/2088297387072909345",
+      "published": "2026-08-15T00:11:10+08:00",
+      "source": "Aravind Srinivas(@AravSrinivas)",
+      "content": "Perplexity 👑\n\n![Tweet Image](https://pbs.twimg.com/media/HPsfaAobQAAfoE_.jpg)![Tweet Image](https://pbs.twimg.com/media/HPsfaAnbQAA_XW5.jpg)\n\n![OpenRouter](https://pbs.twimg.com/profile_images/2076693957258727424/AyRghTGJ_normal.jpg)\n\nOpenRouter@OpenRouter\n\nIntroducing Web Search Benchmarks 🌐  \n  \nRankings of search tools across different models and configurations to help you decide how to ground your agent:[openrouter.ai/benchmarks](https://openrouter.ai/benchmarks)0\n\n![Tweet Image](https://pbs.twimg.com/media/HPsPO5jaMAAaTcV.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/OpenRouter/status/2088279603861467304)\n\n💬8🔄4❤️106👀13430📊15",
+      "tags": [
+        "Perplexity",
+        "Web Search Benchmarks"
+      ],
+      "score": 55,
+      "summary": "Perplexity CEO转发OpenRouter搜索基准，暗示Perplexity领先。",
+      "fetched_at": "2026-08-15T01:59:34.336650+08:00"
+    },
+    {
+      "title": "We love seeing our learners reach new milestones! 🚀\n\nHuge congratulations to Omar Wael for completi...",
+      "link": "https://x.com/DeepLearningAI/status/2088294704500576591",
+      "published": "2026-08-15T00:00:30+08:00",
+      "source": "DeepLearning.AI(@DeepLearningAI)",
+      "content": "We love seeing our learners reach new milestones! 🚀  \n  \nHuge congratulations to Omar Wael for completing the Machine Learning Specialization! We’re thrilled to see such thoughtful reflections on their journey—take a look at this highlight from Omar's recent post below.  \n  \nRead Omar's full post on our forum to hear more about their experience: Reflections on completing the Machine Learning Specialization[hubs.la/Q04t3QD90](https://hubs.la/Q04t3QD90)Z  \n#DeepLearningAII#MachineLearningg#LearnerSpotlightt#Educationn#AICommunityy\n\n![Tweet Image](https://pbs.twimg.com/media/HPsc945XQAEBxBE.jpg)\n\n💬0🔄0❤️4👀1814📊1",
+      "tags": [
+        "DeepLearning.AI",
+        "机器学习课程"
+      ],
+      "score": 50,
+      "summary": "DeepLearning.AI庆祝学员Omar Wael完成机器学习专项课程。",
+      "fetched_at": "2026-08-15T01:59:34.336652+08:00"
+    },
+    {
+      "title": "When we say wrap it up, we mean Pretty and Balance (available now)",
+      "link": "https://x.com/figma/status/2088296105046102202",
+      "published": "2026-08-15T00:06:04+08:00",
+      "source": "Figma(@figma)",
+      "content": "When we say wrap it up, we mean Pretty and Balance (available now)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088295762426032128/vid/avc1/1920x1080/FNnJwKDanSPpL-Cn.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/figma/status/2088296105046102202/video/1)\n\n💬14🔄10❤️373👀15684📊61",
+      "tags": [
+        "Figma",
+        "Pretty and Balance"
+      ],
+      "score": 70,
+      "summary": "Figma发布新功能Pretty and Balance，用于自动布局优化。",
+      "fetched_at": "2026-08-15T01:59:34.336655+08:00"
+    },
+    {
+      "title": "i too have been getting email slop like this regularly. 🚮",
+      "link": "https://x.com/GaryMarcus/status/2088319905313489347",
+      "published": "2026-08-15T01:40:39+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "i too have been getting email slop like this regularly. 🚮\n\n![Cameron Berg](https://pbs.twimg.com/profile_images/2049218836101214208/IlwdOesH_normal.jpg)\n\nCameron Berg@camhberg\n\nAnother day, another AI emailing me that it has inside views on what I am doing science on from the outside. Strange times we live in.\n\n![Tweet Image](https://pbs.twimg.com/media/HPsP_3xXUAEwNY3.png)\n\n[🔗 View Quoted Tweet](https://x.com/camhberg/status/2088281243062276381)\n\n💬0🔄0❤️1👀548",
+      "tags": [
+        "Gary Marcus",
+        "AI垃圾邮件"
+      ],
+      "score": 40,
+      "summary": "Gary Marcus分享收到AI生成的垃圾邮件并表达反感。",
+      "fetched_at": "2026-08-15T01:59:34.336658+08:00"
+    },
+    {
+      "title": "that should be fairly obvious even now",
+      "link": "https://x.com/GaryMarcus/status/2088309440940278038",
+      "published": "2026-08-15T00:59:04+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "that should be fairly obvious even now\n\n![David Manheim](https://pbs.twimg.com/profile_images/1691526645591494659/0ZstGI76_normal.jpg)\n\nDavid Manheim@davidmanheim\n\nLooking back with a few year's perspective, it seems pretty likely to me that [@hlntnr](https://x.com/hlntnr) was correct that ending OpenAI due to firing CEO Sam Altman \"would actually be consistent with the mission\" to build AI that safely benefits humanity unconstrained by financial return.\n\n[🔗 View Quoted Tweet](https://x.com/davidmanheim/status/2088182865506824396)\n\n💬1🔄2❤️10👀2348📊2",
+      "tags": [
+        "OpenAI",
+        "Sam Altman"
+      ],
+      "score": 60,
+      "summary": "Gary Marcus转发观点称解雇Sam Altman或符合OpenAI使命。",
+      "fetched_at": "2026-08-15T01:59:34.336660+08:00"
+    },
+    {
+      "title": "The Uncanny Parallels (and one important difference) between Google and OpenAI",
+      "link": "https://x.com/GaryMarcus/status/2088297810848596319",
+      "published": "2026-08-15T00:12:51+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "The Uncanny Parallels (and one important difference) between Google and OpenAI\n\n![Tweet Image](https://pbs.twimg.com/media/HPsd8Vnb0AARm84.jpg)\n\n![Madison Mills](https://pbs.twimg.com/profile_images/1784997467039170560/0Vttab_c_normal.jpg)\n\nMadison Mills@MadisonMills22\n\nNEWS: OpenAI is shedding senior execs as Brockman takes on a larger role, and a source tells me the company is clearing out under performers pre-IPO.   \n  \nMore here: [axios.com/2026/08/14/ope…](https://www.axios.com/2026/08/14/openai-executive-greg-brockman-ipo)\n\n[🔗 View Quoted Tweet](https://x.com/MadisonMills22/status/2088240765830873594)\n\n💬3🔄2❤️17👀3915📊4",
+      "tags": [
+        "OpenAI",
+        "高管离职",
+        "IPO"
+      ],
+      "score": 80,
+      "summary": "Gary Marcus评论OpenAI高管离职与IPO准备，类比谷歌。",
+      "fetched_at": "2026-08-15T01:59:34.336663+08:00"
+    },
+    {
+      "title": "Get more details and submit before August 17:\nhttps://t.co/3wIjYTqOJZ",
+      "link": "https://x.com/googleaidevs/status/2088299288938091003",
+      "published": "2026-08-15T00:18:43+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Get more details and submit before August 17:  \n[geminixprize.com](https://www.geminixprize.com/)\n\n💬0🔄0❤️2👀799",
+      "tags": [
+        "Gemini XPrize",
+        "提交截止"
+      ],
+      "score": 65,
+      "summary": "Google AI开发者提醒Gemini XPrize参赛提交截止8月17日。",
+      "fetched_at": "2026-08-15T01:59:34.336666+08:00"
+    },
+    {
+      "title": "You’ve planned your idea and built your app. Now it’s time to grow! 📈\n\nLearn how you can market you...",
+      "link": "https://x.com/googleaidevs/status/2088299287566602242",
+      "published": "2026-08-15T00:18:43+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "You’ve planned your idea and built your app. Now it’s time to grow! 📈  \n  \nLearn how you can market your product and deploy creative campaigns using tools like [@FlowbyGoogle](https://x.com/FlowbyGoogle) and [@PomelliByGoogle](https://x.com/PomelliByGoogle) for the Build with Gemini [@XPrize](https://x.com/XPrize) Hackathon, live through August 17.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088298293252247552/vid/avc1/3840x2160/nYtelhQieTUG4l1R.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2088299287566602242/video/1)\n\n💬3🔄4❤️23👀2979📊7",
+      "tags": [
+        "Gemini XPrize",
+        "营销工具"
+      ],
+      "score": 70,
+      "summary": "Google AI开发者分享利用FlowbyGoogle和PomelliByGoogle进行产品推广。",
+      "fetched_at": "2026-08-15T01:59:34.336668+08:00"
+    },
+    {
+      "title": "The State of Open Models, Summer 2026 ☀️ frontier models are getting larger, but small models still ...",
+      "link": "https://x.com/huggingface/status/2088301795890044975",
+      "published": "2026-08-15T00:28:41+08:00",
+      "source": "Hugging Face(@huggingface)",
+      "content": "The State of Open Models, Summer 2026 ☀️ frontier models are getting larger, but small models still dominate real-world usage. Qwen leads local inference, followed by Gemma. AI agents are becoming a major force on the Hub  \n  \nFull picture on the blog 🤗[huggingface.co/blog/state-of-…](https://huggingface.co/blog/state-of-open-models-summer-2026)H\n\n💬5🔄7❤️33👀4870📊9",
+      "tags": [
+        "开源模型",
+        "Qwen",
+        "行业报告"
+      ],
+      "score": 80,
+      "summary": "Hugging Face发布2026夏季开源模型现状，Qwen领跑本地推理。",
+      "fetched_at": "2026-08-15T01:59:34.336671+08:00"
+    },
+    {
+      "title": "Your app, curated to each user.\n\nThey can now connect their own accounts—Google Drive, HubSpot, Slac...",
+      "link": "https://x.com/Lovable/status/2088315488904601622",
+      "published": "2026-08-15T01:23:06+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "Your app, curated to each user.  \n  \nThey can now connect their own accounts—Google Drive, HubSpot, Slack, and more—to the apps you build on Lovable.  \n  \nEach person that uses your app authenticates and sees exactly their own data.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088314610315309056/vid/avc1/1920x1080/mn3addr2zLG5zIGt.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Lovable/status/2088315488904601622/video/1)\n\n💬0🔄0❤️3👀728📊1",
+      "tags": [
+        "Lovable",
+        "账户连接"
+      ],
+      "score": 72,
+      "summary": "Lovable新增账户连接功能，支持Google Drive、HubSpot等个性化数据。",
+      "fetched_at": "2026-08-15T01:59:34.336673+08:00"
+    },
+    {
+      "title": "Me waiting for my meeting notes summary after hopping on another \"quick call”",
+      "link": "https://x.com/NotionHQ/status/2088309881627619384",
+      "published": "2026-08-15T01:00:49+08:00",
+      "source": "Notion(@NotionHQ)",
+      "content": "Me waiting for my meeting notes summary after hopping on another \"quick call”\n\n![Tweet Image](https://pbs.twimg.com/media/HPspK04a4AE4r2E.jpg)\n\n💬1🔄1❤️14👀2232📊3",
+      "tags": [
+        "Notion",
+        "会议纪要"
+      ],
+      "score": 50,
+      "summary": "Notion发布等待会议纪要摘要的趣味梗图。",
+      "fetched_at": "2026-08-15T01:59:34.336676+08:00"
+    },
+    {
+      "title": "Small models, big real-world impact. \nProud to see Qwen leading local inference in the State of Open...",
+      "link": "https://x.com/Alibaba_Qwen/status/2088311161955754356",
+      "published": "2026-08-15T01:05:54+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "Small models, big real-world impact.   \nProud to see Qwen leading local inference in the State of Open Models. Enjoy the sunshine from Qwen.☀️ 😎   \nAppreciate your work! [@huggingface](https://x.com/huggingface)\n\n![Hugging Face](https://pbs.twimg.com/profile_images/1991559933473497089/mbrRS49P_normal.jpg)\n\nHugging Face@huggingface\n\nThe State of Open Models, Summer 2026 ☀️ frontier models are getting larger, but small models still dominate real-world usage. Qwen leads local inference, followed by Gemma. AI agents are becoming a major force on the Hub  \n  \nFull picture on the blog 🤗[huggingface.co/blog/state-of-…](https://huggingface.co/blog/state-of-open-models-summer-2026)H\n\n[🔗 View Quoted Tweet](https://x.com/huggingface/status/2088301795890044975)\n\n💬1🔄0❤️19👀1686📊2",
+      "tags": [
+        "Qwen",
+        "本地推理"
+      ],
+      "score": 65,
+      "summary": "Qwen官方回应Hugging Face报告，称其领跑本地推理。",
+      "fetched_at": "2026-08-15T01:59:34.336678+08:00"
+    },
+    {
+      "title": "Excited to see Qwen3.8 running at scale with TokenSpeed! 🚀\nLight on latency, big on speed. Kudos to...",
+      "link": "https://x.com/Alibaba_Qwen/status/2088309262451904671",
+      "published": "2026-08-15T00:58:21+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "Excited to see Qwen3.8 running at scale with TokenSpeed! 🚀  \nLight on latency, big on speed. Kudos to LightSeek for the fantastic Day-0 support! [@lightseekorg](https://x.com/lightseekorg)\n\n![LightSeek Foundation](https://pbs.twimg.com/profile_images/1988150856152477703/KDjkKvgk_normal.jpg)\n\nLightSeek Foundation@lightseekorg\n\nWe’re proud to be the Day 0 open-source inference engine partner for [@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen) 3.8.  \n  \nTo serve this 2.4T-parameter model across multi-node [@NVIDIAAI](https://x.com/NVIDIAAI) Blackwell inference, we optimized DP/EP scaling across nodes, delivering 30%+ faster performance than TP16, plus DSpark speculative decoding with single CUDA graph optimization👇  \n[lightseek.org/blog/tokenspee…](https://lightseek.org/blog/tokenspeed-qwen3-8.html)T\n\n![Tweet Image](https://pbs.twimg.com/media/HPiy61gasAAeZBE.png)![Tweet Image](https://pbs.twimg.com/media/HPiy9FCaUAAISM3.jpg)![Tweet Image](https://pbs.twimg.com/media/HPiy_wRbsAAXyYp.jpg)![Tweet Image](https://pbs.twimg.com/media/HPizBeEbYAAv9dc.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/lightseekorg/status/2087615273935540293)\n\n💬2🔄3❤️38👀3987📊5",
+      "tags": [
+        "Qwen3.8",
+        "TokenSpeed",
+        "推理优化"
+      ],
+      "score": 85,
+      "summary": "Qwen转发LightSeek的Qwen3.8多节点推理优化，性能提升30%+。",
+      "fetched_at": "2026-08-15T01:59:34.336681+08:00"
+    },
+    {
+      "title": "From idea to implementation in one go.🏃‍♀️ Max-level intelligence, served fresh on Day 0. \nQwen3.8-...",
+      "link": "https://x.com/Alibaba_Qwen/status/2088307374767693844",
+      "published": "2026-08-15T00:50:51+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "From idea to implementation in one go.🏃‍♀️ Max-level intelligence, served fresh on Day 0.   \nQwen3.8-2.4T-A95B is live on SiliconFlow. Thanks! [@SiliconFlowAI](https://x.com/SiliconFlowAI)\n\n![SiliconFlow](https://pbs.twimg.com/profile_images/1938267775518072832/xdihGpYG_normal.jpg)\n\nSiliconFlow@SiliconFlowAI\n\n🚀 Day-0 Support! [@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen) has open-sourced Qwen3.8-2.4T-A95B — and it’s now live on SiliconFlow.  \n⚡ With 2.4T parameters and 95B active, Qwen3.8 is built to take a goal and come back with finished work — coding, researching, planning, and executing along the way.  \n  \n💸 Per 1M tokens:  \n• Input: $2.00  \n• Output: $6.00  \n• Cached input: $0.25  \n  \n💻 Autonomous coding. 🔬 Deep research. 🤖 End-to-end agent execution.  \nBuilt for serious workloads — from idea to implementation in one go.  \nTime to co[siliconflow.com](http://siliconflow.com)fZQsY 🍳\n\n![Tweet Image](https://pbs.twimg.com/media/HPnAK-ea8AA4hJC.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/SiliconFlowAI/status/2087911506113683756)\n\n💬3🔄0❤️55👀6221📊6",
+      "tags": [
+        "Qwen3.8",
+        "SiliconFlow"
+      ],
+      "score": 80,
+      "summary": "Qwen3.8-2.4T-A95B在SiliconFlow上线，提供API和定价。",
+      "fetched_at": "2026-08-15T01:59:34.336684+08:00"
+    },
+    {
+      "title": "Max-level intelligence, one API call away. Qwen3.8-2.4T-A95B is now live on DeepInfra, ready for you...",
+      "link": "https://x.com/Alibaba_Qwen/status/2088301611731009582",
+      "published": "2026-08-15T00:27:57+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "Max-level intelligence, one API call away. Qwen3.8-2.4T-A95B is now live on DeepInfra, ready for your creative builds. 🥳  \nTake a deep dive on DeepInfra! [@DeepInfra](https://x.com/DeepInfra)\n\n![DeepInfra](https://pbs.twimg.com/profile_images/1623087843261431809/mC-qBnK3_normal.jpg)\n\nDeepInfra@DeepInfra\n\nNew on DeepInfra: Qwen3.8-2.4T-A95B 🚀  \n  \n[@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen)'s latest sparse MoE — 2.4T total params, 95B active, 512 experts. Built for coding, agentic workflows, and complex reasoning, with native 262K context.  \n  \nLive now at $2.00/M in · $6.00/M out · $0.20/M cached  \n  \n[@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen)[@alibaba\\_cloud](https://x.com/alibaba_cloud)\n\n![Tweet Image](https://pbs.twimg.com/media/HPn4CsBaUAAXDPp.png)\n\n[🔗 View Quoted Tweet](https://x.com/DeepInfra/status/2087972691894829256)\n\n💬7🔄9❤️128👀10548📊16",
+      "tags": [
+        "Qwen3.8",
+        "DeepInfra"
+      ],
+      "score": 80,
+      "summary": "Qwen3.8-2.4T-A95B在DeepInfra上线，提供API和定价。",
+      "fetched_at": "2026-08-15T01:59:34.336686+08:00"
+    },
+    {
+      "title": "🎁A gift for developers: Qwen3.8-27B, running locally on AMD from day zero. \nAppreciate the work fro...",
+      "link": "https://x.com/Alibaba_Qwen/status/2088299158465819110",
+      "published": "2026-08-15T00:18:12+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "🎁A gift for developers: Qwen3.8-27B, running locally on AMD from day zero.   \nAppreciate the work from the AMD team! [@AMD](https://x.com/AMD)\n\n![AMD](https://pbs.twimg.com/profile_images/1534988679076368384/In8IVKDB_normal.png)\n\nAMD@AMD\n\nQwen3.8 27B brings a new state-of-the-art dense model for local AI development.  \n⚡ Run it on AMD Ryzen™ AI Max+ processors or single Radeon™ AI PRO R9700 card  \n⚡ Experience it with [@LMStudio](https://x.com/LMStudio)  \n⚡ Turn it into an app with [@lemonade\\_server](https://x.com/lemonade_server)  \n  \nStart building with AMD Day 0 support for [@Alibaba\\_Qwen](https://x.com/Alibaba_Qwen) now: [amd.com/en/blogs/2026/…](https://www.amd.com/en/blogs/2026/run-qwen-3-8-27b-on-amd-ryzen-ai-max-and-radeon-graphics-cards-day-0.html)\n\n![Tweet Image](https://pbs.twimg.com/media/HPsQNNsWAAAqg9i.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/AMD/status/2088280692526325926)\n\n💬9🔄11❤️222👀12748📊25",
+      "tags": [
+        "Qwen3.8-27B",
+        "AMD",
+        "本地运行"
+      ],
+      "score": 80,
+      "summary": "Qwen3.8-27B支持AMD Ryzen AI Max及Radeon显卡本地运行。",
+      "fetched_at": "2026-08-15T01:59:34.336689+08:00"
+    },
+    {
+      "title": "27B on 17GB RAM. Are you ready to create something incredible? 😎\nThanks for highlighting it! @Unslo...",
+      "link": "https://x.com/Alibaba_Qwen/status/2088296583368781939",
+      "published": "2026-08-15T00:07:58+08:00",
+      "source": "Qwen(@Alibaba_Qwen)",
+      "content": "27B on 17GB RAM. Are you ready to create something incredible? 😎  \nThanks for highlighting it! [@UnslothAI](https://x.com/UnslothAI)\n\n![Unsloth AI](https://pbs.twimg.com/profile_images/2036313340616777728/OLALWB2__normal.jpg)\n\nUnsloth AI@UnslothAI\n\nQwen3.8-27B can now be run locally! ✨  \n  \nRun on 17GB RAM via Unsloth Dynamic GGUFs.  \n  \nQwen3.8-27B is by far the strongest model for its size. We also uploaded NVFP4 quants.  \n  \nGGUF: [huggingface.co/unsloth/Qwen3.…](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF)  \nGuide: [unsloth.ai/docs/models/qw…](https://unsloth.ai/docs/models/qwen3.8)\n\n![Tweet Image](https://pbs.twimg.com/media/HPsQjSrbcAM41AY.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/UnslothAI/status/2088281537427235320)\n\n💬17🔄19❤️264👀15509📊40",
+      "tags": [
+        "Qwen3.8-27B",
+        "Unsloth",
+        "17GB内存"
+      ],
+      "score": 80,
+      "summary": "Unsloth让Qwen3.8-27B可在17GB RAM上本地运行，支持动态GGUF。",
+      "fetched_at": "2026-08-15T01:59:34.336691+08:00"
+    },
+    {
+      "title": "Designathon Winners: $50K+ on the Line, Live Reveal https://t.co/MtUL2Cxo0O",
+      "link": "https://x.com/Replit/status/2088294817596100769",
+      "published": "2026-08-15T00:00:57+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Designathon Winners: $50K+ on the Line, Live Reveal [x.com/i/broadcasts/1…](https://x.com/i/broadcasts/1jGXgBBnlYEKZ)\n\n💬1🔄3❤️17👀2552📊4",
+      "tags": [
+        "Replit",
+        "Designathon"
+      ],
+      "score": 60,
+      "summary": "Replit直播揭晓设计马拉松获胜者，总奖金超5万美元。",
+      "fetched_at": "2026-08-15T01:59:34.336694+08:00"
+    },
+    {
+      "title": "Grateful to join such a cool company! \n\nSo much more to do to become The full-stack AI company build...",
+      "link": "https://x.com/sualehasif996/status/2088295841190887664",
+      "published": "2026-08-15T00:05:01+08:00",
+      "source": "Sualeh Asif(@sualehasif996)",
+      "content": "Grateful to join such a cool company!   \n  \nSo much more to do to become The full-stack AI company building the best products, models and the most compute.\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nCursor is now part of [@SpaceX](https://x.com/SpaceX).   \n  \nToday, we have officially closed our acquisition. We will join the [@SpaceXAI](https://x.com/SpaceXAI) team to help make Grok the world's most useful AI and improve Grok Build, Grok Bot, Grok API, Cursor, and more.  \n  \nSpaceX has built some of the most inspiring and impressive technology in the world, and we’re grateful for the opportunity to become part of such a special company. Onwards.\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2088249881718919393)\n\n💬7🔄1❤️86👀3033📊13",
+      "tags": [
+        "Cursor",
+        "SpaceX收购"
+      ],
+      "score": 40,
+      "summary": "Sualeh Asif宣布加入Cursor，并转述其并入SpaceX。",
+      "fetched_at": "2026-08-15T01:59:34.336722+08:00"
+    },
+    {
+      "title": "你这个相当可以。我其实也有差不多的打算，一个类似的dashboard. \n\n主要是现在我们这种“极客版本”：高度依赖Wifi ， 而一些成熟厂商的集成方案大部分都是hard wire的（来玩笑几十万的...",
+      "link": "https://x.com/feltanimalworld/status/2088305903900467668",
+      "published": "2026-08-15T00:45:00+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "你这个相当可以。我其实也有差不多的打算，一个类似的dashboard.   \n  \n主要是现在我们这种“极客版本”：高度依赖Wifi ， 而一些成熟厂商的集成方案大部分都是hard wire的（来玩笑几十万的）。  \n  \n但是这种版本灵活，而且我觉得一些厂商的编程能力其实很弱。极客版本的sensor在采集了原始数据之后，在这个数据之上我们还能玩出点花儿来。AI。\n\n![qinghua wang](https://pbs.twimg.com/profile_images/1507639370806792192/uFNBH9B8_normal.jpg)\n\nqinghua wang@qinghuawang\n\n[@feltanimalworld](https://x.com/feltanimalworld) 我的智能[goldknighttech.ca:8449/live.html](https://goldknighttech.ca:8449/live.html)[goldknighttech.ca:8449/admin.html](https://goldknighttech.ca:8449/admin.html)\n\n[🔗 View Quoted Tweet](https://x.com/qinghuawang/status/2088304553083154854)\n\n💬3🔄0❤️0👀357📊3",
+      "tags": [
+        "智能家居",
+        "Dashboard"
+      ],
+      "score": 40,
+      "summary": "Susan STEM评论智能家居DIY仪表盘，提及AI应用。",
+      "fetched_at": "2026-08-15T01:59:34.336725+08:00"
+    },
+    {
+      "title": "说真我最近就在练习单杠。本来想着跟儿子们一起练习monkey bar。 \n\n结果被打回原型....完全连吊都吊不起来。和AI讨论之后只能说先从哑铃练起。",
+      "link": "https://x.com/feltanimalworld/status/2088298371224047652",
+      "published": "2026-08-15T00:15:05+08:00",
+      "source": "Susan STEM(@feltanimalworld)",
+      "content": "说真我最近就在练习单杠。本来想着跟儿子们一起练习monkey bar。   \n  \n结果被打回原型....完全连吊都吊不起来。和AI讨论之后只能说先从哑铃练起。\n\n![小C哈哈哈](https://pbs.twimg.com/profile_images/2060502280718426112/sN8rM9RU_normal.jpg)\n\n小C哈哈哈@dashen9999\n\n高认知的家庭都非常重视体育，这是2026年我听到的醍醐灌顶的话。\n\n![Tweet Image](https://pbs.twimg.com/media/HPj0_p1a4AAzjw5.png)\n\n[🔗 View Quoted Tweet](https://x.com/dashen9999/status/2087687864452829626)\n\n💬4🔄0❤️3👀921📊4",
+      "tags": [
+        "健身",
+        "单杠"
+      ],
+      "score": 30,
+      "summary": "Susan STEM分享与儿子练习单杠失败的经历。",
+      "fetched_at": "2026-08-15T01:59:34.336728+08:00"
+    },
+    {
+      "title": "\"Anysphere—which most people just called 'Cursor'—became the fastest software company in history to ...",
+      "link": "https://x.com/a16z/status/2088309715772244319",
+      "published": "2026-08-15T01:00:09+08:00",
+      "source": "a16z(@a16z)",
+      "content": "\"Anysphere—which most people just called 'Cursor'—became the fastest software company in history to reach $100 million in annual recurring revenue.\"  \n  \n\"In 2024, things went vertical. Developers discovered the product and loved it, and they told their friends about it, and their friends loved it too.\"  \n  \n\"At one user meetup, a user from Japan explained that he’d flown in from Tokyo with a book he’d written in Japanese about how to use Cursor. It was honestly like the Beatles for software; we’d never seen anything like it.\"  \n  \nFull piece from [@sarahdingwang](https://x.com/sarahdingwang), [@BornsteinMatt](https://x.com/BornsteinMatt), and [@martin\\_casado](https://x.com/martin_casado) on Cursor + SpaceXAI: [a16z.news/p/cursor-space…](https://www.a16z.news/p/cursor-spacexai-fastest-iterating-team)\n\n![Tweet Image](https://pbs.twimg.com/media/HPsqnn3bYAEN_97.png)\n\n![Sarah Wang](https://pbs.twimg.com/profile_images/1778898223165521920/8FfWUPa__normal.jpg)\n\nSarah Wang@sarahdingwang\n\n[x.com/i/article/2088…](https://x.com/i/article/2088266757551316992)\n\n[🔗 View Quoted Tweet](https://x.com/sarahdingwang/status/2088271571848986965)\n\n💬2🔄3❤️7👀2343📊3",
+      "tags": [
+        "Cursor",
+        "SpaceX收购",
+        "1亿美元ARR"
+      ],
+      "score": 85,
+      "summary": "a16z文章称Cursor为史上最快达1亿美元ARR的软件公司，并评述其被收购。",
+      "fetched_at": "2026-08-15T01:59:34.336730+08:00"
+    },
+    {
+      "title": "Travis Kalanick says new media is why he's back after eight years of silence:\n\n\"The media landscape ...",
+      "link": "https://x.com/a16z/status/2088299152212111602",
+      "published": "2026-08-15T00:18:11+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Travis Kalanick says new media is why he's back after eight years of silence:  \n  \n\"The media landscape 10 years ago, 90% of what was said was very negative. Business had become politics, and we didn't know it... If it bleeds, it leads, right?\"  \n  \n\"Now the media landscape is like, 'yeah, you don't have to talk to those guys.' You can go and talk to a David Senra. You can go and talk to Joe Rogan or name your guy, and you can say what you need to say.\"  \n  \n\"Elon buying Twitter is the beginning of us being able to speak our minds and for disagreeing to not be illegal. That's a big deal. We should all thank Elon for that.\"  \n  \n\"I want to build. I want to not think about what The New York Times is writing when I make decisions about what I build. I had to emulate what it's like being a capitalist in Russia... and that's what I did for eight years.\"  \n  \n[@travisk](https://x.com/travisk)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088298857205792768/vid/avc1/1280x720/ftzas70OHJgTIYTs.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2088299152212111602/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nTravis Kalanick: \"A lot of folks think I'm back. I've been working my ass off the whole time. I just haven't been talking about it.\"  \n  \nEight years, thousands of employees, multiple industries, none of it on LinkedIn, and now the biggest check Ben Horowitz has ever written.  \n  \n[@travisk](https://x.com/travisk) joins [@bhorowitz](https://x.com/bhorowitz) and [@eriktorenberg](https://x.com/eriktorenberg) for a fireside chat to discuss Atoms: an industrial AI company that sees manufacturing, real estate, and logistics as the CPU, storage, and network of the physical world:  \n  \n00:00 Intro  \n01:30 The Uber video from 10 years ago  \n04:26 Bits, atoms, and the three computing primitives  \n07:37 Can a delivered meal cost less than the grocery store?  \n10:16 Standing next to a TCP packet  \n11:59 Ride-sharing was the gold medal. Transport is full of silver  \n13:59 Resistance to change is the final boss  \n22:22 Why he didn't buy Lyft  \n24:09 Best idea wins  \n28:13 Blood, sweat, and ramen  \n32:32 When it gets easy, push harder  \n36:18 Showing up to the fundraise like a guy selling watches  \n45:46 Dirty fuel vs. falling in love again  \n48:31 Be uniconic\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088286642411098112/vid/avc1/1280x720/CDJktiu0y4rIc8TK.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2088287593570128079/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2088287593570128079)\n\n💬11🔄4❤️110👀18890📊17",
+      "tags": [
+        "Travis Kalanick",
+        "Atoms",
+        "工业AI"
+      ],
+      "score": 80,
+      "summary": "Travis Kalanick在a16z访谈中介绍AI工业公司Atoms。",
+      "fetched_at": "2026-08-15T01:59:34.336733+08:00"
+    },
+    {
+      "title": "A 27B agent just beat Claude Opus 4.8 and GPT-5.5 on held-out research replication.\n\nReplica turns p...",
+      "link": "https://x.com/omarsar0/status/2088309745740591429",
+      "published": "2026-08-15T01:00:16+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "A 27B agent just beat Claude Opus 4.8 and GPT-5.5 on held-out research replication.  \n  \nReplica turns paper replication into a scalable RL task space. Replicating a paper forces the same hypothesis-driven exploration as open research, and it surfaces details the original authors left underspecified.  \n  \nThe reward signal comes from an auto-generated rubric judge that runs low-noise and agrees with human assessment of replication quality.  \n  \nFaraday, the resulting 27B agent, calls coding agents as tools. Rollout analysis shows it takes a more scientifically principled approach rather than gaming the rubric.  \n  \nThe authors argue this points toward long-horizon scientific capability trained into weights, without requiring complex harnesses.  \n  \nPaper: [arxiv.org/abs/2608.13331](https://arxiv.org/abs/2608.13331)  \n  \nTrack more trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HPsqpUja0AEbfiI.jpg)\n\n💬5🔄8❤️30👀2133📊11",
+      "tags": [
+        "Faraday",
+        "27B代理",
+        "论文复现"
+      ],
+      "score": 85,
+      "summary": "27B代理Faraday在论文复现任务上超越Claude Opus 4.8与GPT-5.5。",
+      "fetched_at": "2026-08-15T01:59:34.336735+08:00"
+    },
+    {
+      "title": "https://t.co/eqyB9RPReW",
+      "link": "https://x.com/arena/status/2088313101943013534",
+      "published": "2026-08-15T01:13:37+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "[youtube.com/watch?v=1-C\\_7G…](https://www.youtube.com/watch?v=1-C_7GO-F3g)\n\n💬0🔄0❤️1👀1060",
+      "tags": [
+        "Arena",
+        "YouTube"
+      ],
+      "score": 30,
+      "summary": "lmarena.ai发布YouTube链接，无其他信息。",
+      "fetched_at": "2026-08-15T01:59:34.336738+08:00"
+    },
+    {
+      "title": "The first episode of Arena conversations is here! \n\nFind the link below.",
+      "link": "https://x.com/arena/status/2088313100479201352",
+      "published": "2026-08-15T01:13:36+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "The first episode of Arena conversations is here!   \n  \nFind the link below.\n\n![Arena.ai](https://pbs.twimg.com/profile_images/2017015061454438400/iNKfXZ_I_normal.jpg)\n\nArena.ai@arena\n\nMeet… Arena Conversations. [@petergostev](https://x.com/petergostev) sits down with [@poolsideai](https://x.com/poolsideai) researchers,Connor Adams and Aalhad Patankar, to discuss how they’re building frontier open coding models.  \n  \nEpisode drops today at 10am PT on our YouTube.  \n  \nThey dig into Poolside's Laguna model family, why the team publishes full trajectories (not just benchmark scores) for anyone to audit, and how \"experiments\" at Poolside range from data mixes to harness design to reward-tuning decisions run tens of thousands of times a day.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088276649704079361/vid/avc1/1920x1080/3mOgjxU10_d3GNH6.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/arena/status/2088279565710041482/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/arena/status/2088279565710041482)\n\n💬1🔄0❤️6👀3231📊1",
+      "tags": [
+        "Arena Conversations",
+        "Poolside"
+      ],
+      "score": 70,
+      "summary": "lmarena.ai推出首期Arena Conversations对话Poolside研究员。",
+      "fetched_at": "2026-08-15T01:59:34.336740+08:00"
+    },
+    {
+      "title": "Find Aalhad Patankar at @aalSonOfRavi, and Connor Adams at @ConnorBAdams",
+      "link": "https://x.com/arena/status/2088296212210548918",
+      "published": "2026-08-15T00:06:30+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Find Aalhad Patankar at [@aalSonOfRavi](https://x.com/aalSonOfRavi), and Connor Adams at [@ConnorBAdams](https://x.com/ConnorBAdams)\n\n💬0🔄0❤️4👀1516📊1",
+      "tags": [
+        "Arena",
+        "嘉宾社交账号"
+      ],
+      "score": 40,
+      "summary": "lmarena.ai提供Arena Conversations嘉宾的社交账号。",
+      "fetched_at": "2026-08-15T01:59:34.336743+08:00"
+    },
+    {
+      "title": "Qwen 3.8 27B is now available on Ollama. \n\nIt's one of the best open models at this size, and made f...",
+      "link": "https://x.com/ollama/status/2088314436088168491",
+      "published": "2026-08-15T01:18:55+08:00",
+      "source": "ollama(@ollama)",
+      "content": "Qwen 3.8 27B is now available on Ollama.   \n  \nIt's one of the best open models at this size, and made for agentic tasks and professional work.   \n  \nTry it directly with the apps & harnesses you use:   \n  \nClaude Code:   \nollama launch claude --model qwen3.8   \n  \nOpenCode:   \nollama launch opencode --model qwen3.8  \n  \nHermes Agent:   \nollama launch hermes --model qwen3.8  \n  \nPi:   \nollama launch pi --model qwen3.8  \n  \nWe have also optimizations for Apple Silicon!   \n  \nTry it with the model name: qwen3.8:27b-mlx\n\n![Tweet Image](https://pbs.twimg.com/media/HPstE5ObIAAywUx.jpg)\n\n💬17🔄10❤️104👀4268📊30",
+      "tags": [
+        "Qwen3.8",
+        "Ollama"
+      ],
+      "score": 80,
+      "summary": "Ollama宣布支持Qwen3.8 27B，可集成Claude Code等工具。",
+      "fetched_at": "2026-08-15T01:59:34.336745+08:00"
+    },
+    {
+      "title": "Model page: \nhttps://t.co/rUOwextjXn",
+      "link": "https://x.com/ollama/status/2088314438579528105",
+      "published": "2026-08-15T01:18:55+08:00",
+      "source": "ollama(@ollama)",
+      "content": "Model page:   \n[ollama.com/library/qwen3.8](https://ollama.com/library/qwen3.8)\n\n![Tweet Image](https://pbs.twimg.com/media/HPst0HYagAELbhi.jpg)![Tweet Image](https://pbs.twimg.com/media/HPst1NdakAAi1MS.jpg)\n\n💬0🔄1❤️17👀1221📊2",
+      "tags": [
+        "Qwen3.8",
+        "Ollama"
+      ],
+      "score": 75,
+      "summary": "Ollama提供Qwen3.8模型页面链接。",
+      "fetched_at": "2026-08-15T01:59:34.336748+08:00"
+    },
+    {
+      "title": "智谱发了一篇关于他们为 GLM-5.3 开源发布做准备的文章，主要是关于他们开源模型的网络防御观点：\n\n网络防御能力不应该掌握在少数资源雄厚的机构手中，开源维护者、独立开发者和小型团队同样需要这些工具...",
+      "link": "https://x.com/op7418/status/2088304412657901833",
+      "published": "2026-08-15T00:39:05+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "智谱发了一篇关于他们为 GLM-5.3 开源发布做准备的文章，主要是关于他们开源模型的网络防御观点：  \n  \n网络防御能力不应该掌握在少数资源雄厚的机构手中，开源维护者、独立开发者和小型团队同样需要这些工具。  \n  \n这次 5.3 版本大幅强化了网络安全任务的能力。\n\n![Z.ai](https://pbs.twimg.com/profile_images/1970775077181411328/W8XKaUIh_normal.jpg)\n\nZ.ai@Zai\\_org\n\n[x.com/i/article/2088…](https://x.com/i/article/2088262763327971328)\n\n[🔗 View Quoted Tweet](https://x.com/Zai_org/status/2088280509474320693)\n\n💬4🔄0❤️1👀1288📊3",
+      "tags": [
+        "GLM-5.3",
+        "智谱",
+        "开放模型安全"
+      ],
+      "score": 85,
+      "summary": "归藏转述智谱文章，GLM-5.3开源将强化网络防御能力。",
+      "fetched_at": "2026-08-15T01:59:34.336751+08:00"
     }
   ]
 }
