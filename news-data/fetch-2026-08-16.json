@@ -754,6 +754,77 @@
       "score": 65,
       "summary": "博主点评DeepSeek架构强调关键事实均可被验证或强制执行。",
       "fetched_at": "2026-08-16T05:30:11.199122+08:00"
+    },
+    {
+      "title": "I’m interested in finding and funding the next Disney. \n\nTrue to its original values, focused on the...",
+      "link": "https://x.com/rauchg/status/2088735125744070932",
+      "published": "2026-08-16T05:10:35+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "I’m interested in finding and funding the next Disney.   \n  \nTrue to its original values, focused on the American spirit. Merit, family, overcoming of adversity, optimism, the pursuit of happiness.  \n  \nAI makes everyone able to create. What will define our next generation is \\*what\\* we create with it. The next icons. The next unique brand that goes further than how it’s drawn or rendered.  \n  \nMickey Mouse survived several technological revolutions because of what it represented. I think most big entertainment companies have forgotten that.  \n  \nIf you’re creating something cool in this space and need help, technologically or financially, slide into my DMs.\n\n💬60🔄14❤️407👀20275📊101",
+      "tags": [
+        "AI创作",
+        "投资"
+      ],
+      "score": 45,
+      "summary": "Guillermo Rauch表示希望投资下一个迪士尼，AI使每个人都能创造。",
+      "fetched_at": "2026-08-16T06:30:58.498274+08:00"
+    },
+    {
+      "title": "We think a lot about the distribution of all real-world documents, particularly for real-world use c...",
+      "link": "https://x.com/jerryjliu0/status/2088733158766501952",
+      "published": "2026-08-16T05:02:46+08:00",
+      "source": "Jerry Liu(@jerryjliu0)",
+      "content": "We think a lot about the distribution of all real-world documents, particularly for real-world use cases.  \n  \nWe think about the distribution in terms of page length, field length, domain, and task type.   \n  \nSome documents have a single page but can have anywhere from 1-10 fields to 500-1000 fields to be extracted. Other documents are hundreds of pages long and can have 10k-100k fields. On long documents (e.g. a bankruptcy creditor matrix), commercial VLMs lose attention and create large swaths of missing or hallucinated values.  \n  \nThe number of fields to extract per page also depends on the extraction task.   \n1. Needle-in-a-haystack: You find very specific information within a general document corpus. Generally 1-10 fields per page  \n2. Dense documents: typically extract from filled forms. Quite dense per page, though not super long in terms of total # pages.  \n3. Long-lists: Documents with both massive #'s of values per page (e.g. 100-1k fields per page) and massive numbers of pages.   \n  \nWe'd love for you to explore our overall data taxonomy within ExtractBench, our comprehensive benchmark for real-world document extraction tasks. I love the diagram we show below in Figure 6, that offers one slice of the diverse set of data that we curate!   \n  \nCome check out the ArXiv paper: [arxiv.org/pdf/2607.29677](https://arxiv.org/pdf/2607.29677)  \n  \nExtractBench: [extractbench.ai](https://extractbench.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HPyrdZPXAAAbrpW.jpg)\n\n![Jerry Liu](https://pbs.twimg.com/profile_images/1283610285031460864/1Q4zYhtb_normal.jpg)\n\nJerry Liu@jerryjliu0\n\nIntroducing ExtractBench, the most comprehensive benchmark for information extraction from complex enterprise documents.  \n  \nThe latest models are pushing the frontier of coding and knowledge work, but surprisingly they still struggle on complex doc extraction tasks in production. A well-tuned extractor must parse multi-page filings without dropping rows, emit exact spatial citations for auditability, and handle messy scans. Also they must do all of this at a viable per-page cost so that you can scale this to millions of docs in production (you can’t be paying upwards of $1 in tokens per page!)  \n  \nExisting extraction benchmarks fall short: they are not large/diverse enough in document domain (finance, energy, gov, auto), elements (long records, scans, grounding), and schemas.  \n  \nSo our applied research team built ExtractBench.  \n  \nWe evaluated 14 systems: frontier VLMs, coding agents, and specialized extraction APIs, against 370 enterprise documents: 4,869 pages, 67 document types.  \n  \nOur biggest finding 🧪: Short documents mask critical system flaws. On files past 50 pages, commercial VLMs collapse below 35% recall due to silent list truncation. They hold high precision, but lose output attention and drop most of the table rows.  \n  \nExtractBench evaluates value accuracy, long-record completeness, spatial grounding, and per-page cost with zero LLM judges. It is 100% deterministic and reproducible.  \n  \nIn tandem with ExtractBench, we’re also introducing 𝗔𝗴𝗲𝗻𝘁𝗶𝗰 𝗣𝗹𝘂𝘀, a new Extract tier in LlamaParse that debuts at #1 on the leaderboard: 95.6% value accuracy, at less than a third the cost of the closest peer.  \n  \nExplore the findings, download the dataset, or run the harne[llamaindex.ai/blog/introduci…](https://www.llamaindex.ai/blog/introducing-extractbench)o/tsXfovK[github.com/run-llama/Extr…](https://github.com/run-llama/ExtractBench)o/auzmOGgUl3  \nH[huggingface.co/datasets/llama…](https://huggingface.co/datasets/llamaindex/ExtractBench)o/1eKisSBrE8  \n  \nWe will be actively evolving both our extraction benchmark as well as our extraction harness over time.   \n  \nIf you check out either ExtractBench or LlamaParse, let us know your feedback!\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2087194456252375040/vid/avc1/3840x2160/jxSztNpmZ2sox7Ap.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/jerryjliu0/status/2087195936225108171/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/jerryjliu0/status/2087195936225108171)\n\n💬0🔄0❤️6👀1009📊1",
+      "tags": [
+        "ExtractBench",
+        "文档提取",
+        "基准测试"
+      ],
+      "score": 85,
+      "summary": "LlamaIndex创始人发布ExtractBench，面向复杂企业文档提取的全面基准，并附论文。",
+      "fetched_at": "2026-08-16T06:30:58.498288+08:00"
+    },
+    {
+      "title": "I never consciously realized this before, but the fact that something has a cult following doesn't m...",
+      "link": "https://x.com/paulg/status/2088740138134430055",
+      "published": "2026-08-16T05:30:30+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "I never consciously realized this before, but the fact that something has a cult following doesn't mean that it's cultish. Wodehouse for example. His fans are fanatics, but no one could have been more matter of fact.\n\n💬4🔄0❤️3👀1847📊3",
+      "tags": [
+        "Wodehouse",
+        "粉丝文化"
+      ],
+      "score": 50,
+      "summary": "Paul Graham讨论“崇拜者众多并不等于邪教”，以Wodehouse为例。",
+      "fetched_at": "2026-08-16T06:30:58.498291+08:00"
+    },
+    {
+      "title": "It's obvious that one needs to tell startups when they're making mistakes. But, strange as it may so...",
+      "link": "https://x.com/paulg/status/2088726287083065824",
+      "published": "2026-08-16T04:35:28+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "It's obvious that one needs to tell startups when they're making mistakes. But, strange as it may sound, it's also important to tell them when they're not. Investors will judge them partly by their confidence. So if they have reason to be confident, they should be.\n\n💬7🔄1❤️64👀7439📊10",
+      "tags": [
+        "创业建议",
+        "信心"
+      ],
+      "score": 50,
+      "summary": "Paul Graham认为投资者会依据创业者的信心评判，因此应鼓励做得好的创业者。",
+      "fetched_at": "2026-08-16T06:30:58.498294+08:00"
+    },
+    {
+      "title": "Some founders I talked to today were surprised that I spent 80% of the time reassuring them. They as...",
+      "link": "https://x.com/paulg/status/2088725449660916020",
+      "published": "2026-08-16T04:32:08+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "Some founders I talked to today were surprised that I spent 80% of the time reassuring them. They asked if all I did in office hours was tell people not to worry. I told them it was only because they were doing well. Otherwise I'd be telling them what to worry about.\n\n💬27🔄6❤️368👀22597📊53",
+      "tags": [
+        "创业建议",
+        "安抚创业者"
+      ],
+      "score": 50,
+      "summary": "Paul Graham在Office Hours中主要花时间安抚做得好的创业者。",
+      "fetched_at": "2026-08-16T06:30:58.498296+08:00"
     }
   ]
 }
