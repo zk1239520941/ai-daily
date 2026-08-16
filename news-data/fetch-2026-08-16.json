@@ -1113,6 +1113,89 @@
       "score": 35,
       "summary": "网友评论'牛来'成功营销，成为新meme，获得高关注。",
       "fetched_at": "2026-08-16T09:38:19.913660+08:00"
+    },
+    {
+      "title": "寻找所有喜欢和热爱电影的人，兄弟们有没有合作的，创作一部电影作品叫《熊去》。",
+      "link": "https://x.com/geekbb/status/2088807458991231370",
+      "published": "2026-08-16T09:58:01+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "寻找所有喜欢和热爱电影的人，兄弟们有没有合作的，创作一部电影作品叫《熊去》。\n\n![Tweet Image](https://pbs.twimg.com/media/HPzvRoJaoAAhFxY.jpg)\n\n💬5🔄0❤️2👀972📊5",
+      "tags": [
+        "熊去",
+        "电影合作"
+      ],
+      "score": 30,
+      "summary": "Geek发帖寻找电影爱好者合作创作电影《熊去》。",
+      "fetched_at": "2026-08-16T11:09:04.078832+08:00"
+    },
+    {
+      "title": "Impressive",
+      "link": "https://x.com/rauchg/status/2088801077659635715",
+      "published": "2026-08-16T09:32:39+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Impressive\n\n![wafer](https://pbs.twimg.com/profile_images/2002108104599642112/dx5Anxe6_normal.png)\n\nwafer@wafer\\_ai\n\nDeepseek V4 Flash 0731 Fast⚡️ on [@vercel](https://x.com/vercel) AI Gateway\n\n![Tweet Image](https://pbs.twimg.com/media/HPySmykbEAAc9wq.png)\n\n[🔗 View Quoted Tweet](https://x.com/wafer_ai/status/2088706415586377792)\n\n💬6🔄4❤️87👀12849📊13",
+      "tags": [
+        "Deepseek V4 Flash",
+        "Vercel AI Gateway"
+      ],
+      "score": 68,
+      "summary": "Vercel CEO评论称Deepseek V4 Flash在AI Gateway上运行速度惊人。",
+      "fetched_at": "2026-08-16T11:09:04.078847+08:00"
+    },
+    {
+      "title": "we need a github for humans 😈",
+      "link": "https://x.com/julien_c/status/2088806596922982661",
+      "published": "2026-08-16T09:54:35+08:00",
+      "source": "Julien Chaumond(@julien_c)",
+      "content": "we need a github for humans 😈\n\n💬4🔄1❤️9👀594📊6",
+      "tags": [
+        "GitHub for humans"
+      ],
+      "score": 45,
+      "summary": "Hugging Face CEO调侃称人类也需要一个GitHub。",
+      "fetched_at": "2026-08-16T11:09:04.078852+08:00"
+    },
+    {
+      "title": "Anthropic 的篇官方技术说明，解释 Claude 文本水印的具体工作方式。https://t.co/zBCEcRvFcR\n\nClaude 用的是 Google DeepMind 2024 年发...",
+      "link": "https://x.com/dotey/status/2088803072084504812",
+      "published": "2026-08-16T09:40:35+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "Anthropic 的篇官方技术说明，解释 Claude 文本水印的具体工作方式。[x.com/trq212/status/…](https://x.com/trq212/status/2088721023223132213/video/1)  \n  \nClaude 用的是 Google DeepMind 2024 年发表在《Nature》上的 SynthID-Text 方案，往上追溯可以到 Scott Aaronson 2022 年的提案。这一脉方案的共同特征是在模型选词时，用密钥改变随机数的来源，从而在输出中留下统计痕迹。  \n  \nAnthropic 举了个例子帮助理解。假设模型写到“今天天气很冷，而且……”，下一个词可能是“阴沉”，也可能是“灰蒙蒙的”，对读者来说意思差不多。正常情况下，模型用一个随机数在这些候选词里选一个。加了水印之后，选词过程还是随机的，但随机数的来源变了，变成由密钥和前面的词共同决定。文本读起来完全一样，但事后拿着密钥去核对选词序列，就能算出这段话是 Claude 写的概率。  \n  \nAnthropic 在文中特别强调了一点：水印不会让模型选它本来不会选的词。模型不会因为水印而突然用一个生僻词（文中举的例子是 nubilous，一个几乎没人用的“阴天”的同义词）。水印只在模型本就犹豫的那些选择上起作用。  \n  \n然后是大家最关心的：会不会降低输出质量？  \n  \nAnthropic 说他们内部测试没有观察到水印对内容质量、创意水平或可读性的影响。他们援引了 Google DeepMind 的数据作为佐证：Google 在 Gemini 的实际流量中给一部分用户提供了带水印的模型，对比用户的点赞点踩反馈，两组没有统计显著差异。同时在受控实验中，人类评估者把带水印和不带水印的回答放在一起对比，也看不出区别。  \n  \n打个比方：想象你在玩大富翁，本来每回合掷骰子决定走几步。现在改成查圆周率的小数位来决定，从某一位开始，依次读下去。对玩家来说，每一步还是随机的，游戏体验没有变化。但如果有人事后看走步的完整序列，再对照圆周率，就能判断这盘游戏用的是圆周率而不是骰子。  \n  \n关于代码，Anthropic 的解释是：水印只在选哪个词都行的地方起作用。代码大量地方必须精确，“2+2=”后面只能跟 4，水印无从施加。所以代码的水印密度天然就比自然语言低。不过在代码注释、变量命名这些有选择余地的地方，水印仍然可以嵌入。  \n  \n还有一个之前没怎么讨论的重要信息：水印不携带任何用户身份信息。不能追溯到具体的用户、组织或对话。水印只回答一个问题，“这段文字是否可能经过 Claude 处理”，仅此而已。  \n  \n文章中也提到了水印的局限。短文本检测不了，信号太弱。纯事实性内容（比如“牛顿最著名的著作叫《自然哲学的数学原理》……”）水印也没什么发挥空间，因为下一个词几乎没有选择余地。你让 Claude 校对一篇文章只改语法标点，大部分词还是你的，水印可能根本不够形成可检测的信号。  \n  \n轻度编辑大概率不会完全去掉水印。但如果把每个词都换一遍，水印就没了，当然到这个程度，这段文字算不算 AI 生成的本身也值得商榷了。  \n  \n至于为什么全球统一加水印而不只在欧盟范围内执行，Anthropic 给出的理由是他们目前没有一个可靠的方式按地区区分是否施加水印。所以干脆全球统一上线，后续再评估是否调整。  \n  \n检测端还没有完全就位。Anthropic 表示很快会推出水印检测 API，但具体时间和使用方式还在敲定中。这也呼应了 Alex Cui 之前提到的一个关键问题：检测器是公开还是内部使用，会直接影响水印的实际安全性。  \n  \n顺便说一下，签署这份欧盟透明度行为准则的不止 Anthropic 一家，总共有大约 190 个签署方。水印不是 Claude 独有的事情，其他大模型厂商也会陆续跟上各自的方案。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088720412805066752/vid/avc1/2334x1706/Fpb_1ucVoqEcdayk.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/trq212/status/2088721023223132213/video/1)\n\n![Anthropic](https://pbs.twimg.com/profile_images/1798110641414443008/XP8gyBaY_normal.jpg)\n\nAnthropic@AnthropicAI\n\nWe’ve written an FAQ to answer some of the questions we've received about watermarking.   \n  \nIn summary:  \n  \n• We’re implementing watermarking to comply with the EU AI Act. Other major model developers have signed the same Code of Practice and will also be implementing watermarking;  \n• Our watermarking method doesn’t have any practical impact on the quality or content of Claude’s outputs;  \n• The difference between watermarked and un-watermarked text will not be distinguishable to readers;  \n• Nothing is added to the text and there are no hidden characters;  \n• Watermarking doesn’t require extra tokens, and will not be more expensive;  \n• Watermarks can’t be traced to a specific person, organization, or chat.  \n  \nRead more: [anthropic.com/news/claude-te…](https://www.anthropic.com/news/claude-text-watermark)\n\n[🔗 View Quoted Tweet](https://x.com/AnthropicAI/status/2088343978873966687)\n\n💬11🔄1❤️19👀6604📊11",
+      "tags": [
+        "Claude文本水印",
+        "SynthID-Text"
+      ],
+      "score": 86,
+      "summary": "宝玉详解Anthropic官方水印说明：Claude采用SynthID-Text方案，不影响输出质量。",
+      "fetched_at": "2026-08-16T11:09:04.078855+08:00"
+    },
+    {
+      "title": "从预告片来看\n\n是一个漫威超级英雄大片😂",
+      "link": "https://x.com/xiaohu/status/2088807127221723472",
+      "published": "2026-08-16T09:56:41+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "从预告片来看  \n  \n是一个漫威超级英雄大片😂\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088806846568263680/vid/avc1/1280x720/h-2gu4OJZaz299Nn.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2088807127221723472/video/1)\n\n💬0🔄0❤️3👀658📊1",
+      "tags": [
+        "预告片",
+        "漫威"
+      ],
+      "score": 35,
+      "summary": "小互评论某预告片风格类似漫威超级英雄大片。",
+      "fetched_at": "2026-08-16T11:09:04.078858+08:00"
+    },
+    {
+      "title": "工牌特工\n\n嘿嘿\n\n这个质量很高，AI制作，完全是电影的感觉，而且还挺搞笑🤪\n\n全片由小云雀Seedance2.5制作完成\n\n作者：许立展 （抖音）",
+      "link": "https://x.com/xiaohu/status/2088803768871862737",
+      "published": "2026-08-16T09:43:21+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "工牌特工  \n  \n嘿嘿  \n  \n这个质量很高，AI制作，完全是电影的感觉，而且还挺搞笑🤪  \n  \n全片由小云雀Seedance2.5制作完成  \n  \n作者：许立展 （抖音）\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088803242025373696/vid/avc1/1920x1080/KjVoIAW6-lTUKUxT.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2088803768871862737/video/1)\n\n💬5🔄1❤️21👀4448📊8",
+      "tags": [
+        "Seedance2.5",
+        "AI视频"
+      ],
+      "score": 70,
+      "summary": "小互展示AI短片《工牌特工》，全片由Seedance2.5制作。",
+      "fetched_at": "2026-08-16T11:09:04.078860+08:00"
     }
   ]
 }
