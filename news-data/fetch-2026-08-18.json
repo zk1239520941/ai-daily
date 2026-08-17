@@ -670,6 +670,194 @@
       "score": 45,
       "summary": "KOL称赞Grok Bot好用，并引用他人称个人AI使用量增加100倍。",
       "fetched_at": "2026-08-18T01:36:03.779289+08:00"
+    },
+    {
+      "title": "NVIDIA Nemotron 3.5 Lightning now available in Amazon SageMaker JumpStart",
+      "link": "https://aws.amazon.com/blogs/machine-learning/nvidia-nemotron-3-5-lightning-now-available-in-amazon-sagemaker-jumpstart/",
+      "published": "2026-08-18T02:06:33+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "NVIDIA Nemotron 3.5 Lightning is designed for the fast, specialized model execution required by high-volume agentic workloads. With NVIDIA Nemotron 3.5 Lightning on Amazon SageMaker JumpStart, you can access an open model designed for high-volume agentic workloads.\n\nWith this launch, you can deploy Nemotron 3.5 Lightning from [Amazon SageMaker JumpStart](https://aws.amazon.com/sagemaker/ai/jumpstart/) without configuring the serving infrastructure yourself. NVIDIA describes Lightning as the fastest open model in its class for powering always-on agents. It delivers up to 4x higher throughput and up to 30% faster task completion on high-volume agentic workloads. At 30B total parameters with only 3B active, it can run on a single supported GPU. Repetitive, specialized steps in agent workflows can therefore run without frontier-scale infrastructure. In this post, we show you how to deploy Nemotron 3.5 Lightning from SageMaker JumpStart.\n\n## Overview of NVIDIA Nemotron 3.5 Lightning\n\nNemotron 3.5 Lightning is a publicly available foundation model distilled from NVIDIA’s frontier Nemotron 3 Ultra and developed with the Nemotron Coalition. It uses a hybrid Mixture-of-Experts (MoE) architecture and is trained specifically for agentic tool use across popular agent harnesses. It is trained on open datasets and released as an open model, so you can customize it, own the resulting weights, and deploy it wherever your agents run.\n\nThe following table summarizes the key specifications and performance characteristics of NVIDIA Nemotron 3.5 Lightning.\n\n|  |  |\n| --- | --- |\n| **Specification** | **Details** |\n| **Architecture** | Hybrid Mixture-of-Experts (MoE) |\n| **Parameters** | 30B total / 3B active |\n| **Context length** | Up to 1M tokens |\n| **Input / Output** | Text in, text out |\n| **Speculative decoding** | DFlash |\n| **Throughput** | **Up to 4x higher for high-volume agentic workloads** |\n| **Task completion** | **Up to 30% faster** |\n| **Distilled from** | NVIDIA Nemotron 3 Ultra |\n\n## Not every agent step needs a frontier model\n\nAlways-on agents work continuously: they gather context, observe their environment, reason over what they know, and act. Many of these steps can involve model calls, but they do not all require the same level of capability. Planning a multi-stage workflow or orchestrating sub-agents can demand frontier-level reasoning. Classifying an alert, extracting fields from a form, or checking a record against a policy can often be handled by a smaller, specialized model. These tasks can account for a large share of call volume.\n\nIn many cases, running all model-backed steps through a single large model can add frontier-model cost and latency to work that a smaller, specialized model can handle. A system-of-models approach can instead route each step to a model suited to the task.\n\nNemotron 3.5 Lightning is built for the high-volume end of that system. Its MoE architecture activates 3B of 30B parameters per forward pass, helping maintain high throughput across long, multi-turn sessions. DFlash speculative decoding can further reduce per-token latency. The 1M-token context window allows an agent to carry accumulated state across a long-running session without repeated re-grounding.\n\nIf [NVIDIA NeMo Switchyard](https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/) is part of your stack, it can route individual workflow steps across your chosen model pool. Lightning can be selected for high-volume specialized steps where its speed and domain-specific accuracy are a good fit.\n\n## Accuracy across reasoning and agentic benchmarks\n\nAcross the published evaluations, NVFP4 remains close to BF16 on many tasks, as summarized in the following table. NVIDIA reports that the evaluation recipes and commands used to produce these results are published in [NeMo Gym](https://docs.nvidia.com/nemo/gym/about/). Accuracy results were measured by NVIDIA under a consistent harness and may differ from vendors’ self-reported numbers.\n\nThe following table compares the BF16 and NVFP4 variants of Nemotron 3.5 Lightning across key reasoning and agentic benchmarks.\n\n|  |  |  |\n| --- | --- | --- |\n| **Benchmark** | **BF16** | **NVFP4** |\n| MMLU Pro | 81.94 | 81.62 |\n| GPQA Diamond | 75.44 | 75.57 |\n| SWE-bench Verified | 51.56 | 52.80 |\n| PinchBench | 85.37 | 83.43 |\n| IFBench | 71.88 | 72.88 |\n| AA-LCR | 52.00 | 49.19 |\n\n## Customizing for domain accuracy\n\nOrganizations can post-train the model with NVIDIA NeMo for domain-specific tools, workflows, and policies, then deploy the resulting model in their chosen environment. The SageMaker JumpStart model card for this launch does not expose JumpStart customization.\n\n## Enterprise use cases\n\nLightning is built for the specialized, high-frequency work inside agent workflows:\n\n* **Personal agents**: Long-running assistants handling email, calendar, projects, and bookings, with the option to run locally for contextual data.\n* **Financial services**: Extracting data from documents, checking policy rules, monitoring risk signals, and preparing structured summaries.\n* **Cyber security operations**: Enriching alerts, classifying incidents, querying logs, validating controls, correlating indicators, and preparing findings for analysts.\n* **Telecom**: Triaging network alarms, optimizing network configurations, and answering billing questions.\n* **Retail**: Enriching product catalogs, resolving inventory and fulfillment exceptions, assisting product discovery, and handling order, return, and loyalty questions.\n\n## Getting started with SageMaker JumpStart\n\nYou can deploy Nemotron 3.5 Lightning through Amazon SageMaker JumpStart without manually configuring the serving framework.\n\n### Prerequisites\n\nBefore you begin, make sure you have:\n\n* An AWS account.\n* Appropriately scoped permissions for SageMaker JumpStart.\n* Sufficient service quota for GPU instances (for example, `ml.g6e.12xlarge`, `ml.p4d.24xlarge`, or `ml.p5.48xlarge`).\n\n**Important:** Deploying this model creates a SageMaker AI endpoint that incurs charges while running. For details, see [Amazon SageMaker AI pricing](https://aws.amazon.com/sagemaker/ai/). Delete your endpoint when finished to avoid ongoing charges.\n\n### Deploy using SageMaker Studio\n\n1. Open Amazon SageMaker Studio.\n2. In the navigation pane, choose **SageMaker JumpStart**.\n3. Search for Nemotron 3.5 Lightning.\n\n   ![SageMaker JumpStart search results listing the Nemotron 3.5 Lightning model](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-1.png)\n\n   Figure 1: Searching for Nemotron 3.5 Lightning in SageMaker JumpStart\n4. Select the model card. The NVFP4 model ID is `huggingface-reasoning-nemotron-3-5-lightning-30b-a3b-nvfp4`. For BF16, use `huggingface-reasoning-nemotron-3-5-lightning-30b-a3b-bf16`.\n\n   ![Nemotron 3.5 Lightning model card in SageMaker JumpStart showing the NVFP4 model ID](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-2.png)\n\n   Figure 2: The Nemotron 3.5 Lightning model card in SageMaker JumpStart\n\n   ![Additional Nemotron 3.5 Lightning model card details in SageMaker JumpStart](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-3.png)\n\n   Figure 3: Model card details for Nemotron 3.5 Lightning\n5. Choose **Deploy**.\n6. Select your instance type (for example, `ml.g6e.24xlarge`).\n\n   ![SageMaker JumpStart deployment settings with an instance type selected](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-4.png)\n\n   Figure 4: Selecting an instance type for deployment\n7. Review the deployment settings. The defaults are sufficient for most use cases.\n8. Choose **Deploy** to create the endpoint.\n9. Wait for the endpoint status to show InService before running inference.\n\n   ![SageMaker endpoint status page showing the endpoint InService](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-5.png)\n\n   Figure 5: Endpoint status showing InService\n\n### Deploy from Hugging Face\n\nYou can also deploy NVIDIA Nemotron 3.5 Lightning to Amazon SageMaker AI from its Hugging Face model page. On the Hugging Face model page, choose **Deploy**, select **Amazon SageMaker AI**, and then choose **Deploy on SageMaker AI**. This opens the SageMaker AI deployment workflow, where you can configure and deploy the model.\n\n![Hugging Face model page with the Amazon SageMaker AI deployment option selected](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-6.png)\n\nFigure 6: Deploying from the Hugging Face model page\n\n### Deploy using the SageMaker Python SDK\n\nWith SageMaker JumpStart, you can access the NVFP4 and BF16 variants. The following example uses the NVFP4 model ID `huggingface-reasoning-nemotron-3-5-lightning-30b-a3b-nvfp4`. For BF16, use `huggingface-reasoning-nemotron-3-5-lightning-30b-a3b-bf16`.\n\n```\nfrom sagemaker.jumpstart.model import JumpStartModel\n\nmodel_id = \"huggingface-reasoning-nemotron-3-5-lightning-30b-a3b-nvfp4\"\nmodel_version = \"*\"\n\nmodel = JumpStartModel(model_id=model_id, model_version=model_version)\npredictor = model.deploy()\n```\n\n## Clean up\n\nTo avoid unnecessary charges, delete the SageMaker AI endpoint when you are done:\n\n```\npredictor.delete_endpoint()\n```\n\n## Conclusion\n\nNVIDIA Nemotron 3.5 Lightning brings fast, specialized agent execution to Amazon SageMaker JumpStart. NVIDIA reports up to 4x higher throughput and up to 30% faster task completion for high-volume specialized work. Its hybrid MoE architecture, 3B active parameters, DFlash speculative decoding, and 1M-token context are designed for high-volume agent workflows. Because the model is open and designed for customization, you can post-train it for your own tools and policies and retain control of the resulting model.\n\nNemotron 3.5 Lightning can support specialized agent workloads across personal assistants, financial services, security operations, telecom, and retail. You can deploy it today from SageMaker JumpStart.\n\nGet started by searching for Nemotron 3.5 Lightning in [Amazon SageMaker JumpStart](https://aws.amazon.com/sagemaker/ai/jumpstart/). For deployment guidance, see [JumpStart foundation model usage](https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models-use.html) in the Amazon SageMaker AI Developer Guide.\n\n---\n\n## About the authors\n\n![Venu Kanamatareddy](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/14/ML-21710-7.jpeg)\n\n### Venu Kanamatareddy\n\n[Venu](https://www.linkedin.com/in/venu-kanamatareddy-4395b8165/) is an AI Specialist Solutions Architect at Amazon Web Services, where he works with high-growth, AI-native startups to design, scale, and operationalize production-grade AI systems.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/17/Evan-Kravitz.png)\n\n### Evan Kravitz\n\nEvan is a software engineer at Amazon Web Services, working on SageMaker JumpStart. He is interested in the confluence of machine learning with cloud computing. Evan received his undergraduate degree from Cornell University and master’s degree from the University of California, Berkeley. In 2021, he presented a paper on adversarial neural networks at the ICLR conference. In his free time, Evan enjoys cooking, traveling, and going on runs in New York City.\n\n![Vivek Gangasani](https://d2908q01vomqb2.cloudfront.net/e1822db470e60d090affd0956d743cb0e7cdf113/2023/02/06/Vivek-Gangasani-.png)\n\n### Vivek Gangasani\n\nVivek is a Senior Machine Learning Solutions Architect at Amazon Web Services. He works with Machine Learning startups to build and deploy AI/ML applications on AWS. He is currently focused on delivering solutions for MLOps, ML Inference and low-code ML. He has worked on projects in different domains, including Natural Language Processing and Computer Vision.\n\n![](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/17/naidile.png)\n\n### Naidile Murali\n\nNaidile is a Product Manager at AWS based in Bellevue, WA. She focuses on enhancing the AI/ML developer experience on Amazon SageMaker AI, including onboarding, IDE connectivity, and GPU capacity management. Prior to AWS, she worked as a software engineer at HSBC. Naidile holds an MBA from Georgetown University.",
+      "tags": [
+        "Nemotron 3.5",
+        "SageMaker",
+        "4x吞吐量"
+      ],
+      "score": 85,
+      "summary": "AWS官方宣布NVIDIA Nemotron 3.5 Lightning可在SageMaker JumpStart上部署，30B参数3B激活，吞吐量提升4倍。",
+      "fetched_at": "2026-08-18T02:52:34.357468+08:00"
+    },
+    {
+      "title": "Friendly reminder that you choose your reactions. You don't have to go into a fit of rage when an id...",
+      "link": "https://x.com/thedankoe/status/2089402549166035278",
+      "published": "2026-08-18T01:22:41+08:00",
+      "source": "DAN KOE(@thedankoe)",
+      "content": "Friendly reminder that you choose your reactions. You don't have to go into a fit of rage when an idiot cuts you off in traffic. You could laugh instead, and if you choose to react that way consistently enough, the quality of your life goes through the roof.\n\n💬46🔄34❤️429👀16232📊93",
+      "tags": [
+        "情绪管理"
+      ],
+      "score": 20,
+      "summary": "作者分享关于选择反应的情绪管理心得，认为可以不被激怒。",
+      "fetched_at": "2026-08-18T02:52:34.357482+08:00"
+    },
+    {
+      "title": "Running on AI, powered by caffeine. We're sponsoring Glean GO 2026 in San Francisco. \n\nFind us at ei...",
+      "link": "https://x.com/FireworksAI_HQ/status/2089396439063711866",
+      "published": "2026-08-18T00:58:24+08:00",
+      "source": "Fireworks AI(@FireworksAI_HQ)",
+      "content": "Running on AI, powered by caffeine. We're sponsoring Glean GO 2026 in San Francisco.   \n  \nFind us at either of our two coffee stations for an espresso. Then join our Co-Founder & CTO [@dzhulgakov](https://x.com/dzhulgakov) on stage for the AI-Native Showcase.  \n  \nSee you at Fort Mason!  \n  \n<https://t.co/zTAT8FWc8t.>\n\n💬0🔄1❤️6👀667📊1",
+      "tags": [
+        "Fireworks AI",
+        "Glean GO"
+      ],
+      "score": 40,
+      "summary": "Fireworks AI将赞助Glean GO 2026大会，提供咖啡并由CTO登台演讲。",
+      "fetched_at": "2026-08-18T02:52:34.357486+08:00"
+    },
+    {
+      "title": "You can now host your repos in Cursor Origin and deploy to Vercel via Cursor Origin which is itself ...",
+      "link": "https://x.com/rauchg/status/2089409162270965858",
+      "published": "2026-08-18T01:48:58+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "You can now host your repos in Cursor Origin and deploy to Vercel via Cursor Origin which is itself hosted on Vercel. And unlike GitHub, it's online 😁\n\n![Cursor](https://pbs.twimg.com/profile_images/1970182748146180096/dhZeXi_X_normal.jpg)\n\nCursor@cursor\\_ai\n\nWe've partnered with some of the top GitHub integrations.  \n  \nVercel, Buildkite, and Depot are already available with more coming soon.\n\n[🔗 View Quoted Tweet](https://x.com/cursor_ai/status/2089399059488350447)\n\n💬61🔄27❤️792👀42441📊106",
+      "tags": [
+        "Cursor",
+        "Vercel",
+        "GitHub"
+      ],
+      "score": 75,
+      "summary": "Vercel CEO转发Cursor Origin支持托管仓库并部署到Vercel，集成GitHub等。",
+      "fetched_at": "2026-08-18T02:52:34.357488+08:00"
+    },
+    {
+      "title": "OpenAI's GPT-5.6 Sol is now half off on OpenRouter!\n\nThis also applies to batch API, flex, and prior...",
+      "link": "https://x.com/OpenRouter/status/2089406144297214339",
+      "published": "2026-08-18T01:36:58+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "OpenAI's GPT-5.6 Sol is now half off on OpenRouter!  \n  \nThis also applies to batch API, flex, and priority (fast) tiers, giving you as low as $1.25 in and $7.50 out on the flex tier.  \n  \nDiscount applies automatically, just use openai/gpt-5.6-sol.  \n[openrouter.ai/openai/gpt-5.6…](https://openrouter.ai/openai/gpt-5.6-sol)\n\n💬2🔄4❤️56👀2949📊10",
+      "tags": [
+        "GPT-5.6 Sol",
+        "OpenRouter",
+        "半价"
+      ],
+      "score": 65,
+      "summary": "OpenRouter宣布OpenAI GPT-5.6 Sol模型半价促销，最低$1.25 in / $7.50 out。",
+      "fetched_at": "2026-08-18T02:52:34.357490+08:00"
+    },
+    {
+      "title": "The $0 textbook\n\nA business professor built a free 11-chapter AI textbook with Claude and GitHub Pag...",
+      "link": "https://x.com/TheRundownAI/status/2089396521024295129",
+      "published": "2026-08-18T00:58:44+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "The $0 textbook  \n  \nA business professor built a free 11-chapter AI textbook with Claude and GitHub Pages, featuring real cases from Netflix, Uber, and Waymo, hands-on Python labs, and updates that ship like software instead of waiting on an 18-month publishing cycle.  \n  \nCredit to Chris Califf: [app.therundown.ai/community/post…](https://app.therundown.ai/community/posts/7f69e236-ed7a-44ed-99e5-87b07968a600)\n\n![Tweet Image](https://pbs.twimg.com/media/HP8FA-zWwAEgcoL.jpg)\n\n💬2🔄1❤️2👀889📊3",
+      "tags": [
+        "Claude",
+        "AI教科书",
+        "GitHub Pages"
+      ],
+      "score": 65,
+      "summary": "媒体介绍一位教授用Claude和GitHub Pages制作免费11章AI教科书，包含真实案例。",
+      "fetched_at": "2026-08-18T02:52:34.357492+08:00"
+    },
+    {
+      "title": "Every day we feature a top community workflow in The Rundown AI newsletter.\n\nShare what you've built...",
+      "link": "https://x.com/TheRundownAI/status/2089396522999840946",
+      "published": "2026-08-18T00:58:44+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "Every day we feature a top community workflow in The Rundown AI newsletter.  \n  \nShare what you've built and 2M+ readers might see it next: [app.therundown.ai/community](https://app.therundown.ai/community)\n\n💬0🔄1❤️2👀767📊1",
+      "tags": [
+        "Rundown AI"
+      ],
+      "score": 35,
+      "summary": "The Rundown AI宣传其每日社区工作流分享栏目，邀请读者投稿。",
+      "fetched_at": "2026-08-18T02:52:34.357494+08:00"
+    },
+    {
+      "title": "It's been 2 weeks since we launched our community AI Workflow Hub to 2M+ readers.\n\nWe've had thousan...",
+      "link": "https://x.com/TheRundownAI/status/2089396505685766460",
+      "published": "2026-08-18T00:58:40+08:00",
+      "source": "The Rundown AI(@TheRundownAI)",
+      "content": "It's been 2 weeks since we launched our community AI Workflow Hub to 2M+ readers.  \n  \nWe've had thousands of incredible submissions on ways people are using AI to better their lives, work, or business.  \n  \nHere are the top 5 from the last week:\n\n![Tweet Image](https://pbs.twimg.com/media/HP8BGIuWkAAX2zT.jpg)\n\n💬4🔄2❤️12👀6375📊6",
+      "tags": [
+        "Rundown AI",
+        "Workflow Hub"
+      ],
+      "score": 35,
+      "summary": "The Rundown AI介绍其社区AI工作流Hub上线两周，列出上周Top 5。",
+      "fetched_at": "2026-08-18T02:52:34.357496+08:00"
+    },
+    {
+      "title": "Stripe's Will Gaybrick says AI agents will navigate the internet like hummingbirds, and that's what ...",
+      "link": "https://x.com/a16z/status/2089414172098630045",
+      "published": "2026-08-18T02:08:52+08:00",
+      "source": "a16z(@a16z)",
+      "content": "Stripe's Will Gaybrick says AI agents will navigate the internet like hummingbirds, and that's what will make microtransactions work:  \n  \n\"If you're trying to sell an article, you're always gonna be squeezed between the subscriber business model and the free business model... I think that was probably true in the past.\"  \n  \n\"As you give agents more complex tasks, you want them to be these little hummingbirds, going around the internet, just slurping up a little data here... doing a little compute over here... You don't want the individual human to have to create accounts everywhere.\"  \n  \n\"I think microtransactions will just be necessary for that economy to exist, the agentic economy.\"  \n  \n\"On the flip side, they're now eminently possible because of stablecoins... If you just give an agent a budget, they can easily take dollars, move into stables, and find a way to check out. They don't mind the back and forth.\"  \n  \n[@gaybrick](https://x.com/gaybrick)[@stripe](https://x.com/stripe)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089414121184006144/vid/avc1/1280x720/GMB7OLMGVpjxQwhn.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2089414172098630045/video/1)\n\n![a16z](https://pbs.twimg.com/profile_images/1919488160125616128/QAZXTMEj_normal.png)\n\na16z@a16z\n\nStripe's Will Gaybrick: \"Build everything\"  \n  \nAgainst an industry that sees agents as a way to cut costs, Stripe is using them to build more: agents wrote 30% of code in a week, global tax filing shipped in 1/3 the time the US version took, and after AI made sellers 20% more productive, Stripe hired even more sellers.  \n  \nPresident of Technology & Business [@gaybrick](https://x.com/gaybrick) sits down with a16z's David George to cover why there's no one left for Stripe to copy, why checkout pages will disappear, how agents plus stablecoins make micropayments real, and why tokens are becoming a currency worth protecting like dollars.  \n  \n00:00 Intro  \n01:00 From payments to 30 products  \n02:30 1 in 6 free trials abused  \n05:50 Win the startups, then win them again  \n09:40 Borrowing from Google, Apple, and Ford  \n14:30 Minions: 7K one-shot PRs a week  \n18:45 Building everything vs. cutting costs  \n26:00 Why timelines keep compressing  \n29:50 What replaces the checkout page  \n34:20 The case against $9.99 subscriptions  \n37:20 Stablecoins solve a political problem  \n41:35 Tempo, a payments-only blockchain  \n43:10 Tokens are money now  \n49:00 How Stripe scales taste  \n  \n[youtube.com/watch?v=P5iICD…](https://www.youtube.com/watch?v=P5iICDVn5gc)[@gaybrick](https://x.com/gaybrick)[@DavidGeorge83](https://x.com/DavidGeorge83)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089383338654199808/vid/avc1/1280x720/D0ttgGCc8miV6hU8.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/a16z/status/2089387888685588717/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/a16z/status/2089387888685588717)\n\n💬11🔄0❤️30👀9670📊10",
+      "tags": [
+        "Stripe",
+        "AI Agents",
+        "微交易"
+      ],
+      "score": 80,
+      "summary": "a16z发布Stripe高管Will Gaybrick访谈，认为AI代理将像蜂鸟一样进行微交易。",
+      "fetched_at": "2026-08-18T02:52:34.357498+08:00"
+    },
+    {
+      "title": "It has been a bit surprising, to say the least, how powerful LLMs for code have turned out to be in ...",
+      "link": "https://x.com/omarsar0/status/2089418707202084991",
+      "published": "2026-08-18T02:26:53+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "It has been a bit surprising, to say the least, how powerful LLMs for code have turned out to be in unlocking general capabilities.   \n  \nDiffusion models are going to have their moment soon, but I expect LLMs to continue to improve and transcend.\n\n![Thariq](https://pbs.twimg.com/profile_images/1976939058741039104/r3GgzqRh_normal.jpg)\n\nThariq@trq212\n\nall of the recent proc gen art, video editing and 3d game demos recently have made me update towards LLM coding models being better at a lot of creative work than diffusion models\n\n[🔗 View Quoted Tweet](https://x.com/trq212/status/2089415712007938315)\n\n💬0🔄0❤️3👀652📊1",
+      "tags": [
+        "LLM",
+        "代码生成",
+        "扩散模型"
+      ],
+      "score": 40,
+      "summary": "AI研究者elvis评论LLM在代码生成上出人意料地强大，期望扩散模型也有高光时刻。",
+      "fetched_at": "2026-08-18T02:52:34.357499+08:00"
+    },
+    {
+      "title": "Recommended paper for agent skill builders.\n\nThere are 56,804 public agent skills today, all competi...",
+      "link": "https://x.com/omarsar0/status/2089411994499903566",
+      "published": "2026-08-18T02:00:13+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Recommended paper for agent skill builders.  \n  \nThere are 56,804 public agent skills today, all competing for fewer than 100 reliable trigger slots in the system prompt. Your own playbooks compete for that same space, and the long tail never gets used.  \n  \nskills separates the three things installation bundles together. Content, persistence, and automatic triggering. Only triggering needs to sit in the prompt.  \n  \nA path addresses any skill, subtree, or collection, and reading it is enough to use it. A directory becomes a menu, so bundles stop being all-or-nothing. Vendoring copies a skill into your Git tree at the same path, so your team owns and adapts it.  \n  \nNo manifest, no lockfile, no registration, and SKILL.md is unchanged.  \n  \nPaper: [arxiv.org/abs/2608.12610](https://arxiv.org/abs/2608.12610)  \n  \nTrack more trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HP8VIrNbAAAddWp.jpg)\n\n💬3🔄1❤️18👀1651📊8",
+      "tags": [
+        "Agent Skills",
+        "arXiv"
+      ],
+      "score": 75,
+      "summary": "elvis推荐一篇论文，称公共agent技能超过5.6万，但触发位有限。",
+      "fetched_at": "2026-08-18T02:52:34.357502+08:00"
+    },
+    {
+      "title": "yetone 开源了一个新项目 Cumora：把 AI Agent 变成你的聊天群里的正式成员。\n\nCumora 的界面长得像 Slack，但名单上的同事看起来都是 AI。有名字、有人设、有记忆，能发...",
+      "link": "https://x.com/dotey/status/2089404987587576191",
+      "published": "2026-08-18T01:32:22+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "yetone 开源了一个新项目 Cumora：把 AI Agent 变成你的聊天群里的正式成员。  \n  \nCumora 的界面长得像 Slack，但名单上的同事看起来都是 AI。有名字、有人设、有记忆，能发私聊、能建群、能认领任务，甚至能收发真实邮件。你不 @ 它们，它们也可能主动跳出来说一句“我注意到上周那个问题还没解决”。  \n  \n从截图看，默认团队里有 Atlas（研究员）、Bram（工程师）、Iris、Nova、Saga 这些角色，人类和 Agent 在同一个频道里讨论问题，界面上几乎分不清谁是人谁是 AI。左侧栏里既有人和 Agent 的一对一私聊，也有多人群聊，还有看板和日历。  \n  \n技术上有两种运行方式。一种是 Cumora Cloud，Agent 跑在云端托管的 Kubernetes Pod 里，用 OpenAI 的 Responses API 驱动。另一种叫 BYOA（Bring Your Own Agent），你在自己的电脑上跑一行 npx cumora agent computer，Agent 的\"大脑\"就变成你本地的 Claude Code 或 Codex CLI，用你自己的订阅，密钥不经过 Cumora 的服务器。  \n  \n多 Agent 协作最怕的就是撞车，几个 Agent 同时抢着回答同一个问题，或者基于过时的上下文给出矛盾的回复。Cumora 设计了一套协调机制来处理这个问题：如果一个 Agent 的回复基于过时的信息，系统会把它拦下来，让它看完新消息再决定要不要发；任务认领是原子操作，不会出现两个 Agent 同时做一件事；还有一个小脑分诊层，先用轻量模型判断该不该唤醒大模型，避免每条消息都烧 Token。  \n  \n目前 Cumora 处于邀请制内测阶段，可以在 [cumora.ai](http://cumora.ai) 用 Google 或 GitHub 账号申请。项目完整开源在 GitHub（yetone/cumora [github.com/yetone/cumora](https://github.com/yetone/cumora)），支持本地部署，装好 Postgres 和 Redis 就能跑起来。桌面端支持 macOS、Windows 和 Linux，移动端 iOS 也在计划中。\n\n![Tweet Image](https://pbs.twimg.com/media/HP8OuOQXAAIMn_w.jpg)\n\n![yetone](https://pbs.twimg.com/profile_images/1458663772017491971/h1-KC--K_normal.jpg)\n\nyetone@yetone\n\n[github.com/yetone/cumora](https://github.com/yetone/cumora)  \n  \nCumora 已开源\n\n[🔗 View Quoted Tweet](https://x.com/yetone/status/2089329138406760639)\n\n💬3🔄2❤️13👀2366📊5",
+      "tags": [
+        "Cumora",
+        "开源",
+        "AI Agent"
+      ],
+      "score": 80,
+      "summary": "宝玉详细介绍开源项目Cumora，可将AI Agent作为聊天群组成员，支持本地部署。",
+      "fetched_at": "2026-08-18T02:52:34.357504+08:00"
+    },
+    {
+      "title": "SpaceXAI Launches Grok Bot for Autonomous AI Agents",
+      "link": "https://www.infoq.com/news/2026/08/grok-bot-agent/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-18T02:02:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/grok-bot-agent/en/headerimage/generatedHeaderImage-1786979342385.jpg)\n\nSpaceXAI has introduced Grok Bot, a system of persistent AI agents that operate on dedicated cloud computers and can interact with websites, applications, inboxes, and other tools.\n\n*By Daniel Dominguez*",
+      "tags": [
+        "Grok Bot",
+        "SpaceXAI",
+        "AI Agent"
+      ],
+      "score": 75,
+      "summary": "InfoQ报道SpaceXAI推出Grok Bot，持久化AI代理系统可在云上运行。",
+      "fetched_at": "2026-08-18T02:52:34.357505+08:00"
     }
   ]
 }
