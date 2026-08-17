@@ -2274,6 +2274,122 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-17T20:59:44.629538+08:00"
+    },
+    {
+      "title": "Make zero CVEs your new default",
+      "link": "https://www.docker.com/blog/make-zero-cves-your-new-default/",
+      "published": "2026-08-17T21:00:00+08:00",
+      "source": "Docker",
+      "content": "*Now in Docker AI Governance: a single searchable record of every policy decision your agents trigger, streamed to the SIEM your security team already runs, so you can show what your agents did and what your policy stopped.*\n\nToday, Docker AI Governance now streams every policy decision in your organization into the SIEM your security team already runs, with a searchable record of all of it in Docker Cloud. You can see what your agents did, and what your policy stopped them from doing.\n\n## Enforcement is step one\n\nSomewhere in the past year, supply-chain attacks stopped being isolated incidents. The compromises now reach the tools the industry trusts to defend itself, [with Trivy and KICS among this year’s targets](https://www.docker.com/blog/trivy-kics-and-the-shape-of-supply-chain-attacks-so-far-in-2026/). Mark Lechner, Docker’s Chief Information Security Officer, [called the latest wave “a permanent shift in the threat landscape”](https://www.docker.com/blog/defending-your-software-supply-chain-what-every-engineering-team-should-do-now/), and nothing since has argued with him. Meanwhile the volume keeps climbing. [Over a quarter of production code is now AI-authored](https://www.docker.com/blog/docker-sandboxes-run-agents-in-yolo-mode-safely/), and agents pull in dependencies at machine speed. If you run a platform team or a security program, you already know how this math feels. More code, more images, more dependencies, almost none of it written by your own engineers. And all of it becomes your responsibility the moment it ships.\n\nNone of this is news to us. Securing the software supply chain is the problem we’re here to solve, and our commitment to it is absolute. The latest round of updates widens the trusted foundation Docker is building under your supply chain, and tightens how it’s enforced. More of the software inside your images is now built and patched by Docker itself. Security coverage continues after software reaches end of life. Images get tailored to your environment without losing their guarantees. And policy enforcement now reaches every developer machine. The details are below. First, where all of this is headed.\n\n## **A trusted foundation for the whole supply chain**\n\n![Screenshot 2026 08 05 at 14 49 37 Hardened Images catalog Docker Hub](https://www.docker.com/app/uploads/2026/08/Screenshot-2026-08-05-at-14-49-37-Hardened-Images-catalog-Docker-Hub.png \"- Screenshot 2026 08 05 at 14 49 37 Hardened Images catalog Docker Hub\")\n\nIt all starts from one principle, and Docker Hardened Images was built on it. Security that doesn’t get adopted doesn’t secure anything. The entire catalog is free for every developer, because a secure baseline shouldn’t be a premium feature. Every image is compatible with Alpine and Debian, the distributions your teams already run, and Docker builds every one of them itself, from source. Adoption is a FROM-line change, not a migration project. And every image is independently verifiable, with signed SBOMs (software bills of materials) and SLSA Build Level 3 provenance, so your auditors work from evidence instead of vendor claims.\n\nA year in, [the numbers make the case](https://www.docker.com/blog/why-we-chose-the-harder-path-docker-hardened-images-one-year-later/). The [catalog](https://hub.docker.com/hardened-images/catalog) has grown past 4,000 hardened images, plus MCP servers, Helm charts, and ELS images. It draws more than 3.5 million pulls a week, with over a million builds running regularly to keep all of it patched, and open source projects like [n8n run production on DHI](https://www.docker.com/resources/how-n8n-uses-docker-hardened-images-webinar/). The catalog grows the way it always has, driven by what customers request. But the goal was never just a catalog. The goal is one trusted foundation under your whole software supply chain, where the images you run, the packages inside them, the charts that deploy them, and the tools your agents call all carry the same provenance. Security becomes the default from day one, and it holds, without asking your teams to change how they work.\n\nDocker is leading that charge. Here’s what that looks like in practice.\n\n## Built from source, down to every package\n\nThe hardening keeps reaching deeper into the stack. [Docker Hardened System Packages](https://www.docker.com/blog/announcing-docker-hardened-system-packages/) take hardening below the image, to the packages inside it, across both Alpine and Debian, with every package built from upstream source, patched, and maintained by Docker in the same SLSA Build Level 3 pipeline that builds the images themselves. And the repository behind them is open to more than the catalog. DHI Enterprise customers can point apt or apk directly at Docker’s hardened package repository and bring the same packages into images they build themselves, extending the hardened supply chain beyond the images Docker ships to every image your organization builds.\n\nThe coverage keeps widening. What began with Alpine now spans Debian, with Python, the [catalog’s](https://hub.docker.com/hardened-images/catalog) most pulled image, among the first to ship fully hardened. The work compounds every week, and the [Debian](https://dhi.io/deb/debian/main/index.html) and [Alpine](https://dhi.io/apk/alpine/v3.24/main/index.html) package lists are public, so you can watch the catalog harden in real time.\n\nIf you’ve spent time chasing base-image CVEs, you know why this matters. System packages are notorious for slow fixes; a patch can sit waiting on the distribution’s next release for months or years. Docker doesn’t wait. We patch at the package level, ahead of upstream when it counts, and the fix lands in every image that uses that package, in one build wave instead of image by image. Entire businesses have been built on delivering community-distribution security updates faster than the community. With DHI, that speed is included.\n\nThe guarantees hold up under inspection, too. Packages you add through DHI customization, tailoring an image to your workloads, come from that same hardened repository, not an unverified public mirror, so they are hardened system packages in their own right and the SLA that covers the base image extends through everything you add. And because one vendor stands behind the image, the packages inside it, the CVE investigation, and the patch, your auditors get a single chain of signed provenance instead of a stack of vendor assurances.\n\nYour distribution, meanwhile, stays your distribution. Building a hardened package ecosystem from source is a serious engineering commitment, and Docker made it twice, for Alpine and for Debian, so keeping your house standard never costs you your security posture.\n\n## Patch past end of life\n\n![Screenshot 2026 08 05 at 14 51 50 Hardened Images catalog Docker Hub](https://www.docker.com/app/uploads/2026/08/Screenshot-2026-08-05-at-14-51-50-Hardened-Images-catalog-Docker-Hub.png \"- Screenshot 2026 08 05 at 14 51 50 Hardened Images catalog Docker Hub\")\n\nProduction software has a habit of outliving its maintainers. Migrations wait on budgets, dependencies, and test cycles, and CVEs don’t wait with them. That’s the problem [DHI Extended Lifecycle Support (ELS)](https://www.docker.com/products/hardened-images/) exists for. It keeps end-of-life software patched, with SBOMs and provenance maintained, for up to five more years.\n\nELS isn’t limited to a set catalog, either. Docker watches the end-of-life calendar and builds coverage ahead of it, and anything you don’t see, you can request. MinIO is the newest addition. Upstream archived the project in February 2026, yet in the DHI catalog it lives on, patched and hardened, and your migration runs on your schedule instead of upstream’s.\n\n## Customize at scale, manage as code\n\nNobody runs stock images in production. You add CA certificates, agents, and the packages your applications demand. The trouble is that in most of this market, the first change you make is where the vendor’s guarantees end, and everything after it is yours to carry. [DHI customization](https://docs.docker.com/dhi/how-to/customize/) works the other way around. You define what your images need, and Docker manages the full lifecycle of your customized images, rebuilding them through the same hardened pipeline on every upstream patch. The SBOM, the attestations, and the SLA travel with the customization instead of dying at it.\n\nCustomization operates at scale, too. Bulk customizations run through the UI, CLI, and API, with YAML configuration and GitHub Actions support, so you can tailor hundreds of repositories in one pass and let the rebuilds take care of themselves. And if your platform runs on Terraform, customization is code as well. The [DHI Terraform provider](https://registry.terraform.io/providers/docker-hardened-images/dhi/latest) mirrors and customizes hardened images with the same pull requests and reviews as the rest of your infrastructure.\n\nThe savings are real infrastructure, not a rounding error. Customers tell us they’ve shut off the CI pipelines that existed only to rebuild images, because Docker rebuilds for them. The blind redeploy cadence goes with those pipelines. You ship an update when a fix actually needs to go out, knowing exactly what changed, instead of rebuilding everything on a schedule and hoping QA catches what moved.\n\nFor organizations whose data-residency requirements keep images inside the EU, EU-hosted customizations arrive in September. Your customized images will live in Docker Hub’s EU region with the same SBOMs, attestations, and SLA as everywhere else. Residency stops being the reason your hardening program waits.\n\n## Harden beyond base images\n\nThe same standard keeps moving up the stack. The catalog now carries fully supported Helm charts, so your Kubernetes deployments start hardened too. And it carries a growing set of hardened MCP servers, because the tools your agents call deserve the same scrutiny as the images they run on.\n\n## Govern it all with Docker Scout policy\n\nScanning tells you what’s wrong. Policy is how you keep it from shipping. And enforcement is where most supply-chain programs quietly fail, because hardened artifacts only protect you when your teams actually use them. Developers move fast and default to what works, and the developer machine is exactly where the current wave of attacks aims.\n\n[Docker Scout](https://docs.docker.com/scout/) policy closes that gap. It evaluates flexible, customizable policies from the CLI and inside CI, and it ships with the same policies Docker uses to verify every hardened image in the catalog. The policies are written in Rego, the industry standard, and they’re portable, so the same rules that gate a build in your CI travel with your teams to every developer machine in your organization. Gating at the registry matters, but it stops at the registry; developers can route around it all day. Policy that travels to the machine is how you hold every image you run, and every image your teams build, to the bar Docker holds itself to.\n\nIt’s an additive control. It works alongside the scanners you already run, and it’s already in the Docker subscription you have.\n\n## The foundation is already in your stack\n\nThe supply-chain problem is not going to shrink. More code is coming, agents are becoming contributors, and the patch windows regulators expect keep getting shorter. Point tools won’t carry that weight. A foundation that’s secure by default will, backed by an ecosystem that keeps it that way. That is exactly what [Docker’s security portfolio](https://www.docker.com/solutions/security/) delivers. Hardened content on the distributions you already run, customization that keeps its guarantees, support that outlasts upstream, and policy you control, from one vendor accountable for all of it.\n\nAnd none of it asks you to adopt something new. It’s all in the Docker you already run. Your builds, tools, and pipelines stay the same. Your CVE count doesn’t.\n\nBrowse the [DHI catalog](https://hub.docker.com/hardened-images/catalog) and pull your first hardened image today. And if you want the full story, how all of this works together, with your questions answered live, join our live webinar in early September. We’d love to see you there. [webinar registration link]",
+      "tags": [
+        "Docker AI",
+        "SIEM",
+        "策略流"
+      ],
+      "score": 76,
+      "summary": "Docker AI Governance新增将代理策略决策流式传输至SIEM，提供可搜索记录。",
+      "fetched_at": "2026-08-17T21:49:25.462473+08:00"
+    },
+    {
+      "title": "才知道可以通过 go2rtc 项目把多个品牌的摄像头接入 HomeKit，让 Grok 一顿改造，将我的水星摄像头硬解转码为 H264，在 HomeKit 里就能显示 1440p，真香。",
+      "link": "https://x.com/geekbb/status/2089333937411928150",
+      "published": "2026-08-17T20:50:03+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "才知道可以通过 go2rtc 项目把多个品牌的摄像头接入 HomeKit，让 Grok 一顿改造，将我的水星摄像头硬解转码为 H264，在 HomeKit 里就能显示 1440p，真香。\n\n![Tweet Image](https://pbs.twimg.com/media/HP7MlJJasAAZkir.jpg)![Tweet Image](https://pbs.twimg.com/media/HP7MpbObAAI07Yw.jpg)![Tweet Image](https://pbs.twimg.com/media/HP7NHMvbIAA7ybS.jpg)\n\n💬0🔄0❤️2👀675📊1",
+      "tags": [
+        "go2rtc",
+        "HomeKit",
+        "Grok"
+      ],
+      "score": 30,
+      "summary": "用户用Grok辅助通过go2rtc将水星摄像头硬解转码为H264接入HomeKit。",
+      "fetched_at": "2026-08-17T21:49:25.462485+08:00"
+    },
+    {
+      "title": "Headed to Interrupt? Don’t miss our Deep Agents from Scratch workshop.\n\nCome learn about agent harne...",
+      "link": "https://x.com/LangChain/status/2089337126752039137",
+      "published": "2026-08-17T21:02:43+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Headed to Interrupt? Don’t miss our Deep Agents from Scratch workshop.  \n  \nCome learn about agent harnesses and build your first Deep Agent.  \n  \n📍 NYC: Sept 24   \n📍 London: Oct 13  \n🎟[interrupt.langchain.com](https://interrupt.langchain.com)H1O\n\n![Tweet Image](https://pbs.twimg.com/media/HP7RCoCW8AEVCxl.jpg)![Tweet Image](https://pbs.twimg.com/media/HP7RCzFW4AEwbvJ.jpg)\n\n💬0🔄0❤️3👀1817📊1",
+      "tags": [
+        "LangChain",
+        "Deep Agents",
+        "workshop"
+      ],
+      "score": 60,
+      "summary": "LangChain宣布将在纽约和伦敦举办Deep Agents from Scratch工作坊。",
+      "fetched_at": "2026-08-17T21:49:25.462490+08:00"
+    },
+    {
+      "title": "I've received a lot of positive feedback on this interview I did with @StevenBartlett for his Diary ...",
+      "link": "https://x.com/RayDalio/status/2089339167964578106",
+      "published": "2026-08-17T21:10:50+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "I've received a lot of positive feedback on this interview I did with [@StevenBartlett](https://x.com/StevenBartlett) for his Diary of a CEO podcast, with a number of people telling me I should share it for those who haven't seen it. So I'm passing it along here. You can check the video description for specific topics so you can jump straight to what interests you. [youtube.com/watch?v=Bu0xND…](https://www.youtube.com/watch?v=Bu0xNDLNORU&t=1s)\n\n💬7🔄9❤️60👀20914📊16",
+      "tags": [
+        "Ray Dalio",
+        "访谈"
+      ],
+      "score": 30,
+      "summary": "Ray Dalio分享其与Steven Bartlett的访谈视频。",
+      "fetched_at": "2026-08-17T21:49:25.462493+08:00"
+    },
+    {
+      "title": "Tailscale 是这几年用过最舒服的软件，虽然底层就是 WireGuard，但是把用户体验做的这么好的几乎没有别的，而且免费版几乎完全够用，和 CF 一样是菩萨级别的，还有 exit node 以...",
+      "link": "https://x.com/vikingmute/status/2089328077100990602",
+      "published": "2026-08-17T20:26:46+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "Tailscale 是这几年用过最舒服的软件，虽然底层就是 WireGuard，但是把用户体验做的这么好的几乎没有别的，而且免费版几乎完全够用，和 CF 一样是菩萨级别的，还有 exit node 以及那么多高级有趣的玩法。  \n  \n充分说明了把复杂技术包装成好用的产品，本身就是巨大的价值。  \n  \n啥时候上市，我赶快去支持一下\n\n💬4🔄0❤️11👀1494📊8",
+      "tags": [
+        "Tailscale",
+        "WireGuard"
+      ],
+      "score": 30,
+      "summary": "用户赞扬Tailscale用户体验好，免费版够用，有exit node等特点。",
+      "fetched_at": "2026-08-17T21:49:25.462496+08:00"
+    },
+    {
+      "title": "油腻地向油腻的达里奥致敬。",
+      "link": "https://x.com/dongxi_nlp/status/2089331543952994779",
+      "published": "2026-08-17T20:40:32+08:00",
+      "source": "马东锡 NLP(@dongxi_nlp)",
+      "content": "油腻地向油腻的达里奥致敬。\n\n![Tweet Image](https://pbs.twimg.com/media/HP7L9v_WMAA9Rfz.jpg)\n\n![Andrew Ambrosino](https://pbs.twimg.com/profile_images/2089131693596925952/4Bnl2WQ7_normal.jpg)\n\nAndrew Ambrosino@ajambrosino\n\nlocked in for the next 6 weeks\n\n[🔗 View Quoted Tweet](https://x.com/ajambrosino/status/2089131997784580398)\n\n💬0🔄0❤️2👀514",
+      "tags": [
+        "达里奥"
+      ],
+      "score": 15,
+      "summary": "用户向达里奥表达致敬。",
+      "fetched_at": "2026-08-17T21:49:25.462498+08:00"
+    },
+    {
+      "title": "Grab Cuts Mechanical Analytics Work From 44% to 30% with AI Agents",
+      "link": "https://www.infoq.com/news/2026/08/grab-ai-analytics-agents/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-17T21:41:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/grab-ai-analytics-agents/en/headerimage/generatedHeaderImage-1786600049929.jpg)\n\nGrab is using AI agents to automate analytics workflows, cutting mechanical analyst work from 44% in February to 30% in June. Its approach combines agent autonomy, certified data, context management and human oversight, with self service analytics increasingly handling metric, data and SQL requests without analyst intervention.\n\n*By Leela Kumili*",
+      "tags": [
+        "Grab",
+        "AI代理",
+        "分析自动化"
+      ],
+      "score": 72,
+      "summary": "Grab使用AI代理自动化分析工作流，机械分析工作占比从44%降至30%。",
+      "fetched_at": "2026-08-17T21:49:25.462501+08:00"
+    },
+    {
+      "title": "Cloudflare Turns CI Pipelines into TypeScript Workflows",
+      "link": "https://www.infoq.com/news/2026/08/cloudflare-ci-code-workflows/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-17T21:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/cloudflare-ci-code-workflows/en/headerimage/header-1786802745789.jpeg)\n\nCloudflare has released cloudflare/ci, a CI SDK that defines pipelines in TypeScript on top of Cloudflare Workflows, giving each step durable retries and replay, concurrent steps by default and Sandbox snapshot caching. It targets the Workers runtime and depends on Artifacts, still in private beta, so the transferable lesson is the durable-step model rather than a drop-in CI replacement.\n\n*By Mark Silvester*",
+      "tags": [
+        "Cloudflare",
+        "CI SDK",
+        "TypeScript"
+      ],
+      "score": 65,
+      "summary": "Cloudflare发布CI SDK，将CI流水线定义为TypeScript工作流。",
+      "fetched_at": "2026-08-17T21:49:25.462503+08:00"
     }
   ]
 }
