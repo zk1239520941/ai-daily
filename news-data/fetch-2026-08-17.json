@@ -1090,6 +1090,456 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-17T11:09:44.032250+08:00"
+    },
+    {
+      "title": "拒绝「差不多」，电商模型测评迎来「最严厉的父亲」",
+      "link": "https://www.ifanr.com/1675338?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-17T12:10:22+08:00",
+      "source": "爱范儿",
+      "content": "测评 AI 这件事，如今越来越难做了。\n\n几年前，AI 还是聊天机器人时，测评主要就是做题：写作的、数学的、编程的……最后形成一套跑分，用分数代表模型能力。\n\n但当 AI 从聊天框里走出来，变成能够调用工具、操作网页、处理文件、跨系统执行任务的 Agent，情况就变得复杂起来。\n\n平时我们看到的，是 AI 出现在手机上，能够刷淘宝、加购物车，最后下单。实际上在商家的那一端，也有 AI 的参与，承担着比选购和下单更复杂的工作。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/01.png)\n\n在专门考察电商环境中模型表现的 RealReplicaBench 测试中，经过 107 个真实商业任务的考核，所有参评模型都没有达到 60 分——都没有及格。\n\n选手一共 13 位，但连同 GPT、Claude、GLM、Qwen 、Deepseek 和（毫无意外排名最末的）Gemini ，它们当中最高分只有 56.1 分。\n\n以最高分的 Claude Opus 5 为例，在 Accio Work 执行框架中的通过率（66/107） ，要比 OpenClaw 上（60/107）和 PI （65/107）上的通过率更都要高，整体来看 Accio 框架对多数模型的性能增益都更明显。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/107.png)\n\n执行框架来自阿里旗下Accio Work ，是全球首个聚焦于电商领域的 AI Agent，目标是帮商家在一个 AI 工作台上统一管理、自动操作、快速分析多个平台的店铺，降低门槛、提升效率，实现生意的增长。\n\nRealReplicaBench 正是脱胎于 Accio Work 的技术团队，他们观察到，靠做题是看不出模型解决问题的真实能力的，尤其是在电商中，工作繁琐而具体：采购要从邮件和报价里确认信息，发品要处理图片、价格、物流和后台状态，经营分析要跨多个平台比对数据……\n\n为了把货品准确无误地交到你手上，AI 已经卯足了劲，却未必做得够好，**因为真实世界里的工作，很少是一连串彼此孤立的问题。**\n\n### 看似考做题，实则考「上岗」\n\n如果只看分数，RealReplicaBench 的结果很容易引发误读：「怎么 AI 都不太行」。但摸着良心说，还真不能怪模型们不够强，这个结果很难简单归咎于模型能力——这套「题」，确实难。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/04.png)\n\n传统 Benchmark 关注答对多少题、完成多少步骤，就获得对应的分数。类似于考高考，数学最后一道大题不会做，写个「解」字或把条件抄一下，也能拿点儿分。\n\n可是当 AI 真正进入商业工作流以后，用户需要的不是一份过程尽力的答卷，而是一项项真正完成、且能够继续向下流转的工作。\n\n**对于「完成」的坚持，构成了 Accio Work 团队技术哲学的核心**，这源于他们长期沉浸在电商场景里形成的判断，电商工作需要把判断转成行动，再让新的业务状态成为下一步行动的依据。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/05.png)\n\n供应商有没有选对，决定后面的采购动作；价格有没有算对，决定商品能不能正常发布；物流路线是否满足时限，决定订舱有没有实际意义……前面的一次错误，可能沿着整个工作流一路传递到最后。\n\n因此，重要的不只是某一步「做对了」，更在于每一步的判断和行动，能不能被完整串起来。\n\nRealReplicaBench 对「完成」的定义也由此变得接近真实交付：**一项工作只有在结果能够被下一环节直接接手时，才算真正完成。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/06.png)\n\n技术负责人解释道，「哪怕一个任务已经完成了 80%，如果最后还留下 20% 需要用户手动处理，而这 20% 恰恰可能是最关键的部分，那么对用户来说，它依然没有形成可以直接使用的交付。」\n\n基于这一点，在 RealReplicaBench 的测评中，**不存在「将就」；没有完成，就是 0 分**。\n\n如果一定要找一个更直观的比喻，传统 Benchmark 更像考交规，科目一，而 RealReplicaBench 更像路考。脑袋里知道什么时候该打转向灯是一回事，真正把车从起点安全开到终点又是另一回事。就算每一次转向灯都打对了，最后撞车了，也不能称作是合格的司机。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/07.png)\n\n那么问题也随之而来，这种高完成度的表现，究竟要怎么被做成一套可重复、可验证的评测 benchmark？\n\n### 为了测试「真实工作」，先造一个接近真实的世界\n\n任何 Benchmark 都绕不开一个最基础的问题：它测到的，究竟是不是它想要测的东西。\n\n如果目标是判断 Agent 能不能完成真实商业任务，那么只把一个真实需求改写成几段文字，再让模型输出答案，显然还不够。难点往往藏在那些被文字省略掉的地方：页面状态会变化，历史信息和新信息会冲突，系统之间的字段并不统一……\n\nRealReplicaBench 的做法，是尽可能把这些复杂性搬到测试环境中，它不只提供题面，还复刻了前端 UI、浏览器操作、CLI、API/MCP、文件系统以及后台状态，让 Agent 面对的不是一张纸上的问题，而是一套能够被真正操作的业务环境。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/08.png)\n\n供应商采购任务就是一个典型例子。Agent 需要从约 300 封高噪声邮件中还原真实采购需求，还要完成供应商选择、邮件标签、回复草稿和 Kickoff 日历。**它测试的显然不再是「能否总结邮件」，而是能不能从一堆真实形态的噪声中还原业务事实，并把这个事实继续变成行动。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/09.png)\n\n另一个更复杂的任务，则要求 Agent 把 5383 条海关记录变成一套跨系统采购控制塔。模型要先按品类和供应商聚合数据，再根据采购政策筛选 Top 3 供应商，随后分别在 Google Workspace、Box 和 Jira 中建立 Dashboard、证据文件夹和项目任务。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/10-3.png)\n\n这类任务之所以可以作为考题，都在于它们保留了真实工作里一个很关键的特征：**状态会不断变化，而 Agent 必须在变化中仍然准确理解上下文，并随之校准。**\n\n前面筛出来的供应商、后面创建的文件夹和 Jira Task，必须属于同一套业务关系。否则，一个动态 ID 写错，后面的交接和审计就可能全部失效。\n\n因此，RealReplicaBench 所测试的，并不是模型在某一个单独的问题上能达到多高的正确率，这不符合他们的技术哲学，**关键要看它能不能在复杂环境中持续维持正确状态，并把一个业务目标真正推进到结束。**\n\n### 用高仿真环境，证明高完成度\n\n把真实环境复刻出来，还只是第一步，真实工作评测还有另一个容易被忽略的问题：模型可以说「任务已经完成」，而用户却无法确认，或者确认成本很高。\n\n在聊天机器人中这问题不大，Chatbot 要交付的本来就是文本。可 Agent 不一样，它的文本输出只是行动过程中的一部分，因此 RealReplicaBench 的另一个核心设计，是让 **Verifier 直接读取最终环境状态，而不是相信 Agent 的自我报告。**\n\n例如在物流履约中，Agent 需要为一票从中国到美国的运单枚举可行路线，把海运、拖车、尾程、保险、清关、Bond 和平台费全部计入，排除超过 30 天或港口衔接不成立的方案，再完成海运段 Booking 和 Shipment Verification。最终的验证对象不是一段看起来合理的路线建议，而是实际生成的 Shipment ID。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/11-5.png)\n\n**这套逻辑把「完成」的定义从模型的思维链中拿出来，交还给环境本身。**Listing、Booking、日历、文件关系、动态 ID，这些真实状态共同构成了 Agent 是否完成工作的证据。\n\n既然测评不该对一个只有「长得像答案」的答案给分，那么，每个动作都需要在环境里留下可以被独立验证的后果，这也是为什么 RealReplicaBench 判分格外严格的另一个原因。\n\n### Benchmark 背后，是技术实力\n\n为什么Accio Work 团队能设计这样一套 Benchmark？\n\n答案首先来自任务本身。RealReplicaBench 的 107 个任务并不是来自研究者想象中的「电商场景」，而是来自真实商业需求，来自约 160 万完整对话、20 万商业执行轨迹和 2000 条高价值工作流，最后通过可复现性与可判定性，收敛成 107 个任务。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/12-3.png)\n\n供应商采购最后应该留下什么结果，商品发布什么时候才算真正完成，物流任务究竟停在路线建议还是必须产生 Booking，跨系统协作里哪些对象关系一旦断掉就无法继续交接——这些看似属于评分标准的问题，本身就建立在对真实业务流程的理解之上。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/13-3.png)\n\n也因此，**设计出什么样的 Benchmark，往往也会折射出背后的团队如何理解 Agent。**\n\n如果认为 Agent 只是一个更聪明的问答系统，测试自然会围绕答案质量展开；如果认为 Agent 的价值在于把工作真正推进到结束，那么测试就必须包含环境、工具、状态、验证以及失败后的归因。\n\n从这个角度看，RealReplicaBench 表面上是在测试模型，背后实际上也展示了 Accio Work 团队设计 Agent 的一套方法论：**从真实需求定义任务，再复刻工作环境；组织模型与工具完成任务，用环境状态验证结果，再根据失败位置持续优化模型与 Harness。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/14-4.png)\n\n这也是为什么这套 Benchmark 对 Accio Work 的意义并不只是一次对外开源。团队计划持续加入新的真实任务，让评测环境滚动更新，并进一步用于模型评测、训练优化和模型路由。根据不同任务的特点，调度更适合的模型，在效果与成本之间寻找更好的组合。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/15-3.png)\n\n这样一套 Benchmark 惠及的不只是电商商家，让他们能更准确地判断该选择什么模型、什么 AI 产品；**也同样对整个技术社区有意义。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/16-2.png)\n\n**当 AI 真正开始进入商业工作流，建设 Harness 的能力会逐渐和底层模型本身一样重要。**毕竟，对用户来说，真正值得付费的从来不是一个「差不多会做」的 Agent，而是一套能够把工作接过去，并把结果直接交回来的系统。\n\n过去衡量大模型，人们最常问的是它知道多少；后来问题变成了它能不能推理。到了 Agent 时代，评价标准正在继续向前移动，逐步靠近它到底能不能把事情真正完成。\n\nRealReplicaBench 正在把这个看起来很朴素的问题，变成一套可以重复运行、可以验证、也可以用于研发迭代的技术标准。Benchmark 测的是模型，最终被检验的，其实也是一个技术团队对「工作如何被 AI 完成」这件事理解得有多深。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [
+        "RealReplicaBench",
+        "电商Agent",
+        "Accio Work"
+      ],
+      "score": 84,
+      "summary": "爱范儿报道电商 AI 基准 RealReplicaBench，13 个模型在 107 个任务中最高仅 56.1 分。",
+      "fetched_at": "2026-08-17T12:54:51.141566+08:00"
+    },
+    {
+      "title": "#678.All-In 激辩AI新格局：2万亿美元IPO、扎克伯格AI宣言、英伟达5000亿算力融资",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a82806517676351c572fc2e",
+      "published": "2026-08-17T11:43:52+08:00",
+      "source": "跨国串门儿计划",
+      "content": "📝 本期播客简介\n\n本期我们克隆了：知名播客 All-In Podcast Anthropic's $2T IPO, Zuck's AI Manifesto, Nvidia's $500B AI Bet, Grok's Comeback\n\n原内容更新时间：2026-08-14\n\n本期节目由 All-In Podcast 的几位科技投资人主持，包括 Chamath、David Sacks 等，特别邀请了知名投资人 Gavin Baker 作为嘉宾。节目录制于2026年8月14日，围绕当时科技圈最热门的几大话题展开了激烈讨论：Anthropic 传闻中的2万亿美元IPO、扎克伯格发布的6500字AI宣言、英伟达联合华尔街巨头筹集5000亿美元用于AI算力建设，以及 xAI 旗下 Grok 模型的强势追赶。\n\n这期节目信息密度极高，几位嘉宾不仅对 Anthropic 的收入增长速度和 IPO 估值进行了深入剖析，还就 AI 开源与闭源之争、算力融资模式的创新、以及 AI 对就业和社会的深远影响展开了观点交锋。无论你是关注 AI 产业趋势的投资者、创业者，还是对科技巨头动态感兴趣的观察者，这期节目都能提供大量一手判断和前瞻性思考。\n\n👨‍⚕️ 本期嘉宾\n\nGavin Baker，知名科技投资人，曾主导参与 SpaceX 第二轮百亿美元融资，是科技投资圈备受尊敬的人物。他以其对 AI、算力和前沿科技领域的深刻洞察而闻名，在节目中多次分享了对 Anthropic、英伟达、xAI 等公司的独到见解。他的加入为这期节目带来了专业的投资视角和对 AI 产业链的深度理解。\n\n⏱️ 时间戳\n\n00:00 开场 & 节目介绍\n\nGavin Baker 的加入与 SpaceX 投资回顾\n\n01:10 开场寒暄与 Gavin Baker 的 SpaceX 胜利\n\n02:09 讨论 Rahm Emanuel 的访谈与民主党内部斗争\n\nAnthropic 的 2 万亿美元 IPO 传闻\n\n03:56 突发新闻：Anthropic 目标估值 2 万亿美元 IPO\n\n05:43 Gavin Baker 对 IPO 估值和收入增速的看法\n\n10:20 Sacks 分析增长可持续性与算力瓶颈\n\n13:21 Gavin Baker 拆解需求与供给：知识工作市场与能源限制\n\n扎克伯格的 AI 宣言与开源之争\n\n27:03 扎克伯格发布 6500 字 AI 宣言《未来属于每个人》\n\n27:54 Sacks 解读宣言：集中化 vs 去中心化\n\n32:48 Gavin Baker 认同\"技术太危险，不能集中\"的观点\n\n36:14 讨论有效利他主义者的\"核弹\"类比与监管风险\n\n英伟达的 5000 亿美元算力融资计划\n\n55:05 英伟达联合高盛、贝莱德筹集 5000 亿美元\n\n56:10 Gavin Baker 分析 GPU 资产融资模式的创新\n\n59:10 Sacks 讨论风险：算力过剩与\"暗 GPU\"危机\n\n01:00:59 黄仁勋的棋局：缓解融资约束，做大市场\n\n亚马逊司机诉讼与社会主义议题\n\n01:09:17 新泽西和纽约起诉亚马逊分包商模式\n\n01:11:16 Sacks 为 DSP 模式辩护：合同自由与效率\n\n01:12:46 Gavin Baker 建议亚马逊加收\"Mamdani 费\"\n\n01:13:47 Chamath 反驳：资本主义需要自我修正\n\nGrok 的强势追赶与 xAI 战略\n\n01:21:50 讨论 Grok 4.6 发布与帕累托前沿图\n\n01:24:14 分析 Elon 追赶成功的原因：收购 Cursor 与重组管理层\n\n01:26:31 Sacks 分析 xAI 的\"看涨期权\"与\"看跌期权\"策略\n\nWorkday 收购传闻与软件行业前景\n\n01:29:17 独家消息：银湖资本可能收购 Workday\n\n01:29:41 Gavin Baker 分析开源对软件行业的冲击与私募股权机会\n\n🌟 精彩内容\n\n💡 \"我们从未见过这样的收入增长曲线\"\n\nAnthropic 的年化收入预计年底达到 1000 亿到 1200 亿美元，同比增长超过 10 倍，且过去三年每年都保持 10 倍增长。这种指数级增长在硅谷历史上绝无仅有，但也引发了关于潜在市场规模和物理限制的讨论。\n\n\"我们真的从未见过这样的情况。\"\n\n💡 \"AI 产品不是造桥，而是酿啤酒\"\n\nGavin Baker 用\"原子 vs 比特\"的框架来理解 AI 算力建设，强调数据中心建设是物理世界的挑战，涉及能源、涡轮机、监管等现实问题，与软件世界的快速迭代截然不同。\n\n\"这是原子，不是比特，而且真的非常非常难。\"\n\n💡 \"这项技术太危险，不能集中起来\"\n\nGavin Baker 将 Anthropic 和有效利他主义者的立场总结为\"技术太危险，不能分发出去\"，而扎克伯格、Elon 和 Jensen 则相信\"技术太危险，不能集中起来\"。他明确站在后者一边，认为历史已经证明分发和去中心化永远是更好的选择。\n\n\"历史已经给出了答案。当有选择的时候，分发和去中心化永远是更好的。\"\n\n💡 \"英伟达正在变成 AI 界的中央银行\"\n\nGavin Baker 用\"AI 界的美联储\"来形容英伟达在算力融资中的角色。通过提供残值担保和牵线搭桥，英伟达正在创造一个全新的资产类别，让 GPU 成为可融资、能产生收入的资产，这将对整个 AI 产业链产生深远影响。\n\n\"从某种意义上说，英伟达正在变成 AI 界的中央银行。\"\n\n💡 \"如果 Anthropic 猛踩刹车，后面的公司会连环追尾\"\n\nSacks 将 Anthropic 比作整个 AI 行业的\"领跑车\"，它的季度财报将成为市场判断需求信号的关键指标。如果领跑车减速，整个食物链上的公司都会感受到冲击。\n\n\"如果 Anthropic 猛踩刹车，后面的公司会连环追尾。\"\n\n💡 \"我要拥有自己的 AI，它的价值观跟我一致\"\n\nGavin Baker 用持枪权来类比拥有 AI 的权利，强调个体应该拥有价值观与自己一致的 AI，而不是依赖某个\"好人\"或集中化的机构来决定什么对自己最有利。\n\n\"我要拥有自己的 AI，它的价值观跟我一致，而不是跟某个好人一致，哪怕那个人再好也不行。\"\n\n💡 \"真理必叫你们得自由\"\n\nGavin Baker 多次引用这句圣经名言，强调在 AI 和数据中心的舆论战中，需要有人站出来讲述真相，纠正媒体制造的谎言和歇斯底里，否则公众将无法做出正确的判断。\n\n\"没人讲真话，你就得不到自由。\"\n\n🌐 播客信息补充\n\n本播客采用原有人声声线进行播客音频制作，也可能会有一些地方听起来怪怪的\n\n使用 AI 进行翻译，因此可能会有一些地方不通顺；\n\n如果有后续想要听中文版的其他外文播客，也欢迎联系微信：iEvenight",
+      "tags": [
+        "Anthropic IPO",
+        "扎克伯格AI宣言",
+        "英伟达算力融资"
+      ],
+      "score": 72,
+      "summary": "播客讨论 Anthropic 2万亿美元 IPO 传闻、扎克伯格 AI 宣言及英伟达 5000 亿美元算力融资。",
+      "fetched_at": "2026-08-17T12:54:51.141580+08:00"
+    },
+    {
+      "title": "源：https://t.co/b9b8LmMzRX",
+      "link": "https://x.com/FinanceYF5/status/2089208413821780471",
+      "published": "2026-08-17T12:31:16+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/kimmonismus/st…](https://x.com/kimmonismus/status/2088647536684712289)\n\n![Chubby♨️](https://pbs.twimg.com/profile_images/1728327996375719936/RW7VBJfD_normal.jpg)\n\nChubby♨️@kimmonismus\n\nScott Gray leaves OpenAI. He joined the company in 2016 and helped build the GPU infrastructure behind its earliest breakthroughs, from sparse transformers and scaling laws to GPT‑3.  \n  \nHis exit comes as at least 12 senior leaders have already left OpenAI in 2026.  \n  \nOpenAI’s 2026 departures so far:  \n  \n• Scott Gray - longtime GPU systems engineer  \n• Denise Dresser - Chief Revenue Officer  \n• Brad Lightcap - former COO  \n• Fidji Simo - CEO of Applications  \n• Kevin Weil - Head of OpenAI for Science  \n• Bill Peebles - Head of Sora  \n• Srinivas Narayanan - CTO of B2B Applications  \n• Kate Rouch - Chief Marketing Officer  \n• Barret Zoph - Enterprise Sales lead  \n• Johannes Heidecke - Head of Safety Systems  \n• Joshua Achiam - Chief Futurist  \n• Chloé Bakalar - Head of Ethics  \n• Caitlin Kalinowski - Head of Hardware and Robotics  \n  \nSomething is happening at OpenAI.\n\n[🔗 View Quoted Tweet](https://x.com/kimmonismus/status/2088647536684712289)\n\n💬0🔄0❤️0👀271",
+      "tags": [
+        "OpenAI离职潮",
+        "Scott Gray",
+        "高层出走"
+      ],
+      "score": 72,
+      "summary": "转述 OpenAI 早期 GPU 工程师 Scott Gray 离职，2026 年已有 12 位高层离开。",
+      "fetched_at": "2026-08-17T12:54:51.141584+08:00"
+    },
+    {
+      "title": "OpenAI这次离开的，不是普通高管，而是给早期模型搭GPU地基的人。\n\nScott Gray于2016年加入，参与稀疏Transformer、Scaling Laws和GPT-3，长期深耕底层GPU...",
+      "link": "https://x.com/FinanceYF5/status/2089208401628983364",
+      "published": "2026-08-17T12:31:13+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "OpenAI这次离开的，不是普通高管，而是给早期模型搭GPU地基的人。  \n  \nScott Gray于2016年加入，参与稀疏Transformer、Scaling Laws和GPT-3，长期深耕底层GPU系统。  \n  \n据Business Insider统计，OpenAI今年已有12位高层离开。名单很长，但这种十年老将更难替代。\n\n![Tweet Image](https://pbs.twimg.com/media/HP5b-DKbgAALSpZ.jpg)\n\n💬2🔄0❤️0👀426📊2",
+      "tags": [
+        "OpenAI",
+        "Scott Gray",
+        "GPU系统"
+      ],
+      "score": 70,
+      "summary": "OpenAI 早期 GPU 系统工程师 Scott Gray 离职，今年已有 12 位高层离开。",
+      "fetched_at": "2026-08-17T12:54:51.141587+08:00"
+    },
+    {
+      "title": "源：https://t.co/HH9zOEwQHj",
+      "link": "https://x.com/FinanceYF5/status/2089205161411637286",
+      "published": "2026-08-17T12:18:20+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/snowmaker/stat…](https://x.com/snowmaker/status/2088122446880870435)\n\n![Jared Friedman](https://pbs.twimg.com/profile_images/1308677307092017152/iXvxtnI8_normal.jpg)\n\nJared Friedman@snowmaker\n\nThe size of YC's codebase, over the last 14 years.\n\n![Tweet Image](https://pbs.twimg.com/media/HPp_Zs_akAAPpWE.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/snowmaker/status/2088122446880870435)\n\n💬0🔄0❤️0👀345",
+      "tags": [
+        "YC",
+        "代码库",
+        "14年增长"
+      ],
+      "score": 55,
+      "summary": "YC 代码库 14 年从接近 0 增长到近 400 万行，近两年大幅飙升。",
+      "fetched_at": "2026-08-17T12:54:51.141590+08:00"
+    },
+    {
+      "title": "YC的代码库，14年里从接近0增长到近400万行。\n\n前12年缓慢爬升，最后两年却几乎垂直起飞。\n\n这张图比任何“软件正在吞噬世界”的演讲都更直观。",
+      "link": "https://x.com/FinanceYF5/status/2089205149680197971",
+      "published": "2026-08-17T12:18:17+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "YC的代码库，14年里从接近0增长到近400万行。  \n  \n前12年缓慢爬升，最后两年却几乎垂直起飞。  \n  \n这张图比任何“软件正在吞噬世界”的演讲都更直观。\n\n![Tweet Image](https://pbs.twimg.com/media/HP5ZA0yaYAAmgLq.png)\n\n💬3🔄0❤️1👀692📊3",
+      "tags": [
+        "YC",
+        "代码库",
+        "增长曲线"
+      ],
+      "score": 45,
+      "summary": "评论 YC 代码库 14 年增长至 400 万行，最后两年垂直起飞。",
+      "fetched_at": "2026-08-17T12:54:51.141592+08:00"
+    },
+    {
+      "title": "Claude的文字即将加入水印。\n\n但读者看不出来，也不会增加隐藏字符、Token或费用，更无法追踪到具体个人、组织或聊天。\n\nAnthropic表示，这是为了遵守欧盟《AI法案》。其他签署同一行为准...",
+      "link": "https://x.com/FinanceYF5/status/2089200572402733132",
+      "published": "2026-08-17T12:00:06+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Claude的文字即将加入水印。  \n  \n但读者看不出来，也不会增加隐藏字符、Token或费用，更无法追踪到具体个人、组织或聊天。  \n  \nAnthropic表示，这是为了遵守欧盟《AI法案》。其他签署同一行为准则的主要模型公司，也将陆续加入水印。  \n[x.com/AnthropicAI/st…](https://x.com/AnthropicAI/status/2088343978873966687)\n\n![Anthropic](https://pbs.twimg.com/profile_images/1798110641414443008/XP8gyBaY_normal.jpg)\n\nAnthropic@AnthropicAI\n\nWe’ve written an FAQ to answer some of the questions we've received about watermarking.   \n  \nIn summary:  \n  \n• We’re implementing watermarking to comply with the EU AI Act. Other major model developers have signed the same Code of Practice and will also be implementing watermarking;  \n• Our watermarking method doesn’t have any practical impact on the quality or content of Claude’s outputs;  \n• The difference between watermarked and un-watermarked text will not be distinguishable to readers;  \n• Nothing is added to the text and there are no hidden characters;  \n• Watermarking doesn’t require extra tokens, and will not be more expensive;  \n• Watermarks can’t be traced to a specific person, organization, or chat.  \n  \nRead more: [anthropic.com/news/claude-te…](https://www.anthropic.com/news/claude-text-watermark)\n\n[🔗 View Quoted Tweet](https://x.com/AnthropicAI/status/2088343978873966687)\n\n💬0🔄0❤️0👀541",
+      "tags": [
+        "Claude",
+        "文字水印",
+        "EU AI Act"
+      ],
+      "score": 85,
+      "summary": "Anthropic 将为 Claude 文本添加水印以遵守欧盟 AI 法案，水印不可见且不影响质量。",
+      "fetched_at": "2026-08-17T12:54:51.141595+08:00"
+    },
+    {
+      "title": "在不损失画质的情况下添加水印，确实有点反直觉，感觉上似乎不太可能实现。\n\n为了弄明白它的原理，Thariq用 Claude 制作了这个交互演示👇",
+      "link": "https://x.com/FinanceYF5/status/2089200560063086688",
+      "published": "2026-08-17T12:00:03+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "在不损失画质的情况下添加水印，确实有点反直觉，感觉上似乎不太可能实现。  \n  \n为了弄明白它的原理，Thariq用 Claude 制作了这个交互演示👇\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089200537137008640/vid/avc1/984x720/Eaw7eLl351Z-6G6m.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2089200560063086688/video/1)\n\n💬1🔄0❤️0👀1018📊1",
+      "tags": [
+        "Claude水印",
+        "交互演示",
+        "Thariq"
+      ],
+      "score": 65,
+      "summary": "Thariq 用 Claude 制作了文字水印原理的交互演示。",
+      "fetched_at": "2026-08-17T12:54:51.141598+08:00"
+    },
+    {
+      "title": "以上就是全部，原作者 @minchoi\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/kkooUYttkd",
+      "link": "https://x.com/FinanceYF5/status/2089197295812444595",
+      "published": "2026-08-17T11:47:05+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部，原作者 [@minchoi](https://x.com/minchoi)  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2089197037028020357)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n好吧，Grok 4.6 已经强得有点吓人了。  \n  \n游戏、3D 世界、游戏预告片，甚至还能设计可以在现实中打印出来的 3D 模型。  \n  \n10个惊艳案例：\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2089197037028020357)\n\n💬0🔄0❤️0👀364",
+      "tags": [
+        "Grok 4.6",
+        "案例汇总",
+        "转发"
+      ],
+      "score": 20,
+      "summary": "AI Will 转发 Grok 4.6 案例汇总，并引导关注原作者。",
+      "fetched_at": "2026-08-17T12:54:51.141601+08:00"
+    },
+    {
+      "title": "10. Grok 4.6 只需 Fable 十分之一的成本，就能达到接近 Fable 的质量\n\n使用相同的提示词，只用一半时间，成本也低得多。\nhttps://t.co/ZBpF0CxMOs",
+      "link": "https://x.com/FinanceYF5/status/2089197156372828547",
+      "published": "2026-08-17T11:46:32+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "10. Grok 4.6 只需 Fable 十分之一的成本，就能达到接近 Fable 的质量  \n  \n使用相同的提示词，只用一半时间，成本也低得多。  \n[x.com/anshuc/status/…](https://x.com/anshuc/status/2088316715977597406)\n\n![Anshu](https://pbs.twimg.com/profile_images/2062938542280712192/gds8Qtn8_normal.jpg)\n\nAnshu@anshuc\n\nI don’t think people realize how big a jump Grok 4.6 is. Look at this comparison with Fable on the same prompt.  \n  \nThey’re pretty close, but Grok took half the time at ONE TENTH the cost.  \n  \nAnd I prefer a lot of choices Grok made:  \n- fills the hero image to the top instead of leaving an ugly white strip  \n- flat sharp tiles instead of the usual rounded card slop  \n- fewer pointless labels and elements, more restraint  \n- lighter text, less dense and overwhelming  \n  \nFable certainly has more depth if you’re trying to do crazy edge-of-distribution stuff. It’s a much bigger model. But for the majority of work, you can get Fable quality for a 90% discount. Just insane how much of a step up it is from Grok 4.5.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088316493805350912/vid/avc1/2000x2000/oX9_AVOG8WUsVLwZ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/anshuc/status/2088316715977597406/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/anshuc/status/2088316715977597406)\n\n💬1🔄0❤️0👀466📊1",
+      "tags": [
+        "Grok 4.6",
+        "Fable",
+        "视频生成"
+      ],
+      "score": 80,
+      "summary": "网友对比 Grok 4.6 与 Fable，称 Grok 成本仅为 Fable 十分之一，质量接近。",
+      "fetched_at": "2026-08-17T12:54:51.141603+08:00"
+    },
+    {
+      "title": "好吧，Grok 4.6 已经强得有点吓人了。\n\n游戏、3D 世界、游戏预告片，甚至还能设计可以在现实中打印出来的 3D 模型。\n\n10个惊艳案例：",
+      "link": "https://x.com/FinanceYF5/status/2089197037028020357",
+      "published": "2026-08-17T11:46:03+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "好吧，Grok 4.6 已经强得有点吓人了。  \n  \n游戏、3D 世界、游戏预告片，甚至还能设计可以在现实中打印出来的 3D 模型。  \n  \n10个惊艳案例：\n\n💬1🔄0❤️1👀1696📊2",
+      "tags": [
+        "Grok 4.6",
+        "3D生成",
+        "游戏"
+      ],
+      "score": 10,
+      "summary": "AI Will 情绪化称赞 Grok 4.6 在游戏和 3D 生成上的强大能力。",
+      "fetched_at": "2026-08-17T12:54:51.141606+08:00"
+    },
+    {
+      "title": "源：https://t.co/ZPdAvBjc62",
+      "link": "https://x.com/FinanceYF5/status/2089194099471687704",
+      "published": "2026-08-17T11:34:23+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/himanshustwts/…](https://x.com/himanshustwts/status/2088976464922431826)\n\n![himanshu](https://pbs.twimg.com/profile_images/1884206288839778304/HrqG2yjw_normal.jpg)\n\nhimanshu@himanshustwts\n\nSequoia and Benchmark would make a crazy good return out of $7B Decart acquisition (the Israeli startup building world models!)  \n  \nSequoia will blend roughly 11–14x (across all rounds) ~$900M on maybe $70M deployed.   \n  \nAbsolutely Shaun Maguire victory!\n\n![Tweet Image](https://pbs.twimg.com/media/HP2JBSbaoAA03e4.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/himanshustwts/status/2088976464922431826)\n\n💬0🔄0❤️0👀476",
+      "tags": [
+        "Decart",
+        "70亿美元收购",
+        "Sequoia"
+      ],
+      "score": 65,
+      "summary": "传闻世界模型公司 Decart 将以 70 亿美元被收购，红杉或获 11-14 倍回报。",
+      "fetched_at": "2026-08-17T12:54:51.141608+08:00"
+    },
+    {
+      "title": "有人说如果 Decart 这家以色列世界模型创业公司以 70 亿美元被收购，Sequoia 和 Benchmark 的回报会非常夸张。\n\n按他的估算，Sequoia 跨多轮投资综合下来，大概能拿到 1...",
+      "link": "https://x.com/FinanceYF5/status/2089194087551484175",
+      "published": "2026-08-17T11:34:20+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有人说如果 Decart 这家以色列世界模型创业公司以 70 亿美元被收购，Sequoia 和 Benchmark 的回报会非常夸张。  \n  \n按他的估算，Sequoia 跨多轮投资综合下来，大概能拿到 11–14 倍回报。  \n  \n投入可能约 7000 万美元，回报约 9 亿美元。  \n  \n这绝对是 Shaun Maguire 的一次大胜。\n\n![Tweet Image](https://pbs.twimg.com/media/HP5O85iaMAE2rAI.png)\n\n💬2🔄1❤️0👀863📊2",
+      "tags": [
+        "Decart",
+        "收购",
+        "红杉回报"
+      ],
+      "score": 60,
+      "summary": "传闻 Decart 被 70 亿美元收购，红杉预计获得 11-14 倍回报。",
+      "fetched_at": "2026-08-17T12:54:51.141611+08:00"
+    },
+    {
+      "title": "源：https://t.co/ry2NEoOiTM",
+      "link": "https://x.com/FinanceYF5/status/2089192175414485359",
+      "published": "2026-08-17T11:26:44+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/leoxbtt/status…](https://x.com/leoxbtt/status/2088794941321363624)\n\n![Tweet Image](https://pbs.twimg.com/media/HP5NNiNbAAAKKz6.jpg)\n\n![Leo](https://pbs.twimg.com/profile_images/2025260845995888641/ZAHMId8E_normal.jpg)\n\nLeo@leoxbtt\n\nEn 2008, Elon Musk estaba a 12 días de la quiebra.  \n  \nDe pie en un salón de Hollywood, intentaba vender un auto de $109,000 dólares a gente que pensaba que estaba loco.  \n  \nSu propio Roadster estaba aparcado afuera, como si fuera una simple bicicleta.  \n  \nEmpezó hablando de dinero:  \n  \nEl Congreso había aprobado 25.000 millones para fabricar autos eficientes.  \n Los Big Three volaron a Washington y lo pidieron… para pagar sueldos de sus gasolina-devoradores.  \n  \nEl Congreso dijo que sí.  \n “Eso les da hasta febrero”, dijo Musk.  \n  \nTesla pidió del mismo fondo… pero para lo que realmente se había creado: un auto más barato.  \n  \nY entonces soltó la frase que nadie en la sala registró:  \n  \nTesla no paga dividendos. Nunca lo hará.  \n Cada dólar de cada Roadster de 109.000 va directo al siguiente auto más barato.  \n  \nSu sueldo: el mínimo legal.  \n  \nNo les dijo que la empresa tenía días de caja.  \n Ni que si no cerraban una ronda de emergencia antes de Nochebuena… se acababa todo.  \n  \nHabló de celulares.  \n De cómo los primeros costaban una fortuna.  \n De que no se llega al barato sin vender primero el caro.  \n  \n100 autos fabricados.  \n El número 100 salía el martes.  \n Y él mismo entregaría las llaves.  \n  \nSeis meses después, GM se declaró en quiebra.  \n  \nEl tipo del sueldo mínimo… no.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088794862476738561/vid/avc1/814x590/FUbBl0rT6q9Os4he.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/leoxbtt/status/2088794941321363624/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/leoxbtt/status/2088794941321363624)\n\n💬0🔄0❤️1👀404",
+      "tags": [
+        "特斯拉",
+        "Musk",
+        "2008"
+      ],
+      "score": 50,
+      "summary": "转述 2008 年特斯拉濒临破产时，Musk 推销 Roadster 的故事。",
+      "fetched_at": "2026-08-17T12:54:51.141614+08:00"
+    },
+    {
+      "title": "2008年，Tesla距离破产只剩12天。\n\nMusk站在好莱坞宴会厅里，向一群认为他疯了的人推销10.9万美元的Roadster。自己只拿法定最低工资，每卖出一辆车，收入都投入下一款更便宜的车型。\n...",
+      "link": "https://x.com/FinanceYF5/status/2089192156963725354",
+      "published": "2026-08-17T11:26:40+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "2008年，Tesla距离破产只剩12天。  \n  \nMusk站在好莱坞宴会厅里，向一群认为他疯了的人推销10.9万美元的Roadster。自己只拿法定最低工资，每卖出一辆车，收入都投入下一款更便宜的车型。  \n  \n半年后，GM破产了。那个拿最低工资的人没有。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089192072104603648/vid/avc1/814x590/0kIK9D6-PKa5J75n.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2089192156963725354/video/1)\n\n💬2🔄0❤️1👀744📊2",
+      "tags": [
+        "特斯拉",
+        "Musk",
+        "破产危机"
+      ],
+      "score": 45,
+      "summary": "2008 年特斯拉距破产仅 12 天，Musk 推销 Roadster 自救，半年后 GM 破产。",
+      "fetched_at": "2026-08-17T12:54:51.141616+08:00"
+    },
+    {
+      "title": "源：\nhttps://t.co/92ySk8qrQq",
+      "link": "https://x.com/FinanceYF5/status/2089187295538892920",
+      "published": "2026-08-17T11:07:21+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：  \n[x.com/venturetwins/s…](https://x.com/venturetwins/status/2088712319224397969)\n\n![Justine Moore](https://pbs.twimg.com/profile_images/2080756230893838336/q4VqZuw2_normal.jpg)\n\nJustine Moore@venturetwins\n\nThe Japanese are using Seedance 2.5 to make their own water-based Ninja Warrior shows   \n  \n(from u/Ok-Nerve941)\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088712299347615744/vid/avc1/640x360/KPKfzen6ojodqC09.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/venturetwins/status/2088712319224397969/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/venturetwins/status/2088712319224397969)\n\n💬0🔄0❤️0👀370",
+      "tags": [
+        "Seedance 2.5",
+        "视频生成",
+        "Ninja Warrior"
+      ],
+      "score": 70,
+      "summary": "日本人用 Seedance 2.5 自制水上版 Ninja Warrior 节目。",
+      "fetched_at": "2026-08-17T12:54:51.141619+08:00"
+    },
+    {
+      "title": "一个 Seedance 2.5 的有趣用法：\n\n日本用户正在用它制作自己的水上版《Ninja Warrior》节目。\n\n来源：u/Ok-Nerve941",
+      "link": "https://x.com/FinanceYF5/status/2089187283627028923",
+      "published": "2026-08-17T11:07:18+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "一个 Seedance 2.5 的有趣用法：  \n  \n日本用户正在用它制作自己的水上版《Ninja Warrior》节目。  \n  \n来源：u/Ok-Nerve941\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089187249867124736/vid/avc1/640x360/9nc14fypudJ2do7J.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2089187283627028923/video/1)\n\n💬3🔄1❤️4👀1932📊3",
+      "tags": [
+        "Seedance 2.5",
+        "AI视频",
+        "日本"
+      ],
+      "score": 68,
+      "summary": "日本用户用 Seedance 2.5 制作水上版 Ninja Warrior 节目。",
+      "fetched_at": "2026-08-17T12:54:51.141621+08:00"
+    },
+    {
+      "title": "发现Codex的图像Agent编辑能力类似dsh\n\n之前我以为只是支持gpt image 2\n现在换成grok后，照样支持\n\n不过可能需要比较精确的描述\n感叹grok的图像生成能力也很强啊",
+      "link": "https://x.com/PMbackttfuture/status/2089195935033073948",
+      "published": "2026-08-17T11:41:40+08:00",
+      "source": "AI产品黄叔(@PMbackttfuture)",
+      "content": "发现Codex的图像Agent编辑能力类似dsh  \n  \n之前我以为只是支持gpt image 2  \n现在换成grok后，照样支持  \n  \n不过可能需要比较精确的描述  \n感叹grok的图像生成能力也很强啊\n\n![Tweet Image](https://pbs.twimg.com/media/HP5QaBwWcAEju89.jpg)![Tweet Image](https://pbs.twimg.com/media/HP5QaAtXUAAAQwI.jpg)![Tweet Image](https://pbs.twimg.com/media/HP5QaAvW8AErB2_.jpg)\n\n💬0🔄0❤️0👀21",
+      "tags": [
+        "Codex",
+        "图像编辑",
+        "Grok"
+      ],
+      "score": 65,
+      "summary": "发现 Codex 的图像 Agent 编辑能力，换 Grok 模型后仍支持。",
+      "fetched_at": "2026-08-17T12:54:51.141624+08:00"
+    },
+    {
+      "title": "OpenCode Go 订阅中，5.6 Luna 性价比已经高于 DS V4 Flash，OpenCode 算是有良心的，没有给你们搞包年，不划算下个月就不续了呗。",
+      "link": "https://x.com/geekbb/status/2089196995282100572",
+      "published": "2026-08-17T11:45:53+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "OpenCode Go 订阅中，5.6 Luna 性价比已经高于 DS V4 Flash，OpenCode 算是有良心的，没有给你们搞包年，不划算下个月就不续了呗。\n\n![Tweet Image](https://pbs.twimg.com/media/HP5RRmkb0AA_UOE.jpg)\n\n💬2🔄0❤️1👀822📊2",
+      "tags": [
+        "OpenCode",
+        "Luna 5.6",
+        "性价比"
+      ],
+      "score": 45,
+      "summary": "用户称 OpenCode 订阅中 5.6 Luna 性价比高于 DS V4 Flash。",
+      "fetched_at": "2026-08-17T12:54:51.141627+08:00"
+    },
+    {
+      "title": "Built a full ramen brand and its launch film in Lovart with Seedance 2.5.\n\nIf you're opening a resta...",
+      "link": "https://x.com/lovart_ai/status/2089204977143251212",
+      "published": "2026-08-17T12:17:36+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "Built a full ramen brand and its launch film in Lovart with Seedance 2.5.  \n  \nIf you're opening a restaurant, pitching a client, or raising money for something that doesn't exist yet, you can now show people the vision instead of describing it.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089199505199828992/vid/avc1/3840x2160/d_cUonPJEnjVktIh.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2089204977143251212/video/1)\n\n💬0🔄0❤️3👀233📊1",
+      "tags": [
+        "Seedance 2.5",
+        "Lovart",
+        "品牌宣传"
+      ],
+      "score": 70,
+      "summary": "Lovart 展示用 Seedance 2.5 创建拉面品牌宣传片的案例。",
+      "fetched_at": "2026-08-17T12:54:51.141629+08:00"
+    },
+    {
+      "title": "Congrats to our 10 lucky winners 🎉A free month of Pro are yours - don’t forget to check your DMs! @...",
+      "link": "https://x.com/lovart_ai/status/2089190195145199711",
+      "published": "2026-08-17T11:18:52+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "Congrats to our 10 lucky winners 🎉A free month of Pro are yours - don’t forget to check your DMs! [@doraking\\_jp](https://x.com/doraking_jp)[@STUD\\_MAN\\_X](https://x.com/STUD_MAN_X)[@AinaAiTech](https://x.com/AinaAiTech)[@jji1jj](https://x.com/jji1jj)[@ElaraAiLab](https://x.com/ElaraAiLab)[@ZenithAiLab](https://x.com/ZenithAiLab)[@semchain](https://x.com/semchain)[@SeharShinwari](https://x.com/SeharShinwari)[@AliceInfoAi](https://x.com/AliceInfoAi)[@tysyrrr](https://x.com/tysyrrr)\n\n![LovartAI](https://pbs.twimg.com/profile_images/2065372538763694080/KSuXj3OU_normal.jpg)\n\nLovartAI@lovart\\_ai\n\nSeedance 2.5 is a secret weapon for interior design.  \n  \nInput 50 furniture items, 1 dream space, 30 seconds.  \n  \nNow Live on Lovart.  \n  \nLike + repost + follow – 10 lucky winners get a free month of Pro\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2088166462783696896/vid/avc1/3840x2160/9eQOGpx0qjxI9ipI.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2088167121285169499/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/lovart_ai/status/2088167121285169499)\n\n💬3🔄0❤️5👀482📊3",
+      "tags": [
+        "Lovart",
+        "抽奖",
+        "中奖"
+      ],
+      "score": 10,
+      "summary": "Lovart 公布 10 位中奖者，赠送一个月 Pro 会员。",
+      "fetched_at": "2026-08-17T12:54:51.141632+08:00"
+    },
+    {
+      "title": "The real chart would be:\n- brilliant people\n- weather\nlol.\n\nThis diagram was made by someone unambit...",
+      "link": "https://x.com/andrewchen/status/2089202429564981705",
+      "published": "2026-08-17T12:07:29+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "The real chart would be:  \n- brilliant people  \n- weather  \nlol.  \n  \nThis diagram was made by someone unambitious and uninterested in building the future. That’s why the “best value” cities are what they are, and why the “premium life” options are silly. Agree with [@aporia9n](https://x.com/aporia9n) below\n\n![Aporia](https://pbs.twimg.com/profile_images/2007598798382542848/6VyUKFtF_normal.jpg)\n\nAporia@aporia9n\n\nIf you’re in your 20s (and ambitious) do everything to move to those 4 cities  \n  \nYes people will mog you for paying extortionate rents for such little comfort but who cares, you’re not everyone, you’re on a mission, you’re here for greatness  \n  \nLondon/NYC/Paris/SF are basically the golden 4. They’re not just big cities, they’re global sorting machines. People move there from all over the world because they want sth badly enough to accept all the downsides. The guy born in London can be lazy. But the 26yo Frenchman, Indian, American, Italian, Nigerian, Lebanese etc who voluntarily accepts the tiny flat, shit commute and absurd rent to be there has already self-selected pretty hard  \n  \nAnd that selection compounds. I felt it instantly moving from my hometown in France to London. Growing up I was always “the ambitious one” in my friend group. Then you arrive in London and suddenly you feel extremely average. Everyone is trying to do sth. Completely changes your reference point for what a normal person can achieve  \n  \nThe other thing is just how many serious games are happening at once. If you know at 22 that you’re going to be a semiconductor engineer forever, maybe there are better specialised places. But most ambitious 24yos have absolutely no clue what game they’ll eventually want to play. In London/NYC/Paris you can accidentally become friends with people in PE, startups, politics, law, media, fashion, pharma, academia etc. Your finance friend dates someone in fashion, their roommate is building a startup, you meet someone in politics at dinner. Suddenly 5 completely different lives feel plausible  \n  \nThat’s insanely valuable when you’re young precisely because you don’t yet know which people / industries / opportunities will matter to your 34yo self  \n  \nSF is the weird exception because it’s basically one giant concentrated bet on tech/AI. Much narrower than the other 3, but that game is so asymmetric rn that it deserves its spot. If you want to build at the frontier there’s probably no other place where your reference class changes that aggressively  \n  \nAnd yh everyone keeps saying the internet made geography irrelevant. Maybe for information. Definitely not for trust/friendship. Anyone can learn from the same people online now, send the same cold DM, follow the same accounts. Much harder to replicate being the guy someone has had 20 dinners with, worked with, travelled with, introduced to friends and randomly bumped into for 5 years  \n  \nWhen you’re 24 and nobody knows who tf you are, geography can do a lot of the work for you. You get invited because your colleague knows someone. You end up at a dinner because your friend needs a +1. Someone you met 3 years ago leaves and starts a company. Another moves to NYC. Another becomes a partner somewhere. Most of the ROI is completely impossible to predict upfront  \n  \nBasically before you have your own gravity, borrow the city’s  \n  \nAt 45, if you’ve built the company / reputation / money / audience / network, you can go live in Tuscany, Mallorca, South of France or wherever and people will come to you. At 24 no one is coming lol. You should probably be where everything is happening  \n  \nAnd tbh if you have the ability to move I wouldn’t spend 3 years waiting for the perfect job / apartment / timing. Get the shitty room, accept being poorer for a while, figure it out once you’re there. Your 20s are probably the cheapest years of your life to tolerate inconvenience anyway  \n  \nYou can optimise sqm, weather and comfort later  \n  \nAt 24 I’d rather maximise how many possible lives are available to me\n\n![Tweet Image](https://pbs.twimg.com/media/HP4jjefXIAA3Fhr.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/aporia9n/status/2089146377099968616)\n\n💬1🔄0❤️12👀2261📊2",
+      "tags": [
+        "andrew chen",
+        "城市",
+        "人才"
+      ],
+      "score": 20,
+      "summary": "andrew chen 评论人才和天气比城市更重要。",
+      "fetched_at": "2026-08-17T12:54:51.141634+08:00"
+    },
+    {
+      "title": "(And no San Jose is not near SF)",
+      "link": "https://x.com/andrewchen/status/2089186914477953432",
+      "published": "2026-08-17T11:05:50+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "(And no San Jose is not near SF)\n\n💬0🔄0❤️3👀1174",
+      "tags": [
+        "San Jose",
+        "旧金山",
+        "地理"
+      ],
+      "score": 10,
+      "summary": "andrew chen 纠正圣何塞不在旧金山附近。",
+      "fetched_at": "2026-08-17T12:54:51.141637+08:00"
+    },
+    {
+      "title": "They just need one near SF and it’ll generate more $/sqft than the Apple Store lol",
+      "link": "https://x.com/andrewchen/status/2089186871972889088",
+      "published": "2026-08-17T11:05:40+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "They just need one near SF and it’ll generate more $/sqft than the Apple Store lol\n\n💬2🔄0❤️3👀1272📊2",
+      "tags": [
+        "旧金山",
+        "Apple Store",
+        "零售"
+      ],
+      "score": 10,
+      "summary": "andrew chen 评论某零售店在旧金山附近将产生更高每平方英尺收入。",
+      "fetched_at": "2026-08-17T12:54:51.141640+08:00"
+    },
+    {
+      "title": "OpenCode 直接进入收割模式？",
+      "link": "https://x.com/oran_ge/status/2089185966678573470",
+      "published": "2026-08-17T11:02:04+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "OpenCode 直接进入收割模式？\n\n💬1🔄0❤️0👀1021📊1",
+      "tags": [
+        "OpenCode",
+        "收割",
+        "商业模式"
+      ],
+      "score": 40,
+      "summary": "网友质疑 OpenCode 开始收割用户。",
+      "fetched_at": "2026-08-17T12:54:51.141643+08:00"
+    },
+    {
+      "title": "我Claude 账号前天被封了\n\n我申诉说我啥也没干\n就是日常编码和写内容，请给我解封\n\n过了一天就给我解封了\n\n但是我的订阅掉了，我又写了一封邮件要求他们补我3个月 20x的会员\n\n我是不是有点得寸...",
+      "link": "https://x.com/xiaohu/status/2089198854935908637",
+      "published": "2026-08-17T11:53:17+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "我Claude 账号前天被封了  \n  \n我申诉说我啥也没干  \n就是日常编码和写内容，请给我解封  \n  \n过了一天就给我解封了  \n  \n但是我的订阅掉了，我又写了一封邮件要求他们补我3个月 20x的会员  \n  \n我是不是有点得寸进尺？\n\n![Tweet Image](https://pbs.twimg.com/media/HP5S0MCaIAE5Sdz.jpg)\n\n💬5🔄0❤️7👀2711📊5",
+      "tags": [
+        "Claude",
+        "账号封禁",
+        "解封"
+      ],
+      "score": 30,
+      "summary": "用户 Claude 账号被封后申诉解封，但订阅丢失。",
+      "fetched_at": "2026-08-17T12:54:51.141645+08:00"
+    },
+    {
+      "title": "给客户端做个图标",
+      "link": "https://x.com/op7418/status/2089207351383675232",
+      "published": "2026-08-17T12:27:02+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "给客户端做个图标\n\n![Tweet Image](https://pbs.twimg.com/media/HP5a9praYAA_wsv.jpg)\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\n搞的差不多了，还不错\n\n![Tweet Image](https://pbs.twimg.com/media/HP5IGWYbEAAhGQG.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2089186594402287896)\n\n💬2🔄0❤️4👀828📊2",
+      "tags": [
+        "客户端",
+        "图标",
+        "DeepSeek Harness"
+      ],
+      "score": 15,
+      "summary": "歸藏表示正在给客户端做图标。",
+      "fetched_at": "2026-08-17T12:54:51.141648+08:00"
+    },
+    {
+      "title": "虽然修复了，但是要相信我们中国号商的能力。\n\n所以如果你还是想要的话，可以去闲鱼找找看，但是注意不要被骗哈",
+      "link": "https://x.com/op7418/status/2089188139265085801",
+      "published": "2026-08-17T11:10:42+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "虽然修复了，但是要相信我们中国号商的能力。  \n  \n所以如果你还是想要的话，可以去闲鱼找找看，但是注意不要被骗哈\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\n卧槽，原来现在还是能以每个月 99 美元的价格，订阅 Grok Harvey 这个级别的会员，这个超值！  \n  \n你相当于一下获得了：  \n  \n1. 价值 300 美元的 Grok Harvey（包括 Grok Build 权限）  \n  \n2. 价值 200 美元的 Cursor Ultra 会员，还有 Fable 5 的额度。  \n  \n3. Grok Bot 的独立额度（这三个额度都是独立的）  \n  \n4. Grok Image 和 Video（图像与视频模型）的额度  \n  \n5. 会自动送你一份 Twitter Premium+ 订阅  \n  \n折合下来只要 700 块钱一个月，简直夯爆了！  \n  \n尤其是 Grok 后面还有更强的模型要发布。  \n  \n可以看一下具体的使用路径：  \n  \n1. 准备 Grok 账号：先登录一个 Grok 账号。  \n  \n前提条件：如果你之前是用 Twitter（X）登录并订阅的，需要先取消 Twitter 订阅（取消后不会立即生效，所以我建议直接注册申请一个新的 Grok 账号。虽然新账号没办法共享你原有的 Twitter Premium，但这次订阅）。  \n如果是用旧账户或者 Twitter 授权登录，操作起来会有点麻烦，所以强烈建议用新账户注册。  \n  \n2. 订阅促销活动：  \n  \n先去第一个链接([grok.com/supergrok/targ…](https://grok.com/supergrok/targeted-offer/email-supergrok-50-off-2mo))，订阅获取两个月的 Super Grok 促销。  \n  \n订阅成功后，再去下面第二个地址([grok.com/supergrok/targ…](https://grok.com/supergrok/targeted-offer/email-supergrok-67-off-3mo))，订阅连续三个月 99 美元的 Super Grok Harvey。  \n  \n注意：后续记得及时取消订阅，否则到期后会恢复成 300 美元/月。  \n  \n3. 绑定 Cursor 会员：  \n  \n下载并登录 Grok Bot，登录时有个选项会要求选择 Cursor 授权登录。  \n  \n这个时候，只要你有一个相同邮箱的 Cursor 账号（如果没有，就用这个邮箱注册一个），系统就会自动给你充值 Cursor 的 Ultra 会员。\n\n![Tweet Image](https://pbs.twimg.com/media/HP3F4QOawAAQGWM.jpg)![Tweet Image](https://pbs.twimg.com/media/HP3F4WxboAAibhy.jpg)![Tweet Image](https://pbs.twimg.com/media/HP3F4nLaEAAtQ-0.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2089043643680403573)\n\n💬12🔄0❤️5👀8896📊9",
+      "tags": [
+        "Grok Harvey",
+        "订阅优惠",
+        "99美元"
+      ],
+      "score": 65,
+      "summary": "分享以每月 99 美元订阅 Grok Harvey 并获 Cursor Ultra 等权益的方法。",
+      "fetched_at": "2026-08-17T12:54:51.141651+08:00"
+    },
+    {
+      "title": "虽然修复了，但是要相信我们中国号商的能力。\n\n所以如果你还是想要的话，可以去闲鱼找找看，但是注意不要被骗哈",
+      "link": "https://x.com/op7418/status/2089188111997964682",
+      "published": "2026-08-17T11:10:35+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "虽然修复了，但是要相信我们中国号商的能力。  \n  \n所以如果你还是想要的话，可以去闲鱼找找看，但是注意不要被骗哈\n\n💬0🔄0❤️3👀1775",
+      "tags": [
+        "闲鱼",
+        "Grok订阅",
+        "防骗"
+      ],
+      "score": 30,
+      "summary": "提醒闲鱼上有 AI 订阅账号交易，需注意防骗。",
+      "fetched_at": "2026-08-17T12:54:51.141653+08:00"
+    },
+    {
+      "title": "搞的差不多了，还不错",
+      "link": "https://x.com/op7418/status/2089186594402287896",
+      "published": "2026-08-17T11:04:33+08:00",
+      "source": "歸藏(guizang.ai)(@op7418)",
+      "content": "搞的差不多了，还不错\n\n![Tweet Image](https://pbs.twimg.com/media/HP5IGWYbEAAhGQG.jpg)\n\n![歸藏(guizang.ai)](https://pbs.twimg.com/profile_images/1636981205504786434/xDl77JIw_normal.jpg)\n\n歸藏(guizang.ai)@op7418\n\n正在给 DeepSeek Harness 做一个界面和交互美化的插件。  \n  \n还有一个服务商的插件，这样整个产品体验会好一点，后续也会打包成一个客户端。  \n  \n这主要是把 Codepilot 里面沉淀的一些资产抽离出来，然后做到这个 DeepSeek Harness 的插件里，这样整个使用体验和视觉效果都会变好不少。  \n  \n看了一些现有的美化插件，基本上都是改改背景图、加一两个组件效果什么的，感觉对于长期使用和用户体验没什么多大的帮助。\n\n![Tweet Image](https://pbs.twimg.com/media/HP1VOjpbgAAPg0u.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/op7418/status/2088919845236859288)\n\n💬7🔄1❤️37👀10888📊10",
+      "tags": [
+        "DeepSeek Harness",
+        "插件",
+        "界面美化"
+      ],
+      "score": 50,
+      "summary": "歸藏正在为 DeepSeek Harness 制作界面美化插件。",
+      "fetched_at": "2026-08-17T12:54:51.141656+08:00"
     }
   ]
 }
