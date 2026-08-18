@@ -1460,6 +1460,227 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-19T05:32:06.464001+08:00"
+    },
+    {
+      "title": "Frontier Model Cost and Open-Weights Popularity is Driving Demand for Model Routing",
+      "link": "https://www.latent.space/p/glean-model-routing",
+      "published": "2026-08-19T05:41:10+08:00",
+      "source": "Latent Space",
+      "content": "[![](https://substackcdn.com/image/fetch/$s_!mpso!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ac64fa7-87ce-4106-816c-5811822047e1_1280x720.png)](https://substackcdn.com/image/fetch/$s_!mpso!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ac64fa7-87ce-4106-816c-5811822047e1_1280x720.png)\n\nWith the intense competition among frontier model companies, together with ever-increasing power of open-weight models like Kimi K3 and Qwen3.8-Max, **model routing** has become a key part of AI deployment. We’ve just seen [Stripe buy OpenRouter for over $7B](https://www.latent.space/p/ainews-stripe-buys-openrouter-for), but the trend is equally hot in enterprises.\n\n[Glean](https://www.glean.com/), co-founded and led by ex-Google Distinguished Engineer **Arvind Jain**, specializes in bringing AI to large organizations. It was last valued at $7.2B after [a $150M Series F fund raise](https://www.glean.com/blog/glean-series-f-announcement) last June. This year, it reached [$300 million in annual recurring revenue (ARR)](https://x.com/jainarvind/status/2060077511212445874) — a three-fold increase over 15 months.\n\nPart of Glean’s mission is to **select which model to use for each task** — or indeed if an LLM is even required.\n\n“A big goal of Glean is to avoid using LLMs for tasks where we don’t need them,” Jain told Latent Space. “Sometimes you’ll see queries in Glean where people are adding two numbers or multiplying two numbers. They could have used a calculator to do that.”\n\nBut what Glean is mostly trying to do is bring what Jain calls **“one really powerful personal co-worker”** to enterprise employees. And that means being a kind of meta-harness for leading LLMs.\n\n[![](https://substackcdn.com/image/fetch/$s_!g8hJ!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6a6e421c-9f76-49b0-85f0-ddb869644470_2048x1258.png)](https://substackcdn.com/image/fetch/$s_!g8hJ!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6a6e421c-9f76-49b0-85f0-ddb869644470_2048x1258.png)\n\nGlean announced its [third-generation Glean Assistant](https://www.glean.com/press/glean-introduces-third-generation-ai-assistant-new-enterprise-graph-to-enable-the-superintelligent-enterprise) last September; these days, agents are a big part of Glean’s system.\n\n**“You can think of Glean today as a superset of ChatGPT, Claude, Gemini, Grok,”** Jain said. “All these different AI products that we’ve been using day to day, Glean combines the power of all of them into one experience.”\n\nWith enterprises, bringing AI technology into an organization is just half the challenge. **The other half is bringing organizational knowledge into the AI systems.**\n\n“Ultimately our business is to deeply understand your data, knowledge, and information, but also how work happens inside your company,” Jain said.\n\n## How model routing is done in Glean\n\nSo what does model routing mean in practice? Basically, Glean offers three levels of model selection:\n\n1. Employees can explicitly choose a model.\n2. Administrators can restrict models or impose usage limits.\n3. Glean’s automatic mode selects a model dynamically for each task.\n\n[![](https://substackcdn.com/image/fetch/$s_!YvHV!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F4a8d455c-9060-4bb2-aca8-e414a49845e0_1802x1442.png)](https://substackcdn.com/image/fetch/$s_!YvHV!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F4a8d455c-9060-4bb2-aca8-e414a49845e0_1802x1442.png)\n\n[Configuring models](https://docs.glean.com/administration/configure-llms) for certain tasks.\n\nIt turns out **automatic mode is mostly chosen by Glean’s customers for economic reasons.**\n\n“Why are people talking about model routing? Why are they excited about it? It’s mostly because of cost,” Jain told us.\n\nAnother co-founder of Glean, engineering lead Tony Gentilcore, [recently claimed](https://x.com/tonygentilcore/status/2087662417920643462) that **Glean “is 4x more cost-effective” than Claude Code**, “averaging $0.45 per task versus $1.84 for Claude Cowork.” He put that down to Glean’s “harness and routing capabilities.”\n\nIndividually, many of us are getting great value out of our $20, $100 or $200 monthly subscription to an LLM provider. But for an enterprise, the per-user costs can easily spiral out of control.\n\n“AI models have been getting expensive,” Jain said. “Like, if you look at Opus or the latest models of GPT, the most advanced models. Not only are they very powerful, they can run much more complex tasks than the previous models. **But on a per token basis, they’re more expensive — sometimes double or quadruple the rates of the previous models. And then users actually use them to run much longer tasks.** So you’re spending, like, 10 times, 20 times, more, on a per user basis, than what you were doing last year. So the costs have gone up a lot.”\n\n## The human feedback loop\n\nAnother key factor in Glean’s rise is that **it gets to see how ordinary business users are using AI**. The product is potentially deployed to every employee as a “coworker,” and it’s also used to build and deploy agents across all departments and functions.\n\nAmong its customers, [Zillow reports](https://www.glean.com/resources/customer-stories/zillow) 80% adoption across 7,000 employees, while [at Booking.com](https://www.glean.com/resources/customer-stories/booking-com), “Glean became the first AI platform adopted company-wide.” That kind of penetration gives Glean an enviable view into how AI is being used in enterprises.\n\n**“So we are getting to observe what people are actually doing with AI on a very broad basis,”** said Jain. “We are getting to see when they’re on different types of tasks with AI, what models do they select first, and when they are not satisfied, when they actually upgrade to some other model [that] actually gives them the right results.”\n\nThis human feedback loop, at scale, helps improve the model routing system.\n\n## Here’s Waldo, gathering raw materials\n\nAnother part of Glean’s architecture is a model called Waldo, which Jain described as sitting on top of the large language models. Waldo was [introduced in April](https://x.com/glean/status/2049127230370881870) as **“Glean’s first agentic search model.”**\n\n[![](https://substackcdn.com/image/fetch/$s_!P-f4!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F946abf47-8b68-43a3-a916-96fe014bb968_1480x1194.png)](https://substackcdn.com/image/fetch/$s_!P-f4!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F946abf47-8b68-43a3-a916-96fe014bb968_1480x1194.png)\n\n[Glean claims that](https://www.glean.com/ai-agents/agent-harness) Waldo, its agentic search model, “reduces latency by 50% and tokens by 25%, reserving advanced models for work that needs them.”\n\nIn [a technical blog post](https://www.glean.com/blog/waldo-launch), Waldo was portrayed as a kind of filtering process for user queries: it “decides how to break down the question, which tools to use, what to read next, and when it has enough evidence to hand off to a frontier model for a high-quality answer.”\n\nThis means the **model routing is happening** ***after*** **Glean has determined what Jain calls the “raw materials” that are needed for the task.**\n\n“We’re able to assemble the raw materials needed to do the work without burning LLM tokens,” he added.\n\nA corollary of this is that a cheaper model with better context may outperform a frontier model loaded with irrelevant data.\n\n## The rapid rise of open-weight models\n\nJain confirmed there is **now significant interest from enterprises in open-weight models**, primarily due to cost concerns. But this has only happened over the past few months.\n\n“Last year, the usage [of open source LLMs] was minuscule and nobody was really seriously considering open source,” he said. Partly that was because of the “stigma” of many of these open source models being developed outside the US.\n\nBut suddenly, interest among enterprise customers has risen.\n\n[![](https://substackcdn.com/image/fetch/$s_!jAgg!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc6564710-f066-4005-847e-1b8b114881aa_1186x690.png)](https://substackcdn.com/image/fetch/$s_!jAgg!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc6564710-f066-4005-847e-1b8b114881aa_1186x690.png)\n\n[Jain’s tweet](https://x.com/jainarvind/status/2081806858592121063) on July 27, 2026, in support of open-weight models.\n\n“So in the last three months, because AI got so expensive, businesses have started to find it untenable to maintain these AI investments,” Jain said. **“Given that open source is an order of magnitude cheaper to do tasks, it has created a lot of interest.** Today, I can say that in most enterprises, they are considering open source models to be a key part of their AI strategy.”\n\nMore than that, organizations tend not to rely on just one or two providers anymore — and the rise of open-weight models is driving this trend.\n\n“Nobody is willing anymore to rely on only one model provider, or two, and **nobody thinks that they can survive without open source**,” Jain said.\n\n## Evals\n\nYou can’t have a serious conversation about AI in 2026 without discussing evals — assessing the quality of results from LLMs. I asked how Glean goes about doing evals and how that is fed back into the model routing system.\n\nJain said they have **“internal testing systems” where they compare real-world workloads, across different query classes, with alternative options**. So they let the model choose a route and in parallel they try to complete the same task with “some other models which are maybe a little bit less expensive and a little bit more expensive.”\n\n[![](https://substackcdn.com/image/fetch/$s_!X7RM!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb6639302-a4f7-4223-8fe7-fa3cf9af5bb5_1557x854.png)](https://substackcdn.com/image/fetch/$s_!X7RM!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb6639302-a4f7-4223-8fe7-fa3cf9af5bb5_1557x854.png)\n\nHow Glean [monitors quality](https://docs.glean.com/get-started/golive/model-choice).\n\nGlean then uses **“AI-based judges”** to determine “how spot-on the model router was.”\n\n“So there’s this continuous learning that gets updated with new real-world traffic, where basically what is happening is that **you let the model router do the work for the user, but behind the scenes you run the same task**,” Jain explained.\n\nHe added that this is done for only “a small fraction” of the real-world usage, but at Glean’s scale that’s more than enough to help train and improve the model router.\n\n## From enterprise search to end-to-end AI platform\n\nOne of the trends we’ll be monitoring going forward on Latent Space is how AI systems are being implemented within enterprises — and how some of these organizations are going full-on AI-native.\n\nGlean is an especially interesting company to monitor for these trends, since **it was one of the very first enterprise-facing AI companies.** It was founded in early 2019, initially to tackle enterprise search. As Jain put it, Glean was “the first player to work with transformers and language models for businesses.”\n\n[![](https://substackcdn.com/image/fetch/$s_!WcX9!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F513b1416-8057-4f35-bd5b-7f854a933b8a_1832x994.png)](https://substackcdn.com/image/fetch/$s_!WcX9!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F513b1416-8057-4f35-bd5b-7f854a933b8a_1832x994.png)\n\n[Glean’s AI Answers](https://docs.glean.com/user-guide/assistant/ai-answers) draws “directly from your organization’s documentation.”\n\n[In April 2023](https://www.latent.space/p/deedy-das), swyx interviewed **Deedy Das** of Glean. Das, who is now a partner at venture firm Menlo Ventures, was a founding engineer at Glean. But even at that point, in 2023 — about four years into Glean — the focus was still mostly on enterprise search.\n\nNow, in 2026, enterprises aren’t just using AI for search. **AI is becoming an integral part of every employee’s workflow.**\n\nThat makes Glean a much ‘sexier’ AI company, as Das himself said on [his return to the Latent Space podcast last November](https://www.latent.space/p/anthropic-glean-and-openrouter-how?utm_source=publication-search). “Broadly, one of the things that I love about Glean is it’s such a boring unsexy company that became sexy later,” he said.\n\nThis brings us full circle back to model routing. Arvind Jain ended our discussion by calling Glean **an “end-to-end AI platform” that gets “used very heavily” by its enterprise customers.** This, he added, allows Glean to “have that data that is required to do effective model routing.”",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!mpso!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ac64fa7-87ce-4106-816c-5811822047e1_1280x720.png",
+      "fetched_at": "2026-08-19T06:32:56.863254+08:00"
+    },
+    {
+      "title": "Mojo🔥 is now open source",
+      "link": "https://simonwillison.net/2026/Aug/18/mojo-is-now-open-source/",
+      "published": "2026-08-19T05:39:20+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Mojo🔥 is now open source](https://www.modular.com/blog/mojo-open-source)**\n\nMojo🔥 is now open source\n\nThe Mojo programming language has been promising an open source release [since May 2023](https://simonwillison.net/2023/May/4/mojo/). Last week they [shipped their 1.0](https://www.modular.com/blog/modular-26-5-mojo-1-0-is-here) and today they have followed through on that original promise, releasing the compiler and toolchain under an Apache 2 license.\n\nWhen Mojo first launched the stated goal was to produce a superset of Python, so existing Python code could be used to bootstrap their own ecosystem. That plan changed [around August 2025](https://forum.modular.com/t/mojo-vision-document-and-roadmap/2187):\n\n> Mojo may or may not evolve into a full superset of Python, and it’s okay if it doesn’t.\n>\n> We’re encouraged by how well AI-assisted coding tools already help migrate Python to Mojo today, and we’re confident that future tooling and ecosystem maturity will make this evolution even smoother.\n\nToday Mojo is its own language, optimized to make GPU programming as painless as possible using syntax inspired by Python, if not 100% compatible with existing code.\n\nVia [Lobste.rs](https://lobste.rs/s/01lxuf/mojo_is_now_open_source)\n\nTags: [open-source](https://simonwillison.net/tags/open-source), [python](https://simonwillison.net/tags/python), [mojo](https://simonwillison.net/tags/mojo)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863269+08:00"
+    },
+    {
+      "title": "From a single prompt to a fully animated parallax landing page. 🤯\n\nSee how Gemini 3.7 Flash, combin...",
+      "link": "https://x.com/googleaidevs/status/2089825267732849049",
+      "published": "2026-08-19T05:22:25+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "From a single prompt to a fully animated parallax landing page. 🤯  \n  \nSee how Gemini 3.7 Flash, combined with Nano Banana and Omni, builds interactive websites in one shot. Under the hood, 3.7 Flash calls the right tools to generate the copy, image references, and render parallax-ready Omni videos.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089823496868352000/vid/avc1/1920x1080/b1f4K880EVwYpgZV.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/googleaidevs/status/2089825267732849049/video/1)\n\n💬4🔄5❤️37👀2766📊11",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863275+08:00"
+    },
+    {
+      "title": "Build your own:\nhttps://t.co/K8Vt6QT1xZ",
+      "link": "https://x.com/googleaidevs/status/2089825268940873960",
+      "published": "2026-08-19T05:22:25+08:00",
+      "source": "Google AI Developers(@googleaidevs)",
+      "content": "Build your own:  \n[github.com/nroadley/Creat…](https://github.com/nroadley/Creating-Oneshot-Hero-Landing-Pages)\n\n💬0🔄1❤️1👀727📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863279+08:00"
+    },
+    {
+      "title": "I’ve been using https://t.co/OL0LzGtvAw as my daily driver and it’s a one-way street.\n\nIt’s 10-20x s...",
+      "link": "https://x.com/rauchg/status/2089831055373316274",
+      "published": "2026-08-19T05:45:25+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "I’ve been using [fx.sh](http://fx.sh) as my daily driver and it’s a one-way street.  \n  \nIt’s 10-20x smaller than the major coding CLIs. It starts up instantaneously. It feels more like using 𝚣𝚜𝚑 than an IDE in your terminal. It’s embeddable anywhere, even your browser via WebAssembly.  \n  \nAnd of course it’s open source and model-agnostic. It’s experimental, but give it a shot and let us know how it goes!\n\n![Vercel Developers](https://pbs.twimg.com/profile_images/1978602411490205696/oLOuP7a2_normal.png)\n\nVercel Developers@vercel\\_dev\n\nIntroducing fx, a tiny, open, native coding agent from Vercel Labs.  \n  \nOriginally an internal tool, fx is a harness and CLI written in Zig, optimized for research and embedding in larger systems. Today, we're open sourcing it.  \n  \nfx is built on three principles:  \n  \n1. Fast. A single native binary, no runtime to install. It cold starts in 10µs and does no unnecessary work or I/O before accepting input. fx is the answer to \"how fast can a coding agent be?\"  \n  \n2. Light. The 6.3MiB binary uses single-digit megabytes of memory at baseline, made for instant installation and embedding in resource-constrained environments and agent sandboxes.  \n  \n3. Open. Apache-2.0, model and provider agnostic, suitable for local and cloud inference. Its small core extends through skills, plugins, and MCP.  \n  \nMinimalism is an obsession throughout the entire harness: system prompt, tools, features, binary. The goal was to keep context usage and time to first token low, and make fx optimal for model benchmarking, sandboxing, evals, and gyms.  \n  \nYou can use fx directly or embed it as infrastructure. The CLI feels more like a Unix shell than an IDE in the terminal: it preserves scroll history, produces minimal output, and uses complex TUI rendering very, very sparingly. Programmatically, 𝚏𝚡 𝚊𝚜𝚔 --𝚓𝚜𝚘𝚗 gives structured output, 𝚏𝚡 𝚊𝚌𝚙 connects to editors and other clients, and WebAssembly can even run the whole thing inside the [fx.sh/try](http://fx.sh/try).co/wf2Trg47sC).  \n  \nPrivacy is a design constraint: no product telemetry, sessions and usage stay local, and no source code or prompts are shared with any endpoint other than inference. With local inference and auto-updates off, fx is fully hermetic.  \n  \nfx is experimental. Use at your own risk and expect frequent changes. Chat [fx.sh/xchat](http://fx.sh/xchat).co/A2AB2YythC) or[fx.sh/issues](http://fx.sh/issues).co/GEjTHSoa1J).  \n  \n𝚌𝚞𝚛𝚕 -𝚏𝚜𝚂𝙻 �[fx.sh](https://fx.sh/)� | 𝚋𝚊𝚜𝚑  \n  \n<https://t.co/g2uEuXhGnt>\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089828069897093121/vid/avc1/1280x720/WFSiIOJxApGiFyOs.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/vercel_dev/status/2089828083415355806/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/vercel_dev/status/2089828083415355806)\n\n💬1🔄0❤️12👀954📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863282+08:00"
+    },
+    {
+      "title": "I love working with Sydney and team and you will too!\n\nCome join us",
+      "link": "https://x.com/hwchase17/status/2089835842269507630",
+      "published": "2026-08-19T06:04:26+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "I love working with Sydney and team and you will too!  \n  \nCome join us\n\n![Sydney Runkle](https://pbs.twimg.com/profile_images/1955622250629021696/WOrOq2Mw_normal.jpg)\n\nSydney Runkle@sydneyrunkle\n\nwe're hiring open source devs [@LangChain](https://x.com/LangChain)  \n  \nlooking for people who are building at the frontier of agents and are excited to quickly develop ownership  \n  \napply: [langchain.com/careers?ashby\\_…](https://www.langchain.com/careers?ashby_jid=74e5f9f4-e44a-4594-ba26-abdf71bf287d#explore-jobs)\n\n[🔗 View Quoted Tweet](https://x.com/sydneyrunkle/status/2089826723189956853)\n\n💬1🔄0❤️3👀437📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863285+08:00"
+    },
+    {
+      "title": "Eval engineering livestream with Prime Intellect and Baseten ⬇️",
+      "link": "https://x.com/LangChain/status/2089822720582386108",
+      "published": "2026-08-19T05:12:18+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Eval engineering livestream with Prime Intellect and Baseten ⬇️\n\n![Viv](https://pbs.twimg.com/profile_images/1805079750873923584/7sTh63Eo_normal.jpg)\n\nViv@Vtrivedy10\n\ncome hang with a fun squad on how to turn your valuable data into environments to continuously improve models  \n  \ncovering fun stuff like:  \n- using real world trace data to create realistic models of the world  \n- how to think about environments & evals as training data for agents  \n- what does training actually look like? when should you do it  \n- how much do humans need to be in the loop at different parts of this cycle and why\n\n[🔗 View Quoted Tweet](https://x.com/Vtrivedy10/status/2089747540891602992)\n\n💬0🔄2❤️3👀1618📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863288+08:00"
+    },
+    {
+      "title": "An agent that fixes your agent. It’s genius.",
+      "link": "https://x.com/LangChain/status/2089819864542146775",
+      "published": "2026-08-19T05:00:57+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "An agent that fixes your agent. It’s genius.\n\n![Tweet Image](https://pbs.twimg.com/media/HQCIFSAXEAAg12l.jpg)\n\n💬0🔄0❤️1👀1351",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863291+08:00"
+    },
+    {
+      "title": "Model routing is having a moment thanks to the $7B Stripe acquisition of OpenRouter. But it's also i...",
+      "link": "https://x.com/latentspacepod/status/2089834053637661095",
+      "published": "2026-08-19T05:57:20+08:00",
+      "source": "Latent.Space(@latentspacepod)",
+      "content": "Model routing is having a moment thanks to the $7B Stripe acquisition of OpenRouter. But it's also increasingly important in enterprises. We talk to [@glean](https://x.com/glean) CEO [@jainarvind](https://x.com/jainarvind) about why model routing helps control AI costs for organizations. [latent.space/p/glean-model-…](https://www.latent.space/p/glean-model-routing)\n\n💬0🔄0❤️0👀192",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863294+08:00"
+    },
+    {
+      "title": "If you don't want to listen to me, listen to my AI influencer",
+      "link": "https://x.com/lennysan/status/2089833287770660907",
+      "published": "2026-08-19T05:54:17+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "If you don't want to listen to me, listen to my AI influencer\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089832989572333568/vid/avc1/720x1280/zQycJ3ujQ4M3XyJF.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2089833287770660907/video/1)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\n💥 Announcing Lenny’s Jobs: The best place in the world to find, vet, and land your dream job  \n  \nI’ve spent thousands of hours on my newsletter and podcast sharing advice on how to get better at your work. But all that advice doesn’t mean much if you don’t actually have a job—or one you’re excited about.  \n  \nOver the past six months, I’ve been thinking long and hard about what more I can do to help people who are struggling to find a job they love.  \n  \nToday I’m excited to announce the launch of[LennysJobs.com](http://LennysJobs.com)d—the best place in the world to find, vet, and land your dream job.  \n  \nWhat makes Lenny’s Jobs unique and awesome:  \n  \n1. A laser focus on four builder roles at tech companies: product management, engineering, design, and growth/marketing.   \n  \nWe focus exclusively on these roles because they’re what my readers are looking for—and because these roles are starting to meld together. We aggregate open roles from top startups and big tech companies, and unlike any other job directory, we vet every company we include and filter out ghost roles and generic staffing-agency posts.   \n  \nThis is the highest-quality directory of open tech roles you’ll find anywhere.\n\n[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HQA_MboawAAJKpz.jpg)](https://video.twimg.com/tweet_video/HQA_MboawAAJKpz.mp4)\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2089743348366233992)\n\n💬4🔄0❤️7👀2206📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863297+08:00"
+    },
+    {
+      "title": "GLM-5.3 from @Zai_org is live on OpenRouter!\n\nThe same base model as GLM-5.2, with gains entirely fr...",
+      "link": "https://x.com/OpenRouter/status/2089830854743015850",
+      "published": "2026-08-19T05:44:37+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "GLM-5.3 from [@Zai\\_org](https://x.com/Zai_org) is live on OpenRouter!  \n  \nThe same base model as GLM-5.2, with gains entirely from post-training: Terminal-Bench 3.0 jumps from 4.6 to 28.3, and DeepSWE v1.1 from 46.2 to 66.9.  \n  \nUse it now: [openrouter.ai/z-ai/glm-5.3](https://openrouter.ai/z-ai/glm-5.3)\n\n![Tweet Image](https://pbs.twimg.com/media/HQCSFYVbkAA4bCi.jpg)\n\n💬1🔄3❤️55👀2410📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863300+08:00"
+    },
+    {
+      "title": "DeepSeek V4 Pro, hosted in the U.S., is now available in Perplexity Computer.\n\nWe evaluated it again...",
+      "link": "https://x.com/perplexity_ai/status/2089819655712210956",
+      "published": "2026-08-19T05:00:07+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "DeepSeek V4 Pro, hosted in the U.S., is now available in Perplexity Computer.  \n  \nWe evaluated it against other models on WANDR. It scored 0.359 at $0.75 per task, 62% cheaper than the next model on the cost-performance frontier.\n\n![Tweet Image](https://pbs.twimg.com/media/HQCH5rPbkAAU52d.jpg)\n\n💬14🔄9❤️69👀8660📊21",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863303+08:00"
+    },
+    {
+      "title": "its so fun to use @bot :)",
+      "link": "https://x.com/sualehasif996/status/2089826207437320566",
+      "published": "2026-08-19T05:26:09+08:00",
+      "source": "Sualeh Asif(@sualehasif996)",
+      "content": "its so fun to use [@bot](https://x.com/bot) :)\n\n![Austin Rief ☕️](https://pbs.twimg.com/profile_images/1259285101705396225/M3ZKDvYO_normal.jpg)\n\nAustin Rief ☕️@austin\\_rief\n\nJust checked out [@bot](https://x.com/bot).   \n  \nThe coolest AI product I've seen in a while.\n\n[🔗 View Quoted Tweet](https://x.com/austin_rief/status/2089777127201608150)\n\n💬3🔄0❤️20👀614📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863306+08:00"
+    },
+    {
+      "title": "Try it out today:\n\nhttps://t.co/k1BsABvq0F",
+      "link": "https://x.com/devindesktop/status/2089830358527205464",
+      "published": "2026-08-19T05:42:39+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "Try it out today:  \n  \n[devin.ai/download](https://devin.ai/download)\n\n💬0🔄1❤️6👀578📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863309+08:00"
+    },
+    {
+      "title": "Read more about GPT-5.6 Sol's performance on FrontierCode 1.1:\n\nhttps://t.co/TB8A9CTmug",
+      "link": "https://x.com/devindesktop/status/2089830357063385166",
+      "published": "2026-08-19T05:42:38+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "Read more about GPT-5.6 Sol's performance on FrontierCode 1.1:  \n  \n[devin.ai/blog/gpt-5-6-s…](https://devin.ai/blog/gpt-5-6-sol-promo)\n\n💬1🔄1❤️7👀699📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863312+08:00"
+    },
+    {
+      "title": "GPT-5.6 Sol is now 70% off in Devin Desktop and Devin CLI, through October 3.\n\nOn FrontierCode 1.1, ...",
+      "link": "https://x.com/devindesktop/status/2089830350964883459",
+      "published": "2026-08-19T05:42:37+08:00",
+      "source": "Windsurf(@windsurf_ai)",
+      "content": "GPT-5.6 Sol is now 70% off in Devin Desktop and Devin CLI, through October 3.  \n  \nOn FrontierCode 1.1, Sol achieves top-tier results. With this promo, it's one of the most cost-effective frontier models you can run in Devin.\n\n![Tweet Image](https://pbs.twimg.com/media/HQCReToWUAAknh8.png)\n\n💬13🔄21❤️109👀5647📊40",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863315+08:00"
+    },
+    {
+      "title": "Tune in: https://t.co/AyIrxhVR1r\n\nTranscript: https://t.co/KtHJZGPAYb",
+      "link": "https://x.com/ycombinator/status/2089828144199213404",
+      "published": "2026-08-19T05:33:51+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Tune in: [youtu.be/zLUZclThLhU](https://youtu.be/zLUZclThLhU)  \n  \nTranscript: [ycrootaccess.com/p/michael-krat…](https://www.ycrootaccess.com/p/michael-kratsios-inside-the-white)\n\n![Tweet Image](https://pbs.twimg.com/media/HQCPdx5bIAAcsJS.jpg)\n\n💬0🔄0❤️0👀202",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863318+08:00"
+    },
+    {
+      "title": "Michael Kratsios (@mkratsios47) has seen the AI boom from both sides: as COO of Scale AI and inside ...",
+      "link": "https://x.com/ycombinator/status/2089828140571091363",
+      "published": "2026-08-19T05:33:50+08:00",
+      "source": "Y Combinator(@ycombinator)",
+      "content": "Michael Kratsios ([@mkratsios47](https://x.com/mkratsios47)) has seen the AI boom from both sides: as COO of Scale AI and inside the White House. Today, as the director of the White House Office of Science and Technology Policy, he helps shape America’s national strategy on AI, science, and emerging technology.  \n  \nAt Startup School 2026, he sat down with YC's [@lutherlowe](https://x.com/lutherlowe), to talk about how Washington makes technology policy, why the White House supports open source AI, and why little tech needs a seat at the table.  \n  \n02:38 — From Tech to the White House  \n04:39 — How Technology Policy Actually Gets Made  \n05:51 — The White House on Open Source AI  \n08:28 — How Washington Sees AI Differently  \n09:53 — Regulating a Technology That Changes Every Six Months  \n11:37 — Which AI Risks Are Overblown?  \n13:03 — Giving Little Tech a Seat at the Table  \n17:31 — Regulation Without Creating Incumbent Moats  \n18:01 — Born Free vs. Born in Captivity Technologies  \n20:46 — What Working in the White House Is Actually Like  \n25:56 — A New Golden Age of American Science  \n31:32 — Quantum, Congress, IP, and What Comes Next  \n37:54 — Why Technologists Should Consider Public Service\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089813880826630146/vid/avc1/3840x2160/BehI8-R2IkkCzQC1.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ycombinator/status/2089828140571091363/video/1)\n\n💬2🔄1❤️1👀1816📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863320+08:00"
+    },
+    {
+      "title": "In Agent Arena, we measure models on millions of real-world, long-horizon agentic tasks from a globa...",
+      "link": "https://x.com/arena/status/2089826848276689288",
+      "published": "2026-08-19T05:28:42+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "In Agent Arena, we measure models on millions of real-world, long-horizon agentic tasks from a global community of users. Models can access web search, filesystem, and terminal tools to complete complex workflows. The leaderboard measures model performance on outcomes relative to the average model using a causal tracing methodology.  \n  \nSee the full Agent Arena leaderboard: [arena.ai/leaderboard/ag…](https://arena.ai/leaderboard/agent)\n\n💬0🔄1❤️1👀961📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863323+08:00"
+    },
+    {
+      "title": "Inkling-Small by @thinkymachines has hit the Agent Arena. Among open models, it is #12 with a net-im...",
+      "link": "https://x.com/arena/status/2089826844854112371",
+      "published": "2026-08-19T05:28:41+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Inkling-Small by [@thinkymachines](https://x.com/thinkymachines) has hit the Agent Arena. Among open models, it is #12 with a net-improvement score of -7.0%. It delivers similar results with Inkling at less than half the price per task ($0.20 vs. $0.09). Inkling and Inkling-Small make [@thinkymachines](https://x.com/thinkymachines) the top US lab for open, agentic AI today.  \n  \nBy signal, Inkling-Small is strong in Bash Recovery (how it recovers from CLI errors), sitting at #1 among open models 11.0% net-improvement! This is above Kimi K3 (Max) with +8.2% (#2) and Inkling at +7.5% (#3).  \n  \nThis release is on par with Inkling at #11 among open with -6.8% net-improvement. When looking at Agent Arena’s new categories among open models, Inkling-Small landed right behind Inkling in all three at: #12 in Work, and #13 in both Code and Chat.  \n  \nCongrats again to [@thinkymachines](https://x.com/thinkymachines) on this contribution to the open source ecosystem!  \n  \nAdditional recent model releases will be landing on the Agent Arena leaderboard very soon. Stay tuned!\n\n![Tweet Image](https://pbs.twimg.com/media/HQCNHtbasAAJ_zw.jpg)![Tweet Image](https://pbs.twimg.com/media/HQCNHtcawAA4sAY.jpg)\n\n![Thinking Machines](https://pbs.twimg.com/profile_images/2075275500420001792/Q9J4M1DL_normal.jpg)\n\nThinking Machines@thinkymachines\n\nToday, we are releasing Inkling-Small.  \n  \nInkling-Small achieves comparable performance to Inkling at a quarter of its size. It features 276B total parameters, 12B active. We are making the full weights available.  \n  \n[thinkingmachines.ai/news/inkling-s…](https://thinkingmachines.ai/news/inkling-small/)  \n  \nFine-tune it on Tinker today, or chat with it in text, image, and audio on Tinker Playground.\n\n[🔗 View Quoted Tweet](https://x.com/thinkymachines/status/2082885869426631032)\n\n💬6🔄4❤️46👀6699📊9",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T06:32:56.863326+08:00"
     }
   ]
 }
