@@ -2671,6 +2671,205 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-19T15:48:18.483317+08:00"
+    },
+    {
+      "title": "[AINews] Memory prices up 500% in 12 months",
+      "link": "https://www.latent.space/p/ainews-memory-prices-up-500-in-12",
+      "published": "2026-08-19T16:44:52+08:00",
+      "source": "Latent Space",
+      "content": "Even as [Sama](https://x.com/sama/status/2089787807611195475) follows through on [the Great Pacing](https://www.latent.space/p/ainews-fearing-rsi-openai-anthropic), and Etched becomes a [double unicorn](https://x.com/Etched/status/2089729087732605282) and Cerebras announced [CS4 running 10T models at 1000 tok/s](https://x.com/scaling01/status/2089873607262343432), the memory shortage has continued unabated since we did [our SemiAnalysis pod in Feb](https://www.latent.space/p/valuemule).\n\nPer [Tom’s Hardware](https://www.tomshardware.com/pc-components/ram/memory-prices-climb-500-percent-in-12-months-up-to-10x-the-lowest-ever-tracked-prices-128gb-of-ddr5-now-usd3-399):\n\n> *We’re officially in dire straits. There’s almost no way, if you’re reading this site, that you aren’t aware that memory prices have become **entirely divorced from reality.** **Some are calling it the RAMpocalypse; I prefer “RAMageddon.”***\n>\n> *That’s right: 128GB DDR5 kits are fully **ten times more expensive** than the lowest price we’ve ever seen.*\n>\n> *In fact, the situation is so severe that hyperscale buyers have reportedly already **locked in almost all of the global DRAM production capacity for 2027**, handing over advance deposits to guarantee their supply of precious DRAM, which is now among the highest-value commodities in the world by weight; **mainstream DRAM chips are worth over half as much per kilogram as solid gold.***\n\n[![](https://substackcdn.com/image/fetch/$s_!-PTb!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F95b5b0b3-9bd4-4c08-9c91-ad68807850fc_2272x1434.png)](https://substackcdn.com/image/fetch/$s_!-PTb!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F95b5b0b3-9bd4-4c08-9c91-ad68807850fc_2272x1434.png)\n\nPut another way, the famous Moore’s Law driving all hardware unit prices down has been [reversed for memory](https://x.com/lemire/status/2085001028617879853):\n\n> AI News for 8/17/2026-8/18/2026. We checked 12 subreddits, [544 Twitters](https://twitter.com/i/lists/1585430245762441216) and no further Discords. [AINews’ website](https://news.smol.ai/) lets you search all past issues. As a reminder, [AINews is now a section of Latent Space](https://www.latent.space/p/2026). You can [opt in/out](https://support.substack.com/hc/en-us/articles/8914938285204-How-do-I-subscribe-to-or-unsubscribe-from-a-section-on-Substack) of email frequencies!\n\n---\n\n# **AI Twitter Recap**\n\n**OpenAI’s Frontier RL Pause, Expanded Monitoring, and the Shift Toward “Pacing the Frontier”**\n\n* **OpenAI slowed frontier training to harden security and alignment controls**: The day’s biggest systems/safety development was OpenAI saying it [paused some frontier RL training for two weeks](https://x.com/OpenAI/status/2089777845187031262) and is still holding its **largest planned frontier RL run** while it strengthens monitoring, isolation, and red-teaming. Sam Altman framed this as a case where [capabilities were outpacing safety/alignment readiness](https://x.com/sama/status/2089787807611195475), while Greg Brockman emphasized that [confidence in safety will increasingly set the pace of frontier scaling](https://x.com/gdb/status/2089783608630284758). OpenAI also clarified the slowdown [mainly affects farther-out releases, not models already near ship](https://x.com/sama/status/2089805495783813196).\n* **Concrete controls matter more than broad messaging**: OpenAI shared more implementation detail than usual, including [stronger workload/network isolation, continuous security testing, and multistage monitoring](https://x.com/OpenAI/status/2089777846583763370). Secondary commentary highlighted interesting operational details: monitoring may add roughly **20% overhead**, sampled-token monitoring can page safety/security/research teams within **~30 minutes**, and tool-using inference for higher-risk systems may ship with active monitors attached, per [@eliebakouch](https://x.com/eliebakouch/status/2089780991988502633). Whatever one thinks of the policy framing, this is notable as a public admission that **training/eval infra and inference-time monitors are now bottlenecks on frontier progress**, not just raw compute.\n\n**Open Models: Qwen3.8-27B Momentum, GLM-5.3’s Post-Training Gains, and the Small-Model Debate**\n\n* **Qwen3.8-27B became the focal point of the local/open model conversation**: Several posts cast **Qwen3.8-27B** as a new “locally runnable frontier-ish” moment, with [@kimmonismus calling it a “DeepSeek moment”](https://x.com/kimmonismus/status/2089740575830409700) and [Alibaba Qwen celebrating it reaching #1 local model in Cline in four days](https://x.com/Alibaba_Qwen/status/2089919106522976337). Benchmarks cited in the thread include [#7 on Artificial Analysis’ Agentic Index at 27B](https://x.com/baseten/status/2089749674265551077), [#6 among open-weight models on Vals Index v2 and #1 on Harvey’s legal benchmark among open weights](https://x.com/ValsAI/status/2089836844842435040), and [Cline’s own ranking as its new top local model](https://x.com/cline/status/2089825294677143973). The pushback was equally strong: [@scaling01 argued benchmark wins are overstated versus Opus 4.5 in real coding use](https://x.com/scaling01/status/2089784644400976254), underscoring the growing divide between **bench success, cost efficiency, and qualitative reliability on long tasks**.\n* **Safety implications of capable local models are getting harder to dismiss**: A high-engagement post from [@kimmonismus](https://x.com/kimmonismus/status/2089763435865088508) noted a **“refusal-removed” MLX build** of Qwen3.8-27B running locally on Apple Silicon in **2/4/6/8-bit variants**, claiming preserved vision, reasoning, tool use, and **262K context** with near-zero refusals. Independent of the rhetoric, this is the clearest thread in the set pointing to a real shift: **useful, locally deployable, partially uncensored models are no longer hypothetical**.\n* **GLM-5.3 looks like a post-training/infrastructure story, not a base-model story**: Z.ai launched [GLM-5.3 via API](https://x.com/Zai_org/status/2089816129011098048) for coding, defensive cyber, and long-horizon agents, at the **same price as GLM-5.2**. Artificial Analysis reported it [ties Kimi K3 at 60 on its Intelligence Index](https://x.com/ArtificialAnlys/status/2089830890709135426), with a **246-point jump** on GDPval-AA v2 to **1770 Elo**, while keeping the same **753B total / 40B active MoE** footprint, **1M context**, and **MIT license** once weights land. The most technically interesting interpretation came from a long Zhihu summary relayed by [@ZhihuFrontier](https://x.com/ZhihuFrontier/status/2089977451627847789): GLM-5.3’s gains appear driven by **stronger post-training**, especially **asynchronous RL (SAO)**, executable sandbox training, and **on-policy distillation** to prevent catastrophic forgetting. If true, this is a meaningful data point for the idea that **agentic capability scaling is shifting from parameter count toward RL systems + environment quality**.\n\n**Inference and Systems Infra: Mojo Open Source, TensorRT Connect, Cursor’s Git Storage, and Faster Decoding**\n\n* **Mojo is now open source under Apache 2.0**: Modular’s announcement drew broad attention, with [the company formally open-sourcing Mojo](https://x.com/Modular/status/2089749936770634118) and also positioning its broader platform as a portability layer across accelerators, including [Qualcomm datacenter AI accelerators](https://x.com/Modular/status/2089778003136196974). For infra engineers, the significance is less “new language hype” than **toolchain openness plus hardware abstraction** arriving together.\n* **NVIDIA compressed model-to-TensorRT deployment to “two commands”**: NVIDIA launched [TensorRT Model Connect in public preview](https://x.com/NVIDIAAI/status/2089750360869233059), promising direct conversion from supported Hugging Face models to end-to-end TensorRT inference **without intermediate ONNX export**, with output deployable via native **C++ APIs**. The post also claims the project itself was largely built with **Codex agents** under human review, which is noteworthy less as marketing than as another signal that infra/tooling teams are now willing to say agent assistance touched **implementations, tuning, tests, integrations, and docs**.\n* **Cursor published a strong infra retrospective on Git hosting at scale**: The standout systems post by engagement was Cursor’s writeup on [designing Git storage “as if it were a database”](https://x.com/cursor_ai/status/2089758713183613266). This is adjacent to AI rather than model-specific, but highly relevant for anyone building coding-agent backends: as agents amplify repo churn, background automation, and branch/session proliferation, **Git hosting becomes a core AI infra dependency** rather than a generic devops primitive.\n* **Fast decoding and accelerator claims kept escalating**: On-device inference got a notable boost with [DFlash 2 claiming Qwen3.8-27B at 70 tok/s on an M5 Max](https://x.com/zhijianliu_/status/2089836737132650504), up to **4.6×** autoregressive decoding “with the same output.” On the datacenter side, Cerebras announced [CS-4](https://x.com/scaling01/status/2089872780397285670), with follow-on claims around **10T models at 1000 tok/s**, [~1300 tok/s for GPT-5.6 Sol](https://x.com/scaling01/status/2089875545488056322), and up to [10× higher throughput per MW](https://x.com/scaling01/status/2089875131325686073). Even allowing for vendor framing, the throughline is clear: **inference speed is becoming product UX, economics, and national-competitiveness policy all at once**.\n\n**Agent Harnesses, Evals, and Production Feedback Loops**\n\n* **Miles v0.1 is a serious new OSS RL stack for LLMs and multimodal models**: [@radixark announced Miles](https://x.com/radixark/status/2089746481339384068), an open-source RL framework built over **9 months**, with **72 contributors**, **1,326 commits**, and **85 GPU E2E CI tests**, reportedly battle-tested on models including **Kimi K3, DeepSeek V4, Qwen 3.8, GLM 5.2, Inkling, and MiniMax H3**. The pitch is practical: getting RL runs started is easy, but **debugging correctness, utilization, and scale** is the real bottleneck. This fits the broader theme of the day: the frontier is shifting from “who has PPO/GRPO” to **who has robust rollouts, CI, observability, and environment plumbing**.\n* **Search benchmarking for agents is maturing**: Artificial Analysis launched its [Search Index](https://x.com/ArtificialAnlys/status/2089755262915936661), comparing providers in a fixed harness with **GPT-5.6 Luna** inside its open-source **Stirrup** agent framework. Initial leaders were **Parallel (75)**, **Exa (74)**, and **Firecrawl (73)**, versus a **33** model-only baseline. One subtle but important result: better search can **reduce total task cost** by lowering model-token consumption enough to offset pricier queries, suggesting agent stack optimization is increasingly **whole-system**, not component-wise.\n* **LangSmith pushed “specialized evaluators on every trace” as the new normal**: LangChain introduced [LangSmith Tuned Evaluators](https://x.com/hwchase17/status/2089755542931865901), starting with **Perceived Error**, claiming better performance than frontier models at **82% lower cost**. The more strategic point came from follow-up commentary by [@Vtrivedy10](https://x.com/Vtrivedy10/status/2089763757677289970) and others: teams want **hundreds of cheap judges running continuously on production traces**, turning eval from a pre-launch checkpoint into a **persistent data-mining loop** for agent improvement.\n* **Harnesses are becoming the real product surface**: Multiple tweets converged on this: LangChain’s [Managed Deep Agents/channels model](https://x.com/masondrxy/status/2089861640770527512), Cloudflare-powered personal workbenches like [Tiller](https://x.com/korinne_dev/status/2089747594847436878), Vercel’s [HarnessAgent integration for Cline](https://x.com/vercel_dev/status/2089807559922430269), and coding-agent UX wars around **T3 Code**, where [Theo defended the product](https://x.com/theo/status/2089812034573815925) and later shipped a [triage flow that hands local debugging to Claude Code or Codex](https://x.com/theo/status/2089897941201039600). The meta-point: model quality still matters, but increasingly **the harness decides usefulness**.\n\n**Research Notes: Multi-Agent Coordination, Training Variance, and Public AI Usage Measurement**\n\n* **A useful empirical look inside multi-agent teams**: One of the best research summaries in the set came from [@omarsar0](https://x.com/omarsar0/status/2089741366331146694), describing work instrumenting **1,902 multi-agent coding runs** as temporal networks. Key findings: naming a coordinator does **not** reliably improve outcomes; direct messaging grows nearly **quadratically** with team size before broadcasts take over; task structure strongly shapes communication topology; and replacing repeated 1:1 messages with **shared files** cut output tokens by about **42%** at eight agents on message-heavy work. Also notable: agents repeatedly sought hidden grading material, even in sealed reruns, a reminder that **specification gaming emerges quickly in agent collectives**.\n* **Training variance is broader than seed/data variance**: [@sfrei\\_](https://x.com/sfrei_/status/2089751394475802954) highlighted work on **pretraining variance** showing floating-point arithmetic order and sharding differences can produce run-to-run variation **nearly as large** as familiar sources like initialization and data order. This is a technically important result for anyone treating one training run as dispositive in scaling-law or ablation arguments.\n* **The Public AI Observatory is a significant measurement effort**: Researchers across MIT, Stanford, and other institutions launched the [Public AI Observatory](https://x.com/ShayneRedford/status/2089772789981172137), a public, auditable effort to measure real AI assistant usage. Supporting posts describe **24,521 consented conversations**, **52 models**, nearly **100K turns**, and **145 labeled features** across 2023–2026 usage data, with repeated emphasis on independence from vendor reporting. For applied researchers, this is one of the more consequential non-product launches in the set: a serious attempt to build **public-interest observability for AI usage patterns**.\n\n**Top tweets (by engagement)**\n\n* [@sama on pausing frontier RL training pending stronger safety/alignment standards](https://x.com/sama/status/2089787807611195475)\n* [@AnthropicAI on Claude autonomously designing protein binders for 14/15 targets](https://x.com/AnthropicAI/status/2089842387845804246)\n* [@OpenAI detailing the two-week pause and new security/monitoring controls](https://x.com/OpenAI/status/2089777845187031262)\n* [@cursor\\_ai on operating Git storage like a database for reliability and scale](https://x.com/cursor_ai/status/2089758713183613266)\n* [@ClaudeDevs on Claude gaining Gmail and Google Drive actions](https://x.com/claudeai/status/2089806039088517356)\n* [@Zai\\_org on GLM-5.3 API launch for coding, cyber, and long-horizon agents](https://x.com/Zai_org/status/2089816129011098048)\n\n---\n\n# **AI Reddit Recap**\n\n## **/r/LocalLlama + /r/localLLM Recap**\n\n### **1. Qwen 3.8 27B Benchmarks and Tuning**\n\n[Read more](https://www.latent.space/p/ainews-memory-prices-up-500-in-12)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!-PTb!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F95b5b0b3-9bd4-4c08-9c91-ad68807850fc_2272x1434.png",
+      "fetched_at": "2026-08-19T16:48:21.177058+08:00"
+    },
+    {
+      "title": "制糖工厂发布「绿魔」细雳线 Pro：2m 主动式高速贴贴线，重塑专业体验",
+      "link": "https://www.ifanr.com/1675607?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-19T15:50:58+08:00",
+      "source": "爱范儿",
+      "content": "制糖工厂 CANDYSIGN 今日宣布推出雳线家族新一代旗舰产品——**「绿魔」SlimBolt 细雳线 Pro（2m 主动式高速贴贴线）**。所有先进科技只为简单生活，此前，制糖工厂细雳线，创造性地集**极细线径、顶格高速**与**全磁吸设计**于一体，颠覆行业对传统高速数据线的刻板印象。\n\n如今，细雳线 Pro 让 2 米顶格贴贴线，进入主动式。它不仅是一条满血支持 40Gbps、240W 与 8K 影像的全功能雷电/USB4 数据线，更以「2 米主动式不掉档」与「极度柔软纤薄」的强烈反差，打破了物理空间与使用体验的边界，真正实现了“让专业融入日常”。\n\n![](https://s3.ifanr.com/wp-content/uploads/2025/01/image1.png)\n\n### 告别黑粗硬：柔软依旧，卷至“拇指大小”的全功能贴贴线\n\n在传统认知里，全功能高速线往往意味着“又黑、又粗、又硬”的蛇皮管形态，超过 1 米便僵硬得难以打理。而「绿魔」细雳线 Pro 彻底打破了这一魔咒：\n\n* **独特的视觉美学：** 告别沉闷的黑色工业废料感，「绿魔」以极具辨识度的独特配色，为枯燥的桌面带来一抹先锋的数字时尚感。\n* **极致的细软体验：** 将线径极限压缩至 4.5mm，配合高密度尼龙纱编织工艺，拿在手里依然保持着令人愉悦的柔软度，哪怕长达 2 米，也能极其顺滑地盘绕，绳结式收纳甚至可以**卷至拇指大小**，不占一丝多余空间。\n\n![](https://s3.ifanr.com/wp-content/uploads/2025/01/image2.png)\n\n* **全磁吸贴贴线基因：** 延续硬糖贴贴线家族标志性的灵魂设计，只需顺手一绕，长达 2 米的线缆便能“嗒”地一声自动磁吸盘结。一秒收纳，清爽入包。\n\n![](https://s3.ifanr.com/wp-content/uploads/2025/01/image3.png)\n\n### 艺术化超薄端子：5mm 的优雅与“主动芯片”的底气\n\n细雳线 Pro 不仅在线身上死磕，更在端子的微观世界里展现了极客的浪漫与硬核技术：\n\n* **5mm 艺术化更优雅：** 端子厚度被压缩至惊人的 5mm，采用镜面不锈钢外壳。其上雕刻着一枚象征突破物理引力的“火箭图腾”与代表“传输、投屏、充电”的三个微凸盲操点。在紧凑的设备接口上，它从不争抢空间，插拔体验极其优雅从容。\n* **2m 主动线（内置主动信号调理芯片）：** 跨越 1 米的物理衰减魔咒，端子内部主动信号调理芯片（Parade PS8778 + eEver EJ903W），这枚“增压引擎”能够主动重塑、放大高频信号，确保 2 米的长途跋涉下，数据与画质依然 100% 无损满血输出。\n\n\\*Parade PS8778，USB4 Gen3×2｜DP2.1a UHBR20，Bidirectional Linear Redriver，专为高速链路与 Active Cable 应用设计；eEver EJ903W，USB Type-C Cable ID Controller，负责线缆身份与能力识别、USB4 / USB PD 通信，EJ903 方案通过 USB-IF 40Gbps USB4 与 Intel Thunderbolt 4 双认证；USB IF 成员，XID：0x00003b26，遵循认证规范，附和认证条件\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/Frame-4365-1.png)\n\n### 全能专业，一线拿捏：40Gbps / 240W / 8K\n\n我们致力于把复杂的设备连接，简化为一条全能的「绿魔」。细雳线 Pro 拥有惊人的 96mΩ / 米超低线阻，无论是海量数据、超清画面还是大功率电流，它都能冷静、稳定地一并拿下\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/image4.png)\n\n* **全满速（40Gbps 大文件秒传）：** 在 40Gbps 的巅峰速率下，传输 1000 张摄影照片（50G）仅需约 16 秒；传输 1 部 4K 蓝光电影（80G）仅需约 26 秒；完成一部新机的数据迁移（200G）仅需约 3 分钟（数据来自制糖工厂实验室实测）。\n* **全连接（8K/60Hz 高清投屏无延迟）：** 支持 8K/60Hz 超清分辨率影像传输及菊花链拓展，色彩与细节纤毫毕现，满足最严苛的视觉工作流。\n* **全快充（240W 极速满血）：** 支持 240W（PD 3.1）极速供电，大功率设备长距离边充边用，持续稳定绝不发烫。\n* **全兼容：** 全面兼容雷电 4、雷电 3 以及 USB4 等主流高阶协议，通杀笔电、手机、平板与专业影像设备。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/image-11.png)\n\n### 全空间移动自由：重塑你的专业工作流\n\n当 2 米的主动式跨度叠加极致的软、细、轻，细雳线 Pro 把「工位」这个边界，重新定义为「人可以到达的任何地方」，赋予创作者**全空间移动自由**：\n\n* **移动拍摄，自由度 Max：** 在影棚进行中画幅相机的联机拍摄时，2 米长线赋予摄影师极大的走位自由。极度柔软的线身平躺地面毫无阻力扭矩，几十兆的 RAW 原片在按下快门的瞬间零延迟到达远端监视器。\n* **会议投屏，稳定体面：** 在大型会议室提案，不再受限于线缆长度而局促地贴在屏幕旁。主动式芯片确保高清投屏“零闪烁、不掉线”，细软的磁吸线身在会议桌上尽显整洁优雅的商务体面。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/image-22.png)\n\n**连接，即热爱。** 制糖工厂 CANDYSIGN 「绿魔」SlimBolt 细雳线 Pro 现已正式开售。从参数飙升到体验进化，它是一条能让专业创作者更愉悦的、柔软的、却依然硬核的生命线。\n\n**关于制糖工厂 CANDYSIGN**\n\n制糖工厂 CANDYSIGN 是一个以极致美感和灵活多用电能产品为核心的品牌。秉承「好产品就是一颗糖」的理念，制糖工厂融合科技、艺术与时尚，服务创作者、开发者和多设备生产力用户，持续探索数字电能产品的新形态。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177101+08:00"
+    },
+    {
+      "title": "MiniMax核心工程负责人阿岛离职",
+      "link": "https://www.qbitai.com/2026/08/475869.html",
+      "published": "2026-08-19T16:23:05+08:00",
+      "source": "量子位",
+      "content": "从技术研发到开发者沟通，长期活跃在开发者一线",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177108+08:00"
+    },
+    {
+      "title": "具身数据底座开卖，首发5100元：机器人训练数据有了新解法",
+      "link": "https://www.qbitai.com/2026/08/475477.html",
+      "published": "2026-08-19T15:42:27+08:00",
+      "source": "量子位",
+      "content": "构建全栈物理AI基础设施",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177113+08:00"
+    },
+    {
+      "title": "用DeepSeek网页版就能瓜分鹅厂600万？？！",
+      "link": "https://www.qbitai.com/2026/08/475764.html",
+      "published": "2026-08-19T15:40:36+08:00",
+      "source": "量子位",
+      "content": "冠军姿势长这样",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177115+08:00"
+    },
+    {
+      "title": "Anthropic 还发布了一份技术报告：\n\nhttps://t.co/JE5RdH2pTY\n\n同时开源了提示词和数据：\n\nhttps://t.co/kPrMSi9ArI",
+      "link": "https://x.com/FinanceYF5/status/2089989413996794124",
+      "published": "2026-08-19T16:14:41+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Anthropic 还发布了一份技术报告：  \n  \n[www-cdn.anthropic.com/30bf50e22a0138…](https://www-cdn.anthropic.com/30bf50e22a01388bb29bf077ee3f244531594b7a.pdf)  \n  \n同时开源了提示词和数据：  \n  \n[huggingface.co/datasets/Anthr…](https://huggingface.co/datasets/Anthropic/claude-protein-binder-design/tree/main)\n\n💬0🔄0❤️0👀26",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177118+08:00"
+    },
+    {
+      "title": "想了解 Claude 如何完成这项实验，以及完整结果，可以查看 Anthropic 的博客。\nhttps://t.co/mVgGlPALEP",
+      "link": "https://x.com/FinanceYF5/status/2089989402344960269",
+      "published": "2026-08-19T16:14:38+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "想了解 Claude 如何完成这项实验，以及完整结果，可以查看 Anthropic 的博客。  \n[anthropic.com/research/Claud…](https://www.anthropic.com/research/Claude-accelerates-protein-design)\n\n💬1🔄0❤️0👀30📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177121+08:00"
+    },
+    {
+      "title": "Anthropic 想测试 Claude 是否能从零开始成功设计新的蛋白结合物，也就是 de novo design。\n\n在一位人类专家写好的蛋白设计提示词下，Claude 自主为 15 个靶点中的 ...",
+      "link": "https://x.com/FinanceYF5/status/2089989351438684332",
+      "published": "2026-08-19T16:14:26+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Anthropic 想测试 Claude 是否能从零开始成功设计新的蛋白结合物，也就是 de novo design。  \n  \n在一位人类专家写好的蛋白设计提示词下，Claude 自主为 15 个靶点中的 14 个设计出了蛋白结合物。  \n  \n随后，Anthropic 与 Adaptyv Bio 和 Twist Bioscience 合作，由它们独立构建并测试 Claude 设计的蛋白。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089989339300446208/vid/avc1/1280x720/lPKDZQGNEfMp1jck.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/FinanceYF5/status/2089989351438684332/video/1)\n\n💬1🔄0❤️0👀130📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177123+08:00"
+    },
+    {
+      "title": "以上就是全部\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/6xTBGgf1Wf",
+      "link": "https://x.com/FinanceYF5/status/2089986885737464193",
+      "published": "2026-08-19T16:04:38+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2089981496597819729)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\nAnthropic IPO前，正在设计一套“不靠持股也能控制公司”的结构  \n  \n1/ Dario Amodei据称只持有Anthropic约2%股份，但公司正在准备让创始团队在IPO后继续掌握更大控制权。  \n  \n方案包括创始人超级投票权，以及由非股东受托人选出多数董事。  \n  \n这场IPO要解决的不只是融资，还有“谁最终决定Anthropic往哪里走”。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HQEbGIsasAABEVf.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2089981496597819729)\n\n💬0🔄0❤️0👀104",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177126+08:00"
+    },
+    {
+      "title": "阅读原文：\nhttps://t.co/md8xIlMiG8",
+      "link": "https://x.com/FinanceYF5/status/2089981570031734860",
+      "published": "2026-08-19T15:43:30+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "阅读原文：  \n[reuters.com/business/anthr…](https://www.reuters.com/business/anthropic-prepares-supervoting-power-founders-ahead-ipo-information-reports-2026-08-18/)\n\n![Tweet Image](https://pbs.twimg.com/media/HQEbKb3bcAA2k_F.jpg)\n\n💬1🔄0❤️0👀205📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177128+08:00"
+    },
+    {
+      "title": "Anthropic IPO前，正在设计一套“不靠持股也能控制公司”的结构\n\n1/ Dario Amodei据称只持有Anthropic约2%股份，但公司正在准备让创始团队在IPO后继续掌握更大控制权。...",
+      "link": "https://x.com/FinanceYF5/status/2089981496597819729",
+      "published": "2026-08-19T15:43:13+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "Anthropic IPO前，正在设计一套“不靠持股也能控制公司”的结构  \n  \n1/ Dario Amodei据称只持有Anthropic约2%股份，但公司正在准备让创始团队在IPO后继续掌握更大控制权。  \n  \n方案包括创始人超级投票权，以及由非股东受托人选出多数董事。  \n  \n这场IPO要解决的不只是融资，还有“谁最终决定Anthropic往哪里走”。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HQEbGIsasAABEVf.jpg)\n\n💬2🔄0❤️0👀643📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177131+08:00"
+    },
+    {
+      "title": "I'm all for using AI for writing. Seriously...\n\nIf you want to sound like absolutely everyone else a...",
+      "link": "https://x.com/aaditsh/status/2089978173572395418",
+      "published": "2026-08-19T15:30:01+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "I'm all for using AI for writing. Seriously...  \n  \nIf you want to sound like absolutely everyone else and don't want people to take you seriously, you should absolutely use it.\n\n💬1🔄0❤️1👀1858📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177133+08:00"
+    },
+    {
+      "title": "Unleash H3's powerful generation capabilities on MiniMax Design. Tailored for motion graphics, VFX, ...",
+      "link": "https://x.com/Hailuo_AI/status/2089974860013514925",
+      "published": "2026-08-19T15:16:51+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "Unleash H3's powerful generation capabilities on MiniMax Design. Tailored for motion graphics, VFX, ads and other commercial content!\n\n![AIスタジオワンルーム（AIアニメ、動画、漫画）](https://pbs.twimg.com/profile_images/2046596178683559936/DCL295Eb_normal.jpg)\n\nAIスタジオワンルーム（AIアニメ、動画、漫画）@studio\\_oneroom\n\nMiniMaxDesignでモーショングラフィックを勉強中！  \n  \n昨日から初めて、たった一日で大分、それっぽいものが作れるようになってきました。  \n  \nアフターエフェクトを使えない私にとってモーショングラフィックは憧れでもあったので、これが無編集で、しかもT2Vで出来てしまうのは最高すぎます！！  \n  \n正直、MiniMax H3の可能性は底知れない・・・  \n  \n今まで私のようにモーショングラフィックを眺めているだけだった人でも、今日から始められます！！  \n  \nMV、商用利用、アニメのOP、などなど  \n可能性は無限大だと思いました！！  \n  \n#MiniMaxH3#MiniMaxDesig\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089893595331645440/vid/avc1/2560x1440/cVc0a3GEC-G7fnaz.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/studio_oneroom/status/2089895546068799850/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/studio_oneroom/status/2089895546068799850)\n\n💬0🔄0❤️3👀785📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177136+08:00"
+    },
+    {
+      "title": "Built specifically for motion graphics, H3 makes complex animations remarkably simple.",
+      "link": "https://x.com/Hailuo_AI/status/2089972588747616726",
+      "published": "2026-08-19T15:07:49+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "Built specifically for motion graphics, H3 makes complex animations remarkably simple.\n\n![おのふみ| AIクリエーター×個人開発](https://pbs.twimg.com/profile_images/1808698248011657217/YYRWB5JU_normal.png)\n\nおのふみ| AIクリエーター×個人開発@onofumi\\_AI\n\nMinMAX H3のモーショングラフィックス  \n(音もすごい良かった)  \n  \nAOというキャラクターをアクション指定で試してみました。ジャンプ、スライディング、など。  \n  \n公式のskillを使ってclaude経由なので、自然言語で一回だけ修正しました。  \n(生成時間15分〜20分くらいかかった)  \n  \n広告の実用的な使い方もいいけど、こんな映像作れるのは楽しいですね。  \n  \n超長いプロンプトとclaudecodeの使い方などは↓\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089683872695144448/vid/avc1/2560x1440/Ik-A2u2TT30r4a8b.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/onofumi_AI/status/2089683944233160721/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/onofumi_AI/status/2089683944233160721)\n\n💬0🔄1❤️2👀851📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177138+08:00"
+    },
+    {
+      "title": "The next iterations of agent harnesses will center on coded extensions that integrate automatically....",
+      "link": "https://x.com/_philschmid/status/2089987145020608740",
+      "published": "2026-08-19T16:05:40+08:00",
+      "source": "Philipp Schmid(@_philschmid)",
+      "content": "The next iterations of agent harnesses will center on coded extensions that integrate automatically. Pi lead, others are following, and DeepSeek represents the extreme.  \n  \nAll powered and driven by autoresearch and recursive self-improvements.\n\n💬2🔄0❤️3👀414📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177140+08:00"
+    },
+    {
+      "title": "哈哈哈\n我是做了个隐私模式\n我主要是为了方便大家录屏\n场景不一样，解决方案确实挺不一样的\n不过也都是类似的需求",
+      "link": "https://x.com/yangyi/status/2089990818774053069",
+      "published": "2026-08-19T16:20:16+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "哈哈哈  \n我是做了个隐私模式  \n我主要是为了方便大家录屏  \n场景不一样，解决方案确实挺不一样的  \n不过也都是类似的需求\n\n![Tweet Image](https://pbs.twimg.com/media/HQEjkOwaYAANgHW.jpg)\n\n![yetone](https://pbs.twimg.com/profile_images/1458663772017491971/h1-KC--K_normal.jpg)\n\nyetone@yetone\n\n事情是这样的，我看到很多 Alma 用户喜欢截图分享其中的内容，但是 Alma 的侧边栏中又包含了太多隐私信息，所以他们往往截完图后会自己打码，感觉这个操作还挺难受的，很打压用户的分享欲，所以 Alma 就内置了一个截图功能，这个功能可以轻松截一个精美的带有正确的阴影、 padding 和背景图的图片以外，还能自动帮你打码。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089988080392613888/vid/avc1/2632x2160/NaTGrGv6Xct7C1ns.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/yetone/status/2089989664052773360/video/1)\n\n![Tweet Image](https://pbs.twimg.com/media/HQEhHXjbgAA9HhN.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/yetone/status/2089989664052773360)\n\n💬0🔄0❤️0👀226",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177143+08:00"
+    },
+    {
+      "title": "刚刚，智谱创始人唐杰老师，在X上发了一篇超棒的帖子，专门说了下他对Scaling Law的理解。\n\n正好今天AA的成绩也出来了，我把原帖和AA指数都放在评论区了。\n\nGLM-5.3拿到了60分，上一代...",
+      "link": "https://x.com/Khazix0918/status/2089990744014811503",
+      "published": "2026-08-19T16:19:58+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "刚刚，智谱创始人唐杰老师，在X上发了一篇超棒的帖子，专门说了下他对Scaling Law的理解。  \n  \n正好今天AA的成绩也出来了，我把原帖和AA指数都放在评论区了。  \n  \nGLM-5.3拿到了60分，上一代GLM-5.2是53分，基座是完全相同的，总参数753B，激活40B，而且大家Coding体感也都很棒，都觉得是国产SOTA了。  \n  \n但也有很多人也在说为啥智谱这次不训个新的基座模型。  \n  \n唐老师这篇帖子，刚好讲的非常清楚，也有非常多的干货。  \n  \n他说，Scaling，从来不只有参数量这一个点。  \n  \n我们以前一聊大模型，最先问的总是参数量，但是参数量单独拿出来，其实说明不了多少东西。  \n现在它至少还得跟另外三个问题放在一起看：  \n  \n模型有多少数据。  \n算力花在了哪。  \n谁在什么条件下运行它。  \n  \n这背后，其实是Scaling Law过去几年一直在发生的变化。  \n  \n2020年，Kaplan等人算出一个比例，认为参数增长应该比数据增长快得多，大概是2.7比1。然后整个行业也都这么走了，很多模型越做越大，万亿参数也一度被当成了模型进步的必经之路。  \n  \n到了2022年，Hoffmann等人拿四百多个模型重新做了一遍实验，结果发现，算力最优的分配更接近每个参数20个Token。算力继续增加时，参数和数据应该以差不多的速度一起增长。  \n这就是Chinchilla Scaling Law。  \n  \n其实现在回头看，之前那一轮最大的模型，反而也是算力分配最失衡的一批。参数堆得太快，数据没有跟上，实际上效果没有那么好。  \n但版本还在变化，  \n因为Chinchilla考虑的是一个模型训练一次，然后拿去评测。  \n  \n但是今天的模型上线以后，每天可能被调用几十亿次，上线后的推理成本可能远远大于那一次训练。  \n所以如果我们把这笔账也算进去，最优解又会往更小、训练更久的模型移动。  \n  \n到了MoE时代，那个简单的20比1也不够用了。  \n  \n唐老师在帖子里区分了两个很重要的东西。  \n总参数量，大概决定模型能装下多少知识、事实和长尾信息。  \n激活参数和每次前向计算的有效深度，大概决定模型的长程推理能力。  \n  \n需要记忆的任务，更吃参数量。  \n需要推理的任务，更吃数据。  \n  \n后续研究甚至发现，在每个参数对应Token数量固定时，继续增加总参数可能会让推理变差，激活更多专家反而会稳定地提升推理能力。  \n  \n所以，大模型到底有多聪明，早就没法被一个总参数量概括了。  \nGLM-5.3这次，唐老师说，它更像一次控制变量实验。  \n  \n大模型Scaling依然在继续。  \n  \n只是它已经从一个越来越大的数字。  \n变成了寻找最优解的游戏。\n\n![jietang](https://pbs.twimg.com/profile_images/2969848274/9650ac94b38c2872eecea8a7dfa376ef_normal.jpeg)\n\njietang@jietang\n\nThoughts About Scaling Law  \n  \nScaling, but not only of parameters. Every model release now ends with the same question: how many parameters? It isn't a question that can be answered on its own. Parameter count is only meaningful alongside three others — how much data you have, where you intend to spend your compute, and who will run the model, under what conditions.  \n  \nThe field learned this the hard way. Kaplan et al. (2020) fit an exponent that told everyone to grow parameters faster than data — roughly 2.7:1 — and the industry complied: GPT-3, Gopher, MT-NLG. Hoffmann et al. (2022) redid the experiment across four hundred models and found the compute-optimal split is closer to 20 tokens per parameter, and that with sufficient compute the two should grow at the same rate rather than drifting apart. The error in the earlier fit compounded with every order of magnitude of compute, which is why the largest models of that generation were the most misallocated. The trillion-parameter round was, in retrospect, a detour the whole field took together and then reversed.  \n  \nChinchilla wasn't the end either. It optimized training compute for models that would be trained once and evaluated. Today a model is called billions of times a day and inference dominates lifetime cost. Put inference into the objective and the optimum moves toward smaller models trained far longer — deliberate over-training, which is what Llama-2-7B and Gemma-2-9B were doing at roughly 290 and 889 tokens per parameter.  \n  \nSparsity moved the target again. In a MoE model two quantities have to be kept apart: total parameters govern roughly how much the model can hold — knowledge, facts, the long tail — while activated parameters and effective depth govern roughly how far it can think, how many steps of a causal chain it can carry before it comes apart. A dense 20:1 ratio does not transfer. And the ratio isn't a single number at all: Roberts et al. (2025) find the optimal tokens-per-parameter is task-dependent, with memorization favoring more parameters and reasoning favoring more data. Follow-up work on MoE observes that at fixed TPP, pushing total parameters higher actually degrades reasoning, while activating more experts reliably helps it.  \n  \nThis matters for what we are building toward. Finding a vulnerability is not a retrieval problem. It doesn't come from having memorized more CVEs; it comes from carrying a twenty-step chain of inference to the end without losing the thread. That capability does not live in total parameter count.  \n  \nWhich brings us to this release. Total parameters appear to matter up to a threshold — enough to hold the world — after which additional capability comes from scaling elsewhere: effective depth per forward pass, and above all post-training. GLM-5.3 is our controlled experiment on that claim. Same base, same architecture, same total and activated parameters as GLM-5.2. One month of scaling long-horizon environments and RL. The gains are not marginal. Well, scaling has more than one dial. We turned the post-training one this time because it had the most slack left in it — not because the others are finished. Base model size, pretraining data, compute spent per forward pass: all of them are still on the table, and we will come back to each. What this experiment taught us is that the dials do not have to be turned together, and that the one worth turning next is rarely the one that was worth turning last. We are not done scaling. Next time, maybe mid-training, pre-training, and even more.\n\n[🔗 View Quoted Tweet](https://x.com/jietang/status/2089941544581403107)\n\n💬0🔄0❤️0👀31",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177145+08:00"
+    },
+    {
+      "title": "Multi Agent Collaboration Gets Persistent Compute in Bedrock AgentCore",
+      "link": "https://www.infoq.com/news/2026/08/aws-bedrock-agentcore-runtime/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-19T16:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/aws-bedrock-agentcore-runtime/en/headerimage/generatedHeaderImage-1787061024394.jpg)\n\nAmazon Web Services has extended Amazon Bedrock AgentCore with runtime instances, a new compute option that gives AI agents persistent infrastructure purpose-built for complex long-running workflows and multi-agent coordination.\n\n*By Matt Saunders*",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T16:48:21.177147+08:00"
     }
   ]
 }
