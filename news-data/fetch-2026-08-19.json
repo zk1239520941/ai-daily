@@ -3696,6 +3696,238 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-19T22:42:32.426074+08:00"
+    },
+    {
+      "title": "GraphRAG: How AI Answers Questions Hidden Across Many Documents",
+      "link": "https://blog.bytebytego.com/p/graphrag-how-ai-answers-questions",
+      "published": "2026-08-19T23:31:18+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [AI’s Next Bottleneck Is Deployment. (Sponsored)](https://go.bytebytego.com/Ontologize_081926)\n\n[![](https://substackcdn.com/image/fetch/$s_!D6fe!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ffa88d55f-4f71-441e-913a-8fba18ea926b_1600x840.png)](https://go.bytebytego.com/Ontologize_081926)\n\nTurning new models into systems that work inside real customer operations is still hard.\n\nThat gap is creating demand for engineers who can move between code, customer context, and production outcomes. Enter: the forward deployed engineer.\n\nThe **[free State of FDE Jobs 2026 report](https://go.bytebytego.com/Ontologize_081926)** maps the emerging labor market around this work.\n\n[Explore the report here](https://go.bytebytego.com/Ontologize_081926)\n\n---\n\nImagine an AI-based retrieval system pointed at five years of your team’s engineering documents, including design docs, incident postmortems, and architecture decision records. Someone asks which service owns the payments retry logic, and a pretty accurate and well-cited answer is provided by the system. However, when someone asks which failure causes recur most often across all the postmortems, the quality of the answer goes down.\n\nDepending on the setup, the response might list a handful of incidents that happen to use the word recurring, but we don’t get any idea of the underlying pattern from the answer. In other words, the reason for asking the question is not fulfilled.\n\nBoth questions can look similar from the outside. Architecturally, however, they are opposites:\n\n* The first has an answer that can be found in a specific document, which is precisely what similarity search was built for.\n* The second has an answer that shows up only after the entire collection has been surveyed and understood. This requires a completely different retrieval mechanism.\n\nGraphRAG was designed to handle the second kind of questions, and we are going to learn more about it in this article. Here’s what we will cover:\n\n* How standard RAG retrieval works, and where it reaches its limit\n* Knowledge graphs, and how one gets built from ordinary documents\n* The GraphRAG indexing pipeline\n* Community detection and hierarchical summaries\n* Local search and global search\n* Cost, latency, and maintenance tradeoffs\n* When standard RAG remains the better option\n* Agentic RAG\n\n*Disclaimer: This post is based on publicly shared details from various sources. References at the end. Please comment if you notice any inaccuracies.*\n\n[![](https://substackcdn.com/image/fetch/$s_!aHqz!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc908f91a-e6a9-4c9d-84b6-a83cbc3a844a_4086x1856.png)](https://substackcdn.com/image/fetch/$s_!aHqz!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc908f91a-e6a9-4c9d-84b6-a83cbc3a844a_4086x1856.png)\n\n## Retrieval Basics\n\nStandard RAG (Retrieval Augmented Generation) depends on a compact pipeline.\n\nWe take a collection of documents, slice each one into chunks of a few hundred to a few thousand tokens, and pass every chunk through an embedding model. The embedding model returns a vector, which is basically a long list of numbers standing in for the meaning of that text. Chunks with related meanings produce vectors that sit close together in the same numeric space. All of those vectors go into a vector index.\n\nAt query time, the same treatment applies to the question. The question also becomes a vector, the index returns the handful of chunk vectors closest to it, and the original text of those chunks gets placed into the prompt alongside the question. The language model then generates an answer from the supplied text.\n\n[![](https://substackcdn.com/image/fetch/$s_!1zNc!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcd3e18cc-5ee1-496c-bc17-c9c0d305e2d0_4110x2020.png)](https://substackcdn.com/image/fetch/$s_!1zNc!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcd3e18cc-5ee1-496c-bc17-c9c0d305e2d0_4110x2020.png)\n\nThe whole design rests on one simple assumption, which is that text answering a question would resemble that question. For a large share of queries, this assumption holds up well. For example, a question like “Which service owns the payments retry logic” contains the same vocabulary as the architecture decision record where that ownership was recorded. The vectors land near each other, retrieval returns the right document, and the citation points somewhere a reader can actually verify.\n\n## Similarity Limits\n\nThis assumption about questions being similar to the answers holds for a specific class of questions, but it is by no means a universal thing.\n\nMicrosoft’s GraphRAG documentation distinguishes local queries from global queries. A local query has an answer that resembles the query and lives inside a small number of text regions, which covers most who, what, when, and where questions. A global query requires reasoning across large portions of a dataset, or across all of it.\n\nOur two example questions from earlier land on opposite sides of that line. The question “Which service owns the retry logic” is local. However, the question “Which failure causes recur most often across all postmortems” is global.\n\n[![](https://substackcdn.com/image/fetch/$s_!-1Bn!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F14637aa9-f8d8-402b-96f5-fb7ce19e492d_3452x1722.png)](https://substackcdn.com/image/fetch/$s_!-1Bn!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F14637aa9-f8d8-402b-96f5-fb7ce19e492d_3452x1722.png)\n\nThe reason the answer for the second one goes down in quality is that the phrase “recur most often” produces a vector, and the index returns whatever appears nearest to it. Across a corpus of incident reports, the nearest neighbours will be documents using words like recurring or frequent, which is a coincidence of vocabulary. However, the real answer to the question exists across two hundred documents as a distribution, which spans the corpus rather than occupying one retrievable location.\n\nA reasonable objection at this point is that modern context windows are large enough to sidestep the problem entirely. Microsoft tested exactly that, comparing GraphRAG against vector retrieval pulling in 8,000 and then 64,000 tokens of context. However, on global questions, the larger window left the gap open on comprehensiveness, diversity, and quality of supporting source material.\n\nThis outcome is usually labelled as a hallucination problem. What actually happens is that retrieval returns material with little bearing on the question, and the model produces fluent text from it.\n\n---\n\n## **[[Webinar] How to stop babysitting your agents (Sponsored)](https://go.bytebytego.com/Unblocked_081926)**\n\n[![](https://substackcdn.com/image/fetch/$s_!OLa_!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9d33c073-5bd4-4006-a9fc-74f4fd5ac066_1100x619.png)](https://go.bytebytego.com/Unblocked_081926)\n\nAgents can generate code. Getting it right for your system, team conventions, and past decisions is the hard part. You end up wasting time and tokens in the correction loops.\n\nMore MCPs, rules, and bigger context windows give agents access to information, but not understanding. The teams pulling ahead have a context layer to give agents exactly what they need for the task at hand.\n\n[Join us for a FREE webinar on Sep 2](https://go.bytebytego.com/Unblocked_081926) to see:\n\n* Where teams get stuck on the AI maturity curve and why common fixes fall short\n* How a context layer solves for quality, efficiency, and cost\n* Live demo: the same coding task with and without a context layer\n\nIf you want to maximize the value you get from AI agents, this one is worth your time.\n\n[Register now](https://go.bytebytego.com/Unblocked_081926)\n\n---\n\n## Knowledge Graphs\n\nCrossing this boundary in terms of the quality of answers requires recording how documents relate to one another, instead of treating each chunk as an independent unit of text. A knowledge graph is one way to record it.\n\nA knowledge graph stores two kinds of things:\n\n* Entities are the nouns a corpus talks about, such as people, services, teams, incidents, and decisions.\n* Relationships are the typed connections between those entities.\n\nBoth carry a plain-text description.\n\nTake one sentence from an incident postmortem: “The checkout service began returning timeouts after the payments team deployed the new retry handler on March 3.” Extraction over that sentence produces entities for the checkout service, the payments team, and the retry handler, along with relationships recording that the team deployed the handler and that the deployment preceded the timeouts.\n\nOnce thousands of sentences have each contributed nodes and edges, paths appear that no single document contains. An engineer may be namednamed in one design doc, a service is named in a second, an incident is described in a third, and the path from that engineer to that incident runs through both intermediate nodes.\n\nLinkedIn’s customer service team published results from this approach at SIGIR in 2024. Their support tickets had been stored as plain text, which discarded the internal structure of each ticket along with the connections between tickets. Rebuilding retrieval around a knowledge graph that preserved both improved mean reciprocal rank by 77.6 percent, and median per-issue resolution time dropped 28.6 percent in production. Similarly, Neo4j’s documentation separates the lexical graph, which links documents to their chunks, from the entity graph, which links the things those documents describe.\n\nMost GraphRAG systems build both and query across them.\n\n[![](https://substackcdn.com/image/fetch/$s_!S511!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8e4ba738-6db6-4e24-9da4-72c4c0b1b088_4338x2440.png)](https://substackcdn.com/image/fetch/$s_!S511!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8e4ba738-6db6-4e24-9da4-72c4c0b1b088_4338x2440.png)\n\n## Graph Construction\n\nBuilding that graph from raw documents is a pipeline, and most of its cost concentrates in a single stage.\n\nFor reference, Microsoft’s documented indexing workflow runs through six phases:\n\n* Documents are sliced into text units, the same chunking step standard RAG performs.\n* A language model processes each text unit and extracts entities carrying a title, type, and description, along with relationships carrying a source, target, and description.\n* Entities sharing a title and type are merged across text units, and their descriptions collect into an array. A second language model pass compresses each array into one description. Relationships receive the same treatment.\n* Claim extraction runs optionally, producing time-bound factual statements about entities.\n* The assembled entity graph is clustered into a community hierarchy.\n* Community reports are generated, and text units, entity descriptions, and report contents are embedded into a vector store.\n\nThe merge step accounts for a lot of the expense. For example, a service mentioned across two hundred documents produces two hundred separate descriptions during extraction. Every one of those has to be reconciled into a single coherent description before the graph becomes usable.\n\nEvery extracted entity, relationship, and claim retains a pointer back to the text unit it came from. This pointer is what allows a generated answer to cite a specific paragraph in a specific document.\n\n[![](https://substackcdn.com/image/fetch/$s_!Eo6Z!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fde60f3ed-13c5-416c-a22c-9e5fe3dd8563_4086x1856.png)](https://substackcdn.com/image/fetch/$s_!Eo6Z!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fde60f3ed-13c5-416c-a22c-9e5fe3dd8563_4086x1856.png)\n\nAlso, two language model passes over an entire corpus add a substantial amount of inference. Microsoft’s documentation estimates graph extraction at roughly 75 percent of total indexing cost. Lastly, extraction quality also depends on prompts tuned to the domain.\n\nAs a separate point, FastGraphRAG replaces the language model in extraction with traditional NLP, treating noun phrases as entities and co-occurrence within a chunk as a relationship. Indexing becomes far cheaper, and the resulting graph carries considerably more noise\n\n## Community Detection\n\nA graph of entities and relationships answers connection questions well. However, answering whole-collection questions requires one more layer on top of it.\n\nGraphRAG runs hierarchical Leiden clustering across the entity graph. The algorithm recursively partitions the graph into clusters, called communities, and keeps subdividing until communities fall below a size threshold. The output is a hierarchy with several levels.\n\nThese levels behave like a resolution control over the same underlying graph. Level 0 contains a small number of broad communities, each covering a large region. Deeper levels contain many more communities, each covering a narrower region. A single payments community at level 0 might split into separate communities for retry behaviour, settlement, and fraud checks two levels further down.\n\n[![](https://substackcdn.com/image/fetch/$s_!xY5R!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9b0ac531-1fcb-4359-9a18-694af7e3789e_2384x2980.png)](https://substackcdn.com/image/fetch/$s_!xY5R!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9b0ac531-1fcb-4359-9a18-694af7e3789e_2384x2980.png)\n\nFor every community at every level, a language model generates a community report. Each report contains an overview of that community along with its key entities, relationships, and claims. Reports are then summarized again into shorthand versions for compact use at query time.\n\nThis is the step that makes whole-collection questions answerable. A summary of what a cluster of documents collectively says gets written during indexing, well before anyone asks about it. When a global question arrives, the material required to answer it already exists as text.\n\nWhich particular level supplies the reports is a decision with real consequences. Microsoft’s documentation states that response quality is heavily influenced by that choice. Lower levels produce more thorough answers because their reports carry more detail, but they also cost more time and more tokens because there are many more reports to process.\n\n## Query Modes\n\nWith a graph and a hierarchy of reports sitting on disk, retrieval can follow two structurally different paths. GraphRAG supports both.\n\nLocal search begins by matching the query against entity description embeddings, which produces a set of entry-point entities. From each entry point, expansion proceeds along five directions in parallel:\n\n* Text units that mention the entity.\n* Community reports that contain it.\n* Neighbouring entities connected to it.\n* The relationships forming those connections.\n* Covariates, meaning any extracted claims attached to it.\n\nEach of those candidate sets is ranked and filtered independently. The survivors are packed into a single context window of predefined size. The expansion is bounded, and the ranking is explicit, which makes local search closer to a structured gather-and-rank operation than to open-ended pathfinding across the graph.\n\nGlobal search leaves the entity graph untouched. Community reports from a chosen hierarchy level are split into batches, and those batches are shuffled so that batch ordering stays randomized. A map stage runs each batch through a language model and produces an intermediate answer where every point carries a numerical importance rating. A reduce stage then collects the highest-rated points across all batches and generates the final answer from them.\n\nThe mapping back to our payments questions can be made clearer now. The question: “Which service owns the retry logic” names an entity, so local search locates it and expands around it. Also, the question “Which failure causes recur most often” names no entity in particular, so global search aggregates across pre-written reports covering the whole corpus.\n\nSee the diagram below:\n\n[![](https://substackcdn.com/image/fetch/$s_!U4C4!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F17eaedb0-15e2-45b1-b682-ea35d5cabe81_4254x2882.png)](https://substackcdn.com/image/fetch/$s_!U4C4!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F17eaedb0-15e2-45b1-b682-ea35d5cabe81_4254x2882.png)\n\nA third mode, DRIFT search, blends the two. It starts by comparing the query against the most relevant community reports to produce a broad initial answer along with follow-up questions, runs local search against those follow-ups, and returns a hierarchy of questions and answers ranked by relevance.\n\nGraphRAG also ships a basic search mode, which is plain top-k vector retrieval, for queries where that remains the appropriate tool. When an answer comes back broad and shallow, or narrow and precise, the query mode usually explains it.\n\n[Diagram 6. Local search and global search side by side] Left panel traces the query to matched entities, then the five parallel expansion streams, then per-stream ranking and filtering, then a single assembled context window. Right panel traces the query alongside shuffled community report batches, into parallel map calls producing rated intermediate answers, then filtering, then the reduce call producing the final answer.\n\n## Cost Tradeoffs\n\nWhat we have looked at so far are the various capabilities associated with GraphRAG. However, cost determines whether a specific capability is worth acquiring for a given system.\n\nStandard RAG has a modest cost at both ends, with one embedding pass at index time and one nearest-neighbour lookup per query. In contrast, GraphRAG redistributes the spending considerably. Index time absorbs two language model passes over the corpus plus report generation for every community at every level. Query time then splits, with local search running cheaply against a prepared context window, and global search running a language model across many report batches for a single question.\n\nThe index is also a derived artifact. New documents arriving means extraction, clustering, and summarization run again over the affected material, and the community hierarchy itself can shift as the graph grows. For a corpus that changes daily, this becomes an ongoing operational commitment.\n\nMicrosoft’s own follow-up work addressed the cost directly. For example, LazyGraphRAG builds its index using NLP rather than a language model, skips summarization entirely, and defers all language model work to query time. In this case, indexing cost matches vector RAG and lands at 0.1 percent of full GraphRAG. Global-query quality stays comparable to global search while query cost drops by more than a factor of 700.\n\nMicrosoft still argues against making every deployment LazyGraphRAG. Their stated reasoning is that the pre-built entity, relationship, and community summaries carry value beyond question answering, because people read and share those reports directly.\n\nTwo findings from Microsoft’s own evaluations are as follows:\n\n* Vector RAG remains the stronger option for local queries, where the answer resembles the question and sits in a specific region of text.\n* GraphRAG’s measured advantage lies in comprehensiveness, diversity, and supporting source material. On faithfulness, it scored at a similar level to baseline RAG.\n\nThe second point matters whenever someone asks whether GraphRAG reduces hallucination. The evidence supports better coverage and better sourcing, but it stops short of claiming better factual accuracy per individual claim.\n\n## Agentic Retrieval\n\nSince different question types favour different retrieval strategies, committing to one strategy when a system is built gives up the others.\n\nAgentic RAG helps formulate a response to that constraint.\n\nA language model classifies the incoming query, selects a retrieval strategy, executes it, and synthesizes the result. Available strategies might include vector search for local questions, global search for corpus-wide questions, a SQL query for structured data, and web search for anything current.\n\n[![](https://substackcdn.com/image/fetch/$s_!bMmM!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd7759dfb-dff4-4703-9aec-8a6428bab54a_3902x1818.png)](https://substackcdn.com/image/fetch/$s_!bMmM!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd7759dfb-dff4-4703-9aec-8a6428bab54a_3902x1818.png)\n\nLlamaIndex documents a two-layer version of this:\n\n* A composite retriever selects which index to query, guided by a description supplied for each index.\n* Within the selected index, an auto-routed mode then selects which retrieval method applies to that specific query.\n\nIn other words, routing decisions happen at both layers.\n\nThe approach carries its own costs. It adds a language model call ahead of retrieval, which increases both latency and per-query spend. Routing errors also produce a debugging problem, because a poor answer can come from a perfectly good retrieval running under the wrong strategy.\n\nThe overall progression from basic RAG through advanced RAG to GraphRAG and then agentic RAG describes a sequence of decisions about when a system commits to a retrieval strategy. It works well as a ladder where each step outperforms the one below it.\n\n## Conclusion\n\nIn this article, we’ve gone deep into GraphRAG and understood it in detail. Here are the key learning points to remember:\n\n* Local queries have answers that resemble the question and sit in a small number of text regions, while global queries require reasoning across large portions of a collection.\n* Similarity search returns whichever chunks sit nearest the query vector, so global questions tend to retrieve vocabulary matches instead of the underlying pattern.\n* Larger context windows leave that gap open. Vector retrieval with 64,000 tokens still trailed on global questions in Microsoft’s testing.\n* A knowledge graph stores entities and typed relationships with descriptions, preserving connections that plain chunking discards.\n* GraphRAG indexing runs two language model passes over the corpus, one to extract entities and relationships and one to merge their descriptions.\n* Graph extraction accounts for roughly 75 percent of indexing cost, making it the first stage to examine when reducing spend.\n* Hierarchical Leiden clustering produces communities at several levels of resolution over the same entity graph.\n* A community report is generated for every community at every level, so summaries of what the corpus collectively says exist before any question arrives.\n* Local search expands from matched entities and ranks the results into one context window, while global search runs map-reduce across community reports.\n* The index is derived and perishable. LazyGraphRAG responds by moving language model work to query time, cutting indexing cost to 0.1 percent of full GraphRAG.\n* Vector RAG remains stronger for local queries, and agentic retrieval selects a strategy per query rather than committing to one when the system is built.",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!aHqz!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc908f91a-e6a9-4c9d-84b6-a83cbc3a844a_4086x1856.png",
+      "fetched_at": "2026-08-19T23:39:47.918042+08:00"
+    },
+    {
+      "title": "What I mean is that everything happens in real time on X. So many times I'll see news \"BREAK OUT\" on...",
+      "link": "https://x.com/aaditsh/status/2090076005927133340",
+      "published": "2026-08-19T21:58:46+08:00",
+      "source": "Aadit Sheth(@aaditsh)",
+      "content": "What I mean is that everything happens in real time on X. So many times I'll see news \"BREAK OUT\" on Instagram a few hours or even days after it actually happens.  \n  \nAnd it's always a repackaging done by a meme account or a creator from something they must have seen on X. It's the same with LinkedIn, but there are no meme accounts.  \n  \nIf you want to shape what the world decides to believe, you need to be on X. And you need to FLOURISH on X.\n\n💬0🔄0❤️0👀425",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918059+08:00"
+    },
+    {
+      "title": "如果 YouMind 的默认 Agent 模型免费，会带来吸引力不。有点犹豫。又有点想：大胆免费。\n\n如果你是 YouMind 潜在用户（想创作的内容学习者），你会因为聊天不用花钱，而选择 YouMi...",
+      "link": "https://x.com/lifesinger/status/2090094413171326985",
+      "published": "2026-08-19T23:11:54+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "如果 YouMind 的默认 Agent 模型免费，会带来吸引力不。有点犹豫。又有点想：大胆免费。  \n  \n如果你是 YouMind 潜在用户（想创作的内容学习者），你会因为聊天不用花钱，而选择 YouMind 吗。  \n  \n期待你的想法 & 建议。特别是，如果你已经是 YouMind 用户，你最期待，YouMind 在什么地方做出变化。  \n  \n任何建议都欢迎。包括建议让 YouMind 收购 YouTube 或直接关闭然后换一个新方向，我都能开心接受。  \n  \n期待。你的心扉打开。\n\n💬1🔄0❤️7👀457📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918065+08:00"
+    },
+    {
+      "title": "今天发完这条感想后，FateTell 的西元提醒我，早有高人有更好的总结。\n\n---\n增长最常犯的错误有三条：\n\n1、乱花钱做增长\n2、不敢花钱做增长\n3、痴迷低成本做增长\n\n这 3 件事，按数字顺序...",
+      "link": "https://x.com/lifesinger/status/2090090731964932131",
+      "published": "2026-08-19T22:57:17+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "今天发完这条感想后，FateTell 的西元提醒我，早有高人有更好的总结。  \n  \n---  \n增长最常犯的错误有三条：  \n  \n1、乱花钱做增长  \n2、不敢花钱做增长  \n3、痴迷低成本做增长  \n  \n这 3 件事，按数字顺序，越到后面越完蛋。  \n---  \n  \n这位高人是即刻的 [@圣总聊出海](https://x.com/圣总聊出海)，请大家前往关注。非常多干货言论。实践出真知。\n\n![Frank Wang 玉伯](https://pbs.twimg.com/profile_images/2089742103266091008/A-GBt_tG_normal.jpg)\n\nFrank Wang 玉伯@lifesinger\n\n创业，如果成本低，往往成功概率也低。比如做 To C 的生产力工具，有想法 + Coding Plan，就能低成本开始做。然而这个低成本，意味着有大量竞争者，意味着获客成本会极高，意味着成功概率其实很小。  \n  \n创业，如果成本高，往往成功概率也高。比如陈冕做 LibTV，直接 3.9 折高成本投入，直接几千万先打款给字节。这个高成本，意味着入局者很少，竞争者更少。同时争议性能引发流量传播，意味着成功概率反而更大。  \n  \n有没有钱，舍不舍得花钱，如何把钱花出声响，是大量创业者要面对的最难的难题。\n\n[🔗 View Quoted Tweet](https://x.com/lifesinger/status/2089870131166167286)\n\n💬0🔄0❤️4👀814📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918069+08:00"
+    },
+    {
+      "title": "把船开到深处\n下网打鱼",
+      "link": "https://x.com/lifesinger/status/2090086526281777206",
+      "published": "2026-08-19T22:40:34+08:00",
+      "source": "Frank Wang 玉伯(@lifesinger)",
+      "content": "把船开到深处  \n下网打鱼\n\n![diff.w](https://pbs.twimg.com/profile_images/2042269816665354240/ZER4ib3f_normal.jpg)\n\ndiff.w@83dwn\n\n[x.com/i/article/2089…](https://x.com/i/article/2089923422935564288)\n\n[🔗 View Quoted Tweet](https://x.com/83dwn/status/2089928053644304888)\n\n💬2🔄0❤️4👀1566📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918072+08:00"
+    },
+    {
+      "title": "I am so tired of the PR.",
+      "link": "https://x.com/GaryMarcus/status/2090089558818091096",
+      "published": "2026-08-19T22:52:37+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "I am so tired of the PR.\n\n![Ravid Shwartz Ziv](https://pbs.twimg.com/profile_images/1965991878244847616/HJOW1N0Z_normal.jpg)\n\nRavid Shwartz Ziv@ziv\\_ravid\n\nHow Anthropic's new results post would read without the PR:  \n  \nClaude orchestrated open-source protein design models, PXDesign, RFdiffusion, Genie, BoltzGen, from a 30k-token expert prompt and 12,500 H100-hours of compute, and designed binders against 14 of 15 targets. Hit rates of 22–35% against a 10–15% baseline, where some of those tools already report similar numbers on their own.  \n  \nThe orchestration is genuinely impressive. But the open-source models did most of the lifting, and they came from the Baker lab, Columbia, MIT, ByteDance Seed, and most of them were already wet-lab validated before Claude touched them.  \n  \nWhich also sets the ceiling. All these generators share a single PDB-shaped training distribution, so calling four of them doesn't diversify away the blind spot, since they fail together. The targets that worked are the well-studied ones.   \n  \nSo the valid claim is that an agent can now drive this stack competently in the regime where the stack already works.  \n  \nInstead, we got this announcement:\n\n[🔗 View Quoted Tweet](https://x.com/ziv_ravid/status/2089892737503944966)\n\n💬2🔄1❤️16👀2155📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918076+08:00"
+    },
+    {
+      "title": "It is genuinely painful to me that almost nobody — not even doomers who should care deeply — seems t...",
+      "link": "https://x.com/GaryMarcus/status/2090088730602435021",
+      "published": "2026-08-19T22:49:20+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "It is genuinely painful to me that almost nobody — not even doomers who should care deeply — seems to be paying attention to this critical point that might have truly profound consequences for humanity.\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nCounterpoint: “If alignment issues are becoming big enough that OpenAI is willing to commit 20% of research inference compute to chain-of-thought monitoring [suggesting] that suggests that alignment issues are becoming a pretty serious concern” we need to invest more heavily in alternatives to LLMs because LLM-centered architectures are failing to yield alignment.  \n  \nI don’t know how much more evidence we need for that.  \n  \n(but yes, we also do need coherent policies, as [@emollick](https://x.com/emollick) rightly suggests)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2090085886407155826)\n\n💬2🔄3❤️19👀2507📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918079+08:00"
+    },
+    {
+      "title": "Counterpoint: “If alignment issues are becoming big enough that OpenAI is willing to commit 20% of r...",
+      "link": "https://x.com/GaryMarcus/status/2090085886407155826",
+      "published": "2026-08-19T22:38:01+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Counterpoint: “If alignment issues are becoming big enough that OpenAI is willing to commit 20% of research inference compute to chain-of-thought monitoring [suggesting] that suggests that alignment issues are becoming a pretty serious concern” we need to invest more heavily in alternatives to LLMs because LLM-centered architectures are failing to yield alignment.  \n  \nI don’t know how much more evidence we need for that.  \n  \n(but yes, we also do need coherent policies, as [@emollick](https://x.com/emollick) rightly suggests)\n\n![Ethan Mollick](https://pbs.twimg.com/profile_images/1601382188712398850/3AAOlqrX_normal.jpg)\n\nEthan Mollick@emollick\n\nIf alignment issues are becoming big enough that OpenAI is willing to commit 20% of research inference compute to chain-of-thought monitoring, that suggests that alignment issues are becoming a pretty serious concern.  \n  \nWe really need universal policies & standards across labs.\n\n[🔗 View Quoted Tweet](https://x.com/emollick/status/2089819700033102273)\n\n💬6🔄4❤️32👀5724📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918082+08:00"
+    },
+    {
+      "title": "Design systems are now on every paid Lovable plan.\n\nDescribe your brand or upload guidelines, and ev...",
+      "link": "https://x.com/Lovable/status/2090079350783926355",
+      "published": "2026-08-19T22:12:03+08:00",
+      "source": "Lovable(@lovable_dev)",
+      "content": "Design systems are now on every paid Lovable plan.  \n  \nDescribe your brand or upload guidelines, and every app your team builds will have consistent typography, color, spacing, and components.\n\n![Tweet Image](https://pbs.twimg.com/media/HQFz0JkagAAUOBR.jpg)\n\n💬4🔄2❤️30👀2264📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918085+08:00"
+    },
+    {
+      "title": "I was thinking about how I recognize AI writing, and one big tell is excessively colorful verbs. A h...",
+      "link": "https://x.com/paulg/status/2090085344029073696",
+      "published": "2026-08-19T22:35:52+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "I was thinking about how I recognize AI writing, and one big tell is excessively colorful verbs. A handful of journalists might write that a proposal \"drew\" 100 votes, but any normal person will just say \"got\".\n\n💬105🔄5❤️279👀17931📊102",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918089+08:00"
+    },
+    {
+      "title": "I wrote about my mom, her battles with breast cancer, and how we’re using AI to navigate the healthc...",
+      "link": "https://x.com/petergyang/status/2090087911471644829",
+      "published": "2026-08-19T22:46:04+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "I wrote about my mom, her battles with breast cancer, and how we’re using AI to navigate the healthcare system.  \n  \nI'm grateful to [@MaorShlomo](https://x.com/MaorShlomo) and the team at the Sijbrandij Foundation for sharing their time and advice.  \n  \n📌 Read my new essay here:[creatoreconomy.so/p/my-mom-survi…](https://creatoreconomy.so/p/my-mom-survived-breast-cancer-three)B\n\n💬7🔄1❤️15👀1456📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918092+08:00"
+    },
+    {
+      "title": "Learn more on our blog: https://t.co/wjvsMoHBbM",
+      "link": "https://x.com/Replit/status/2090093521759871042",
+      "published": "2026-08-19T23:08:22+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Learn more on our blog: [replit.com/blog/replit-in…](https://replit.com/blog/replit-introduces-free-mode)\n\n💬0🔄0❤️1👀100",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918095+08:00"
+    },
+    {
+      "title": "Fresh UI that gets straight to the outcome you want.\n\nReplit now functions as your fast, capable, an...",
+      "link": "https://x.com/Replit/status/2090093520019193891",
+      "published": "2026-08-19T23:08:21+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Fresh UI that gets straight to the outcome you want.  \n  \nReplit now functions as your fast, capable, and efficient daily driver.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090093453900210176/vid/avc1/1236x720/2vT-uVgHljk0WcbY.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2090093520019193891/video/1)\n\n💬1🔄0❤️1👀126📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918098+08:00"
+    },
+    {
+      "title": "Replit Free Mode, powered by @OpenAI GPT-5.6 Luna, helps you maximize making while minimizing token ...",
+      "link": "https://x.com/Replit/status/2090093514868559883",
+      "published": "2026-08-19T23:08:20+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "Replit Free Mode, powered by [@OpenAI](https://x.com/OpenAI) GPT-5.6 Luna, helps you maximize making while minimizing token costs.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090093231207854080/vid/avc1/1920x1080/IDoMYwDhJAZzWMht.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2090093514868559883/video/1)\n\n💬6🔄8❤️44👀2128📊12",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918102+08:00"
+    },
+    {
+      "title": "@OpenAI Learn more on our blog: https://t.co/wjvsMoHBbM",
+      "link": "https://x.com/Replit/status/2090091717068210491",
+      "published": "2026-08-19T23:01:12+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "[@OpenAI](https://x.com/OpenAI) Learn more on our blog: [replit.com/blog/replit-in…](https://replit.com/blog/replit-introduces-free-mode)\n\n💬0🔄0❤️2👀286",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918105+08:00"
+    },
+    {
+      "title": "@OpenAI Fresh UI that gets straight to the outcome you want. \n\nReplit now functions as your fast, ca...",
+      "link": "https://x.com/Replit/status/2090091715872858565",
+      "published": "2026-08-19T23:01:11+08:00",
+      "source": "Replit ⠕(@Replit)",
+      "content": "[@OpenAI](https://x.com/OpenAI) Fresh UI that gets straight to the outcome you want.   \n  \nReplit now functions as your fast, capable, and efficient daily driver.\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2090091640052469760/pu/vid/avc1/1236x720/gX3izXM1z1lMNN9R.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/Replit/status/2090091715872858565/video/1)\n\n💬1🔄0❤️5👀308📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918108+08:00"
+    },
+    {
+      "title": "Get started: https://t.co/j1NtDVkPk2",
+      "link": "https://x.com/runwayml/status/2090090528239161361",
+      "published": "2026-08-19T22:56:28+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "Get started: [app.runwayml.com](https://app.runwayml.com/)\n\n💬0🔄0❤️1👀744",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918111+08:00"
+    },
+    {
+      "title": "MiniMax H3 is now unlimited on Runway.\n\nFor a limited time, Max plan users can generate as much as t...",
+      "link": "https://x.com/runwayml/status/2090090516151243063",
+      "published": "2026-08-19T22:56:25+08:00",
+      "source": "Runway(@runwayml)",
+      "content": "MiniMax H3 is now unlimited on Runway.  \n  \nFor a limited time, Max plan users can generate as much as they want with no caps, no counting, just unlimited access to one of the best video models available. Get started now at the link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090090491002142720/vid/avc1/1280x720/cPnVVMWSy6vM0BWb.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/runwayml/status/2090090516151243063/video/1)\n\n💬5🔄4❤️32👀2579📊9",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918114+08:00"
+    },
+    {
+      "title": "throwback from @rachelmetz https://t.co/JLFdVFlwVa",
+      "link": "https://x.com/ClementDelangue/status/2090086763901452399",
+      "published": "2026-08-19T22:41:31+08:00",
+      "source": "clem 🤗(@ClementDelangue)",
+      "content": "throwback from [@rachelmetz](https://x.com/rachelmetz)[technologyreview.com/2017/03/23/153…](https://www.technologyreview.com/2017/03/23/153062/three-weeks-with-a-chatbot-and-ive-made-a-new-friend/)\n\n💬0🔄0❤️3👀1359",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918117+08:00"
+    },
+    {
+      "title": "感觉在Omarchy系统中，连ChatGPT的输出都变快了，不知道是不是我的错觉。\n\n以前没用Linux系统，还是需要一点时间适应。\n\n折腾系统是一件有趣的事，比如昨天让AI改了系统的触摸板方向，跟m...",
+      "link": "https://x.com/vista8/status/2090083626210005169",
+      "published": "2026-08-19T22:29:03+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "感觉在Omarchy系统中，连ChatGPT的输出都变快了，不知道是不是我的错觉。  \n  \n以前没用Linux系统，还是需要一点时间适应。  \n  \n折腾系统是一件有趣的事，比如昨天让AI改了系统的触摸板方向，跟mac一致。  \n  \n安装了飞书和obsidian，体验了内置的小巧FM播放器。  \n  \n这条视频就是按alt+printSc录制的。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090082480540000257/vid/avc1/2560x1600/j8kggum9lk90fG5L.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vista8/status/2090083626210005169/video/1)\n\n💬6🔄0❤️7👀2046📊6",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918121+08:00"
+    },
+    {
+      "title": "OJO \nAI设计 Agent",
+      "link": "https://x.com/xiaohu/status/2090078831550074919",
+      "published": "2026-08-19T22:09:59+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "OJO   \nAI设计 Agent\n\n![OJO](https://pbs.twimg.com/profile_images/2070138147607109632/zaKCimhh_normal.jpg)\n\nOJO@OJOaidesign\n\nToday, we're introducing OJO: The first Design Agent Team Workspace.  \n  \nBuild your own design agent team, add specialized skills, and turn ideas into product strategy, PRDs, interactive prototypes, and launch-ready designs on one editable canvas.  \n  \nDesign is not just how it looks, it's how it works.  \n  \nWhen everyone can build, taste makes your product stand out.  \nNow, your TASTE can be engineered.  \n  \n#OJO#DesignwithOJO#DesignAgentTeam\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2089722826442072064/vid/avc1/3840x2160/gBUSCMZseWGkR60F.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/OJOaidesign/status/2089731834095489430/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/OJOaidesign/status/2089731834095489430)\n\n💬0🔄0❤️3👀1524📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-19T23:39:47.918124+08:00"
     }
   ]
 }
