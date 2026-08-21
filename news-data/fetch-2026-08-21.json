@@ -2166,6 +2166,182 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-21T09:50:20.038238+08:00"
+    },
+    {
+      "title": "零基础速通DeepSeek Harness，带你玩转赛博乐高",
+      "link": "https://www.ifanr.com/1675781?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-21T10:43:14+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/ChatGPT-Image-08_53_19.png)\n\n学不过来，刚刚学会怎么用好 Codex，现在又来了个 DeepSeek Harness。\n\n过去几天，我们已经介绍过它的插件、各种新玩法和新上线的多模态，但还有一个最基础的问题没有解决：DeepSeek Harness 到底该怎么装，又该怎么用？\n\n这次我们从安装、第一次对话、装 Skill、玩插件一路到卸载，带大家从零跑通 DeepSeek Harness。\n\n## 用 WorkBuddy 安装 DeepSeek Harness\n\nDSH 在某种程度上有点像龙虾，没有完整的点击即安装的应用程序，只有放在代码库里需要通过命令行安装的软件包。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_14-08-47.png)\n\nDeepSeek 官方提供了两种方式，一种是从源码安装，获取完整项目源码，并按照仓库说明完成安装。\n\n> git clone https://github.com/deepseek-ai/deepseek-harness\n\n对于熟悉 Git 和命令行的用户来说，这套流程并不复杂，但后面还要继续执行 pnpm install、构建项目等一系列操作。如果只是想先体验一下 DeepSeek Harness 的普通用户来说，多少还是有些劝退。\n\n所以更简单的方法，是直接通过 Node.js 快速启动。安装 Node.js 后，只需要输入：\n\n> npx @deepseek-ai/dsh web\n\n我们这一批从「龙虾时代」走过来的 AI 原生玩家，电脑上一般都已经安装了 Node.js。在命令行输入 node -v、npm -v 检查一下是否安装好，如果都没有，直接从官网 https://nodejs.org/en/download 下载安装即可。\n\n正常来说，输入快速体验的命令后，我们在浏览器中打开 http://127.0.0.1:3080 该本地地址，就能启动顺利启动 DeepSeek Harness。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_15-47-54.png)\n\n如果还是启动失败，不妨试试社区开发的第三方应用。不少开发者已经基于开源的 DeepSeek Harness 仓库，独立开发了相关的应用，可以像安装微信一样，一键安装到本地电脑上。\n\n其中收藏比较多的是由 Anywhere Lab 开发的桌面端，目前在 GitHub 上已经有 14000 个 Star，算是目前关注度最高的第三方客户端之一。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_15-54-27.png)\n\n正常安装完成后，其界面和官方的 WebUI 基本是保持一致，不同的地方在于它新增了一个插件市场的入口，我们可以直接在插件市场里找到有意思的插件并安装。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_15-53-33.png)\n\n更终极的方法，如果你不想用第三方应用，也不想自己捣鼓终端，交给 WorkBuddy 或者 Codex。\n\n早在我们内测时，安装方法就需要从自己的 GitHub 仓库里面部署，对小白来说是完全不懂。我们就直接把项目链接发给 Codex，Codex 会自动读取项目文档，帮我们在命令行处理那些操作。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_13-36-09.png)\n\n同样的 DeepSeek Harness，我们也可以直接把 GitHub 的仓库链接丢给 Codex，https://github.com/deepseek-ai/deepseek-harness，选择 Codex 访问权限为全部访问，等待它慢慢操作，就能直接帮我们打开安装好的 DeepSeek Harness。\n\n用 WorkBuddy 也可以，就选「日常办公」，工作空间可以任意指定一个本地的文件夹，或者干脆不用指定。模型和思考强度不用太纠结，安装任务本身并不复杂；如果中途涉及较多环境排错，再切高推理等级。\n\n然后直接发送「帮我把这个 https://github.com/deepseek-ai/deepseek-harness 项目部署到本地，让我可以通过 http://127.0.0.1:3080 访问该服务。」\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_14-02-59.png)\n\n很快，Workbuddy 就帮我们安装好了最新版本的 DeepSeek Harness，后续有更新，还可以继续和它对话，让它帮忙更新。\n\n**以前安装一个开源项目，第一步是学会敲命令；现在第一步可以是把 GitHub 链接丢给另一个 Agent。**\n\nDeepSeek Harness 自己还没有做到点击即用，但 Codex、WorkBuddy 这类本地电脑 Agent，已经把它最劝退普通用户的命令行门槛直接抹掉了，而后续更多的繁琐操作，都可以甩手交给 DeepSeek Harness 处理。\n\n## 第一次对话，怎么用多模态\n\n和所有的 Agent 一样，工作区可以让我们指定某个文件夹，在该项目内就能直接开启对话。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_16-04-02.png)\n\n举个例子，点击对话框，选择本地电脑上任意一个文件夹，可以是新创建的，也可以是包含了具体项目文件的；选择之后，我们就能给 DeepSeek Harness 下需求。\n\n一般来说，模型可以选择 DeepSeek-V4-Pro，推理等级选择 Max，虽然贵一点，但是也能减少我们和 AI 拉扯的时间。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_16-10-43.png)\n\nDeepSeek Harness 也会在理解我们需求之后，将项目分成多个有进度可跟踪的任务，以及使用目标模式来控制任务不偏离原需求。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_16-25-33.png)\n\n中途遇到需要我们做决策的部分，或者需要授权的审批，DeepSeek Harness 都会弹出通知让我们选择。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_14-53-50.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_17-39-43.png)\n\n和一般的网页版生成不同，DeepSeek Harness 会持续调用工具来完善最终的交付，就像这个《牛来》的游戏，DeepSeek Harness 生成的网页，还是有一定的可玩性的。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a86c921b524e.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a86c921b524e.png)\n\n甚至还识别到了「半导体老祖」、「跳过小溪」、「父子相认」这些名场面。\n\n而简单的问答或是安装 Skills 现在都可以交给他，例如我们从网上找了一个 PPT 的 Skill，ppt-master，然后直接在对话框发送「帮我安装一下这个 Skill https://github.com/hugohe3/ppt-master/blob/main/skills/ppt-master/SKILL.md」\n\n安装完成之后，直接说用这个 Skill 帮我做一份语文课 PPT，内容是朱自清的《荷塘月色》。\n\nDeepSeek Harness 会遵照 PPT Master Skill 的要求，自动打开一个新的浏览器标签页，要我确认设计方案。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-20-10.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-23-52.png)\n\n最后生成的效果，也确实很不错。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-48-55.png)\n\n和其他 Agent 不一样的地方，则是 DeepSeek Harness 新增的「轨迹」页面，把调用了哪些工具，助手的回复，上下文注入以及 Token 的使用都清晰的呈现出来了。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-13-37.png)\n\n以及多种不同的运行模式，处理不同的任务。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-15-30.png)\n\n基本的使用大概就是这样，如果是从一个已有文件的本地文件夹，我们也可以让 DeepSeek Harness 帮我们完成文件的整理。\n\n刚好 DeepSeek Harness 最近的更新加入了多模态的功能，在 0820 的更新日志里写着「新增功能：增强多模态支持度，DeepSeek 模型适配器支持配置启用原生图片请求，/goal、/plan 等命令可接收图文输入，@ 菜单支持引用文件和会话」\n\n但实际的情况是 **Harness 多模态了，当前用的这个 DeepSeek 模型还没有。**\n\n当 DeepSeek Harness 遇到整理的文件是图片时，它依然会报错，表示 DeepSeek-V4-Pro 不是一个支持多模态的模型，它无法读取图片内容。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-19_18-17-01.png)\n\n这次更新打通的是 Harness 的输入管线和模型适配层，所以 DSH 已经能把图片送给支持视觉的模型；V4-Pro 本身不接图片，因此默认组合下依然看不了图。\n\n根据更新的仓库代码显示，前一版本的 DeepSeek Harness 多模态支持处于较基础阶段。在多轮对话中，如果发送了多张图片或单张图太大，极易因为图片历史堆积（Token 超限、API 格式不支持）导致模型请求直接崩溃（Crash）。\n\n更新之后的多模态，不仅仅是聊天框，/goal（目标模式）和 /plan（计划模式）这些底层命令也正式打通了图文输入，并且能在 @ 菜单里直接拖入/引用图片文件。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a86c9d10b766.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a86c9d10b766.png)\n\n但如果模型本身不支持「看图」，即模型在 DeepSeek 官方适配器中被标记为 [“text”]，就无法使用 DSH 的多模态能力。代码注释还解释了为什么拒绝：工具结果会进入持久会话历史，如果路由不支持图片，会破坏续聊和分叉。\n\n## 创作第一个插件\n\n万物皆插件，插件几乎是 DeepSeek Harness 最大的亮点，如果不使用插件，可能会觉得 DSH 也不过如此。\n\n在 DeepSeek Harness 官网，给出的自定义插件案例，就有创作 UI 插件，开发贪吃蛇游戏插件，以及自定义一个代码审查模式。\n\n[![](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a86cb7685bfd.png)](https://s3.ifanr.com/wp-content/uploads/2026/08/img_6a86cb7685bfd.png)\n\n我们可以直接在对话框输入「给当前界面加入一个鲸鱼的背景。」DSH 的插件能力，就能让我们自定义整个用户界面。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-47-07.png)\n\n从 DSH 的思考轨迹可以看到，它使用的是 Cordis 内核的能力，即 Cordis 内核只负责插件的加载、卸载和依赖关系，不承载 Agent 的具体能力。\n\n> 基于 Cordis 内核的服务，模型、工具、技能、会话、沙箱、存储、循环、调度、UI 等所有 Agent 能力均可以由插件提供，再通过 Cordis 服务与事件彼此协作。\n\n前段时间，「滑动变祖器」在社交媒体上被网友们疯狂转载。我们也把这个项目链接丢给 DSH，告诉他当我们选择不同的思考深度时，界面的 UI 要根据 Low、High、Max 做出对应的调整。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/2026-08-20-16.18.30.2026-08-20-16_25_39.gif)\n\n▲ 提示词：参考这个仓库 https://github.com/Lichtspektrum/liang-intensity-calibrator，把滑动变化的图片设置为 UI 界面的背景，然后当我们选择不同的思考深度时，界面的 UI 要会根据 推理等级 做出对应的调整，变化为不同的图片背景。\n\n类似皮肤的插件还可以在专门的皮肤市场找到更多的案例，有深海女仆工坊、回到 2005 的广告门户网站、海洋皮肤、滑动变祖，以及便签等 189 个皮肤插件。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_15-33-18.png)\n\n▲ 地址：https://kingofsoysauce.github.io/dsh-skin-market/\n\n之前我们也分享了 DSH 好玩的插件，也有网友自发整理了各类插件，不过目前主流的玩法还是集中在可视化的 UI、不同任务类型的 Agent 编排、以及处理记忆、连接不同第三方服务的 MCP 等。\n\n如果看到有意思的插件，安装也很简单，除了在终端输入类似的命令 dsh plugin –profile web add github:csyangwen/dsh-memory-evolve，我们甚至可以直接跟 DeepSeek Harness 对话就行。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_16-29-25.png)\n\n▲ 安装的记忆插件，让对话框上方从对话和轨迹，变成了包含技能、待办等多项内容的界面\n\n或许有意思的插件，还得自己去对话框一轮一轮测试，记得切换到创造模式，效果或许会更好。\n\n## 一键卸载\n\n卸载和安装一样，直接告诉 WorkBuddy/Codex 也可以，一句话「帮我卸载电脑上的 DeepSeek Harness。」\n\n如果是通过：npx @deepseek-ai/dsh web 快速体验，DeepSeek Harness 并没有作为一个全局应用安装到电脑里。**关闭运行它的终端，或者结束对应的进程，服务也就停止了，不需要再额外执行 npm uninstall。**\n\n如果此前是从 GitHub 克隆源码运行，则停止服务后，**再删除本地的 deepseek-harness 项目文件夹即可**。至于第三方桌面客户端，就和普通应用一样，直接从系统中卸载。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_17-12-39.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_17-11-42.png)\n\n▲ 提示词：帮我在桌面制作一个deepseek harness本地桌面启动器，有一键打开和一键卸载的功能\n\n而 DeepSeek Harness 留下的会话、配置和凭据也不准备保留的话，还可以继续删除 ~/.dsh 目录。\n\n到这里，从安装、第一次任务、装 Skill、折腾插件，再到最后卸载，DeepSeek Harness 基本就算跑过一遍了。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_16-52-45.png) ![](https://s3.ifanr.com/wp-content/uploads/2026/08/PixPin_2026-08-20_16-56-12.png)  \nDSH 说 15s 之后会重启，它自己还在输出，时间到了就重启完，重启之后成功安装了工作区目录树的插件\n\n回头想想，这套流程里最有意思的变化可能还发生在 DeepSeek Harness 之外：**我们可以让 Agent 帮忙安装 Harness，再让 Harness 给自己安装插件**。\n\n以后折腾一个新的 AI 工具，需要记住的命令可能会越来越少，需要说清楚的只剩下一件事——我们到底想让 AI 做什么。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244729+08:00"
+    },
+    {
+      "title": "国产“预制算力”来了：工厂预制率超90% 24小时内投运 交付效率提升70%",
+      "link": "https://www.qbitai.com/2026/08/476409.html",
+      "published": "2026-08-21T10:31:10+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244743+08:00"
+    },
+    {
+      "title": "首批！优必选行者具身智能大模型完成生成式人工智能服务备案",
+      "link": "https://www.qbitai.com/2026/08/476406.html",
+      "published": "2026-08-21T10:26:49+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244748+08:00"
+    },
+    {
+      "title": "三箭齐发！优必选WRC2026全方位展示人形机器人工业、商用、家庭消费应用成果",
+      "link": "https://www.qbitai.com/2026/08/476403.html",
+      "published": "2026-08-21T10:22:43+08:00",
+      "source": "量子位",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244751+08:00"
+    },
+    {
+      "title": "网易有道2026Q2财报：Q2净收入14.7亿元，AI原生战略加速兑现商业价值",
+      "link": "https://www.qbitai.com/2026/08/476400.html",
+      "published": "2026-08-21T10:15:28+08:00",
+      "source": "量子位",
+      "content": "8月20日，网易有道（NYSE：DAO）发布了2026年第二季度未经审计的财务业绩。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244755+08:00"
+    },
+    {
+      "title": "以上就是全部\n\n如果您喜欢这个主题：\n\n1.关注我（@FinanceYF5）\n2. 点赞+转发下面第一条帖子\n\nhttps://t.co/DRPzSaH2lX",
+      "link": "https://x.com/FinanceYF5/status/2090623330785300751",
+      "published": "2026-08-21T10:13:38+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "以上就是全部  \n  \n如果您喜欢这个主题：  \n  \n1.关注我（[@FinanceYF5](https://x.com/FinanceYF5)）  \n2. 点赞+转发下面第一条帖子  \n  \n[x.com/FinanceYF5/sta…](https://x.com/FinanceYF5/status/2090622429270008246)\n\n![AI Will](https://pbs.twimg.com/profile_images/1896818103016935424/ucw3T2uW_normal.jpg)\n\nAI Will@FinanceYF5\n\n1/ “哪些估值在 100 亿美元或以下的人工智能供应链初创公司（计算、电力、芯片、数据中心）最有趣？”  \n  \nChris Barber向行业人士征集后，共有约75家算力、能源、芯片和数据中心公司获得提名。  \n  \nMatX以10票排名第一。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HQNiBUXbYAA3XQz.png)\n\n[🔗 View Quoted Tweet](https://x.com/FinanceYF5/status/2090622429270008246)\n\n💬0🔄0❤️0👀172",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244758+08:00"
+    },
+    {
+      "title": "源：https://t.co/05YIkSylqw",
+      "link": "https://x.com/FinanceYF5/status/2090622523021078697",
+      "published": "2026-08-21T10:10:26+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/chrisbarber/st…](https://x.com/chrisbarber/status/2090465268220977405)\n\n![Chris Barber](https://pbs.twimg.com/profile_images/2016529267836809217/FuZPHn-C_normal.jpg)\n\nChris Barber@chrisbarber\n\nI asked people: \"which AI supply chain startups (compute, power, chips, datacenters) valued at $10b or less are most interesting?\"  \n  \n10 votes: MatX  \n8: American Terawatt  \n6 each: Lightmatter, Modal, Prime Intellect  \n4 each: Valar Atomics, Wafer  \n3 each: Ayar Labs, d-Matrix, Gimlet Labs, Heron Power, Olix, Panthalassa, Positron, Substrate, Taalas, Tenstorrent, xLight  \n2 each: Aalo Atomics, Corintis, Fab2, General Matter, Ornn, SF Compute, Starcloud, Stone Power, TensorWave  \n1 each: 49 more startups, see image and below  \n  \nPeople also voted for Base Power, Crusoe, Etched, and Fluidstack but those are over the valuation limit.  \n  \nDisclosure: I'm a small angel in American Terawatt and Wafer. I didn't vote.\n\n![Tweet Image](https://pbs.twimg.com/media/HQLTFRfaAAAy_ZK.png)\n\n[🔗 View Quoted Tweet](https://x.com/chrisbarber/status/2090465268220977405)\n\n💬1🔄1❤️0👀228📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244761+08:00"
+    },
+    {
+      "title": "1/ “哪些估值在 100 亿美元或以下的人工智能供应链初创公司（计算、电力、芯片、数据中心）最有趣？”\n\nChris Barber向行业人士征集后，共有约75家算力、能源、芯片和数据中心公司获得提名...",
+      "link": "https://x.com/FinanceYF5/status/2090622429270008246",
+      "published": "2026-08-21T10:10:03+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "1/ “哪些估值在 100 亿美元或以下的人工智能供应链初创公司（计算、电力、芯片、数据中心）最有趣？”  \n  \nChris Barber向行业人士征集后，共有约75家算力、能源、芯片和数据中心公司获得提名。  \n  \nMatX以10票排名第一。👇\n\n![Tweet Image](https://pbs.twimg.com/media/HQNiBUXbYAA3XQz.png)\n\n💬2🔄0❤️0👀602📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244764+08:00"
+    },
+    {
+      "title": "Every DevTool without a one-click-copy-API-key-button is not a DevTool.",
+      "link": "https://x.com/browser_use/status/2090621911587848362",
+      "published": "2026-08-21T10:08:00+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Every DevTool without a one-click-copy-API-key-button is not a DevTool.\n\n![Tweet Image](https://pbs.twimg.com/media/HQEE_spaMAA-ajH.png)\n\n💬0🔄1❤️1👀203📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244766+08:00"
+    },
+    {
+      "title": "🎁 For six weeks, create more with Genspark at exceptional value.\n\n🎨 Design + GenTeam: 90% off Plus...",
+      "link": "https://x.com/genspark_ai/status/2090618874605809762",
+      "published": "2026-08-21T09:55:56+08:00",
+      "source": "Genspark(@genspark_ai)",
+      "content": "🎁 For six weeks, create more with Genspark at exceptional value.  \n  \n🎨 Design + GenTeam: 90% off Plus, Pro & Team  \n📧 GenMail: free for everyone  \n📊 Slides Ultra Mode: 50% off all plans  \n  \nMore room to create. More ways to move ideas forward.  \n  \nEnds Sept 30, 11:59 PM PS[genspark.ai](https://www.genspark.ai/)w3Zi\n\n💬1🔄0❤️1👀723📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244769+08:00"
+    },
+    {
+      "title": "Download Now&gt;&gt; https://t.co/AQUUJ32sLp #MiniMaxDesign",
+      "link": "https://x.com/Hailuo_AI/status/2090613791134507476",
+      "published": "2026-08-21T09:35:44+08:00",
+      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
+      "content": "Download Now>> https:[design.minimax.io](https://design.minimax.io)MaxDesign\n\n💬0🔄0❤️1👀228",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244772+08:00"
+    },
+    {
+      "title": "Free usage/inference for a month for DeepSeek V4 Flash 0731. Testing some things in our infra.\n\nDM. ...",
+      "link": "https://x.com/Suhail/status/2090612936717062526",
+      "published": "2026-08-21T09:32:20+08:00",
+      "source": "Suhail(@Suhail)",
+      "content": "Free usage/inference for a month for DeepSeek V4 Flash 0731. Testing some things in our infra.  \n  \nDM. This tweet will be deleted.\n\n💬9🔄1❤️27👀2982📊10",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244775+08:00"
+    },
+    {
+      "title": "深度用了两天 Memmy，挺不错\nhttps://t.co/62LR9ggzP8\n尤其适合现在 Codex 额度用的这么快的情况，用它提供的 hook 接入所有的 agent，用完了我直接用 Curs...",
+      "link": "https://x.com/vikingmute/status/2090610369731735716",
+      "published": "2026-08-21T09:22:08+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "深度用了两天 Memmy，挺不错  \n[github.com/MemTensor/memm…](https://github.com/MemTensor/memmy-agent)  \n尤其适合现在 Codex 额度用的这么快的情况，用它提供的 hook 接入所有的 agent，用完了我直接用 Cursor 继续干活，可以无感的继续完成任务，以后如果换 Agent 很方便。\n\n![Tweet Image](https://pbs.twimg.com/media/HQNW8X9aAAAKJzj.jpg)\n\n![Viking](https://pbs.twimg.com/profile_images/725179208528322560/TPjU7qop_normal.jpg)\n\nViking@vikingmute\n\n最近发现一个叫 Memmy 的开源项目很不错：  \n[github.com/MemTensor/memm…](https://github.com/MemTensor/memmy-agent)  \n  \n之前我用的不同的 Coding Agent 相互是割裂的，对于同一个项目使用不同的 Agent 每次都等于要重新开始，手动输入一大堆重复的上下文。  \n  \nMemmy 的思路是把记忆从 Agent 里抽出来，变成用户自己的 Personal Context——Cursor、Claude Code、Codex、OpenClaw 等等几乎所有的 coding agent 历史都能导进来，统一整理后供所有 Agent 共享，建立一个共享的记忆层。一个 AI 学过的东西，另一个 AI 不用再学一遍，切换工具时按需注入相关记忆。  \n  \n我自己测下来非常实用的一点：平时用 多 agent 写同一个功能，尤其是大的 feature，互相不记得对方学过什么，移交的时候我还需要用 handoff 这种类似的skills ，现在它可以自动扫描把所有 Agents 的相关内容 - 架构，踩过的坑，进度全存在 Memmy 里，不管切到哪个 Agent，它通过 hooks 的模式自动检索并且添加相关记忆，而且不是所有数据很机械的全都放进去，而是经过它自己的匹配机制，一上来就懂你的要完成的功能和当前进度，这个很舒服，  \n  \n比如如图所示：一个大 feature 的开发我用 Codex 额度耗尽了，我可以打开 Cursor 直接使用 memmy-memory 这个 skills 就可以无痛的继续开发了，相关开发的进度和内容都无感的注入进去了，可以看图二，反之亦然，用什么工具都可以，图三就是 Cusor 也能获取 Codex 的开发进度和内容，也就是图三的内容。  \n  \nLocal-first 架构，数据自己掌控，支持桌面端、CLI、API、MCP 和 Skills，还自带 Agent Runtime 能直接执行任务 目前同时支持最新的 DeepSeek Harness 。注册送 token，推荐给同时在用多个 AI Agent 的朋友。\n\n![Tweet Image](https://pbs.twimg.com/media/HQFVTkRakAA2FA6.jpg)![Tweet Image](https://pbs.twimg.com/media/HQFVTkRasAEgkhr.jpg)![Tweet Image](https://pbs.twimg.com/media/HQFVTkMaAAARfk9.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/vikingmute/status/2090046473262268708)\n\n💬1🔄0❤️1👀1085📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244778+08:00"
+    },
+    {
+      "title": "结合屏幕上下文是一个挺好的参考信息输入",
+      "link": "https://x.com/yangyi/status/2090616953941672375",
+      "published": "2026-08-21T09:48:18+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "结合屏幕上下文是一个挺好的参考信息输入\n\n![Bojie Li](https://pbs.twimg.com/profile_images/819210652564615168/NNNeTcef_normal.jpg)\n\nBojie Li@bojie\\_li\n\n这几天闭关搞出的开源语音输入法 DoNotType，只要配置一个 Gemini API key 就可以用。原来我都是用 Typeless 的，但是它会改写我的话，看起来有很多 AI 味，而且自动记忆的词典经常影响识别。而传统语音输入法没有 screen grounding，用的也是相对差的模型，技术名词的识别准确率低。DoNotType 基于当前屏幕的内容，利用 LLM 进行语音识别，中英文技术名词识别准确率都比较高。  \n  \nDoNotType 我已经作为主力输入法在 Mac 和手机上用了 3 天了。已经支持 MacOS/Android/iOS 版本（都在 Active 开发中，尚未上架 App Store）。  \n  \nMIT 协议开源，欢迎试用 & star & 提 issue！  \n[github.com/bojieli/DoNotT…](https://github.com/bojieli/DoNotType)\n\n![Tweet Image](https://pbs.twimg.com/media/HQK3rcZagAEoZTu.jpg)![Tweet Image](https://pbs.twimg.com/media/HQK3rcVaIAA6CfE.jpg)![Tweet Image](https://pbs.twimg.com/media/HQK40zCaEAEfD12.png)\n\n[🔗 View Quoted Tweet](https://x.com/bojie_li/status/2090438525238006126)\n\n💬1🔄0❤️0👀911📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244781+08:00"
+    },
+    {
+      "title": "Cola 上线全新模型 Ox 牛来了！\n多模态，小参数，强后训练，Terra 能力级别，flash 的速度！\n\n目前限时免费体验中，欢迎体验。\n温馨提示：beta 模型没有技术支持，且可能存在一定问题...",
+      "link": "https://x.com/oran_ge/status/2090635985331818920",
+      "published": "2026-08-21T11:03:55+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "Cola 上线全新模型 Ox 牛来了！  \n多模态，小参数，强后训练，Terra 能力级别，flash 的速度！  \n  \n目前限时免费体验中，欢迎体验。  \n温馨提示：beta 模型没有技术支持，且可能存在一定问题，请谨慎使用。  \n如有问题可以在这个帖子集中反馈。  \n  \n体验地址：[colaos.ai](https://colaos.ai)\n\n![Tweet Image](https://pbs.twimg.com/media/HQNt-eRbUAAkKg0.jpg)\n\n💬0🔄0❤️0👀82",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244784+08:00"
+    },
+    {
+      "title": "Codex最近额度暗砍的根本就没法用，我还是200刀的Pro，随便跑两个任务就没了快20%，这还玩个屁啊。",
+      "link": "https://x.com/Khazix0918/status/2090623813335781821",
+      "published": "2026-08-21T10:15:33+08:00",
+      "source": "数字生命卡兹克(@Khazix0918)",
+      "content": "Codex最近额度暗砍的根本就没法用，我还是200刀的Pro，随便跑两个任务就没了快20%，这还玩个屁啊。\n\n![Tweet Image](https://pbs.twimg.com/media/HQNjHfgbgAAtqSV.png)\n\n💬63🔄1❤️74👀7661📊72",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-21T11:11:30.244787+08:00"
     }
   ]
 }
