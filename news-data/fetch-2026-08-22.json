@@ -1586,6 +1586,128 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-22T06:33:27.111862+08:00"
+    },
+    {
+      "title": "Say it once: introducing Bot Preference Sync",
+      "link": "https://blog.cloudflare.com/bot-preference-sync%20/",
+      "published": "2026-08-22T07:19:57+08:00",
+      "source": "The Cloudflare Blog",
+      "content": "We’re constantly building for the different goals of our customers. Some customers want to optimize for discovery, while others want to protect their content with the strictest security policy. Among these differing policies, there are multiple ways to mitigate bot traffic. Some mechanisms simply state your preference, assuming best intent from crawlers, and other approaches actually lock down content by outright blocking with a Bot Management solution.\n\nWe recognize that it's cumbersome to maintain multiple layers of protection on your website. For example, there are cases in which your robots.txt states that a crawler is Disallowed from accessing your website, while your enforcement rules actually don’t block that crawler. When your stated preferences and your enforced rules disagree, some crawlers treat it as a basis to disregard your preferences or try to bypass your enforced rules.\n\nA couple of years ago, Cloudflare announced an easier way to disallow AI training on your website by tackling two of these layers: a managed value of robots.txt that told a fixed list of major Training crawlers not to train on your content, along with edge-enforced blocks to Training crawlers. On July 1, 2026, we launched easier options to manage different kinds of AI traffic use cases. You can say what you want to do about Search, Agent, and Training traffic on your website.\n\nWe're announcing **Bot Preference Sync**, available to *all* customers from the Free tier to Enterprise. Bot Preference Sync reflects what you've set in your AI bot configuration by updating corresponding preferences to your robots.txt, and it can be turned on or off at any time. No more static file for one use case: we'll help you **tailor your robots.txt to reflect what you’ve already configured for different AI bot categories**.\n\n## New questions facing the Internet\n\nFor years, the most pressing question in this space was: \"Is my content being used to train AI models without my permission?\" It's an important question, and it isn't going away. Alongside this, the questions we increasingly hear are about discoverability and engagement. How do I show up when someone asks an AI assistant something my site can answer? How much of my traffic is coming from AI crawlers versus real people? What content is actually driving referrals, and what is it worth?\n\nThe answers differ by business model. Discoverability and engagement are key, top-of-mind issues for any businesses trying to thrive on the modern web, but the funnels for these are different: an e-commerce store may want everything crawled and trained on, so its products surface when a shopper asks a chatbot for \"the best sofa for a small apartment.\" A publisher that monetizes pages with ads may want the opposite: stay in the search index that sends readers to the page, but keep its articles out of model training and, crucially, be able to verify that its content really wasn't used without permission.\n\nThere's no single right answer, which is exactly the point. Your controls should reflect your strategy, which is why we've been building tools to give you visibility and choice at every layer. Bot Preference Sync ties these together, so the preference you *set* is the preference you *publish*.\n\n## The call for Transparency\n\nOn July 1, 2026, we made the case that mixed-use crawlers, or “bots that blend search, agent use, and training behind a single user agent,” put site owners at a disadvantage precisely because they make it hard to separate what you want from what you don't. That's still true, and our position on Transparency for site owners hasn't changed.\n\nBut there’s more than one way to approach Transparency. We want to reward the operators who are clear about their identity and how they are using the data they crawl. For purposes of bot [Verification](https://developers.cloudflare.com/bots/concepts/bot/verified-bots/), the owners of **bots that perform both Search and Training will need to provide additional information** in order to not be blocked when “Disallow Training” is set. Those requirements are:\n\n* The bot must respect, via any mechanism, a “no training” preference in robots.txt\n* They give site owners a way to opt out of AI summaries.\n* They provide URL-level visibility into which pages were made available for training, as well metrics on search results, so you can see how your content was used for search and for training.\n* They can show publicly that Disallowing Training does not hurt your traditional search results.\n\nBots of leading AI models and service providers that meet these criteria are tracked publicly in the [AI bot transparency](https://radar.cloudflare.com/ai-insights#ai-bot-transparency) section in Cloudflare Radar, which includes examples in which best practices are honored, as well as when they are not. Crawlers that don't provide Transparency will *not* get the benefit of the doubt — they're still blocked when you disallow training. In other words, this is a way of making Transparency the price of admission.\n\n## Introducing Bot Preference Sync\n\nBot Preference Sync is a new feature that keeps your robots.txt reflecting the AI bot preferences you've already set for Search, Agent, and Training on the Cloudflare zone-level dashboard. If a site owner already has a robots.txt file, the contents added by Bot Preference Sync will be *prepended to the* existing material, so any existing Disallow directives are maintained.\n\nInstead of a site owner maintaining a separate static file, Cloudflare generates or updates your robots.txt based on your configuration, so what you say to the world and what you enforce at the edge are kept in sync.\n\nFor Search and Agent, the three options we announced on July 1 remain: Allow, Block on pages that serve ads, or Block everywhere. For **Training**, we’re refining the option to stop your content being used for training models with the **Disallow** option:\n\n**Disallow**: a \"no training\" preference is written to your robots.txt, so that cooperating mixed-use crawlers who take the extra Transparency step can still access your content for search indexing, since they’re allowing site owners to directly verify how their data is used. Cooperating crawlers honor the preferences in robots.txt, and your Search visibility for cooperating crawlers is unaffected.\n\nLet’s take the example below, in which someone has configured their AI bot policy to say “Allow Search, Allow Agents, Disallow Training.”\n\nSince this example site has Bot Preference Sync on, their robots.txt would prepend something like the following (which has been shortened and anonymized for the sake of the example):\n\nWe’ll use bots that we track in [BotBase](https://developers.cloudflare.com/bots/botbase/) to periodically update the list of bots that is added to robots.txt when you choose to Block or Disallow a given category. The Verified bots that are classified as Search, Agent, and Training can be viewed at any time in our [public bots directory](https://radar.cloudflare.com/bots/directory).\n\nFor all new customers, Bot Preference Sync will be *on* by default, to make it easier to manage blocks and preferences that reflect the same policy. For existing customers who are using the legacy managed robots.txt feature, we'll prompt you to review and confirm your preferences to transition to the new Bot Preference Sync upon its upcoming launch.\n\nSome customers may want or need to be more hands-on in stating their preferences, for example, if they have a special arrangement with a given company to which they want to grant an exception. Because Bot Preference Sync is designed to tackle policy decisions made *category-wide* rather than case-by-case, it will not directly read from individual custom rules with more complex logic. Customers with a more fine-tuned security policy always have the option to turn *off* the sync that sets group policies, and tailor their file to match their custom policy.\n\nWe’re also making a change that allows publishers or ad-supported sites to have a different default from other site owners. We’ve created a default to make it easier for publishing sites that rely on ads and expect them to be reserved for human visitors. At the time of onboarding, such customers can select the option, “I monetize from pages with ads on this domain\", which will set Training to Disallow as the default. (Customers have the choice to change this setting at any time.) This way, you stay in search while keeping your content out of model training.\n\nFor the non-publisher case, new customers will *not* have any blocks or disallows added by default when they onboard a domain: the choice is up to the customer. You can choose if you want to block Search or Agent or Training at any point, but the starting point will *not* add any blocks on your behalf.\n\n## What's next?\n\nBot Preference Sync will be available to *all* customers, on every plan, in the coming week. Keep an eye on our changelog for availability, and watch your dashboard (and inbox) for the prompt to confirm your preferences!\n\nThis is one step in a longer effort. We'll keep working with the large bot operators to make sure we're not compromising on familiar challenges (like training without consent) nor emerging questions (like discoverability and engagement). Beneath it all is our effort to promote greater Transparency and control for site owners.",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://blog.cloudflare.com/_emdash/api/media/file/01M0GECYRV44NP1WR229SCRK7E.png",
+      "fetched_at": "2026-08-22T07:31:51.757041+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/adocomplete/status/2090923565738840565",
+      "published": "2026-08-22T06:06:40+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "[![Animated GIF](https://pbs.twimg.com/tweet_video_thumb/HQRz5iDbAAA9Ve2.jpg)](https://video.twimg.com/tweet_video/HQRz5iDbAAA9Ve2.mp4)\n\n![Thariq](https://pbs.twimg.com/profile_images/1976939058741039104/r3GgzqRh_normal.jpg)\n\nThariq@trq212\n\na skill people at Anthropic have been using a lot recently: ELI5  \n  \n/eli5 <what you want explained>  \n  \n\"explain like I'm someone who knows nothing about this topic, using a HTML artifact with big pictures and few words\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090849386284863488/vid/avc1/2112x1598/mDVDv383WdOaFV5I.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/trq212/status/2090884854590382515/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/trq212/status/2090884854590382515)\n\n💬3🔄0❤️9👀1050📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757056+08:00"
+    },
+    {
+      "title": "🤯",
+      "link": "https://x.com/amasad/status/2090922626890031428",
+      "published": "2026-08-22T06:02:56+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "🤯\n\n![MakerThrive](https://pbs.twimg.com/profile_images/2080804027495854080/MxYb-uHx_normal.jpg)\n\nMakerThrive@MakerThrive\n\nit's been a wild day to say the least.   \n  \n$24k in revenue from my weekend [@Replit](https://x.com/Replit) project i built on my iphone.   \n  \ngrab your spot: [1milllionpixels.com](http://1milllionpixels.com)\n\n![Tweet Image](https://pbs.twimg.com/media/HQRvbzPXcAALWQM.jpg)![Tweet Image](https://pbs.twimg.com/media/HQRvbzBXMAAOUV6.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/MakerThrive/status/2090918653864665493)\n\n💬4🔄1❤️28👀6441📊6",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757062+08:00"
+    },
+    {
+      "title": "Breaking: Browser Use is faster than a human⚡\n\nRunning Qwen 3.8 27B on 2x B200s with DFlash2.\n\n> spe...",
+      "link": "https://x.com/browser_use/status/2090937982295630278",
+      "published": "2026-08-22T07:03:57+08:00",
+      "source": "Browser Use(@browser_use)",
+      "content": "Breaking: Browser Use is faster than a human⚡  \n  \nRunning Qwen 3.8 27B on 2x B200s with DFlash2.  \n  \n> speed ✅  \n> cost ✅  \n> accuracy ✅ (most of the time)  \n  \nQwen 27B is better at using the internet than you are. The only bottleneck is website loading.  \n  \nComment if you want us to deploy this to our cloud 👀\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090934982105870336/vid/avc1/1660x1080/gmPwNxAkHc40EtHA.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/browser_use/status/2090937982295630278/video/1)\n\n💬2🔄1❤️8👀537📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757065+08:00"
+    },
+    {
+      "title": "8.5",
+      "link": "https://x.com/GaryMarcus/status/2090932874514161945",
+      "published": "2026-08-22T06:43:39+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "8.5\n\n![Neighbors First | Mike Brooks](https://pbs.twimg.com/profile_images/1957912386997751810/K6PrdHTr_normal.jpg)\n\nNeighbors First | Mike Brooks@DrMikeBrooks\n\n[@GaryMarcus](https://x.com/GaryMarcus) Gary, how insane does our world seem to you on a scale from 0 to 10 with a 10 being bat- shit crazy?\n\n[🔗 View Quoted Tweet](https://x.com/DrMikeBrooks/status/2090930957519872453)\n\n💬3🔄2❤️10👀1388📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757069+08:00"
+    },
+    {
+      "title": "Muse Spark 1.2 contributor tier is available now on OpenRouter.\n\nYour prompts and outputs may be use...",
+      "link": "https://x.com/OpenRouter/status/2090926224982122979",
+      "published": "2026-08-22T06:17:14+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "Muse Spark 1.2 contributor tier is available now on OpenRouter.  \n  \nYour prompts and outputs may be used to improve Meta's products, making it ideal for experimentation, learning, and early-stage projects without worry about spend  \n  \n[openrouter.ai/meta/muse-spar…](https://openrouter.ai/meta/muse-spark-1.2-contributor)\n\n💬0🔄1❤️5👀661📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757072+08:00"
+    },
+    {
+      "title": "We’re excited to bring @AIatMeta’s Muse Spark 1.2 contributor tier to OpenRouter.\n\nAt $0.10/M input ...",
+      "link": "https://x.com/OpenRouter/status/2090926212701184447",
+      "published": "2026-08-22T06:17:11+08:00",
+      "source": "OpenRouter(@OpenRouterAI)",
+      "content": "We’re excited to bring [@AIatMeta](https://x.com/AIatMeta)’s Muse Spark 1.2 contributor tier to OpenRouter.  \n  \nAt $0.10/M input and $0.20/M output, It’s meaningfully cheaper than Muse Spark 1.2 and beats other comparable models on real cost, providing frontier intelligence-per-dollar.\n\n![Tweet Image](https://pbs.twimg.com/media/HQR2TyFaYAAsRVJ.jpg)\n\n💬5🔄5❤️68👀3215📊13",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757075+08:00"
+    },
+    {
+      "title": "Hey Instinct, it's not cool to index and retain my emails without my permission and not let me delet...",
+      "link": "https://x.com/petergyang/status/2090936583814025417",
+      "published": "2026-08-22T06:58:23+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Hey Instinct, it's not cool to index and retain my emails without my permission and not let me delete them from your records?   \n  \nI can't recommend this to anyone until this is figured out. Thanks [@clairevo](https://x.com/clairevo) for spotting this.\n\n![Tweet Image](https://pbs.twimg.com/media/HQR_W3hboAEcIPt.png)\n\n💬3🔄1❤️5👀961📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757078+08:00"
+    },
+    {
+      "title": "Delivery day at our Microsoft DCs as the first production Vera Rubins arrive. A huge thank you to ou...",
+      "link": "https://x.com/satyanadella/status/2090929770779521310",
+      "published": "2026-08-22T06:31:19+08:00",
+      "source": "Satya Nadella(@satyanadella)",
+      "content": "Delivery day at our Microsoft DCs as the first production Vera Rubins arrive. A huge thank you to our partners at [@nvidia](https://x.com/nvidia) and our Azure hardware and datacenter teams for all the incredible work that brought us to this milestone!\n\n![Tweet Image](https://pbs.twimg.com/media/HQR0PMCa4AEbZVy.jpg)![Tweet Image](https://pbs.twimg.com/media/HQR0PMAbIAEKOLs.jpg)![Tweet Image](https://pbs.twimg.com/media/HQR0PMAaYAAfqIe.jpg)\n\n💬41🔄49❤️381👀29334📊72",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757081+08:00"
+    },
+    {
+      "title": "这是不是很熟悉，大家还记得 openclaw 吗？",
+      "link": "https://x.com/oran_ge/status/2090932043500912847",
+      "published": "2026-08-22T06:40:21+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "这是不是很熟悉，大家还记得 openclaw 吗？\n\n![庄表伟](https://pbs.twimg.com/profile_images/1350989009816870915/S0Wbl_w7_normal.jpg)\n\n庄表伟@zhuangbiaowei\n\n听说dsh现在有8000多个插件，听说dsh升级以后，这些插件都挂了。\n\n[🔗 View Quoted Tweet](https://x.com/zhuangbiaowei/status/2090829425797648648)\n\n💬1🔄0❤️1👀665📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757084+08:00"
+    },
+    {
+      "title": "这是一个有意思的 Skill，叫 ELI5，意思是就好比你给 5 岁孩子解释这件事，所以要通俗易懂。生成结果是 HTML 页面。\n\n其实你要是不经常用都没必要去安装这个 Skill，这个 Skill ...",
+      "link": "https://x.com/dotey/status/2090933611054731566",
+      "published": "2026-08-22T06:46:35+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "这是一个有意思的 Skill，叫 ELI5，意思是就好比你给 5 岁孩子解释这件事，所以要通俗易懂。生成结果是 HTML 页面。  \n  \n其实你要是不经常用都没必要去安装这个 Skill，这个 Skill 里面也就是一句提示词而已。  \n  \n提示词（[github.com/anthropics/cla…](https://github.com/anthropics/claude-plugins-community/blob/main/eli5/skills/eli5/SKILL.md)）：  \n请把我当成对这个话题一无所知的人，用一个包含大图且文字较少的 HTML 组件来向我解释。\n\n![Thariq](https://pbs.twimg.com/profile_images/1976939058741039104/r3GgzqRh_normal.jpg)\n\nThariq@trq212\n\na skill people at Anthropic have been using a lot recently: ELI5  \n  \n/eli5 <what you want explained>  \n  \n\"explain like I'm someone who knows nothing about this topic, using a HTML artifact with big pictures and few words\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090849386284863488/vid/avc1/2112x1598/mDVDv383WdOaFV5I.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/trq212/status/2090884854590382515/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/trq212/status/2090884854590382515)\n\n💬1🔄1❤️27👀2899📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-22T07:31:51.757087+08:00"
     }
   ]
 }
