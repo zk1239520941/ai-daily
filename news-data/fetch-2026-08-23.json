@@ -1,0 +1,275 @@
+{
+  "meta": {
+    "date": "2026-08-23"
+  },
+  "entries": [
+    {
+      "title": "EP223: Ollama vs vLLM vs SGLang",
+      "link": "https://blog.bytebytego.com/p/ep223-ollama-vs-vllm-vs-sglang",
+      "published": "2026-08-22T23:31:34+08:00",
+      "source": "ByteByteGo Newsletter",
+      "content": "## [Over 80% of container spend is wasted. Here’s how to fix it. (Sponsored)](https://go.bytebytego.com/Datadog_082226)\n\n[![](https://substackcdn.com/image/fetch/$s_!5rl9!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F1c17fb96-10a5-4e04-8254-0a65b64d027b_2020x1200.png)](https://go.bytebytego.com/Datadog_082226)\n\nMany teams over-provision containers, underuse spot instances, and have no visibility into which pods are burning budget. Get the eBook from Datadog, which covers five practical optimizations for Kubernetes and ECS environments with specific techniques your team can apply today.\n\nYou’ll learn how to:\n\n* Pinpoint idle containers, over-provisioned pods, and unused clusters draining your cloud budget.\n* Right-size CPU and memory with resource requests, limits, and automated cost recommendations.\n* Cut costs up to 90% with spot instances and savings plans and know exactly when to use each\n\n[Get the ebook](https://go.bytebytego.com/Datadog_082226)\n\n---\n\nThis week’s system design refresher:\n\n* Ollama vs vLLM vs SGLang\n* How does Claude’s text watermark work?\n* Top 12 Agent Skills You Should Know\n* Git Workflow: Essential Commands\n* Apache Kafka vs. RabbitMQ\n\n---\n\n## Ollama vs vLLM vs SGLang\n\nTo use open-weight models on your machine, you have three main options: Ollama, vLLM, and SGLang. But each engine handles requests differently. The diagram below shows the differences and the main techniques behind each engine.\n\n[![Image](https://substackcdn.com/image/fetch/$s_!kbZ3!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3efa7ef0-fa76-4e8c-9d50-540d1c42e7d3_2484x3002.png \"Image\")](https://substackcdn.com/image/fetch/$s_!kbZ3!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3efa7ef0-fa76-4e8c-9d50-540d1c42e7d3_2484x3002.png)\n\nOllama: A local user calls the OpenAI-compatible API, and requests line up in a FIFO queue. Then Ollama runs a pre-quantized GGUF model, a compressed format it pulls, and the response comes back to the user.\n\nOllama is best for local dev, prototyping, and laptop-scale hardware.\n\nvLLM: Many users hit the server at once, and continuous batching slots new requests into the running batch instead of making them wait for it to finish. PagedAttention stores the KV cache, the memory a model keeps for tokens it has already processed.\n\nvLLM is best for high-traffic serving, max GPU utilization, and thousands of concurrent requests.\n\nSGLang: Agents and multi-turn chats send requests whose prompts overlap heavily. A prefix-aware scheduler routes them through the RadixAttention cache, a radix tree that reuses every shared prefix instead of recomputing it.\n\nSGLang is best for AI agents and tool loops, multi-turn chats, and JSON/regex outputs.\n\n---\n\n## How does Claude's text watermark work?\n\nAnthropic recently shared their intent to watermark text so they can identify AI-generated text. This post is based on my understanding of how it works.\n\n[![diagram](https://substackcdn.com/image/fetch/$s_!QmFs!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F1d8301f9-1ad3-44c7-9134-69e30888049c_1280x1546.jpeg \"diagram\")](https://substackcdn.com/image/fetch/$s_!QmFs!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F1d8301f9-1ad3-44c7-9134-69e30888049c_1280x1546.jpeg)\n\nLLMs produce text word by word. At each step, they generate probabilities for the next likely word. Instead of sampling randomly from those words, the watermarking trick changes which words are allowed to be picked.\n\nHow to watermark a response?\n\nStep 1: The model produces probabilities for the next word.\n\nStep 2: Normally a random number generator picks one of the good candidates. With watermarking, a keyed function takes a secret key plus the previous few words and decides which candidates are valid to pick from.\n\nStep 3: This repeats for the whole response. Places where there are multiple plausible choices carry the watermark signal.\n\nHow to detect a watermarked text?\n\nStep 1: For any candidate word in the text, we check whether it is a valid choice based on the secret key and the few preceding words. If the word is valid, that is counted as a match.\n\nStep 2: Run this across the entire text. Watermarked text matches far more often. The overall match rate can be treated as an AI-generated score.\n\nI’m personally getting quite annoyed by the false negatives from all these AI text detection techniques, especially for technical writing.\n\nWhat's your thoughts on AI text detection? Do you think AI text detection is useful, or will it create more problems?\n\n---\n\n## Top 12 Agent Skills You Should Know\n\nAgent skills are instructions and scripts that teach your LLM agent a new skill. The diagram below shows the 12 most-starred skill repos on GitHub as of August 2026.\n\n[![Image](https://substackcdn.com/image/fetch/$s_!6j7M!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d0d1c6c-a864-4b20-b1fc-2d86c8ad2fab_2484x3002.png \"Image\")](https://substackcdn.com/image/fetch/$s_!6j7M!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d0d1c6c-a864-4b20-b1fc-2d86c8ad2fab_2484x3002.png)\n\n1. Superpowers (obra/superpowers): This skill makes your agent plan before it writes code.\n2. skills (mattpocock/skills): Matt Pocock's personal skill set makes your agent challenge your plan first. This is useful as agents can sometimes be too soft.\n3. andrej-karpathy-skills: Multica AI distilled Karpathy's advice on AI coding pitfalls into one skill.\n4. everything-claude-code: Skills that help you set up your coding agent. This is useful when you are starting Claude Code from scratch.\n5. skills (anthropics/skills): This is Anthropic's official skills. It makes your agent capable of creating outputs like Word or PDF files.\n6. ui-ux-pro-max-skill: This has instructions that teach your agent how to prevent AI-like designs.\n7. caveman: Julius Brussee's skill makes your agent reply in short caveman speak.\n8. ponytail: Dietrich Gebert's skill teaches your agent how to write code that is simple and clean.\n9. agent-skills: Google's Addy Osmani included production-grade engineering practices in a skill\n10. graphify (safishamsi/graphify): This skill converts a codebase into a knowledge graph, so an agent can navigate easier.\n11. Understand-Anything: Egonex AI converts a codebase into visual maps to explore.\n12. impeccable (pbakaus/impeccable): This skill makes an agent better at UI polish.\n\nOver to you: Which skill would you add to this list?\n\n---\n\n## Git Workflow: Essential Commands\n\nGit has a lot of commands. Most workflows use a fraction of them. The part that causes problems isn’t the commands themselves, it’s not knowing where your code sits after running one.\n\n[![Image](https://substackcdn.com/image/fetch/$s_!Fevp!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Feb1ae3fa-80a7-464d-97a2-869170caaa2f_2360x2960.png \"Image\")](https://substackcdn.com/image/fetch/$s_!Fevp!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Feb1ae3fa-80a7-464d-97a2-869170caaa2f_2360x2960.png)\n\nWorking directory, staging area, local repo, remote repo. Each command moves code between these. Here’s what each one does.\n\n* Saving Your Work: “git add” moves files from your working directory to the staging area. “git commit” saves those staged files to your local repository. “git push” uploads your commits to the remote repository\n* Getting a Project: “git clone” pulls down the entire remote repository to your machine. “git checkout” switches you to a specific branch.\n* Syncing Changes: “git fetch” downloads updates from remote but doesn’t change your files. “git merge” integrates those changes. “git pull” does both at once.\n* The Safety Net: “git stash” is your undo button. It temporarily saves your uncommitted changes so you can switch contexts without losing work. “git stash apply” brings them back. “git stash pop” brings them back and deletes the stash.\n\n---\n\n## Apache Kafka vs. RabbitMQ\n\nKafka and RabbitMQ both handle messages, but they solve fundamentally different problems. Understanding the difference matters when designing distributed systems.\n\n[![Image](https://substackcdn.com/image/fetch/$s_!_5Is!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ebf5287-65fa-4db7-8490-54792fd1886c_2360x2920.png \"Image\")](https://substackcdn.com/image/fetch/$s_!_5Is!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6ebf5287-65fa-4db7-8490-54792fd1886c_2360x2920.png)\n\nKafka is a distributed log. Producers append messages to partitions. Those messages stick around based on retention policy, not because someone consumed them. Consumers pull messages at their own pace using offsets. You can rewind, replay, reprocess everything. It is designed for high throughput event streaming where multiple consumers need the same data independently.\n\nRabbitMQ is a message broker. Producers publish messages to exchanges. Those exchanges route to queues based on binding keys and patterns (direct, topic, fanout). Messages get pushed to consumers and then deleted once acknowledged. It is built for task distribution and traditional messaging workflows.\n\nThe common mistake is using Kafka like a queue or RabbitMQ like an event log. They’re different tools built for different use cases.\n\nOver to you: If you had to explain when NOT to use Kafka, what would you say?",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://substackcdn.com/image/fetch/$s_!kbZ3!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3efa7ef0-fa76-4e8c-9d50-540d1c42e7d3_2484x3002.png",
+      "fetched_at": "2026-08-23T00:34:22.199427+08:00"
+    },
+    {
+      "title": "Cursor now shows you demos, not diffs",
+      "link": "https://youtu.be/XbZvC4KTH68?si=sEDqt3JtV0PoqLei",
+      "published": "2026-08-23T00:33:12+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199435+08:00"
+    },
+    {
+      "title": "John Schulman on dead ends, scaling RL, and building research institutions",
+      "link": "https://youtu.be/29BYxvvF1iM?si=LRmoeWAwilHKmjGY",
+      "published": "2026-08-23T00:33:12+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199440+08:00"
+    },
+    {
+      "title": "Our designer built an operating system with Cursor",
+      "link": "https://youtu.be/TQhv6Wol6Ns?si=bb8_Jr5u7Kb8n6jk",
+      "published": "2026-08-23T00:33:12+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199444+08:00"
+    },
+    {
+      "title": "AI Foundations: Introduction",
+      "link": "https://youtu.be/IccjZDV93lw?si=f3mepO4Ptiqdg4F8",
+      "published": "2026-08-23T00:33:12+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199447+08:00"
+    },
+    {
+      "title": "Claude Code，省Token费用的教程来了！",
+      "link": "https://mp.weixin.qq.com/s?__biz=MzIyNjM2MzQyNg==&mid=2247725554&idx=1&sn=28b5abdee03e820457230ab8e5daae7d",
+      "published": "2026-08-22T22:49:00+08:00",
+      "source": "Datawhale",
+      "content": "原创 Datawhale 2026-08-22 22:49 浙江\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=759eac99&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_jpg%2FzW6S9vt0cS8p93ic4yepHPmqCjXs2r4KhVTZMMvKOUjMQHhpYnxWh04oIUmoutZgjVjhSCjL9ZUVBmqRDvJ3P8N0AZhWtq2Zg4wH0V1ZqXdw%2F0%3Fwx_fmt%3Djpeg)\n\nDatawhale干货 \n\n******最新成果：伦敦大学学院团队******\n\n现在，大家已经在用很多 Claude Code 一起 Coding。\n\n然后，Token 开始蹭蹭往上涨。\n\n谁改了接口，群里说一遍；前端、后端、测试分别确认；协调 Agent 再汇总一次，转给所有人。\n\n好家伙，活还没干多少，进度倒是同步了三轮。\n\n最近******伦敦大学学院团队******用 Claude Code 做了 1902 次实验，专门算了这笔账。在部分由 8 个 Agent 参与、消息密集的任务中，把重复沟通换成共享文件，输出 Token 少了约 42%。\n\n![用户附件](https://wechat2rss.bestblogs.dev/img-proxy/?k=2c076c40&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FzW6S9vt0cSib4ibb0KnHIkzpIXibn7o56MojDbVDM1IYKgGAXIEozyKWIXr6GJtyEQAkaIn3hHnzVwVzEIltuYeoVBIOicpYGM9738ery956FdI%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n```\nhttps://arxiv.org/abs/2608.16801\n```\n\n对，你没看错。\n\n省 Token 的办法，不是再训练一个更聪明的协调 Agent，也不是上复杂的调度框架。\n\n就是建个文件。\n\n## 一、Agent 越能聊，为什么反而越贵\n\n最直接的浪费，是同一条信息被说了很多遍。\n\n比如一个 Agent 修改接口，它需要通知前端、后端和测试。三方收到后，又各自回复确认。Agent 数量一多，点对点消息很快就铺开了。\n\n有些任务其实不需要这么多人旁听。\n\n在“搜集资料—分析—执行—验收”这类流程里，搜集 Agent 把结果交给分析 Agent 就够了。它没必要继续跟着执行和验收，更不用反复接收后续进度。\n\n协调 Agent 也容易变成传话筒。\n\n它收进度、转消息，看起来一直在忙，实际上只是给团队多加了一层汇报。论文实验中，专门设置一个协调 Agent，并没有稳定提高成功率。\n\n问题慢慢清楚了：\n\n```\n要反复使用的信息，被反复发送；只需要交接一次的结果，又发给了太多人。\n```\n\n# 二、一份共享文件，Token直降 42%\n\n论文验证的办法很直接：把多个 Agent 都会用到的信息，集中放进共享文件。\n\n放到实际项目里，可以在根目录建一份 AGENT\\_STATUS.md。\n\n任务目标、验收标准、Agent 分工、当前进度、已经确认的结论和阻塞问题，都写在这里。每个 Agent 开工前先读最新状态，做完自己的部分再更新。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=1e24be53&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_png%2FzW6S9vt0cSibjDfrg3lRtr70p9f7r4ia7Wktic6TEgI3SzHVtTLLFknxzaVV9XGbrd7mvYhg9WJMnuTdYP2qFZczib79Ag4tL2GLTLyPF9zy5wA%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n这样一来，消息不再负责搬运整段背景，只需要告诉别人“哪里发生了变化”。\n\n比如接口更新了，先改共享状态，再通知受影响的前端和测试 Agent。其他人用不到，就不用跟着收消息。\n\n说白了，这份文件就是 Agent 团队的办公室白板。\n\n大家都要看的内容写在白板上。真有急事，再单独喊人。\n\n```\n约 42%：这一降幅来自论文中的特定实验，不能直接外推到所有项目。\n```\n\n42% 的数字很亮眼，但别把它当成固定折扣。\n\n如果两个 Agent 只做一次交接，专门建文件、读文件、更新文件，反而可能更贵。真正影响收益的，是公共信息原本被重复了多少次。\n\n# 三、不是所有消息，都该塞进共享文件\n\n共享文件好用，也不能什么都往里扔。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=0f3cf452&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FzW6S9vt0cS8tU533Dd36LULGjiaGQTicZ10HAMXbVanPIX6XMibibyO5YHny8FjusYRF4uEzwBBx6bwVujY6RoXjFg5zBgVJibkM8ftDvPQXdsTg%2F640%3Fwx_fmt%3Djpeg)\n\n只影响一个 Agent，就点对点发送；影响全员，再广播一次。\n\n至于协调 Agent，也没必要接收和转发所有消息。\n\n它真正该做的是拆任务、定输入输出、限制修改范围、检查结果。只有发生冲突、偏离目标或者验收失败时，再出来处理。\n\n能由上下游直接完成的交接，就别再绕一次。\n\n# 写在最后：哪些情况不适用\n\n如果任务本来已经通过文件完成交付，就不用再加一份状态文件。\n\n如果只有两个 Agent，发一条消息能说清楚，也没必要搭新的流程。\n\n还有一种情况更麻烦：项目变化很快，状态却没人更新。\n\n其他 Agent 读到旧内容，干得越快，返工越多。所谓“唯一事实来源”，最后会变成唯一的过期信息来源。\n\n判断要不要共享状态，其实只需要问一句：\n\n这条信息接下来，会不会被多个 Agent 反复使用？\n\n会，就集中保存；不会，直接交给需要它的 Agent。\n\nClaude Code 跨会话通信解决了“Agent 能不能聊”。接下来更现实的问题是：怎么让它们少说重复的话。\n\n毕竟 Token 应该花在干活上，不是花在开会。\n\n![图片](https://wechat2rss.bestblogs.dev/img-proxy/?k=b3b530c0&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FvI9nYe94fsGxu3P5YibTO899okS0X9WaLmQCtia4U8Eu1xWCz9t8Qtq9PH6T1bTcxibiaCIkGzAxpeRkRFYqibVmwSw%2F640%3Fwx_fmt%3Dother%26wxfrom%3D5%26wx_lazy%3D1%26wx_co%3D1%26tp%3Dwebp%23imgIndex%3D20)\n\n**一起“**点****赞”****三连**↓**\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=210838be&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzIyNjM2MzQyNg%3D%3D%26mid%3D2247725554%26idx%3D1%26sn%3D28b5abdee03e820457230ab8e5daae7d)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199450+08:00"
+    },
+    {
+      "title": "More than just code review",
+      "link": "https://simonwillison.net/2026/Aug/22/more-than-just-code-review/",
+      "published": "2026-08-22T23:56:54+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "The key skill required to make productive use of coding agents is being able to confidently instruct them on how to make changes and then confidently verify that those changes have been applied in the correct way.\n\nSometimes this involves reviewing every line of code they have written, but there are other ways to achieve that goal. Eyeballing every line of code has never been the most effective way to validate a chance to a piece of software.\n\nTags: [code-review](https://simonwillison.net/tags/code-review), [coding-agents](https://simonwillison.net/tags/coding-agents), [generative-ai](https://simonwillison.net/tags/generative-ai), [agentic-engineering](https://simonwillison.net/tags/agentic-engineering), [ai](https://simonwillison.net/tags/ai), [llms](https://simonwillison.net/tags/llms)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199453+08:00"
+    },
+    {
+      "title": "KDD&apos;26美团学术论文精选及KDD Cup&apos;26 DataAgents赛道冠军思路解读",
+      "link": "https://tech.meituan.com/2026/08/13/KDD-2026-meituan-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "KDD（ACM SIGKDD Conference on Knowledge Discovery and Data Mining）是数据挖掘与知识发现领域最具影响力的国际顶级学术会议。KDD 以其严格的论文录用标准和深厚的学术影响力著称，是推动数据驱动研究与应用创新的重要平台。大会为学术界和工业界提供了交流前沿成果的高水平论坛，论文录用率通常在 15%-20% 左右，属于计算机领域的 CCF-A 类顶级会议。\n\n本文精选了美团技术团队被 KDD 2026 收录的 8 篇论文进行分享，这些论文覆盖了推荐大模型、生成与奖励建模框架、智能体搜索、Transformer 框架、元泛化框架等技术领域。\n\n🏆 此外，大众点评技术部还荣获了 2026 KDD Cup 复杂数据分析 Data Agents 国际竞赛的冠军、季军，本文介绍了团队比赛思路和解题策略。希望以上这些内容能够对大家有所帮助或启发。\n\n## 01 MTFM: A Scalable and Alignment-free Foundation Model for Industrial Recommendation in Meituan\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.11235)\n\n![](https://p0.meituan.net/meituantechblog/9720828f0ff8f07f6ce01f56d9e3f820362245.png)\n\n**论文简介**：工业推荐系统通常涉及多个场景，而现有的跨域（CDR）和多场景（MSR）方法往往需要大量资源且要求严格的输入对齐，限制了其可扩展性。该论文提出了MTFM（Meituan Foundation Model for Recommendation），一种基于Transformer的框架，旨在解决上述挑战。MTFM不预先对齐输入，而是将跨域数据转换为异质Token，以无对齐的方式捕捉多场景知识。为提升训练效率，MTFM引入了多场景用户级样本聚合机制，显著减少了总实例数量，大幅提升训练吞吐量；同时融合了Grouped-Query Attention和定制化的Hybrid Target Attention，有效降低了内存占用和计算复杂度。\n此外，论文还实现了多项系统级优化，如kernel融合和消除CPU-GPU阻塞，进一步提升了训练和推理吞吐。在外卖等场景的离在线实验均验证了MTFM的有效性，证明了通过扩展模型容量和多场景训练数据可以实现显著的性能提升。基于MTFM，团队构建了服务于以上多个业务主场景的统一基座推荐大模型，替换各自的独立精排模型，并完成了全量。\n\n## 02 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/6c7cf0afe25cec1712d7dde27ff5a337479964.png)\n\n**论文简介**：本文提出CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 03 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p0.meituan.net/meituantechblog/1d4c9143463672d888cb2eb2a0732a1f723905.png)\n\n**论文简介**：本文针对本地生活服务领域AI搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含 900 道多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现，当前模型在此类任务表现不佳，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 04 Deterministic-Allocation and Anonymous Joint Advertising in E-commerce Platforms\n\n**论文下载**：[PDF](https://dl.acm.org/doi/epdf/10.1145/3770855.3818370)\n\n![](https://p0.meituan.net/meituantechblog/5a01fb282240b7941f2037723c76a830296753.png)\n\n**论文简介**：针对联合广告拍卖场景中的算法无法同时满足匿名性和确定性分配的问题，导致实际应用中存在分配不公平和激励不兼容等问题，提出了JTransNet模型。匿名性要求拍卖结果仅依赖于竞标价值，而与参与者身份和顺序无关，确定性分配则保证同样的输入下分配结果唯一。JTransNet通过引入匿名性和确定性分配机制，结合可微分的NeuralSort排序方法，实现了端到端数据驱动的AMD自动化模型拍卖算法。该算法很好的解决了联合拍卖场景下多方出资的流量分配和扣费问题，在离线和在线实验中均显著提升了平台广告收益。JTransNet已在美团零售核心业务场景全量上线，促进了广告业务流量售卖的公平性与收益提升，同时为工业界大规模自动化模型拍卖机制算法设计提供了有效的解决方案。\n\n## 05 UME: A Unified Meta-Generalization Framework for Cross-Domain ETA\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.00979)\n\n![](https://p0.meituan.net/meituantechblog/224479de429aacd8bedb20f6801bc454309283.png)\n\n**论文简介**：在即时物流场景中，提单页面的预估到达时间（checkout page ETA）对提升用户满意度、优化调度策略和控制运营成本至关重要。在美团Keeta等国际化即时配送平台上，具有显著的跨域异质性，多域建模已成为核心需求。然而，现有方法面临三大挑战：一是无法泛化到完全未见过的新市场域，无法在冷启动阶段实现零样本预测；二是跨域特征空间不一致，新市场域由于缺乏历史数据积累导致离线统计特征结构性缺失；三是成熟域与冷启动域往往需要分别建模，阻碍了知识迁移并增加了维护成本。\n为此，本文提出了UME（Unified Meta-generalization framework for ETA），一个统一元泛化框架。UME设计了统一双分支网络和基于超网络的元学习机制，通过域级知识和实例级上下文动态调制特征门控、专家注意力和最终预测，实现跨域关联建模和域内自适应。同时引入知识蒸馏策略弥合特征缺失带来的信息差距。该方法在离线实验与线上实验中均优于现有方法。\n\n## 06 Generative Large-Scale Pre-trained Models for Automated Ad Bidding Optimization\n\n**论文下载**：[PDF](https://arxiv.org/abs/2508.02002)\n\n![](https://p0.meituan.net/meituantechblog/396bda4d89816423002639874d71f127405992.png)\n\n**论文简介**：现代自动竞价系统需要在整体效果、广告主多样化目标和现实约束之间取得平衡，反映行业不断变化的需求。近年来，条件生成模型（如Transformer和扩散模型）能够根据广告主偏好直接生成竞价轨迹，为传统基于马尔可夫决策过程的方法提供了有前景的替代方案。但这些生成方法也面临诸如离线与在线环境分布偏移、动作空间探索有限以及需满足CPM和ROI等约束的挑战。为此，我们提出了GRAD，这是一种可扩展的自动竞价基础模型。GRAD通过动作混合专家模块实现多样化竞价行为探索，并结合因果Transformer进行约束优化。\n\n## 07 HMAF: A Hierarchical Multi-Slot GD-RTB Allocation Framework\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.09896)\n\n![](https://p0.meituan.net/meituantechblog/19e1a9d93222a49084e792c4927e3727945241.png)\n\n**论文简介**：在现代在线广告平台中，保证交付（GD）合约与实时竞价（RTB）拍卖共存并相互竞价。现有方法要么将GD与RTB的优化解耦，要么依赖启发式的优先级规则，因此无法在复杂的多坑位投放和曝光约束下，有效平衡短期收入最大化与长期合约交付目标。针对这些问题，我们提出了HMAF（分层多坑位分配框架），这是一个统一框架，旨在优化GD-RTB广告平台中的曝光分配。HMAF以“规划–校准–执行”范式为核心结构，将离线约束优化与在线决策相结合，统筹离线GD资源规划、动态校准GD与RTB的竞争强度，并在多坑位环境中做出实时的列表级排序决策。\n\n## 08 MTGenRec: An Efficient Distributed Training System for Generative Recommendation Models in Meituan\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2505.12663)\n\n![](https://p0.meituan.net/meituantechblog/8a8160c9e6e058a3b21d8ac801d8030996413.png)\n\n**论文简介**：生成式推荐在搜索、推荐、广告领域得到越来越广泛的应用，在用户体验和平台收入方面均取得了显著的提升。随着生成式推荐模型Scaling Dense的发展趋势，业界越来越倾向于基于PyTorch生态构建下一代推荐模型训练引擎，最大程度上复用LLM的发展红利。然而，PyTorch 生态在对大规模稀疏Embedding训练的支持上，仍有较大的提升空间。因此，我们基于PyTorch 生态提出了MTGenRec训练框架，统一「稀疏-稠密」训练能力，满足工业级生成式推荐模型训练需求。\n具体来说，针对稀疏ID我们提出使用动态Hashtable替换静态表，解决ID动态上下线的问题，方便用户使用；为了提升训练效率，我们提出自动合表、ID去重、变长序列负载均衡等技术，针对推荐场景进行极致优化。此外我们还开发了断点续训、混合精度训练、梯度累积、算子融合等配套技术。大量实验结果显示相比TorchRec baseline，MTGenRec能够取得1.6倍~2.4倍的训练加速比，同时保证训练精度不变。从8卡扩展到128卡，MTGenRec也取得了近似线性的扩展效率。目前MTGenRec已在美团内部多个核心场景落地使用。\n\n## | 大众点评技术部荣获2026 KDD Cup 复杂数据分析 Data Agents 国际竞赛冠军、季军\n\nKDD Cup 是数据挖掘与知识发现领域全球公认的顶级赛事。在 2026 赛季的 DataAgents 赛道中，美团技术团队历时两个月，从全球参赛队伍中突围，最终摘得冠军与季军。\n\n比赛考察的是模型在真实复杂数据场景下的理解与推理能力——多模态输入、非结构化文档、干扰信息识别，每一项都是当前 Agent 落地的硬骨头。\n\n![](https://p0.meituan.net/meituantechblog/6cbd9673a4bd101e2c1801e9885063b7266358.png)\n\n传统的 Data+AI 系统虽已在特定任务上取得显著进展，但端到端的分析流程仍高度依赖人类专家编排，成为制约数据分析可扩展性与适应性的主要瓶颈。为此，KDD Cup 2026 提出以「数据智能体（Data Agents）」破局——通过融合知识理解、推理与规划能力，自主完成任务拆解与规划、工具选择与调用、异构数据推理以及结果综合。复杂数据分析是其中的核心任务，主要挑战在于真实数据的「异构鸿沟」与推理链路的非线性复杂性。Data Agents智能体接收一份异构的多模态数据包（涵盖数据库、PDF 报告、JSON 数据、图表乃至视频等），并针对一个高层次的自然语言问题，自主编排包含并行分支、迭代循环与结果汇聚的复杂推理过程，最终给出准确答案，旨在推动构建真正自主的数据分析系统。\n\n![](https://p1.meituan.net/meituantechblog/60d60d0f980155b3f2b65db725493b035233598.png)\n\n比赛中，队伍将点评「问点仔」建设过程中积累的 Agent Harness 能力迁移至赛题，利用业余时间构建了完整的 Agent 运行时，支持多类型数据文件的自主探索以及 SQL、Python 等分析工具的选择与执行。通过错误反馈、超时控制和自动重试等机制，提升智能体在长链路任务中的稳定性与容错能力。针对视频和非结构化文档等异构数据，还构建了多模态视频理解子智能体和非结构化文档 ETL 子智能体，进一步增强主智能体的数据提取、理解与综合分析能力。此次获奖验证了相关技术在复杂异构数据分析Agent场景中的有效性，也为后续持续提升「问点仔」智能化水平提供了技术积累。\n\n目前，相关代码已在[GitHub开源](https://github.com/zhezh/kddcup2026_champion)，后续我们还会通过技术博客分享更多的技术细节，敬请期待！",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://p0.meituan.net/meituantechblog/9720828f0ff8f07f6ce01f56d9e3f820362245.png",
+      "fetched_at": "2026-08-23T00:34:22.199456+08:00"
+    },
+    {
+      "title": "美团正式发布 CatPaw：全场景 AI Agent，从个人提效到企业智能化",
+      "link": "https://tech.meituan.com/2026/07/28/CatPaw-LongCat.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "本月，美团 LongCat 2.0 已[正式开源](https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html)，总参数 1.6T，平均激活约 48B，动态范围 33B 到 56B，原生支持 1M 超长上下文。这是首个在五万张国产算力卡上完成全流程训练与推理的万亿参数模型。开源只是第一步，让 LongCat 2.0 在真实的工作任务中成为可靠的“工作伙伴”，才是真正的考验。\n\n现在，搭载 LongCat 2.0 的美团全场景 AI Agent 平台 [CatPaw](https://catpaw.meituan.com/) 正式上线，将模型能力从“跑得动”推向“用得好”。CatPaw 提供开箱即用的 AI 智能工作台与企业级 Agent 开发托管能力。\n\n不仅如此，依托美团十余年深耕本地生活的行业积累，CatPaw 将商家经营、服务履约与消费决策的深度认知融入其中，助力企业构建 AI 数字员工、推进业务智能化升级。\n\n目前，CatPaw 已在美团内部大规模落地：累计覆盖 9 万员工、搭建 Agent 3 万个，并在多个真实业务场景中完成验证。\n\n## 全时段运行，多终端协作的 AI 智能工作台\n\n### 01 移动/PC/云端，全时段多端协作\n\n提供独立的**移动端 App 与 PC 客户端**，双端任务实时同步、无缝协作。移动端支持随时发起任务、查看进度与远程确认关键决策；PC 端专注本地深度执行，具备文件操作、浏览器控制与终端命令等完整能力。\n\n云端模式支持 **7 × 24 小时不间断运行**，即使本地设备关机或断网也不受影响。长程任务与定时任务于云端持续运转，完成后随时打开手机或电脑即可查看成果。\n\n![](https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png)\n\n### 02 深耕本地生活，融合美团业务生态\n\n在全场景通用 AI Agent 能力的基础上，CatPaw 进一步融入了美团在本地生活领域的全链路行业认知。从门店经营、评价体系、营销转化到履约配送，这些深度积累已被封装为即装即用的**专家与技能**，覆盖门店评价诊断与优化、商品文案生成、营销物料设计评估、活动策划、经营数据分析等场景。\n\nCatPaw 既是人人可用的**全能 AI 助手**，也是真正懂本地生活生意的智能搭档。\n\n![](https://p1.meituan.net/meituantechblog/864f86011bdcc6a2428f980323605284136476.png)\n\n### 03 专家与技能，丰富能力即装即用\n\nCatPaw **支持 AI 专家**，每位专家**集成多项技能与子代理，高效完成特定领域的复杂任务**。从专家广场**一键安装**即可使用，也可通过对话将自己的工作方式快速封装为专属专家，团队共享复用。\n\n平台内置丰富的技能库，开箱即用。内嵌浏览器还**支持操作过程一键录制**，将日常高频流程自动生成专属技能，让个人与团队经验沉淀为可复用的数字化资产。\n\n支持**跨会话长期记忆**，自动记忆用户的个性化偏好、操作习惯与历史上下文，跨设备、跨对话保持连续理解，越用越懂你。\n\n![](https://p0.meituan.net/meituantechblog/7f715c1d858cead54dad86e431e30153313940.png)\n\n### 04 对话即交付，多 Agent 自主协同\n\n只需明确最终目标，Agent 便会**自主规划步骤并在授权范围内深度执行**：读取文件、操作浏览器、运行终端命令，直接交付 Excel、可视化报告或代码等可用成果。\n\n面对跨领域的复杂任务，系统动态进行任务拆解，**调度多个具备专属工具的 Agent 并发处理**，各 Agent 在独立环境中互不干扰，进度实时可见，结果自动汇总。\n\n![](https://p0.meituan.net/meituantechblog/2122a550b13a060033f2a0343680ccfa345379.png)\n\n## 从 AI 工作台到业务系统：Managed Agents\n\nCatPaw Managed Agents 是企业级 AI Agent 开发与托管平台，提供开箱即用的工程底座，**无需从零搭建底层基建**，即可快速构建、部署与管理专属 Agent。\n\n### 01 数字员工，扫码即用灵活配置\n\n数字员工是运行在飞书、企微等 IM 中的 AI 虚拟同事，@ 即可唤醒使用。**平台预置多种角色模板，扫码即用**；美团在本地生活领域的长期积累也已沉淀为专属模板，不只是通用的聊天机器人，而是理解业务的行业 AI 助手。\n\n同时支持通过 **AI 对话描述需求，快速生成专属数字员工**。从 Agent 创建到环境部署、会话初始化，**全程自动完成，无需手动配置**。\n\n提示词、知识库、凭证、工具均支持在线管理，团队可按业务场景灵活搭建。\n\n![](https://p0.meituan.net/meituantechblog/a4a4286eab88dc7a9fb8ad4a359f57d3202455.png)\n\n### 02 企业级安全，数据隔离可控\n\n**Agent 运行环境严格隔离**，租户间数据互不可见。凭证集中托管，**确保 Agent 全程零接触敏感资产**。\n\n支持**分级权限管控**与私有化部署，全面满足企业合规与安全审计要求。\n\n![](https://p0.meituan.net/meituantechblog/d8ea3582939d36764915e7b5f848790e478278.png)\n\n### 03 Agent 托管运行，持续在线\n\n支持**按需配置运行环境**，一键托管上线，**资源动态扩缩**。\n\n沙箱环境轻量隔离，百毫秒级冷启动，闲时自动释放，兼顾响应速度与成本。\n\n![](https://p0.meituan.net/meituantechblog/1c65c6d75279f7085030ad763eeff3b2368282.png)\n\n### 04 可视化运维，全链路可观测\n\n提供统一的运维管理界面，**会话记录完整留存可追溯**，支持在线调试实时排查问题，**模型调用量与消耗清晰可见**。\n\n多维度数据统计与分析，帮助团队持续评估 Agent 表现、优化运行效果。\n\n![](https://p0.meituan.net/meituantechblog/4344c5e90e47733d89ef9ee3d792f88f140185.png)\n\n## 从个人提效到组织智能化：与商家一起探索更多可能\n\n在全场景 AI 能力之上，CatPaw 提供**组织级的管理与管控能力**，满足商家\\*\\*规模化落地 AI \\*\\*的管理需求。\n\nCatPaw 提供统一管理后台，支持团队账号体系。团队成员与权限集中管理，用量明细与消耗实时可查，成本清晰可控。AI 专家和技能支持按团队或角色集中配置与精准下发，一线员工开箱即用，AI 能力快速转化为实际生产力。\n\n此外，CatPaw 还提供与**美团业态深度关联的专属专家与技能**，覆盖外卖、服务零售、医药健康等多个行业。以服务零售为例，美团商家运营专家整合了经营数据分析、评价管理、门店装修等核心场景，帮助商家实现智能化运营。\n\nCatPaw 将持续深入行业场景，让 AI Agent **真正成为驱动经营增长的数字化伙伴**。更多能力陆续开放中，**诚邀美团合作商家抢先体验**。\n\n**体验地址**：<https://catpaw.meituan.com/>",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png",
+      "fetched_at": "2026-08-23T00:34:22.199459+08:00"
+    },
+    {
+      "title": "ICML 2026 | 美团技术团队学术论文精选",
+      "link": "https://tech.meituan.com/2026/06/29/ICML-2026.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "ICML（International Conference on Machine Learning，国际机器学习大会）是机器学习领域最具影响力的国际顶级学术会议之一。大会旨在探讨机器学习未来发展所面临的关键挑战与核心问题，并通过征集和评估具有重要理论价值和实际影响的前沿研究成果，推动领域发展并引领未来研究方向。2026年，ICML共收到全球篇论文23918投稿，最终6352篇被接收，接收率约为26.6%。本文解读了美团技术团队被收录的13篇论文，覆盖智能体推理、强化学习训练、复杂任务生成、智能体基准测试、监督微调等技术方向。\n\n## 01 MemOCR: Layout-Aware Visual Memory for Efficient Long-Horizon Reasoning\n\n**MemOCR：面向高效长程推理的版面感知视觉记忆机制**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2601.21468)\n\n![](https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp)\n\n**论文简介**：长时间跨度的智能体推理需要将不断增长的交互历史有效压缩到有限的上下文窗口中。现有的大多数记忆系统将历史序列化为文本，其中token级别的开销是均匀的，且与长度线性增长。为此，我们提出了MemOCR，一种多模态记忆智能体，通过视觉布局实现自适应信息密度的记忆空间分配，从而在紧张的上下文预算下提升长时间跨度推理能力。在长上下文多跳和单跳问答基准测试中，MemOCR优于强文本基线方法，并在极端预算条件下实现了更有效的上下文利用。\n\n## 02 ScaleEnv: Scaling Environment Synthesis from Scratch for Generalist Interactive Tool-Use Agent Training\n\n**ScaleEnv: 从零开始构建可扩展的环境合成系统用于通用交互式工具使用智能体的训练**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.06820)\n\n![](https://p1.meituan.net/meituantechblog/ccceeac77d665e5ffea65436222decc7118744.webp)\n\n**论文简介**：为智能体配备交互式环境和可验证任务以进行自我探索，对于培养能够适应多样化场景的通用智能体至关重要。我们提出了ScaleEnv，一个完全从零开始构建全交互式环境和可验证任务的框架。ScaleEnv通过程序化测试确保环境的可靠性，通过工具依赖图扩展和可执行动作验证来保证任务的完整性和可解性。在未见过的多轮工具使用基准测试上展示了显著的性能提升，突显了强大的泛化能力。\n\n## 03 V\\_0: A Generalist Value Model for Any Policy at State Zero\n\n**V\\_0：一种适用于任意策略在初始状态下的通用价值模型**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.03584)\n\n![](https://p0.meituan.net/meituantechblog/78419c635c8bc694f07882566afb116176626.webp)\n\n**论文简介**：大语言模型的强化学习训练中的价值模型面临耦合困境：它们需要与更新中的策略同步训练。我们提出了V\\_0，一种通用价值模型，通过将任务重新定义为上下文学习来预测未见策略的性能，从而将价值估计与特定策略参数解耦。实验结果表明，V\\_0在GRPO训练过程中追踪策略演化方面优于耦合价值模型，能够优化冷启动预算分配，并在推理路由中逼近性能-成本的帕累托前沿。\n\n## 04 Learning to Self-Verify Makes Language Models Better Reasoners\n\n**学习自我验证使语言模型成为更好的推理者**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.07594)\n\n![](https://p1.meituan.net/meituantechblog/75add83935b72c67529dc96ae4b6a9b268520.webp)\n\n**论文简介**：近期的大语言模型在为复杂任务生成有前景的推理路径方面表现出色，但在验证自身答案方面仍然薄弱。我们发现学习自我验证能够有效提升生成性能，产生更高效的推理轨迹。我们提出了一个多任务强化学习框架，将生成和自我验证作为两个独立但互补的目标进行联合优化。实验表明，该方法在生成和验证能力上均优于仅进行生成训练的方法。\n\n## 05 AgentNoiseBench: Benchmarking Robustness of Tool-Using LLM Agents Under Noisy Condition\n\n**AgentNoiseBench：噪声条件下工具使用型大语言模型智能体的鲁棒性基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.11348)\n\n![](https://p0.meituan.net/meituantechblog/31e3e86e970c5c79e9b4d762b09326dd118430.webp)\n\n**论文简介**：随着基于大语言模型的智能体越来越多地部署在实际工作流程中，现有的智能体基准测试不足以刻画智能体在不完美用户指令和不可靠工具反馈下的鲁棒性。我们提出了AgentNoiseBench，一个用于系统评估大语言模型智能体交互式噪声鲁棒性的框架。该基准建模了用户侧指令噪声和工具侧结果噪声两种主要噪声来源，提供模块化噪声注入管道和多维度评估指标。通过对25个工具使用模型的评估，发现工具侧噪声通常比用户侧噪声引起更大幅度的性能下降。\n\n## 06 AJ-Bench: Benchmarking Agent-as-a-Judge for Environment-Aware Evaluation\n\n**AJ-Bench：面向环境感知评估的智能体裁判基准**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2604.18240)\n\n![](https://p1.meituan.net/meituantechblog/2b3544e8ab174ad18492a3a6c98ed6b9127010.webp)\n\n**论文简介**：随着强化学习不断推动基于大语言模型的智能体训练规模化，在复杂环境中可靠地验证智能体行为变得日益困难。现有方法依赖基于规则的验证器或 LLM-as-a-Judge 模型，但这些方法难以泛化到狭窄领域之外。Agent-as-a-Judge 通过主动与环境和工具交互以获取可验证的证据来解决这一局限性，但其能力仍未得到充分探索。 我们提出了一个基准测试 AJ-Bench，用于系统性地评估\"智能体充当评判者\"在三个领域——搜索、数据系统和图形用户界面——中的表现，涵盖155个任务和516条标注轨迹。该基准全面评估了评判智能体在信息获取、状态验证和过程验证方面的能力。实验表明，相比 LLM-as-a-Judge 基线方法，该方法取得了稳定的性能提升，同时也揭示了基于智能体的验证中仍存在的重大开放性挑战。\n\n## 07 LUVE : Latent-Cascaded Ultra-High-Resolution Video Generation with Dual Frequency Experts\n\n**LUVE：基于双频率专家的潜空间级联超高分辨率视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.11564)\n\n![](https://p0.meituan.net/meituantechblog/adcdda2e2386d052a06f76362ffc24df164210.webp)\n\n**论文简介**：为解决超高分辨率视频生成中连贯性与算力难以兼顾的难题，该论文提出了基于双频专家的潜空间级联框架LUVE。该框架创新性地采用三阶段架构：先通过低分辨率生成保障运动一致性；接着利用潜空间上采样直接提升分辨率，大幅降低内存与计算开销；最后融合高低频专家细化高分辨内容，全面增强全局语义与局部细节。实验表明，LUVE展现出了卓越的逼真度与内容保真度，其核心思想现已成功应用于美团LongCat-Video模型中。\n\n## 08 Infinite-World: Scaling Interactive World Models to 1000-Frame Horizons via Pose-Free Hierarchical Memory\n\n**Infinite-World：通过无位姿层次化记忆将交互式世界模型扩展至1000帧**\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.02393)\n\n![](https://p0.meituan.net/meituantechblog/7e37532eff0ab36936a1b9cd21f869e7119212.webp)\n\n**论文简介**：Infinite-World 是面向真实场景中的长程交互式世界模型，其目标是在 1000+ 帧生成中保持稳定的视觉记忆和动作响应。针对真实视频中位姿噪声大、视角回访稀少的问题，论文提出三点创新：用无位姿层级记忆压缩器将历史 latent 压缩为固定预算记忆，降低长程建模成本；用不确定性感知动作标注提升噪声轨迹下的动作学习；再通过高回访数据微调增强 loop closure 能力。整体上，它让世界模型更适合从真实视频学习长时空一致性。\n\n## 09 WildActor: Unconstrained Identity-Preserving Video Generation\n\n**WildActor：无约束身份保持视频生成**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2603.00586)\n\n![](https://p1.meituan.net/meituantechblog/24933777ccb49e8a29a709b287221cd8309446.webp)\n\n**论文简介**：本文提出 WildActor，一种面向无约束身份保留的视频生成新框架，旨在应对现有方法在动态长镜头和视角剧烈切换时面临的全身体态不一致、面部漂移及姿态僵死伪影。在机制层面，WildActor 构建了含1.6M视频和18M多视角图像的大规模数据集 Actor-18M，有效解决原始数据中的正脸偏置；同时引入非对称身份保留注意力（AIPA）解耦身份与运动生成，并结合身份感知3D旋转位置编码（I-ROPE）显式分离时空 Token，配合视角自适应蒙特卡洛采样实现了鲁棒的任意视角条件控制。实验表明，WildActor 在新构建的 Actor-Bench 连贯叙事与泛化测试中，不仅全身一致性与文本对齐度显著超越现有开源及商业大模型，还验证了其在复杂现实场景下保持物理恒常性的优越性。\n\n## 10 Navigating the Pareto Frontier of Alignment: Spectrum-Adaptive Fine-Tuning for LLMs\n\n**SAFT：面向大语言模型的谱自适应微调方法**\n\n**论文下载**：[PDF](https://github.com/sjtu-scx/SAFT/blob/main/SAFT.pdf)\n\n![](https://p0.meituan.net/meituantechblog/f7b88b332a240ef7176c970b7c6879cd170832.webp)\n\n**论文简介**：监督微调常用交叉熵作为目标函数，虽然学习高效，但它并非正确率的光滑近似，还会因为特别关注预测概率低的样本从而容易对噪音过度拟合并过度自信。DFT则在梯度层面等同优化正确率的光滑近似函数，在保持训推一致性的同时提升了鲁棒性，但也会削弱对可学习的难样本的学习效率。因此，SFT 与 DFT 构成效率—鲁棒性两个端点，而真实数据应选择哪种折中取决于其未知的内在 SNR。我们提出轻量的 pre-test protocol：用少量训练数据分别训练 SFT/DFT 并在验证集比较表现，SFT 更优则判定为高 SNR 并选择几何插值Geo-SAFT，DFT 更优则判定为低 SNR 并选择调和插值Har-SAFT。相比仍保留低置信梯度发散的线性插值，SAFT 通过数据自适应的几何/调和非线性插值匹配不同噪声 regime，从而获得更优的鲁棒性—效率 Pareto trade-off。\n\n## 11 TRIP-Bench: A Benchmark for Long-Horizon Interactive Agents in Real-World Scenarios\n\n**TRIP-Bench：真实场景中长时域交互式智能体的基准评测**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2602.01675)\n\n![](https://p0.meituan.net/meituantechblog/99f9fc23599da395c9ace3cba6c7d90787516.webp)\n\n**论文简介**：本论文提出了 TRIP-Bench，一个面向长程交互式 Agent 的旅行规划评测基准。它基于真实世界数据构建，包含 18 个工具和 40 多类旅行约束，重点考察模型在多轮对话中保持全局约束、调用工具、处理用户需求变化和方案反复修改的能力。其困难任务最长可达 15 轮用户交互、150 次以上工具调用，甚至超过 20 万 tokens 上下文。实验表明，现有先进模型在该基准上仍表现有限。论文进一步提出 GTPO 多轮强化学习方法，通过奖励归一化和轮次级奖励差分提升模型鲁棒性，使 Qwen2.5-32B-Instruct 在评测中超过 Gemini-3-Pro。\n\n## 12 InfVSR: Toward Consistency-Driven Streaming Generative Video Super-Resolution\n\n**InfVSR：面向一致性驱动的流式生成视频超分辨率**\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2510.00948)\n\n![](https://p0.meituan.net/meituantechblog/8120868b5fc25080dc2c2986f2323c5468146.webp)\n\n**论文简介**：本文提出了 InfVSR，一种面向一致性驱动的流式生成视频超分辨率新框架，旨在解决扩散式视频超分方法在长视频场景中存在的推理效率低、显存占用大和时序不一致问题。其核心机制包括：将预训练视频 DiT 改为因果流式架构，引入滚动 KV 缓存以维持局部过渡平滑性；设计联合视觉引导通过交叉注意力注入全局语义锚点，抑制累积误差漂移。训练阶段结合分块像素监督与跨块分布匹配，双重约束时序一致性，并将扩散过程蒸馏为高效单步推理。实验表明，InfVSR 在多项基准上取得 SOTA 性能，时序一致性显著领先，推理速度提升 58 倍且长序列显存占用恒定。\n\n## 13 DRIVE: Distributional and Retrieval-Augmented Bidding with Value Evaluation\n\n**DRIVE**：基于混合分布与检索增强的价值评估出价策略\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.14192)\n\n![](https://p0.meituan.net/meituantechblog/3c5da2f5bb1f05cb0e55acd180e633f544634.webp)\n\n**论文简介**：针对标准Decision Transformer (DT)在复杂竞价环境中的三大痛点（“平均动作”陷阱、长尾幻觉、缺乏推理优化），提出“生成—检索—评估”闭环框架：1）用高斯混合模型替代确定性输出，解决多模态策略坍缩问题；2）引入检索机制增强长尾场景记忆，避免参数化模型幻觉；3）通过IQL Critic实现闭环择优，对生成动作与历史动作进行实时评估。该方案显著提升决策鲁棒性。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://p0.meituan.net/meituantechblog/53ce71427cc5fb26c883af36a738b10569202.webp",
+      "fetched_at": "2026-08-23T00:34:22.199462+08:00"
+    },
+    {
+      "title": "不是Demo！优必选把客户产线1:1搬进WRC，解锁具身智能真落地路径",
+      "link": "https://www.qbitai.com/2026/08/477253.html",
+      "published": "2026-08-22T22:46:43+08:00",
+      "source": "量子位",
+      "content": "端侧部署解决了具身大脑能否装进身体的问题。那么，同一个「大脑」，如何快速适配工业、商用和家庭三类机器人呢？",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199465+08:00"
+    },
+    {
+      "title": "我再用它做个语音的3D麻将，看看效果如何，估计要明天才能跑完了~~~",
+      "link": "https://x.com/berryxia/status/2091183279516881370",
+      "published": "2026-08-22T23:18:40+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "我再用它做个语音的3D麻将，看看效果如何，估计要明天才能跑完了~~~\n\n![Tweet Image](https://pbs.twimg.com/media/HQVgBzcWUAADTZc.jpg)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n兄弟们，这个OX-Alpha “牛来”模型绝壁可以啊！  \n  \n拿这个收录机+Three.js 开发完成这个收录机的效果。  \n  \n动画+音效交互都是我口喷完成的，无需复杂的提示词就可以搞定。  \n  \n如果这个OX-Alpha 开源的化性价比拉满啊，国模真的越有一手~~\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091173345509142528/vid/avc1/3620x2160/r7McqBv2YUDp5U1Z.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2091174468605329653/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2091174468605329653)\n\n💬1🔄0❤️0👀286📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199467+08:00"
+    },
+    {
+      "title": "看到“真”大佬了,牛掰！",
+      "link": "https://x.com/berryxia/status/2091182500018102327",
+      "published": "2026-08-22T23:15:34+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "看到“真”大佬了,牛掰！\n\n![向阳乔木](https://pbs.twimg.com/profile_images/1960882043249942533/h4J39ERy_normal.jpg)\n\n向阳乔木@vista8\n\n上海AGIBar！\n\n![Tweet Image](https://pbs.twimg.com/media/HQVJgXQa4AAtdV7.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/vista8/status/2091158432439259586)\n\n💬2🔄0❤️0👀366📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199470+08:00"
+    },
+    {
+      "title": "兄弟们，“牛来”模型这一把还真的是“牛”啊！\n这几天海外在OR和OP网站流传的OX-Alpha 模型真的还是有两把刷子了！\n\n我实测了好几个场景，体验感真的不错啊！\n\n从做任务调研到撰写分析报告以及最...",
+      "link": "https://x.com/berryxia/status/2091179483587854565",
+      "published": "2026-08-22T23:03:35+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "兄弟们，“牛来”模型这一把还真的是“牛”啊！  \n这几天海外在OR和OP网站流传的OX-Alpha 模型真的还是有两把刷子了！  \n  \n我实测了好几个场景，体验感真的不错啊！  \n  \n从做任务调研到撰写分析报告以及最后的loop 工程都不错啊，自我验证和修复bug 我都很喜欢。  \n  \n直接口喷了一个海洋气候模拟系统，这个海水真的是碧蓝碧蓝的很舒服啊！  \n  \n天气变化，3D Three.js 建模一次就可以一把出来，都不需要你自己多操心。   \n这个模型真的不管是谁家的，真的是不错啊！不废话看效果，感兴趣人多我就开源了！\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091177338213957632/vid/avc1/2560x1440/hwLIVmNWS04EMRPx.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/berryxia/status/2091179483587854565/video/1)\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\n兄弟们，无奖竞猜哈哈！  \n今天全网疯传的再Open Router 的OX Alpha。  \n绝壁是一个中国的模型厂商啊，因为这不就是妥妥的牛来了嘛！😁   \n  \n真的是太懂网感了啊，最有嫌疑和可能的就是沉寂已久的小米 MiMo 或者 智谱 ？   \n  \n记得，现在是可以在OR上免费即可体验，赶紧薅一波，试试效果如何。  \n我晚点搞点Case试试效果如何，拿典型的几个Case Prompt 来跑啊`,等等我啊~~~\n\n![Tweet Image](https://pbs.twimg.com/media/HQPijRjXsAA4LXy.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2090763879517225304)\n\n💬4🔄0❤️3👀1357📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199473+08:00"
+    },
+    {
+      "title": "Master class.",
+      "link": "https://x.com/GaryMarcus/status/2091191376478388676",
+      "published": "2026-08-22T23:50:51+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Master class.\n\n![Tweet Image](https://pbs.twimg.com/media/HQVneZlbgAAn_19.jpg)\n\n💬3🔄1❤️8👀1256📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199476+08:00"
+    },
+    {
+      "title": "我发现他们喜欢用自己真实照片当社交媒体的头像，而中国人很少这样做。",
+      "link": "https://x.com/geekbb/status/2091183002323951796",
+      "published": "2026-08-22T23:17:34+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "我发现他们喜欢用自己真实照片当社交媒体的头像，而中国人很少这样做。\n\n![DHH](https://pbs.twimg.com/profile_images/1746980162607140864/fG9Fj4K__normal.jpg)\n\nDHH@dhh\n\nDedicated plaque to honor the Omacom Foundation patrons. There's room for more at the next tier and soon for the general public too! [omarchy.org/patrons/](https://omarchy.org/patrons/)\n\n![Tweet Image](https://pbs.twimg.com/media/HQRlIFuX0AAZ_3w.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/dhh/status/2090907376350097563)\n\n💬7🔄0❤️2👀2210📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199478+08:00"
+    },
+    {
+      "title": "If the Chinese government were sufficiently organized, they'd be funding opposition to data centers ...",
+      "link": "https://x.com/paulg/status/2091185046430556180",
+      "published": "2026-08-22T23:25:42+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "If the Chinese government were sufficiently organized, they'd be funding opposition to data centers in the US. But the Chinese government is very organized. So they presumably already are.\n\n💬105🔄31❤️721👀32403📊144",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199481+08:00"
+    },
+    {
+      "title": "Looks like you can now delete external data (like my 36 Gmail records) if you go to https://t.co/iZV...",
+      "link": "https://x.com/petergyang/status/2091187611507499321",
+      "published": "2026-08-22T23:35:53+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "Looks like you can now delete external data (like my 36 Gmail records) if you go to [app.instinct.co/workspace](https://app.instinct.co/workspace) and scroll down to Data Privacy.  \n  \nKudos to the Instinct team for listening and shipping this quickly.   \n  \nI will always say it like it is, especially when it comes to privacy & trust.\n\n![Tweet Image](https://pbs.twimg.com/media/HQVjgXnacAAhWSk.png)\n\n💬1🔄0❤️2👀1033📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199484+08:00"
+    },
+    {
+      "title": "As both a US and Canadian citizen, it sure sucks to see the two countries fight like this.",
+      "link": "https://x.com/petergyang/status/2091184621451145332",
+      "published": "2026-08-22T23:24:00+08:00",
+      "source": "Peter Yang(@petergyang)",
+      "content": "As both a US and Canadian citizen, it sure sucks to see the two countries fight like this.\n\n💬9🔄0❤️6👀2308📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199486+08:00"
+    },
+    {
+      "title": "Not much (technically speaking) is discussed about recursive self-improvement.\n\nBut I have a hunch t...",
+      "link": "https://x.com/omarsar0/status/2091188059119263875",
+      "published": "2026-08-22T23:37:40+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Not much (technically speaking) is discussed about recursive self-improvement.  \n  \nBut I have a hunch that when we get there, it will be more obvious how important it will be to own your harnesses and models. This is why I am a strong believer in the open-source harness ecosystem.\n\n💬0🔄0❤️1👀556",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199489+08:00"
+    },
+    {
+      "title": "Arena Conversations: Training Laguna with @poolsideai researchers, @ConnorBAdams and @aalSonOfRavi. ...",
+      "link": "https://x.com/arena/status/2091189052812718518",
+      "published": "2026-08-22T23:41:37+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "Arena Conversations: Training Laguna with [@poolsideai](https://x.com/poolsideai) researchers, [@ConnorBAdams](https://x.com/ConnorBAdams) and [@aalSonOfRavi](https://x.com/aalSonOfRavi).   \n  \nWith [@petergostev](https://x.com/petergostev), they dig into pre-training that builds broad capability, and post-training to reveal whether those skills actually work together across 250,000 long-horizon trajectories.  \n  \nCheck out the full conversation on our YouTube to hear how Poolside is pairing humans, agents, and evidence-annotated reviews to sharpen future training loops. Link below.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091187620206268416/vid/avc1/1920x1080/F2-pF7EGaVa3-nXa.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/arena/status/2091189052812718518/video/1)\n\n💬1🔄1❤️6👀2121📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199492+08:00"
+    },
+    {
+      "title": "https://t.co/yiAh6MKNJ9",
+      "link": "https://x.com/arena/status/2091189054943465631",
+      "published": "2026-08-22T23:41:37+08:00",
+      "source": "lmarena.ai(@lmarena_ai)",
+      "content": "[youtu.be/1-C\\_7GO-F3g](https://youtu.be/1-C_7GO-F3g)\n\n💬0🔄0❤️0👀437",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199494+08:00"
+    },
+    {
+      "title": "响马高见：\n> 工程师永远不会消失，但是工作方式会变化。工具化永远会进化到 roi 低于人力的边界，然后需要更多的人力来补齐最后的缝隙。\n\n类似于你开了一家餐厅，买了一台洗碗机，一下子替代了 3 个洗...",
+      "link": "https://x.com/dotey/status/2091178887040356622",
+      "published": "2026-08-22T23:01:13+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "响马高见：  \n> 工程师永远不会消失，但是工作方式会变化。工具化永远会进化到 roi 低于人力的边界，然后需要更多的人力来补齐最后的缝隙。  \n  \n类似于你开了一家餐厅，买了一台洗碗机，一下子替代了 3 个洗碗工，效率高、成本低。这就是工具化带来的 ROI（投入产出比）远高于人力的阶段。  \n  \n但洗碗机洗不了所有东西。异形的锅、烧焦的铁板、精致的瓷器，这些还得靠人手洗。你可以花大价钱去研发一台能洗一切的超级洗碗机，但为了搞定最后这 5% 的餐具，你可能得投入比前面 95% 多十倍的钱。  \n  \n这时候你算一笔账：与其砸钱造那台超级机器，不如留一个洗碗工来处理这些边角料，人力反而更划算了。  \n  \n工具进化到某个点之后，再往前推的成本急剧上升，ROI 跌到比直接用人还低。  \n  \n另一个角度，工具越强，整个行业的总产出往往也在膨胀。洗碗机让你的餐厅能接待更多客人，于是产生了更多的异形锅、更多的特殊情况，那些“缝隙”的绝对数量反而变多了。所以你可能裁了 3 个普通洗碗工，最后又请了 2 个专门处理疑难杂症的人。  \n  \nAI 工具会吃掉大量标准化的编程工作，但软件行业的总规模也会因此爆发式增长，而增长带来的各种边界情况、系统集成、业务理解这些“缝隙”，短期内仍然需要人来填。\n\n![响马](https://pbs.twimg.com/profile_images/1792551913969631232/tBrYW9Vq_normal.jpg)\n\n响马@xicilion\n\n工程师永远不会消失，但是工作方式会变化。工具化永远会进化到 roi 低于人力的边界，然后需要更多的人力来补齐最后的缝隙。\n\n[🔗 View Quoted Tweet](https://x.com/xicilion/status/2091055925281107986)\n\n💬3🔄4❤️36👀5052📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199497+08:00"
+    },
+    {
+      "title": "现阶段画图并且能自由编辑最佳方式应该是 HTML 或者类似于 HTML（比如 React）的方式，因为这个训练的最好的画出来效果最好的。\n\n而且 HTML 可以方便的编辑，也可以转换成其他可编辑格式。",
+      "link": "https://x.com/dotey/status/2091176882557354189",
+      "published": "2026-08-22T22:53:15+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "现阶段画图并且能自由编辑最佳方式应该是 HTML 或者类似于 HTML（比如 React）的方式，因为这个训练的最好的画出来效果最好的。  \n  \n而且 HTML 可以方便的编辑，也可以转换成其他可编辑格式。\n\n![LanLance](https://pbs.twimg.com/profile_images/2085329251566534656/_8ACimc__normal.jpg)\n\nLanLance@LanLance24\n\n借这个话题，很想了解下大家现在在「画图」这件事上的取舍。  \n  \nAI 时代之前，我日常主要用 DrawIO 和 Excalidraw。AI 爆发之后，也尝试过一些对 AI 更友好的方式，比如 Mermaid、PlantUML，或者像 Thariq 提到的直接用 HTML。  \n  \n但用下来一直有个很明显的问题是：AI 很好生成，但人很难微调。  \n  \n所以现在我的日常反而还是 AI 生成 DrawIO，再手动调整。虽然 DrawIO 本身对 AI 并不算友好，生成复杂图时也经常会出现连线错乱、布局不稳定之类的问题，但至少最后还能比较自由地编辑。  \n  \n感觉现在一直缺一个真正做到 AI-Native，同时又对人类编辑友好的画图方案。  \n  \n不知道大家日常都是怎么画图的？有没有更好的工作流或工具推荐 🤔\n\n[🔗 View Quoted Tweet](https://x.com/LanLance24/status/2091000105608614210)\n\n💬6🔄0❤️16👀5395📊7",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T00:34:22.199499+08:00"
+    }
+  ]
+}
