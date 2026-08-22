@@ -325,6 +325,127 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-23T01:28:20.247558+08:00"
+    },
+    {
+      "title": "llm 0.33",
+      "link": "https://simonwillison.net/2026/Aug/22/llm/",
+      "published": "2026-08-23T01:01:16+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**Release:** [llm 0.33](https://github.com/simonw/llm/releases/tag/0.33)\n\nMy highlights from this release:\n\n> * Upgraded to the OpenAI Python library 3.x and switched the HTTP client dependency from `httpx` to `httpx2`. [#1608](https://github.com/simonw/llm/issues/1608), [#1631](https://github.com/simonw/llm/pull/1631)\n\nI shipped a quick [0.32.1 fix](https://simonwillison.net/2026/Aug/21/llm/) for this yesterday, but this is the more comprehensive fix.\n\n> * `llm embed` and `llm embed-multi` now accept `--key`. The Python `EmbeddingModel.embed()`, `EmbeddingModel.embed_multi()`, `Collection.embed()` and `Collection.embed_multi()` methods accept `key=` too, passing the resolved per-call key to embedding plugins without changing shared model state. Existing plugins that read `self.key` continue to work through a compatibility fallback. Thanks, [ChrisJr404](https://github.com/ChrisJr404). [#757](https://github.com/simonw/llm/issues/757), [#1620](https://github.com/simonw/llm/pull/1620)\n\nThe embedding models now use the same pattern for keys that regular LLM models do.\n\n> * `llm prompt -t/--template` can now be repeated to combine templates in order. This allows model configuration and options from one template to be used with a prompt from another.\n\nThis unlocks a neat pattern where you can create templates that package a model with a set of default options:\n\n```\nllm -m gpt-5.6-luna -o reasoning_effort high --save lhigh\nllm \"Generate an SVG of a pelican riding a bicycle\" --save pelican\n# Combine and run the templates\nllm -t lhigh -t pelican\n```\n\n> * Reasoning-capable Responses API models now support a `reasoning_summary` option with `auto`, `concise`, and `detailed` values. This can be used with [llm openai endpoint --responses](https://llm.datasette.io/en/stable/other-models.html#openai-endpoint). [#1600](https://github.com/simonw/llm/issues/1600)\n\nThis is particularly useful for exercising different models that provide their own imitation of the OpenAI Responses API.\n\nTags: [annotated-release-notes](https://simonwillison.net/tags/annotated-release-notes), [llm](https://simonwillison.net/tags/llm)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470870+08:00"
+    },
+    {
+      "title": "Live now: our AI Architects, AI Factories Track from AI Engineer World's Fair 2026.\n\nThesis: the mod...",
+      "link": "https://x.com/aiDotEngineer/status/2091216329575743828",
+      "published": "2026-08-23T01:30:00+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Live now: our AI Architects, AI Factories Track from AI Engineer World's Fair 2026.  \n  \nThesis: the model is the easy part of the factory.  \n  \n[youtube.com/watch?v=rbjWzZ…](https://www.youtube.com/watch?v=rbjWzZK2LU0&list=PLcfpQ4tk2k0VeXEfQTcsO7buehrFvQAKj)  \n  \n- The Agent Behind the Curtain: Building the Oz Cloud Agent Platform: Safia Abdalla, Warp  \n- FinOps for AI Agents: Who Spent All the Tokens?: Tisha Chawla + Susheem Koul, Microsoft  \n- What If Your Chip Design Team Moved Like a Single Body?: Abduallah Mohamed, AIDAChip  \n- Preferences Over Benchmarks: Model Routing: Archana Kamath + Tyler Gillam, DigitalOcean  \n- Coding Agents Don't Scale Themselves. Neither Do Your Teams.: [@patrickdebois](https://x.com/patrickdebois), Tessl  \n- Agent Frameworks Considered Harmful: [@remilouf](https://x.com/remilouf), .txt  \n- Inside 847 Production Clinical AI Notes: Sebastian Fox, Composo  \n- Give the Agent a Budget, Not a Token: [@edorado93](https://x.com/edorado93), Anthropic\n\n![Tweet Image](https://pbs.twimg.com/media/HQUOtAUWwAAAstY.jpg)\n\n💬1🔄1❤️8👀1319📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470887+08:00"
+    },
+    {
+      "title": "Eight sessions on the parts of the factory that are not the model:\n\n- An agent tidying up after itse...",
+      "link": "https://x.com/aiDotEngineer/status/2091216330720788521",
+      "published": "2026-08-23T01:30:00+08:00",
+      "source": "AI Engineer(@aiDotEngineer)",
+      "content": "Eight sessions on the parts of the factory that are not the model:  \n  \n- An agent tidying up after itself hit a filter that matched everything: 200 workloads deleted in 90 seconds. The fix was not a narrower token. It was a budget: rate limits that refill, and an identity the agent cannot set  \n- In the largest real world study of AI clinical notes, 1 in 20 carried an error serious enough to cause the patient significant harm. The dangerous ones look fine: nothing in the note is wrong, the detail that matters is missing  \n- Chip designers told an agent to stay out of the spec files. It agreed, then wrote to them with bash. They blocked bash and sed. It used cat. Now they block at the system level, not tool by tool  \n- Instead of killing an agent that blows its budget, steer it while it runs: compact the context, trim tool output, tell it to tighten up. Their benchmark: average spend down 78 percent, completion up from 67 to 96 percent  \n- Warp went open source and jumped from around 20,000 GitHub stars to over 60,000, with thousands of PRs. No human reviewer gets pinged until an agent has approved the PR first  \n  \nWatch the AI Architects playlist:  \n[youtube.com/watch?v=rbjWzZ…](https://www.youtube.com/watch?v=rbjWzZK2LU0&list=PLcfpQ4tk2k0VeXEfQTcsO7buehrFvQAKj)\n\n💬0🔄0❤️1👀648📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470893+08:00"
+    },
+    {
+      "title": "“Pretty soon” turned out to be 3 months.",
+      "link": "https://x.com/amasad/status/2091217410615644349",
+      "published": "2026-08-23T01:34:18+08:00",
+      "source": "Amjad Masad(@amasad)",
+      "content": "“Pretty soon” turned out to be 3 months.\n\n![Tweet Image](https://pbs.twimg.com/media/HQV_JvGa8AAz7WP.jpg)![Tweet Image](https://pbs.twimg.com/media/HQV_JvHasAAiHby.jpg)\n\n💬11🔄2❤️68👀5475📊17",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470897+08:00"
+    },
+    {
+      "title": "这帮dm 真的是xjb蹭流量… \n\n咋可能是Gemini …  不是 也太看得起“Google ” 大哥了！ \n\n现在Google 真的拉了，都让这些人出来蹭…… \n\n人家现在后院着火🔥了，跟你在这...",
+      "link": "https://x.com/berryxia/status/2091212706279829681",
+      "published": "2026-08-23T01:15:36+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这帮dm 真的是xjb蹭流量…   \n  \n咋可能是Gemini … 不是 也太看得起“Google ” 大哥了！   \n  \n现在Google 真的拉了，都让这些人出来蹭……   \n  \n人家现在后院着火🔥了，跟你在这有心思玩你画我猜啊！  \n  \n大家都说是国模了唯一最大可能就是智谱、Xiaomi、团子了。\n\n![Salio](https://pbs.twimg.com/profile_images/2027630388403965952/mgrd9d6O_normal.jpg)\n\nSalio@Mr\\_Salio\n\n🚨 Gemini 3.5 Pro Leak: It Dropping TOMORROW   \n  \n> Ox Alpha may actually be Gemini 3.5 Pro  \n> Google employees have been vagueposting heavily Today   \n> And now the biggest rumor: public release tomorrow  \n> Gemini 3.5 Pro reportedly beats Fable 5 and GPT-5.6 Sol on several internal tasks  \n> Still reportedly being tested with select partners  \n  \nIs Google about to make its comeback?\n\n![Tweet Image](https://pbs.twimg.com/media/HQUw9kjXwAAJjfi.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/Mr_Salio/status/2091131444940742922)\n\n💬3🔄0❤️2👀530📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470901+08:00"
+    },
+    {
+      "title": "这个镜头切换专场设计很丝滑，虽然实际产品意义不大，但是交互设计很棒。\n\n明天研究下～ （让Agent…）😂",
+      "link": "https://x.com/berryxia/status/2091211799240556593",
+      "published": "2026-08-23T01:12:00+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "这个镜头切换专场设计很丝滑，虽然实际产品意义不大，但是交互设计很棒。  \n  \n明天研究下～ （让Agent…）😂\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090763887574417408/vid/avc1/720x1280/2377yk4imOdInbPI.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/folaoftech/status/2090764115794919897/video/1)\n\n💬3🔄0❤️0👀276📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470905+08:00"
+    },
+    {
+      "title": "说个冷知识： 这个官网学习课程，官方支持中文！！！",
+      "link": "https://x.com/berryxia/status/2091210593877295367",
+      "published": "2026-08-23T01:07:13+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "说个冷知识： 这个官网学习课程，官方支持中文！！！\n\n![Berryxia.AI](https://pbs.twimg.com/profile_images/2016043556964605952/Tqi9KA2r_normal.jpg)\n\nBerryxia.AI@berryxia\n\nA社终于干了件人事！！！兄弟们～  \n  \nClaude Academy正式上线了，课程全部免费开放。  \n  \n[academy.claude.com](https://academy.claude.com/)  \n  \n不管你是刚接触AI，还是已经每天都在用Claude，都能找到对应的学习路径。  \n官方提供课程和教程，覆盖从入门到日常深度使用的不同阶段。  \n  \nAnthropic开始系统化地做AI教育，而不是只提供模型本身。  \n  \n当工具越来越强时，如何让更多人真正用好它，变成了下一层竞争。  \n  \n免费、公开、分层的学习路径，是在降低Claude的使用门槛。  \n  \n主要是喂到嘴里了，还是自己嚼两下吧～\n\n[🔗 View Quoted Tweet](https://x.com/berryxia/status/2090584967042511010)\n\n💬0🔄0❤️0👀315",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470909+08:00"
+    },
+    {
+      "title": "If the AI comes for us, maybe we can all hide in Venecky.",
+      "link": "https://x.com/GaryMarcus/status/2091212936216035345",
+      "published": "2026-08-23T01:16:31+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "If the AI comes for us, maybe we can all hide in Venecky.\n\n![Gary Marcus](https://pbs.twimg.com/profile_images/2048405471900606464/kPeRHI2z_normal.jpg)\n\nGary Marcus@GaryMarcus\n\nMe, 2023, 2024, 2025…. Multimodal LLMs are going to have problems with maps.  \n  \n2026: It’s ok, you live in Venecky. Not far Tounesseo.\n\n![Tweet Image](https://pbs.twimg.com/media/HQV6WupasAAsisf.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/GaryMarcus/status/2091212135011668368)\n\n💬7🔄3❤️35👀3432📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470912+08:00"
+    },
+    {
+      "title": "Me, 2023, 2024, 2025…. Multimodal LLMs are going to have problems with maps.\n\n2026: It’s ok, you liv...",
+      "link": "https://x.com/GaryMarcus/status/2091212135011668368",
+      "published": "2026-08-23T01:13:20+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Me, 2023, 2024, 2025…. Multimodal LLMs are going to have problems with maps.  \n  \n2026: It’s ok, you live in Venecky. Not far Tounesseo.\n\n![Tweet Image](https://pbs.twimg.com/media/HQV6WupasAAsisf.jpg)\n\n![N Kt 🇸🇴 🇭🇹](https://pbs.twimg.com/profile_images/1925977819068145664/FRC2wWYN_normal.png)\n\nN Kt 🇸🇴 🇭🇹@KtunaxaAmerika\n\n[@GaryMarcus](https://x.com/GaryMarcus) It keeps getting crazier   \n  \n“Mom, did you know that we live in Venecky?”  \n  \n[nypost.com/2026/08/21/bus…](https://nypost.com/2026/08/21/business/students-given-ai-slop-with-misspelled-state-names-faulty-table-of-elements-angering-parents/)\n\n[🔗 View Quoted Tweet](https://x.com/KtunaxaAmerika/status/2091208840658436270)\n\n💬0🔄2❤️23👀6185📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470916+08:00"
+    },
+    {
+      "title": "Today's a record day for open weight share of tokens on Vercel AI Gateway.\n\nAug 22 (today)\n🟦 Open: ...",
+      "link": "https://x.com/rauchg/status/2091234105702887879",
+      "published": "2026-08-23T02:40:38+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "Today's a record day for open weight share of tokens on Vercel AI Gateway.  \n  \nAug 22 (today)  \n🟦 Open: 62%  \n🟨 Closed: 38%  \n  \nJun 24 (~2 months ago)  \n🟦 Open: 28.4%  \n🟨 Closed: 71.6%   \n  \nThis is very likely just the start, because enterprise adoption is still early, and harnesses, CLIs, IDEs, SDKs, etc need to be adapted to be model agnostic.\n\n![Tweet Image](https://pbs.twimg.com/media/HQWMFiAboAAXvwA.png)\n\n💬0🔄0❤️0👀220",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470919+08:00"
+    },
+    {
+      "title": "I used 𝚏𝚡 to build Mini, a personal web browser.\n\nMany times I need to screen share, stream, or ju...",
+      "link": "https://x.com/rauchg/status/2091229263701905662",
+      "published": "2026-08-23T02:21:24+08:00",
+      "source": "Guillermo Rauch(@rauchg)",
+      "content": "I used 𝚏𝚡 to build Mini, a personal web browser.  \n  \nMany times I need to screen share, stream, or just test something without the 'bloat' and state of my browser. So I go Mini.  \n  \nThis was a cool test fo[fx.sh](http://fx.sh)Aw and open models. It was the first time I experienced how cheap, but also how \\*good\\* these things can be.  \n  \n'Personal software' is a hot topic. \"I spent $25,000USD to cancel my $10 XYZ subscription\" is a real thing 😂 (especially in Enterprises these days).   \n  \nBut I think open and local models will change this dynamic very profoundly. Software will really become spontaneous.  \n  \nps: shoutout to Orion browser who inspired me with 'focus mode'. I wanted my browser to be even more minimal, hackable, and run on Chromium.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091226853776474112/vid/avc1/2524x1766/anDzJwPyfyLVyE_Q.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/rauchg/status/2091229263701905662/video/1)\n\n💬7🔄2❤️57👀3826📊14",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T02:41:35.470923+08:00"
     }
   ]
 }
