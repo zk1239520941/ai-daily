@@ -1249,6 +1249,17 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-23T14:54:33.340123+08:00"
+    },
+    {
+      "title": "AI Engineering Skills Map 系列之「构建和部署 AI 应用」\n\n吴恩达老师的 AI 工程技能图谱第一篇详细展开：\n1. 构建与部署 AI 应用（本文主题）\n2. 软件工程基础\n...",
+      "link": "https://x.com/shao__meng/status/2091411893793771723",
+      "published": "2026-08-23T14:27:06+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "AI Engineering Skills Map 系列之「构建和部署 AI 应用」  \n  \n吴恩达老师的 AI 工程技能图谱第一篇详细展开：  \n1. 构建与部署 AI 应用（本文主题）  \n2. 软件工程基础  \n3. 使用 Coding Agent  \n4. 塑造构建方向  \n  \n核心论点：AI 应用的本质区别在于\"输出不可预测\"  \n传统软件输出可预先确定，AI 应用不能——你不知道 LLM 会输出什么、监督学习模型会预测什么。  \n因此 AI 工程是高度迭代的：难以预先规划，需要\"构建 → 观察 → 决定下一步\"的循环。  \n能否在每一步聪明地决定下一步做什么，决定了你能否用\"不可靠的 AI 组件\"造出\"可靠的软件系统\"。  \n  \n# 六项子技能  \n  \n1. LLM 基础 理解 tokenization 与生成机制，才能判断何时可信赖模型、何时可能失败。具体要掌握的取舍面：多模态模型的使用时机、context window 内容取舍、缓存命中、知识截止、reasoning effort、采样参数、tool calling 等特殊功能。最终落到\"选对模型组合\"以及 fine-tuning / 自托管等专门技术。  \n  \n2. 用数据为模型提供 Grounding LLM 需要好的输入上下文才能产出有用输出。RAG 只是早期尝试，现在的技术菜单已显著扩大。要做出的判断：  \n· 什么放 prompt 里、什么让模型按需检索  \n· 数据与查询的表示形式：向量索引、知识图谱、还是结构化数据（如客户记录）上的语义层  \n· 把文档（文本/PDF/HTML/图像）转成 LLM-ready 输入  \n· 工程化数据管道，保持数据干净与新鲜  \n  \n3. 构建 Agentic 系统 范围从\"预定义 LLM 调用序列的工作流\"到\"Agent harness 让 LLM 反复自决下一步\"。架构决策：哪些步骤串行、哪些并行、何时用代码何时用 LLM；要带 fallback。Agent loop 设计还包括：工具（MCP、CLI、沙箱执行环境）、记忆架构、长会话上下文管理、单 agent 还是多 agent 编排。原型要能转成生产级——这要求理解 guardrails、对抗输入、关键风险（如数据外泄）的识别与规避、以及治理。前沿方向（语音 agent、computer-use、生成式 UI）也值得跟进。  \n  \n4. Evaluation-Driven Development 这是区分\"擅长构建 AI 系统\"的人的最重要特质。难点在于正确方法因项目而异、甚至因项目阶段而异。  \n  \n构建好 eval 是一项深度技术活：看 trace 与输出、做探索性数据分析、结合产品与业务洞察来决定测什么。要掌握 eval 的菜单：何时用确定性（代码）评估、何时用 LLM-as-judge、何时引入人工；以及如何评估你的 eval 本身，让它持续演进。eval 喂回迭代，让进步\"系统化而非随机\"。  \n  \n5. 生产运营 AI 软件运营不同于传统软件，因为不可预测、成本高、延迟高。要点：  \n· 可观测性：追踪性能、检测漂移、快速响应模型故障与安全事件（如对抗性 prompt injection）  \n· 回归测试与 CI/CD 需要比传统软件更多的统计性评估；测试投入要按\"出错风险\"校准  \n· 成本/延迟优化：模型选择优化、蒸馏、fine-tuning、agentic 工作流简化——选对技术组合，尤其在大用户量时  \n  \n6. 机器学习基础 现代 LLM 由监督学习与强化学习构建。作者观察到：他认识的每一个擅长用 LLM 构建的人，都在某种程度上理解 ML 与深度学习。而且很多应用仍需直接用 ML。要掌握：主流 ML/DL 模型及其在准确率/训练速度/推理速度上的取舍、训练与评估所需的数据工程。bias/variance、error analysis、数据工程这些 ML 核心心智框架，仍是驾驭\"输出不确定系统\"的关键决策工具。  \n  \n六项不是平铺的清单，是按\"迭代循环\"组织的：  \n· 1、2、6 是\"输入侧\"能力——理解模型、喂数据、理解 ML 基础  \n· 3 是\"组装侧\"——把组件搭成系统  \n· 4 是\"循环引擎\"——eval 驱动迭代，是把不可预测性变可控的核心机制  \n· 5 是\"输出侧\"——上线后的运营\n\n![Tweet Image](https://pbs.twimg.com/media/HQYwAX0a0AAHuk6.jpg)\n\n![Andrew Ng](https://pbs.twimg.com/profile_images/733174243714682880/oyG30NEH_normal.jpg)\n\nAndrew Ng@AndrewYNg\n\nThe most important skills in Building and Deploying AI Applications. [x.com/i/article/2090…](http://x.com/i/article/2090836273036763142)\n\n[🔗 View Quoted Tweet](https://x.com/AndrewYNg/status/2090840747738374568)\n\n💬1🔄1❤️1👀394📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-23T15:40:22.924152+08:00"
     }
   ]
 }
