@@ -988,6 +988,204 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-24T09:37:45.835619+08:00"
+    },
+    {
+      "title": "100 万像素的摄像头，为什么是苹果 AI 最重要的零件？｜硬哲学",
+      "link": "https://www.ifanr.com/1676333?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-24T10:18:22+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Codex-02_13_56-1.jpg)\n\n前几天，MacRumors 直接从 macOS Tahoe 26.7 RC 里挖出了苹果制作好的宣传视频：戴着 AirPods 拿起一本书，Visual Intelligence 看见书名，再让 Siri 把它保存下来。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Codex-01_52_51.jpg)\n\n视频里的产品代号是 B790。按照 Mark Gurman 的说法，它原本就在苹果 2026 年的产品路线图上，后续量产版本 B798，则要等到 2027 年。\n\n而最新挖出的系统代码，也第一次让我们看清了这副耳机究竟怎么「看」。其中最有意思的，是一个看起来有些寒酸的参数：\n\n**AirPods 上的摄像头，只有 100 万像素。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_gear_airpodcamera_getty.jpg)\n\n▲ 图片来自：WIRED\n\n在手机已经讨论 2 亿像素、8K 视频的今天，苹果给未来 AI 硬件准备的摄像头，实际采集画面甚至可能只有 320×320。\n\n它显然不是用来拍照的。\n\n### AirPods 上的摄像头，为什么只有 100 万像素？\n\n从目前挖出的代码看，这套摄像头至少存在两种工作状态。\n\n主动模式下，摄像头可以采集 640×640 图像，经过处理后最高输出 1024×1024；被动模式则采集 320×320，输出 320×320 或 512×512 图像。\n\n代码显示，左右两只 AirPods 可以同步获取 RGB 静态图像，通过相同的 Frame ID 对齐两个视角，再按照一定频率持续采集，交给 Visual Intelligence 处理。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_00xkcacqh1jjFSWlT0ih5mj-1.fit_lim.size_1600x900.v1749611253.jpg)\n\n系统会同时处理环境语音、周围声音变化、姿态和头部旋转信息；两颗摄像头之间需要标定，摄像头与运动传感器之间也需要校准。如果头部运动过于剧烈，或者镜头被遮挡，对应画面会被直接舍弃。\n\nAccessorySensorManager 中甚至出现了「peripheral inference」相关代码，可以在设备侧判断画面中是否存在人物。\n\n这些，都是喂给 AI 的绝佳数据。\n\n对于 AI 来说，很多时候根本不需要 4800 万像素的照片。模型只需要知道，桌上放着一本书，前面是家餐厅，手里拿着瓶饮料，路牌上写着什么。\n\n320×320 像素已经够用了。\n\n分辨率降下来，数据量随之减少，图像处理和传输的负担也会下降。对于电池只有耳机大小、又需要长时间佩戴的设备来说，功耗和续航是比清晰度更需要考虑的问题。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_AirPods-2-Teardown.jpg)\n\n▲ 图片来自：iFIXIT\n\n过去二十年，消费电子里的摄像头主要服务于人。像素、传感器尺寸、动态范围、色彩，最终都指向同件事：得到好看的照片。\n\n但 AI 摄像头首先服务于机器。\n\n照片甚至不需要留下来。\n\n机器看懂，就可以删掉。\n\n苹果并不是第一个沿着这条路做产品的公司。\n\n今年上市的光帆 AI 全感耳机就是很直接的参照。它同样把摄像头塞进左右两只耳机，采用两颗 200 万像素定焦摄像头，核心用途并非摄影，而是场景 AI 识别。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_guangfan2.jpg)\n\n▲ 光帆 AI 耳机\n\n现实世界先被摄像头转化成视觉数据，再交给模型理解。光帆甚至把 4G eSIM 和 GPS 放进耳机盒，让设备减少对手机的依赖。\n\n200 万还是 100 万像素，在这里没有那么重要。工程问题已经变成：能不能看清，处理要多久，需要传多少数据，又要消耗多少电。\n\n更早的 Humane AI Pin 也尝试过类似思路，用摄像头给 AI 补上视觉。\n\n但 Humane 需要说服人们为了 AI，在胸前额外佩戴新设备。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Humane-Ai-Pin-Business.jpg)\n\n苹果没有这个问题。\n\n很多人本来就每天戴着 AirPods。\n\n它不需要重新发明 AI 硬件，只需要让已经存在的硬件，长出新的感官。\n\n### AI 时代的 AirPods 不是耳机，而是传感器\n\n事实上，两只 AirPods 耳机，已经组成了一套传感器组合：\n\n摄像头观察眼前有什么，陀螺仪记录头部朝向，麦克风收集周围声音，位置和运动传感器补充人在哪里、正在做什么。\n\n比如走进书店，拿起一本书，然后问 Siri：\n\n「这本值得买吗？」\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Codex-02_13_56.jpg)\n\n▲ 图片由 AI 生成\n\n单独把这句话交给今天的大模型，它其实什么也不知道。\n\n「这本」是哪一本？\n\n但如果 AirPods 刚刚看到了封面，知道头部正在朝向这本书，同时 iPhone 知道你身处书店，那么 Siri 才真正理解「这本」究竟指什么。\n\n如果系统还知道你过去读过同个作者的两本书，其中一本看完了，另一本只读了三分之一，它甚至可以给出只对你有意义的答案。\n\n这里发生的变化很微妙。\n\n今天我们和 AI 交流时，一直在不停地向它解释自己。\n\n我是谁，我在哪里，我刚刚看到了什么，我手里拿着什么，为什么突然问这个问题。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Apple-AirPods-lifestyle-240909_big.jpg.large_.jpg)\n\n很多 Prompt，本质上都在人工补充机器缺失的上下文。\n\n摄像头、麦克风和位置、运动状态传感器所做的，就是逐渐把这些解释省掉。\n\n大模型已经知道很多关于世界的事情，却依然知道很少关于「你」的事情。\n\n随身 AI 也不应该每次被唤醒时，都像第一次见到你。\n\n摄像头 AirPods 补上的，恰好就是一种「属于个人的上下文」。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Apple-Insider.jpg)\n\n▲ 图片来自：Apple Insider\n\n手机拍照是非常明确的动作：拿起手机，打开相机，对准目标。\n\n但耳机不同。\n\n它一直戴在人的头上，因此与周围环境的交互就显得尤为重要。\n\n这次被挖出来的系统代码里，还有个很小的细节：\n\n每只 AirPod 似乎都能够控制硬件指示灯，包括开关和亮度。\n\n如果这对应摄像头的工作状态，那么当 AirPods 获取环境图像时，周围的人可能会通过灯光得到提醒——这倒是很符合苹果一贯的隐私保护策略。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_6-LED-light.jpg)\n\n▲或许会使用类似 Ray-Ban 的 LED 灯提醒\n\n如果摄像头只是偶尔拍张照片，亮灯或许已经足够；但如果它需要以较低频率持续理解环境，问题就复杂了。\n\n因为 AI 需要的并不是某张照片，而是上下文，因此也需要持续打开各项感官，这时候恰当的提醒就非常重要。\n\n从这个角度上看，AirPods 的定位也发生了微妙的变化——不再是单纯的耳机，而是一种新的 AI 硬件形态。\n\n如果诸如此类的变化，不止于 AirPods，而是来到更多苹果产品上呢？\n\n我想这才是苹果在 AI 时代，最重要的战略——这其中最重要的时间节点，就是 2027 年。\n\n### 2027 年，也许正是苹果 AI 元年\n\n2027 年，对苹果而言本来就是特殊的年份——iPhone 发布二十周年。\n\n按照目前的爆料，苹果正在准备大幅改变设计的二十周年 iPhone，而摄像头 AirPods，也可能在同一时期登场。\n\n与此同时，苹果还有几条 AI 硬件产品线正在推进。\n\n除了摄像头 AirPods，还有智能眼镜，以及可以夹在衣服上、或者作为项链佩戴的 AI 挂饰。\n\n此前曝光的产品规划中，也出现过配备摄像头的 Apple Watch，让手表获得观察周围环境的能力。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Apple-Patents-Putting-A-Camera-In-The-Apple-Watchs-Crown.jpg)\n\n▲ 设想中带摄像头的 Apple Watch 图片来自：Peta Pixel\n\n单独看，它们没有太多关系。\n\n耳机是耳机，眼镜是眼镜，手表是手表。\n\n但如果暂时把「产品」拿掉，只看它们身上的传感器，会看到另一幅图景。\n\n其实这张网络的很多节点，今天已经在我们身上了。\n\n手腕上的 Apple Watch 知道昨晚几点睡着、今天走了多少路；口袋里的 iPhone 知道几点离开公司、去了哪家餐厅；Mac 知道下午打开了哪些文档；AirPods 则几乎一直贴着耳朵。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_apple-health.jpg)\n\n苹果现在准备做的，是给这些设备继续增加感知能力。\n\n过去，这些信息分散在不同设备和 App 里。\n\n心率属于「健康」，照片属于「相册」，位置属于「地图」……\n\nAI 出现以后，它们第一次可以成为同样的东西：上下文。\n\n于是，AirPods 知道听到了什么，也可能知道正在面对什么；Apple Watch 知道身体正在发生什么；iPhone 知道在哪里、正在和谁沟通；Mac 知道正在处理什么工作。\n\n如果智能眼镜最终出现，它还会获得直接的第一人称视角。\n\n**任何设备单独拿出来，都不足以真正理解人，但它们分别掌握着人的不同切面，一经协同，就拥有了对一个人的全景式了解。**\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Codex-02_15_34.jpg)\n\n▲ 图片由 AI 生成\n\n这也是苹果和许多 AI 硬件创业公司之间很难复制的差别。\n\n过去几年，行业一直在寻找所谓「AI 时代的 iPhone」——\n\n有人做 Pin，有人做项链，有人做眼镜，也有人试图重新发明手机。\n\n在苹果看来，未必需要找到唯一答案。\n\n因为手机、手表、耳机、电脑、平板、头显和家庭设备，它都已经有了。\n\n接下来要做的，是让这些设备拥有丰富的感知能力，再把不同设备获得的信息组织起来。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Codex-02_26_47.jpg)\n\n最终形成的东西，可能比某款 AI 硬件本身重要得多：\n\n关于人的「个人上下文」。\n\n想象一个很普通的下午：\n\nApple Watch 知道你昨晚只睡了五个小时，下午又跑了五公里；iPhone 知道十分钟后还有场会议；AirPods 的摄像头看到你站在便利店里，拿起一瓶能量饮料。\n\n然后你问：\n\n「这个适合我吗？」\n\n今天使用 AI，你可能还要先解释自己的睡眠、运动、接下来的安排，以及手里拿着什么。\n\n如果这些信息已经成为上下文，你只需要提问即可。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_context.jpg)\n\n这种能力不来自某颗摄像头，也不来自某款设备，而是围绕个人信息打造的 AI 硬件生态。\n\n大模型当然还会继续进步，但模型正在变成可以替换的能力，今天使用这个，明天可以换另一个。\n\n真正无法快速复制的，是一个人的上下文。\n\n过去五年去了哪里，读过什么，身体发生过什么变化，喜欢什么样的餐厅，什么时间容易疲惫。\n\n这些东西无法通过下载大模型重新获得。\n\n它只能一天一天积累。\n\n这也让苹果过去几年反复强调的端侧计算、Secure Enclave 和 Private Cloud Compute，有了另一层意义。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/BandiView_Private-Cloud-Compute-Apple-Intelligence-AI.jpg)\n\n真正了解你的 AI，需要处理的信息可能比今天的照片、聊天记录和浏览历史还要私人。它不仅知道你说过什么，还可能知道在哪里说、当时看着什么、身体是什么状态，以及最后做出了什么选择。\n\n所以模型能力之外，还有个问题会逐渐变得重要：\n\n谁拥有这些上下文？\n\n苹果最理想的答案当然是，让它尽可能留在用户自己手里——或者说，留在苹果的设备，以及苹果构建的私有计算体系里。\n\n**如果这条路线成立，苹果最终建立的就不只是 AI 设备，而是跨越手机、耳机、手表、眼镜和电脑的感知网络。**\n\n硬件会换，模型也会换。\n\n但如果 AI 已经认识你十年，事情就不一样了。\n\n到那时，人的重要数字资产，可能不再只是照片、文件和聊天记录，还包括只有自己的 AI 硬件生态才能完整拥有的个人上下文——\n\n源自一颗颗摄像头、一枚枚麦克风、一个个传感器——它们不再是为了记住这个世界而存在，而是为了记住你。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958870+08:00"
+    },
+    {
+      "title": "巴掌大的墨水屏，为什么是现在最火的 AI 终端｜AI 器物志",
+      "link": "https://www.ifanr.com/1675741?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-24T10:08:23+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/images/ep/uploads/%E8%BF%99%E5%9D%97%E5%B7%B4%E6%8E%8C%E5%A4%A7%E7%9A%84%E5%A2%A8%E6%B0%B4%E5%B1%8F%EF%BC%8C%E6%89%8D%E6%98%AF%E6%88%91%E6%AF%8F%E5%A4%A9%E9%83%BD%E6%83%B3%E7%9C%8B%E7%9A%84_AI_%E7%BB%88%E7%AB%AF/1cd8a8cc-2ab8-4c21-9022-bbaad440033d.jpg)\n\n> 智能手机统治了过去十几年的数字生态，它是注意力的黑洞，是我们最私密的随身之物。但手机从设计之初就是为「人盯着它」而生的——它的全部逻辑，都止于屏幕。\n>\n> AI 的需求却恰恰相反：它需要持续感知物理世界——见你所见，听你所闻，随时在场，而非等你解锁屏幕才醒来。\n>\n> 当 AI 真正成为一种基础能力，它迟早要从屏幕里破壳而出，寻找属于它自己的形状。这将是一个漫长的探索和演化过程。\n>\n> 「AI 器物志」栏目由此而来，爱范儿想和你一起持续观察：AI 如何改变硬件设计，如何重塑人机交互，以及更重要的——AI 将以怎样的形态进入我们的日常生活？\n>\n> 这是「AI 器物志」的第 22 篇文章。\n\n最近，我从编辑部的样机堆里翻出了这么一个小玩意。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/a43c902b-2fe0-4f6a-8688-d42eb19820a9.png)\n\n它叫阅星瞳 X3，是一块巴掌大的「电纸书」—— 3.7 英寸的屏幕、58g 的重量、5.1mm 的厚度，尺寸只比一张银行卡大了一圈。\n\n机身背面自带磁吸线圈，咔哒一声就能牢牢吸在 iPhone 的背面。在满桌动辄半斤重、玻璃与铝合金堆叠的数码设备里，它轻巧得像是一张可以随身带走的「赛博纸」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/014d2981-2965-492b-905d-883982f5988e.png)\n\n得益于毫无负担的轻巧形态，这类墨水屏产品在社交网络上大有「文艺复兴」之势——[我们此前盘点过，大家把它当成随身相框、桌面日历或是手机背后的个性穿搭](https://mp.weixin.qq.com/s?__biz=MjgzMTAwODI0MA==&mid=2652443517&idx=1&sn=2785215c644bc922fb16a6a3e92d16a8&scene=21#wechat_redirect)。刚上手时，我也跟风把它当做手机背面的一枚「电子吧唧」。\n\n但这么一块五脏俱全的屏幕，如果只当个静态摆件，未免有些大材小用。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/67d131d8-8f76-4ead-989f-d2795bef33a1.png)\n\n所以，我决定让 Agent 帮忙，把手上这块 X3 拿来「折腾」一下。\n\n### 墨水屏，稳稳地接住 Vibe Coding\n\n要解锁这块小屏幕的全部潜力，第一步是换掉官方较为封闭的固件。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/79ed4a59-38cd-4a1d-a6e0-8a14ddf7409f.png)\n\n我给它刷上了第三方固件 CrossMux，在保留阅读核心的同时，给 X3 补齐了微信读书、小游戏等拓展功能。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/7f16ef65-f1c5-46df-b145-516fd2385bfb.png)\n\n不过在这些新特性里，最关键的还是它自带的「AirPage」功能。\n\n它的机制很简单：设备连上 Wi-Fi 后，使用 Mac 扫描屏幕上的二维码完成配对，就能通过网络直接把渲染好的图片推送到墨水屏上。有了这条通道，Mac 就能完全决定这块屏幕上显示什么。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/0db80093-d8f3-49c4-a4a0-91a363eedf43.png)\n\n正好，前几天我在小红书上刷到一个叫「ink-Macintosh」的开源项目。作者把早期经典麦金塔电脑（Macintosh）的黑白桌面搬到了 X3 上——\n\n不仅支持自由拼贴各种功能小组件，每 5 分钟自动更新墨水屏上的内容，还能把 Codex 像素桌宠直接放进屏幕里。\n\n复古 Mac 窗口与墨水屏天生的白底黑字，搭在一起简直是绝配。我当即决定用它来改造手头这块闲置的阅星瞳 X3。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/9054832d-edf9-4471-965e-66e5f8821570.png)\n\n#### 1. Codex，先给自己做个额度牌\n\n原项目已经有不少实用的卡片组件，比如 Codex 额度、天气，以及提醒事项等。选择自己想要的小组件、推送到 X3 上，立刻就能拥有专属的状态看板。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/44fe69a5-7bb1-469d-88c3-56cd05527b64.png)\n\n把复古的「Mac 桌面」推到墨水屏上之后，我有了更多想法。原作者搭好的渲染框架足够轻巧，改起来并没有想象中那么复杂。\n\n我把项目 Fork 了一份丢给 Agent，直接在对话框里敲下一行修改需求，开始顺着现成的底子往里加功能。\n\n### 小而精，才是这块屏幕的玩法\n\n#### 2. 每天三条简讯，把 AI 晨报搬上墨水屏\n\n平时为了跟进科技动态，我用 Agent 搭建了一套自动抓取和去重的资讯系统，每天清晨汇总行业资讯。但问题在于，它的内容太多、信息量太大，这块 3.7 寸的墨水屏根本放不下。\n\n所以，我让 AI 帮我「精选」这些资讯：不管后台抓取了多少条新闻，推到墨水屏上的最多只留 3 条，每条压缩到两句话以内，这样就能完美放进阅星瞳 X3 这块小屏幕了。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/ac23b056-d87c-406e-9ff5-0d0c952bda05.png)\n\n小屏幕的尺寸限制，反倒成了一个天然的信息过滤器。没有无限下拉的信息流，只有这 3 条精简的要点，在一天工作开始前快速建立全局感，看完就能安心去干手头的事。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/d77385e5-9d9f-4e1e-8a99-027fc39cec27.png)\n\n我还让 Agent 顺手加了一个微博实时热搜模块。随窗口大小自动显示前 3 到 5 条即时热搜与热度数值，工作间隙想了解社交网络上的动向，不用专门切浏览器打开微博，扫一眼就能知道当下发生的事。\n\n#### 3. 连上 Home Assistant，桌面多了一块状态板\n\n在这之前，我本来就已经把家里的米家智能家居设备全部统一接入了 Home Assistant。有了这块墨水屏之后，整套系统刚好可以更进一步——把原本沉睡在后台的全屋状态，无感地显影在桌面上。\n\n以往想确认一下房间环境，要么得掏出手机在 App 里层层翻找，要么得特意叫一声小爱同学。但在正专心工作的桌面场景下，打断手头节奏去问一句，多少显得有些繁琐，也不够优雅。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/b841606f-8b21-4e47-a6aa-2f51f7f0f7a9.png)\n\n我让 Agent 写了个家居组件，通过本地接口直接拉取 Home Assistant 的环境数据。在排版上做成复古 Mac 窗口后，室内的温湿度和关键状态清晰排开。现在完全不用掏手机，余光一扫，房间当前的状态一目了然。\n\n#### 4. GitHub Actions：推完代码，让墨水屏告诉我构建状态\n\n平时在 GitHub 上维护项目或写自动化脚本，推完代码之后，云端的 GitHub Actions 流水线往往要在后台跑上半小时甚至几个小时。过去我总得在浏览器里切来切去，时不时刷新一下看看有没有亮起小绿勾。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/312da922-1caa-42c1-9fb8-d13f26707767.png)\n\n我索性让 Agent 写了一个 GitHub Actions 的监听组件。它通过 API 轮询最新一次工作流的运行状态，把耗时、完成度和执行步骤清晰地列在墨水屏上。\n\n这样一来，代码推完就可以放心去做别的事，等墨水屏刷新出「Build and Release ![✔](https://s.w.org/images/core/emoji/11/72x72/2714.png)」，抬头看一眼就能确认结果。\n\n### 都交给 AI 决定\n\n此时 ink-Macintosh 的组件列表已经被塞得满满当当：Codex 额度、CI 构建流水线、AI 晨报摘要、Home Assistant 智能家居、实时温湿度、待办事项、日历行程、名言与一言、微博热搜……\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/ff0c27c1-063d-44ba-9ba1-c66062995cf5.png)\n\n功能确实很齐全，但面对这么一块巴掌大的小墨水屏，根本不可能把所有组件同时塞进去。早上看什么、工作时看什么、不同时段该留哪几个……组件一多，我反而犯起了「选择困难症」。\n\n既然天气、日程、Todo、智能家居和晨报的数据都已经有了，到底该怎么排，干脆让 AI 来做决定。\n\n我在 ink-Macintosh 客户端里加上了 Gemini 的调度模块，填入 Gemini API Key 之后，右上角就多了一个按钮：「让 Gemini 来！」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/15218a02-0ba5-42c1-94bf-76f37dd6e737.png)\n\nGemini 就像是一个懂我节奏的值班编辑，负责实时梳理我当下的所有信息状态，并在有限方寸空间里，帮我判断此刻最值得关注的信息，然后呈现出来。\n\n比如早上坐到桌前，最关心的无非是几点开会、出门要不要带伞、以及科技圈有没有大新闻。这时候墨水屏上出来的就是日程安排、局部雷阵雨预警，或是 3 条精选简讯。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/8472e7c0-c70e-4260-b68d-8f939410f5ba.png)\n\n而在写代码或跑构建流水线时，晨报和天气就不再是重点。屏幕中央最显眼的位置换成了 Codex 剩余额度与构建状态，不用专门切窗口去查进度。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/925b7537-ea1b-409d-85bf-d9bf6c8c8a15.png)\n\n到了深夜，工作做完了，明天也没有紧急日程。这时候，Gemini 会把所有功能卡片收起来，只留下一句安静的「一言」，安安静静地立在桌面上。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/423844e0-4c3a-4fc9-a251-d308d0c7068f.png)\n\n/////\n\n墨水屏黑白、低刷新的物理特性，天然决定了它并不适合用来看视频、刷抖音这类高频娱乐场景；但当它作为一张安静的电子壁纸、系统状态看板，或是承载 Vibe Coding 产物的物理出口时，却能发挥出意想不到的作用。\n\n它最大的优势恰恰在于足够「无感」：你不需要关心电量，也不用想着去频繁操作它。画面定格在屏幕上，平时就像一张普通的便签纸，而在你需要它的时候，它就安静地把最关键的信息递到你眼前。\n\nTRMNL 这类墨水屏看板受到很多玩家欢迎，也是同样的道理——拉长更新周期，用极低的功耗筛选出那些真正值得长久留存的状态。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/4b2b5c8b-8738-4ae0-b4f6-9b876dc59cd8.png)\n\n图｜TRMNL ePaper\n\n过去两年，整个行业都在为 AI 寻找手机之外的新形态，眼镜、耳机、工牌……大家都在尝试把设备做得越来越复杂、交互越来越密集。\n\n但这块立在桌角的小墨水屏，给出的却是一个截然相反的思路。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/af96278a-e853-4e5f-855a-fa6559d56a57.png)\n\n它做不了复杂的交互，画面也塞不下几行字。但在这个数据过载的当下，「大而全」很容易做到，但把信息聚焦、筛选、沉淀，做到「小而精」，却不那么容易。\n\n它身上独有的「聚焦」特质，恰好暗合了 1995 年施乐 PARC 首席科学家 Mark Weiser 提出的「平静技术」（Calm Technology）哲学：\n\n> 最好的技术应该退居到人类注意力的边缘（Periphery），只有当你主动需要它时，它才清晰可读；而在其余大部分时间里，它应当像房间里的光线与空气一样，不主动抢夺焦点。\n\n当年，Weiser 用一根根据网络流量轻微晃动的塑料绳（Dangling String）来演示这种边缘感知，而三十年后的今天，一块反射着自然光的黑白电子纸，几乎成了数字世界里最理想的「Dangling String」。\n\n![](https://s3.ifanr.com/images/ep/uploads/lark2pad_upload/7bbf5800-2f67-4afe-a609-fab949e30f49.png)\n\n图｜Dangling String 示意图，Image-2 生成\n\n在算力充沛到近乎泛滥的时代，这块巴掌大的黑白电子纸，给出了「Less is more」最生动的注脚——\n\n越是克制的物理载体，越能守住生活的专注。\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958886+08:00"
+    },
+    {
+      "title": "源：https://t.co/bRllqMkivz",
+      "link": "https://x.com/FinanceYF5/status/2091721630984851500",
+      "published": "2026-08-24T10:57:53+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/IlyaStrebulaev…](https://x.com/IlyaStrebulaev/status/2091257214551892369)\n\n![Ilya Strebulaev](https://pbs.twimg.com/profile_images/1475287538625437699/-qaa6pcS_normal.jpg)\n\nIlya Strebulaev@IlyaStrebulaev\n\nRanking of VC firms by US unicorns  \n  \nSequoia and Andreessen Horowitz are now close to a tie.  \n  \nNote: Only pre-unicorn investments in unicorns are counted.\n\n![Tweet Image](https://pbs.twimg.com/media/HQWjQ1HXIAAbZZQ.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/IlyaStrebulaev/status/2091257214551892369)\n\n💬0🔄0❤️0👀164",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958890+08:00"
+    },
+    {
+      "title": "美国独角兽背后的 VC 排名更新了：Sequoia 与 Andreessen Horowitz 已经非常接近。\n\n这份榜单只统计公司成为独角兽之前完成的投资，更能看出哪些机构真正提前发现并押中了潜力公...",
+      "link": "https://x.com/FinanceYF5/status/2091721619119219118",
+      "published": "2026-08-24T10:57:50+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "美国独角兽背后的 VC 排名更新了：Sequoia 与 Andreessen Horowitz 已经非常接近。  \n  \n这份榜单只统计公司成为独角兽之前完成的投资，更能看出哪些机构真正提前发现并押中了潜力公司。\n\n![Tweet Image](https://pbs.twimg.com/media/HQdJunGb0AAVfeL.png)\n\n💬1🔄0❤️0👀288📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958894+08:00"
+    },
+    {
+      "title": "源：\nhttps://t.co/8aQU6zy6Hs",
+      "link": "https://x.com/FinanceYF5/status/2091719512219594855",
+      "published": "2026-08-24T10:49:28+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：  \n[x.com/KyleReidhead/s…](https://x.com/KyleReidhead/status/2091141695719276587)\n\n![Kyle Reidhead | Milk Road](https://pbs.twimg.com/profile_images/2084682301842067456/aAj4ZDbR_normal.jpg)\n\nKyle Reidhead | Milk Road@KyleReidhead\n\nThis chart really sums up 2026 in a nutshell  \n  \nAI, Compute, Space, Power and Military  \n  \nIn 2027 I think we'll add:  \n- Biotech/Healthcare  \n- Robotics  \n- Crypto  \n  \nOf course, we'll keep AI, Space and Power too  \n  \nWhat else am I missing?  \n  \nBy the way, the 2027 themes are where you want to be allocating today, not in 2027. Markets are forward looking and make their big moves before thematic ETFs become very popular and hit this chart  \n  \nIf you'd like to track my real-time portfolio and see how I'm allocated across all of these themes, you can do so in Milk Road PRO, alongside 4 other top-tier analysts  \n  \nThe price to join is going up on August 26, but if you join today you can lock in current prices for life! Learn more here: [link.milkroad.com/lvwzti](https://link.milkroad.com/lvwzti)  \n  \nDon't forget to follow me [@kylereidhead](https://x.com/kylereidhead) for more insights on markets\n\n![Tweet Image](https://pbs.twimg.com/media/HQU6Sn2akAAWQVp.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/KyleReidhead/status/2091141695719276587)\n\n💬0🔄0❤️0👀279",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958897+08:00"
+    },
+    {
+      "title": "一张图看懂2026年市场资金都在押什么。\n\n主题 ETF 的资金几乎集中在五条主线：AI、基础设施、国防、太空和核能，规模明显高于过去几年。\n\n2027年可能再加入生物科技/医疗、机器人和 Crypt...",
+      "link": "https://x.com/FinanceYF5/status/2091719500362400153",
+      "published": "2026-08-24T10:49:25+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "一张图看懂2026年市场资金都在押什么。  \n  \n主题 ETF 的资金几乎集中在五条主线：AI、基础设施、国防、太空和核能，规模明显高于过去几年。  \n  \n2027年可能再加入生物科技/医疗、机器人和 Crypto，但 AI、太空与能源仍会延续。  \n  \n市场通常会提前交易下一年的主题。你觉得还缺哪条主线？\n\n![Tweet Image](https://pbs.twimg.com/media/HQdHzSzakAARyvp.png)\n\n💬1🔄0❤️0👀380📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958900+08:00"
+    },
+    {
+      "title": "有人对每个AI模型进行了排名",
+      "link": "https://x.com/FinanceYF5/status/2091717883164504233",
+      "published": "2026-08-24T10:43:00+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有人对每个AI模型进行了排名\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091277559287996416/vid/avc1/3840x2160/l72NIfLWVhoMpn2O.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/theo/status/2091281511924502940/video/1)\n\n💬1🔄0❤️0👀435📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958903+08:00"
+    },
+    {
+      "title": "源：https://t.co/Q4ltcZZkqH",
+      "link": "https://x.com/FinanceYF5/status/2091715851611512837",
+      "published": "2026-08-24T10:34:55+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "源：[x.com/theo/status/20…](https://x.com/theo/status/2091277536600969276)\n\n![Theo - t3.gg](https://pbs.twimg.com/profile_images/1909353910130950147/EeSGdgA5_normal.jpg)\n\nTheo - t3.gg@theo\n\nRough tier list of where I'd put every major model right now\n\n![Tweet Image](https://pbs.twimg.com/media/HQW1x4HaoAAFnXM.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/theo/status/2091277536600969276)\n\n💬0🔄0❤️0👀327",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958906+08:00"
+    },
+    {
+      "title": "有人给15款主流 AI 模型排了个梯队，结果可能会很有争议：\n\nFable 5 是唯一的 S+，GPT-5.6 Sol 位列 A；Kimi K3、GPT-5.6 Luna、DeepSeek V4 Fl...",
+      "link": "https://x.com/FinanceYF5/status/2091715839519236476",
+      "published": "2026-08-24T10:34:52+08:00",
+      "source": "AI Will(@FinanceYF5)",
+      "content": "有人给15款主流 AI 模型排了个梯队，结果可能会很有争议：  \n  \nFable 5 是唯一的 S+，GPT-5.6 Sol 位列 A；Kimi K3、GPT-5.6 Luna、DeepSeek V4 Flash 进入 B 档。  \n  \nOpus 5 和 GLM-5.3 只有 D，DeepSeek V4 Pro 掉到 F，Gemini 则被单独归为“Google”一档。  \n  \n你认同这份排名吗？\n\n![Tweet Image](https://pbs.twimg.com/media/HQdEeKsbIAERUJB.png)\n\n💬1🔄0❤️0👀573📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958909+08:00"
+    },
+    {
+      "title": "\"Someone will always be getting richer faster than you. This is not a tragedy.\" — Munger",
+      "link": "https://x.com/akothari/status/2091720733106078072",
+      "published": "2026-08-24T10:54:19+08:00",
+      "source": "Akshay Kothari(@akothari)",
+      "content": "\"Someone will always be getting richer faster than you. This is not a tragedy.\" — Munger\n\n💬0🔄0❤️8👀406📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958911+08:00"
+    },
+    {
+      "title": "苍老师，真的牛逼啊！\n他的项目以12000🌟+，Github 趋势榜单位居第二，仅次于Codex啊！\n\n他把GPT-Image 2的提示词做成了真正能给Agent调用的工业级模板。\n\n苍老师把大量优...",
+      "link": "https://x.com/berryxia/status/2091704295519359094",
+      "published": "2026-08-24T09:49:00+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "苍老师，真的牛逼啊！  \n他的项目以12000🌟+，Github 趋势榜单位居第二，仅次于Codex啊！  \n  \n他把GPT-Image 2的提示词做成了真正能给Agent调用的工业级模板。  \n  \n苍老师把大量优质案例逆向拆解，抽成结构化模板免费开源了出来。  \n  \n不再是一堆散文式的提示词陈列，是把主体、光影、材质、排版等视觉要素降维成JSON/YAML组件，Agent可以直接解析、批量出图，几乎零幻觉。  \n  \n他还专门针对文字排版引入了空间坐标约束，解决了以前很难精确控制画面布局的问题。  \n  \n目标很明确：提示词即代码（Prompt-as-Code），让好提示词变成人人可用、Agent可调的方法论。  \n  \n项目地址见下面👇，没有star的可以搞一下。[github.com/freestylefly/a…](https://github.com/freestylefly/awesome-gpt-image-2)5j\n\n![Tweet Image](https://pbs.twimg.com/media/HQc59uXX0AAqGkM.jpg)\n\n![苍何](https://pbs.twimg.com/profile_images/1744283141219680256/5DcrV0du_normal.jpg)\n\n苍何@canghe\n\n卧槽，我的开源项目冲上趋势榜第二了，在 Codex 之下，哈哈哈。[github.com/trending](https://github.com/trending)\n\n![Tweet Image](https://pbs.twimg.com/media/HQc1E46a4AAmgaU.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/canghe/status/2091699008393842835)\n\n💬1🔄1❤️4👀760📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958914+08:00"
+    },
+    {
+      "title": "我用网易邮箱作为国内的主要邮箱，最近在网易邮箱大师桌面端里面发现它推出了 Mail Agent。\n\n简单说就是嵌在邮箱里的 AI 助理，能读懂你所有邮件，用自然语言给它下指令就行，不用自己一封封翻，不...",
+      "link": "https://x.com/vikingmute/status/2091695592028430533",
+      "published": "2026-08-24T09:14:25+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "我用网易邮箱作为国内的主要邮箱，最近在网易邮箱大师桌面端里面发现它推出了 Mail Agent。  \n  \n简单说就是嵌在邮箱里的 AI 助理，能读懂你所有邮件，用自然语言给它下指令就行，不用自己一封封翻，不仅如此，它还拥有固定的记忆系统，同时根据你的需求还能通过持续学习你的使用习惯和语言风格，形成一套独一无二的只属于你的语言风格。假如你是重度使用者，它还可以把你的邮箱变成一个可以对话的个人知识库，让你的所有邮件变成可以检索的资源库，比如内容，资料，课件，材料，都可以让 Mail Agent 统一管理和智能检索。  \n  \n我用它立马完成了一个之前处理起来很繁琐的需求：做自由职业有一个很常见的需求是汇总各种账单。我开的发票以及合作机构的收入单都会发到这个邮箱，之前要翻遍邮箱找相关的收入确认单和所有开发票的邮件，手动整理金额、时间，折腾几小时还怕漏。现在直接一句话：  \n\"帮我搜今年所有和 XX 网站相关的合作账单邮件，把每笔金额、税率、税额都提出来，生成个汇总表。\"  \n它自动扫完全年邮件，相关账单都捞出来，字段提取挺准，导出 Excel 直接转发会计就行，完成度非常高，几小时的活几分钟搞定，而且数据不用导去第三方，比较放心。  \n  \n感兴趣可以去网易邮箱大师桌面端里体验下。  \n  \n#网易邮箱#网易邮箱MailAgent#网易邮箱大师#AI工具\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091694995149594625/vid/avc1/1920x1080/StvsDooWayG6AL4J.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/vikingmute/status/2091695592028430533/video/1)\n\n💬0🔄0❤️4👀1383📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958917+08:00"
+    },
+    {
+      "title": "坐上世界最高的宝座也只能靠自己的屁股\n把平凡的人生过好即是伟大",
+      "link": "https://x.com/yangyi/status/2091701966208733527",
+      "published": "2026-08-24T09:39:45+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "坐上世界最高的宝座也只能靠自己的屁股  \n把平凡的人生过好即是伟大\n\n💬1🔄0❤️1👀999📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958919+08:00"
+    },
+    {
+      "title": "does anyone know if there's a workaround to get the ChatGPT-&gt;Slack connector to connect more than...",
+      "link": "https://x.com/andrewchen/status/2091707477654216969",
+      "published": "2026-08-24T10:01:39+08:00",
+      "source": "andrew chen(@andrewchen)",
+      "content": "does anyone know if there's a workaround to get the ChatGPT->Slack connector to connect more than 1 workspace?\n\n💬7🔄0❤️13👀3323📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958922+08:00"
+    },
+    {
+      "title": "稍等，eli5 Skill ?\n\n这不就是咱们刚开始学提示词工程时，很经典的「给我 5 岁的孩子解释***」、「让我奶奶也能看懂」？",
+      "link": "https://x.com/shao__meng/status/2091705451880862017",
+      "published": "2026-08-24T09:53:36+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "稍等，eli5 Skill ?  \n  \n这不就是咱们刚开始学提示词工程时，很经典的「给我 5 岁的孩子解释\\*\\*\\*」、「让我奶奶也能看懂」？\n\n![Tweet Image](https://pbs.twimg.com/media/HQc6aIRbYAA-Qo_.jpg)\n\n![Thariq](https://pbs.twimg.com/profile_images/1976939058741039104/r3GgzqRh_normal.jpg)\n\nThariq@trq212\n\na skill people at Anthropic have been using a lot recently: ELI5  \n  \n/eli5 <what you want explained>  \n  \n\"explain like I'm someone who knows nothing about this topic, using a HTML artifact with big pictures and few words\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2090849386284863488/vid/avc1/2112x1598/mDVDv383WdOaFV5I.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/trq212/status/2090884854590382515/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/trq212/status/2090884854590382515)\n\n💬0🔄0❤️0👀498",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958924+08:00"
+    },
+    {
+      "title": "信用卡账单公司Ramp统计的Anthropic公司模型使用占比。\n\n看来性价比高，大家最爱用的模型是opus4.8 和 sonnet4.6\n\nfable5只能排第三。",
+      "link": "https://x.com/vista8/status/2091703188193951798",
+      "published": "2026-08-24T09:44:36+08:00",
+      "source": "向阳乔木(@vista8)",
+      "content": "信用卡账单公司Ramp统计的Anthropic公司模型使用占比。  \n  \n看来性价比高，大家最爱用的模型是opus4.8 和 sonnet4.6  \n  \nfable5只能排第三。\n\n![Tweet Image](https://pbs.twimg.com/media/HQc49S0boAA3hmg.jpg)\n\n💬1🔄0❤️2👀2054📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958927+08:00"
+    },
+    {
+      "title": "ChatGPT Search 底层搜索机制突变：\n\nChatGPT 开始大规模直接对特定网站进行“定点搜刮”\n 影响网站GEO策略\n\n8 月 8 日后，Promptwatch 监控到的ChatGPT ...",
+      "link": "https://x.com/xiaohu/status/2091712204328575352",
+      "published": "2026-08-24T10:20:26+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "ChatGPT Search 底层搜索机制突变：  \n  \nChatGPT 开始大规模直接对特定网站进行“定点搜刮”  \n 影响网站GEO策略  \n  \n8 月 8 日后，Promptwatch 监控到的ChatGPT site: 查询占比从日均 0.368% 升至 16.78%，约 45.5 倍。  \n  \nChatGPT Search的新流程可能变更为先全网发现候选来源，再锁定特定域名寻找文档、规则和更新；  \n  \n这对GEO 策略因此可能变成两层竞争：域名先入选，页面再争取引用。  \n  \n网站应优先建设可抓取、可核验的一手内容体系  \n  \n[best.xiaohu.ai/article/chatgp…](https://best.xiaohu.ai/article/chatgpt-site-operator-scale/)\n\n💬0🔄0❤️0👀956📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958929+08:00"
+    },
+    {
+      "title": "JDK 27 and JDK 28: What We Know So Far",
+      "link": "https://www.infoq.com/news/2026/08/java-27-so-far/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-24T10:30:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/java-27-so-far/en/headerimage/java-istock-image-01-1787482494699.jpg)\n\nJDK 27, the second non-LTS release since JDK 25, has reached its first release candidate phase featuring a final set of nine new features, in the form of JEPs, that can be separated into four categories: Core Java Library, HotSpot, Security Library and Java Language Specification. We examine JDK 27 and predict what features have, or could be, targeted for JDK 28.\n\n*By Michael Redlich*",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-24T11:12:31.958932+08:00"
     }
   ]
 }
