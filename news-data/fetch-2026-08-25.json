@@ -1329,6 +1329,160 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-25T04:40:31.400032+08:00"
+    },
+    {
+      "title": "Your alt text passes automated checks. That doesn’t mean it’s any good.",
+      "link": "https://github.blog/engineering/user-experience/your-alt-text-passes-automated-checks-that-doesnt-mean-its-any-good/",
+      "published": "2026-08-25T04:56:32+08:00",
+      "source": "The GitHub Blog",
+      "content": "More than one in four images on the web’s most popular home pages have alt text that’s missing, vague, or copied from adjacent images.\n\nThat’s from WebAIM’s 2026 [WebAIM Million](https://webaim.org/projects/million/#alttext) report, which found that alt text,an HTML attribute containing text describing the content of an image, was missing on 16.2% of images across the top million home pages. Among the images that *did* have alt text, another 10.8% provided an undescriptive attribute, such as `alt=\"image\"`, a raw filename, or a description duplicated from a neighbor.\n\nWhile automated tooling reliably flags missing alt text, it isn’t as good at fixing poorly written alt text. Most alt text checkers test whether an accessible name for an image exists, not whether the provided alt text says anything useful about the associated image, and that’s a deliberate design choice: a quality-oriented rule with false positives is a rule teams switch off. So `alt=\"IMG_2847.png\"` passes. So does the same `alt=\"3/5 stars\"` on five different star-shaped icons.\n\nWe built an [alt text plugin](https://github.com/github/accessibility-scanner-alt-text-plugin) for the [GitHub Accessibility Scanner](https://github.com/github/accessibility-scanner) to help improve your alt text. This post covers where we drew the line between what a checker can prove and what it can only suspect, why our worst bug turned out to be a layout problem rather than a parsing one, and what changed once we let a model into the loop.\n\nIf you’re building automated checks of your own, for accessibility or otherwise, the tradeoffs should transfer.\n\n## Proving a string is wrong without seeing the picture\n\nPresence of alt text is an objective fact; the attribute is there or it isn’t. Quality is often a judgment call. A machine can’t *prove* whether a sentence adequately describes a picture in context from markup.\n\nHowever, not all quality is subjective. There’s several checks you can perform based on the alt text alone, with no need to consult the image content:\n\n* The attribute is absent (not empty) or whitespace-only.\n* The alt is a filename, such as `hero.png`, `IMG_2847.jpg`.\n* The alt is a placeholder somebody meant to replace, such as `TODO`, `tbd`.\n* The alt is one generic word naming the medium instead of the content, such as `image`, `logo`, `chart`.\n* The same alt repeats across adjacent images.\n\nEvery one of those is a claim about a string, and that became our dividing line. Five deterministic rules run by default which need no credentials for running AI models or network calls. One opt-in rule calls a model with provided image content and surrounding context, for judgments an alt text string can’t support on its own.\n\nFirst, we had to determine which images to judge on a scanned webpage. We use Playwright’s role-based locator rather than `querySelectorAll('img')`, so anything not included in the browser’s [accessibility tree](https://developer.mozilla.org/en-US/docs/Glossary/Accessibility_tree) drops out, including anything carrying `alt=\"\"`. That last exclusion matters most. An empty alt is the author explicitly saying the image is decorative, and flagging it would punish exactly the behavior you want to encourage.\n\nSo, how strict should it be? A quality checker lives or dies on false positives, so we chose closed sets over clever heuristics. The vague-alt rule normalizes a string, then checks it against a curated list of words that carry no information on their own. It fires only on an exact match:\n\n* `alt=\"image\"` gets flagged.\n* `alt=\"image of the login screen with the SSO button highlighted\"` doesn’t.\n\nRules this literal miss plenty of bad alt text. We took the miss over the false positive, because a reliable checker that developers enable beats one that gets switched off.\n\n## Repetition is a layout problem, not a DOM problem\n\nRepeated alt text presented an interesting problem. Picture a row of five star-shaped icons that each say `\"3/5 stars\"`. A screen reader user hears the same thing five times and learns nothing new from four of them.\n\nOur first version walked the images in document order and flagged any run sharing the same normalized alt. It caught things it shouldn’t have. For example, a footer “GitHub” logo and a header “GitHub” logo might sit next to each other in the extracted list but nowhere near each other on screen, so nobody experiences them as a group.\n\nWhat matters is where images land on screen, not where they sit in the markup. So the rule now checks page layout, and only extends a run when the gap between two bounding boxes is small compared to the boxes themselves:\n\n```\nconst gap = Math.max(horizontalGap, verticalGap) \nconst largerDim = Math.max(a.boundingBox.width, a.boundingBox.height, \n                           b.boundingBox.width, b.boundingBox.height) \nreturn gap > GAP_MULTIPLIER * largerDim\n```\n\nTwo details worth noting:\n\n* **The multiplier is a judgment call**, not a number we derived from anything. It’s the kind of value you tune against real pages instead of trusting from a spec.\n* **When either image has no measurable box, the check fails open** and the run continues. A missing finding is invisible; a wrong one isn’t.\n\n## Getting a model to act like a reviewer, not a critic\n\nDeterministic rules only need the alt string. Anything smarter needs to know what the page is about, and none of that is tracked by the image element. Whether `alt=\"a smiling person\"` is fine depends entirely on what surrounds it: on a generic mood shot, it’s probably works. But under a heading where a specific person is named, it doesn’t provide enough detail.\n\nIn our optional `alt-text-quality`check, we extract page context alongside each image: the nearest heading, the page title, any `<figcaption>`, whether the image sits inside a link or button, and up to 600 characters of nearby prose.\n\nThe link signal matters most, because when an image is a link’s only content, its alt becomes the link’s accessible name. The right alt then names the destination instead of describing the picture.\n\n**One caution:** The plugin only records that an image sits inside a link. We don’t check whether it’s the link’s only content, which is the part that actually turns alt into a link name. So right now both cases look identical to the model.\n\nThat context, the alt, and the image go to a vision model through [GitHub Models](https://github.com/marketplace/models). Our failure modes were rarely the model misreading a picture. They were the model having opinions. Given perfectly good alt text, our first version of the checker would suggest different alt text, because “could this be better?” is a question a language model always answers yes to. Every image becomes a finding, so the signal disappears.\n\nThree changes fixed it:\n\n* **A decision procedure instead of an instruction.** The prompt walks four ordered steps, stops at the first that matches, and emits that step’s verdict: decorative, redundant with a caption, functional, or informative.\n* **Explicit anti-nitpick rules.** Trust the author’s framing. Separate redundant prefixes (“Image of…”) from semantic ones (“Photograph of…”). Treat a short alt as *correct* when the surrounding prose already analyzes the image.\n* **Structured output with a forced field order,** so `reasoning` is generated before `verdict` and the model has to build an argument before it picks a label.\n\nNone of that makes the model unfailingly correct. It makes it consistent enough to iterate against. The repository carries an offline grading harness built from published teaching material: [WebAIM](https://webaim.org/techniques/alttext/), the [W3C images tutorial](https://www.w3.org/WAI/tutorials/images/), and [POET](https://poet.bornaccessible.org/). The rule and the harness share one prompt, so what you tune offline is what runs in CI. That harness only tests the model’s judgment, though, not the whole pipeline. A case can score perfectly there and never reach the model in a real scan.\n\n## Sending images to a model is a privacy and cost decision\n\nThe moment a check calls an external model with webpage data, it stops being just a lint rule and requires careful data flow design. A few things follow from that:\n\n* **The rule is off by default.** It won’t run unless you deliberately enable it in your plugin configuration, and it needs a token with access to GitHub Models.\n* **URLs get redacted.** Image URLs and link `href`s often carry signed CDN tokens or session identifiers, so query and fragment are stripped from anything entering the model context or the rule’s error logs. For the same reason, `src` and `srcset` are replaced with `(omitted)` in the markup we send.\n* **Everything in that context window is untrusted input.** Titles, headings, and prose all come from the page being scanned, and a page can contain text written to steer a model. Structured output constrains the shape of a response, not the reasoning behind it.\n\n**One caution, because that list is easy to over-read:** findings still carry the real page URL and original HTML into the scanner’s normal reporting pipeline. That’s on purpose, since you can’t fix an image you can’t locate. Redaction narrows what reaches the model and the logs, not what lands in your own issues. And if you set up Azure AI Vision credentials, an optional OCR pre-pass sends image bytes to a second place. Nothing requires Azure, but a data-flow review needs to cover both paths.\n\nCost follows the same shape. In the common case this is one model call per image per scan, which on an image-heavy site dominates the cost of the whole run. That’s reason enough to put it on a schedule rather than on every commit.\n\n## What this still can’t do\n\n* **The deterministic rules are literal.** They catch alt text that’s obviously unwritten, not alt text that’s fluent and wrong. They also read the `alt` attribute rather than the computed accessible name, so an `aria-label` that fixes the problem won’t stop the finding.\n* **The model-backed rule produces false positives.** Every finding is a prompt for human attention, not a verdict.\n* **Silence isn’t coverage.** That rule re-fetches images outside the browser session, so anything behind authentication can fail to load. Fetch and model errors are logged and skipped, which means a page can come back clean because nothing got checked.\n* **Suggested alt text is a draft.** A model that sees the image and a few nearby words can’t account for your audience, your house style, or the job that image is doing on the whole page.\n* **Some findings double up with the scanner’s built-in checks**, since our `missing-alt` rule covers the same ground.\n* **We only check HTML** `<img>` **tags.** SVG, `role=\"img\"` containers, CSS backgrounds, and canvas aren’t covered yet.\n* **This is new code with limited real-world feedback.** Rules like these improve when they meet the variety of markup and content found across real sites. This plugin hasn’t had that yet, so treat early findings accordingly.\n* **Passing isn’t conformance.** Automated checks are a floor. Testing with people who use assistive tech is the goal.\n\n## What we’d tell you if you’re building something similar\n\nSeparate what you can prove from what you can only suspect, and give them different defaults. Checks that *prove* something should be cheap, predictable, and on by default. Checks that only *suspect* something should be opt-in, and should read as a suggestion rather than a verdict. Then, ask what the user experiences rather than what the DOM says. Every gap still open in this plugin has that second shape. We record that an image is inside a link, not that it *is* the link. We read an attribute, not a computed name.\n\nThat distance is the real boundary, and a better model doesn’t close it. Deciding what the functionality of an image is for a user who can’t see it still requires human judgment. What automation buys you is making sure that human is giving the right images a second examination.\n\n**[Try the alt-text plugin in your accessibility scanning workflow.](https://github.com/github/accessibility-scanner-alt-text-plugin)** If it tells you the wrong thing, please report it. Open an [issue](https://github.com/github/accessibility-scanner-alt-text-plugin/issues) with the finding and, if public, a link to the affected page.\n\nThe post [Your alt text passes automated checks. That doesn’t mean it’s any good.](https://github.blog/engineering/user-experience/your-alt-text-passes-automated-checks-that-doesnt-mean-its-any-good/) appeared first on [The GitHub Blog](https://github.blog).",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160227+08:00"
+    },
+    {
+      "title": "Stickers. Stickers? Stickers!\n\nTurn any photo, idea, or inside joke into a custom sticker pack with ...",
+      "link": "https://x.com/ChatGPT/status/2091996384954069032",
+      "published": "2026-08-25T05:09:40+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Stickers. Stickers? Stickers!  \n  \nTurn any photo, idea, or inside joke into a custom sticker pack with ChatGPT Images—now with transparent backgrounds. Make in ChatGPT, share on iMessage or WhatsApp.  \n  \nBTW— you can create transparent backgrounds for your other images too.\n\n![Tweet Image](https://pbs.twimg.com/media/HQhDF5MWkAA1R7N.jpg)\n\n💬14🔄12❤️99👀5674📊26",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160240+08:00"
+    },
+    {
+      "title": "Select \"Images\" in the sidebar and then \"Stickers\" to get started.",
+      "link": "https://x.com/ChatGPT/status/2091996387512602788",
+      "published": "2026-08-25T05:09:40+08:00",
+      "source": "ChatGPT(@ChatGPTapp)",
+      "content": "Select \"Images\" in the sidebar and then \"Stickers\" to get started.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091996188425793536/vid/avc1/1920x1080/LTOPB3D8GxH9_fgp.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/ChatGPT/status/2091996387512602788/video/1)\n\n💬1🔄4❤️18👀1188📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160244+08:00"
+    },
+    {
+      "title": "i am not here to disagree",
+      "link": "https://x.com/GaryMarcus/status/2091993092585074947",
+      "published": "2026-08-25T04:56:35+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "i am not here to disagree\n\n![Joe G](https://pbs.twimg.com/profile_images/1981641079939059712/UKx601R9_normal.jpg)\n\nJoe G@EastEndJoe\n\nThis was said on August 21, 2026...\n\n![Tweet Image](https://pbs.twimg.com/media/HQbP5LUXsAE-4bL.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/EastEndJoe/status/2091587661613965698)\n\n💬4🔄1❤️23👀2234📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160247+08:00"
+    },
+    {
+      "title": "New BBC World Service documentary: \"The Rise of Deepfakes: How AI Changed Porn, Politics, and Realit...",
+      "link": "https://x.com/goodfellow_ian/status/2091991047090188755",
+      "published": "2026-08-25T04:48:27+08:00",
+      "source": "Ian Goodfellow(@goodfellow_ian)",
+      "content": "New BBC World Service documentary: \"The Rise of Deepfakes: How AI Changed Porn, Politics, and Reality\" [youtu.be/JBBeNQ8L6FI?is…](https://youtu.be/JBBeNQ8L6FI?is=kCQ4grZBZ0xFMt-a)\n\n💬1🔄0❤️7👀2421📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160250+08:00"
+    },
+    {
+      "title": "\"The worst thing you can do in the sales process is to go into one straight demo with no prep. You j...",
+      "link": "https://x.com/lennysan/status/2091998722188324868",
+      "published": "2026-08-25T05:18:57+08:00",
+      "source": "Lenny Rachitsky(@lennysan)",
+      "content": "\"The worst thing you can do in the sales process is to go into one straight demo with no prep. You just lost the deal.\"\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091998236093681664/vid/avc1/1920x1080/LsUV4XU7gUhEW4Gl.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lennysan/status/2091998722188324868/video/1)\n\n![Lenny Rachitsky](https://pbs.twimg.com/profile_images/1592990461517389824/iln8hi1f_normal.jpg)\n\nLenny Rachitsky@lennysan\n\nThe full enterprise sales cycle, step by step with [@jjen\\_abel](https://x.com/jjen_abel)   \n  \nMost people think there are 5 sales stages. There are actually 15.  \n  \nSkip a step and 💀  \n  \nWe discuss:  \n🔸 The “pincer model” for landing the first meeting  \n🔸 How to craft a winning 2-3 sentence cold outreach pitch  \n🔸 How to run an intro call that extracts maximum intelligence  \n🔸 The correct 2-3 day pilot structure  \n🔸 Pro tips for navigating pricing and procurement  \n🔸 So much more  \n  \n84 minutes of enterprise sales alpha. Listen[youtube.com/watch?v=YS9In8…](https://www.youtube.com/watch?v=YS9In813jJ0)ZK0FyNON\n\n[🔗 View Quoted Tweet](https://x.com/lennysan/status/2091553698380169634)\n\n💬1🔄0❤️7👀1788📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160252+08:00"
+    },
+    {
+      "title": "At the high water mark of wokeness, the American Museum of Natural History in New York put labels on...",
+      "link": "https://x.com/paulg/status/2091986388615045558",
+      "published": "2026-08-25T04:29:56+08:00",
+      "source": "Paul Graham(@paulg)",
+      "content": "At the high water mark of wokeness, the American Museum of Natural History in New York put labels on the glass of this diorama telling people the correct way to think about it. I took this picture in 2019. Are they still there?\n\n![Tweet Image](https://pbs.twimg.com/media/HQg6aFQaUAA3lqg.jpg)\n\n💬33🔄4❤️119👀25810📊37",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160255+08:00"
+    },
+    {
+      "title": "And now, Wan 3.0 is 30% off!\n\nTry it here:\nhttps://t.co/jV3J84JK8V",
+      "link": "https://x.com/replicate/status/2091983178403635215",
+      "published": "2026-08-25T04:17:11+08:00",
+      "source": "Replicate(@replicate)",
+      "content": "And now, Wan 3.0 is 30% off!  \n  \nTry it here:  \n[replicate.com/alibaba/wan-3](https://replicate.com/alibaba/wan-3)\n\n![Replicate](https://pbs.twimg.com/profile_images/1732095881695068160/qAiGXOMH_normal.jpg)\n\nReplicate@replicate\n\nWan 3.0 is here on Replicate!  \n  \nThe latest from [@Alibaba\\_Wan](https://x.com/Alibaba_Wan) - create native 30 second single-take videos with synchronized audio.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091972943588839424/vid/avc1/1920x1080/wYVUzv7Ht-zXKpMY.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/replicate/status/2091973298389184896/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/replicate/status/2091973298389184896)\n\n💬0🔄0❤️2👀1003📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160258+08:00"
+    },
+    {
+      "title": "Nice little survey on Terminal Agents.\n\nIt provides good information on what exactly is a terminal a...",
+      "link": "https://x.com/omarsar0/status/2091994045962911949",
+      "published": "2026-08-25T05:00:22+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Nice little survey on Terminal Agents.  \n  \nIt provides good information on what exactly is a terminal agent, and why do harness comparisons keep contradicting each other?  \n  \nPaper: [arxiv.org/abs/2608.20485](https://arxiv.org/abs/2608.20485)  \n  \nTrack more trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HQhBf0yb0AAP7aD.jpg)\n\n💬0🔄1❤️2👀1166📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160261+08:00"
+    },
+    {
+      "title": "Recommended reading and a really cool idea. \n\nThere are a lot of interesting harness designs that ar...",
+      "link": "https://x.com/omarsar0/status/2091989634783862906",
+      "published": "2026-08-25T04:42:50+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "Recommended reading and a really cool idea.   \n  \nThere are a lot of interesting harness designs that are starting to emerge around tool calling and code execution. RLM is one of them. But so is this Speculative Programmatic Tool Calling approach (from the same author of RLM).   \n  \nThere are plenty of ways to gain efficiencies at the harness layer.   \n  \nHarnesses make agents wait: the model streams a block of code, and tool calls inside it only run once generation finishes. sPTC launches the safe calls early against a copy of the environment, so tool latency overlaps with token generation instead of adding on top of it. Bad guesses get thrown away. So far it's 1 to 1.2x speedup. Very promising.\n\n![alex zhang](https://pbs.twimg.com/profile_images/1985433557448216576/qwc8NvJ9_normal.jpg)\n\nalex zhang@a1zhang\n\nIntroducing Speculative Programmatic Tool Calling (sPTC)!  \n  \nA general class of technique for speculating on tool calls during code generation in a harness and queuing them early to overlap with token generation + REPL execution time.  \n  \nBlog: [alexzhang13.github.io/blog/2026/spec…](https://alexzhang13.github.io/blog/2026/spec-ptc/)\n\n![Tweet Image](https://pbs.twimg.com/media/HQgLhjwXYAAFCdp.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/a1zhang/status/2091938825580716079)\n\n💬2🔄2❤️18👀3421📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160263+08:00"
+    },
+    {
+      "title": "Grok Voice Think Fast 2.0 available via API or in our Agent Builder. Head to https://t.co/ZKLH1N6rs4...",
+      "link": "https://x.com/SpaceXAI/status/2091987542824382475",
+      "published": "2026-08-25T04:34:32+08:00",
+      "source": "xAI(@xai)",
+      "content": "Grok Voice Think Fast 2.0 available via API or in our Agent Builder. Head to [console.x.ai](https://console.x.ai) to build, tune, and deploy your voice agents.  \n  \nLearn more: [x.ai/news/grok-voic…](https://x.ai/news/grok-voice-think-fast-2)\n\n💬2🔄3❤️114👀11715📊12",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160266+08:00"
+    },
+    {
+      "title": "At Starlink, we’re using Grok Voice to resolve over 15,000 inbound customer support and sales calls ...",
+      "link": "https://x.com/SpaceXAI/status/2091987541272543406",
+      "published": "2026-08-25T04:34:31+08:00",
+      "source": "xAI(@xai)",
+      "content": "At Starlink, we’re using Grok Voice to resolve over 15,000 inbound customer support and sales calls a day.  \n  \nGrok diagnoses hardware issues, ships replacements, and fulfills over 3,000 orders a week across voice calls and chat.\n\n💬13🔄26❤️353👀34387📊45",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160269+08:00"
+    },
+    {
+      "title": "Grok Voice Think Fast 2.0 is now #1 on the Artificial Analysis Speech-to-Speech Index.\n\nThis index m...",
+      "link": "https://x.com/SpaceXAI/status/2091987538999197752",
+      "published": "2026-08-25T04:34:31+08:00",
+      "source": "xAI(@xai)",
+      "content": "Grok Voice Think Fast 2.0 is now #1 on the Artificial Analysis Speech-to-Speech Index.  \n  \nThis index measures whether voice agents can reason over the speech it hears, resolve real customer issues, and correctly complete tasks using agent tools.\n\n![Tweet Image](https://pbs.twimg.com/media/HQg5tKAWUAEV3__.jpg)\n\n💬42🔄50❤️535👀195516📊85",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160271+08:00"
+    },
+    {
+      "title": "这种技术选型，我年轻的时候会选 DeepSeek Harness，现在会选 Pi。\n\n年轻的时候追求技术上的新和酷，喜欢学新的东西，总觉得什么都要用用什么都要学学，喜欢折腾，较少的考虑项目和团队。\n\n...",
+      "link": "https://x.com/dotey/status/2091996016631300366",
+      "published": "2026-08-25T05:08:12+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "这种技术选型，我年轻的时候会选 DeepSeek Harness，现在会选 Pi。  \n  \n年轻的时候追求技术上的新和酷，喜欢学新的东西，总觉得什么都要用用什么都要学学，喜欢折腾，较少的考虑项目和团队。  \n  \n现在更追求项目需要的、稳定的、简单的，先做出来才是最重要的，能稳定运行更好。Pi 就简单稳定，DSH 还是新东西，稳定下来还要一段时间，何苦来哉。  \n  \n再说了，现在有 AI，测试覆盖好一点，以后要换底层其实没那么难。\n\n![LotusDecoder](https://pbs.twimg.com/profile_images/1996867470716723200/Ix9VzbOK_normal.jpg)\n\nLotusDecoder@LotusDecoder\n\n好了，  \n硬件的选择告一段落，  \n开始新的软件栈纠结，  \n是继续用 pi agent 做开发呢？  \n还是用 deepseek harness？  \n  \npi 是真的简洁易懂，改改代码就上手。  \ndeepseek harness 是一切皆插件，以后给到agent本体的自由度会更大吧。\n\n[🔗 View Quoted Tweet](https://x.com/LotusDecoder/status/2091798706135966009)\n\n💬2🔄0❤️0👀444📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T05:37:27.160274+08:00"
     }
   ]
 }
