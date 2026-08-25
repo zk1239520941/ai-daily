@@ -2969,6 +2969,127 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-25T15:54:50.175319+08:00"
+    },
+    {
+      "title": "Ideas Worth a Longer Conversation: The JetBrains Research Podcast",
+      "link": "https://blog.jetbrains.com/research/2026/08/jbr-podcast/",
+      "published": "2026-08-25T16:30:31+08:00",
+      "source": "The JetBrains Blog",
+      "content": "Every week there’s at least one new announcement about what AI will do to software development. Most of the conversation moves fast and stays shallow, focusing on productivity gains, job displacement, or which model scored highest on the latest benchmark.\n\nWe’re more interested in the questions underneath that noise, so we created the [JetBrains Research Podcast](https://www.youtube.com/playlist?list=PL1iwBJ9vqBRY15OnZdJnRqvo1lY50zt57). In it, we explore questions, such as:\n\n* What does it mean to understand a system, not just generate its code?\n* What does psychology tell us about why teams succeed or fail?\n* Why does verifiability matter more than prestige in training agents?\n\nIn our podcast, we are mainly interested in research in its various forms and the people behind it. Each podcast episode goes somewhere interesting with someone who has spent serious time on things that matter. In this blog post, we highlight the ideas that came up in these conversations.\n\n## **Cat Hicks: Culture is infrastructure**\n\n> “Culture is infrastructure. It is not just a “nice to have”. It shapes our thinking. It shapes our problem-solving. It directly changes the quality of work that we do.”\n\n![jbr podcast cat hicks](https://blog.jetbrains.com/wp-content/uploads/2026/08/cathicks.jpeg)\n\nIn our latest [episode](https://jb.gg/rsrch-pdcst-ep5), we speak with [Cat Hicks](https://www.linkedin.com/in/drcathicks), psychologist and author of [*Psychology of Software Teams*](https://www.routledge.com/The-Psychology-of-Software-Teams/Hicks/p/book/9781032963389)*.* We ask her: What actually determines whether software teams do good work? Why study teams instead of individual developers?\n\nHicks has found that signals of belonging, learning, and recognition from a team can cut developers’ measured AI identity threat, i.e. the fear that their expertise is becoming obsolete, roughly in half. She emphasizes that **it is important to look at the team level to better understand what is going on with individual team members**.\n\nFor example, Hicks has developed a measure she calls *overproduction pressure*, which refers to the feeling that arises when it seems that only short-term output matters. When that pressure is high, people generate code without understanding it, distrust colleagues, and stop being honest with managers.\n\nHicks also challenges the “lone genius” myth: the idea that teams should be built around one highly-talented individual. Instead she argues that it is actually better to strive for “more bands, fewer rock stars”. Highly collaborative cultures, such as open-source problem-solving, can be especially effective at achieving technology breakthroughs.\n\n## Tomáš Petříček: Five cultures, one argument\n\n> “Programming has never really [been] just implementing a specification.”\n\n![jbr podcast tomas petricek](https://blog.jetbrains.com/wp-content/uploads/2026/08/tomaspetricek.png)\n\nIn our fourth [episode](https://jb.gg/rsrch-pdcst-ep4), we talk to [Tomáš Petříček](https://www.linkedin.com/in/tomaspetricek/), a professor at Charles University in Prague who studies the history and philosophy of software. His book [*Cultures of Programming*](http://g/core/books/cultures-of-programming/075A2D1DE611EE47807A683147B21691) argues that programming has never been a single discipline. Instead, the following five distinct cultures have been competing and collaborating since the earliest days of computing:\n\n* **Mathematical**, which treats programs as formal objects to be proved correct.\n* **Hacker**, which values direct engagement with a running machine.\n* **Managerial**, which is focused on predictability and labor organization.\n* **Engineering**, which accepts that systems are complex and asks which practices make them reliable despite that complexity.\n* **Humanistic**, which begins with the question of what happens in a person’s mind when they interact with software.\n\nEach culture has a different idea of what a program is, what good work looks like, and what matters most. These cultures explain why the same event can lead to varying diagnoses. Take, for example, the [Knight Capital failure](https://en.wikipedia.org/wiki/Knight_Capital_Group) in 2012, where a software deployment error cost the company $460 million in less than an hour. Depending on which culture you approach the problem from, one diagnosis might differ wildly from another. Here are some example diagnoses from each of the five cultures:\n\n* A mathematician would ask what could have been formally guaranteed.\n* A hacker would ask what low-level knowledge would have caught th eproblem.\n* An engineer would ask about testing and rollback.\n* A manager would ask about processes and accountability.\n* A humanist would ask whether the system made its state legible to those operating it.\n\nPetříček also talks about the current enthusiasm for AI agents, especially specification-driven development. He emphasizes the importance of looking at history. Since the 1960s, people have been trying to isolate the mechanical part of programming and automate it. But it hasn’t worked yet, because software development has always been more than just the implementation of a specification. **Teams learn what they’re building through prototypes, conversations, and use.**\n\n## **Alexander Kulikov: What you’re building when the solution is unknown**\n\n> “When you find a problem that does not get out of your head, this is probably the right problem.”\n\n![jbr podcast alexander kulikov](https://blog.jetbrains.com/wp-content/uploads/2026/08/alexanderkulikov.jpg)\n\nIn our third [episode](https://jb.gg/rsrch-pdcst-ep3), we chat with [Alexander Kulikov](https://alexanderskulikov.github.io/), who heads the Algorithms and Complexity Theory Lab at JetBrains Research and is the Head of Computer Science and Artificial Intelligence B.Sc. program at Neapolis University Pafos. His description of the current climate is more honest than most: “amazing, exciting, and frightening at the same time.”\n\nAnd the concern isn’t entirely theoretical. Chess engines, for example, surpassed every human player decades ago. Kulikov doesn’t know of any law preventing AI from eventually doing the same to theorem proving. He doesn’t expect it imminently, but he also didn’t expect AI-assisted coding to progress as fast as it has. His position is what he calls *attentive uncertainty*: neither denial nor resignation.\n\nIn the episode, we also talk about what it actually means to teach computer science in an era when AI can solve Olympiad problems. Kulikov’s curriculum strategy is simple: teach graduate students how to learn difficult things efficiently. The specific technologies they’ll need are unknowable. **The ability to dive into an unfamiliar subject, build a mental model, and make progress is more durable than any particular skill**.\n\nThat’s also why he still takes mathematics seriously in a world of AI-assisted coding. A student who understands the structure of a problem can test an AI-generated answer, identify missing assumptions, and recover when the first attempt fails. A student who only knows how to request an answer may not know whether the answer is trustworthy.\n\nKulikov also draws a distinction between researchers who are “birds” (i.e. ranging across fields, spotting connections from above) and “frogs” (i.e. digging deep into one area). In this analogy, he would be a frog. But AI, he thinks, could act as an artificial bird for specialists: lowering the cost of looking beyond your immediate field without requiring you to become a generalist.\n\n## Ibragim Badertdinov: From dentistry to coding agents\n\n> “Vibe checks don’t scale.”\n\n![jbr podcast ibragim badertdinov](https://blog.jetbrains.com/wp-content/uploads/2026/08/ibragimbadertdinov.png)\n\nIn our second [episode](https://jb.gg/jbrpod2), we talk with [Ibragim Badertdinov](https://www.linkedin.com/in/ibragim-badertdinov/), the Lead Research Engineer at Nebius. He took a somewhat unusual path to AI research: he first graduated from medical university with honors, completed a dental residency, and then gave himself a year to try something else. In this episode, he talks about how he made that switch, what he learned at School 21 and on Kaggle, and the work that followed. Most notably, we talk about his work on building [SWE-rebench](https://swe-rebench.com/).\n\nSWE-rebench is an automated pipeline for evaluating coding agents on real software engineering tasks. Accepted to NeurIPS 2025, it also has over 12 million Hugging Face downloads and a million leaderboard visits a month. Its key design feature is decontamination, or pulling tasks from GitHub only after a model’s release date, so agents can’t be trained on the answers. This way, SWE-rebench isolates the model’s problem-solving ability from any potential exposure to training data. After its release, it made headlines when many models performed substantially worse on SWE-rebench tasks than on SWE-bench Verified ones (see the [paper](https://arxiv.org/pdf/2505.20411) for more details).\n\nThis is especially important, because the standard up to now has been SWE-bench Verified, and the reported scores from this benchmark carried significant weight, both in research and the wider industry. As was discussed in a recent blog [post](https://blog.jetbrains.com/research/2026/07/benchmark-meaning-gap/), this tendency to focus on only SWE-bench Verified scores can give us a misleading picture of model performance. The post also suggests ways to evaluate models more accurately.\n\nBadertdinov also talks about why reinforcement learning with verifiable rewards has driven such dramatic gains in coding and math specifically. The insight is deceptively simple: **in domains where you can verify whether an answer is correct, you can generate vast training signals automatically**. Code runs or it doesn’t; tests pass or they don’t. That’s what makes software engineering tasks so valuable for post-training: not their prestige, but their verifiability.\n\n## Anna Kogan: The library that became infrastructure\n\n> “Right now, computer vision is not cool. LLMs are very cool.”\n\n![jbr podcast anna kogan](https://blog.jetbrains.com/wp-content/uploads/2026/08/annakogan.png)\n\nOur pilot [episode](https://jb.gg/rsrch-pdcst-ep1) is a conversation with [Anna Kogan](https://www.linkedin.com/in/anna-kogan-44b24673/), founder and CEO of FitWise and former CEO of [OpenCV.ai](http://opencv.ai). She’s been in computer vision for 15 years and still believes in its scientific value: **in computer vision, researchers gather a dataset, train a model, measure metrics, and solve specific tasks**. In our conversation, we discuss challenges in the field, including monetizing open-source tools and slow adoption of AI in various industries despite the technology already existing.\n\nThe gap between impact and resourcing for open-source tools is one thread in the conversation. An example we discuss is OpenCV, the open-source computer vision library she helped build into a global standard. It runs on billions of devices and gets 32 million Python downloads a month on PyPI alone. Because of these numbers, many people assume the library is maintained by several hundred developers, while in reality it’s been only two to eight developers at any given time.\n\nAnother conversation thread concerns a harder question: Why does computer vision adoption still move so slowly, even when tools such as OpenCV are clearly very popular? In response, Kogan brings up human movement in sports. Even though the technological advances are far enough along that people in sports could stop manually clicking through and annotating broadcast footage, organizations are resistant to adopting AI support. One reason is that it is still cheaper to hire workers in the Philippines to do this manual work, than it is to figure out an AI system to take it over.\n\nWith FitWise AI, Kogan is interested in helping sports organizations see the value in computer vision adoption. They provide the data, 3D digital replicas of athletes’ body shapes and movements in real time; this data is collected via stadium cameras that are already streaming visual data. Sports organizations can apply their expertise to the visual data, and so far there have been interesting results. For example, one company extracted the angular velocity of a quarterback’s arm during a throw and showed that this is a strong predictor of elite performance.\n\nTools like FitWise AI can change how teams understand performance and injury risk. It’s a domain where the technology is genuinely ahead of the industry’s willingness to absorb it, and Kogan is not waiting for the industry to catch up on its own.\n\n## Explore these ideas and more on our podcast\n\nThese are some of the ideas we discuss on the JetBrains Research Podcast. If you find a question you can’t stop thinking about, that’s by design.\n\nAll episodes are available on [YouTube](https://jb.gg/rsrch-pdcst) and [Spotify](https://open.spotify.com/show/4WhDT7bqAGmZFkqXFQ68t9) (and [any other major podcast platform](https://rss.com/podcasts/jetbrains-research-podcast/)). We publish new episodes about once a month.\n\n[Suggest a speaker](http://info@research.jetbrains.org)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526594+08:00"
+    },
+    {
+      "title": "《道路交通安全法》拟大改：「电鸡」限速上调至 20km/h，将严管「暴走团」占道",
+      "link": "https://www.ifanr.com/1676652?utm_source=rss&utm_medium=rss&utm_campaign=",
+      "published": "2026-08-25T16:06:50+08:00",
+      "source": "爱范儿",
+      "content": "![](https://s3.ifanr.com/wp-content/uploads/2026/08/M6WLHRP_EBXqMps-ILuzEV0O-RBGknKfNXPwGTVz8Bk.jpeg)\n\n好消息，平时骑「电鸡」上班的朋友，可以稍微骑快点了。\n\n8 月 25 日，《道路交通安全法》修订草案提请十四届全国人大常委会第二十四次会议初次审议。这是现行道路交通安全法自 2004 年施行以来的一次系统性修订，共 9 章 170 条，涉及电动自行车、「盲驾」、自动驾驶、「暴走团」等多个高频出行话题。\n\n要注意，这只是修订草案，尚未正式通过和施行。\n\n### 电动自行车限速，拟从 15km/h 提高至 20km/h\n\n先来说每天穿行在城市里「电鸡」，也就是电动自行车。草案拟将电动自行车在非机动车道内行驶的最高时速，从现行的 15km/h 提高至 20km/h。\n\n这里调整的是道路通行限速，不是车辆的最高设计车速。目前电动自行车国标规定的最高设计车速仍为 25km/h。换句话说，这次修法主要是缩小一点「车能跑多快」和「路上允许跑多快」之间的落差。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/655ea3c52fbf0.jpg)\n\n但限速放宽，不等于骑行规则一起放宽。\n\n草案同时明确，驾驶电动自行车上路，不得逆行、超速、违反交通信号，也不能拨打或接听手持电话、观看视频；驾驶人与乘车人还应按规定佩戴安全头盔。\n\n### 开车看视频，「盲驾」处罚可能加码\n\n机动车这边，也多了一条更明确的红线。\n\n草案规定，驾驶时拨打或接听手持电话、观看视频等妨碍安全驾驶的行为，如果造成交通事故或者其他严重后果，将处 200 元以上、500 元以下罚款，并可以暂扣三个月机动车驾驶证。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/3.-Acusensus-Transport-NSW-texting-driver-2.jpg)\n\n过去，酒驾、疲劳驾驶的危险性已经深入人心；如今，手机正在成为驾驶舱里的另一种注意力黑洞。\n\n不过需要注意，草案中的上述加重处罚，以「造成交通事故或者其他严重后果」为前提，并非只要开车看一眼手机，就一律暂扣三个月驾照。\n\n### 自动驾驶违章，车企也要「接单」\n\n这次修订草案还专门设置了「自动驾驶汽车的特别规定」一章。\n\n按照草案，当自动驾驶功能处于激活状态，车辆发生道路交通安全违法行为时，由自动驾驶汽车的生产企业或进口企业接受处理。\n\n但要注意，这里的「自动驾驶」，并不是我们平时使用的「辅助驾驶」。如果自动驾驶功能没有激活，或者车辆仅具备辅助驾驶功能，则仍按照普通汽车的规定管理。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/P22H9SQH632W.jpg)\n\n简单来说，辅助驾驶还是「人开车、人负责」；真正进入自动驾驶状态后，交通违法的处理对象开始从驾驶人延伸至车企。\n\n不过，「由车企接受交通违法处理」不等于所有事故责任都自动归车企。事故认定、民事赔偿及产品责任，仍需根据具体情形和后续配套制度判断。\n\n### 「暴走团」也被盯上了\n\n对于成群占用机动车道、非机动车道的「暴走团」，草案重申：未经许可，任何单位或者个人不得占用道路从事暴走、健身等非交通活动。\n\n草案还进一步明确了相关管理责任：公安交管、交通运输、住房城乡建设等部门应当依法劝阻、制止和处理，道路养护单位则负有劝阻、报告义务。\n\n健身当然是自由，但马路不是健身房的延长线。\n\n![](https://s3.ifanr.com/wp-content/uploads/2026/08/vgdcx.jpeg)\n\n除此之外，这次修订还聚焦醉驾、「僵尸车」、超标车辆等长期存在的交通治理难题，并加入多项便民出行措施。\n\n需要再次提醒的是，《道路交通安全法》修订草案目前仅进入初次审议阶段。20km/h 限速等调整最终是否落地、何时施行，仍要等待后续审议和正式公布。\n\n**[李华 (李华)](https://www.ifanr.com/author/tanjiewen)**\n\n带轮子的都关注，欢迎交流。\n邮箱：tanjiewen@ifanr.com\n\n[邮箱](mailto:tanjiewen@ifanr.com)\n[8](https://www.ifanr.com/5)\n\n#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526608+08:00"
+    },
+    {
+      "title": "开源国产8B模型，比肩闭源Image 2了！",
+      "link": "https://www.qbitai.com/2026/08/479192.html",
+      "published": "2026-08-25T14:53:26+08:00",
+      "source": "量子位",
+      "content": "SenseNova U1.5 Lite",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526613+08:00"
+    },
+    {
+      "title": "macOS 上缺少一个把 CPU、内存、GPU、磁盘、电池等指标长期记录到本地、事后能回溯分析性能问题的开源工具。\n\nMac Performance Monitor 是一个常驻菜单栏的 macOS 性...",
+      "link": "https://x.com/geekbb/status/2092156096693834035",
+      "published": "2026-08-25T15:44:18+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "macOS 上缺少一个把 CPU、内存、GPU、磁盘、电池等指标长期记录到本地、事后能回溯分析性能问题的开源工具。  \n  \nMac Performance Monitor 是一个常驻菜单栏的 macOS 性能记录与分析工具，持续把内存压力、CPU、GPU、网络、磁盘、电池和每个进程的用量写入本地 SQLite 数据库。  \n  \n[github.com/Zesty0wl/mac-p…](https://github.com/Zesty0wl/mac-performance-monitor)\n\n![Tweet Image](https://pbs.twimg.com/media/HQjUpkZaMAApxTB.jpg)![Tweet Image](https://pbs.twimg.com/media/HQjUtDOakAA5HnR.jpg)\n\n💬1🔄0❤️0👀931📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526617+08:00"
+    },
+    {
+      "title": "What if warehouse robots could search product catalogs without the network?\n\nRahul Sharma shows how ...",
+      "link": "https://x.com/qdrant_engine/status/2092161904722813224",
+      "published": "2026-08-25T16:07:23+08:00",
+      "source": "Qdrant(@qdrant_engine)",
+      "content": "What if warehouse robots could search product catalogs without the network?  \n  \nRahul Sharma shows how Qdrant Edge + MobileCLIP2 enables offline visual search, with multivectors helping recognize products across different views.  \n  \nRead more: [levelup.gitconnected.com/solving-the-mi…](https://levelup.gitconnected.com/solving-the-mixed-bin-offline-visual-search-for-apparel-robotics-998a0a3ce8e4)\n\n![Tweet Image](https://pbs.twimg.com/media/HQjaJJmasAAoieL.png)\n\n💬0🔄0❤️1👀84",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526620+08:00"
+    },
+    {
+      "title": "结合我对这本书的理解，写了一个三句话短评\n\n(即使只写 3 句话，也不容易的😭)",
+      "link": "https://x.com/howie_serious/status/2092162133828227203",
+      "published": "2026-08-25T16:08:17+08:00",
+      "source": "howie.serious(@howie_serious)",
+      "content": "结合我对这本书的理解，写了一个三句话短评  \n  \n(即使只写 3 句话，也不容易的😭)\n\n![Tweet Image](https://pbs.twimg.com/media/HQjaKQhbcAAgkco.jpg)\n\n💬0🔄0❤️0👀280",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526623+08:00"
+    },
+    {
+      "title": "原帖：https://t.co/3fSkq1Sqkx",
+      "link": "https://x.com/xiaohu/status/2092165045153341840",
+      "published": "2026-08-25T16:19:51+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "原帖：[x.com/MatthewBerman/…](https://x.com/MatthewBerman/status/2091959711423996249)\n\n![Matthew Berman](https://pbs.twimg.com/profile_images/2051399921467830272/9RGo_6vv_normal.jpg)\n\nMatthew Berman@MatthewBerman\n\nMy full interview with Tibo ([@thsottiaux](https://x.com/thsottiaux))  \n  \n0:45 Tibo's Lessons from Google DeepMind  \n4:22 Building OpenAI’s Relentless Culture  \n7:23 Astra & Next Gen Models  \n11:18 How Fast AI Changes Developer Workflows  \n14:27 ChatGPT & Codex Merging  \n20:25 OpenAI vs. Anthropic  \n23:37 Why OpenAI Keeps Resetting Limits  \n30:25 Recursive Self-Improvement  \n32:00 Dangers That Caused \"The Pause\"  \n34:13 Will Ultra Fast Become the Default?  \n43:20 Why Everyone Needs to Try AI\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2091957857650716672/vid/avc1/1920x1080/qbl6AFXJQKLdYriy.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/MatthewBerman/status/2091959711423996249/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/MatthewBerman/status/2091959711423996249)\n\n💬0🔄0❤️0👀113",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526626+08:00"
+    },
+    {
+      "title": "我这套字母系统现在很智能啊\n\n还会自动规避视频里面的文字遮挡",
+      "link": "https://x.com/xiaohu/status/2092164520924078286",
+      "published": "2026-08-25T16:17:46+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "我这套字母系统现在很智能啊  \n  \n还会自动规避视频里面的文字遮挡\n\n💬0🔄0❤️0👀65",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526628+08:00"
+    },
+    {
+      "title": "ChatGPT 和 Codex 最终会变成同一个产品\n\nOpenAI 正在合并 ChatGPT 和 Codex，因为在他们看来，“写代码”和“处理普通任务”不应该被分成两个产品。\n\n未来可能只有一个统...",
+      "link": "https://x.com/xiaohu/status/2092160619755733085",
+      "published": "2026-08-25T16:02:16+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "ChatGPT 和 Codex 最终会变成同一个产品  \n  \nOpenAI 正在合并 ChatGPT 和 Codex，因为在他们看来，“写代码”和“处理普通任务”不应该被分成两个产品。  \n  \n未来可能只有一个统一的个人 AI  \n  \n完整文字版↓[best.xiaohu.ai/article/openai…](https://best.xiaohu.ai/article/openai-personal-agi-codex/)\n\n💬0🔄0❤️0👀321",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526631+08:00"
+    },
+    {
+      "title": "Codex 负责人“重置之神” Tibo 访谈：\n\nCodex 仍然只是过渡形态 \n真正的竞争正在从单个模型扩展到整套系统\n\n据他爆料：在ChatGPT 出现大约一年前，DeepMind 内部已经有一...",
+      "link": "https://x.com/xiaohu/status/2092160615544660037",
+      "published": "2026-08-25T16:02:15+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "Codex 负责人“重置之神” Tibo 访谈：  \n  \nCodex 仍然只是过渡形态   \n真正的竞争正在从单个模型扩展到整套系统  \n  \n据他爆料：在ChatGPT 出现大约一年前，DeepMind 内部已经有一个叫 LMChat 的聊天产品。但是Google担心冲击搜索业务选择了雪藏...  \n  \n他还说，他确实有一个实体“重置”按钮...  \n  \n他认为 OpenAI 最大的不同，是研究和产品团队联系紧密，而且有非常强烈的“先发布、再根据用户反馈迭代”的文化。  \n  \n结论就是：  \n  \n大公司被颠覆，通常不是因为没看见新技术，而是因为不愿意让新技术破坏自己的旧业务。  \n  \n现在的 Codex 仍然只是过渡形态  \n  \n目前使用编程 Agent，用户还需要自己维护：  \n  \nSkill 文件  \n长期记忆  \n子 Agent  \n各种工具和工作流  \n多个并行任务  \n  \n这些操作虽然强大，但仍然很复杂。真正理想的 AI 不应该要求用户自己搭建一套“Agent 管理系统”。  \n未来的 AI 应该自动理解：  \n  \n你是谁  \n你的目标是什么  \n你每天在做什么  \n你的团队在做什么  \n哪些事情值得现在提醒  \n哪些事情可以后台完成  \n  \n它不只是等你下命令，还应该主动发现问题、提出建议并执行任务。\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2092147449578311680/vid/avc1/1920x1080/TQSEtZkpDGDyGsJQ.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2092160615544660037/video/1)\n\n💬3🔄0❤️2👀1348📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526634+08:00"
+    },
+    {
+      "title": "Cursor Releases Origin as an Agent-Native Alternative to GitHub",
+      "link": "https://www.infoq.com/news/2026/08/cursor-origin-alternative-github/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-25T16:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/news/2026/08/cursor-origin-alternative-github/en/headerimage/generatedHeaderImage-1787588546610.jpg)\n\nAI coding agent Cursor has launched Origin, a git based code hosting platform embedded inside its AI-powered editor, positioning it as an alternative to GitHub for teams that already work in Cursor. Origin is rolling out in early beta on Pro, Teams and Enterprise plans, and lives inside a new Codebase tab within the Cursor application.\n\n*By Matt Saunders*",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-25T16:53:11.526637+08:00"
     }
   ]
 }
