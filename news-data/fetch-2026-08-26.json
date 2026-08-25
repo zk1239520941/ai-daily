@@ -1056,6 +1056,149 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-26T02:50:51.736617+08:00"
+    },
+    {
+      "title": "Agentic observability with Amazon OpenSearch Service MCP Apps",
+      "link": "https://aws.amazon.com/blogs/machine-learning/agentic-observability-with-amazon-opensearch-service-mcp-apps/",
+      "published": "2026-08-26T03:00:09+08:00",
+      "source": "AWS Machine Learning Blog",
+      "content": "Observability agents are fast. They query alerts, correlate logs with traces, and produce a root cause hypothesis in minutes. The part that still takes time is verification. You read the agent’s text summary, open your observability tools in a browser, navigate to the trace waterfall, check the service map to scope impact, and cross-reference what the agent told you against what you see on screen. The agent saved you the query time. It did not save you the tab-switching, context-carrying, manual-verification time. That is still your job.\n\nAmazon OpenSearch Service MCP Apps close that gap. MCP Apps extend the Model Context Protocol so that each tool call responds with an interactive visualization — a trace waterfall, a service topology, a log pattern view — rendered directly in your AI assistant’s chat window alongside the text response. You ask the agent to investigate. The agent queries Amazon OpenSearch Service. The response arrives with both a text explanation and the relevant dashboard widget. You verify in the same thread where you asked the question, without opening a separate browser tab or re-running a query.\n\nIn this post, we explain how MCP Apps change your observability workflow and walk through setup step by step.\n\n## The problem: Verification still requires leaving the agent loop\n\nThe typical investigation loop proceeds as follows. First, the engineer asks the agent and gets a text-based root cause hypothesis. Next, they leave the IDE to open a browser and log in to a separate observability UI. They then re-run queries manually to reproduce what the agent found, in a different tool. After verifying visually by comparing the agent’s text output against actual dashboards, they return to the agent and resume the conversation, having lost their place in the investigation.\n\nThe agent generates a response in seconds, but you must leave the agent’s environment to verify. This means logging in to a separate observability experience and navigating dashboards manually. This external verification loop is the bottleneck. It forces you into a tool-switching role that undermines the speed advantage of agentic automation.\n\nOrganizations running agentic observability locally chose control and cost efficiency over vendor-provided AI. But this choice has historically come with a trade-off: local agentic setups sacrifice ease of use and sometimes agent performance compared to vendor-hosted solutions that tightly couple AI with their services. For these teams, the verification gap is the primary operational burden. They optimized for autonomy, yet verification still happens at human speed, in a separate observability tool.\n\n## The solution: MCP Apps bring an observability UI into your IDE\n\nAmazon OpenSearch Service now supports MCP Apps, a capability that extends MCP with a *dual response* pattern.\n\nWhen your AI agent calls an MCP App tool, the response contains two parts. The first is a *text summary* with concise, structured data. The second is an *interactive visualization* rendered in the same conversation thread for you to review. OpenSearch MCP App generates the visualization by executing code against the same data sources that power your dashboards. Because of this, the results are *deterministic*. You’re not trusting the AI’s interpretation. You’re seeing the actual query result rendered as an interactive chart, trace waterfall, or service map.\n\n![MCP App observability report showing an error-count-by-service bar chart, a root cause table, and an analysis summary.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/04/ML-21227-1-2.png)\n\nFigure 1: MCP App rendering an observability report inside the agentic IDE, showing error counts by service alongside AI-generated root cause analysis\n\n## How it works\n\nThe MCP Apps capability consists of a local MCP server, your IDE, and your OpenSearch UI application working together. This section explains the architecture, the protocol extension mechanism, and the end-to-end flow of a single tool call.\n\n### Architecture\n\nA *local MCP server* runs on your machine. It acts as a secure bridge between your agentic IDE and your OpenSearch UI application. The server exposes observability tools that your AI agent can call. Each tool call goes through the MCP server to your OpenSearch UI endpoint, executes the query, and returns the dual response back to your IDE. OpenSearch UI is the serverless interface for unified observability that works with OpenSearch domains, serverless collections, CloudWatch, and Amazon Managed Service for Prometheus (learn more about OpenSearch UI).\n\nThe following diagram shows the request flow:\n\n```\nYour IDE or AI desktop client (Claude, VS Code, Cursor, etc.)\n  ↓ tool call\nLocal MCP server (runs on your machine)\n  ↓ authenticated query\nOpenSearch UI application (connected with your data sources)\n  ↓ dual response\nYour IDE ← text summary + interactive MCP App visualization\n```\n\n**You maintain full control.** The MCP server runs locally. Your data stays in your AWS account. Your credentials, your policies, your domains.\n\n### How MCP Apps extend the MCP protocol\n\nStandard MCP tool calls return text-only responses. The agent sends a JSON-RPC request specifying the tool name and parameters, and the server returns a text result that the agent incorporates into its reasoning. MCP Apps extend this pattern by adding a second response channel: a visualization payload that the IDE renders as an interactive widget alongside the text.\n\nWhen the local MCP server receives a tool call, it authenticates using your configured AWS credentials and forwards the request to your OpenSearch UI application endpoint as an HTTP API call. OpenSearch UI executes the query against your connected data sources and returns both a structured text summary and a rendered visualization artifact. Supported data sources include OpenSearch domains, serverless collections, and Amazon Managed Service for Prometheus. The MCP server packages these into a single MCP response containing the text content for the agent and the visualization content for the IDE host to render.\n\nThe IDE host detects the visualization payload and renders it as an interactive widget in the conversation thread. OpenSearch MCP App generates the visualization server-side by executing code against your actual data. Therefore, the rendered output is deterministic and matches what you would see in your OpenSearch dashboards.\n\n### A tool call end-to-end\n\nTo illustrate the dual response pattern in practice, consider a trace investigation. The following walkthrough shows what happens when your agent calls the trace investigation MCP App tool.\n\n**What the agent sends.** Your agent issues a tool call to the trace investigation MCP App, passing parameters such as the trace ID or a filter like service name and time range. This call travels from your IDE to the local MCP server over the standard MCP protocol.\n\n**How the server executes it.** The local MCP server receives the tool call, authenticates against your AWS credentials, and forwards the request to your OpenSearch UI application endpoint. OpenSearch UI executes the trace query against your connected data sources, retrieves the matching spans, and assembles the response.\n\n**What the dual response contains.** The MCP server returns two outputs in a single response. The text portion contains a structured summary. It includes the trace ID, total duration, span count, the critical path, and an analysis of where the failure originated. The visualization portion contains an interactive trace waterfall rendered as an MCP App inside your IDE, showing the span hierarchy, timing, and error annotations.\n\n**How the agent and human each consume it.** From the text summary, your agent extracts context for its next reasoning step, for example correlating the failing span with related log entries. Meanwhile, you see the interactive trace waterfall in the same conversation thread. You can expand individual spans, inspect attributes, and confirm the root cause visually, without opening a separate browser tab.\n\n### Available MCP Apps\n\nThe MCP Apps support observability investigation across the lifecycle, with tools that chain together across investigation stages.\n\n#### Core investigation tools\n\nA typical investigation begins with triage and response tools, which surface active alerts, correlate related alerts across data sources, and present severity breakdowns so your agent can prioritize the issue. After the agent identifies the affected service, log investigation tools search for error patterns and cluster similar log entries to isolate the failure signature. From there, trace investigation tools locate the specific distributed trace, display the span hierarchy and latency breakdown, and pinpoint where the failure originated.\n\n#### Context and visualization tools\n\nTo quantify the impact, metric investigation tools execute PromQL queries and perform threshold analysis, while service performance tools provide RED metrics (rate, errors, duration) at the service level. Topology tools render the service map as a dependency graph. The graph shows call volume and error rates across edges so you can scope the impact. Throughout the investigation, dynamic visualization tools generate line, bar, area, and metric charts from queries you specify, and datasets and correlations tools support cross-signal joins and data summaries.\n\n#### Specialized tools\n\nSpecialized tools address emerging needs. AI and agent observability tools trace large language model (LLM) calls and render agent trace maps for teams building their own AI workflows. Stack health tools report cluster status and shard allocation. Instrumentation scoring tools detect telemetry quality gaps so teams can improve their observability coverage.\n\n![MCP App trace investigation showing a span hierarchy timeline with span details and AI analysis.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/04/ML-21227-2-2.png)\n\nFigure 2: Trace investigation MCP App showing span hierarchy, timeline, and failure origin analysis inside the IDE\n\n## Revisiting the on-call scenario\n\nWith MCP Apps, the same on-call investigation now looks like this.\n\nThe engineer asks the agent: “What’s causing the spike in checkout errors?” The agent investigates by querying logs, correlating with traces, and checking the service map. A dual response arrives containing both a text summary and interactive visualizations (alert view, trace waterfall, and service map) rendered in the same thread. The engineer reviews inline by scrolling through the MCP App visualizations and selecting span details to confirm the scope of impact, without leaving the IDE. Finally, they instruct the agent to draft the issue summary or trigger a remediation.\n\nThe engineer never leaves the IDE. Investigation, verification, and resolution happen in a single conversation thread. For on-call engineers, this means faster resolution and a more straightforward experience to collaborate with AI agents.\n\n![MCP App service map showing a call graph with per-service error rates and dependency edges.](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/04/ML-21227-3-2.png)\n\nFigure 3: Service map MCP App showing dependency graph with error rate color coding and call volume edge widths\n\n## Getting started: Set up the MCP server\n\nFollow these steps to connect your agentic IDE to your OpenSearch UI application.\n\n### Prerequisites\n\nBefore you begin, check that you have the following:\n\n* An OpenSearch UI application with an Observability workspace connected to at least one data source (Amazon OpenSearch Service domains, serverless collections, or Amazon Managed Service for Prometheus).\n* A compatible agentic IDE (Claude Desktop, VS Code GitHub Copilot, Goose, ChatGPT, or Cursor).\n* Node.js 22 or later installed locally.\n* AWS credentials configured with `es:ESHttpGet` and `es:ESHttpPost` permissions.\n\n### Step-by-step setup\n\nThe following procedure walks through downloading the server, configuring your IDE, and verifying the connection.\n\n**Step 1: Download and extract the MCP server**\n\nDownload and prepare the MCP server package:\n\n1. Navigate to the OpenSearch observability MCP server [download page.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/opensearch-observability-mcp-app.html#opensearch-observability-mcp-app-setup)\n2. Download the MCP server .zip file.\n3. Extract the archive. The extracted directory contains a `server/server.js` file. Note the full path to this file.\n\n**Step 2: Add the MCP server to your IDE**\n\nEach supported IDE has an MCP configuration file. The following list shows where to find it:\n\n* **Claude Desktop**: Settings → Developer → Edit Config.\n* **VS Code GitHub Copilot**: `.vscode/mcp.json` in your workspace, or User Settings → MCP Servers.\n* **Cursor**: Settings → MCP → Add Server.\n* **Goose**: `~/.config/goose/mcp.json` (through extensions).\n* **ChatGPT**: Settings → MCP Plugins → Add.\n\nOpen the configuration for your IDE and add the following:\n\n```\n{\n  \"mcpServers\": {\n    \"opensearch-observability-stack-mcp\": {\n      \"command\": \"node\",\n      \"args\": [\"/path/to/opensearch-observability-stack-mcp/server/server.js\"],\n      \"env\": {\n        \"OS_UI_ENDPOINT\": \"application-foo-bar.us-west-2.opensearch.amazonaws.com\",\n        \"AWS_REGION\": \"us-west-2\",\n        \"AWS_PROFILE\": \"my-profile\"\n      }\n    }\n  }\n}\n```\n\nReplace the placeholder values with your OpenSearch UI endpoint, AWS Region, and profile.\n\nTo find your OpenSearch UI endpoint:\n\n1. Open the Amazon OpenSearch Service console.\n2. In the navigation pane, choose **Applications**.\n3. Select your OpenSearch UI application.\n4. Copy the Application URL (for example, `application-abc123.us-west-2.opensearch.amazonaws.com`).\n\n**Step 3: Verify the connection**\n\nAfter saving the configuration, restart your IDE or reload the MCP server list. Then enter the following prompt in your IDE:\n\n*“List available observability data sources”*\n\nIf the agent returns your connected data sources (Amazon OpenSearch Service domains, serverless collections, or Amazon Managed Service for Prometheus workspaces), the MCP server is configured correctly.\n\nIf you receive an error, check that your AWS credentials are active and that your AWS Identity and Access Management (IAM) policy includes the `es:ESHttpGet` and `es:ESHttpPost` actions for your OpenSearch UI application ARN.\n\n**Tip:** To test without production data, deploy the OpenTelemetry Demo application to generate sample traces, logs, and metrics in your Amazon OpenSearch Service domain.\n\n## Clean up\n\nTo remove the MCP server configuration, open your IDE’s MCP settings and delete the `opensearch-observability-stack-mcp` entry. Then delete the extracted MCP server directory from your local machine. This setup provisions no cloud resources, so you don’t need AWS side cleanup.\n\n## Why this matters\n\nThe following table summarizes how MCP Apps change the on-call workflow:\n\n|  |  |\n| --- | --- |\n| **Without MCP Apps** | **With MCP Apps** |\n| Agent returns text → open browser → log in → navigate → verify manually | Agent returns text + interactive visualization → review inline |\n| You cannot see the underlying data in AI output | MCP App results are deterministic (OpenSearch MCP App executes code) |\n| Context-switching between IDE and dashboard tabs | Single conversation thread in your IDE |\n| Agent reasons only on its own output | Agent reads MCP App results as additional structured context |\n| Human verification takes minutes across external platforms | Verification compressed to seconds, inline with the agent |\n\n## Conclusion\n\nWith MCP Apps, Amazon OpenSearch Service closes the verification gap in agentic observability. Your AI agent investigates, and the interactive proof arrives in the same thread: no context-switching, no separate logins, no re-running queries. For on-call engineers, this can mean faster resolution. For organizations running agentic observability locally, this provides the operational simplicity you wanted without sacrificing accuracy.\n\n**Get started today:** For setup instructions, see [Agentic observability with MCP Apps](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/opensearch-observability-mcp-app.html) in the Amazon OpenSearch Service Developer Guide.\n\n---\n\n## About the authors\n\n![Arthur Hang Zuo](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/04/ML-21227-4-2.png)\n\n### Arthur Hang Zuo\n\nArthur is a Senior Product Manager with Amazon OpenSearch Service. Arthur leads OpenSearch UI platform and agentic AI features to enable observability and search use cases. Arthur is interested in the topics of Agentic AI and data products.\n\n![Joshua Li](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/04/ML-21227-5-2.png)\n\n### Joshua Li\n\nJoshua is a Senior Software Engineer at Amazon OpenSearch Service. Joshua focuses on Observability features, UI experiences, and agentic AI integrations in OpenSearch Dashboards and OpenSearch UI.\n\n![Shenoy Pratik Gurudatt](https://d2908q01vomqb2.cloudfront.net/f1f836cb4ea6efb2a0b1b99f41ad8b103eff4b59/2026/08/04/ML-21227-6-2.png)\n\n### Shenoy Pratik Gurudatt\n\nPratik is a Senior Software Engineer at Amazon OpenSearch Service. Pratik focuses on the intersection of Observability, Search, and ML, and contributes to critical OpenSearch mechanisms including Data Prepper, Reporting, Query Workbench, and the Observability Stack.",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602360+08:00"
+    },
+    {
+      "title": "Debugging Ubiquiti's 5G Backup on AT&T",
+      "link": "https://www.jeffgeerling.com/blog/2026/unifi-u5g-backup-debugging/",
+      "published": "2026-08-26T03:18:00+08:00",
+      "source": "Jeff Geerling",
+      "content": "For a mobile 'mini homelab' project I'm working on, I wanted to use 5G Internet as a primary 'on-to-go' connection, but still have the ability to plug in another Internet connection when I put the mobile rack I'm building in a fixed location.\n\n![UniFi 5G Backup getting 20 Mbps in my studio](https://www.jeffgeerling.com/blog/2026/unifi-u5g-backup-debugging/unifi-5g-backup-20mbps-in-studio.jpg)\n\nI'll have more on that project soon, but I figured this project was a good way to check out Ubiquiti's solutions, especially considering many of their smaller gear fits nicely within the dimensions of a [mini rack](https://mini-rack.jeffgeerling.com) (the 3U DeskPi RackMate TT is pictured above).",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602373+08:00"
+    },
+    {
+      "title": "Dictate, summarize files, and rewrite copy directly into any window with your voice in the Gemini ap...",
+      "link": "https://x.com/GeminiApp/status/2092322045296255330",
+      "published": "2026-08-26T02:43:43+08:00",
+      "source": "Google Gemini App(@GeminiApp)",
+      "content": "Dictate, summarize files, and rewrite copy directly into any window with your voice in the Gemini app for macOS.\n\n💬14🔄12❤️143👀13142📊31",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602378+08:00"
+    },
+    {
+      "title": "Join us next week for The Learning Loop in SF on September 2nd: https://t.co/HSlr2SUtLa\n\nHear from:\n...",
+      "link": "https://x.com/LangChain/status/2092326141893784006",
+      "published": "2026-08-26T03:00:00+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Join us next week for The Learning Loop in SF on September 2nd: [luma.com/cwn8mze6](https://luma.com/cwn8mze6)  \n  \nHear from:  \n✅ [@jakebroekhuizen](https://x.com/jakebroekhuizen)- LangChain  \n✅ [@willcb](https://x.com/willcb)- [@PrimeIntellect](https://x.com/PrimeIntellect)   \n✅ [@oneill\\_c](https://x.com/oneill_c)- [@baseten](https://x.com/baseten)   \n  \nWe’ll dive into continual learning, what it means to own your own intelligence, and how teams are building systems that learn and improve over time.  \n  \nAfter the talks, we’ll head to the patio where you can meet the LangSmith Engine team, enjoy food and drinks, slot car racing, an AI photo booth, and more.  \n  \nSpots are limited, so be sure to register!\n\n![Tweet Image](https://pbs.twimg.com/media/HQlCWDlXEAAV5LB.jpg)\n\n💬1🔄3❤️5👀1268📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602381+08:00"
+    },
+    {
+      "title": "Accelerate every step of the agent development lifecycle:\n🔎 Detect production issues\n💡 Identify ro...",
+      "link": "https://x.com/LangChain/status/2092318740880752680",
+      "published": "2026-08-26T02:30:35+08:00",
+      "source": "LangChain(@LangChainAI)",
+      "content": "Accelerate every step of the agent development lifecycle:  \n🔎 Detect production issues  \n💡 Identify root causes  \n🔧 Propose fixes to prompts and code  \n🔄 Monitor for recurrences\n\n![Tweet Image](https://pbs.twimg.com/media/HQliv52XEAAUfFf.jpg)\n\n![LangChain](https://pbs.twimg.com/profile_images/2028336270431453184/jRRpLAdG_normal.jpg)\n\nLangChain@LangChain\n\nLangSmith Engine now offers >2x performance on key internal benchmarks.  \n  \nEngine has already helped identify tens of thousands of issues in our customers’ agents. Now it offers:  \n  \n✅ More accurate issue detection, clustering, and remediation  \n✅ Support for SaaS and self-hosted deployments  \n✅ Reduced Analysis mode for cost-sensitive customers  \n✅ Integrations with [@slackhq](https://x.com/slackhq) and [@Linear](https://x.com/Linear)  \n✅ Automatic closing of stale issues  \n  \nLearn more → [langchain.com/blog/new-in-la…](https://www.langchain.com/blog/new-in-langsmith-engine-2x-better-issue-detection)\n\n[🔗 View Quoted Tweet](https://x.com/LangChain/status/2092311894786716159)\n\n💬1🔄3❤️13👀2275📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602385+08:00"
+    },
+    {
+      "title": "Advances in models, chips, or devices will continually improve local-first capabilities. We will ope...",
+      "link": "https://x.com/perplexity_ai/status/2092321982440476787",
+      "published": "2026-08-26T02:43:28+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Advances in models, chips, or devices will continually improve local-first capabilities. We will open our benchmarks soon.  \n  \nRead the full post: [perplexity.ai/hub/blog/a-loc…](https://www.perplexity.ai/hub/blog/a-local-first-agent-for-private-and-cost-effective-knowledge-work)\n\n💬1🔄1❤️7👀1762📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602388+08:00"
+    },
+    {
+      "title": "We post-trained the model to purpose. PPLX 27B is trained inside the Computer harness on synthetic t...",
+      "link": "https://x.com/perplexity_ai/status/2092321970369249399",
+      "published": "2026-08-26T02:43:25+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "We post-trained the model to purpose. PPLX 27B is trained inside the Computer harness on synthetic tasks developed from how people actually use Computer, no real user data.\n\n![Tweet Image](https://pbs.twimg.com/media/HQlrvqSbkAAlxdA.jpg)\n\n💬1🔄1❤️5👀1709📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602391+08:00"
+    },
+    {
+      "title": "The local model can escalate to frontier advisor. It's user-gated, PII-flagged, text guidance only.\n...",
+      "link": "https://x.com/perplexity_ai/status/2092321955836043587",
+      "published": "2026-08-26T02:43:22+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "The local model can escalate to frontier advisor. It's user-gated, PII-flagged, text guidance only.  \n  \nOn Terminal Bench 2.1, escalation lifts the score from 59.6% to 73.0% at $0.415 per rollout, recovering about three-fifths of the frontier gap at two-thirds of the cost.\n\n![Tweet Image](https://pbs.twimg.com/media/HQlru0GbwAALjeV.jpg)\n\n💬1🔄0❤️5👀968📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602394+08:00"
+    },
+    {
+      "title": "Parsing runs entirely on-device, so sensitive documents never leave the machine.\n\nOn ParseBench-100,...",
+      "link": "https://x.com/perplexity_ai/status/2092321941160149371",
+      "published": "2026-08-26T02:43:18+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Parsing runs entirely on-device, so sensitive documents never leave the machine.  \n  \nOn ParseBench-100, Computer scores 65.1% vs 34.6% for Hermes and 13.9% for Pi, in least time with fewest tokens.\n\n![Tweet Image](https://pbs.twimg.com/media/HQlrt89akAAu9u9.jpg)\n\n💬1🔄0❤️6👀967📊2",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602397+08:00"
+    },
+    {
+      "title": "Web research: on 1,266 BrowseComp tasks, Computer reaches 66.7% accuracy vs 50.2% for Pi and 43.9% f...",
+      "link": "https://x.com/perplexity_ai/status/2092321926173843491",
+      "published": "2026-08-26T02:43:15+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "Web research: on 1,266 BrowseComp tasks, Computer reaches 66.7% accuracy vs 50.2% for Pi and 43.9% for Hermes on their respective search providers.  \n  \nPortable uses the least wall time and the fewest tokens. Inference and private documents stay local; only search touches the web.\n\n![Tweet Image](https://pbs.twimg.com/media/HQlrtFZa0AAam9m.jpg)\n\n💬1🔄0❤️15👀1460📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602400+08:00"
+    },
+    {
+      "title": "The model and harness are designed together because small models fail in harnesses built for frontie...",
+      "link": "https://x.com/perplexity_ai/status/2092321911468691469",
+      "published": "2026-08-26T02:43:11+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "The model and harness are designed together because small models fail in harnesses built for frontier models.  \n  \nPortable is a minimal system prompt, skills that load on demand, connectors as compact CLI tools instead of MCP servers, self-verification, and an always-on sandbox.\n\n![Tweet Image](https://pbs.twimg.com/media/HQlrsPObgAATPdc.jpg)\n\n💬2🔄0❤️17👀1721📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602403+08:00"
+    },
+    {
+      "title": "New research: Portable Computer is a local-first agent for private and cost-effective work.\n\nWith an...",
+      "link": "https://x.com/perplexity_ai/status/2092321896721432824",
+      "published": "2026-08-26T02:43:08+08:00",
+      "source": "Perplexity(@perplexity_ai)",
+      "content": "New research: Portable Computer is a local-first agent for private and cost-effective work.  \n  \nWith an on-device 27B model, our harness scores 82.6% on real knowledge work, beating open-source harnesses Pi and Hermes. Our post-trained PPLX 27B reaches 85.4%.\n\n![Tweet Image](https://pbs.twimg.com/media/HQlrrWbboAAQwsi.jpg)\n\n💬16🔄14❤️150👀11138📊34",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602406+08:00"
+    },
+    {
+      "title": "If you keep safety rules or coding standards in an AGENTS.md or a CLAUDE.md, this one is worth your ...",
+      "link": "https://x.com/omarsar0/status/2092326207077634351",
+      "published": "2026-08-26T03:00:15+08:00",
+      "source": "elvis(@omarsar0)",
+      "content": "If you keep safety rules or coding standards in an AGENTS.md or a CLAUDE.md, this one is worth your time.  \n  \n(bookmark it)  \n  \nResearchers measured what context compaction actually destroys across 20 production agent configurations.  \n  \nA safety rule and an episodic log compete for the same tokens, and when the budget overflows both get summarized at the same rate. Only the rule needs exact wording to stay enforceable.  \n  \nClaude Code compact on Sonnet 4.6 preserves 53% of safety rules after one round. After five rounds, it goes to 10%.  \n  \nTheir fix is Knowledge Triage, which classifies each line of the knowledge base by type and routes each type through its own retention policy. Three deterministic operators handle compaction, partitioning, and retrieval, preserving 2 to 4x more safety rules at every ratio with 96% recall over five rounds.  \n  \nPaper: [arxiv.org/abs/2608.22752](https://arxiv.org/abs/2608.22752)  \n  \nTrack more trending AI papers in our academy: [academy.dair.ai](https://academy.dair.ai/)\n\n![Tweet Image](https://pbs.twimg.com/media/HQlvmG5bMAA9py5.jpg)\n\n💬10🔄3❤️14👀1947📊13",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T03:39:14.602409+08:00"
     }
   ]
 }
