@@ -2950,6 +2950,160 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-26T15:01:59.891997+08:00"
+    },
+    {
+      "title": "Quoting Paul Dix",
+      "link": "https://simonwillison.net/2026/Aug/26/paul-dix/",
+      "published": "2026-08-26T16:07:55+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "> The fact that AI wrote 1M LOC and then refined it over the course of the next couple of months to produce a reliable piece of software that is currently running on millions of developer machines is absolutely mind blowing. And you can say, “well it’s not that impressive because they had an oracle to compare against, so it was simple to go from one language to another”, but I think that’s selling this entire thing short. If you can build a verification system and give proper direction, AI can produce a highly complex, highly sophisticated piece of software and it can continue to refine it until it just works.\n\n— [Paul Dix](https://pauldix.com/the-end-of-programming), The end of programming\n\nTags: [coding-agents](https://simonwillison.net/tags/coding-agents), [ai-assisted-programming](https://simonwillison.net/tags/ai-assisted-programming), [generative-ai](https://simonwillison.net/tags/generative-ai), [bun](https://simonwillison.net/tags/bun), [ai](https://simonwillison.net/tags/ai), [llms](https://simonwillison.net/tags/llms)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391361+08:00"
+    },
+    {
+      "title": "OpenTelemetry Comes to IntelliJ IDEA, GoLand, PyCharm, and WebStorm",
+      "link": "https://blog.jetbrains.com/platform/2026/08/opentelemetry-plugin-for-jetbrains-ides/",
+      "published": "2026-08-26T15:40:10+08:00",
+      "source": "The JetBrains Blog",
+      "content": "OpenTelemetry Comes to IntelliJ IDEA, GoLand, PyCharm, and WebStorm.\n\nThe [OpenTelemetry plugin](https://plugins.jetbrains.com/plugin/27488-opentelemetry/) has broken out of the confines of JetBrains Rider. No sandbox exploit was involved – this escape was planned by our developers. With the 2026.2 release, the OpenTelemetry plugin is now available in IntelliJ IDEA, GoLand, PyCharm and WebStorm. Rider users needn’t worry – it still works there too.\n\nThe plugin brings logs, metrics, traces, and the service map from local applications into the IDE. You can inspect them without setting up a separate local observability backend.\n\n[Get the OTel plugin from the Marketplace](https://plugins.jetbrains.com/plugin/27488-opentelemetry/)\n\n## What is the OpenTelemetry plugin?\n\nWhile developing with your IDE, you can use the plugin to:\n\n* Find what happened immediately before an error.\n* See which services and dependencies a request reached.\n* Pinpoint where a request spent its time.\n* Check whether the application emitted the expected logs, metrics, and traces.\n* Ask your coding agent to do all of the above via [MCP](https://www.jetbrains.com/help/idea/mcp-server.html).\n\nThe plugin’s functionality complements what the IDE offers out of the box. Use a debugger to step through code, a profiler to analyze performance, and a production monitoring platform to watch deployed systems. Use the OpenTelemetry plugin to inspect runtime behavior while you build or test the application.\n\n## Imagine this\n\nSay you are testing a feature that calls several services and a database before publishing a message to a queue. The request fails, and the console shows the exception, but not the path that led to it.\n\nIn the *OpenTelemetry* tool window, you can search the logs for the error. Open the relevant trace to see how the request moved through the system and where it failed. The *Service Map* shows the services and infrastructure involved.\n\n## Explore runtime data in the IDE\n\n### Search and inspect logs\n\nConsole output is manageable until several services start writing at once. The *Logs* view puts OpenTelemetry log records in a searchable table. You can filter by severity or content, then open a record to inspect its attributes.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image3-3.png)\n\n*Detailed log view showing timestamps, levels, and messages for different log types*\n\n### Check metrics\n\nSelect a metric from the metric tree to plot its values while you use the application. This view is not a replacement for your production dashboards, but it lets you inspect what the application will export before you send the data to a production observability platform. If a new library adds noisy or unnecessary metrics, you can catch them locally and adjust the instrumentation before your DevOps and SRE colleagues have to handle them.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image2.png)\n\n*The metrics viewer displays CPU utilization data with real-time charts.*\n\n### Follow a request through its trace\n\nOpen a trace to see its spans across services. Each span includes timing and attributes, so you can follow the request from start to finish and zero in on the operation that failed or slowed things down. Development is also a good time to look at the trace itself. Does it contain the spans and details you’d need during a real incident? It’s much easier to fix those gaps now than to discover them in production.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image4-2.png)\n\n**The trace table view with filtering capabilities and detailed information for the selected trace.**\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image1-1.png)\n\n*The trace viewer showing details of the POST request involving multiple internal DB and HTTP calls.*\n\n### See observed relationships in the *Service Map*\n\nArchitecture diagrams go stale. The *Service Map* builds its relationships from collected traces, so it reflects the traffic the plugin has seen between services, endpoints, databases, and message queues.\n\nExpected one HTTP call or database query, but the diagram shows several? Finding that during development gives you time to fix it before release.\n\n![](https://blog.jetbrains.com/wp-content/uploads/2026/08/image5-2.png)\n\n*Automatically generated service map showing the relationship between API endpoints, internal services, and PostgreSQL based on actual runtime traces.*\n\n## Connect an instrumented application\n\nThe plugin does not add OpenTelemetry libraries or agents to your application. It configures where an already instrumented application sends its data.\n\nStart an instrumented Java, Python, Go, or .NET application from a supported IDE run configuration, and the plugin passes OpenTelemetry Protocol (OTLP) environment variables that point to its built-in receiver. It passes the same variables to new integrated terminal sessions.\n\nYou can also point the application’s OTLP exporter at the endpoint shown by the plugin. If you already use a local OpenTelemetry Collector, add the plugin as an OTLP destination and keep the rest of your pipeline.\n\n## Runtime context for coding agents\n\nThe plugin has experimental MCP support through the [JetBrains MCP server](https://plugins.jetbrains.com/plugin/26071-mcp-server). A compatible coding agent can query the telemetry collected in the IDE with these tools:\n\n* `get_log_records`\n* `get_spans`\n* `get_services`\n* `get_service_map`\n\nThese tools give the agent evidence from a particular run, so that it can inspect the logs and spans or query the observed service relationships.\n\n## Getting started\n\n1. Install the [OpenTelemetry plugin from JetBrains Marketplace](https://plugins.jetbrains.com/plugin/27488-opentelemetry/) for your favorite IDE.\n2. Instrument your application with OpenTelemetry libraries or agents.\n3. Start it from a supported IDE run configuration or a new integrated terminal session. The plugin will pass the OTLP environment variables. Alternatively, point the application’s exporter or your local collector at the endpoint shown by the plugin.\n4. Open the *OpenTelemetry* tool window and exercise the part of the application you want to inspect.\n\nThe plugin shows the signals it receives. If your application exports only traces, the *Logs* and *Metrics* views stay empty.\n\nFull setup instructions are available in the [OpenTelemetry plugin documentation](https://www.jetbrains.com/help/rider/OpenTelemetry.html).\n\n## Install it and tell us what you find\n\n[Get the OTel plugin from the Marketplace](https://plugins.jetbrains.com/plugin/27488-opentelemetry/)\n\nTry it on a real project, then tell us in the comments or through the [issue tracker](https://youtrack.jetbrains.com/projects/RIDER/issues/RIDER-102188/OpenTelemetry-plugin-for-Rider) what worked and what still sent you to another tool.",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391376+08:00"
+    },
+    {
+      "title": "如果产品足够好，哪怕只是新颖好玩，所有人都会自愿转发，比如之前的 Vibe Island，如果比较冷面产品力也一般，就很难转化。和 KOL 推广关系不大。",
+      "link": "https://x.com/dingyi/status/2092510140205609063",
+      "published": "2026-08-26T15:11:09+08:00",
+      "source": "Ding(@dingyi)",
+      "content": "如果产品足够好，哪怕只是新颖好玩，所有人都会自愿转发，比如之前的 Vibe Island，如果比较冷面产品力也一般，就很难转化。和 KOL 推广关系不大。\n\n![Bruce Guai](https://pbs.twimg.com/profile_images/1896113123410792448/xFl-dbU0_normal.jpg)\n\nBruce Guai@BruceGuai\n\n通过在 X 上找KOL来推出 AI 产品&初创公司的时代真的已经结束了。  \n  \n今天一个团队在推出时获得了 200 万次展示，但只转化了 300 名关注者。海外KOL动态也被付费推广塞得满满当当，用户现在完全对广告视而不见。ROI基本上是零。  \n  \n创始人，growth 需要停止在这里烧钱，重新找到真正的增长和分发渠道。\n\n[🔗 View Quoted Tweet](https://x.com/BruceGuai/status/2092283027699466430)\n\n💬3🔄1❤️14👀2933📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391382+08:00"
+    },
+    {
+      "title": "Thank you. We’re working on it — more soon.",
+      "link": "https://x.com/TencentHunyuan/status/2092505865752596612",
+      "published": "2026-08-26T14:54:09+08:00",
+      "source": "Hunyuan(@TXhunyuan)",
+      "content": "Thank you. We’re working on it — more soon.\n\n![Jen Zhu](https://pbs.twimg.com/profile_images/1780838209074966528/sLoqyoHY_normal.jpg)\n\nJen Zhu@jenzhuscott\n\nTencent [@TencentHunyuan](https://x.com/TencentHunyuan) -   \n  \nI’m ready for Hy4. 🚀\n\n[🔗 View Quoted Tweet](https://x.com/jenzhuscott/status/2092480846808670607)\n\n💬3🔄7❤️146👀10705📊18",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391386+08:00"
+    },
+    {
+      "title": "If you could step inside any classic painting, which one would it be?",
+      "link": "https://x.com/lovart_ai/status/2092516539811684419",
+      "published": "2026-08-26T15:36:34+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "If you could step inside any classic painting, which one would it be?\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2092516472623099904/vid/avc1/1080x1920/nNmldetCwcCPx_oy.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2092516539811684419/video/1)\n\n💬1🔄0❤️7👀514📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391390+08:00"
+    },
+    {
+      "title": "Data restoration is open and Manus services are now back to normal and operating steadily.\n\nIf you b...",
+      "link": "https://x.com/ManusAI/status/2092506518667268375",
+      "published": "2026-08-26T14:56:45+08:00",
+      "source": "ManusAI(@ManusAI_HQ)",
+      "content": "Data restoration is open and Manus services are now back to normal and operating steadily.  \n  \nIf you backed up your data, you can restore it whenever convenient, as there is no restoration deadline.  \n  \nA Welcome Back Bonus will also be applied to affected accounts.  \n  \nDue to exceptionally high demand yesterday, some users were unable to complete the restoration process immediately.  \n  \nOur team has improved the capacity and reliability of the process, and most users should now be able to restore their data as expected.  \n  \nBrief delays may still occur during periods of high traffic, so we will continue to monitor performance closely.  \n  \nIf you encounter any problems, please wait a little and try again, check our restoration guide, or contact our 24/7 Customer Support team support[@manus](https://x.com/manus).im  \n  \nRestore your data: [manus.im/backup](https://manus.im/backup)  \n  \nRestoration guide: [help.manus.im/en/collections…](https://help.manus.im/en/collections/19704025-data-back-up-and-restoration)\n\n💬9🔄5❤️68👀7558📊16",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391394+08:00"
+    },
+    {
+      "title": "big",
+      "link": "https://x.com/sama/status/2092519459135095147",
+      "published": "2026-08-26T15:48:10+08:00",
+      "source": "Sam Altman(@sama)",
+      "content": "big\n\n![ChatGPT](https://pbs.twimg.com/profile_images/2081980424666935296/qU5G7mQg_normal.jpg)\n\nChatGPT@ChatGPT\n\nChatGPT Work can now use its computer and browser to sign in to websites on web and mobile, without ChatGPT ever seeing your username or password.  \n  \nThat means you can ask it to:  \n• Set up utilities for a new apartment  \n• Book a DMV or passport appointment  \n• Check reimbursement costs through your insurance  \n• Find and book an in-network doctor around your availability  \n• Check when your car registration expires and prepare the renewal paperwork  \n• Compare your rental insurance policy with an issue you’re emailing your landlord about  \n• Find and save apartment listings that match your criteria  \n• Restock something just by uploading a photo  \n• Schedule a package pickup for a return  \n• Cancel tickets for a rescheduled trip  \n• Book a vet appointment  \n• Submit reimbursement paperwork for medical treatments  \n• Check resale sites for new drops and save things you might like  \n• Find candidates with specific experience and draft outreach  \n• Take invoices from your email and submit them to your accounting software  \n• Draft replies to rental property inquiries  \n• Fill out permit applications for your small business  \n• Add action items to a vendor portal based on a recent client call  \n• Analyze the latest ad campaign for your small business\n\n[🔗 View Quoted Tweet](https://x.com/ChatGPT/status/2092366554965107164)\n\n💬199🔄58❤️1373👀138019📊219",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391398+08:00"
+    },
+    {
+      "title": "如果ai能赋能普通人成为分发节点\n那么杠杆应该在人口密集且意识低的城市\nai弥补人类缺失的经验智能\n人类弥补ai缺失的审查与身份",
+      "link": "https://x.com/yangyi/status/2092530004613824917",
+      "published": "2026-08-26T16:30:05+08:00",
+      "source": "Yangyi(@Yangyixxxx)",
+      "content": "如果ai能赋能普通人成为分发节点  \n那么杠杆应该在人口密集且意识低的城市  \nai弥补人类缺失的经验智能  \n人类弥补ai缺失的审查与身份\n\n💬3🔄0❤️0👀414📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391401+08:00"
+    },
+    {
+      "title": "随着豆包吃掉飞书和 TRAE，中国办公智能体御三家基本成型\n\n豆包工作、千问办公、WorkBuddy（排名不分前后，随手打的，另外 WorkBuddy 不考虑起个中文名吗？😂）\n\n以字节、阿里和腾讯...",
+      "link": "https://x.com/shao__meng/status/2092516293937446916",
+      "published": "2026-08-26T15:35:36+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "随着豆包吃掉飞书和 TRAE，中国办公智能体御三家基本成型  \n  \n豆包工作、千问办公、WorkBuddy（排名不分前后，随手打的，另外 WorkBuddy 不考虑起个中文名吗？😂）  \n  \n以字节、阿里和腾讯卷产品的速度，相信能力会很快看齐 Codex，产品功能会逐渐趋同，那办公场景怎么选呢？  \n  \n还是回到国内大厂最喜欢玩的「生态」上来，他们的办公智能体对自己生态的支持肯定是更直接的：  \n办公用飞书，选豆包工作；  \n办公用钉钉，选千问办公；  \n办公用企微，选 WorkBuddy。\n\n💬3🔄0❤️3👀742📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391405+08:00"
+    },
+    {
+      "title": "吴恩达老师 OpenWorker 新版本：开源 AI Agent 如何为安全防御者提供杠杆\n\n# 吴恩达老师展开论述了四层关键信息\n\n1. 定位转向：初版发布后，用户自发把它大量用于安全场景，团队顺势...",
+      "link": "https://x.com/shao__meng/status/2092506296658411799",
+      "published": "2026-08-26T14:55:52+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "吴恩达老师 OpenWorker 新版本：开源 AI Agent 如何为安全防御者提供杠杆  \n  \n# 吴恩达老师展开论述了四层关键信息  \n  \n1. 定位转向：初版发布后，用户自发把它大量用于安全场景，团队顺势推出内置的网络安全智能体；  \n2. 信任论证：强调 harness 完全开源、可被审计，以此回应\"AI 工具会不会偷传我的代码\"这一担忧；  \n3. 三个内置安全能力：代码漏洞扫描、依赖供应链注入检测、云安全配置检查；  \n4. 模型中立：可接 ChatGPT 订阅、API key、隐身预览模型，也可完全本地跑开源权重模型。  \n  \n# 最重要的概念：\"模型 + harness\"的拆分  \n  \n· model：负责推理和决策的大脑，如 GPT、Claude、DeepSeek 等；  \n· harness：包裹模型的那层软件——负责调度工具、执行命令、读写文件、管理权限、决定把什么数据发给模型。  \n  \n这个拆分的用意在于：数据泄露的风险主要不在模型，而在 harness。模型是你自己选的、API 走向是明确的；但 harness 是个黑盒软件，它理论上可以在你不知情时把你的代码、密钥、对话记录发往任何地方。  \n  \n闭源的 AI Coding Agent 要求你无条件信任厂商；而 OpenWorker 的 harness 全部开源，安全团队可以逐行审计，确认没有后门。  \n  \n# 三个安全智能体的实际含义  \n  \n吴恩达老师列出的三项能力，对应安全行业的三个成熟品类，但用 agent 的方式重做了一遍：  \n  \n· 扫描代码漏洞——类似 SAST（静态应用安全测试）。值得注意的是它并不重复造轮子，而是驱动你已有的扫描器（如 semgrep、密钥泄露扫描），再用 AI 按\"可达性\"（这段漏洞代码是否真的会被执行到）而不仅是\"严重等级\"来分诊结果，最后直接生成符合你代码风格的修复 PR。  \n· 扫描依赖的供应链注入——针对近年高发的 npm/PyPI 恶意包、域名仿冒（typosquatting)、被篡改的 CI 工作流等攻击面。这类攻击（如 xz-utils 事件）已成为开源生态最大的系统性风险之一。  \n· 检查云安全配置——类似 CSPM（云安全态势管理）：扫描 Terraform 等基础设施代码，并与真实云环境核对，每个结论附带验证命令，修复同样以 PR 形式落地、由人合并。  \n  \n\"Shift left\"（左移）是另一个关键词：传统上安全检查发生在部署前甚至部署后，\"左移\"主张把安全尽量前置到开发阶段——开发者在写代码、提交 PR 时就把漏洞堵掉，成本最低。  \n  \n# 模型选择自由背后的真实意图  \n  \n吴恩达老师指出：合法的安全工作（比如为了防御而复现一个已知漏洞）会触发主流闭源模型的拒答。  \n  \n这指向 AI 安全领域著名的双重用途困境：漏洞复现、渗透测试、恶意软件分析是防御方的正当工作，但闭源模型的对齐策略往往\"宁可错杀\"，拒绝配合。本地运行的开源权重模型没有这层限制，且敏感代码完全不离开本机——这对金融、政企等有合规要求的团队是硬需求。  \n  \nOpenWorker  \n[github.com/andrewyng/open…](https://github.com/andrewyng/openworker)\n\n![Tweet Image](https://pbs.twimg.com/media/HQoTUpubgAAh3Gk.jpg)\n\n![Andrew Ng](https://pbs.twimg.com/profile_images/733174243714682880/oyG30NEH_normal.jpg)\n\nAndrew Ng@AndrewYNg\n\nOpenWorker -- an open source agent that doesn't just chat but completes tasks on your laptop -- just released a new version with many features for security workflows.   \n  \nAfter our initial release, many users found it especially useful for cybersecurity. Attackers are already using AI; OpenWorker is committed to giving defenders the same leverage. Running an agent requires both (i) A model and (ii) A harness (the software around the model). Because the OpenWorker harness is fully open source, security teams can audit it to make sure we haven't built any backdoors that exfiltrate your code and data to some company or even a foreign adversary.  \n  \nOpenWorker now comes with built-in cybersecurity agents for (i) Scanning your code for vulnerabilities. (ii) Scanning dependencies for supply chain injections. (iii) Checking your cloud security configuration for attack surfaces. This enables developers to do much more security work before deployment (part of what's called the \"shift left\" movement).  \n  \nYou choose the model: you can run open weight models fully locally so sensitive code never leaves your machine. This helps with legitimate security work (like reproducing a known exploit to defend against it) that can trigger refusals in leading closed models. Or use your ChatGPT subscription, or stealth preview models like Ox Alpha, or any model via API key.  \n  \nThanks also to all the open source contributors!  \n  \nJoin work with [@rohitcprasad](https://x.com/rohitcprasad) so please follow him too to get more frequent updates.  \n  \nTry it out: [openworker.com](https://openworker.com/)  \nCode: [github.com/andrewyng/open…](https://github.com/andrewyng/openworker)\n\n[🔗 View Quoted Tweet](https://x.com/AndrewYNg/status/2092315079576555806)\n\n💬0🔄0❤️2👀673📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391409+08:00"
+    },
+    {
+      "title": "只有干中学，才能真正学会",
+      "link": "https://x.com/oran_ge/status/2092528286274580973",
+      "published": "2026-08-26T16:23:15+08:00",
+      "source": "orange.ai(@oran_ge)",
+      "content": "只有干中学，才能真正学会\n\n![Oana](https://pbs.twimg.com/profile_images/2075057272548708352/Bm1s8P_4_normal.jpg)\n\nOana@oana\\_mmm\n\n对于设计小白来说，用好AI可以节省很多摸索和学习的时间  \nCola是一个很直给的老师，有时候在小红书上搜索不到的解法，Cola可以迅速帮我解决。  \n而且我越来越觉得，没必要一开始就看很多教程。干中学，反而是更高效的方式。尤其对于内容这件事，先动手做出来，永远比学了一堆、最后又忘掉更有用\n\n![Tweet Image](https://pbs.twimg.com/media/HQdmdhKbgAAVvkT.jpg)![Tweet Image](https://pbs.twimg.com/media/HQdmd4gaUAA9ejA.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/oana_mmm/status/2091755602443935994)\n\n💬0🔄0❤️1👀570",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391412+08:00"
+    },
+    {
+      "title": "他们还开源了这个Agent 的执行框架：https://t.co/qrhFysfuNo\n\n和Apodex 1.1 mini（35B）模型权重，可本地部署、可搭配 FrontierAgent 使用：\n\n...",
+      "link": "https://x.com/xiaohu/status/2092527701613777139",
+      "published": "2026-08-26T16:20:56+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "他们还开源了这个Agent 的执行框架：[github.com/ApodexAI/Front…](https://github.com/ApodexAI/FrontierAgent)  \n  \n和Apodex 1.1 mini（35B）模型权重，可本地部署、可搭配 FrontierAgent 使用：  \n  \n[huggingface.co/collections/ap…](https://huggingface.co/collections/apodex/apodex-11)\n\n💬0🔄1❤️0👀206",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391416+08:00"
+    },
+    {
+      "title": "执行失败后自动恢复\n\n它在遇到代码错误、数据异常或方法失败时，可以调整执行路径和方法并继续任务，减少完全重做\n\n所以对于科研人员、分析师、专业用户，经常需要复杂的调研、分析、研究任务很实用\n\n普通用户...",
+      "link": "https://x.com/xiaohu/status/2092527698904305958",
+      "published": "2026-08-26T16:20:55+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "执行失败后自动恢复  \n  \n它在遇到代码错误、数据异常或方法失败时，可以调整执行路径和方法并继续任务，减少完全重做  \n  \n所以对于科研人员、分析师、专业用户，经常需要复杂的调研、分析、研究任务很实用  \n  \n普通用户可能等不及...  \n  \n体验地址：[apodex.ai](https://www.apodex.ai/)  \n  \n目前还是免费的（2周）\n\n💬1🔄0❤️0👀248📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391419+08:00"
+    },
+    {
+      "title": "昨天看很多人转发Apodex 1.1 \n\n一个专门面向深度研究而打造的  Agent\n\n专门解决那种\"没有现成答案、需要大量调研才能搞定\"的硬问题\n\n好奇测试了下，跑了俩任务，一下午都没跑完😅\n\n执...",
+      "link": "https://x.com/xiaohu/status/2092527681028190413",
+      "published": "2026-08-26T16:20:51+08:00",
+      "source": "小互(@imxiaohu)",
+      "content": "昨天看很多人转发Apodex 1.1   \n  \n一个专门面向深度研究而打造的 Agent  \n  \n专门解决那种\"没有现成答案、需要大量调研才能搞定\"的硬问题  \n  \n好奇测试了下，跑了俩任务，一下午都没跑完😅  \n  \n执行时间是真长  \n  \n这玩意能你只要给它个目标，它就能能长时间运行、失败后能自动修复，还能自己验证交付结果是否准确  \n  \n它在接到任务后，主 Agent 拆解成各种子问题，异步派发给专业化的子 Agent执行，每个子 Agent 有自己独立的上下文、提示词和工具集。  \n  \n子 Agent 的报告汇入共享报告池，编排器异步读取，不会被最慢的那个卡住。单任务最高可调度 150 个子 Agent  \n  \n解决的是什么问题呢？  \n  \n过去：  \n  \n一次提问，一段回答，一份报告。  \n衡量标准通常是：  \n答案对不对  \n知识覆盖够不够  \n引用多不多  \n报告写得是否完整  \n  \nApodex 想提出的新的要求：  \n  \n一项从输入到交付的完整任务，衡量标准变成：  \n  \n是否理解目标  \n是否能操作真实文件  \n是否能调用代码和工具  \n是否能维护长任务状态  \n遇到变化能否局部调整  \n执行失败能否自行恢复  \n最终结论是否可以核查  \n  \n因此，它真正挑战的是当前 Deep Research 的产品形态：  \n搜集资料和生成报告，只覆盖了复杂任务的一部分。  \n  \n真正的专业任务还需要读文件、清洗数据、选择方法、执行代码、处理异常、核查结论。  \n  \n所以特别适合：科研人员、分析师、专业用户\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2092432866873597952/vid/avc1/1700x1080/KH6qkC4v64h-BkJ8.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/xiaohu/status/2092527681028190413/video/1)\n\n💬2🔄1❤️1👀1031📊3",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-26T16:54:42.391423+08:00"
     }
   ]
 }
