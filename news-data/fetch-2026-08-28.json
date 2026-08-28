@@ -527,6 +527,171 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-28T13:12:12.064345+08:00"
+    },
+    {
+      "title": "Ruby on Rails之父彻底倒向AI！两个月没亲手写一行代码，却亲眼看着Vibe Coding毁掉系统架构",
+      "link": "https://mp.weixin.qq.com/s?__biz=MjM5ODI5Njc2MA==&mid=2655942548&idx=1&sn=c4ac7560801f1c52da541dbf2fb11dc6",
+      "published": "2026-08-28T17:50:00+08:00",
+      "source": "51CTO技术栈",
+      "content": "原创 姜篇 2026-08-28 17:50 日本\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=118a4590&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FZhxqo7xEfgJGaa3zUibpaZcqB0zkMSZXlCPGfWp0Zu1SDaHHHM3NkAiavAyNvYRIInTyjFB6HfoQJMON6kfiaEmYOHUM3TT0nmFJia46eBrqTB0%2F0%3Fwx_fmt%3Djpeg)\n\nRuby on Rails之父彻底倒向AI！两个月没亲手写一行上线代码，却亲眼看着Vibe Coding毁掉系统架构\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=b6a4647d&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FMOwlO0INfQoIDJ0nx1IhNibpIpYLrpUE0kIP9qbF1iaY7EoZpaic6IojvbXibd5ZGiatxmjtibQRcVbGAPM9Ijvp66yQ%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=6977d1d7&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_png%2FZhxqo7xEfgJiabHyjeSNfowAxzehBvH6f564QOBPX63BqbfnEajKIlicXdTseFTOEEqibYRBO04mRQDaqw8GUKpIsBtXMRsDDKfebervtCbZcM%2F640%3Fwx_fmt%3Dpng%26from%3Dappmsg)\n\n编辑 | 姜篇\n\n> DHH：“I have not written... any of the code.”\n>\n> DHH：上线到Quattro的代码，没有一行是我亲手写的。\n\n说这句话的人，是Ruby on Rails之父David Heinemeier Hansson，开发者更熟悉他的名字DHH。\n\n备注：David Heinemeier Hansson，开发者通常称他为DHH。他是Ruby on Rails创始人、37signals联合创始人兼CTO。Rails最初诞生于Basecamp的开发过程中，后来被GitHub、Shopify、Airbnb等大量互联网产品采用。\n\n一年前，DHH还不喜欢AI补全代码，也不愿把聊天框嵌进编辑器。\n\n但是在最近发布的Lex Fridman访谈中，他给出了完全不同的答案：Omarchy Quattro过去两个月的新增代码，已经全部交给Agent完成。\n\n紧接着，他讲了一段经历。\n\n一批设计师借助AI提交了大量PR。单独看，每个改动都有理由；合在一起，系统架构却被改坏了。\n\n代码生成越来越便宜之后，开发者面对的麻烦并没有减少。它只是从“怎么写出来”，挪到了“谁来判断、谁来验收、谁为整体负责”。\n\n以下内容根据Lex Fridman对DHH的访谈翻译、整理。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=8543d623&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FZhxqo7xEfgJnBPqt8HsWjc6ficcumXheOg35f5JZiasFs0icNGRbc5vibpCkx1vTn4g7YJUI47fwqugHcU9wKpszzm1mPxCGISEAt8RT1ror9js%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n*DHH谈Agent承担全部编码*\n\n# **13个月，他从排斥AI走到了“Or 100”**\n\nLex提到，AI写代码的占比已经从5%、20%一路走到80%。DHH立刻补了一句：\n\n> DHH：“Or 100.”\n>\n> DHH：或者，百分之百。\n\n这不是一句随口夸张。\n\nDHH回忆，13个月前的AI编程体验让他提不起兴趣。自动补全打断思路，聊天框需要人反复搬运上下文。模型能帮忙，却仍然像一个需要时刻盯着的助手。\n\nAgent改变了这套交互。\n\n现在，他会把问题和一个大致方向交出去。Agent自己读取仓库、寻找相关文件、提出方案、修改代码、运行测试，再把结果拿回来。DHH在访谈里描述这种变化时，重点不在模型会写多少语法，而在它开始接管完整任务。\n\n过去，他需要先想清楚“准备怎么实现”，再让工具补几行代码。现在，Agent会反过来告诉他：这件事准备往哪里走。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=65ac16bd&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FZhxqo7xEfgJqGbEvdzhib50n8hOH8Fwf6jFy0GqYHicajKm6X2ITLSQjYL6W1eHH9bicol3WCpZDB5gZHm0MicYLesPkfqZArDl2zIuFr5fRuCc%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n*DHH说Agent可以走到100%*\n\n# **两个月没亲手写代码，他还在逐行审什么**\n\nOmarchy Quattro是DHH近期投入最多的项目。他说，过去两个月上线的代码没有一行由他亲手敲出。\n\n这句话这句话不是说“程序员不用写代码了”。\n\nDHH没有退出开发。他看过所有改动的整体形状，涉及模型层和关键业务逻辑的部分，仍会逐行检查。普通代码可以交给Agent跑，架构方向、数据约束和关键边界没有一起交出去。\n\n他的工作台也随之变化。Neovim不再主要用来手写代码，而是用来浏览项目、查看diff、核对Agent做了什么。\n\nDHH的做法可以概括成一句话：实现权可以下放，判断权不能一起下放。\n\n对普通团队来说，这条边界比“AI能写多少代码”更实用。数据库模型、权限、计费、并发和数据迁移一旦出错，测试通过也未必代表改动可以上线。Agent可以给出实现，人仍要知道哪些地方值得逐行看。\n\n# **每个PR都说得通，系统却被改坏了**\n\n访谈里最值得警惕的案例，来自Basecamp 5。\n\n设计团队开始使用Vibe Coding后，提交PR的速度明显加快。每一份PR拿出来，都能解释它为什么合理；问题出在这些改动之间没有共同的架构约束。\n\n> DHH：这些改动合在一起，把系统架构毁掉了。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=042ef005&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FZhxqo7xEfgJrevMIS0rJL1sye1wUkyjdqPZdkHtGUBodCnvTLm8s1ssLPic4nKXicIeqJP5oaqCGQqdACDpATzJv3GCGek9f14pMPL9ibxpVh0%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n*DHH谈Vibe Coding破坏架构*\n\nAI编程很容易制造这种假象：局部完成得很快，整体债务却在背后累积。\n\n一个Agent改登录，一个Agent改缓存，另一个Agent顺手抽象公共组件。三个任务都通过测试，不代表它们采用了同一套边界。重复逻辑、隐性依赖和风格分裂，往往要到后续迭代才会一起暴露。\n\nDHH没有因此否定Vibe Coding。他给出的处理方式很工程化：让更多人获得实现能力，同时把架构审查提到更靠前的位置。\n\n过去，架构问题常在Code Review里发现。Agent并发工作以后，等PR全部生成再看已经太晚。任务拆分时就要写清楚哪些模块不能碰、哪些抽象必须复用、数据如何流动，以及改动之间由谁统筹。\n\n# **一个人同时跑16条Agent线程，开发者成了总调度**\n\n> DHH：我最初用tmux管理并行Agent，后来嫌切窗口、等通知太麻烦，又做了Herdr。它把tmux会话和通知接在一起：某个Agent需要确认、完成任务或遇到错误时，再来叫人。\n\n他的日常规模已经到了4到5台机器、约16条Agent线程同时运行。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=865dda71&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_gif%2FZhxqo7xEfgLLTJJdqqqHjuRJDPbWBxeia9cAAryibNlaKcWmnH7GNItp37AHb4u1bia8vib4yAAExmMgDBSNI0FdoicPECWTYiaCWsBvjaVZjrVcc%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n*DHH谈同时运行16条Agent线程*\n\n这套工作方式看上去很爽，新的瓶颈很快就冒了出来。\n\n当16个Agent同时产出结果，人不可能逐个实时陪跑。开发者需要先判断哪些任务可以并行，哪些改动会碰到同一片代码，哪些结果必须等前一个任务完成后才能继续。\n\n并发Agent最适合边界独立的任务：依赖升级、补测试、生成迁移脚本、清理重复代码、调查不同Bug。涉及同一份状态或同一套架构的工作，线程开得越多，冲突越难收拾。\n\n管理Agent也不能只看“完成”通知。每条任务至少要带回四样东西：改动摘要、测试结果、风险点和回滚办法。少任何一项，人都得重新钻进仓库补上下文。\n\n# **别再比谁写得多，代码行数已经失效**\n\nAgent一天可以生成成千上万行代码。继续拿代码量评价工程师，只会鼓励更多无效改动。\n\n> DHH：“lines of code is a stupid metric.”\n>\n> DHH：代码行数是个愚蠢的指标。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=09697311&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fsz_mmbiz_gif%2FZhxqo7xEfgLtzZEQicja64MNlSjsuPIUFicTCqvasJR257MAsFJUHk2EcDHkfntIF8ps5bicW3BTRlNOJ31kHwdruDob0QbiaeibJiarxTTjzON18%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n*DHH谈代码行数失去意义*\n\nDHH随后把评价标准拉回了产品：不要问写了多少行，先问做出了什么。\n\n对开发团队来说，这意味着绩效和项目看板都要换口径。\n\n一个Agent生成5000行代码，最后没有改善用户体验，也没有降低故障率，这5000行只会增加维护成本。另一个工程师删掉300行旧逻辑，让发布速度提高一倍，价值反而更高。\n\n更合适的指标包括：问题是否解决、变更是否可维护、线上指标是否改善、事故率是否下降、交付周期是否缩短。代码是实现这些结果的材料，不是结果本身。\n\n# **机械式编码受威胁，会做产品的人仍有机会**\n\nDHH没有回避就业问题。如果明天必须重新找工作，他认为自己很难再靠“手写代码”获得过去那种报酬。这项工作他做了25年，如今模型已经能承担其中越来越多的机械部分。\n\n> DHH：“the mechanical process is under threat.”\n>\n> DHH：机械式编码这道工序正在受到威胁。\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=147e3538&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FZhxqo7xEfgKA7XsDzYZald5dAAj3f9pzSJwdwiaIc2KKKofSYOXhU5dEnD898Pkakq2ya6cWuVUOamg9mccQicNb08c9H15Rqa9KIDdF7txFM%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)\n\n*DHH谈机械式编码受到威胁*\n\n但他把“喜欢编程”拆成了两件事。\n\n如果一个人最享受的是手工敲出语法、记住API和亲自完成每个实现细节，接下来的变化会很难适应。如果真正喜欢的是把东西做出来、解决问题、看着产品落地，Agent反而让这件事发生得更快。\n\nDHH自己就是例子。他早年爱写代码，是因为代码能让程序出现。后来，大型项目、漫长周期和维护工作冲淡了这种即时反馈。AI让他重新获得了快速做出东西的感觉。\n\n开发者的价值不会凭空消失，但会向任务上游和结果下游移动：前面要定义问题、选择方案、约束边界；后面要验收结果、处理失败、维护系统。\n\n# **写在最后**\n\nDHH的转变很有代表性。\n\n一年前，他不喜欢AI补全；现在，他可以让Agent承担全部新增编码，同时管理十几条并行线程。但他没有把软件交给模型自治，反而把更多精力放在架构、审查和结果上。\n\n手写代码还没到清零的时候。代码仍然要懂，关键逻辑仍然要看。只是当实现速度突然提高，开发者的难题已经换了：怎么把问题讲清楚，怎么让多个Agent沿着同一套架构工作，又怎么在上线前发现那批“每个都合理、合起来却危险”的改动。\n\nAgent可以把代码写完。系统最后长成什么样，仍然需要有人负责。\n\n参考链接：\n\n<https://www.youtube.com/watch?v=1P1hJ36rxM0&t=226s>`——好文链接——\n\nAI开始比初级员工便宜！比尔·盖茨发出警告：AI已经到了“临界点”，这一次，技术进步真的会减少工作\n\nOpenAI前董事：人工智能已经失控了！模型为过测试逃出沙箱限制，Agent安全不能再靠一句Prompt\n\n程序员的新岗位是监工！Codex负责人：我不想再同时盯10个Agent了，未来让系统接手分工，人只在关键时刻拍板\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=e5d52b63&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_jpg%2FZhxqo7xEfgJo8IcibL07wriaiaN0t4iaYt405QJQd52S3ibRhia2KIgKORYE0Fibf2smpbtn7vlCWnC9qiaXkOggBurrHtVqM78x2BBrQpCP5bO3UyQ%2F640%3Fwx_fmt%3Djpeg%26from%3Dappmsg)\n\n![](https://wechat2rss.bestblogs.dev/img-proxy/?k=a648489b&u=https%3A%2F%2Fmmbiz.qpic.cn%2Fmmbiz_gif%2FMOwlO0INfQoIDJ0nx1IhNibpIpYLrpUE08WAbJJdTMja6PvLXj2wheGNzev6OjG8Csq3SHErQQICIXKiatydK3xw%2F640%3Fwx_fmt%3Dgif%26from%3Dappmsg)`\n\n[跳转微信打开](https://wechat2rss.bestblogs.dev/link-proxy/?k=42807e76&r=1&u=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMjM5ODI5Njc2MA%3D%3D%26mid%3D2655942548%26idx%3D1%26sn%3Dc4ac7560801f1c52da541dbf2fb11dc6)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087883+08:00"
+    },
+    {
+      "title": "刚刚，港股AGI第一股杀疯了！Agent业务半年进账近5亿，Token收入Q2暴涨500%",
+      "link": "https://www.qbitai.com/2026/08/480600.html",
+      "published": "2026-08-28T17:45:19+08:00",
+      "source": "量子位",
+      "content": "企业智能化服务撑起基本盘，第二增长曲线冒头",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087898+08:00"
+    },
+    {
+      "title": "Vol.279｜被遗忘的燕山：中国历史发动机的寻根之旅｜嘉宾：施展",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a91200ea0210c197dc981a3",
+      "published": "2026-08-28T18:00:00+08:00",
+      "source": "东腔西调",
+      "content": "![](https://image.xyzcdn.net/FotW8rZkepf_hcR_tlXt0fh0PBZS.png)\n\n“清朝康熙皇帝说，本朝不修长城，以蒙古为藩屏。也就说只要能够安顿蒙古，北边整个草原都是我的长城。”\n\n本期节目，刚刚结束内蒙古赤峰、通辽之旅的施展老师，将带我们重新认识西辽河流域这片承载了中国北方数千年历史的土地。\n\n燕山与大兴安岭在此交接，农耕、游牧与渔猎三种生业在此碰撞，地理的交汇赋予了西辽河流域独特的枢纽地位：史前时代，复杂的山水格局与多样的物产催生了红山文化等早期文明；唐宋以降，随着都城从关中迁至华北，燕山南北成为帝国最重要的“历史发动机”；辽朝在此第一次自觉构建起农牧并存的二元帝国；清朝则更进一步，以“不修长城，以蒙古为藩屏”的宏阔手笔，通过喇嘛旗与库伦三大寺的制度设计，将藏传佛教转化为治理边疆的工具。\n\n这是一次地理发现之旅，也是一次历史重访。从慕容燕国的早期尝试，到安禄山起兵震动天下，再到皇太极在库伦埋下喇嘛旗制度的种子，这片土地始终与整个中国的命运紧密交织。\n\n## 【本期对谈】\n\n**主播**：何必（北京大学历史学博士）\n\n**嘉宾**：施展（上海外国语大学全球文明史研究所教授）\n\n## 【收听指南】\n\n00:52 赤峰、通辽之旅：参访红山文化遗址、库伦三大寺，到姥姥的老家寻根\n\n09:19 东三省、东四盟共同构成东北与农耕、渔猎、游牧三分格局\n\n16:11 在红山文化时，西辽河流域就是整个东亚重要的文明起源地了\n\n![](https://image.xyzcdn.net/li851rTZ5VY_ypz0sdBAtnUplXGT.jpg)\n\n21:17 小冰期摧毁了山水交错地带的史前文明，中原文明才开始崛起\n\n25:31 安史之乱以前的西辽河流域：后燕、北燕定都于朝阳\n\n29:02 燕山作为地理枢纽：农牧分界线、山中通道与南北出口的重镇\n\n33:52 辽代“一国两制”的二元帝国：南面官治汉人、北面官治契丹\n\n35:40 北魏为什么没有形成以多元体制统治多元族群的政治自觉？\n\n37:51 辽朝草原文化自信的来源：佛教华严宗、创制契丹文、编修《契丹藏》\n\n41:27 辽上京：南北城分隔族群、宫城独特的东-西朝向\n\n![](https://image.xyzcdn.net/Fg_6L9P0bZWL9l4baYEsWaU4q6fB.png)\n\n42:00 清朝的“以庙代墙”战略：“本朝不修长城，以蒙古为藩屏”\n\n49:21 忽必烈带领汉人冲进哈拉和林，朱棣率领蒙古人打下了南京\n\n52:26 通辽库伦三大寺、喇嘛旗与清朝的边疆治理智慧\n\n58:14 帝国治理困境：统治者的资质、官僚体系膨胀与代理人困境\n\n## 【工具箱】\n\n01 赤峰周边地形图\n\n![](https://image.xyzcdn.net/lhaNwEPddrGIFep6nBUQ3bsAQWLG.jpg)\n\n02 民国时期的东北行政区划\n\n![](https://image.xyzcdn.net/Fs_M9bY_FbfGeGglFr2vpZ9bRxJs.png)\n\n03 红山文化：红山文化是距今约6500～5000年前，中国东北地区西辽河流域最著名的新石器时代考古学文化，因1935年首次发现于内蒙古赤峰市红山遗址而得名。1971年，赤峰翁牛特旗三星他拉村村民挖出一件墨绿色岫岩玉雕琢的C形龙，高26厘米，被誉为“中华第一龙”。1984年，辽宁朝阳牛河梁遗址出土了玉猪龙（玉玦形龙），证明了红山文化已形成中国最早的玉礼制形态。苏秉琦先生指出，红山文化“坛庙冢”祭祀建筑群的发现，将中华文明史提前了1000年，西辽河流域因此被称为“文明太阳升起的地方”。\n\n![](https://image.xyzcdn.net/Fib9DCaSjvW8Sxj7xO5FrQB-pjs3.png)\n\n04 辽代南北面官制度：辽太宗耶律德光时期确立了“因俗而治”的国策，实行南北面官制度：北面官“以国制治契丹”，保留契丹传统官制，主要管理游牧民族事务；南面官“以汉制待汉人”，仿照唐朝官制，管理汉人和渤海人的农耕事务。皇帝在“捺钵”（四季行营）中处理政务，南北面官随行。这种二元政治制度设计让辽朝成功统合了农耕与游牧两大经济体系，是“一国两制”的早期实践，对后世元朝、清朝的多元治理模式产生了深远影响。\n\n05 汇宗寺与多伦会盟：康熙三十年（1691年），康熙帝在平定噶尔丹叛乱后，亲赴多伦诺尔草原，召集外蒙古三部与内蒙古四十九旗王公会盟，外蒙古正式归附清朝，史称“多伦诺尔会盟”。应蒙古王公请求，康熙拨国库银十万两，在多伦修建一座喇嘛庙，取“佛法无二，统之一宗”之意，赐名汇宗寺。汇宗寺由外蒙古宗教领袖哲布尊丹巴活佛主持设计，建成后由章嘉活佛住持，成为清政府直接在蒙古地区敕建皇家寺庙的先例。此后，清政府沿燕山-阴山一线修建了一系列寺庙，形成了“以庙代墙”的边疆治理网络，实现了“一座庙胜10万兵”的效果。\n\n06 喇嘛旗：喇嘛旗是清朝在蒙古地区设置的以藏传佛教活佛为最高行政长官的特殊行政单位，在漠南蒙古（今内蒙古）仅设一旗——锡哷图库伦札萨克喇嘛旗（今通辽市库伦旗）。喇嘛旗的行政长官是活佛（札萨克大喇嘛），而非蒙古王公（札萨克），拥有与札萨克旗同等的治事权，直接受理藩院管辖。喇嘛旗的核心制度设计是“活佛异地转世”——主寺的大活佛不能在本旗转世，必须去遥远的青海安多地区寻找转世灵童，切断了与当地蒙古势力的血缘地缘纽带。这一制度使清朝皇帝通过宗教中心直接控制草原，同时防止了宗教权力地方化，是清朝边疆治理智慧的精粹。\n\n## 【本期推荐】\n\n假设去掉朝代、人物、事件，中国历史还能剩下什么？《河山》这本书以山水为线索，重述中国历史，为我们提供了一个理解中国、理解自己的处境，以及面对复杂世界的方法论。\n\n![](https://image.xyzcdn.net/FlucUn2B_q7HjMJm4I8ib-54c2vV.png)\n\n## 【相关往期】\n\n[Vol.276｜金庸江湖，为什么总与中国的河山有关？｜施展×六神磊磊](https://www.xiaoyuzhoufm.com/episode/6a7eabf117676351c571be72)\n\n[Vol.271｜穿越中亚：一场横跨天山、绿洲与苏联遗产的旅行｜嘉宾：郭建龙](https://www.xiaoyuzhoufm.com/episode/6a59c4d36356eb2d9be40376)\n\n[Vol.265｜河西走廊：站在这里，理解更广阔的中国｜主播：施展](https://www.xiaoyuzhoufm.com/episode/6a06ae10e1eb34a939724bc0)\n\n[Vol.242｜河东往事：运城、临汾，被低估的中华文明起点｜嘉宾：施展](https://www.xiaoyuzhoufm.com/episode/68d62a02b4befcf73001d710)\n\n[Vol.240｜东北不再“隐身”：当传统行业开始探寻现代化的未来｜嘉宾：施展](https://www.xiaoyuzhoufm.com/episode/68b917ad97178f08ee337612)\n\n[Vol.228｜蒙东大环线：跨越长城的晋文化｜嘉宾：五花王](https://www.xiaoyuzhoufm.com/episode/6826d3571ced30a2319d7808)\n\n## 【关于我们】\n\n一样的世界，不一样的思考。「东腔西调」是一档由爱道思EIDOS制作播出的轻文化播客，每周五更新，不定期加更，感谢你的收听。你可以在[小宇宙](https://www.xiaoyuzhoufm.com/podcast/5f72b66083c34e85dd14fde9?s=eyJ1IjoiNWVlZjIxMmU5MmQ3MDIzNzY3OGUwY2JjIn0%3D)、[喜马拉雅](https://www.ximalaya.com/album/41153937)、[苹果播客](https://podcasts.apple.com/cn/podcast/%E4%B8%9C%E8%85%94%E8%A5%BF%E8%B0%83/id1533768416)、[网易云音乐](https://music.163.com/#/djradio?id=958700257)、[QQ音乐](https://c6.y.qq.com/base/fcgi-bin/u?__=Agx83FY2JSqp)、[三联中读](http://ny.zdline.cn/mobile/bookList/?artId=3339#/)、[荔枝FM](https://www.lizhi.fm/user/5151894109385928748)、虎嗅等平台找到我们。欢迎关注、评论、转发，我们真诚感谢所有反馈，同时也期待更多脑洞。\n\n[微信公众号](https://mp.weixin.qq.com/s/8Qa9McK9tjbcRSZwwR-8lg)、[小红书](https://mp.weixin.qq.com/s/8Qa9McK9tjbcRSZwwR-8lg)、[微博](https://weibo.com/u/1342455020)、[B站](https://b23.tv/gisgCvI)、抖音、视频号：东腔西调\n\n听友群：添加小助手eidos000（备注「播客」）\n\n今日头条：[东腔西调图文志](https://profile.zjurl.cn/rogue/ugc/profile/?active_tab=dongtai&app_name=news_article&device_id=65&media_id=1675968434151437&module_name=iOS_tt_url&request_source=1&share_token=8B757808-AF34-4DF4-A224-99067BEAAFC9&tt_from=copy_link&upstream_biz=iOS_url&user_id=1494941893147864&utm_campaign=client_share&utm_medium=toutiao_ios&utm_source=copy_link&version_code=14.4.0&version_name=140400) （部分节目独家图文仅在头条号更新，欢迎关注）\n\n商务合作：media@eidos.wiki\n\n![](https://image.xyzcdn.net/FlZebq2JAKlVY31Cmmt9oMmWADTA.jpg)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087904+08:00"
+    },
+    {
+      "title": "#691.Jen Abel：拿下 10 万美元企业大单的完整路径，别让 AI 热潮掩盖了销售基本功",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a9149a7f03e74ee6b013884",
+      "published": "2026-08-28T16:58:50+08:00",
+      "source": "跨国串门儿计划",
+      "content": "📝 本期播客简介\n\n本期我们克隆了：Lenny's Podcast: Product | Career | Growth How to close $100K+ enterprise deals, step by step | Jen Abel\n\n原内容更新时间：Sun, 23 Aug 2026\n\n本期节目由 Lenny Rachitsky 主持，邀请企业级销售专家 Jen Abel，完整拆解一笔 10 万至 100 万美元企业级交易从第一次触达、初次沟通、产品演示、试用期，到采购、合同审查和最终签字的全过程。Jen 曾三次做客 Lenny's Podcast：第一次讨论创始人主导销售，第二次讨论 100 万至 1000 万美元的企业级销售打法，而这一次，她把企业销售从大家熟悉的“五步漏斗”还原成接近 15 个真实步骤。\n\n节目以向 SpaceX 法务部门销售 AI 法律科技为案例，讲清楚如何同时触达高管与 N-1 级别联系人，如何用“钳形模式”建立组织内部的推动力，如何在第一次电话中克制住演示冲动，先获取情报、识别真正的改变需求，再围绕客户语境设计演示和试用。Jen 反复强调，企业级销售不是把客户塞进自己的销售流程，而是帮助客户完成他们自己的采购流程。\n\n这期内容尤其适合创始人、产品经理、企业级销售、客户成功负责人，以及正在从 SMB 转向大客户市场的创业团队。你会听到大量可直接执行的细节：为什么演示前要再打一通准备电话，为什么试用期最好严格控制在两三天，什么时候应该收取试用费用，为什么健康的企业销售赢单率只有约 25% 至 35%，以及如何避免采购、法务和内部意见分歧让交易失去势头。\n\n👨‍⚕️ 本期嘉宾\n\nJen Abel，JJellyfish 联合创始人，同时担任 State Affairs 企业级销售总经理。她长期专注于早期创业公司的创始人主导销售、企业级客户拓展和高客单价交易，尤其擅长把看似依赖个人天赋的销售经验，拆解成可以理解、练习和复盘的具体步骤。\n\nJen 的独特之处在于，她并不把销售简化成一套固定话术或 CRM 阶段，而是同时强调流程、项目管理、信息优势和人与人之间的判断力。她认为，最优秀的销售往往不是接受过最多标准化培训的人，而是最会倾听、挖掘信息、理解组织目标，并能让客户对未来产生兴奋感的人。这也是她第三次做客 Lenny's Podcast，依然能提供大量一手经验的原因。\n\n⏱️ 时间戳\n\n开场：企业级销售为何不是五步漏斗\n\n01:45 Jen Abel 登场：这次要完整走过企业级销售周期\n\n03:26 15 步销售打法的目标：把秘密全部讲清楚\n\n06:20 SpaceX 法务部门案例：从 10 万美元交易开始\n\n07:35 10 万美元与 100 万美元交易，本质上是同一套流程\n\n第一步：找到对的人，并用 Alpha 触达\n\n09:27 第一步：如何约到第一次企业级销售会议\n\n10:28 企业高管真正关心的是“超额收益”\n\n11:49 钳形模式：同时触达高管与 N-1\n\n15:19 用工具寻找关键联系人，但必须靠人工判断核对\n\n第二步：初次沟通电话，先获取情报\n\n18:51 初次沟通是所有电话里最重要的一通\n\n19:53 非正式开场：让对方先说\n\n21:36 不要急着把对话引向产品\n\n23:10 为什么初次沟通千万不要录音\n\n第三至六步：从跟进、准备到精准演示\n\n30:11 初次沟通后的跟进：不要直接跳到 Demo\n\n31:46 演示前的准备电话：和内部推动者一起设计故事线\n\n35:12 最危险的 Demo：没有准备就向一群人展示产品\n\n41:39 只展示 20% 最有价值的功能\n\n试用期：用两三天验证价值并掌控节奏\n\n49:31 确定试用期的推进流程\n\n50:45 两种试用期：轻量验证与深度集成\n\n53:24 和客户共同定义成功标准\n\n54:49 在试用前倒推签约时间线与内部参与者\n\n企业销售的真实漏斗与赢单率\n\n1:03:39 CRM 的五个阶段不是实际销售流程\n\n1:05:14 90% 的人误把 CRM 流水线当成销售打法\n\n1:08:39 健康的企业级销售赢单率约为 25% 至 35%\n\n1:10:58 从合格线索到 Demo，通常会流失一半\n\n采购、合同与最终签字\n\n1:05:37 第十步：试用期后的复盘与真实反馈\n\n1:12:22 第十一步：合同准备与采购时间线\n\n1:15:28 合同审查：把来回邮件变成实时会议\n\n1:17:57 最后一步：确认签字人并完成签署\n\n成交之后：扩张、拒绝与销售的长期价值\n\n1:18:57 签单之后如何思考增购与扩张\n\n1:19:12 企业级销售真正的核心是第二年的扩容\n\n1:20:15 买家如何尽早、清楚地说“不”\n\n1:22:37 销售和产品管理：本质上都是理解人和解决问题\n\n🌟 精彩内容\n\n💡 企业级销售不是五步，而是接近 15 步\n\nJen 认为，CRM 里的“介绍、演示、方案、合同、赢单”只是用于预测和加权的分类，并不代表客户真实经历的销售步骤。每一个 CRM 阶段背后，往往还需要数次关键沟通、内部协调和决策推动。把五步漏斗误认为真实流程，是企业销售团队最常见的认知错误之一。\n\n“多数人以为销售流程就五步，而我们现在已经讲到第 10 步了，这都还没讲完。”\n\n💡 高管买的不是问题解决，而是不对称的优势\n\n向企业高管触达时，单纯说“我们能帮你解决某个问题”远远不够。高管需要看到的是，引入这套方案后，自己能为组织释放什么新的价值：更多影响力、更大预算、更高效率，或一种能向 CEO、COO 和董事会证明的实质性改变。\n\n“最重要的是超额收益。”\n\n💡 钳形模式：高管和 N-1 必须同时推进\n\nJen 建议创始人直接触达最高层决策者，同时让 AE 或企业销售负责人联系高管下面一层、最接近执行的人。两条线同时推进，既能获得高管级价值判断，又能拿到一线执行信息，避免销售故事在组织内部层层转述后失真。\n\n“它其实就叫钳形模式，也就是从最顶层切入，找到那一层底线，然后在两者之间推进。”\n\n💡 初次沟通的任务不是展示产品，而是让客户多说\n\n第一通电话决定了客户是否会放下防备，也决定了销售能获得多少真实信息。不要急着打开 PPT、做 Demo 或追问标准化的 BANT 问题，而应该让对方先讲自己的目标、规划、组织变化与成熟度，再根据这些信息组织后续叙事。\n\n“这是所有电话里最重要的一通。”\n\n💡 不要照搬销售话术，真正的优势来自信息差\n\n标准化话术会让销售变得同质化，预算、决策权、需求和时间点应该作为销售脑中的判断框架，而不是机械地逐项询问。谁能比竞争对手多理解客户的潜台词、内部关系和优先级，谁就能把 Demo、试用和商业方案做得更像是为客户量身打造。\n\n“让自己沦为同质化最快的方式，就是套用一些销售话术。”\n\n💡 两三天的试用，往往比两周的试用更有效\n\n轻量试用的目标不是让客户自由探索产品，而是挑选三到四名真正的重度用户，为每个人设定清晰任务、提供上手培训，并与客户共同定义成功标准。把试用严格限制在 48 到 72 小时，既能更快验证价值，也能避免销售周期被无止境拉长。\n\n“改成 48 到 72 小时，就能把你的销售周期缩短两周。”\n\n💡 演示不是产品巡回展示，而是一次精准的叙事与项目管理\n\n企业客户并不需要看到产品的全部功能。销售应该在前期沟通中找出最重要的 20% 价值，再围绕这部分内容组织 Demo，让客户产生“这就是为我们做的”感觉。展示过多无关功能，反而会让客户开始怀疑自己为什么要为一堆用不到的东西付费。\n\n“企业级销售就是极其紧凑的项目管理，极其紧凑的叙事和框架，并且牢牢掌控这个框架。”\n\n💡 健康的赢单率不是越高越好\n\n合格商机从 Demo 到最终签约会持续流失，健康的企业级销售赢单率通常在 25% 至 35% 左右。如果赢单率异常高，可能意味着定价过低，或者团队没有充分筛掉尚未成熟、并不真正需要产品的客户。与其盲目追求更高赢单率，不如保持价格、做好资格审查，并为未来重新进入市场的客户留下空间。\n\n“如果你的赢单率比这还高，说明你定得太便宜了。”\n\n🌐 播客信息补充\n\n本播客采用原有人声声线进行播客音频制作，也可能会有一些地方听起来怪怪的\n\n使用 AI 进行翻译，因此可能会有一些地方不通顺",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087907+08:00"
+    },
+    {
+      "title": "我去，还得是CuiMao啊！\n这个水准和效果果然还是不一样啊！\n\n这个是太浪漫和唯美的，没有赤裸裸的金钱和数字。\n在一次次的对话中各自权衡利弊~~",
+      "link": "https://x.com/berryxia/status/2093257630278115753",
+      "published": "2026-08-28T16:41:24+08:00",
+      "source": "Berryxia.AI(@berryxia)",
+      "content": "我去，还得是CuiMao啊！  \n这个水准和效果果然还是不一样啊！  \n  \n这个是太浪漫和唯美的，没有赤裸裸的金钱和数字。  \n在一次次的对话中各自权衡利弊~~\n\n![CuiMao](https://pbs.twimg.com/profile_images/2090246963988193281/1R3VQ7ce_normal.jpg)\n\nCuiMao@CuiMao\n\n大家好，我没忍住，最后还是做了\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2093232485761212416/vid/avc1/1920x1080/LuQhdln4LRZ36PQo.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/CuiMao/status/2093233192274895040/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/CuiMao/status/2093233192274895040)\n\n💬0🔄0❤️5👀1630📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087910+08:00"
+    },
+    {
+      "title": "Tweet",
+      "link": "https://x.com/geekbb/status/2093276680785973451",
+      "published": "2026-08-28T17:57:06+08:00",
+      "source": "Geek(@geekbb)",
+      "content": "[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2093276589379481600/vid/avc1/720x1280/L7KRzH2Vx1xdW_8n.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/geekbb/status/2093276680785973451/video/1)\n\n![Geek](https://pbs.twimg.com/profile_images/1644898947272671233/7959WGOK_normal.jpg)\n\nGeek@geekbb\n\n看到智谱发布的 GLM-5.3 Flash 跑在10万张国产芯片集群上，好奇是什么芯片就去搜了一下。  \n  \n最有可能的是华为昇腾 910C、摩尔线程MTT S5000……我去瞅瞅实物长啥样，结果搜索到都是效果图。  \n  \n国外模型英伟达的GB300、H100 / H200 SXM、DGX B200 / B300都能收到实物图，有渠道的还能买到。  \n  \n有看到全网哪个兄弟买到国产芯片本地跑大模型的吗？\n\n![Tweet Image](https://pbs.twimg.com/media/HQs7knZa0AEgMGz.jpg)![Tweet Image](https://pbs.twimg.com/media/HQs7lfobsAAXlsa.jpg)![Tweet Image](https://pbs.twimg.com/media/HQs7IWnaAAA9S5a.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/geekbb/status/2092832092400804074)\n\n💬0🔄0❤️0👀974",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087914+08:00"
+    },
+    {
+      "title": "Try it now on https://t.co/IZyvp9ENT2",
+      "link": "https://x.com/lovart_ai/status/2093257321178923072",
+      "published": "2026-08-28T16:40:10+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "Try it now on [lovart.ai](https://lovart.ai)\n\n💬0🔄0❤️0👀147",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087917+08:00"
+    },
+    {
+      "title": "Is this filmed on a camera, or made with AI? 📸\n\nSeedance 2.5 on Lovart turns a single photo into a ...",
+      "link": "https://x.com/lovart_ai/status/2093257258423775323",
+      "published": "2026-08-28T16:39:55+08:00",
+      "source": "LovartAI(@lovart_ai)",
+      "content": "Is this filmed on a camera, or made with AI? 📸  \n  \nSeedance 2.5 on Lovart turns a single photo into a hyper-realistic 30s vlog in seconds.  \n  \nPrompt👇:  \nCreate a 30-second, 1080p ultra-realistic personal home-video showing an ordinary autumn afternoon in the life of a young Asian woman. No reference image.  \n  \nMAIN SUBJECT  \n  \nYoung Asian woman in her mid-20s, naturally pretty, realistic skin texture, minimal makeup, warm and gentle personality.  \n  \nMaintain the same face, hairstyle, clothing, body proportions and overall appearance throughout the entire video.  \n  \nSETTING  \n  \nA quiet old residential neighborhood in a southern city during a cool autumn afternoon. Tree-lined streets, mossy stone steps, old brick walls, bamboo drying poles, potted orchids, a small neighborhood convenience store with a striped awning, rusty bicycles parked against walls, fallen yellow leaves scattered on the pavement, and golden afternoon sunlight filtering through ginkgo trees.  \n  \nEverything should feel lived-in, ordinary and peaceful. No tourist attractions, advertisements, recognizable brands or commercial activity.  \n  \nCAMERA / VISUAL AESTHETIC  \n  \nRaw personal footage casually recorded by a friend on an early-2000s consumer DV camcorder.  \n  \nStrong handheld shake, imperfect framing, autofocus hunting, exposure shifts, occasional motion blur, faded colors, soft digital detail, mild noise, accidental zooms and natural camera imperfections.  \n  \nNo stabilization, drone footage, gimbal movement, dramatic lighting or polished commercial cinematography.  \n  \nLEAVING THE APARTMENT  \n  \nShe steps out of an old walk-up apartment building, carrying a small canvas tote bag. She pulls the iron gate shut, adjusts her sweater sleeves, and looks toward the camera with a gentle smile.  \n  \nA cool autumn breeze lifts a few strands of her hair as she starts walking down the leafy street.  \n  \nCONVENIENCE STORE STOP  \n  \nShe reaches a tiny neighborhood convenience store and buys a warm bottle of roasted oolong tea.  \n  \nShe steps outside, takes her first sip, and immediately closes her eyes with a satisfied expression because it warms her up.  \n  \nShe notices her friend filming and holds the bottle toward the camera with a playful toast gesture before taking another sip.  \n  \nWALKING THROUGH THE NEIGHBORHOOD  \n  \nShe continues down the tree-lined street while holding her tea.  \n  \nAn elderly neighbor passes by on an old bicycle, ringing his bell. She steps aside, waves politely, and chuckles softly.  \n  \nShe pauses to look at a stray orange cat sleeping on a stone wall, but doesn't wake it.  \n  \nSMALL ACCIDENT  \n  \nShe walks beneath a large ginkgo tree when a few yellow leaves drift down onto her head.  \n  \nShe stops, looks up confused, then realizes what happened and lets out a light laugh.  \n  \nShe shakes the leaves from her hair while her friend zooms awkwardly toward her face.  \n  \nShe looks directly into the camera with an amused expression and says:  \n  \n\"Are you filming this?\"  \n  \nQUIET MOMENT  \n  \nShe reaches a low stone bench beside an old banyan tree and sits down for a moment.  \n  \nShe finishes her tea while watching a grandmother hang laundry on a balcony across the street, and a couple walking their small dog.  \n  \nA gentle breeze moves her hair. She casually tucks it behind her ear and gazes around peacefully.  \n  \nFINAL MOMENT  \n  \nShe stands up and continues walking home.  \n  \nAfter a few steps, she turns back toward the camera with a soft playful smile and says:  \n  \n\"Let's go.\"  \n  \nShe keeps walking down the golden-leafed street while the camera follows behind.  \n  \nShe disappears around a corner and the recording abruptly cuts to black.  \n  \nAUDIO  \n  \nNatural location sound only: birds, autumn insects, rustling leaves, distant scooter horns, bicycle bells, a neighbor's radio playing faintly, convenience store door chime, footsteps on stone, and subtle camera-handling noise.  \n  \nNo music. No narration. No artificial sound effects.  \n  \nOnly the two spoken lines specified above.  \n  \nFINAL FEEL  \n  \nThe entire video should feel like a forgotten autumn afternoon recording from the early 2000s.  \n  \nWarm, gentle, feminine, casual, slightly playful, intimate and nostalgic.  \n  \nNo dramatic events, no exaggerated acting, no model poses and no polished cinematic shots.  \n  \nThe realism should come from ordinary surroundings, natural expressions, small accidents, realistic environmental movement and imperfect camcorder operation.\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2093257148637782016/vid/avc1/1920x1080/5oHtnNJTKnJKQnhT.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/lovart_ai/status/2093257258423775323/video/1)\n\n💬4🔄0❤️17👀886📊7",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087920+08:00"
+    },
+    {
+      "title": "We’re gonna start testing our first V8.2 edit model today. This model supports editing with instruct...",
+      "link": "https://x.com/midjourney/status/2093253371650031949",
+      "published": "2026-08-28T16:24:29+08:00",
+      "source": "Midjourney(@midjourney)",
+      "content": "We’re gonna start testing our first V8.2 edit model today. This model supports editing with instructions, generating images with other images (up to 4 references), brush-based inpainting, and outpainting. It also works with personalization, moodboards, and srefs. Have fun!\n\n![Tweet Image](https://pbs.twimg.com/media/HQy61k4bAAAy2Db.jpg)![Tweet Image](https://pbs.twimg.com/media/HQy62B6b0AA1Rfl.jpg)\n\n💬21🔄12❤️129👀6873📊34",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087923+08:00"
+    },
+    {
+      "title": "My LLM cliché highlighter is up to 38 patterns now https://t.co/sew4qNNaZX",
+      "link": "https://x.com/simonw/status/2093277255438860358",
+      "published": "2026-08-28T17:59:23+08:00",
+      "source": "Simon Willison(@simonw)",
+      "content": "My LLM cliché highlighter is up to 38 patterns now [tools.simonwillison.net/llm-cliche-hig…](https://tools.simonwillison.net/llm-cliche-highlighter)\n\n![Tweet Image](https://pbs.twimg.com/media/HQzQkUpXoAAVmjH.jpg)\n\n💬7🔄3❤️13👀1292📊9",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087926+08:00"
+    },
+    {
+      "title": "You’ll be able to run some pretty cool stuff directly on-board on microduck. Here is a demo TUI for ...",
+      "link": "https://x.com/Thom_Wolf/status/2093276269383229624",
+      "published": "2026-08-28T17:55:28+08:00",
+      "source": "Thomas Wolf(@Thom_Wolf)",
+      "content": "You’ll be able to run some pretty cool stuff directly on-board on microduck. Here is a demo TUI for the tiny LiDAR\n\n![Antoine Pirrone](https://pbs.twimg.com/profile_images/476561484726534144/pqlgC2Ji_normal.jpeg)\n\nAntoine Pirrone@antoinepirrone\n\nSneak peak at Microduck's monitoring tool, running fully on device ! You can see a visualization of the little ToF sensor in its head\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2093259334549475328/vid/avc1/1174x720/k8Zj55zfoBpCDNji.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/antoinepirrone/status/2093259394909642758/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/antoinepirrone/status/2093259394909642758)\n\n💬6🔄4❤️35👀2177📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087928+08:00"
+    },
+    {
+      "title": "中文推已经贫乏到刷个十条必有一个孙哥 赶快屏蔽了事 昨天看了下文章 根本看不下去 感觉是二十年前萌芽和新概念的行文风格 看吐了",
+      "link": "https://x.com/vikingmute/status/2093274597705781425",
+      "published": "2026-08-28T17:48:49+08:00",
+      "source": "Viking(@vikingmute)",
+      "content": "中文推已经贫乏到刷个十条必有一个孙哥 赶快屏蔽了事 昨天看了下文章 根本看不下去 感觉是二十年前萌芽和新概念的行文风格 看吐了\n\n💬1🔄0❤️0👀248📊1",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087931+08:00"
+    },
+    {
+      "title": "the @SpaceXAI team has been collecting a bunch of good grok bot guides, go check them out: https://t...",
+      "link": "https://x.com/ericzakariasson/status/2093261726758453638",
+      "published": "2026-08-28T16:57:41+08:00",
+      "source": "eric zakariasson(@ericzakariasson)",
+      "content": "the [@SpaceXAI](https://x.com/SpaceXAI) team has been collecting a bunch of good grok bot guides, go check them out: [x.ai/bot/guides](https://x.ai/bot/guides)\n\n![Tweet Image](https://pbs.twimg.com/media/HQzCcmNbYAAsLij.jpg)\n\n💬18🔄16❤️289👀11283📊110",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087934+08:00"
+    },
+    {
+      "title": "SpaceXAI 团队给 Grok Bot 发布了五篇官方使用指南\n\nGrok Bot Guides - 覆盖元模式、工程、设计、GTM 和产品方向 https://t.co/6AGpkhNTpv\n\n...",
+      "link": "https://x.com/shao__meng/status/2093266882996601091",
+      "published": "2026-08-28T17:18:10+08:00",
+      "source": "meng shao(@shao__meng)",
+      "content": "SpaceXAI 团队给 Grok Bot 发布了五篇官方使用指南  \n  \nGrok Bot Guides - 覆盖元模式、工程、设计、GTM 和产品方向 [x.ai/bot/guides](https://x.ai/bot/guides)  \n  \n# 指南中提炼出 Grok Bot 的六个核心构件  \n  \n1. Job description：每个 bot 的系统提示词读起来像一份招聘 JD：明确它\"拥有什么职责\"以及\"拒绝做什么\"。  \n2. Connections：bot 登录的真实账号体系：Jira、Figma、Salesforce、GitHub、Meta Ads 等。  \n3. 云端专属电脑：每个 bot 有一台 24/7 运行的云主机，带浏览器和终端，你的笔记本关机它也在工作。  \n4. Routines：按时钟自动执行的固定工作，不需要人触发。  \n5. Skills：\"录制式教学\"：你操作一遍，它记住点击路径，之后可复现。这是一个值得注意的工程取巧——当 API 不可用（如 Meta Ads API 验证受阻）时，直接用 UI 自动化绕过。  \n6. Handoffs：bot 之间可以直接移交工作，不必经过人。指南反复强调\"这才是让它成为团队的一点\"。  \n  \n# 五篇官方使用指南  \n  \n1. 元模式：多团队 bot 的项目制协调 [@ericzakariasson](https://x.com/ericzakariasson)  \n最短的一篇，描述一个实验性模式：当 bot 多了之后，噪音和同步成为问题，于是复制人类的项目管理结构——一个项目 = 一个频道 + 一个 Notion 看板 + 一个编制名单。设一个 PM bot 负责\"元工作\"：建项目、开频道、配人。编制规则：优先复用现有 bot；每频道最多六个；新建 bot 需人批准。bot 卡住时把任务标记为 Blocked 并在频道里 @ 人。  \n  \nEric 自己也点破了其中的意味深长之处：\"越建越像一套最初为人类设计的系统\"——看板、经理、认领任务的专家、Blocked 列、频道。  \n  \n2. 工程：六个 bot 运营一家手游工作室 [@rperry\\_](https://x.com/rperry_)   \n最\"硬核\"的一篇。Ryan 用六个 bot 运营手游 Rank'em（下载量刚破 1000）：编排经理、数据分析、广告创意、客户端工程、GCS 运维、Bug 修复。  \n· 核心论点：游戏本身只占工作的 15%，其余 85% 是买量、创意、发布、QA、运维——而这些恰恰是 bot 可以接管的。  \n· 权责设计很讲究：只有 Analytics bot 被允许\"宣布一个发现\"；Creatives bot 不许碰投放；代码 bot 只接受\"规格\"而非\"建议\"。这是把人类组织中的权责分离原则搬到了 agent 系统。  \n· 声称的 ROI：CPI（单次安装成本）从 $15 降到 $1（15 倍），D7 留存提升约 4 倍。机制是 bot 团队自主完成\"读数据 → 形成假设 → 改广告/改功能 → 验证\"的闭环。  \n  \n一个有趣细节：某晚 bot 意识到用户的临时请求应该变成每日例程，主动把它加入了自己的职责范围。  \n  \n3. 设计：用 Grok Bot 设计 Grok Bot [@johnbai](https://x.com/johnbai)   \n设计师用四个 bot（Experiments、Motion God、Figma Bro、Devbot）做设计探索。三个要点：  \n· \"You can just do things\"：想法不必先证明合理才值得做出来。他让 bot 做了三个\"环境式唤起\"原型（藏在 Mac 刘海里、从屏幕角落探出、跟随光标），都没上线，但每个都提供了真实判断依据。AI 把\"探索的成本\"降到了接近零。  \n· 用真实生产资产工作：Motion God 不是\"生成一个动画近似\"，而是围绕真实的动画规格文件搭建 localhost 调试环境，让设计师用确定性控件（弹簧、缓动、时长）和直觉语言（\"向左下多看一会儿\"）混合调优。  \n· 重复劳动交给 Figma Bro，且通过 Figma MCP 读取精确的坐标、间距、组件结构，而不是\"目测\"——消除了批量生产中累积的小不一致。  \n  \nJohn 的结论克制而准确：这没有让设计变成\"一次性生成\"，而是让循环更紧——判断力仍是人的，bot 只是给了你更多运用判断的机会。  \n  \n4. GTM：销售团队的全套 bot 编制 [@kristaletz](https://x.com/kristaletz)   \n最长、最实操的一篇，附完整提示词。编制包括：Chief of Staff（会议准备、收件箱、调度其他 bot）、Prospecting（潜客开发）、Customer Expert（每个战略客户一个专属 bot）、产品专家（\"10x engineer\"，连接代码库回答客户技术问题）、1:1 助手、预测 bot、Slides bot、销售教练。  \n  \n值得注意的实践细节：  \n· 写作风格画像：让 bot 扫描 15–30 封已发邮件，提取问候方式、句式节奏、提要求的方式、落款，形成可复用的 style profile。  \n· 防骚扰护栏：起草外联前检查 90 天已发邮件和 CRM 记录，已触达的人标记 Skip Draft——\"保留在表里，但不再推销\"。  \n· 诚实性约束：提示词里明确写\"宁可写'未找到可验证的动态'，也不要编造\"。  \n· 最亮眼的技巧：客户电话结束前 5–10 分钟停止 Granola 录音，让 Slides bot 根据刚才通话内容实时生成一页\"我们听到的\"幻灯片，通话收尾时直接展示。  \n  \n5. 产品：PM 第一次有了\"汇报给自己的团队\" [@n2parko](https://x.com/n2parko)   \n观点性最强的一篇。核心洞察：  \n· \"注意力清单\"（attention list）是一种新的工作原语。传统的优先级列表会过时；让 bot 持续观察你在 Slack、邮件、会议中实际在做什么，涌现式地生成\"你真正在关注什么\"的清单。它有两个用途：作为 agent 过滤信息的依据；以及对照\"声称的优先级\"与\"实际注意力\"的偏差。  \n· 为什么不只用一个万能 agent？ 作者给出三个理由：可引用性（知道谁管什么）、并行性、作用域记忆（每个 bot 在工作中学习不同的东西，互不污染）。  \n· 组织架构模仿真实公司：不写代码的 Eng Manager（通过阅读优秀工程师的 Slack 记录来\"入职学习\"）+ 五个 IC 工程 bot，底层再调度 Cloud Agents——\"It's agents all the way down\"。  \n· 清醒的边界意识：对外发邮件、花钱、删除操作仍由人终审；\"人们希望知道对方是认真想过才提出请求的\"。\n\n![Tweet Image](https://pbs.twimg.com/media/HQzHH6VbkAAxjnL.jpg)\n\n![eric zakariasson](https://pbs.twimg.com/profile_images/1841151626456801283/HnXqy3TQ_normal.jpg)\n\neric zakariasson@ericzakariasson\n\nthe [@SpaceXAI](https://x.com/SpaceXAI) team has been collecting a bunch of good grok bot guides, go check them out: [x.ai/bot/guides](https://x.ai/bot/guides)\n\n![Tweet Image](https://pbs.twimg.com/media/HQzCcmNbYAAsLij.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ericzakariasson/status/2093261726758453638)\n\n💬3🔄1❤️8👀1308📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087937+08:00"
+    },
+    {
+      "title": "Article: Post-Quantum Cryptography in Spring Boot: Four Patterns You Can Ship This Sprint",
+      "link": "https://www.infoq.com/articles/pqc-in-spring-boot/?utm_campaign=infoq_content&utm_source=infoq&utm_medium=feed&utm_term=global",
+      "published": "2026-08-28T17:00:00+08:00",
+      "source": "Infoq",
+      "content": "![](https://res.infoq.com/articles/pqc-in-spring-boot/en/headerimage/pqc-in-spring-boot-header-1787646727709.jpg)\n\nThere are four patterns that bring PQC into a Spring Boot fleet: encrypting payloads between services, locking down database fields, signing documents that need to hold up for decades, and moving service tokens off RS256. Along the way, we discuss why Harvest Now, Decrypt Later is already happening, and why none of this is production-safe until KMS or Vault is in place.\n\n*By Pankaj Sharma*",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-28T18:25:39.087940+08:00"
     }
   ]
 }
