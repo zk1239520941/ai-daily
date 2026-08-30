@@ -1,0 +1,175 @@
+{
+  "meta": {
+    "date": "2026-08-31"
+  },
+  "entries": [
+    {
+      "title": "Cursor now shows you demos, not diffs",
+      "link": "https://youtu.be/XbZvC4KTH68?si=sEDqt3JtV0PoqLei",
+      "published": "2026-08-31T01:19:15+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.063981+08:00"
+    },
+    {
+      "title": "John Schulman on dead ends, scaling RL, and building research institutions",
+      "link": "https://youtu.be/29BYxvvF1iM?si=LRmoeWAwilHKmjGY",
+      "published": "2026-08-31T01:19:15+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.063990+08:00"
+    },
+    {
+      "title": "Our designer built an operating system with Cursor",
+      "link": "https://youtu.be/TQhv6Wol6Ns?si=bb8_Jr5u7Kb8n6jk",
+      "published": "2026-08-31T01:19:15+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.063995+08:00"
+    },
+    {
+      "title": "AI Foundations: Introduction",
+      "link": "https://youtu.be/IccjZDV93lw?si=f3mepO4Ptiqdg4F8",
+      "published": "2026-08-31T01:19:15+08:00",
+      "source": "Cursor Blog",
+      "content": "",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.063998+08:00"
+    },
+    {
+      "title": "GeoRA: 为RLVR设计的LoRA——ACL 2026杰出论文解析",
+      "link": "https://tech.meituan.com/2026/08/27/ACL-Outstanding-Paper-GeoRA.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "> ACL（Annual Meeting of the Association for Computational Linguistics）是计算语言学和自然语言处理（NLP）领域的国际顶级学术会议，是CCF-A类会议，也是中国计算机学会推荐的自然语言处理方向最高等级国际学术会议。ACL 2026杰出论文奖（Outstanding Paper）在圣地亚哥揭晓，全球共 [18 篇入选](https://msukhareva.substack.com/p/outstanding-paper-awards-of-acl-2026)，美团履约技术团队的《GeoRA:Geometry-Aware Low-Rank Adaptation for RLVR》 就是其中之一。\n\n* **论文下载**：[GeoRA：Geometry-Aware Low-Rank Adaptation for RLVR](https://aclanthology.org/2026.acl-long.1110/)\n* **讲解视频**：[ACL2026 杰出论文分享（受智源社区邀请）](https://weixin.qq.com/sph/A0tqJo3kVz)\n\nRLVR已经成为提升大模型推理能力的关键范式，但它的训练开销较高，于是一个自然的技术就是用 LoRA 这类参数高效微调方法来做 RLVR。但是，LoRA 及其变体几乎都是在 SFT 场景下建立并验证的。而近期一系列机制研究表明，RLVR 与 SFT 的优化几何存在本质差异：RLVR 则更像一次受约束的优化，有效更新分散在稀疏的子空间中，并倾向于避开预训练权重的主方向。因此，把为 SFT 设计的先验直接搬到 RLVR 上，就构成了几何错位，后果是效果欠优、能力遗忘甚至训练崩溃。\n\n针对这个问题，美团与北京大学的研究者提出了 GeoRA（Geometry-Aware Low-Rank Adaptation），把低秩适配显式地对齐到 RLVR 的更新几何上：先用几何先验定位出 RLVR 偏好的稀疏更新区域，再用 SVD（奇异值分解）把它压缩成低秩稠密的适配器。在 1.5B 到 32B 的 Qwen 与 Llama 模型上，GeoRA 在数学、医学、代码三类 RLVR 任务上稳定优于流行的低秩基线。该工作已被 ACL 2026 接收为杰出论文（Outstanding Paper）。\n\n本文介绍了一种专为 RLVR 设计的低秩训练方法，以及它在业务 Agentic RL 中的落地经验。\n\n## 01 背景、洞察和目标\n\n以 OpenAI o1、DeepSeek-R1 为代表的大型推理模型，把 RLVR 确立为解锁复杂推理能力的关键范式。要理解为什么现有 PEFT 方法在这个范式下不够好，得先看清 RLVR 的更新究竟长什么样。\n\n### 1.1 RLVR的优化几何\n\n近期一批机制分析工作勾勒出了 SFT 与 RLVR 的分野，表明两者的优化几何存在本质差异：SFT 通过改写权重的主方向来显式注入新信息，RLVR 更像一次受约束的优化，它靠奖励诱导的采样偏置放大模型推理行为，有效更新分散在稀疏的子空间中，并倾向于避开预训练权重的主方向。这个画像还有另一面——RLVR 对更新稳定性敏感，它需要在类信赖域边界内做策略更新，过于激进或落在主方向上的更新则容易引发谱漂移、探索多样性坍塌乃至训练崩溃。\n\n### 1.2 现有PEFT的错位\n\n**几何错位**。LoRA 及其变体是当前的事实标准，它们的一个关键差异在于采用了什么谱先验：LoRA 用高斯和全零初始化，与预训练权重无关；PiSSA 对原始权重做 SVD，把可训练预算都分配给主奇异方向；MiLoRA 则取尾部奇异方向。这些先验主要在 SFT 场景下被设计和验证，没有考虑上一节描述的 RLVR 更新规律。以 PiSSA 为例，它把更新强行推到主成分上的强归纳偏置，恰好与 RLVR 偏好的子空间相冲突，这也预示了实验中更容易崩溃的现象。\n\n**工程错位**。一种直观的做法是：既然 RLVR 只更新一小部分参数，那直接对这个子空间做稀疏微调就好了。这种方式在更新模式上确实更契合 RLVR 的偏好，但现代 GPU 对非结构化稀疏计算并不高效，减少参数量并不意味着效率提升。本文的效率实验里，稀疏微调把训练参数降低 68.0%，训练耗时却增加了 10.8%。\n\n### 1.3 GeoRA 的目标\n\n一边是计算友好但几何不对，一边是几何对但算不快。GeoRA 要同时解决这两个错位，目标即定位契合 RLVR 的稀疏子空间，用低秩稠密的方式去训练它。\n\n## 02 方法：GeoRA 的构造\n\nGeoRA 可以拆成三个步骤：\n\n* **构造几何子空间**：基于谱先验和欧氏先验，从预训练权重中筛出更稳定、更可塑的参数区域。\n* **低秩近似构造适配**器：用 SVD 对几何子空间做低秩近似，用以初始化低秩适配器。\n* **建立残差锚点**：将残差权重冻结，使模型初始化时函数不变，平滑冷启动并保护预训练结构。\n\n整个过程只在训练开始前执行一次，属于一次性预处理；训练阶段的计算图与标准 LoRA 完全一致。\n\n### 2.1 构造几何子空间\n\n我们用两个互补的掩码（Mask）从预训练权重矩阵 W 中筛选参数区域，两者共用同一个稀疏率 ρ。\n\n* 谱先验 M\\_Spec 强调稳定性。 先对 W 做秩为 r 的低秩近似得到 Ŵ\\_r，然后选出 Ŵ\\_r 中幅值最小的 ρ 比例位置。直觉上，主成分中的高幅值分量也是高曲率区域，改动它们容易破坏预训练结构；把更新限制在低幅值区域，可以改善 RLVR 下的谱稳定性。\n* 欧氏先验 M\\_Euc 强调可塑性。 直接在原始权重 W 上选出幅值最小的 ρ 比例位置。这些接近零的参数在预训练中被「用得少」，可调整空间大，能为训练保留足够的自由度。\n\n最终的几何约束矩阵取两者的并集：W\\_Geo = W ⊙ (M\\_Spec ∪ M\\_Euc)。\n\n![](https://p0.meituan.net/meituantechblog/97ea31d07a6d2933012521da83d6af45614059.png)\n\n两个掩码看起来规则相似，实际选出的参数集合却很少重叠。例如，在 Qwen3-8B 上取 ρ = 0.2，两者各选中 20.0% 的参数，但交集只有 4.55%，Jaccard 相似度仅 0.128。这说明它们捕捉的是两类不同的参数区域，是互补而非冗余关系，论文中的消融实验也印证了这一点：去掉任何一个先验都会带来性能下降。\n\n### 2.2 低秩近似构造适配器\n\n拿到 W\\_Geo 之后，对它做 SVD：\n\nW\\_Geo = U\\_Geo Σ\\_Geo V\\_Geoᵀ\n\n取前 r 个奇异分量来初始化两个低秩矩阵：\n\nA\\_Geo = Σ\\_Geo[:r,:r]^(1/2) · V\\_Geo[:,:r]ᵀ\n\nB\\_Geo = U\\_Geo[:,:r] · Σ\\_Geo[:r,:r]^(1/2)\n\n这样 B\\_Geo A\\_Geo 就是 W\\_Geo 的最优秩-r 近似（Eckart–Young 定理保证了 Frobenius 范数下的最优性）。\n\n这里有一个容易被忽略的要点：GeoRA 取的是 W\\_Geo 的 top-r 方向，而不是原始权重 W 的 top-r。适配对象的变化，是 GeoRA 与 PiSSA / MiLoRA 的核心区别。\n\n![](https://p0.meituan.net/meituantechblog/9fc366e0eaea06234226546ab3d0deed658780.png)\n\n从这个角度看，四种方法的区别可以概括为一句话：LoRA 不看权重，PiSSA 看主方向，MiLoRA 看尾方向，GeoRA 先换一个更合适的适配对象，再在其中取主方向。\n\n### 2.3 建立残差锚点\n\n最后一步是把剩余权重冻结。按照 LoRA 的缩放约定计算残差矩阵：\n\nW\\_res = W − (α / r) · B\\_Geo A\\_Geo\n\n前向传播时，W\\_res 冻结，只有适配器可训练：\n\nh = W\\_res x + (α / r) · B\\_Geo A\\_Geo x\n\n这个设计带来两个性质。一是**初始化时函数不变**，因为两项之和恰好等于 W x，训练启动时模型输出不会突变，避免了冷启动阶段的策略抖动——这对 RLVR 很重要，初期的输出扰动会污染 rollout 采样分布。二是**施加了结构约束**：优化器只能在 A\\_Geo、B\\_Geo 参数化的流形上更新，W\\_res 作为稳定锚点，防止预训练表示被破坏。\n\n## 03 实验验证\n\n主实验在 DeepMath-103K 上用 GRPO 算法对 Qwen3-8B 和 Llama-3.1-8B 做数学 RLVR，对比对象包括 LoRA、PiSSA、MiLoRA、稀疏微调（SparseFT）和全参微调（FullFT）。同时在 4B 与 1.5B 模型上用 GSM8K 做了规模验证。\n\n### 3.1 数学推理与分布外能力\n\n![](https://p0.meituan.net/meituantechblog/0d373b37c6b935dde9f9f927654cd10c682336.png)\n\n* 在分布内（ID）的数学基准上，GeoRA 在两个骨干模型上都取得了最强的整体表现，对低秩基线的领先在竞赛难度的基准上尤为一致——Qwen3-8B 的 AIME24 达到 23.75%，甚至略高于全参微调。\n* 分布外（OOD）结果更值得关注：全参微调在 IFEval、TruthfulQA 上都出现了明显回退，而 GeoRA 基本无损，HumanEval 反而从 76.83 提升到 82.93。\n\n这说明在几何对齐的子空间更新，可以在提升目标域推理能力的同时，显著减少对既有能力的遗忘。\n\n### 3.2 医学与代码领域\n\n为了确认收益不局限于数学，我们在医学和代码场景做了扩展实验。\n\n![](https://p1.meituan.net/meituantechblog/fbe72b7fd8ec4fc3828df2c2191ae086295061.png)\n\n两个领域的结论一致：GeoRA 稳定优于低秩基线，并与全参微调相当。\n\n### 3.3 收敛效率与稳定性\n\n![](https://p0.meituan.net/meituantechblog/d6f32366d31130f10569dba60bd0ae0b509457.png)\n\n* **收敛效率更高**。在训练动态上，GeoRA 全程保持领先，并且达到高位性能的时间点显著早于其他低秩基线。\n* **超参鲁棒性更强**。这里以学习率为例，GeoRA 在很宽的区间内都维持高奖励，其他方法在大学习率下明显下滑。这意味着实践中 GeoRA 无需精心超参调优。\n\n### 3.4 计算效率\n\n![](https://p0.meituan.net/meituantechblog/f22ced983bec844710b9f780989a5b01202612.png)\n\n相比全参微调，GeoRA 使可训练参数降低 99.5%，单步耗时降低 19.9%，显存占用降低 28.5%。对照 SparseFT 的数据可以看得更清楚：它虽然把参数降了 68.0%，但单步耗时反而上升了 10.8%。GeoRA 的关键工程价值，就在于**把几何先验落成了稠密低秩计算**，因此参数效率能够真正转化为速度与显存收益。\n\n### 3.5 低秩结构分析\n\n我们进一步做了结构性分析：W\\_Geo 是一个稀疏矩阵，把它压缩成秩 r 的形式，为什么损失是可控的？我们对奇异值谱做了三组分析来回答。\n\n![](https://p0.meituan.net/meituantechblog/f6cc085ce5051d8e89d535ece7676fd0464791.png)\n\n* **稀疏本身不带来低秩性**。作为对照，我们先构造了两个不同稠密度的随机噪声矩阵。两者的奇异值谱几乎重叠，都呈现相对平缓的衰减，说明稀疏本身依然近似各向同性，没有可利用的主方向。\n* **W\\_Geo 具有低秩特性**。图中 GeoRA Weight（W\\_Geo）的谱形与预训练权重类似，大部分谱能量集中在少数前导分量上。这说明被选中的区域继承了结构化、可压缩的低秩形态。\n* **全参 RLVR 的实际更新也是低秩的**。我们直接检验了 ΔW = W\\_FullFT − W\\_Pretrain，它也呈现出高度可压缩的重尾谱。\n\n三组分析合起来给出了 GeoRA 的结构依据：低秩特性是 RLVR 具备的**内在属性**。这也解释了为什么 GeoRA 只训练 0.5% 的参数就能与全参微调效果相当——它逼近的正是 RLVR 更新本身的形态。\n\n## 04 业务应用\n\nGeoRA 这个工作的出发点不是发论文，而是实际业务中对高效强化学习的需求。我们所处的场景是 AI 骑手招聘：由 Agent 主动触达和跟进候选人，在多轮沟通中识别其意愿、顾虑与决策卡点，针对性地制定下一步策略，进而把候选人逐步推进到面试和入职。过程上这需要类似于销售的情商、策略、话术和临场应变；目标和结果却明确、可验证（约面/入职/ROI），很适合用 RLVR 来优化；而这一垂直域场景也有着特别的训练需求组合：\n\n* **基模大、上下文长**。这一 Agent 对基础智能和长程能力要求较高：需要建立在大尺寸基模之上，且单条轨迹的上下文很长，强化学习的资源开销可观。\n* **增量能力规模不大**。垂直域需要额外构建的知识和能力规模通常不大，训练数据量远小于基模，低秩适配的容量基本足够承载。\n\n一边是训练开销高，一边是增量容量小，这正是面向 RLVR 的低秩高效训练的用武之地。事实上，最早让我们怀疑「为 SFT 设计的低秩先验未必适合 RLVR」的，也是业务训练中的体感：LoRA、PiSSA、MiLoRA 之间效果差异明显，学习率调大训练就不稳甚至崩掉。这说明初始化的几何先验在 RLVR 下是一个大变量，存在优化空间。目前 GeoRA 正在 AI 招聘场景中落地，Agentic RL 实验效果：\n\n**效果**：与全参训练相当，相比 LoRA 提升约 12%。\n\n![](https://p0.meituan.net/meituantechblog/4a77d67232c2f1c4067e0265c7628b6544485.png)\n\n**效率**：与 LoRA 相当，显存相比全参训练降低 54%，若配合 QLoRA 等量化方法可进一步降低。\n\n![](https://p0.meituan.net/meituantechblog/ba7126f18766590433a80cd0c753f7e969121.png)\n\n可见，GeoRA 用 LoRA 的训练成本取得了全参的优化效果，这正是它的应用价值。\n\n落地时还有两点经验，也供同样想在 RLVR 中应用的同学参考：\n\n* **随机 SVD 初始化**。SVD 初始化是一次性的预处理，并且由于只需要前 r 个奇异分量，可以用随机 SVD（Randomized SVD）加速，即用随机投影把矩阵压到一个小得多的空间去做分解，即使 72B 模型处理也只需不到 1 分钟。\n* **省略参考模型存储**。RLVR 需要一个参考策略来算 KL，常规做法是再存一份完整权重。而 2.3 节的函数不变性质给出了免费的替代方案：原始权重 = 残差权重 + 初始适配器，因此只要在 actor 内多留一份冻结的初始适配器（低秩，开销很小），就能现算出准确的参考策略。\n\n## 05 总结\n\nGeoRA 是首个面向 RLVR 的优化几何设计的低秩训练方法，其核心贡献可以归纳为三点：\n\n* **揭示了 RLVR 更新的结构**：RLVR 的更新子空间稀疏但各向异性可压缩，这是低秩适配成立的前提。\n* **提出定位加压缩的适配方法**：用谱先验与欧氏先验定位 RLVR 偏好的更新区域，再用截断 SVD 压缩为低秩适配器、冻结残差作锚点，这避免了几何错位与稀疏计算的效率瓶颈。\n* **广泛实验验证了优越性能**：从 1.5B 到 32B 的模型，在数学、医学、代码场景的 RLVR 上验证方法稳定优于基线，分布外遗忘更少，兼具速度与显存的优越性。\n\n除论文实验之外，GeoRA 也在实际业务场景 Agentic RL 中验证，以更低的成本取得更好的训练效果。我们会继续把它推广到更多同类场景，也希望该方法能为 RLVR 的高效训练提供一个新的参考。",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://p0.meituan.net/meituantechblog/97ea31d07a6d2933012521da83d6af45614059.png",
+      "fetched_at": "2026-08-31T01:20:28.064024+08:00"
+    },
+    {
+      "title": "KDD&apos;26美团学术论文精选及KDD Cup&apos;26 DataAgents赛道冠军思路解读",
+      "link": "https://tech.meituan.com/2026/08/13/KDD-2026-meituan-papers.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "KDD（ACM SIGKDD Conference on Knowledge Discovery and Data Mining）是数据挖掘与知识发现领域最具影响力的国际顶级学术会议。KDD 以其严格的论文录用标准和深厚的学术影响力著称，是推动数据驱动研究与应用创新的重要平台。大会为学术界和工业界提供了交流前沿成果的高水平论坛，论文录用率通常在 15%-20% 左右，属于计算机领域的 CCF-A 类顶级会议。\n\n本文精选了美团技术团队被 KDD 2026 收录的 8 篇论文进行分享，这些论文覆盖了推荐大模型、生成与奖励建模框架、智能体搜索、Transformer 框架、元泛化框架等技术领域。\n\n🏆 此外，大众点评技术部还荣获了 2026 KDD Cup 复杂数据分析 Data Agents 国际竞赛的冠军、季军，本文介绍了团队比赛思路和解题策略。希望以上这些内容能够对大家有所帮助或启发。\n\n## 01 MTFM: A Scalable and Alignment-free Foundation Model for Industrial Recommendation in Meituan\n\n**论文下载**：[PDF](https://arxiv.org/abs/2602.11235)\n\n![](https://p0.meituan.net/meituantechblog/9720828f0ff8f07f6ce01f56d9e3f820362245.png)\n\n**论文简介**：工业推荐系统通常涉及多个场景，而现有的跨域（CDR）和多场景（MSR）方法往往需要大量资源且要求严格的输入对齐，限制了其可扩展性。该论文提出了MTFM（Meituan Foundation Model for Recommendation），一种基于Transformer的框架，旨在解决上述挑战。MTFM不预先对齐输入，而是将跨域数据转换为异质Token，以无对齐的方式捕捉多场景知识。为提升训练效率，MTFM引入了多场景用户级样本聚合机制，显著减少了总实例数量，大幅提升训练吞吐量；同时融合了Grouped-Query Attention和定制化的Hybrid Target Attention，有效降低了内存占用和计算复杂度。\n此外，论文还实现了多项系统级优化，如kernel融合和消除CPU-GPU阻塞，进一步提升了训练和推理吞吐。在外卖等场景的离在线实验均验证了MTFM的有效性，证明了通过扩展模型容量和多场景训练数据可以实现显著的性能提升。基于MTFM，团队构建了服务于以上多个业务主场景的统一基座推荐大模型，替换各自的独立精排模型，并完成了全量。\n\n## 02 CDRRM: Contrast-Driven Rubric Generation for Reliable and Interpretable Reward Modeling\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2603.08035)\n\n![](https://p0.meituan.net/meituantechblog/6c7cf0afe25cec1712d7dde27ff5a337479964.png)\n\n**论文简介**：本文提出CDRRM，一个对比驱动的评分准则生成与奖励建模框架，旨在提升LLM对齐中奖励模型的可靠性、可解释性与数据效率。传统奖励模型是“黑箱”且依赖昂贵标注；现有准则方法存在冗余与偏见。CDRRM采用“对比-聚合”流程：先对比好/差回答定位关键差异，再聚合为简洁的任务相关准则，指导评判模型。实验表明，CDRRM在三个基准上达最先进水平，缓解话痨、位置等偏见，且仅用3千样本让未微调模型超越全量微调基线，兼具高效与可解释性。\n\n## 03 LocalSearchBench: Benchmarking Agentic Search in Real-World Local Life Services\n\n**论文下载**：[PDF](https://arxiv.org/abs/2512.07436)\n\n![](https://p0.meituan.net/meituantechblog/1d4c9143463672d888cb2eb2a0732a1f723905.png)\n\n**论文简介**：本文针对本地生活服务领域AI搜索的研究空白，构建LocalSearchBench评测基准。该基准涵盖国内 9 座城市、6 大服务品类，包含 900 道多跳问答任务，同时配套交互环境 LocalPlayground 与商户检索工具 LocalRAG。实验测评 16 款主流大语言推理模型后发现，当前模型在此类任务表现不佳，普遍存在信息完整性、可信度不足等问题。研究还剖析了模型工具调用、多跳推理等典型缺陷，为本地生活服务场景下智能体搜索的模型训练和基准测试提供了重要支撑。\n\n## 04 Deterministic-Allocation and Anonymous Joint Advertising in E-commerce Platforms\n\n**论文下载**：[PDF](https://dl.acm.org/doi/epdf/10.1145/3770855.3818370)\n\n![](https://p0.meituan.net/meituantechblog/5a01fb282240b7941f2037723c76a830296753.png)\n\n**论文简介**：针对联合广告拍卖场景中的算法无法同时满足匿名性和确定性分配的问题，导致实际应用中存在分配不公平和激励不兼容等问题，提出了JTransNet模型。匿名性要求拍卖结果仅依赖于竞标价值，而与参与者身份和顺序无关，确定性分配则保证同样的输入下分配结果唯一。JTransNet通过引入匿名性和确定性分配机制，结合可微分的NeuralSort排序方法，实现了端到端数据驱动的AMD自动化模型拍卖算法。该算法很好的解决了联合拍卖场景下多方出资的流量分配和扣费问题，在离线和在线实验中均显著提升了平台广告收益。JTransNet已在美团零售核心业务场景全量上线，促进了广告业务流量售卖的公平性与收益提升，同时为工业界大规模自动化模型拍卖机制算法设计提供了有效的解决方案。\n\n## 05 UME: A Unified Meta-Generalization Framework for Cross-Domain ETA\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.00979)\n\n![](https://p0.meituan.net/meituantechblog/224479de429aacd8bedb20f6801bc454309283.png)\n\n**论文简介**：在即时物流场景中，提单页面的预估到达时间（checkout page ETA）对提升用户满意度、优化调度策略和控制运营成本至关重要。在美团Keeta等国际化即时配送平台上，具有显著的跨域异质性，多域建模已成为核心需求。然而，现有方法面临三大挑战：一是无法泛化到完全未见过的新市场域，无法在冷启动阶段实现零样本预测；二是跨域特征空间不一致，新市场域由于缺乏历史数据积累导致离线统计特征结构性缺失；三是成熟域与冷启动域往往需要分别建模，阻碍了知识迁移并增加了维护成本。\n为此，本文提出了UME（Unified Meta-generalization framework for ETA），一个统一元泛化框架。UME设计了统一双分支网络和基于超网络的元学习机制，通过域级知识和实例级上下文动态调制特征门控、专家注意力和最终预测，实现跨域关联建模和域内自适应。同时引入知识蒸馏策略弥合特征缺失带来的信息差距。该方法在离线实验与线上实验中均优于现有方法。\n\n## 06 Generative Large-Scale Pre-trained Models for Automated Ad Bidding Optimization\n\n**论文下载**：[PDF](https://arxiv.org/abs/2508.02002)\n\n![](https://p0.meituan.net/meituantechblog/396bda4d89816423002639874d71f127405992.png)\n\n**论文简介**：现代自动竞价系统需要在整体效果、广告主多样化目标和现实约束之间取得平衡，反映行业不断变化的需求。近年来，条件生成模型（如Transformer和扩散模型）能够根据广告主偏好直接生成竞价轨迹，为传统基于马尔可夫决策过程的方法提供了有前景的替代方案。但这些生成方法也面临诸如离线与在线环境分布偏移、动作空间探索有限以及需满足CPM和ROI等约束的挑战。为此，我们提出了GRAD，这是一种可扩展的自动竞价基础模型。GRAD通过动作混合专家模块实现多样化竞价行为探索，并结合因果Transformer进行约束优化。\n\n## 07 HMAF: A Hierarchical Multi-Slot GD-RTB Allocation Framework\n\n**论文下载**：[PDF](https://arxiv.org/abs/2606.09896)\n\n![](https://p0.meituan.net/meituantechblog/19e1a9d93222a49084e792c4927e3727945241.png)\n\n**论文简介**：在现代在线广告平台中，保证交付（GD）合约与实时竞价（RTB）拍卖共存并相互竞价。现有方法要么将GD与RTB的优化解耦，要么依赖启发式的优先级规则，因此无法在复杂的多坑位投放和曝光约束下，有效平衡短期收入最大化与长期合约交付目标。针对这些问题，我们提出了HMAF（分层多坑位分配框架），这是一个统一框架，旨在优化GD-RTB广告平台中的曝光分配。HMAF以“规划–校准–执行”范式为核心结构，将离线约束优化与在线决策相结合，统筹离线GD资源规划、动态校准GD与RTB的竞争强度，并在多坑位环境中做出实时的列表级排序决策。\n\n## 08 MTGenRec: An Efficient Distributed Training System for Generative Recommendation Models in Meituan\n\n**论文下载**：[PDF](https://arxiv.org/pdf/2505.12663)\n\n![](https://p0.meituan.net/meituantechblog/8a8160c9e6e058a3b21d8ac801d8030996413.png)\n\n**论文简介**：生成式推荐在搜索、推荐、广告领域得到越来越广泛的应用，在用户体验和平台收入方面均取得了显著的提升。随着生成式推荐模型Scaling Dense的发展趋势，业界越来越倾向于基于PyTorch生态构建下一代推荐模型训练引擎，最大程度上复用LLM的发展红利。然而，PyTorch 生态在对大规模稀疏Embedding训练的支持上，仍有较大的提升空间。因此，我们基于PyTorch 生态提出了MTGenRec训练框架，统一「稀疏-稠密」训练能力，满足工业级生成式推荐模型训练需求。\n具体来说，针对稀疏ID我们提出使用动态Hashtable替换静态表，解决ID动态上下线的问题，方便用户使用；为了提升训练效率，我们提出自动合表、ID去重、变长序列负载均衡等技术，针对推荐场景进行极致优化。此外我们还开发了断点续训、混合精度训练、梯度累积、算子融合等配套技术。大量实验结果显示相比TorchRec baseline，MTGenRec能够取得1.6倍~2.4倍的训练加速比，同时保证训练精度不变。从8卡扩展到128卡，MTGenRec也取得了近似线性的扩展效率。目前MTGenRec已在美团内部多个核心场景落地使用。\n\n## | 大众点评技术部荣获2026 KDD Cup 复杂数据分析 Data Agents 国际竞赛冠军、季军\n\nKDD Cup 是数据挖掘与知识发现领域全球公认的顶级赛事。在 2026 赛季的 DataAgents 赛道中，美团技术团队历时两个月，从全球参赛队伍中突围，最终摘得冠军与季军。\n\n比赛考察的是模型在真实复杂数据场景下的理解与推理能力——多模态输入、非结构化文档、干扰信息识别，每一项都是当前 Agent 落地的硬骨头。\n\n![](https://p0.meituan.net/meituantechblog/6cbd9673a4bd101e2c1801e9885063b7266358.png)\n\n传统的 Data+AI 系统虽已在特定任务上取得显著进展，但端到端的分析流程仍高度依赖人类专家编排，成为制约数据分析可扩展性与适应性的主要瓶颈。为此，KDD Cup 2026 提出以「数据智能体（Data Agents）」破局——通过融合知识理解、推理与规划能力，自主完成任务拆解与规划、工具选择与调用、异构数据推理以及结果综合。复杂数据分析是其中的核心任务，主要挑战在于真实数据的「异构鸿沟」与推理链路的非线性复杂性。Data Agents智能体接收一份异构的多模态数据包（涵盖数据库、PDF 报告、JSON 数据、图表乃至视频等），并针对一个高层次的自然语言问题，自主编排包含并行分支、迭代循环与结果汇聚的复杂推理过程，最终给出准确答案，旨在推动构建真正自主的数据分析系统。\n\n![](https://p1.meituan.net/meituantechblog/60d60d0f980155b3f2b65db725493b035233598.png)\n\n比赛中，队伍将点评「问点仔」建设过程中积累的 Agent Harness 能力迁移至赛题，利用业余时间构建了完整的 Agent 运行时，支持多类型数据文件的自主探索以及 SQL、Python 等分析工具的选择与执行。通过错误反馈、超时控制和自动重试等机制，提升智能体在长链路任务中的稳定性与容错能力。针对视频和非结构化文档等异构数据，还构建了多模态视频理解子智能体和非结构化文档 ETL 子智能体，进一步增强主智能体的数据提取、理解与综合分析能力。此次获奖验证了相关技术在复杂异构数据分析Agent场景中的有效性，也为后续持续提升「问点仔」智能化水平提供了技术积累。\n\n目前，相关代码已在[GitHub开源](https://github.com/zhezh/kddcup2026_champion)，后续我们还会通过技术博客分享更多的技术细节，敬请期待！",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://p0.meituan.net/meituantechblog/9720828f0ff8f07f6ce01f56d9e3f820362245.png",
+      "fetched_at": "2026-08-31T01:20:28.064028+08:00"
+    },
+    {
+      "title": "美团正式发布 CatPaw：全场景 AI Agent，从个人提效到企业智能化",
+      "link": "https://tech.meituan.com/2026/07/28/CatPaw-LongCat.html",
+      "published": null,
+      "source": "美团技术团队",
+      "content": "本月，美团 LongCat 2.0 已[正式开源](https://tech.meituan.com/2026/07/12/LongCat-2.0-Open-source.html)，总参数 1.6T，平均激活约 48B，动态范围 33B 到 56B，原生支持 1M 超长上下文。这是首个在五万张国产算力卡上完成全流程训练与推理的万亿参数模型。开源只是第一步，让 LongCat 2.0 在真实的工作任务中成为可靠的“工作伙伴”，才是真正的考验。\n\n现在，搭载 LongCat 2.0 的美团全场景 AI Agent 平台 [CatPaw](https://catpaw.meituan.com/) 正式上线，将模型能力从“跑得动”推向“用得好”。CatPaw 提供开箱即用的 AI 智能工作台与企业级 Agent 开发托管能力。\n\n不仅如此，依托美团十余年深耕本地生活的行业积累，CatPaw 将商家经营、服务履约与消费决策的深度认知融入其中，助力企业构建 AI 数字员工、推进业务智能化升级。\n\n目前，CatPaw 已在美团内部大规模落地：累计覆盖 9 万员工、搭建 Agent 3 万个，并在多个真实业务场景中完成验证。\n\n## 全时段运行，多终端协作的 AI 智能工作台\n\n### 01 移动/PC/云端，全时段多端协作\n\n提供独立的**移动端 App 与 PC 客户端**，双端任务实时同步、无缝协作。移动端支持随时发起任务、查看进度与远程确认关键决策；PC 端专注本地深度执行，具备文件操作、浏览器控制与终端命令等完整能力。\n\n云端模式支持 **7 × 24 小时不间断运行**，即使本地设备关机或断网也不受影响。长程任务与定时任务于云端持续运转，完成后随时打开手机或电脑即可查看成果。\n\n![](https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png)\n\n### 02 深耕本地生活，融合美团业务生态\n\n在全场景通用 AI Agent 能力的基础上，CatPaw 进一步融入了美团在本地生活领域的全链路行业认知。从门店经营、评价体系、营销转化到履约配送，这些深度积累已被封装为即装即用的**专家与技能**，覆盖门店评价诊断与优化、商品文案生成、营销物料设计评估、活动策划、经营数据分析等场景。\n\nCatPaw 既是人人可用的**全能 AI 助手**，也是真正懂本地生活生意的智能搭档。\n\n![](https://p1.meituan.net/meituantechblog/864f86011bdcc6a2428f980323605284136476.png)\n\n### 03 专家与技能，丰富能力即装即用\n\nCatPaw **支持 AI 专家**，每位专家**集成多项技能与子代理，高效完成特定领域的复杂任务**。从专家广场**一键安装**即可使用，也可通过对话将自己的工作方式快速封装为专属专家，团队共享复用。\n\n平台内置丰富的技能库，开箱即用。内嵌浏览器还**支持操作过程一键录制**，将日常高频流程自动生成专属技能，让个人与团队经验沉淀为可复用的数字化资产。\n\n支持**跨会话长期记忆**，自动记忆用户的个性化偏好、操作习惯与历史上下文，跨设备、跨对话保持连续理解，越用越懂你。\n\n![](https://p0.meituan.net/meituantechblog/7f715c1d858cead54dad86e431e30153313940.png)\n\n### 04 对话即交付，多 Agent 自主协同\n\n只需明确最终目标，Agent 便会**自主规划步骤并在授权范围内深度执行**：读取文件、操作浏览器、运行终端命令，直接交付 Excel、可视化报告或代码等可用成果。\n\n面对跨领域的复杂任务，系统动态进行任务拆解，**调度多个具备专属工具的 Agent 并发处理**，各 Agent 在独立环境中互不干扰，进度实时可见，结果自动汇总。\n\n![](https://p0.meituan.net/meituantechblog/2122a550b13a060033f2a0343680ccfa345379.png)\n\n## 从 AI 工作台到业务系统：Managed Agents\n\nCatPaw Managed Agents 是企业级 AI Agent 开发与托管平台，提供开箱即用的工程底座，**无需从零搭建底层基建**，即可快速构建、部署与管理专属 Agent。\n\n### 01 数字员工，扫码即用灵活配置\n\n数字员工是运行在飞书、企微等 IM 中的 AI 虚拟同事，@ 即可唤醒使用。**平台预置多种角色模板，扫码即用**；美团在本地生活领域的长期积累也已沉淀为专属模板，不只是通用的聊天机器人，而是理解业务的行业 AI 助手。\n\n同时支持通过 **AI 对话描述需求，快速生成专属数字员工**。从 Agent 创建到环境部署、会话初始化，**全程自动完成，无需手动配置**。\n\n提示词、知识库、凭证、工具均支持在线管理，团队可按业务场景灵活搭建。\n\n![](https://p0.meituan.net/meituantechblog/a4a4286eab88dc7a9fb8ad4a359f57d3202455.png)\n\n### 02 企业级安全，数据隔离可控\n\n**Agent 运行环境严格隔离**，租户间数据互不可见。凭证集中托管，**确保 Agent 全程零接触敏感资产**。\n\n支持**分级权限管控**与私有化部署，全面满足企业合规与安全审计要求。\n\n![](https://p0.meituan.net/meituantechblog/d8ea3582939d36764915e7b5f848790e478278.png)\n\n### 03 Agent 托管运行，持续在线\n\n支持**按需配置运行环境**，一键托管上线，**资源动态扩缩**。\n\n沙箱环境轻量隔离，百毫秒级冷启动，闲时自动释放，兼顾响应速度与成本。\n\n![](https://p0.meituan.net/meituantechblog/1c65c6d75279f7085030ad763eeff3b2368282.png)\n\n### 04 可视化运维，全链路可观测\n\n提供统一的运维管理界面，**会话记录完整留存可追溯**，支持在线调试实时排查问题，**模型调用量与消耗清晰可见**。\n\n多维度数据统计与分析，帮助团队持续评估 Agent 表现、优化运行效果。\n\n![](https://p0.meituan.net/meituantechblog/4344c5e90e47733d89ef9ee3d792f88f140185.png)\n\n## 从个人提效到组织智能化：与商家一起探索更多可能\n\n在全场景 AI 能力之上，CatPaw 提供**组织级的管理与管控能力**，满足商家\\*\\*规模化落地 AI \\*\\*的管理需求。\n\nCatPaw 提供统一管理后台，支持团队账号体系。团队成员与权限集中管理，用量明细与消耗实时可查，成本清晰可控。AI 专家和技能支持按团队或角色集中配置与精准下发，一线员工开箱即用，AI 能力快速转化为实际生产力。\n\n此外，CatPaw 还提供与**美团业态深度关联的专属专家与技能**，覆盖外卖、服务零售、医药健康等多个行业。以服务零售为例，美团商家运营专家整合了经营数据分析、评价管理、门店装修等核心场景，帮助商家实现智能化运营。\n\nCatPaw 将持续深入行业场景，让 AI Agent **真正成为驱动经营增长的数字化伙伴**。更多能力陆续开放中，**诚邀美团合作商家抢先体验**。\n\n**体验地址**：<https://catpaw.meituan.com/>",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "image_url": "https://p0.meituan.net/meituantechblog/a690ba49597fd8720f96ea56573b54cc151290.png",
+      "fetched_at": "2026-08-31T01:20:28.064031+08:00"
+    },
+    {
+      "title": "AI 下半场，不会只剩一个超级模型｜对谈 Kevin Ding：Pyromind 创始人/CEO",
+      "link": "https://www.xiaoyuzhoufm.com/episode/6a90fc5e1352af56ff3d48af",
+      "published": "2026-08-31T00:00:00+08:00",
+      "source": "十字路口Crossing",
+      "content": "![](https://image.xyzcdn.net/Fl43nDAyiSGCYGMsnzPNEdYkg7t8.png)\n\n➤ 本周「十字路口」的嘉宾是 [**Pyromind**](https://www.pyromind.ai/) **创始人 / CEO Kevin Ding**。Pyromind 所在的赛道，常被称作 **RL as a Service**，也就是强化学习即服务、或后训练即服务。公司前不久完成天使轮融资，投资方包括高瓴、百度风投、蓝驰、Atypical 等机构。\n\n但在 Kevin 看来，**RL as a Service 只是起点，不是终点**。他在节目里说，Service 只解决了一半问题；真正要让 Agent 在生产环境中持续改进，还需要把训练、奖励、反馈、部署和数据回流串成一条可以自动循环的管道——也就是 Pyromind 正在押注的 **AutoRL**。\n\n我们也聊到了 Pyromind 的真实落地场景：工业质检、工艺参数优化、GUI Agent、Coding Agent，以及企业里那些 ROI 明确、数据足够富集、好坏标准相对清楚的生产问题。\n\n同时，这期也会讨论一个非常现实的问题：**企业 AI 到底怎样才能不是项目制咨询？**\n\nKevin 坦诚，第一次进入客户场景时，FDE 的工作不可省：要理解数据制式、评价基准、业务流程和奖励信号。但 Pyromind 追求的是让这部分工作在相似模态和相似场景中逐渐递减，把一次性交付沉淀成可以横向复制的 AutoRL 管道。\n\nKevin 重点分享了他们的新工作 [PyroDash](https://mp.weixin.qq.com/s/9dunPZnadJajkuIHUJGTuw?scene=1)：一个由 4B 小模型、强基座模型和协作引擎组成的大小模型协作架构。Kevin 认为，这背后对应的是一个更大的判断：**需求世界是多元的，不是所有问题都应该被收拢到一个中心化大模型里解决。**\n\n这期适合所有关心 AI Agent、后训练、企业智能、工业 AI 和 AI infra 的朋友。\n\n![](https://image.xyzcdn.net/lsWLogkq3i7MoRbNyLk5GF0F73V4.png)\n\n🎬 我们的视频播客将同步上线于 @Koji杨远骋 的视频号、[抖音](https://v.douyin.com/aHUIZczZYKs/)、[小红书](https://www.xiaohongshu.com/user/profile/548251dce779893bcf3f77bc)、[哔哩哔哩](https://space.bilibili.com/505301413)、[Youtube](https://www.youtube.com/@kojiyang) 等平台。\n\n📒 文字版将发布于 @十字路口Crossing 公众号。\n\n![](https://image.xyzcdn.net/FuOtJ4nVInQSDPnmgjvNZcuTdKiD.png)\n\n00:23 快问快答：年龄、毕业院校、MBTI、星座、一句话介绍、融资情况、收入及利润、团队规模、创业前经历、PMF 跑通了吗？\n\n01:55 为何 AI 终局更像 Agent 蜂群而非超级基础模型一统天下？\n\n03:44 为什么 RSI 在这一年变得重要？\n\n05:21 RL as a Service 解决了哪一半问题？\n\n08:32 Pyromind 如何优选最适合 AutoRL 的客户？\n\n10:16 初次进入场景为何 FDE 不可省，后续工作量又如何递减？\n\n22:13 如何能让工业客户算清 ROI？\n\n23:22 哪三条标准决定一个企业需求该接还是拒绝？\n\n26:29 企业 AI 为何绕不开成本、效率与隐私的不可能三角，后训练如何破解？\n\n27:03 PyroDash 怎样让 4B Worker Model 与 Base Model 协作，兼顾效果与成本？\n\n29:23 Harness 能改善流程和速度，但仍解不了哪些企业的关键需求？\n\n34:02 两个 FDE 如何支撑十几个 B 端客户，Pyromind 又把哪些工作收回产品层？\n\n38:20 模型越训越好、训练需求越少，Pyromind 究竟赚得更多还是更少？\n\n40:58 中国 SaaS 难做，Pyromind 为何认为 AI ToB 能把 ROI 重新算清？\n\n42:06 云厂商也能做后训练、又掌握算力，Pyromind 会被吞掉吗？\n\n47:47 Hugging Face 上小模型下载仍占主流，为什么需求不会都归拢到一个 Base Model？\n\n![](https://image.xyzcdn.net/FjsHLGnjXBIZoDFg0m8_FsWp1Its.png)\n\n## 欢迎订阅「十字路口」：\n\n🚦 我们关注新一代 AI 技术浪潮带来的行业新变化和创业新机会。\n\n🚦 十字路口是乔布斯对苹果公司的一个比喻，形容它站在科技与人文的十字路口，伟大的产品往往诞生在这里。AI 正在给各行各业带来改变，我们寻找、访谈和凝聚新一代 AI 创业者和 AI 时代的积极行动者，和他们一起，探索和拥抱新变化，新的可能性。\n\n👦🏻  主播 Koji：我创办了十字路口，发起了 AI Hacker House 这个新一代 AI 创业者的社群空间，在真格基金担任 Venture Partner 投资合伙人。我相信科技尤其是 AI 是我们这一代人最大的价值创造机遇。[Koji 的即刻](https://okjk.co/0JSUes)，[Koji 的网站](https://kojiyang.me/)\n\n![](https://image.xyzcdn.net/FjY0z2wwnWlcgGI2I-xbBRSUgK67.png)\n\n## \n\n![](https://image.xyzcdn.net/Ft0hQ3Y8R2c_zjzHBKOxIakpjaoz.png)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064034+08:00"
+    },
+    {
+      "title": "AI makes being average at any skill available to everyone, which makes average work worthless. If yo...",
+      "link": "https://x.com/thedankoe/status/2094094502495396350",
+      "published": "2026-08-31T00:06:50+08:00",
+      "source": "DAN KOE(@thedankoe)",
+      "content": "AI makes being average at any skill available to everyone, which makes average work worthless. If you take the time to become incredibly good at what you do you won't have to worry about being replaced.\n\n💬81🔄72❤️728👀22882📊167",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064037+08:00"
+    },
+    {
+      "title": "Firecrawl is now available in Grok Bot 🔥 \n\nTurn the web into high-quality context for your @bot, po...",
+      "link": "https://x.com/firecrawl/status/2094093562136686860",
+      "published": "2026-08-31T00:03:06+08:00",
+      "source": "Firecrawl(@firecrawl_dev)",
+      "content": "Firecrawl is now available in Grok Bot 🔥   \n  \nTurn the web into high-quality context for your [@bot](https://x.com/bot), powered by industry-leading search and scraping designed for agents.  \n  \nInstall the Firecrawl plugin to get started!\n\n[Your browser does not support the video tag.](https://video.twimg.com/ext_tw_video/2094093541853085697/pu/vid/avc1/1248x720/S5Pq07e95yjfBMoI.mp4?tag=12)\n\n[🔗 View on Twitter](https://x.com/firecrawl/status/2094093562136686860/video/1)\n\n💬1🔄3❤️21👀1126📊5",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064040+08:00"
+    },
+    {
+      "title": "Neurosymbolic AI’s total victory, illustrated",
+      "link": "https://x.com/GaryMarcus/status/2094099191635341477",
+      "published": "2026-08-31T00:25:28+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "Neurosymbolic AI’s total victory, illustrated\n\n💬0🔄0❤️0👀1309",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064043+08:00"
+    },
+    {
+      "title": "or: they don’t have any more to announce.",
+      "link": "https://x.com/GaryMarcus/status/2094092920202903584",
+      "published": "2026-08-31T00:00:33+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "or: they don’t have any more to announce.\n\n![Noam Brown](https://pbs.twimg.com/profile_images/1872883170292457472/8ywVGO5M_normal.jpg)\n\nNoam Brown@polynoamial\n\nToday I was asked why we haven’t announced more math results from Astra since these problems.  \n  \nAt [@OpenAI](https://x.com/OpenAI) we aim to devote time to finding and announcing math results from internal models only when they would meaningfully change people’s understanding of the pace of AI progress. Our main focus is shipping great models so everyone can use them to make discoveries of their own.\n\n[🔗 View Quoted Tweet](https://x.com/polynoamial/status/2093451221273387477)\n\n💬7🔄3❤️26👀4395📊7",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064046+08:00"
+    },
+    {
+      "title": "absolute shit show",
+      "link": "https://x.com/GaryMarcus/status/2094090847482683870",
+      "published": "2026-08-30T23:52:19+08:00",
+      "source": "Gary Marcus(@GaryMarcus)",
+      "content": "absolute shit show\n\n![NIK](https://pbs.twimg.com/profile_images/2048822563821035520/7nxCFEnk_normal.jpg)\n\nNIK@ns123abc\n\n🚨BREAKING: OpenAI head of Preparedness just quit in less than 6 months\n\n![Tweet Image](https://pbs.twimg.com/media/HQ6HeT6XwAAm_cG.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/ns123abc/status/2093759834952737101)\n\n💬12🔄7❤️72👀4736📊14",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064049+08:00"
+    },
+    {
+      "title": "If you're like most people, the idea of facing the unvarnished truth makes you anxious. To get over ...",
+      "link": "https://x.com/RayDalio/status/2094092785980977383",
+      "published": "2026-08-31T00:00:01+08:00",
+      "source": "Ray Dalio(@RayDalio)",
+      "content": "If you're like most people, the idea of facing the unvarnished truth makes you anxious. To get over that, you need to understand intellectually why untruths are scarier than truths and then, through practice, get accustomed to living with them. #principleoftheday\n\n![Tweet Image](https://pbs.twimg.com/media/HQ0jnFfWQAAFAhi.png)\n\n💬21🔄14❤️110👀20113📊28",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064052+08:00"
+    },
+    {
+      "title": "很好的 Vibe Coding 工程经验分享，下面是我的简单总结，具体请看原推文：\n\n1. 合理的架构和分层依然很重要，可以让项目更好的维护和扩展\n\n2. 自动化测试可以有效保证质量，修复 bug 还...",
+      "link": "https://x.com/dotey/status/2094103823362974202",
+      "published": "2026-08-31T00:43:52+08:00",
+      "source": "宝玉(@dotey)",
+      "content": "很好的 Vibe Coding 工程经验分享，下面是我的简单总结，具体请看原推文：  \n  \n1. 合理的架构和分层依然很重要，可以让项目更好的维护和扩展  \n  \n2. 自动化测试可以有效保证质量，修复 bug 还要同步添加测试覆盖，避免类似情况再次发生  \n  \n3. 少做积累功能，功能清理后代码也要一起清理  \n  \n4. 借助 GitHub Actions 做好 CI/CD，发布前在干净的云端机器完整的跑一次自动化测试  \n  \n5. 让 AI 自动执行自动验证纠错，只在必要的阶段人工验证  \n  \n6. 经常重复的工作做成 skill，这样不需要每次从头向 AI 解释\n\n![Tw93](https://pbs.twimg.com/profile_images/1960753219115868169/EOxKSK4w_normal.jpg)\n\nTw93@HiTw93\n\n想从产品工程师视角和大伙聊聊，在代码全部由AI生成的时代，如何保证产品的代码可以持续迭代、好维护、不腐化。  \n  \n最近 Mole 发布到了第 13 个版本，看了看整个项目大概有 11 万行 Swift 产品本身代码、7.3 万行测试代码和 3347 个 XCTest，测试代码部分远多余之前在公司写业务时候有QA来保障下的代码，我一直秉承一个观点，AI 写的代码应该 AI 来测试，而非人，把人引入到这个环节反而会拖慢整体的进度。  \n  \n想着基于上面这个经验实操来总结一下，我都做了哪些有意思的事情，让这些代码一直可以在我和 AI 之间非常听话的实现功能。  \n  \n1、即使 AI 能够大幅提升代码生产的速度，产品本身的技术架构、分层、同类抽象，什么东西放到什么地方能够让后续更好的扩展以及解耦，还是需要工程师本身的判断，这一块可以在项目第一个版本可以跑起来后就可以和你最好的 AI 仔细讨论，设定好对应的架构，并通过可沉淀可修改的文档记录下来，持续跟随项目迭代。  \n  \n2、我目前最依赖的还是单测，1.0 只有 56 个 XCTest，到 1.13 已经有 3347 个，测试代码大约是生产 Swift 代码的 66%，不过数量只是顺手统计出来的结果，我平时更关心测试有没有覆盖那些容易想当然的地方，比如扫描结束以后文件又变了、进程检查失败、命令返回成功但 App 根本没有更新、旧任务很晚才回来覆盖了新结果。正常情况一般不难写，麻烦的是那些结果看起来没问题，实际上已经错了的情况如何可以及时去更新。  \n  \n3、特别是修 Bug 的时候，我会多留一些东西下来，除了把问题修复，还会加一个让旧代码失败的回归测试，然后沿着同类路径去找有没有类似的问题，最后把当时为什么这么改写到规则里面去，到目前 Mole 已经有 1000 多个以 fix 开头的提交，其中 900 多个提交过测试，很多测试和规则都是用户真实踩过一次以后留下来的经验，或许我认为这个是当前这个项目最宝贵的资产。  \n  \n4、测试能记住输入和结果，但记不住当时为什么放弃一种做法，所以项目里还有一批 Rules，主要记录功能边界、历史原因和不能碰的地方。比如为什么某类文件宁可漏掉也不能自动删除，为什么有些看起来重复的组件不能随便合并，哪些系统数据不属于 Mole。Rules 一多又很费上下文，我就按模块把它们拆开，只在改到相关代码时加载，再把经常重复的检查做成 Skills。bugs 会从以前的修复里找同类问题，design-system-review 看界面有没有越写越乱，release 则负责检查签名、公证、远端文件和更新链路，这样不需要每次都从头跟 AI 解释一遍。  \n  \n5、还有一个对我很有用的法子，就是少做一些没有实际用的功能。现在 AI 加一个设置项、兼容分支或者后台监听太容易了，几分钟就能写出来，留下来的状态和维护成本反而腐化的最大的原因。比如Mole 现在对新功能设置了一些规则，比如尽量不增加常驻开销，不增加新的特权和系统权限，有合理默认值就不继续加设置项，更新和清理也不会因为发现一种新的可能性就一直扩范围，很多时候有很多功能是开发者自以为重要，但是使用者完全不在乎的功能，更多还是建议从用户中来，到需求中去，如无必要勿增实体。  \n  \n6、需要充分利用好 Github 自动化 actions 的能力，这个会是你最后的兜底，其实代码写完、跑通、测试变绿以后也还没结束，我的项目里还有一套检查负责九种语言、网站生成结果、Appcast、Xcode 工程和公开部署文件之间的一致性，make verify 会把这些检查和测试一起跑，CI 再换到云端干净机器上重新来一次。到了发布的时候，本地代码、Git 提交、签名后的安装包、线上文件和用户实际收到的更新也是几种不同状态，我会分开确认。之前也遇到过源码完全正确，线上还在提供旧文件的情况，只看一个绿色结果很容易过早觉得已经做完了，其实是有错误的。  \n  \n7、上面的一切，假如需要说特别的地方，我能想到的就是执行流程完全我没有插手干扰，每一步是 AI 自动化的去执行验证，出错了 AI 自动去解决，只不过会在不同的时候设置必要的流程卡点，让 AI 主动去验证，得到明确的结果才确定通过，并持续的去迭代规则，保持现有规则的新鲜度，并及时移除旧的逻辑，让本身的校验逻辑和本身的业务代码同步升级。  \n  \n或许，这是我认为 AI 时代的工程师更需要培养的能力，如何让 AI 写的代码更好维护、更清晰、更好扩展，即使半年、一年、两年都不会腐化，而且会越来越听话，越来越符合开发者的心意，也给多 Agent 合作开发确立一个很稳靠的根基。之前手写代码的乐趣已经没有了，好在有这个弥补了一些纯 AICoding 过程无聊，让工程师的一些专业度得以延续下去。\n\n![Tweet Image](https://pbs.twimg.com/media/HQ9uovPbEAAGtHk.jpg)\n\n[🔗 View Quoted Tweet](https://x.com/HiTw93/status/2094015568101921254)\n\n💬2🔄5❤️20👀2866📊8",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-31T01:20:28.064055+08:00"
+    }
+  ]
+}
