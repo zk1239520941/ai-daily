@@ -416,6 +416,50 @@
       "score": 0,
       "summary": "",
       "fetched_at": "2026-08-30T05:39:38.601657+08:00"
+    },
+    {
+      "title": "Introducing Hy4 Preview",
+      "link": "https://simonwillison.net/2026/Aug/29/hy4/",
+      "published": "2026-08-30T07:53:13+08:00",
+      "source": "Simon Willison's Weblog",
+      "content": "**[Introducing Hy4 Preview](https://hy.tencent.ai/research/hy4-preview)**\n\nNew open weight text input (no vision) LLM from Chinese company Tencent today: 770B total parameters, 49B active parameters, 1M token context window.\n\nThis is a big size increase from their previous [Hy3](https://huggingface.co/tencent/Hy3) in July, which was 295B, 21B active, 256,000 context.\n\nI recently started using model chat templates to better understand their capabilities. Here's Hy4's [chat\\_template.jinja](https://huggingface.co/tencent/Hy4-preview/blob/main/chat_template.jinja) on Hugging Face, which includes this section:\n\n```\n{%- if not reasoning_effort is defined %}\n    {%- set reasoning_effort = 'high' %}\n{%- elif reasoning_effort not in ['high', 'no_think'] %}\n    {%- if reasoning_effort is none %}\n        {{- raise_exception('reasoning_effort error : None, should be no_think/high') }}\n    {%- else %}\n        {{- raise_exception('reasoning_effort error : ' + reasoning_effort + ', should be no_think/high') }}\n    {%- endif %}\n{%- endif %}\n```\n\nSo it looks like there are just two reasoning effort levels: \"high\" (the default) and \"no\\_think\" (reason by disabled).\n\nI tried my \"Generate an SVG of a pelican riding a bicycle\" prompt with the default high reasoning [via OpenRouter](https://openrouter.ai/tencent/hy4-preview#apps) and [got this](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2Fcb69816b3fb940f2782569a82a523af1):\n\n![Flat vector cartoon illustration of a white pelican with a large orange bill riding a red bicycle to the right along a grey road with a dashed white centre line, its orange webbed feet on the pedals and grey tail feathers fanned out behind, against a pale blue sky with a yellow sun, white clouds and horizontal white motion lines suggesting speed](https://static.simonwillison.net/static/2026-08-29/IMG_7725.jpeg)\n\nQuoting the reasoning trace:\n\n> [...] Let's maybe add a helmet? It could improve riding theme, but may obscure head. Maybe a small cycling cap or helmet? The user didn't ask; can add red helmet? Might be cute. But pelican with big beak; a helmet might obscure. Better maybe no.\n>\n> Maybe add sunglasses? no.\n>\n> Maybe add water? no.\n\nTags: [ai](https://simonwillison.net/tags/ai), [generative-ai](https://simonwillison.net/tags/generative-ai), [llms](https://simonwillison.net/tags/llms), [pelican-riding-a-bicycle](https://simonwillison.net/tags/pelican-riding-a-bicycle), [llm-reasoning](https://simonwillison.net/tags/llm-reasoning), [llm-release](https://simonwillison.net/tags/llm-release), [ai-in-china](https://simonwillison.net/tags/ai-in-china)",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-30T08:05:48.873325+08:00"
+    },
+    {
+      "title": "GTA VI is my harness of choice",
+      "link": "https://x.com/adocomplete/status/2093824606276849967",
+      "published": "2026-08-30T06:14:22+08:00",
+      "source": "Ado(@adocomplete)",
+      "content": "GTA VI is my harness of choice\n\n![Christian Elton](https://pbs.twimg.com/profile_images/1859728805050699776/T-wzHfbZ_normal.jpg)\n\nChristian Elton@christianelton\\_\n\nBREAKING: In GTA 6 you can try to impress Lucia by showing her your vibe coded app that never ships to production:\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2093761081697013760/vid/avc1/1320x692/ypNEsD_WkCOdFnHg.mp4?tag=29)\n\n[🔗 View on Twitter](https://x.com/christianelton_/status/2093761279383290367/video/1)\n\n[🔗 View Quoted Tweet](https://x.com/christianelton_/status/2093761279383290367)\n\n💬1🔄0❤️29👀3193📊4",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-30T08:05:48.873338+08:00"
+    },
+    {
+      "title": "🚀 New updates in GitHub Issues\n• Pin views in the Issues sidebar\n• See profile avatars for reaction...",
+      "link": "https://x.com/github/status/2093825400178917519",
+      "published": "2026-08-30T06:17:31+08:00",
+      "source": "GitHub(@github)",
+      "content": "🚀 New updates in GitHub Issues  \n• Pin views in the Issues sidebar  \n• See profile avatars for reactions  \n• Adjust dashboard density   \n• Hide closed sub-issues  \n• Scope-aware Issue dependency REST API\n\n[Your browser does not support the video tag.](https://video.twimg.com/amplify_video/2093824517986533376/vid/avc1/720x1280/EJ8bzzLOKJSJyqbv.mp4?tag=14)\n\n[🔗 View on Twitter](https://x.com/github/status/2093825400178917519/video/1)\n\n💬17🔄9❤️37👀9093📊17",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-30T08:05:48.873342+08:00"
+    },
+    {
+      "title": "Separation of model and harness\n\nOne of the first commandments of agents building; don’t get locked ...",
+      "link": "https://x.com/hwchase17/status/2093823406873756060",
+      "published": "2026-08-30T06:09:36+08:00",
+      "source": "Harrison Chase(@hwchase17)",
+      "content": "Separation of model and harness  \n  \nOne of the first commandments of agents building; don’t get locked in\n\n![Tweet Image](https://pbs.twimg.com/media/HQ7BSlDbcAAmkk1.jpg)\n\n![OpenAI](https://pbs.twimg.com/profile_images/1885410181409820672/ztsaR0JW_normal.jpg)\n\nOpenAI@OpenAI\n\nWe’re ending our partnership with Cursor following its acquisition by SpaceX. Under our proposal, Cursor’s direct access to our models would end on November 12.  \n  \nWe know that the people most affected by this decision are the developers who rely on OpenAI models in Cursor. We care about their experience in this transition and we’re ready to go above and beyond to support them.  \n  \n[openai.com/index/our-deci…](https://openai.com/index/our-decision-on-cursor-following-its-acquisition-by-spacex/)\n\n[🔗 View Quoted Tweet](https://x.com/OpenAI/status/2093515564786540695)\n\n💬14🔄4❤️39👀3536📊15",
+      "tags": [],
+      "score": 0,
+      "summary": "",
+      "fetched_at": "2026-08-30T08:05:48.873345+08:00"
     }
   ]
 }
